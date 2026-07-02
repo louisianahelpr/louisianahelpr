@@ -1,0 +1,395 @@
+import { useState, useCallback } from "react";
+import { useMutation, useQueryClient, type Query } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import type { User as SupaUser } from "@supabase/supabase-js";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { errorToast } from "@/lib/toast";
+import { queryKeys } from "@/lib/queryKeys";
+import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
+import { assertWritable } from "@/hooks/useImpersonation";
+import { track, AhaEvent } from "@/lib/analytics";
+import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { requireOnline } from "@/lib/requireOnline";
+import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateLimit";
+import type { EnrichedJob } from "@/components/dashboard/types";
+import type { ApplyVars, ApplySnapshot, DashboardContextSlice } from "./dashboardTypes";
+
+type UseApplyFlowArgs = {
+  user: SupaUser | null;
+  allJobs: EnrichedJob[];
+};
+
+export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [confirmApplyJobId, setConfirmApplyJobId] = useState<string | null>(null);
+  const [applyMessage, setApplyMessage] = useState("");
+  const [applyLoading, setApplyLoading] = useState(false);
+  const [applyFiles, setApplyFiles] = useState<File[]>([]);
+  const [stakeAmount, setStakeAmount] = useState<number | null>(null);
+  // Proposed bid price — only populated for accept_bids jobs.
+  const [bidPrice, setBidPrice] = useState("");
+  // JIT verify gate — shown on first-ever Apply tap (has_applied_before=false).
+  // pendingJobIdForVerify holds the job they tapped Apply on so we can
+  // proceed once they dismiss the sheet.
+  const [jitVerifyOpen, setJitVerifyOpen] = useState(false);
+  const [pendingJobIdForVerify, setPendingJobIdForVerify] = useState<string | null>(null);
+  // Stripe Identity prompt — opened when the helper picks "Verify" on the JIT
+  // nudge. IDVPromptDialog.handleStart is what actually invokes stripe-idv-start
+  // and redirects; the nudge itself must never mark verification "submitted".
+  const [idvPromptOpen, setIdvPromptOpen] = useState(false);
+  const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
+
+  const handleApplyRequest = useCallback(async (jobId: string) => {
+    if (!requireOnline()) return;
+    // Read-only impersonation: when an admin is viewing the app as another
+    // user (?impersonate=<id>), block writes so the admin can't accidentally
+    // apply on the user's behalf. See useImpersonation.
+    if (!assertWritable()) return;
+    hapticMedium(); // confirm tap on Apply
+    if (!user) { navigate("/login"); return; }
+    const job = allJobs.find((j) => j.id === jobId);
+    if (job && job.customer_id === user.id) { toast.error("You can't apply to your own post."); return; }
+
+    // JIT verify gate: on the very first Apply tap, check whether the user
+    // has applied before. If not AND they haven't been prompted yet, show the
+    // identity-nudge sheet before proceeding. This is a soft nudge — not a
+    // hard block. If the profile columns don't exist yet (PGRST202), skip
+    // the check and proceed normally.
+    try {
+      const { data: profileSnap, error: profileErr } = await supabase
+        .from("profiles")
+        .select("has_applied_before, id_verification_status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!profileErr && profileSnap) {
+        const needsNudge =
+          !profileSnap.has_applied_before &&
+          profileSnap.id_verification_status === "unverified";
+        if (needsNudge) {
+          setPendingJobIdForVerify(jobId);
+          setJitVerifyOpen(true);
+          return;
+        }
+      }
+      // PGRST202 or any other error: fall through silently and proceed.
+    } catch {
+      // Non-fatal — fall through.
+    }
+
+    setConfirmApplyJobId(jobId);
+  }, [user, allJobs, navigate]);
+
+  // Optimistic Apply. The moment a helper hits "Apply now" we:
+  //   1) close the dialog,
+  //   2) optimistically add this job's id to `dashboardContext.appliedJobIds`
+  //      so the feed filter (`!appliedJobIds.has(j.id)`) removes the row
+  //      across every loaded page of the infinite query — the card vanishes
+  //      in the same frame as the tap (no spinner, no Stripe-style wait).
+  // The file-upload + insert run in the background; on error we restore
+  // the snapshots so the job re-appears and the user can retry.
+  const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
+    mutationFn: async ({ jobId, helperId, message, files, stakeAmt, isInstantBook, proposedPrice }) => {
+      // Server-side rate limit check (10/min, 50/hr, 200/day) BEFORE any
+      // attachment uploads — don't waste storage bandwidth on a blocked
+      // attempt. The helper falls back to "allowed" if the RPC isn't
+      // deployed yet (PGRST202), so this doesn't break apply on prod
+      // between merge and the manual supabase db push.
+      const gate = await checkApplicationRate({ applicantId: helperId });
+      if (gate.allowed === false) {
+        throw Object.assign(new Error(gate.message), { code: "RATE_LIMITED" });
+      }
+      // Upload attachments first (store storage paths; resolve signed URLs at view time).
+      const attachmentUrls: string[] = [];
+      for (const file of files) {
+        const ext = file.name.split('.').pop();
+        const path = `${helperId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("application-attachments")
+          .upload(path, file);
+        if (uploadErr) {
+          // Re-throw with a friendly file-specific message so onError can toast it.
+          throw Object.assign(new Error(`Failed to upload ${file.name}`), { code: "UPLOAD_FAILED" });
+        }
+        attachmentUrls.push(path);
+      }
+      // Try the apply_to_job RPC first (supports proposed_price for bid-mode jobs).
+      // Fall back to a direct INSERT if PGRST202 (function not yet deployed to prod).
+      // apply_to_job isn't in the generated Functions map yet (migration
+      // unapplied to prod), so we call it through a narrowly-typed wrapper
+      // documenting its exact arg/return contract instead of `as any`.
+      // MUST call as a method on `supabase` (or bind) — supabase-js `rpc`
+      // reads `this.rest` internally, so a detached `const fn = supabase.rpc`
+      // call throws "Cannot read properties of undefined (reading 'rest')".
+      const applyToJobRpc = supabase.rpc.bind(supabase) as unknown as (
+        fn: "apply_to_job",
+        args: { p_job_id: string; p_message: string | null; p_proposed_price: number | null },
+      ) => Promise<{ data: string | null; error: { code?: string; message?: string } | null }>;
+      const { data: rpcData, error: rpcError } = await applyToJobRpc("apply_to_job", {
+        p_job_id: jobId,
+        p_message: message.trim() || null,
+        p_proposed_price: proposedPrice ?? null,
+      });
+      if (rpcError) {
+        const errCode = (rpcError as { code?: string }).code;
+        if (errCode !== "PGRST202") {
+          // Rate limit errors from apply_to_job come back as PostgrestError with
+          // .message = "rate_limit_minute" / "rate_limit_hour" / "rate_limit_day".
+          // Convert them to a RATE_LIMITED throw so onError can toast the right copy.
+          const msg = (rpcError as { message?: string }).message ?? "";
+          if (msg === "rate_limit_minute") {
+            throw Object.assign(new Error("Slow down — you can apply again in a minute."), { code: "RATE_LIMITED" });
+          }
+          if (msg === "rate_limit_hour") {
+            throw Object.assign(new Error("You've applied to a lot of jobs this hour — try again in a bit."), { code: "RATE_LIMITED" });
+          }
+          if (msg === "rate_limit_day") {
+            throw Object.assign(new Error("You've hit today's application limit — check back tomorrow."), { code: "RATE_LIMITED" });
+          }
+          // Real error (duplicate, job closed, price-required, etc.) — surface it.
+          throw rpcError as Error & { code?: string };
+        }
+        // PGRST202: apply_to_job not deployed yet — fall back to direct INSERT
+        // (no proposed_price column yet; no harm, it's not on prod either).
+        const { error } = await supabase.from("applications").insert({
+          job_id: jobId,
+          helper_id: helperId,
+          message: message.trim() || null,
+          attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
+          ...(stakeAmt && stakeAmt > 0 ? { stake_amount: stakeAmt, stake_status: "staked" } : {}),
+        });
+        if (error) throw error as Error & { code?: string };
+      } else {
+        void rpcData; // UUID returned but not currently used.
+        // Patch attachment_urls onto the new row if needed (RPC doesn't handle attachments).
+        if (attachmentUrls.length > 0) {
+          await supabase.from("applications")
+            .update({ attachment_urls: attachmentUrls, ...(stakeAmt && stakeAmt > 0 ? { stake_amount: stakeAmt, stake_status: "staked" } : {}) })
+            .eq("job_id", jobId)
+            .eq("helper_id", helperId);
+        } else if (stakeAmt && stakeAmt > 0) {
+          await supabase.from("applications")
+            .update({ stake_amount: stakeAmt, stake_status: "staked" })
+            .eq("job_id", jobId)
+            .eq("helper_id", helperId);
+        }
+      }
+      // Insert succeeded — bump the rate-limit counter. Best-effort: a
+      // failed record call shouldn't surface to the user since the apply
+      // already landed. PGRST202 is silently no-op'd inside the helper.
+      void recordApplicationAttempt({ applicantId: helperId });
+
+      // Instant-book: auto-confirm immediately after applying, mirroring the
+      // direct-offer accept path (helper_confirmed_at set, no poster review).
+      // Wrapped in try/catch so a failure here (e.g. column not on prod yet)
+      // degrades gracefully — the application still lands, the job just needs
+      // manual poster acceptance. The `helper_confirmed_at` column is NOT
+      // instant_book-specific; it's the same field set in handleHelperResponse.
+      if (isInstantBook) {
+        try {
+          const confirmedAt = new Date().toISOString();
+          await supabase
+            .from("jobs")
+            .update({ helper_confirmed_at: confirmedAt, helper_id: helperId, status: "accepted" as const, response_deadline: null })
+            .eq("id", jobId);
+        } catch {
+          // Best-effort — apply still landed.
+        }
+      }
+    },
+    onMutate: async ({ jobId, helperId }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.dashboard.context(helperId) });
+      const previousContext = queryClient.getQueryData(queryKeys.dashboard.context(helperId));
+      // Optimistically widen appliedJobIds so the feed filter drops this
+      // job from every loaded page of the infinite query immediately.
+      queryClient.setQueryData<DashboardContextSlice>(queryKeys.dashboard.context(helperId), (prev) => {
+        if (!prev) return prev;
+        const nextApplied = new Set<string>(prev.appliedJobIds ?? []);
+        nextApplied.add(jobId);
+        return { ...prev, appliedJobIds: nextApplied };
+      });
+      return { previousContext, userId: helperId };
+    },
+    onError: (err, vars, context) => {
+      hapticError();
+      // Roll the appliedJobIds set back so the card re-appears in the feed.
+      if (context) {
+        queryClient.setQueryData(queryKeys.dashboard.context(context.userId), context.previousContext);
+      }
+      const code = (err as { code?: string } | null)?.code;
+      if (code === "23505") {
+        toast.error("You've already applied.");
+      } else if (code === "UPLOAD_FAILED") {
+        // Upload errors are usually a flaky-network attachment — Retry is
+        // genuinely useful here. The mutation already rolled back the
+        // appliedJobIds set, so the apply is in a clean state to re-run.
+        errorToast(err.message, {
+          onRetry: () => applyMutation.mutate(vars),
+        });
+      } else if (code === "RATE_LIMITED") {
+        // Use the warm, window-specific message from applyRateLimit.
+        // No retry — by definition the user has to wait the window out.
+        toast.error(err.message);
+      } else {
+        errorToast("Couldn't send your application through", {
+          description: "Tap retry to try again.",
+          onRetry: () => applyMutation.mutate(vars),
+        });
+      }
+    },
+    onSuccess: async (_data, vars) => {
+      hapticSuccess();
+      // First job action recorded — gates the deferred notification
+      // permission prompt (`useNotificationPermissionPrompt`). The
+      // helper is idempotent, so this is safe even on the 100th apply.
+      recordJobActionForPermissionPrompt();
+      // Funnel: track first application separately for activation analysis.
+      track(AhaEvent.JobApplied, { job_id: vars.jobId, instant_book: vars.isInstantBook ?? false });
+      // Confirm to the helper FIRST — the insert has landed, so the success
+      // toast is owed regardless of whatever analytics/reconciliation runs
+      // afterward. Previously this fired AFTER an unguarded `await` on the
+      // first-application count query below; any throw there (a transient
+      // network blip, an RLS hiccup) silently skipped the toast entirely, so
+      // the helper saw the card vanish from Browse with no confirmation and
+      // no obvious way to find the application again. Toast up front =
+      // confirmation can never be swallowed by a later best-effort call.
+      if (vars.isInstantBook) {
+        toast.success("You're booked! Check My Jobs for details.", {
+          action: { label: "View", onClick: () => navigate("/my-jobs") },
+        });
+      } else {
+        toast.success("Application sent! Track it in My Jobs.", {
+          action: { label: "View", onClick: () => navigate("/my-jobs") },
+        });
+      }
+      // First-application funnel event — strictly best-effort analytics, so
+      // it must never break (or block) the apply flow. Isolated in its own
+      // try/catch and we explicitly inspect the Supabase `error` instead of
+      // dropping it (project rule: never `const { count } = await supabase…`
+      // and silently swallow a failure).
+      try {
+        const { count, error: countError } = await supabase
+          .from("applications")
+          .select("id", { count: "exact", head: true })
+          .eq("helper_id", vars.helperId);
+        if (!countError && (count ?? 0) <= 1) {
+          track(AhaEvent.FirstJobApplication, { job_id: vars.jobId });
+        }
+      } catch {
+        // Analytics-only — a failed count must not affect the user-visible
+        // apply outcome (toast already shown, onSettled still reconciles).
+      }
+    },
+    onSettled: async (_data, _err, vars) => {
+      // Reconcile against the server now that the optimistic state has
+      // either been confirmed or rolled back. Predicate match catches
+      // ["dashboardJobs", userId], ["applications", ...], ["jobs", jobId],
+      // etc. without needing every caller to know the exact shape.
+      await queryClient.invalidateQueries({
+        predicate: (q: Query) => {
+          const k = q.queryKey?.[0];
+          return k === "dashboardJobs"
+            || k === "dashboardContext"
+            || k === "applications"
+            || k === "jobs"
+            || k === "activity";
+        },
+      });
+      void vars;
+    },
+  });
+
+  const handleApplyConfirm = useCallback(() => {
+    if (!user || !confirmApplyJobId || applyLoading) return;
+    const jobId = confirmApplyJobId;
+    const files = applyFiles;
+    const message = applyMessage;
+    // Read the instant_book flag from the job in the feed. Cast through
+    // `any` because EnrichedJob predates this column; the DB default is
+    // false so a missing key is treated the same way.
+    const isInstantBook = !!confirmApplyJob?.instant_book;
+    // Capture proposed price for bid-mode jobs (accept_bids pricing_mode).
+    const isBidJob = confirmApplyJob?.pricing_mode === "accept_bids";
+    const proposedPrice = isBidJob && bidPrice ? parseFloat(bidPrice) : null;
+    // Close the dialog + reset its state synchronously so the next paint
+    // already has the optimistic feed. The mutation continues in the
+    // background; React Query's onError rolls things back on failure.
+    setConfirmApplyJobId(null);
+    setApplyMessage("");
+    setApplyFiles([]);
+    setBidPrice("");
+    const stakeAmt = stakeAmount;
+    setStakeAmount(null);
+    // setApplyLoading flips off on settled (handled below) — we still
+    // set it true here so a fast double-tap can't enqueue twice.
+    setApplyLoading(true);
+    applyMutation.mutate(
+      { jobId, helperId: user.id, message, files, stakeAmt, isInstantBook, proposedPrice },
+      { onSettled: () => setApplyLoading(false) },
+    );
+  }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, stakeAmount, bidPrice, setBidPrice, applyMutation]);
+
+  // JIT verify handlers. Both paths (Verify + Later) flip has_applied_before
+  // so the nudge never shows again. "Later" records 'prompted' status and
+  // proceeds with the application. "Verify" opens IDVPromptDialog, which is the
+  // only thing that actually starts a Stripe Identity session — we must NOT
+  // record 'submitted' here (nothing has been submitted until Stripe returns).
+  const handleJitVerifyProceed = useCallback(async (goVerify: boolean) => {
+    setJitVerifyOpen(false);
+    const jobId = pendingJobIdForVerify;
+    // Update profile flags in the background — non-blocking. Fall back
+    // gracefully if the columns aren't in prod yet (PGRST202).
+    if (user) {
+      supabase
+        .from("profiles")
+        .update({
+          has_applied_before: true,
+          // Only the "Later" branch touches verification status. "Verify"
+          // leaves it untouched and lets stripe-idv-start (via the dialog)
+          // own the real status transition.
+          ...(goVerify ? {} : { id_verification_status: "prompted" }),
+        })
+        .eq("user_id", user.id)
+        .then(({ error }) => {
+          if (error && (error as { code?: string }).code !== "PGRST202") {
+            // Non-fatal — just observe.
+          }
+        });
+    }
+    if (goVerify) {
+      // Keep the tapped job pending — after the user returns from Stripe (or
+      // dismisses the prompt) we resume their application on that job.
+      setIdvPromptOpen(true);
+      return;
+    }
+    // "Later" — proceed with the application.
+    setPendingJobIdForVerify(null);
+    if (jobId) setConfirmApplyJobId(jobId);
+  }, [user, pendingJobIdForVerify]);
+
+  return {
+    confirmApplyJobId,
+    setConfirmApplyJobId,
+    confirmApplyJob,
+    applyMessage,
+    setApplyMessage,
+    applyLoading,
+    applyFiles,
+    setApplyFiles,
+    stakeAmount,
+    setStakeAmount,
+    bidPrice,
+    setBidPrice,
+    jitVerifyOpen,
+    pendingJobIdForVerify,
+    setPendingJobIdForVerify,
+    idvPromptOpen,
+    setIdvPromptOpen,
+    handleApplyRequest,
+    handleApplyConfirm,
+    handleJitVerifyProceed,
+  };
+}

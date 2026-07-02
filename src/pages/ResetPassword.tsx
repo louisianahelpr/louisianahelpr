@@ -73,7 +73,7 @@ const ResetPassword = () => {
   };
 
   return (
-    <AuthShell hideHeader maxWidth="sm" backTo="/login" backLabel="Back to sign in">
+    <AuthShell hideHeader maxWidth="sm" backTo="/login">
       <div className="text-center mb-8 space-y-2">
         <div className="flex justify-center mb-3">
           <HelprMark to={null} size="md" emblemOnly />

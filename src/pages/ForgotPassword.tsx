@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
-import { Mail, Loader2, CheckCircle2 } from "lucide-react";
+import { Mail, Loader2, Check } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import HelprMark from "@/components/HelprMark";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -90,7 +90,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <AuthShell hideHeader backTo="/login" backLabel="Back to sign in">
+    <AuthShell hideHeader backTo="/login">
       {!sent && (
         <div className="text-center mb-8 space-y-2">
           <div className="flex justify-center mb-3">
@@ -118,7 +118,7 @@ const ForgotPassword = () => {
           </p>
         </div>
       )}
-      <div className="liquid-glass glass-paper-mesh relative p-6 sm:p-8 space-y-5">
+      <div className="liquid-glass p-6 sm:p-8 space-y-6">
         {sent ? (
           <div className="text-center space-y-4">
             <div
@@ -146,7 +146,7 @@ const ForgotPassword = () => {
               <Button
                 variant="bark"
                 type="button"
-                className="w-full rounded-ds-md border-[hsl(66_18%_34%)] shadow-[0_1px_2px_hsl(var(--ink-deep)/0.07),0_4px_10px_hsl(var(--ink-deep)/0.08)]"
+                className="w-full rounded-ds-md"
                 onClick={handleResend}
                 disabled={loading || resendCooldown > 0}
                 style={{ opacity: resendCooldown > 0 ? 0.6 : 1 }}
@@ -195,10 +195,10 @@ const ForgotPassword = () => {
                     className="pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]"
                   />
                   {emailValid && (
-                    <CheckCircle2
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                      style={{ color: "hsl(var(--bark))" }}
-                      strokeWidth={2}
+                    <Check
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none"
+                      strokeWidth={2.5}
+                      aria-hidden
                     />
                   )}
                 </div>
@@ -211,7 +211,7 @@ const ForgotPassword = () => {
               <Button
                 variant="bark"
                 type="submit"
-                className="w-full rounded-ds-md border-[hsl(66_18%_34%)] shadow-[0_1px_2px_hsl(var(--ink-deep)/0.07),0_4px_10px_hsl(var(--ink-deep)/0.08)]"
+                className="w-full rounded-ds-md"
                 size="lg"
                 disabled={loading}
               >

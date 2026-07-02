@@ -11,8 +11,6 @@ interface AuthShellProps {
   /** Override the Back link target. Defaults to home ("/" on web,
       "/browse" on native). */
   backTo?: string;
-  /** Override the Back link label. Defaults to "Back to home" / "Back". */
-  backLabel?: string;
   /** When true, hides the Helpr·LA wordmark + eyebrow block above
       the slot. Useful when the inner card has its own headline. */
   hideHeader?: boolean;

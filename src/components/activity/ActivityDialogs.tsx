@@ -127,7 +127,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
             <DialogTitle className="font-display">Request Revision</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-ds-11 text-muted-foreground">Describe what needs to be fixed or redone. The helpr will be notified.</p>
+            <p className="text-ds-11 text-muted-foreground">Describe what needs to be fixed or redone. The Helpr will be notified.</p>
             <Textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} placeholder="Please fix…" rows={3} aria-label="Revision request details" />
           </div>
           <DialogFooter>
@@ -170,9 +170,9 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-ds-11 text-muted-foreground">Are you sure the helpr didn't show up? This will:</p>
+            <p className="text-ds-11 text-muted-foreground">Are you sure the Helpr didn't show up? This will:</p>
             <ul className="text-ds-11 text-muted-foreground space-y-1 list-disc pl-5">
-              <li>Issue a <span className="font-medium text-foreground">warning</span> to the helpr (1st offense) or a <span className="font-medium text-destructive">permanent ban</span> (2nd offense)</li>
+              <li>Issue a <span className="font-medium text-foreground">warning</span> to the Helpr (1st offense) or a <span className="font-medium text-destructive">permanent ban</span> (2nd offense)</li>
               <li>Reopen your job so you can pick another applicant</li>
               <li>Notify the admin team</li>
             </ul>
@@ -193,7 +193,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           jobDate={props.cancelDialogJob.date_needed} jobBudget={props.cancelDialogJob.budget}
           userId={props.user.id} hasHelper={!!props.cancelDialogJob.helper_id}
           helperId={props.cancelDialogJob.helper_id}
-          helperName={props.cancelDialogJob.helper_id ? (props.helperNames?.[props.cancelDialogJob.helper_id] || "the helpr") : undefined}
+          helperName={props.cancelDialogJob.helper_id ? (props.helperNames?.[props.cancelDialogJob.helper_id] || "the Helpr") : undefined}
           open={!!props.cancelDialogJob} onClose={() => props.setCancelDialogJob(null)} onCancelled={props.onRefresh}
         />
       )}

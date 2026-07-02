@@ -28,7 +28,7 @@ export const categoryTemplates: Record<string, PostingTemplate> = {
       "When do you need it done?",
     ],
     quickTips: [
-      "Adding a room count helps helprs gauge the job and apply",
+      "Adding a room count helps Helprs gauge the job and apply",
       "Mention if you have pets",
     ],
   },
@@ -57,7 +57,7 @@ export const categoryTemplates: Record<string, PostingTemplate> = {
   },
   handyman: {
     title: "Handyman help needed",
-    description: "I need a handyman for [describe the task] at my home in [neighborhood]. The job involves [brief description of what needs to be done].",
+    description: "I need a handyman for [describe the job] at my home in [neighborhood]. The job involves [brief description of what needs to be done].",
     checklist: [
       "What specifically needs to be fixed or installed?",
       "Any materials needed — do you have them or should they bring?",
@@ -130,7 +130,7 @@ export const categoryTemplates: Record<string, PostingTemplate> = {
     checklist: [
       "What's the event? (birthday, wedding, corporate, etc.)",
       "How many guests?",
-      "What tasks — setup, serving, bartending, cleanup?",
+      "What jobs — setup, serving, bartending, cleanup?",
       "Event date, start time, and expected end time",
       "Indoor or outdoor?",
     ],
@@ -138,7 +138,7 @@ export const categoryTemplates: Record<string, PostingTemplate> = {
   },
   errands: {
     title: "Errand runner needed",
-    description: "I need help running errands for me in [neighborhood/city]. Tasks include [grocery shopping / pharmacy pickup / package delivery / etc.].",
+    description: "I need help running errands for me in [neighborhood/city]. Jobs include [grocery shopping / pharmacy pickup / package delivery / etc.].",
     checklist: [
       "What errands specifically?",
       "Which stores or locations?",
@@ -149,7 +149,7 @@ export const categoryTemplates: Record<string, PostingTemplate> = {
   },
   other: {
     title: "Help needed",
-    description: "Looking for help with [describe your task] in [neighborhood]. This would involve [brief description of what needs to be done].",
+    description: "Looking for help with [describe your job] in [neighborhood]. This would involve [brief description of what needs to be done].",
     checklist: [
       "What specifically needs to be done?",
       "How long do you think it will take?",

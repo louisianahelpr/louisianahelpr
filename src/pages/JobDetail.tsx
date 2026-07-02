@@ -92,7 +92,7 @@ const JobDetail = () => {
           ) : isError ? (
             <ErrorState
               title="We couldn't load this job."
-              body="It may have been taken down, or our end is having a hiccup. Try browsing all open tasks instead."
+              body="It may have been taken down, or our end is having a hiccup. Try browsing all open jobs instead."
               onRetry={() => navigate("/jobs")}
             />
           ) : !job ? (
@@ -100,7 +100,7 @@ const JobDetail = () => {
               variant="inline"
               icon={Briefcase}
               title="This job isn't available."
-              body="It may have been filled, expired, or removed. New tasks are posted across Louisiana every day."
+              body="It may have been filled, expired, or removed. New jobs are posted across Louisiana every day."
               action={
                 <Button
                   variant="outline"

@@ -3,7 +3,7 @@ import { formatName } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { aggregateRatings } from "@/lib/reviewStats";
+import { fetchRatingStats } from "@/lib/reviewStats";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -256,13 +256,9 @@ export function useDashboardData() {
 
       // Phase 2: enrich page with poster names + review stats + subscription tier (for Search Priority).
       const posterIds = [...new Set(rawJobs.map((j) => j.customer_id))];
-      const [profilesRes, reviewsRes, posterTiersRes, countsRes] = await withTimeout(Promise.all([
+      const [profilesRes, reviewStatsMap, posterTiersRes, countsRes] = await withTimeout(Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
-        supabase
-          .from("reviews")
-          .select("reviewee_id, rating, jobs!inner(status)")
-          .in("reviewee_id", posterIds)
-          .neq("jobs.status", "cancelled"),
+        fetchRatingStats(posterIds),
         supabase
           .from("profiles")
           .select("user_id, subscription_tier, subscription_expires_at")
@@ -313,8 +309,6 @@ export function useDashboardData() {
         const expired = p.subscription_expires_at ? new Date(p.subscription_expires_at) < nowDate : false;
         posterTierMap.set(p.user_id, expired ? null : (p.subscription_tier ?? null));
       }
-
-      const reviewStatsMap = aggregateRatings(reviewsRes.data);
 
       const now = new Date();
       // Start of today (local) — a one-off job whose date has already passed

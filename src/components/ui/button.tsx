@@ -82,7 +82,7 @@ const buttonVariants = cva(
         // Ghost / link: intentionally FLAT. No elevation — these read as
         // tertiary affordances and must not compete with filled CTAs.
         ghost: "hover:bg-secondary hover:text-secondary-foreground",
-        link: "text-primary underline-offset-4 hover:underline shadow-none",
+        link: "link-standard text-primary shadow-none",
         // Hero is the marketing-page primary CTA — same family as bark/default,
         // so it gets all 4 treatments (gradient + highlight + 2-layer shadow
         // + active press), plus its existing shimmer sweep.

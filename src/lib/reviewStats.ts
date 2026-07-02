@@ -1,3 +1,27 @@
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * The single source of truth for "which reviews count toward a rating":
+ * feedback must be past its anti-retaliation reveal (`feedback_visible_at`)
+ * AND the underlying job must not be cancelled. Every rating aggregate —
+ * profile pages, feeds, applicant lists — must apply BOTH filters or the
+ * numbers diverge across surfaces. Fetches for the given reviewees and
+ * returns the aggregated per-reviewee map directly.
+ */
+export async function fetchRatingStats(
+  revieweeIds: string[],
+): Promise<Map<string, { count: number; avg: number }>> {
+  const ids = [...new Set(revieweeIds)].filter(Boolean);
+  if (ids.length === 0) return new Map();
+  const { data } = await supabase
+    .from("reviews")
+    .select("reviewee_id, rating, jobs!inner(status)")
+    .in("reviewee_id", ids)
+    .lte("feedback_visible_at", new Date().toISOString())
+    .neq("jobs.status", "cancelled");
+  return aggregateRatings(data as { reviewee_id: string; rating: number }[] | null);
+}
+
 /**
  * Aggregates raw review rows into per-reviewee rating stats.
  *

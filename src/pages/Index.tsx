@@ -32,6 +32,12 @@ import BusinessCTASection from "@/components/landing/BusinessCTASection";
 // out of the LCP path. The ticker hides itself on empty / errored
 // data, so a render-failure of the chunk degrades cleanly to nothing.
 const PayoutTicker = lazy(() => import("@/components/landing/PayoutTicker"));
+// LandingJobsStrip self-fetches open jobs (pulls in Supabase), so it MUST stay
+// lazy to keep the supabase chunk out of the Index entry / LCP path. Like the
+// ticker it hides itself on empty / errored / not-yet-deployed (PGRST202) data,
+// so a render failure degrades cleanly to nothing. Its `id="jobs"` is the
+// scroll target for the nav's "Jobs" link.
+const LandingJobsStrip = lazy(() => import("@/components/landing/LandingJobsStrip"));
 
 const SITE_URL = "https://www.louisianahelpr.com";
 
@@ -72,7 +78,7 @@ const webAppSchema = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
   name: "Helpr",
-  description: "Connect with trusted neighbors in Louisiana for everyday tasks — cleaning, yard work, moving, errands & more.",
+  description: "Connect with trusted neighbors in Louisiana for everyday jobs — cleaning, yard work, moving, errands & more.",
   url: SITE_URL,
   applicationCategory: "Marketplace",
   operatingSystem: "Web",
@@ -89,7 +95,7 @@ const faqSchema = {
       name: "What is Helpr?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Helpr is Louisiana's trusted marketplace that connects you with verified neighbors for everyday tasks like cleaning, yard work, moving, errands, and handyman jobs.",
+        text: "Helpr is Louisiana's trusted marketplace that connects you with verified neighbors for everyday jobs like cleaning, yard work, moving, errands, and handyman jobs.",
       },
     },
     {
@@ -105,7 +111,7 @@ const faqSchema = {
       name: "How much does it cost to use Helpr?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Signing up and browsing Helpr is free. You only pay when you hire a helpr, and pricing is set per job.",
+        text: "Signing up and browsing Helpr is free. You only pay when you hire a Helpr, and pricing is set per job.",
       },
     },
   ],
@@ -123,7 +129,7 @@ const Index = () => {
   usePageMeta({
     title: "Helpr — Louisiana's Local Help Marketplace | Cleaning, Moving, Errands & More",
     description:
-      "Find trusted helprs in New Orleans, Baton Rouge, Shreveport & across Louisiana for cleaning, yard work, moving, errands, and handyman tasks. Post a job in minutes.",
+      "Find trusted Helprs in New Orleans, Baton Rouge, Shreveport & across Louisiana for cleaning, yard work, moving, errands, and handyman jobs. Post a job in minutes.",
     keywords:
       "Louisiana helprs, local help, cleaning services Louisiana, yard work New Orleans, moving help Baton Rouge, errands Shreveport, handyman Lafayette, task marketplace, trusted neighbors, home services Louisiana",
     canonical: SITE_URL,
@@ -196,6 +202,15 @@ const Index = () => {
           grouped with the App Store download + category marquee. */}
 
       <HowItWorksSection />
+
+      {/* Live open-jobs strip (#62) — sits between "how it works" and the
+          reviews/FAQ so a visitor who just learned the flow immediately sees
+          real work happening. Lazy + self-hiding, so it never blocks paint
+          and never shows an empty rail on a quiet platform. */}
+      <Suspense fallback={null}>
+        <LandingJobsStrip />
+      </Suspense>
+
       <CommunityVoice />
       <BusinessCTASection />
 

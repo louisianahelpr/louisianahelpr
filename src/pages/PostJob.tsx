@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
@@ -13,16 +12,8 @@ import { CheckoutStepView } from "./postjob/CheckoutStepView";
 import { PostJobFlowStepper } from "./postjob/PostJobFlowStepper";
 
 const PostJob = () => {
-  usePageTitle("Post a Task — Helpr");
+  usePageTitle("Post a Job — Helpr");
   const form = usePostJobForm();
-  // On the desktop website the fixed left rail (DesktopSidebarNav) overlaps the
-  // left edge of this document-scroll page. App-shell pages clear it via
-  // `.app-shell-frame { left: var(--desktop-sidebar-w) }`, but this page isn't
-  // app-shell, so inset its body by the rail width here. The DashboardHeader
-  // stays full-bleed (over the rail). This also re-centers the content in the
-  // post-rail area like every other rail page, and un-hides the back button,
-  // which previously sat underneath the rail.
-  const isWebDesktop = useIsWebDesktop();
 
   // iOS keeps the focused field under the keyboard when it sits near the
   // bottom of this long document-scroll form (e.g. the logistics notes /
@@ -52,7 +43,7 @@ const PostJob = () => {
     form.step === "checkout"
       ? { eyebrow: "Almost there", title: "Order summary", meta: "Review and pay to publish" }
       : form.step === "entry"
-        ? { eyebrow: "New request", title: "Post a task", meta: "Pick how you'd like to begin." }
+        ? { eyebrow: "New request", title: "Post a job", meta: "Pick how you'd like to begin." }
         : { eyebrow: "New request", title: "What do you need done?", meta: "The more detail, the better." };
 
   return (
@@ -63,17 +54,20 @@ const PostJob = () => {
           to the rest of the app — full-width Helpr·LA wordmark on the left and
           the notification bell on the right — rather than PageHeader's
           centered, bell-less brand bar, which read as a different top nav. */}
+      {/* The rail inset is applied ONCE, globally: `#root` is padded by the
+          sidebar width for non-app-shell document pages (index.css). This page
+          must NOT re-inset itself or the content is pushed off-center by a
+          second rail-width gutter. */}
       <DashboardHeader />
-      <div style={isWebDesktop ? { paddingLeft: "var(--desktop-sidebar-w)" } : undefined}>
-        <PageHeader
-          eyebrow={header.eyebrow}
-          title={header.title}
-          meta={header.meta}
-          onBack={form.handlePostJobBack}
-        />
+      <PageHeader
+        eyebrow={header.eyebrow}
+        title={header.title}
+        meta={header.meta}
+        onBack={form.handlePostJobBack}
+      />
 
-        <main className="container mx-auto px-4 py-6">
-          <div className="max-w-lg lg:max-w-3xl mx-auto space-y-6">
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-lg lg:max-w-3xl mx-auto space-y-6">
           {/* Whole-flow progress: Entry → Details → Pay. Always visible so the
               poster knows where they are across the three-step machine — the
               in-form/in-checkout rails track only sub-progress within a step. */}
@@ -87,14 +81,13 @@ const PostJob = () => {
 
           {/* STEP 2: ORDER SUMMARY / CHECKOUT */}
           {form.step === "checkout" && <CheckoutStepView form={form} />}
-          </div>
-        </main>
+        </div>
       </div>
 
       <IDVPromptDialog
         open={form.idvDialogOpen}
         onOpenChange={form.setIdvDialogOpen}
-        reason="Helpr requires a quick ID + selfie check before you can post a job. This keeps the platform safe for the helprs you'll be hiring."
+        reason="Helpr requires a quick ID + selfie check before you can post a job. This keeps the platform safe for the Helprs you'll be hiring."
         status={form.idvStatus as never}
         failureReason={form.idvFailureReason}
       />

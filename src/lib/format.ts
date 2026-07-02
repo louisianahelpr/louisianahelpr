@@ -45,9 +45,14 @@ export function formatShortDate(date: string | Date | null | undefined): string 
 export function formatPrice(amount: number): string {
   if (!Number.isFinite(amount)) return "0";
   // Work in integer cents to avoid binary float artifacts (e.g. 85.1 →
-  // "85.10" rather than "85.099999…").
+  // "85.10" rather than "85.099999…"), then group thousands so amounts
+  // ≥ $1,000 read as "1,524" not "1524".
   const cents = Math.round(amount * 100);
-  return cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2);
+  const hasFraction = cents % 100 !== 0;
+  return (cents / 100).toLocaleString("en-US", {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: 2,
+  });
 }
 
 /**

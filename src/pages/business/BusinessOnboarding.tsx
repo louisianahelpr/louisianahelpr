@@ -204,7 +204,7 @@ const BusinessOnboarding = () => {
             return (
               <div key={s.id} className="flex flex-col items-center gap-1 flex-1 min-w-0">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
-                  done ? "bg-primary text-primary-foreground" : active ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"
+                  done ? "btn-grad-primary !text-[hsl(var(--parchment))] [&_svg]:!text-[hsl(var(--parchment))]" : active ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"
                 }`}>
                   <Icon className="w-3.5 h-3.5" />
                 </div>

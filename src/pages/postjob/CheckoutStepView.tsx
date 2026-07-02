@@ -93,6 +93,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         helprActivity={form.helprActivity}
         customerFee={form.customerFee}
         customerFeeAmount={form.customerFeeAmount}
+        onboardingFeeAmount={form.onboardingFeeAmount}
         totalCharge={form.totalCharge}
         protectionOptedIn={form.protectionOptedIn}
         setProtectionOptedIn={form.setProtectionOptedIn}
@@ -106,7 +107,6 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         uploadProgress={form.uploadProgress}
         onEdit={() => form.setStep("form")}
         onSubmit={form.handleSubmit}
-        helperFee={form.helperFee}
         isInstantBook={form.isInstantBook}
         parish={null}
         preferredHelper={preferredHelper}

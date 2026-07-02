@@ -1,6 +1,6 @@
 import { memo, useCallback, type KeyboardEvent, type TouchEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck, ShieldCheck, Gavel,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck, ShieldCheck,
 } from "lucide-react";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -374,17 +374,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 Instant
               </span>
             );
-          if (job.pricing_mode === "accept_bids")
-            return (
-              <span
-                className={corner}
-                aria-label="Open bids"
-                style={{ color: "hsl(var(--bark))", background: "hsl(var(--bark) / 0.1)", borderColor: "hsl(var(--bark) / 0.3)", letterSpacing: "0.05em" }}
-              >
-                <Gavel className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
-                Open bids
-              </span>
-            );
+          // Bid jobs are labelled by the JobPrice chip ("Open to bids") in the
+          // price slot — a corner badge here too would show the state twice.
           return null;
         })()}
         <div className="w-full px-3.5 pt-6 pb-2.5">
@@ -514,7 +505,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   className="flex items-center gap-1"
                   style={{ color: "hsl(var(--primary))" }}
                 >
-                  <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} aria-label="helprs needed" />
+                  <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} aria-label="Helprs needed" />
                   <span className="font-sans font-medium">
                     {job.helpers_needed ?? 2}
                   </span>

@@ -23,7 +23,10 @@ const StepRow = ({
         <Check className="w-3.5 h-3.5" strokeWidth={3} />
       </span>
     ) : state === "in_progress" ? (
-      <span className="w-6 h-6 rounded-full bg-amber-500/15 text-amber-600 flex items-center justify-center shrink-0">
+      <span
+        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+        style={{ background: "hsl(var(--amber-tint) / 0.15)", color: "hsl(var(--amber-ink))" }}
+      >
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
       </span>
     ) : (
@@ -43,16 +46,18 @@ const StepRow = ({
   const subTone =
     state === "done"
       ? "text-primary"
-      : state === "in_progress"
-        ? "text-amber-600"
-        : "text-muted-foreground/80";
+      : state === "pending"
+        ? "text-muted-foreground/80"
+        : "";
+  const subStyle =
+    state === "in_progress" ? { color: "hsl(var(--amber-ink))" } : undefined;
 
   return (
     <div className="flex items-center gap-3 py-1.5">
       {icon}
       <div className="flex-1 min-w-0">
         <p className={`text-ds-13 font-medium leading-tight ${tone}`}>{label}</p>
-        <p className={`text-ds-11 leading-tight ${subTone}`}>{sub}</p>
+        <p className={`text-ds-11 leading-tight ${subTone}`} style={subStyle}>{sub}</p>
       </div>
     </div>
   );
@@ -207,8 +212,11 @@ const AccountPending = () => {
         ) : !emailVerified ? (
           // ---------- Email-not-verified variant (kept compact) ----------
           <div className="w-full bg-card rounded-ds-lg p-7 flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-5">
-              <MailCheck className="w-8 h-8 text-amber-500" />
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
+              style={{ background: "hsl(var(--amber-tint) / 0.10)" }}
+            >
+              <MailCheck className="w-8 h-8" style={{ color: "hsl(var(--amber-solid))" }} />
             </div>
             <span className="text-display-eyebrow mb-2">One more step</span>
             <h1

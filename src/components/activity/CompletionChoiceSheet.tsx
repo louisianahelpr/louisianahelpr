@@ -82,7 +82,7 @@ export function CompletionChoiceSheet({
   const handleRevisionSubmit = async () => {
     if (!description.trim()) {
       hapticError();
-      toast.error("Describe what needs fixing so the helpr knows where to start");
+      toast.error("Describe what needs fixing so the Helpr knows where to start");
       return;
     }
     hapticMedium();
@@ -160,7 +160,7 @@ export function CompletionChoiceSheet({
       }
 
       hapticSuccess();
-      toast.success("Revision requested — the helpr has been notified.");
+      toast.success("Revision requested — the Helpr has been notified.");
       reset();
       onClose();
       onRevisionSubmitted();

@@ -100,11 +100,11 @@ function ChatPaneShell({ embedded, children }: { embedded: boolean; children: Re
       reserveBottomNav={false}
       className="bg-premium-page"
     >
-      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-0 flex-1 min-h-0 flex flex-col">
+      <div className="container mx-auto px-5 lg:px-8 xl:px-12 pt-0 flex-1 min-h-0 flex flex-col">
         <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col">
           {children}
         </div>
-      </main>
+      </div>
     </AppShell>
   );
 }

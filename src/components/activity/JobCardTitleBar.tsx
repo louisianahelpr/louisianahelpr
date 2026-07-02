@@ -1,5 +1,3 @@
-import { DollarSign } from "lucide-react";
-
 interface JobCardTitleBarProps {
   title: string;
   /** Pre-formatted amount string (e.g. `"42"` or `"38.50"`). */
@@ -25,7 +23,7 @@ export function JobCardTitleBar({ title, amount, amountTitle }: JobCardTitleBarP
         {title}
       </h3>
       <span
-        className="inline-flex items-center gap-0.5 font-display italic font-bold tabular-nums text-ds-13 px-2 py-0.5 rounded-full shrink-0 ml-3"
+        className="inline-flex items-baseline font-display italic font-bold tabular-nums text-ds-13 px-2 py-0.5 rounded-full shrink-0 ml-3"
         title={amountTitle}
         style={{
           background: "hsl(var(--burnt-sienna) / 0.10)",
@@ -33,7 +31,9 @@ export function JobCardTitleBar({ title, amount, amountTitle }: JobCardTitleBarP
           letterSpacing: "-0.015em",
         }}
       >
-        <DollarSign className="w-3.5 h-3.5" strokeWidth={2.25} />
+        {/* Tight text "$" pulled to the digits — matches JobPrice, the canonical
+            money element, so an amount reads identically everywhere. */}
+        <span style={{ fontSize: "0.82em", marginRight: "0.5px" }}>$</span>
         {amount}
       </span>
     </div>

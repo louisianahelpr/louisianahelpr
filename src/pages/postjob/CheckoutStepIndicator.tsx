@@ -20,14 +20,14 @@ export function CheckoutStepIndicator({ onBackToForm }: CheckoutStepIndicatorPro
   return (
     <div
       role="group"
-      aria-label="Post a task — step 2 of 2: review and pay"
+      aria-label="Post a job — step 2 of 2: review and pay"
       className="flex items-center"
     >
       {/* STEP 1 — Form (done, tappable to go back) */}
       <button
         type="button"
         onClick={onBackToForm}
-        aria-label="Go back to edit task details"
+        aria-label="Go back to edit job details"
         className="group flex min-h-[44px] items-center gap-1.5 rounded-full pr-1 transition-transform active:scale-[0.97]"
       >
         <span

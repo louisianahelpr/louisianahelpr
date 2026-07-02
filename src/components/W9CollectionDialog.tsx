@@ -87,7 +87,7 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
             <FileSignature className="w-5 h-5" /> Sign your W-9
           </DialogTitle>
           <DialogDescription>
-            This job requires a W-9 from the accepted helper. Type your full legal name to sign — we'll mail you a copy on file.
+            This job requires a W-9 from the accepted Helpr. Type your full legal name to sign — we'll mail you a copy on file.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">

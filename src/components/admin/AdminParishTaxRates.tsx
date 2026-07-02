@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { MapPin, Save, Plus, Search } from "lucide-react";
+import { Save, Plus, Search } from "lucide-react";
 import { logAdminAction } from "@/lib/adminAudit";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 
@@ -121,14 +121,9 @@ const AdminParishTaxRates = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-ds-20 font-display font-bold text-foreground flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-primary" /> Parish Tax Rates
-        </h2>
-        <p className="text-ds-11 text-muted-foreground mt-0.5">
-          Update sales tax rates per parish without touching code. Used for taxable services (cleaning, yard work, handyman, etc.).
-        </p>
-      </div>
+      <p className="text-ds-11 text-muted-foreground">
+        Update sales tax rates per parish without touching code. Used for taxable services (cleaning, yard work, handyman, etc.).
+      </p>
 
       {/* Add new parish */}
       <div className="rounded-ds-md liquid-glass p-4 space-y-3">

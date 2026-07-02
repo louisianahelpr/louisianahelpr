@@ -41,7 +41,7 @@ export function ComplianceSection() {
             Identity verification
           </p>
           <p className="text-ds-11 text-muted-foreground leading-relaxed">
-            Every helpr submits a{" "}
+            Every Helpr submits a{" "}
             <span className="font-semibold text-foreground">government-issued ID</span>{" "}
             through Stripe and is reviewed by our team before being activated on the platform.
           </p>

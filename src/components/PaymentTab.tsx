@@ -219,7 +219,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
                 className="font-serif italic leading-snug max-w-[260px]"
                 style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Post a task or complete one — your spending and earnings will show up here.
+                Post a job or complete one — your spending and earnings will show up here.
               </p>
             </div>
           ) : (

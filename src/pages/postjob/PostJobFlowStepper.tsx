@@ -30,7 +30,7 @@ export function PostJobFlowStepper({ step }: PostJobFlowStepperProps) {
   return (
     <div
       role="group"
-      aria-label={`Post a task — step ${activeIndex + 1} of ${FLOW.length}: ${FLOW[Math.max(activeIndex, 0)].label}`}
+      aria-label={`Post a job — step ${activeIndex + 1} of ${FLOW.length}: ${FLOW[Math.max(activeIndex, 0)].label}`}
       className="flex w-full items-center"
     >
       {FLOW.map((s, i) => {

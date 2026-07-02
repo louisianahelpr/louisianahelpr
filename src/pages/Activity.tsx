@@ -290,7 +290,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                     color: "hsl(var(--olivewood) / 0.8)",
                   }}
                 >
-                  {filteredCount} {filteredCount === 1 ? "task" : "tasks"}
+                  {filteredCount} {filteredCount === 1 ? "job" : "jobs"}
                   {refreshIndicator && (
                     <span aria-hidden="true">{" · "}{refreshIndicator}</span>
                   )}

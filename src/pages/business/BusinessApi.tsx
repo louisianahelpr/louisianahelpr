@@ -372,9 +372,9 @@ const BusinessApi = () => {
                         cur.includes(ev.id) ? cur.filter((x) => x !== ev.id) : [...cur, ev.id],
                       )
                     }
-                    className={`px-3 h-8 rounded-ds-sm text-ds-12 font-medium transition-colors ${
+                    className={`px-3 h-8 rounded-ds-sm text-ds-12 font-medium transition-all duration-200 ${
                       selected
-                        ? "bg-primary text-primary-foreground"
+                        ? "btn-grad-primary squircle border border-[hsl(66_24%_20%)] !text-[hsl(var(--parchment))]"
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >

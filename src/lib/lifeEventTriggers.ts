@@ -45,7 +45,7 @@ export const LIFE_EVENT_TRIGGERS: LifeEventTrigger[] = [
   {
     id: "moving_followup",
     headline: "Just moved? Time to settle in.",
-    subtext: "Unpack help, assembly, cleaning — helprs know the drill.",
+    subtext: "Unpack help, assembly, cleaning — Helprs know the drill.",
     ctaLabel: "Find moving help →",
     ctaPath: "/post-job?category=moving",
     category: "moving",

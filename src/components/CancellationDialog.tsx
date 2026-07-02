@@ -120,7 +120,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         const { error: violationErr } = await supabase.from("user_violations").insert({
           user_id: userId,
           violation_type: "cancel_with_helper",
-          description: `Cancelled job with helpr assigned: "${jobTitle}"`,
+          description: `Cancelled job with Helpr assigned: "${jobTitle}"`,
           job_id: jobId,
           action_taken: actionTaken,
         });
@@ -134,22 +134,22 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           await createNotification({
             user_id: userId,
             title: `⚠️ Cancellation Warning (${warningNum}/2)`,
-            message: `You've cancelled ${warningNum} job${warningNum > 1 ? "s" : ""} after selecting a helpr. A 3rd cancellation will result in a permanent ban.`,
+            message: `You've cancelled ${warningNum} job${warningNum > 1 ? "s" : ""} after selecting a Helpr. A 3rd cancellation will result in a permanent ban.`,
             type: "warning",
             link: "/profile",
           });
-          toast.warning(`Warning ${warningNum}/2: Cancelling after selecting a helpr is tracked. A 3rd time = permanent ban.`);
+          toast.warning(`Warning ${warningNum}/2: Cancelling after selecting a Helpr is tracked. A 3rd time = permanent ban.`);
         } else if (actionTaken === "permanent_ban") {
           const { error: banInsertErr } = await supabase.from("user_bans").insert({
             user_id: userId,
             ban_type: "permanent",
-            reason: "Cancelled 3 jobs after selecting a helpr",
+            reason: "Cancelled 3 jobs after selecting a Helpr",
             banned_by: userId,
           });
           if (banInsertErr) report(banInsertErr, { tags: { source: "CancellationDialog.recordBan" } });
           const { error: banStatusErr } = await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", userId);
           if (banStatusErr) report(banStatusErr, { tags: { source: "CancellationDialog.applyBanStatus" } });
-          toast.error("Your account has been permanently banned due to 3 cancellations after selecting a helpr.");
+          toast.error("Your account has been permanently banned due to 3 cancellations after selecting a Helpr.");
         }
 
         // Bulk-fan to admins in one INSERT instead of awaiting per row.
@@ -159,8 +159,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           const { error: notifyErr } = await supabase.from("notifications").insert(
             adminRoles.map((a: { user_id: string }) => ({
               user_id: a.user_id,
-              title: "⚠️ Cancellation with helpr",
-              message: `User cancelled "${jobTitle}" after selecting a helpr (${warningNum} total). Action: ${actionTaken}.`,
+              title: "⚠️ Cancellation with Helpr",
+              message: `User cancelled "${jobTitle}" after selecting a Helpr (${warningNum} total). Action: ${actionTaken}.`,
               type: "warning",
               link: "/admin?view=people",
               read: false,
@@ -213,7 +213,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${!hasHelper ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>1</div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <p className="text-ds-11 font-semibold text-foreground">Before a helpr is selected</p>
+                  <p className="text-ds-11 font-semibold text-foreground">Before a Helpr is selected</p>
                   {!hasHelper && <span className="text-ds-10 font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                 </div>
                 <p className="text-ds-11 text-muted-foreground mt-0.5">Cancel anytime with no fee. You&apos;ll receive a full refund.</p>
@@ -232,11 +232,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${hasHelper ? "bg-accent text-accent-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>2</div>
                 <div className="flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-ds-11 font-semibold text-foreground">After a helpr is selected</p>
+                    <p className="text-ds-11 font-semibold text-foreground">After a Helpr is selected</p>
                     {hasHelper && <span className="text-ds-10 font-bold bg-accent text-accent-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                   </div>
                   <p className="text-ds-11 text-muted-foreground mt-0.5">
-                    Cancellation fees are <strong className="text-foreground">tiered by timing</strong> to compensate the helpr for their committed time:
+                    Cancellation fees are <strong className="text-foreground">tiered by timing</strong> to compensate the Helpr for their committed time:
                   </p>
                   <ul className="text-ds-11 text-muted-foreground mt-1 space-y-0.5 list-disc list-inside">
                     <li><strong className="text-foreground">24+ hours before:</strong> 0% (free)</li>
@@ -286,7 +286,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           {/* Strike system — always visible */}
           <div className={`rounded-ds-md border p-4 space-y-3 ${hasHelper ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/20 opacity-60"}`}>
             <p className={`text-ds-11 font-semibold uppercase tracking-wide flex items-center gap-1.5 ${hasHelper ? "text-destructive" : "text-muted-foreground"}`}>
-              <ShieldAlert className="w-3.5 h-3.5" /> Strike System (applies when helpr is selected)
+              <ShieldAlert className="w-3.5 h-3.5" /> Strike System (applies when Helpr is selected)
             </p>
             <div className="space-y-2 text-ds-11 text-muted-foreground">
               <div className="flex items-start gap-2">
@@ -303,7 +303,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               </div>
             </div>
             {!hasHelper && (
-              <p className="text-ds-11 text-muted-foreground italic">✓ These consequences don&apos;t apply to you — no helpr has been selected.</p>
+              <p className="text-ds-11 text-muted-foreground italic">✓ These consequences don&apos;t apply to you — no Helpr has been selected.</p>
             )}
           </div>
 
@@ -355,14 +355,14 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                   className="font-display italic font-semibold text-ds-13"
                   style={{ color: "hsl(155 50% 30%)" }}
                 >
-                  Your helpr is protected
+                  Your Helpr is protected
                 </p>
               </div>
               <p
                 className="font-serif italic text-ds-12"
                 style={{ color: "hsl(155 40% 40%)" }}
               >
-                Since this is a last-minute cancellation, {helperName || "your helpr"} will receive a $10 Helpr credit within 24 hours — separate from any cancellation fee above.
+                Since this is a last-minute cancellation, {helperName || "your Helpr"} will receive a $10 Helpr credit within 24 hours — separate from any cancellation fee above.
               </p>
             </div>
           )}

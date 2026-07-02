@@ -356,7 +356,7 @@ export function BrowseTasksToolbar({
               letterSpacing: "-0.018em",
             }}
           >
-            {filters.hasFilters ? "Filtered Results" : "Browse Tasks"}
+            {filters.hasFilters ? "Filtered Results" : "Browse Jobs"}
           </h2>
           {/* Subtitle hidden when 0 jobs — the empty-state card
               below already says "Nothing nearby just yet" in a much
@@ -495,7 +495,7 @@ export function BrowseTasksToolbar({
               <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="search"
-                placeholder="Search tasks…"
+                placeholder="Search jobs…"
                 enterKeyHint="search"
                 inputMode="search"
                 autoComplete="off"

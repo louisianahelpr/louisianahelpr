@@ -23,7 +23,7 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 const KNOWN_FEATURE_FLAGS: { id: string; label: string; description: string }[] = [
   { id: "subscriptions_enabled", label: "Subscriptions", description: "Show the Pro / Elite subscription upsell + flows." },
   { id: "referrals_enabled", label: "Referrals", description: "Surface the referral programme in profile + invites." },
-  { id: "ai_helpr_assistant", label: "AI helpr assistant", description: "Show the AI-assisted job-post draft flow." },
+  { id: "ai_helpr_assistant", label: "AI Helpr assistant", description: "Show the AI-assisted job-post draft flow." },
   { id: "boosts_enabled", label: "Job boosts", description: "Allow posters to pay to boost their job to the top." },
   { id: "stripe_idv_required", label: "Stripe IDV required", description: "Force every helper through Stripe Identity before accepting jobs." },
 ];
@@ -295,7 +295,7 @@ const AdminSettings = () => {
         <div className="space-y-1">
           <h3 className="font-display font-semibold text-foreground">Split Fee Model</h3>
           <p className="text-ds-11 text-muted-foreground">
-            The platform earns from both sides: a service fee from customers and a platform fee from helprs.
+            The platform earns from both sides: a service fee from customers and a platform fee from Helprs.
           </p>
         </div>
         <div className="space-y-4">
@@ -315,7 +315,7 @@ const AdminSettings = () => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="helpFee">Helpr platform fee (%)</Label>
-            <p className="text-ds-11 text-muted-foreground">Deducted from the helpr's payout (e.g. 10% on a $100 job = $10 deducted)</p>
+            <p className="text-ds-11 text-muted-foreground">Deducted from the Helpr's payout (e.g. 10% on a $100 job = $10 deducted)</p>
             <Input
               id="helpFee"
               type="number"
@@ -330,7 +330,7 @@ const AdminSettings = () => {
           <div className="rounded-ds-sm bg-primary/5 p-3">
             <p className="text-ds-11 text-muted-foreground">
               <strong>Total platform take:</strong> {(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}% — 
-              On a $100 job: ${((parseFloat(customerFee) || 0)).toFixed(2)} from customer + ${((parseFloat(helperFee) || 0)).toFixed(2)} from helpr = ${((parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)).toFixed(2)} total
+              On a $100 job: ${((parseFloat(customerFee) || 0)).toFixed(2)} from customer + ${((parseFloat(helperFee) || 0)).toFixed(2)} from Helpr = ${((parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)).toFixed(2)} total
             </p>
           </div>
         </div>
@@ -482,9 +482,9 @@ const AdminSettings = () => {
       <div className="max-w-md rounded-ds-md liquid-glass p-6 space-y-3">
         <h3 className="font-semibold text-foreground">How the split fee model works</h3>
         <ul className="text-ds-11 text-muted-foreground space-y-1.5 list-disc list-inside">
-          <li>Customer pays: task budget + <strong className="text-foreground">{customerFee}%</strong> service fee + sales tax</li>
-          <li>Helpr receives: task budget − <strong className="text-foreground">{helperFee}%</strong> platform fee + urgent bonus</li>
-          <li>Platform keeps: service fee from customer + platform fee from helpr</li>
+          <li>Customer pays: job budget + <strong className="text-foreground">{customerFee}%</strong> service fee + sales tax</li>
+          <li>Helpr receives: job budget − <strong className="text-foreground">{helperFee}%</strong> platform fee + urgent bonus</li>
+          <li>Platform keeps: service fee from customer + platform fee from Helpr</li>
           <li>Total platform take: <strong className="text-foreground">{(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}%</strong></li>
         </ul>
       </div>

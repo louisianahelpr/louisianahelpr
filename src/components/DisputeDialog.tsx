@@ -271,7 +271,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               style={{ fontSize: "0.75rem", color: "hsl(var(--olivewood) / 0.85)" }}
             >
               <li>Payment is held for <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>72 hours only</strong> while admin reviews.</li>
-              <li>If unresolved in 72 hours, payment auto-releases to the helpr.</li>
+              <li>If unresolved in 72 hours, payment auto-releases to the Helpr.</li>
               <li>Evidence (photos, messages) makes your case stronger.</li>
               <li>False or frivolous disputes can lead to warnings or suspension.</li>
               <li>3+ disputes in 30 days flags your account for review.</li>

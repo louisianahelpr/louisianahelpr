@@ -115,8 +115,8 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           title="Payment & Refund Policy"
           body={
             <>
-              <p><strong className="text-foreground">Secure Payments:</strong> Payments are charged upfront via Stripe and held by the platform. The helpr is paid only after both parties confirm the job is complete. Refunds are issued for cancelled jobs (subject to the cancellation policy).</p>
-              <p><strong className="text-foreground">Auto-Release:</strong> If a job is not confirmed as complete within 72 hours after one party marks it done, payment is automatically released to the helpr.</p>
+              <p><strong className="text-foreground">Secure Payments:</strong> Payments are charged upfront via Stripe and held by the platform. The Helpr is paid only after both parties confirm the job is complete. Refunds are issued for cancelled jobs (subject to the cancellation policy).</p>
+              <p><strong className="text-foreground">Auto-Release:</strong> If a job is not confirmed as complete within 72 hours after one party marks it done, payment is automatically released to the Helpr.</p>
               <p><strong className="text-foreground">Revisions:</strong> Posters can request revisions within a 72-hour window before approving completion.</p>
               <p><strong className="text-foreground">Disputes:</strong> If a revision doesn't resolve the issue, file a formal dispute. See Dispute Resolution for the full 3-step process.</p>
             </>
@@ -128,11 +128,11 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           body={
             <>
               <p><strong className="text-foreground">Poster Service Fee:</strong> 10% added at checkout on top of the job budget.</p>
-              <p><strong className="text-foreground">Helpr Platform Fee:</strong> deducted from the helpr's payout based on plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.pro.platformFeePercent}% on Helper Pro, {TIER_PERKS.elite.platformFeePercent}% on Helpr Elite.</p>
-              <p><strong className="text-foreground">Total Platform Take:</strong> the 10% poster service fee plus the helpr's plan-based fee above.</p>
+              <p><strong className="text-foreground">Helpr Platform Fee:</strong> deducted from the Helpr's payout based on plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.pro.platformFeePercent}% on Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% on Helpr Elite.</p>
+              <p><strong className="text-foreground">Total Platform Take:</strong> the 10% poster service fee plus the Helpr's plan-based fee above.</p>
               <p><strong className="text-foreground">Urgent Job Fee:</strong> $5 fee for posters who mark a job as urgent.</p>
               <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>
-              <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the helpr — no platform fee on tips.</p>
+              <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the Helpr — no platform fee on tips.</p>
               <p><strong className="text-foreground">Sales Tax:</strong> Louisiana state and parish sales tax is collected on platform fees where applicable.</p>
             </>
           }
@@ -188,11 +188,11 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           title="Cancellation Strikes (Posters)"
           body={
             <>
-              <p className="mb-1">Cancelling a job <strong className="text-foreground">after a helpr has been selected</strong> triggers escalating penalties:</p>
+              <p className="mb-1">Cancelling a job <strong className="text-foreground">after a Helpr has been selected</strong> triggers escalating penalties:</p>
               <p>• <strong className="text-accent">1st cancellation:</strong> Written warning (Strike 1/2)</p>
               <p>• <strong className="text-accent">2nd cancellation:</strong> Final warning (Strike 2/2)</p>
               <p>• <strong className="text-destructive">3rd cancellation:</strong> Permanent account ban</p>
-              <p className="italic text-ds-11 mt-1">Cancelling jobs with no helpr assigned does not count toward strikes.</p>
+              <p className="italic text-ds-11 mt-1">Cancelling jobs with no Helpr assigned does not count toward strikes.</p>
             </>
           }
         />
@@ -215,7 +215,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           warning
           title="No-Show Policy"
           body={
-            <p>If a helpr accepts a job and fails to show up without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong> immediately. No warnings, no exceptions. The poster receives a full refund.</p>
+            <p>If a Helpr accepts a job and fails to show up without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong> immediately. No warnings, no exceptions. The poster receives a full refund.</p>
           }
         />
         <PolicyRowItem
@@ -273,8 +273,8 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           title="Job Editing Restrictions"
           body={
             <>
-              <p><strong className="text-foreground">Before helpr selected:</strong> You can freely edit job details.</p>
-              <p><strong className="text-foreground">After helpr selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
+              <p><strong className="text-foreground">Before Helpr selected:</strong> You can freely edit job details.</p>
+              <p><strong className="text-foreground">After Helpr selected:</strong> Jobs are locked and cannot be edited. Use addon requests for adjustments, or cancel and repost.</p>
             </>
           }
         />
@@ -283,19 +283,19 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           title="Dispute Resolution"
           body={
             <>
-              <p><strong className="text-foreground">Step 1 — Revision (72h):</strong> Request a revision first. The helpr has 72 hours to fix it; you then have 72 hours to accept or escalate.</p>
+              <p><strong className="text-foreground">Step 1 — Revision (72h):</strong> Request a revision first. The Helpr has 72 hours to fix it; you then have 72 hours to accept or escalate.</p>
               <p><strong className="text-foreground">Step 2 — Formal Dispute (72h):</strong> If the revision fails, file a dispute with evidence. You have a strict 72-hour window to mark resolved or escalate.</p>
               <p><strong className="text-foreground">Step 3 — Admin Review:</strong> An admin makes the final binding decision (full release, partial refund, or full refund).</p>
-              <p><strong className="text-foreground">Escrow Hold:</strong> Funds are held securely until resolution. Ignoring a 72-hour deadline auto-releases payment to the helpr.</p>
+              <p><strong className="text-foreground">Escrow Hold:</strong> Funds are held securely until resolution. Ignoring a 72-hour deadline auto-releases payment to the Helpr.</p>
             </>
           }
         />
         <PolicyRowItem
           icon={Shield}
-          title="New Helper Restrictions"
+          title="New Helpr Restrictions"
           body={
             <>
-              <p><strong className="text-foreground">Job Limit:</strong> New helprs are limited to 3 active jobs at a time until they build a track record.</p>
+              <p><strong className="text-foreground">Job Limit:</strong> New Helprs are limited to 3 active jobs at a time until they build a track record.</p>
               <p><strong className="text-foreground">Earnings Cap:</strong> Total earnings capped at $100 until 3 verified completions with a 4+ star rating.</p>
               <p><strong className="text-foreground">Response Deadlines:</strong> Helprs must respond to job offers within 1–48 hours (set by the poster).</p>
             </>

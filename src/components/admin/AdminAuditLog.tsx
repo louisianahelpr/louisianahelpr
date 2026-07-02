@@ -116,10 +116,7 @@ const AdminAuditLog = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-ds-20 font-display font-bold text-foreground flex items-center gap-2">
-          <FileText className="w-5 h-5 text-primary" /> Audit Log
-        </h2>
+      <div className="flex items-center justify-end">
         <Button variant="outline" size="sm" onClick={exportCSV} disabled={entries.length === 0}>
           <Download className="w-3 h-3 mr-1" /> Export CSV
         </Button>

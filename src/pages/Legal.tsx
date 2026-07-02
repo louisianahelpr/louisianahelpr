@@ -7,7 +7,7 @@ import {
   Wallet, Building2, Siren, ListChecks, Briefcase, Handshake,
   ShieldAlert, ShieldCheck, Search, X, type LucideIcon,
 } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import AppShell from "@/components/AppShell";
 import { isNativePlatform } from "@/lib/nativeInit";
 import BackButton from "@/components/BackButton";
@@ -175,8 +175,8 @@ const TermsContent = () => (
     <TldrCard
       items={[
         "You must be 18+. All accounts are reviewed before approval.",
-        "Helpr is a marketplace — we don't perform tasks ourselves and aren't liable for the work delivered.",
-        "Posters pay 10% on top. Helprs are paid 90% of the agreed price (10% platform fee).",
+        "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
+        "Posters pay a 10% service fee on top. Helprs keep 88–94% of the agreed price — the platform fee (6–12%) drops as their plan tier rises.",
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
         "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
@@ -205,7 +205,7 @@ const TermsContent = () => (
         title="Binding job agreements"
         body={
           <>
-            <p><strong className="text-foreground">Accepting a task or hiring a helpr creates a binding commitment</strong> to complete the work as described and release payment on satisfactory completion.</p>
+            <p><strong className="text-foreground">Accepting a job or hiring a Helpr creates a binding commitment</strong> to complete the work as described and release payment on satisfactory completion.</p>
             <p>Cancellation, revision, and dispute resolution are governed by the <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules</Link>, which form part of this agreement.</p>
           </>
         }
@@ -218,7 +218,7 @@ const TermsContent = () => (
             <p><strong className="text-foreground">Prohibited:</strong> Illegal activities, harassment, fraud, discrimination, off-platform payment solicitation, or any conduct that violates the rights of others.</p>
             <p><strong className="text-foreground">Termination:</strong> Helpr reserves the right to suspend or terminate accounts at its sole discretion. Specific behavior, strike, and ban rules are detailed in the <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules</Link>.</p>
             <p><strong className="text-foreground">Intellectual property:</strong> All content, branding, and technology are owned by Helpr. No copying, modifying, or redistributing without permission.</p>
-            <p><strong className="text-foreground">Liability:</strong> Helpr is a marketplace and is not responsible for the quality, safety, or legality of tasks performed.</p>
+            <p><strong className="text-foreground">Liability:</strong> Helpr is a marketplace and is not responsible for the quality, safety, or legality of jobs performed.</p>
           </>
         }
       />
@@ -236,7 +236,7 @@ const TermsContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Charged upfront:</strong> Payments are processed via Stripe at booking and held in escrow until both parties confirm completion.</p>
-            <p><strong className="text-foreground">Auto-release:</strong> If only one party confirms, payment auto-releases to the helpr after 72 hours.</p>
+            <p><strong className="text-foreground">Auto-release:</strong> If only one party confirms, payment auto-releases to the Helpr after 72 hours.</p>
             <p><strong className="text-foreground">Refunds:</strong> Refunds are evaluated case-by-case through the dispute process — see <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules → When something goes wrong</Link>.</p>
           </>
         }
@@ -247,8 +247,8 @@ const TermsContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Poster service fee:</strong> 10% added at checkout.</p>
-            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.pro.platformFeePercent}% Helper Pro, {TIER_PERKS.elite.platformFeePercent}% Helpr Elite.</p>
-            <p><strong className="text-foreground">Total platform take:</strong> the 10% poster service fee plus the helpr's plan-based fee.</p>
+            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.pro.platformFeePercent}% Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% Helpr Elite, {TIER_PERKS.business.platformFeePercent}% Business.</p>
+            <p><strong className="text-foreground">Total platform take:</strong> the 10% poster service fee plus the Helpr's plan-based fee.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> $5 for priority placement.</p>
           </>
         }
@@ -291,7 +291,7 @@ const TermsContent = () => (
     <PolicySection
       icon={Crown}
       title="Subscription tiers"
-      subtitle="Free, Helper Pro, Helpr Elite, and Business plans"
+      subtitle="Free, Helpr Pro, Helpr Elite, and Business plans"
       anchorId="subscription-tiers"
     >
       <PolicyRowItem
@@ -320,17 +320,17 @@ const TermsContent = () => (
         title="Helpr is only the marketplace"
         body={
           <>
-            <p><strong className="text-foreground">We connect people — we don't do the work.</strong> Helpr provides the platform that lets posters and helprs find each other. We do not perform, supervise, direct, inspect, schedule, or control any task.</p>
+            <p><strong className="text-foreground">We connect people — we don't do the work.</strong> Helpr provides the platform that lets posters and Helprs find each other. We do not perform, supervise, direct, inspect, schedule, or control any job.</p>
             <p>Every job is a <strong className="text-foreground">direct agreement between the two users.</strong> Helpr is not a party to that agreement, is not your employer or agent, and does not act on your behalf.</p>
           </>
         }
       />
       <PolicyRowItem
         icon={AlertTriangle}
-        title="No liability for what happens during a task"
+        title="No liability for what happens during a job"
         body={
           <>
-            <p><strong className="text-foreground">To the fullest extent permitted by law, Helpr is not responsible or liable</strong> for any loss, theft, or damage to property, or for any personal injury, illness, death, or other harm, arising out of or related to a task, a user's conduct, or anything that happens before, during, or after a job — whether at the job site or anywhere else.</p>
+            <p><strong className="text-foreground">To the fullest extent permitted by law, Helpr is not responsible or liable</strong> for any loss, theft, or damage to property, or for any personal injury, illness, death, or other harm, arising out of or related to a job, a user's conduct, or anything that happens before, during, or after a job — whether at the job site or anywhere else.</p>
             <p>This includes the acts, omissions, honesty, qualifications, or safety of any other user. <strong className="text-foreground">You meet and deal with other users at your own risk.</strong></p>
           </>
         }
@@ -341,7 +341,7 @@ const TermsContent = () => (
         body={
           <>
             <p><strong className="text-foreground">The platform and all services are provided "as is" and "as available,"</strong> without warranties of any kind, express or implied.</p>
-            <p>We do not guarantee the quality, safety, legality, honesty, or qualifications of any user, task, listing, or outcome, and we do not guarantee that any verification, rating, or background information is accurate or complete.</p>
+            <p>We do not guarantee the quality, safety, legality, honesty, or qualifications of any user, job, listing, or outcome, and we do not guarantee that any verification, rating, or background information is accurate or complete.</p>
           </>
         }
       />
@@ -369,7 +369,7 @@ const TermsContent = () => (
         icon={ShieldCheck}
         title="Indemnification"
         body={
-          <p>You agree to <strong className="text-foreground">defend, indemnify, and hold Helpr harmless</strong> from any claims, losses, liabilities, and expenses (including reasonable attorneys' fees) arising from your tasks, your conduct, your content, your violation of these Terms, or your violation of any law or the rights of another person.</p>
+          <p>You agree to <strong className="text-foreground">defend, indemnify, and hold Helpr harmless</strong> from any claims, losses, liabilities, and expenses (including reasonable attorneys' fees) arising from your jobs, your conduct, your content, your violation of these Terms, or your violation of any law or the rights of another person.</p>
         }
       />
       <PolicyRowItem
@@ -377,7 +377,7 @@ const TermsContent = () => (
         title="No insurance; disputes between users"
         body={
           <>
-            <p><strong className="text-foreground">Helpr does not provide insurance</strong> for posters or helprs. Any protection or guarantee program we may offer is governed by its own separate terms.</p>
+            <p><strong className="text-foreground">Helpr does not provide insurance</strong> for posters or Helprs. Any protection or guarantee program we may offer is governed by its own separate terms.</p>
             <p>Disputes between users are handled through the dispute process in the <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules</Link>. Helpr's role is limited to facilitating that process and is not a guarantor of any outcome.</p>
           </>
         }
@@ -387,7 +387,7 @@ const TermsContent = () => (
     <PolicySection
       icon={Receipt}
       title="Tax responsibilities"
-      subtitle="Platform, posters, and helprs"
+      subtitle="Platform, posters, and Helprs"
       anchorId="tax-responsibilities"
     >
       <PolicyRowItem
@@ -468,20 +468,20 @@ const CommunityContent = () => (
       />
       <PolicyRowItem
         icon={CheckCircle}
-        title="Editing — before a helpr is selected"
+        title="Editing — before a Helpr is selected"
         body={<p>Freely edit title, description, budget, date, and other details.</p>}
       />
       <PolicyRowItem
         icon={XCircle}
-        title="Editing — after a helpr is selected"
-        body={<p>Jobs cannot be edited once a helpr accepts. This protects helprs from unexpected scope or budget changes. If adjustments are needed, cancel and repost.</p>}
+        title="Editing — after a Helpr is selected"
+        body={<p>Jobs cannot be edited once a Helpr accepts. This protects Helprs from unexpected scope or budget changes. If adjustments are needed, cancel and repost.</p>}
       />
       <PolicyRowItem
         icon={AlertTriangle}
-        title="New helpr account limits"
+        title="New Helpr account limits"
         body={
           <>
-            <p>New helpr accounts are limited to:</p>
+            <p>New Helpr accounts are limited to:</p>
             <p>• Max <strong className="text-foreground">3 active jobs</strong> at a time</p>
             <p>• Max <strong className="text-foreground">$100 in total earnings</strong></p>
             <p>Lifted after <strong className="text-foreground">3 verified completions with a 4+ star rating</strong>.</p>
@@ -500,12 +500,12 @@ const CommunityContent = () => (
       <PolicyRowItem
         icon={CheckCircle}
         title="24+ hours before job — free cancellation"
-        body={<p>No fee charged. The helpr can fill the slot.</p>}
+        body={<p>No fee charged. The Helpr can fill the slot.</p>}
       />
       <PolicyRowItem
         icon={AlertTriangle}
         title="Less than 24 hours before — 25% fee"
-        body={<p><strong className="text-foreground">25% cancellation fee</strong> applied. The helpr has already committed their time.</p>}
+        body={<p><strong className="text-foreground">25% cancellation fee</strong> applied. The Helpr has already committed their time.</p>}
       />
       <PolicyRowItem
         icon={XCircle}
@@ -517,7 +517,7 @@ const CommunityContent = () => (
         icon={Ban}
         title="No-show — instant permanent ban"
         body={
-          <p>If a helpr accepts a job and fails to show without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong>. The poster receives a full refund. <strong className="text-foreground">Even a late cancellation is better than a no-show.</strong></p>
+          <p>If a Helpr accepts a job and fails to show without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong>. The poster receives a full refund. <strong className="text-foreground">Even a late cancellation is better than a no-show.</strong></p>
         }
         warning
       />
@@ -540,7 +540,7 @@ const CommunityContent = () => (
       <PolicyRowItem
         icon={CheckCircle}
         title="Mutual confirmation = instant release"
-        body={<p>When both poster and helpr confirm completion, payment releases immediately.</p>}
+        body={<p>When both poster and Helpr confirm completion, payment releases immediately.</p>}
       />
       <PolicyRowItem
         icon={Clock}
@@ -550,7 +550,7 @@ const CommunityContent = () => (
       <PolicyRowItem
         icon={CheckCircle}
         title="Auto-release after 72 hours"
-        body={<p>If neither confirmation nor revision is received within 72 hours, payment is automatically released to the helpr.</p>}
+        body={<p>If neither confirmation nor revision is received within 72 hours, payment is automatically released to the Helpr.</p>}
       />
       <PolicyRowItem
         icon={FileText}
@@ -595,7 +595,7 @@ const CommunityContent = () => (
               <li>Photo evidence or documentation</li>
               <li>Description of what went wrong</li>
             </ul>
-            <p className="pt-1">Then you have 72h to either Mark Resolved, Escalate to Admin, or do nothing (auto-releases to helpr).</p>
+            <p className="pt-1">Then you have 72h to either Mark Resolved, Escalate to Admin, or do nothing (auto-releases to Helpr).</p>
           </>
         }
       />
@@ -634,13 +634,13 @@ const CommunityContent = () => (
             <li><strong className="text-foreground">1st strike:</strong> Written warning recorded; admins notified.</li>
             <li><strong className="text-foreground">2nd strike:</strong> Final warning. One more = permanent ban.</li>
             <li><strong className="text-foreground">3rd strike:</strong> Permanent ban. Final, no appeal.</li>
-            <li>Cancelling a job <em>before</em> a helpr is assigned does <strong>not</strong> count toward strikes (timing-based fees still apply).</li>
+            <li>Cancelling a job <em>before</em> a Helpr is assigned does <strong>not</strong> count toward strikes (timing-based fees still apply).</li>
           </ul>
         }
       />
       <PolicyRowItem
         icon={AlertTriangle}
-        title="Job-denial strikes (helprs)"
+        title="Job-denial strikes (Helprs)"
         body={
           <ul className="list-disc pl-4 space-y-0.5">
             <li><strong className="text-foreground">1st strike:</strong> Written warning. Only apply to jobs you can commit to.</li>
@@ -752,41 +752,6 @@ const CommunityContent = () => (
 /* ───────────────────────  PRIVACY  ─────────────────────── */
 const PrivacyContent = () => (
   <div className="space-y-3">
-    {/* "We never sell your data" promoted to a top-of-tab callout —
-        it's the single highest-trust question users have about a
-        marketplace handling their ID + location, so it earns its own
-        surface above the TLDR rather than sitting as bullet #3. */}
-    <HideOnSearch>
-      <div
-        className="rounded-2xl p-4 flex items-start gap-3"
-        style={{
-          background: "hsl(var(--bark) / 0.08)",
-          border: "1px solid hsl(var(--bark) / 0.30)",
-          boxShadow:
-            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-            "0 6px 14px -6px hsl(var(--bark) / 0.22)",
-        }}
-      >
-        <div
-          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: "hsl(var(--bark) / 0.15)", color: "hsl(var(--bark))" }}
-        >
-          <ShieldCheck className="w-4 h-4" strokeWidth={2.25} />
-        </div>
-        <div className="min-w-0">
-          <p
-            className="font-display italic font-bold leading-tight"
-            style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
-          >
-            We never sell your data.
-          </p>
-          <p className="font-serif italic mt-1 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Other users only see your first name, photo, and ratings. ID documents stay encrypted and are accessed only during verification.
-          </p>
-        </div>
-      </div>
-    </HideOnSearch>
-
     <TldrCard
       items={[
         "We collect only what we need to match jobs and process payments — name, email, phone, ID, location, usage data.",
@@ -842,7 +807,7 @@ const PrivacyContent = () => (
       <PolicyRowItem
         icon={Eye}
         title="Service delivery"
-        body={<p>To match you with tasks, process payments, and facilitate communication between customers and helprs.</p>}
+        body={<p>To match you with jobs, process payments, and facilitate communication between customers and Helprs.</p>}
       />
       <PolicyRowItem
         icon={Shield}
@@ -971,6 +936,37 @@ const PrivacyContent = () => (
     </PolicySection>
 
     <HideOnSearch>
+      <div
+        className="rounded-2xl p-4 flex items-start gap-3"
+        style={{
+          background: "hsl(var(--bark) / 0.08)",
+          border: "1px solid hsl(var(--bark) / 0.30)",
+          boxShadow:
+            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
+            "0 6px 14px -6px hsl(var(--bark) / 0.22)",
+        }}
+      >
+        <div
+          className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+          style={{ background: "hsl(var(--bark) / 0.15)", color: "hsl(var(--bark))" }}
+        >
+          <ShieldCheck className="w-4 h-4" strokeWidth={2.25} />
+        </div>
+        <div className="min-w-0">
+          <p
+            className="font-display italic font-bold leading-tight"
+            style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+          >
+            We never sell your data.
+          </p>
+          <p className="font-serif italic mt-1 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Other users only see your first name, photo, and ratings. ID documents stay encrypted and are accessed only during verification.
+          </p>
+        </div>
+      </div>
+    </HideOnSearch>
+
+    <HideOnSearch>
       <PolicyFooter updated={LAST_UPDATED.privacy} />
     </HideOnSearch>
   </div>
@@ -1062,27 +1058,17 @@ const Legal = () => {
   const headerRow = (
     <div className="flex items-center gap-3">
       <div data-print-hide className="shrink-0"><BackButton /></div>
-      <div
-        aria-hidden
-        className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
-        style={{
-          background: "hsl(var(--bark))",
-          color: "hsl(var(--parchment))",
-          boxShadow: "0 8px 20px -8px hsl(var(--bark) / 0.5)",
-        }}
-      >
-        <Scale className="w-5 h-5" strokeWidth={1.75} />
-      </div>
-      <div className="flex flex-col leading-none min-w-0">
-        <span className="text-display-eyebrow">Compliance &amp; disclosures</span>
-        <h1
-          className="font-display italic font-bold leading-tight mt-1 text-balance"
+      <div className="flex flex-col leading-none min-w-0 mb-1">
+        <span
+          className="font-serif italic uppercase text-[0.62rem]"
           style={{
-            fontSize: "clamp(1.6rem, 2.5vw + 0.5rem, 2.1rem)",
-            color: "hsl(var(--ink-deep))",
-            letterSpacing: "-0.025em",
+            color: "hsl(var(--burnt-sienna) / 0.78)",
+            letterSpacing: "0.18em",
           }}
         >
+          Compliance &amp; disclosures
+        </span>
+        <h1 className="text-page-title leading-tight mt-1 text-balance">
           Legal
         </h1>
       </div>
@@ -1116,13 +1102,13 @@ const Legal = () => {
               <motion.span
                 layoutId="legalTabPill"
                 transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
-                className="absolute inset-0 rounded-ds-md"
+                className="absolute inset-0 rounded-ds-md btn-grad-primary"
                 style={{
-                  // Match the app's primary bark CTA (button.tsx `bark`
-                  // variant) so the selected tab reads as a primary button:
-                  // same 3-stop gradient + border + ELEV_FILLED depth.
-                  background:
-                    "linear-gradient(180deg, hsl(74 19% 41%) 0%, hsl(var(--bark)) 50%, hsl(66 23% 23%) 100%)",
+                  // Reference the shared primary-CTA surface (`.btn-grad-primary`,
+                  // the same radial-gloss treatment the "Get started"/bark CTAs
+                  // use) so the selected tab reads as a primary button and can
+                  // never drift from the canonical gradient. Border + ELEV_FILLED
+                  // depth layered on top.
                   border: "1px solid hsl(66 24% 20%)",
                   boxShadow:
                     "inset 0 1px 0 hsl(var(--parchment) / 0.22), " +
@@ -1276,16 +1262,17 @@ const Legal = () => {
     );
   }
 
-  // WEB: long-form document scroll (SEO). Marketing Navbar at top, tab band
-  // sticks just below it.
+  // WEB: long-form document scroll (SEO). Rendered inside the shared marketing
+  // chrome (PublicLayout → Navbar + Footer + page-warmth/mesh-gradient
+  // background) so /legal matches every other public page instead of drifting
+  // on its own bg-premium-page surface. PublicLayout supplies the nav spacer,
+  // so we drop the manual navbar top-padding; the tab band still pins to the
+  // viewport top on scroll (the marketing Navbar scrolls away with the Framer
+  // page-transition wrapper — see webBandStickyTop note above).
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <Navbar />
+    <PublicLayout showCtaBand={false}>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <main
-          className="container mx-auto px-5 pb-8"
-          style={{ paddingTop: "calc(3.5rem + env(safe-area-inset-top, 0px) + 1rem)" }}
-        >
+        <div className="container mx-auto px-5 pb-8 pt-1">
           <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
             {headerRow}
             <div
@@ -1300,9 +1287,9 @@ const Legal = () => {
             </div>
             {body}
           </div>
-        </main>
+        </div>
       </Tabs>
-    </div>
+    </PublicLayout>
   );
 };
 

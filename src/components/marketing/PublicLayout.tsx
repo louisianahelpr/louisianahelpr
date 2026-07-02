@@ -8,18 +8,17 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 
 /**
  * PublicLayout — shared chrome for the public marketing / SEO surface
- * (landing, /jobs, /for-business, /enterprise,
- * /how-it-works, /help, /discharge, /parishes, /parish/:slug,
- * /insurance-claim).
+ * (landing, /jobs, /for-business, /how-it-works, /help,
+ * /discharge, /insurance-claim).
  *
- * Gives every marketing page ONE consistent nav (the shared <Navbar>),
- * ONE footer (<Footer>), and a consistent "ready to start?" CTA band above
- * the footer. The page's own content renders as {children} between the nav
- * spacer and the CTA band — these pages stay document-scroll
+ * Gives every marketing page ONE consistent nav (the shared <Navbar>) and
+ * ONE footer (<Footer>). The page's own content renders as {children}
+ * between the nav spacer and the footer — these pages stay document-scroll
  * (`min-h-screen` / `bg-premium-page`), never AppShell.
  *
- * Pages opt out of the CTA band (showCtaBand={false}) when they already end
- * in their own bespoke conversion CTA, so there's never a stacked pair.
+ * The shared "ready to start?" CTA band is OFF by default — it read as
+ * repetitive stacked above the footer on every page. A page opts IN
+ * (showCtaBand) only when it wants that band as its sole conversion CTA.
  */
 interface PublicLayoutProps {
   children: ReactNode;
@@ -43,7 +42,7 @@ interface PublicLayoutProps {
 
 const PublicLayout = ({
   children,
-  showCtaBand = true,
+  showCtaBand = false,
   ctaHeadline = "Ready to start?",
   ctaSubcopy = "Join your Louisiana neighbors getting things done on Helpr.",
   ctaLabel = "Get started",
@@ -60,7 +59,11 @@ const PublicLayout = ({
       {/* Global mesh behind every section — matches the landing surface. */}
       <div aria-hidden className="mesh-gradient-global" />
 
-      <Navbar />
+      {/* Interior pages (with a nav spacer) keep the Heritage Gold hairline
+          from the top so the nav has a visible bottom edge against the page
+          surface. The landing hero (noNavSpacer) stays transparent until
+          scroll so it can float over the photo. */}
+      <Navbar solid={!noNavSpacer} />
       {/* Spacer clears the fixed Navbar (h-12 + safe-area top inset). The
           landing hero opts out (noNavSpacer) so it flows under the nav. */}
       {!noNavSpacer && (
@@ -70,7 +73,7 @@ const PublicLayout = ({
         />
       )}
 
-      <main className="flex-1">{children}</main>
+      <div className="flex-1">{children}</div>
 
       {showCtaBand && (
         <section

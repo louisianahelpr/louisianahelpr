@@ -52,7 +52,7 @@ export function YourHelpersRow() {
           className="font-serif italic uppercase tracking-[0.18em]"
           style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)" }}
         >
-          Your helprs
+          Your Helprs
         </span>
         <button
           type="button"

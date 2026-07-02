@@ -79,7 +79,7 @@ const AdminParishActivity = () => {
               <div className="flex-1 min-w-0">
                 <p className="text-ds-13 font-medium text-foreground truncate">{r.parish}</p>
                 <p className="text-ds-11 text-muted-foreground">
-                  {r.active_jobs} active · {r.helper_count} helprs
+                  {r.active_jobs} active · {r.helper_count} Helprs
                 </p>
               </div>
               <div className="text-right">

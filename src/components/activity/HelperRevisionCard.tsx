@@ -105,7 +105,7 @@ export function HelperRevisionCard({
         await createNotification({
           user_id: posterId,
           title: "Helpr acknowledged the revision",
-          message: "Your helpr has seen your revision request and will fix it. Payment stays held until you confirm.",
+          message: "Your Helpr has seen your revision request and will fix it. Payment stays held until you confirm.",
           type: "info",
           link: `/my-posts?filter=revision_requested`,
         });

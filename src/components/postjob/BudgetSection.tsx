@@ -190,7 +190,13 @@ export function BudgetSection({
 
           {/* Lowball warning */}
           {showLowballWarning && (
-            <div className="flex items-center gap-2 rounded-ds-md px-3 py-2 bg-amber-500/10 border border-amber-500/30">
+            <div
+              className="flex items-center gap-2 rounded-ds-md px-3 py-2 border"
+              style={{
+                background: "hsl(var(--amber-tint) / 0.10)",
+                borderColor: "hsl(var(--amber-tint) / 0.30)",
+              }}
+            >
               <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
                 Jobs under ${lowballFloor} rarely get applicants
               </p>
@@ -399,7 +405,7 @@ export function BudgetSection({
         {isUrgent && (
           <div className="space-y-3">
             <p className="text-ds-11 text-muted-foreground">
-              ⚡ Your job will be highlighted and nearby helprs notified immediately. The urgent bonus goes directly to the helpr — no platform fee applied.
+              ⚡ Your job will be highlighted and nearby Helprs notified immediately. The urgent bonus goes directly to the Helpr — no platform fee applied.
             </p>
             <Label className="text-ds-11">Urgent bonus ($5 minimum)</Label>
             <div className="flex flex-wrap gap-2">
@@ -449,7 +455,13 @@ export function BudgetSection({
               </div>
             )}
             {showUrgentMinWarning && (
-              <div className="flex items-center gap-2 rounded-ds-md px-3 py-2 bg-amber-500/10 border border-amber-500/30">
+              <div
+                className="flex items-center gap-2 rounded-ds-md px-3 py-2 border"
+                style={{
+                  background: "hsl(var(--amber-tint) / 0.10)",
+                  borderColor: "hsl(var(--amber-tint) / 0.30)",
+                }}
+              >
                 <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
                   Urgent bonus must be at least $5
                 </p>

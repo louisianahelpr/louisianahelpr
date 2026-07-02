@@ -29,6 +29,7 @@ const BrowseMap = lazy(() =>
 const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
+import { fetchRatingStats } from "@/lib/reviewStats";
 import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -64,7 +65,7 @@ const DashboardGuest = () => {
     description: "See what your Louisiana neighbors need help with right now. No account needed to look.",
     canonical: "https://www.louisianahelpr.com/browse",
     ogTitle: "Browse Local Jobs — Helpr",
-    ogDescription: "Browse open tasks across Louisiana — cleaning, yard work, moving, errands, and more. No signup required to look.",
+    ogDescription: "Browse open jobs across Louisiana — cleaning, yard work, moving, errands, and more. No signup required to look.",
     geoRegion: "US-LA",
     geoPlacename: "Louisiana",
   });
@@ -92,13 +93,9 @@ const DashboardGuest = () => {
       // Enrich with poster names + review stats so guests see the same
       // social-proof signals (avg rating, review count) authenticated users do.
       const posterIds = [...new Set(rows.map((j) => j.customer_id))];
-      const [profilesRes, reviewsRes] = await Promise.all([
+      const [profilesRes, reviewStatsMap] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
-        supabase
-          .from("reviews")
-          .select("reviewee_id, rating, jobs!inner(status)")
-          .in("reviewee_id", posterIds)
-          .neq("jobs.status", "cancelled"),
+        fetchRatingStats(posterIds),
       ]);
 
       const nameMap = new Map(
@@ -107,16 +104,6 @@ const DashboardGuest = () => {
       const avatarMap = new Map<string, string | null>(
         profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || [],
       );
-      const reviewStatsMap = new Map<string, { count: number; avg: number }>();
-      for (const r of reviewsRes.data ?? []) {
-        const existing = reviewStatsMap.get(r.reviewee_id);
-        if (existing) {
-          existing.count += 1;
-          existing.avg = (existing.avg * (existing.count - 1) + r.rating) / existing.count;
-        } else {
-          reviewStatsMap.set(r.reviewee_id, { count: 1, avg: r.rating });
-        }
-      }
 
       const now = new Date();
       return rows
@@ -371,7 +358,7 @@ const DashboardGuest = () => {
                       title={
                         filters.hasFilters
                           ? nearbyActive
-                            ? `No tasks within ${currentMiles} mi of you.`
+                            ? `No jobs within ${currentMiles} mi of you.`
                             : "No jobs match your filters."
                           : "Nothing today, neighbor."
                       }
@@ -398,7 +385,7 @@ const DashboardGuest = () => {
                                 onClick={() => filters.setLocationFilter("")}
                                 className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
                               >
-                                Browse all parishes
+                                Show all locations
                               </button>
                             </div>
                           ) : (

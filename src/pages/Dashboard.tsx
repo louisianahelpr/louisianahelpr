@@ -38,6 +38,7 @@ const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 const JitVerifySheet = lazy(() => import("@/components/dashboard/JitVerifySheet").then(m => ({ default: m.JitVerifySheet })));
+const IDVPromptDialog = lazy(() => import("@/components/IDVPromptDialog").then(m => ({ default: m.IDVPromptDialog })));
 const WelcomeModal = lazy(() => import("@/components/dashboard/WelcomeModal"));
 // Map column for the web-desktop two-pane (leaflet is heavy — lazy so the
 // phone/native feed never pays for it).
@@ -224,6 +225,10 @@ const Dashboard = () => {
   // proceed once they dismiss the sheet.
   const [jitVerifyOpen, setJitVerifyOpen] = useState(false);
   const [pendingJobIdForVerify, setPendingJobIdForVerify] = useState<string | null>(null);
+  // Stripe Identity prompt — opened when the helper picks "Verify" on the JIT
+  // nudge. IDVPromptDialog.handleStart is what actually invokes stripe-idv-start
+  // and redirects; the nudge itself must never mark verification "submitted".
+  const [idvPromptOpen, setIdvPromptOpen] = useState(false);
   const [payoutSetupDialogOpen, setPayoutSetupDialogOpen] = useState(false);
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
@@ -520,7 +525,10 @@ const Dashboard = () => {
       // apply_to_job isn't in the generated Functions map yet (migration
       // unapplied to prod), so we call it through a narrowly-typed wrapper
       // documenting its exact arg/return contract instead of `as any`.
-      const applyToJobRpc = supabase.rpc as unknown as (
+      // MUST call as a method on `supabase` (or bind) — supabase-js `rpc`
+      // reads `this.rest` internally, so a detached `const fn = supabase.rpc`
+      // call throws "Cannot read properties of undefined (reading 'rest')".
+      const applyToJobRpc = supabase.rpc.bind(supabase) as unknown as (
         fn: "apply_to_job",
         args: { p_job_id: string; p_message: string | null; p_proposed_price: number | null },
       ) => Promise<{ data: string | null; error: { code?: string; message?: string } | null }>;
@@ -729,12 +737,13 @@ const Dashboard = () => {
   }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, stakeAmount, bidPrice, setBidPrice, applyMutation]);
 
   // JIT verify handlers. Both paths (Verify + Later) flip has_applied_before
-  // so the nudge never shows again. "Later" also records 'prompted' status
-  // so we know the user saw the sheet, then proceeds with the application.
+  // so the nudge never shows again. "Later" records 'prompted' status and
+  // proceeds with the application. "Verify" opens IDVPromptDialog, which is the
+  // only thing that actually starts a Stripe Identity session — we must NOT
+  // record 'submitted' here (nothing has been submitted until Stripe returns).
   const handleJitVerifyProceed = useCallback(async (goVerify: boolean) => {
     setJitVerifyOpen(false);
     const jobId = pendingJobIdForVerify;
-    setPendingJobIdForVerify(null);
     // Update profile flags in the background — non-blocking. Fall back
     // gracefully if the columns aren't in prod yet (PGRST202).
     if (user) {
@@ -742,7 +751,10 @@ const Dashboard = () => {
         .from("profiles")
         .update({
           has_applied_before: true,
-          id_verification_status: goVerify ? "submitted" : "prompted",
+          // Only the "Later" branch touches verification status. "Verify"
+          // leaves it untouched and lets stripe-idv-start (via the dialog)
+          // own the real status transition.
+          ...(goVerify ? {} : { id_verification_status: "prompted" }),
         })
         .eq("user_id", user.id)
         .then(({ error }) => {
@@ -752,12 +764,15 @@ const Dashboard = () => {
         });
     }
     if (goVerify) {
-      navigate("/profile");
+      // Keep the tapped job pending — after the user returns from Stripe (or
+      // dismisses the prompt) we resume their application on that job.
+      setIdvPromptOpen(true);
       return;
     }
     // "Later" — proceed with the application.
+    setPendingJobIdForVerify(null);
     if (jobId) setConfirmApplyJobId(jobId);
-  }, [user, pendingJobIdForVerify, navigate]);
+  }, [user, pendingJobIdForVerify]);
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);
@@ -1160,6 +1175,29 @@ const Dashboard = () => {
             open={jitVerifyOpen}
             onVerify={() => handleJitVerifyProceed(true)}
             onLater={() => handleJitVerifyProceed(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* Stripe Identity prompt — launched from the JIT nudge's "Verify" path.
+          handleStart invokes stripe-idv-start and redirects in-place. If the
+          user launches Stripe, the page navigates away. If they back out
+          ("Not now"), resume the application they originally tapped Apply on so
+          the nudge is never a dead-end. */}
+      {idvPromptOpen && (
+        <Suspense fallback={null}>
+          <IDVPromptDialog
+            open={idvPromptOpen}
+            onOpenChange={(v) => {
+              if (v) return;
+              setIdvPromptOpen(false);
+              // Dismissed without launching Stripe — proceed with the pending
+              // application (onLaunched navigates away, so it won't reach here).
+              const jobId = pendingJobIdForVerify;
+              setPendingJobIdForVerify(null);
+              if (jobId) setConfirmApplyJobId(jobId);
+            }}
+            reason="Helpr requires a quick ID + selfie check before your first application. This protects posters and keeps the platform safe."
           />
         </Suspense>
       )}

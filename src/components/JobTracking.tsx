@@ -290,7 +290,7 @@ export function JobTracking({
         await createNotification({
           user_id: job.customer_id,
           title: `Helpr is ${statusLabel}`,
-          message: `Your helpr updated their status to "${statusLabel}" for "${job.title}".`,
+          message: `Your Helpr updated their status to "${statusLabel}" for "${job.title}".`,
           type: "info",
           link: `/my-posts?filter=in_progress`,
         });

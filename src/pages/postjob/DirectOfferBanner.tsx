@@ -18,10 +18,10 @@ export function DirectOfferBanner({ offerToHelperName, onCancel }: DirectOfferBa
       </div>
       <div className="flex-1 min-w-0 break-words">
         <p className="text-ds-13 font-semibold text-foreground">
-          Direct offer to {offerToHelperName || "your saved helpr"}
+          Direct offer to {offerToHelperName || "your saved Helpr"}
         </p>
         <p className="text-ds-11 text-muted-foreground">
-          They'll have 24 hours to accept before this task opens to all helprs.
+          They'll have 24 hours to accept before this job opens to all Helprs.
         </p>
       </div>
       <Button

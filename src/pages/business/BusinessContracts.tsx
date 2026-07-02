@@ -56,7 +56,7 @@ const BusinessContracts = () => {
   const [name, setName] = useState("");
   const [presetId, setPresetId] = useState("mon_9am");
   const [customCron, setCustomCron] = useState("");
-  const [budgetCents, setBudgetCents] = useState("12500");
+  const [budgetDollars, setBudgetDollars] = useState("125");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -102,7 +102,7 @@ const BusinessContracts = () => {
       const payload = {
         title: name.trim(),
         description: description.trim(),
-        budget_cents: Number(budgetCents) || 0,
+        budget_cents: Math.round((Number(budgetDollars) || 0) * 100),
       };
       const { error } = await (supabase.from as any)("business_job_templates").insert({
         business_id: businessId,
@@ -118,7 +118,7 @@ const BusinessContracts = () => {
       if (error) throw error;
       hapticSuccess();
       toast.success("Recurring job created");
-      setName(""); setDescription(""); setBudgetCents("12500");
+      setName(""); setDescription(""); setBudgetDollars("125");
       queryClient.invalidateQueries({ queryKey: queryKeys.business.templates(businessId) });
     } catch (err: unknown) {
       hapticError();
@@ -210,13 +210,14 @@ const BusinessContracts = () => {
               </select>
             </div>
             <div>
-              <Label htmlFor="t-budget">Budget (cents)</Label>
+              <Label htmlFor="t-budget">Budget (USD)</Label>
               <Input
                 id="t-budget"
                 type="number"
                 min={0}
-                value={budgetCents}
-                onChange={(e) => setBudgetCents(e.target.value)}
+                step="0.01"
+                value={budgetDollars}
+                onChange={(e) => setBudgetDollars(e.target.value)}
               />
             </div>
           </div>

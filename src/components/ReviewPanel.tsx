@@ -473,7 +473,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
               Send {revieweeName} a tip?
             </DialogTitle>
             <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-              Goes straight to the helpr — no platform cut. Most posters tip 10–15% for great work.
+              Goes straight to the Helpr — no platform cut. Most posters tip 10–15% for great work.
             </p>
           </DialogHeader>
           <DialogFooter className="!gap-2">

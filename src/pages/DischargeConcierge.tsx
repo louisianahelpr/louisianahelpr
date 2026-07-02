@@ -377,12 +377,12 @@ const DischargeConcierge = () => {
             reducing readmission risk and improving discharge outcomes.
           </p>
           <a
-            href="mailto:partnerships@louisianahelpr.com?subject=Hospital+Discharge+Partnership"
+            href="mailto:admin@louisianahelpr.com?subject=Hospital+Discharge+Partnership"
             className="inline-flex items-center gap-2 font-sans font-semibold text-ds-13 transition-opacity hover:opacity-75"
             style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             <Mail className="w-4 h-4" strokeWidth={1.75} />
-            partnerships@louisianahelpr.com
+            admin@louisianahelpr.com
           </a>
         </section>
 

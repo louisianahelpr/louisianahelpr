@@ -44,7 +44,7 @@ interface DeniedScreenProps {
  */
 export const DashboardDeniedScreen = ({ onSignOut }: DeniedScreenProps) => (
   <AppShell header={<DashboardHeader />} reserveBottomNav={false} className="bg-premium-page">
-    <main className="container mx-auto px-5 py-12">
+    <div className="container mx-auto px-5 py-12">
       <div className="max-w-lg mx-auto text-center space-y-6">
         <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto"><XCircle className="w-8 h-8 text-destructive" /></div>
         <h1 className="text-page-title text-foreground text-ds-24">Profile not approved</h1>
@@ -55,6 +55,6 @@ export const DashboardDeniedScreen = ({ onSignOut }: DeniedScreenProps) => (
           </Button>
         </div>
       </div>
-    </main>
+    </div>
   </AppShell>
 );

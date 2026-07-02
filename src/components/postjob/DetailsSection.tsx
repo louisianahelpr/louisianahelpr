@@ -76,7 +76,7 @@ const titlePlaceholders: Record<string, string> = {
   pet_care: "e.g. Walk my dog twice a day this week",
   assembly: "e.g. Assemble an IKEA wardrobe",
   storm_prep: "e.g. Board up windows before the storm",
-  other: "e.g. Help me with a quick task",
+  other: "e.g. Help me with a quick job",
 };
 
 // Category-specific description prompts — tells the poster what detail
@@ -92,7 +92,7 @@ const descriptionHints: Record<string, string> = {
   pet_care: "Mention pet type and temperament, the schedule, and any feeding or medication.",
   assembly: "Mention the item(s), whether you have the manual, and what tools are available.",
   storm_prep: "Describe what needs doing (boarding, debris, generator setup, etc.), the timeline, and any materials or equipment you already have.",
-  other: "Add anything a helpr needs to quote accurately — access, timing, and supplies.",
+  other: "Add anything a Helpr needs to quote accurately — access, timing, and supplies.",
 };
 
 interface DetailsSectionProps {
@@ -223,7 +223,7 @@ export function DetailsSection({
   return (
     <SectionCard
       stepNumber={stepNumber}
-      eyebrow="About the task"
+      eyebrow="About the job"
       title="Details"
       icon={Briefcase}
       complete={detailsComplete}
@@ -381,7 +381,7 @@ export function DetailsSection({
 
       <div className="space-y-2.5">
         <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="title">Task title <span className="text-destructive">*</span></Label>
+          <Label htmlFor="title">Job title <span className="text-destructive">*</span></Label>
           <span className="text-[0.66rem] tabular-nums text-muted-foreground">{title.length}/{TITLE_MAX}</span>
         </div>
         <div className="relative">
@@ -410,7 +410,7 @@ export function DetailsSection({
                   ? dictation.stop
                   : startTitleDictation
               }
-              aria-label={dictation.isListening ? "Stop dictation" : "Dictate task title"}
+              aria-label={dictation.isListening ? "Stop dictation" : "Dictate job title"}
               aria-pressed={dictation.isListening}
               className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               style={
@@ -480,7 +480,7 @@ export function DetailsSection({
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Provide details about the task…"
+          placeholder="Provide details about the job…"
           required
           rows={4}
           maxLength={DESCRIPTION_MAX}

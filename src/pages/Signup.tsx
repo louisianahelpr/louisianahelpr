@@ -35,7 +35,7 @@ const Signup = () => {
     description: "Create your free Helpr account in under a minute.",
     canonical: "https://www.louisianahelpr.com/signup",
     ogTitle: "Sign Up — Helpr",
-    ogDescription: "Join Helpr in under a minute and start posting tasks or earning as a verified helper across Louisiana.",
+    ogDescription: "Join Helpr in under a minute and start posting jobs or earning as a verified Helpr across Louisiana.",
   });
   // An already-authenticated visitor has no business on the signup form —
   // bounce them into the app. Wait for isReady so we don't redirect on the
@@ -170,7 +170,7 @@ const Signup = () => {
     if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }
     if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return false; }
     if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return false; }
-    if (!acceptedPolicies) { toast.error("You must agree to the platform rules, terms, and privacy policy"); return false; }
+    if (!acceptedPolicies) { toast.error("You must agree to the terms, platform rules, and privacy policy"); return false; }
     return true;
   };
 
@@ -359,7 +359,7 @@ const Signup = () => {
             className="font-serif italic text-ds-13 mx-auto max-w-[34ch]"
             style={{ color: "hsl(var(--burnt-sienna) / 0.9)" }}
           >
-            Post a task or earn helping — one account does both.
+            Post a job or earn helping — one account does both.
           </p>
         )}
       </div>

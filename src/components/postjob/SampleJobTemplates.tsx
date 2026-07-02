@@ -55,7 +55,7 @@ export function SampleJobTemplates({
 
   return (
     <section
-      aria-label="Start from a sample task"
+      aria-label="Start from a sample job"
       className="rounded-2xl liquid-glass overflow-hidden"
     >
       <div className="flex items-center justify-between gap-3 px-4 pt-3">

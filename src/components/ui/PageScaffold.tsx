@@ -186,7 +186,7 @@ export function PageScaffold({
       reserveBottomNav={false}
       className={"bg-premium-page" + (className ? ` ${className}` : "")}
     >
-      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+      <div className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
         <div
           className={`w-full ${columnWidth} mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 overflow-hidden`}
         >
@@ -195,7 +195,7 @@ export function PageScaffold({
           {beforePanel}
           {panelEl}
         </div>
-      </main>
+      </div>
     </AppShell>
   );
 }

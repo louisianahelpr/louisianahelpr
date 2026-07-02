@@ -4,7 +4,7 @@ import type { User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { checkProximity } from "@/lib/locationUtils";
-import { aggregateRatings } from "@/lib/reviewStats";
+import { fetchRatingStats } from "@/lib/reviewStats";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -151,9 +151,9 @@ export function useActivityActions({
       if (visibleApps.length === 0) return [];
 
       const helperIds = visibleApps.map((a) => a.helper_id);
-      const [profilesRes, reviewsRes, availabilityRes] = await Promise.all([
+      const [profilesRes, reviewStatsMap, availabilityRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: helperIds }),
-        supabase.from("reviews").select("reviewee_id, rating").in("reviewee_id", helperIds).lte("feedback_visible_at", new Date().toISOString()),
+        fetchRatingStats(helperIds),
         // "Available now" field — `available_until` is a new column the
         // generated types don't include yet, so the query builder is cast
         // to a minimal shape that accepts the select string and returns the
@@ -168,7 +168,6 @@ export function useActivityActions({
           };
         }).select("user_id, available_until").in("user_id", helperIds),
       ]);
-      const reviewStatsMap = aggregateRatings(reviewsRes.data);
       // Map helper_id → available_until for O(1) merge below.
       const availabilityMap = new Map<string, string | null>();
       if (availabilityRes?.data) {
@@ -226,7 +225,7 @@ export function useActivityActions({
       if (enriched.length > 0) {
         // `mark_applications_viewed` isn't in the generated RPC union yet
         // (migration lag). Cast the rpc fn so the args stay type-checked.
-        const markViewed = supabase.rpc as unknown as (
+        const markViewed = supabase.rpc.bind(supabase) as unknown as (
           fn: "mark_applications_viewed",
           args: { p_job_id: string },
         ) => PromiseLike<unknown>;
@@ -563,7 +562,7 @@ export function useActivityActions({
     const trackingStatus = tracking?.[0]?.status;
     if (trackingStatus && ["on_the_way", "arrived", "working", "done"].includes(trackingStatus)) {
       hapticError();
-      toast.error("This job can't be cancelled — the helpr is already on the way or working.", { duration: 5000 });
+      toast.error("This job can't be cancelled — the Helpr is already on the way or working.", { duration: 5000 });
       return;
     }
     setCancelDialogJob(job);
@@ -642,7 +641,7 @@ export function useActivityActions({
         if (isPoster && !alreadyTipped) {
           const postedJob = postedJobs.find((j) => j.id === jobId);
           if (postedJob?.helper_id) {
-            const helperName = helperNames[postedJob.helper_id] || "your helpr";
+            const helperName = helperNames[postedJob.helper_id] || "your Helpr";
             hapticLight();
             setCompletionPromptJob({
               job: postedJob,
@@ -789,7 +788,7 @@ export function useActivityActions({
     if (job?.helper_id) {
       await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
     }
-    toast.success("Confirmed helpr is working!");
+    toast.success("Confirmed Helpr is working!");
     refresh();
   };
 

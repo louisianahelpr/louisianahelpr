@@ -52,6 +52,36 @@ serve(async (req) => {
       });
     }
 
+    // Refuse to delete while the user is party to an in-flight job or holds
+    // money in escrow. Deleting mid-transaction would strand the counterparty
+    // (their helper/poster vanishes) and orphan escrowed funds with no party
+    // left to release or refund them. The job must reach a terminal state
+    // (completed/cancelled) and escrow must be settled first.
+    // `.or(...).or(...)` ANDs the two clauses: (I'm a party) AND (it's live).
+    const { data: activeJobs, error: activeErr } = await supabaseAdmin
+      .from("jobs")
+      .select("id")
+      .or(`customer_id.eq.${user.id},helper_id.eq.${user.id}`)
+      .or("status.in.(accepted,arrived,in_progress,awaiting),payment_status.eq.escrow")
+      .limit(1);
+
+    if (activeErr) {
+      // Fail closed — if we can't verify the account is safe to delete, don't.
+      return new Response(
+        JSON.stringify({ error: "Couldn't verify account state. Please try again." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (activeJobs && activeJobs.length > 0) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "You have an active job or funds held in escrow. Finish or cancel your open jobs and let any payments settle before deleting your account.",
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Delete the user from auth (cascade removes profile and related data)
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
 

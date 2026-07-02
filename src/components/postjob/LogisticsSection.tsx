@@ -264,7 +264,7 @@ export function LogisticsSection({
           className="mt-0.5"
         />
         <span className="text-ds-11 text-muted-foreground leading-snug">
-          <span className="font-medium text-foreground">Flexible schedule</span> — helpr can start earlier or later on the scheduled day
+          <span className="font-medium text-foreground">Flexible schedule</span> — Helpr can start earlier or later on the scheduled day
         </span>
       </label>
 
@@ -390,7 +390,7 @@ export function LogisticsSection({
           <div className="rounded-ds-md border border-border p-4 space-y-3">
             <div className="flex items-center gap-2">
               <Repeat className="w-4 h-4 text-primary" />
-              <span className="text-ds-13 font-semibold text-foreground">Recurring task</span>
+              <span className="text-ds-13 font-semibold text-foreground">Recurring job</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2.5">
@@ -444,7 +444,7 @@ export function LogisticsSection({
               <Users className="w-4 h-4 text-primary" />
               <span className="text-ds-13 font-semibold text-foreground">Group job</span>
             </div>
-            <Label>How many helprs needed?</Label>
+            <Label>How many Helprs needed?</Label>
             <Input
               type="number"
               inputMode="numeric"
@@ -456,7 +456,7 @@ export function LogisticsSection({
               aria-label="Number of helpers needed"
             />
             <p className="text-ds-11 text-muted-foreground">
-              Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/helpr
+              Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/Helpr
             </p>
           </div>
         )}

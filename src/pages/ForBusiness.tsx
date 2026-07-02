@@ -4,12 +4,16 @@ import {
   ArrowRight,
   Building2,
   Check,
+  Stethoscope,
+  ShieldCheck,
+  Home,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import PublicLayout from "@/components/marketing/PublicLayout";
-import BackButton from "@/components/BackButton";
+import PageHeader from "@/components/PageHeader";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { resolveVariant, VARIANTS, type VariantKey } from "@/components/business/variants";
 import TrustedByBanner from "@/components/business/TrustedByBanner";
 import FeaturedBusinesses from "@/components/business/FeaturedBusinesses";
@@ -25,7 +29,7 @@ const SEAT_TIERS = [
     features: [
       "1 team seat included",
       "Unlimited job posts",
-      "ID-verified helprs in every parish",
+      "ID-verified Helprs in every parish",
       "Stripe escrow on every job",
       "W-9 / 1099 paperwork handled for you",
       "Email support",
@@ -34,7 +38,7 @@ const SEAT_TIERS = [
   {
     name: "Crew",
     seats: "2",
-    price: "$10",
+    price: "$20",
     featured: false,
     headline: "For growing teams posting regularly",
     features: [
@@ -49,7 +53,7 @@ const SEAT_TIERS = [
   {
     name: "Team",
     seats: "3",
-    price: "$20",
+    price: "$30",
     featured: true,
     headline: "Most popular — built for weekly posting",
     features: [
@@ -75,6 +79,36 @@ const SEAT_TIERS = [
       "Custom invoicing & net-30 terms",
       "Dedicated success manager",
     ],
+  },
+] as const;
+
+/**
+ * Industry verticals — the enterprise deep-dives now live under Business
+ * (the standalone /enterprise page was retired until we're bigger). The first
+ * two link to their dedicated concierge pages; Property Management is a teaser
+ * without a page yet, so it renders as a non-interactive card.
+ */
+const INDUSTRIES = [
+  {
+    icon: Stethoscope,
+    tag: "Healthcare",
+    title: "Discharge-day home prep",
+    body: "Cleaning, transport, and setup help dispatched the moment a patient is released home.",
+    href: "/discharge",
+  },
+  {
+    icon: ShieldCheck,
+    tag: "Insurance",
+    title: "Claim-to-contractor in minutes",
+    body: "Policyholders get a verified contractor contact before the adjuster even calls back.",
+    href: "/insurance-claim",
+  },
+  {
+    icon: Home,
+    tag: "Property Management",
+    title: "Turns, maintenance & tenant requests",
+    body: "Unit turns and work orders routed through one verified, insured workforce.",
+    href: undefined,
   },
 ] as const;
 
@@ -200,6 +234,7 @@ const TierRow = ({ tier }: { tier: (typeof SEAT_TIERS)[number] }) => {
  */
 const ForBusiness = () => {
   const navigate = useNavigate();
+  const { user } = useAuthReady();
   const [searchParams, setSearchParams] = useSearchParams();
   const variantParam = searchParams.get("v");
   const variant = resolveVariant(variantParam);
@@ -227,30 +262,16 @@ const ForBusiness = () => {
 
   return (
     <PublicLayout showCtaBand={false}>
-      <div className="relative container mx-auto px-5 py-6 lg:py-8 max-w-7xl space-y-6 lg:space-y-8">
+      <PageHeader
+        eyebrow={variant.eyebrow}
+        title={`${variant.heroLead} ${variant.heroAccent}`}
+        onBack={() => navigate("/")}
+      />
+      <div className="relative container mx-auto px-5 lg:px-8 xl:px-12 pb-6 lg:pb-8 max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] space-y-6 lg:space-y-8">
         <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
           {/* LEFT — Pitch (3 cols) */}
           <div className="lg:col-span-3 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="shrink-0">
-                <BackButton to="/" />
-              </div>
-              <span className="text-display-eyebrow">{variant.eyebrow}</span>
-            </div>
-
             <TrustedByBanner />
-
-            <h1
-              className="font-display italic font-bold leading-[1.02] text-balance"
-              style={{
-                fontSize: "clamp(2.25rem, 5vw + 1rem, 4rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.03em",
-              }}
-            >
-              {variant.heroLead}{" "}
-              <span style={{ color: "hsl(var(--burnt-sienna))" }}>{variant.heroAccent}</span>
-            </h1>
 
             <p className="subhead-serif text-foreground text-ds-17 lg:text-ds-20 leading-relaxed max-w-xl">
               {variant.subhead}
@@ -259,7 +280,7 @@ const ForBusiness = () => {
             {/* Vertical switcher — small pill row. Keeps the URL as the source
              * of truth so refresh/back/share all work. */}
             <div
-              role="tablist"
+              role="group"
               aria-label="Industry"
               className="flex flex-wrap gap-2 pt-1"
             >
@@ -269,8 +290,7 @@ const ForBusiness = () => {
                 return (
                   <button
                     key={key}
-                    role="tab"
-                    aria-selected={active}
+                    aria-pressed={active}
                     onClick={() => switchVariant(key)}
                     className={
                       active
@@ -327,7 +347,7 @@ const ForBusiness = () => {
                       boxShadow: "0 8px 20px -8px hsl(var(--bark) / 0.5)",
                     }}
                   >
-                    <Building2 className="w-7 h-7" strokeWidth={1.75} />
+                    <Building2 className="w-7 h-7" strokeWidth={1.75} aria-hidden="true" />
                   </div>
                   <span className="text-display-eyebrow">Get started</span>
                   <h2
@@ -348,7 +368,7 @@ const ForBusiness = () => {
                     variant="bark"
                     size="xl"
                     className="group w-full rounded-ds-md"
-                    onClick={() => navigate("/signup?type=business")}
+                    onClick={() => navigate(user ? "/business" : "/signup?type=business")}
                   >
                     <span>Sign up as a business</span>
                     <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
@@ -391,6 +411,76 @@ const ForBusiness = () => {
 
         {/* Case studies removed until we have real customer stories to tell —
             fabricated testimonials undercut trust. */}
+
+        {/* Industry verticals — relocated from the retired /enterprise page. */}
+        <section aria-labelledby="industries-heading" className="space-y-5">
+          <div className="max-w-2xl">
+            <span className="text-display-eyebrow">Built for your industry</span>
+            <h2
+              id="industries-heading"
+              className="font-display italic font-bold leading-[1.05] text-balance mt-2"
+              style={{
+                fontSize: "clamp(1.6rem, 3vw + 0.5rem, 2.4rem)",
+                color: "hsl(var(--ink-deep))",
+                letterSpacing: "-0.025em",
+              }}
+            >
+              Dispatch verified help, on your terms.
+            </h2>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {INDUSTRIES.map(({ icon: Icon, tag, title, body, href }) => {
+              const inner = (
+                <>
+                  <div
+                    className="w-11 h-11 rounded-ds-md flex items-center justify-center shrink-0 mb-3"
+                    style={{ background: "hsl(var(--bark) / 0.1)" }}
+                  >
+                    <Icon className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+                  </div>
+                  <span
+                    className="font-serif italic uppercase text-[0.6rem] tracking-widest"
+                    style={{ color: "hsl(var(--burnt-sienna) / 0.8)" }}
+                  >
+                    {tag}
+                  </span>
+                  <h3
+                    className="font-display font-semibold text-ds-17 mt-1 leading-tight"
+                    style={{ color: "hsl(var(--ink-deep))" }}
+                  >
+                    {title}
+                  </h3>
+                  <p className="text-ds-13 font-sans leading-snug mt-2" style={{ color: "hsl(var(--olivewood))" }}>
+                    {body}
+                  </p>
+                  {href && (
+                    <span
+                      className="inline-flex items-center gap-1 text-ds-11 font-semibold mt-3"
+                      style={{ color: "hsl(var(--bark))" }}
+                    >
+                      Learn more
+                      <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  )}
+                </>
+              );
+              return href ? (
+                <Link
+                  key={tag}
+                  to={href}
+                  className="liquid-glass group flex flex-col p-5 transition-transform duration-200 hover:-translate-y-0.5"
+                >
+                  {inner}
+                </Link>
+              ) : (
+                <div key={tag} className="liquid-glass flex flex-col p-5">
+                  {inner}
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         {/* Verified-business name strip — data-gated, hidden until enough
             real verified businesses exist (no fabricated social proof). */}

@@ -13,7 +13,7 @@
 // PGRST202 / PGRST204 fallback inline.
 
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
@@ -27,7 +27,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BusinessLayout from "@/components/business/BusinessLayout";
 import {
-  Building2,
   UserPlus,
   Trash2,
   Loader2,
@@ -46,8 +45,8 @@ import { useMyBusiness, type SeatTier, type ExtendedRole } from "@/hooks/useMyBu
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import BusinessVerificationCard from "@/components/business/BusinessVerificationCard";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import BusinessNoAccountState from "@/components/business/BusinessNoAccountState";
 import { queryKeys } from "@/lib/queryKeys";
 import BulkInviteDialog from "@/components/business/BulkInviteDialog";
 import SpendDashboardTab from "@/components/business/SpendDashboardTab";
@@ -83,7 +82,6 @@ type TabValue = "members" | "approvals" | "spend" | "activity" | "settings";
 
 const BusinessTeam = () => {
   usePageTitle("Manage Team — Helpr Business");
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { business, isLoading: businessLoading } = useMyBusiness();
   const { user } = useCurrentUser();
@@ -217,18 +215,7 @@ const BusinessTeam = () => {
   }
 
   if (!business) {
-    return (
-      <BusinessLayout eyebrow="Helpr Business" title="Manage team">
-        <EmptyState
-          variant="inline"
-          icon={Building2}
-          eyebrow="No business account"
-          title="You're not part of a business"
-          body="Sign up as a business to add teammates and manage jobs together under one account."
-          action={<Button onClick={() => navigate("/for-business")}>Learn more</Button>}
-        />
-      </BusinessLayout>
-    );
+    return <BusinessNoAccountState title="Manage team" />;
   }
 
   const activeMembers = members?.filter((m) => m.status === "active") ?? [];

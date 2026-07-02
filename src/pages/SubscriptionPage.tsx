@@ -13,12 +13,15 @@
  */
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Crown, CheckCircle, Minus, ChevronDown, ChevronUp,
   Sparkles, Briefcase, Star, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
+import PublicLayout from "@/components/marketing/PublicLayout";
+import { isNativePlatform } from "@/lib/nativeInit";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -73,8 +76,9 @@ const PERK_ROWS: Array<{ label: string; key: keyof typeof TIER_PERKS.free }> = [
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function SubscriptionPage() {
-  usePageTitle("Subscription — Helpr");
-  const { profile } = useCurrentUser();
+  usePageTitle("Membership — Helpr");
+  const navigate = useNavigate();
+  const { user, profile } = useCurrentUser();
   const currentTier = toSubscriptionTier(profile?.subscription_tier);
 
   const [upgrading, setUpgrading] = useState(false);
@@ -83,6 +87,13 @@ export default function SubscriptionPage() {
   const [tableOpen, setTableOpen] = useState(false);
 
   async function handleUpgrade(tier: Exclude<SubscriptionTier, "free">) {
+    // Guests can browse plans on the public route, but checkout needs an
+    // account — send them to sign in first and return them here afterward,
+    // rather than firing a create-pro-checkout that can only fail.
+    if (!user) {
+      navigate("/login?redirect=/subscription");
+      return;
+    }
     setUpgrading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
@@ -116,11 +127,11 @@ export default function SubscriptionPage() {
 
   const tierPerks = TIER_PERKS[currentTier];
 
-  return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+  const inner = (
+    <>
       <PageHeader title="Membership" meta="Lower the commission on the jobs you complete" />
 
-      <div className="px-4 space-y-4 mt-2 pb-8">
+      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 space-y-5 mt-2 pb-10">
         {/* ── Current plan card ─────────────────────────────────────────── */}
         <div
           className="rounded-2xl p-4 relative overflow-hidden"
@@ -174,7 +185,7 @@ export default function SubscriptionPage() {
               {upgrading ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
               ) : null}
-              Manage plan →
+              Manage membership →
             </button>
           )}
         </div>
@@ -185,7 +196,7 @@ export default function SubscriptionPage() {
             services), and are billed through Stripe, the same processor that
             handles job payments. */}
         <p
-          className="font-serif italic text-center px-2"
+          className="font-serif italic text-center px-2 max-w-2xl mx-auto"
           style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)", lineHeight: 1.5 }}
         >
           A membership lowers the commission Helpr takes on the real-world jobs
@@ -194,6 +205,7 @@ export default function SubscriptionPage() {
         </p>
 
         {/* ── Tier cards ────────────────────────────────────────────────── */}
+        <div className="grid gap-4 sm:grid-cols-2">
         {TIER_ORDER.map((tier) => {
           const perks = TIER_PERKS[tier];
           const { color, soft } = tierAccent(tier);
@@ -280,27 +292,27 @@ export default function SubscriptionPage() {
                   <ul className="mt-2 space-y-0.5">
                     {isFree ? (
                       <>
-                        <PerkBullet color={color}>12% platform fee (standard)</PerkBullet>
+                        <PerkBullet color={color}>{perks.platformFeePercent}% platform fee (standard)</PerkBullet>
                         <PerkBullet color={color}>Access to all open jobs</PerkBullet>
                         <PerkBullet color={color}>Basic applicant visibility</PerkBullet>
                       </>
                     ) : tier === "pro" ? (
                       <>
-                        <PerkBullet color={color}>10% platform fee (save 2%)</PerkBullet>
+                        <PerkBullet color={color}>{perks.platformFeePercent}% platform fee (save {TIER_PERKS.free.platformFeePercent - perks.platformFeePercent}%)</PerkBullet>
                         <PerkBullet color={color}>Priority placement in applicant list</PerkBullet>
                         <PerkBullet color={color}>Instant-book job eligibility</PerkBullet>
                         <PerkBullet color={color}>Advanced earnings analytics</PerkBullet>
                       </>
                     ) : tier === "elite" ? (
                       <>
-                        <PerkBullet color={color}>8% platform fee (save 4%)</PerkBullet>
+                        <PerkBullet color={color}>{perks.platformFeePercent}% platform fee (save {TIER_PERKS.free.platformFeePercent - perks.platformFeePercent}%)</PerkBullet>
                         <PerkBullet color={color}>Featured crown badge on profile & cards</PerkBullet>
                         <PerkBullet color={color}>10-minute early job access</PerkBullet>
                         <PerkBullet color={color}>Priority support response</PerkBullet>
                       </>
                     ) : (
                       <>
-                        <PerkBullet color={color}>6% fee (save 6%) + verified business badge</PerkBullet>
+                        <PerkBullet color={color}>{perks.platformFeePercent}% fee (save {TIER_PERKS.free.platformFeePercent - perks.platformFeePercent}%) + verified business badge</PerkBullet>
                         <PerkBullet color={color}>Multi-tech team management</PerkBullet>
                         <PerkBullet color={color}>Featured badge + early access</PerkBullet>
                         <PerkBullet color={color}>Dedicated support SLA</PerkBullet>
@@ -337,13 +349,15 @@ export default function SubscriptionPage() {
                           disabled={upgrading}
                           className="mt-1 inline-flex items-center justify-center gap-1 px-3 h-7 rounded-full font-sans font-bold text-[0.7rem] transition active:scale-[0.96] disabled:opacity-60"
                           style={{
-                            background: isElite
-                              ? "hsl(var(--gold-warm))"
-                              : tier === "pro"
-                                ? "hsl(var(--bark))"
-                                : "hsl(var(--olivewood))",
+                            background: `linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 48%), ${
+                              isElite
+                                ? "hsl(var(--gold-warm))"
+                                : tier === "pro"
+                                  ? "hsl(var(--bark))"
+                                  : "hsl(var(--olivewood))"
+                            }`,
                             color: "#fff",
-                            boxShadow: `0 3px 8px -2px ${soft}`,
+                            boxShadow: `inset 0 1px 0 0 rgba(255,255,255,0.45), 0 3px 8px -2px ${soft}`,
                           }}
                         >
                           {upgrading ? (
@@ -373,6 +387,7 @@ export default function SubscriptionPage() {
             </div>
           );
         })}
+        </div>
 
         {/* ── Full perk comparison table (collapsible) ───────────────────── */}
         <div
@@ -462,7 +477,7 @@ export default function SubscriptionPage() {
         </div>
 
         {/* ── FAQ ───────────────────────────────────────────────────────── */}
-        <div className="space-y-3">
+        <div className="space-y-3 max-w-3xl mx-auto w-full">
           <h2
             className="font-display italic font-bold"
             style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
@@ -476,7 +491,7 @@ export default function SubscriptionPage() {
             },
             {
               q: "How am I billed?",
-              a: "Membership is billed securely through Stripe — the same processor that handles your job payments. You can manage or cancel your membership anytime from Manage plan.",
+              a: "Membership is billed securely through Stripe — the same processor that handles your job payments. You can manage or cancel your membership anytime from Manage membership.",
             },
             {
               q: "Can I cancel anytime?",
@@ -495,16 +510,24 @@ export default function SubscriptionPage() {
           ))}
         </div>
       </div>
-
-    </div>
+    </>
   );
+
+  // Web: render inside the shared marketing chrome (top nav + footer) so
+  // /subscription matches every other web page. Native: bare document-scroll
+  // shell (the app supplies its own nav), so it must NOT pull in the marketing
+  // Navbar/Footer that PublicLayout renders unconditionally.
+  if (isNativePlatform) {
+    return <div className="min-h-screen bg-premium-page pb-safe-nav">{inner}</div>;
+  }
+  return <PublicLayout showCtaBand={false}>{inner}</PublicLayout>;
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function PerkBullet({ color, children }: { color: string; children: React.ReactNode }) {
   return (
-    <li className="inline-flex items-start gap-1.5 font-sans" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.82)" }}>
+    <li className="flex items-start gap-1.5 font-sans" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.82)" }}>
       <CheckCircle className="w-3 h-3 mt-0.5 shrink-0" style={{ color }} strokeWidth={2.5} />
       {children}
     </li>

@@ -98,7 +98,7 @@ const JobHistory = () => {
         meta="Everything you've completed or closed"
       />
 
-      <main className="container mx-auto px-5 py-6">
+      <div className="container mx-auto px-5 py-6">
         <div className="max-w-lg mx-auto space-y-4">
 
           {/* Tabs */}
@@ -202,7 +202,7 @@ const JobHistory = () => {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 };

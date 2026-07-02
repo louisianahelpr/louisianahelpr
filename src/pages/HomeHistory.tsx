@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, DollarSign, Calendar, Home } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
@@ -106,6 +107,8 @@ const HomeHistory = () => {
         eyebrow="Your maintenance record"
         meta="Every job you've had completed — your home's service history."
         onBack={() => navigate("/profile")}
+        showBrand
+        rightSlot={<NotificationPanel />}
       />
 
       <div className="mx-auto max-w-5xl px-4 lg:px-8 xl:px-12 pb-10 space-y-8 mt-2">
@@ -149,7 +152,7 @@ const HomeHistory = () => {
               </p>
             </div>
             <BarkPillButton onClick={() => navigate("/post-job")} className="mt-1">
-              Post your first task
+              Post your first job
             </BarkPillButton>
           </div>
         )}

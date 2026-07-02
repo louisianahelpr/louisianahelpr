@@ -52,7 +52,7 @@ export interface VariantConfig {
 }
 
 const SHARED_FEATURES: FeatureBullet[] = [
-  { icon: ShieldCheck, text: "Stripe ID-verified helprs" },
+  { icon: ShieldCheck, text: "Stripe ID-verified Helprs" },
   { icon: Users, text: "1 team seat free, upgrade anytime" },
   { icon: CreditCard, text: "Owner's card billed for all jobs" },
   { icon: Sparkles, text: "Recurring jobs, statewide coverage" },
@@ -66,7 +66,7 @@ export const VARIANTS: Record<VariantKey, VariantConfig> = {
     heroLead: "The best help for",
     heroAccent: "Louisiana businesses.",
     subhead:
-      "The simplest way to find, hire, and pay local pros for your business tasks.",
+      "The simplest way to find, hire, and pay local pros for your business jobs.",
     features: SHARED_FEATURES,
     caseStudy: {
       company: "Crescent Office Group",
@@ -79,7 +79,7 @@ export const VARIANTS: Record<VariantKey, VariantConfig> = {
     seo: {
       title: "Helpr for Business — Louisiana Commercial Services",
       description:
-        "Find, hire, and pay verified local pros for your Louisiana business. Free team seats, Stripe ID-verified helprs, flat platform fee, no contracts.",
+        "Find, hire, and pay verified local pros for your Louisiana business. Free team seats, Stripe ID-verified Helprs, flat platform fee, no contracts.",
     },
   },
 
@@ -91,7 +91,7 @@ export const VARIANTS: Record<VariantKey, VariantConfig> = {
     subhead:
       "Cover a callout, schedule a deep clean, or staff a private event in hours, not days. No agency contracts.",
     features: [
-      { icon: ShieldCheck, text: "Food-safety verified helprs in our pool" },
+      { icon: ShieldCheck, text: "Food-safety verified Helprs in our pool" },
       { icon: Users, text: "Book by shift — same-day or weeks ahead" },
       { icon: CreditCard, text: "One card on file, billed per shift" },
       { icon: Sparkles, text: "Recurring deep cleans, hood pickups, prep" },
@@ -108,7 +108,7 @@ export const VARIANTS: Record<VariantKey, VariantConfig> = {
     seo: {
       title: "Helpr for Restaurants — On-Call Staff Across Louisiana",
       description:
-        "Cover callouts, deep cleans, and event staffing in hours. Verified Louisiana helprs, flat platform fee, no agency contracts.",
+        "Cover callouts, deep cleans, and event staffing in hours. Verified Louisiana Helprs, flat platform fee, no agency contracts.",
     },
   },
 

@@ -109,7 +109,7 @@ export default function BenefitsPage() {
               "linear-gradient(135deg, hsl(var(--burnt-sienna)) 0%, hsl(var(--bark)) 100%)",
           }}
         >
-          <p className="font-semibold text-lg mb-1">Built for helpers, by helpers.</p>
+          <p className="font-semibold text-lg mb-1">Built for Helprs, by Helprs.</p>
           <p className="text-sm opacity-85">
             These partner perks are curated for Louisiana Helpr members — health
             coverage, financial tools, and supply discounts to help you earn more

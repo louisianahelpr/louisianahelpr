@@ -1,7 +1,7 @@
-import { Link } from "react-router-dom";
-import { ArrowRight, Heart, HandHeart, Sprout, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { Heart, HandHeart, Sprout, MapPin } from "lucide-react";
 import PublicLayout from "@/components/marketing/PublicLayout";
+import PageHeader from "@/components/PageHeader";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useScrollFadeUp } from "@/hooks/useScrollFadeUp";
 
@@ -19,7 +19,7 @@ const PILLARS = [
   {
     icon: HandHeart,
     title: "Neighbors helping neighbors",
-    body: "Every task posted is a hand extended and a hand taken — a small act of trust between two people who live down the road from each other.",
+    body: "Every job posted is a hand extended and a hand taken — a small act of trust between two people who live down the road from each other.",
   },
   {
     icon: Sprout,
@@ -34,45 +34,38 @@ const PILLARS = [
 ];
 
 const CommunityThanks = () => {
+  const navigate = useNavigate();
   usePageMeta({
     title: "Thank You, Louisiana — Helpr",
     description:
-      "A thank-you to the Louisiana neighbors, helpers, and posters who make Helpr a community. Money that stays home, neighbors helping neighbors.",
+      "A thank-you to the Louisiana neighbors, Helprs, and posters who make Helpr a community. Money that stays home, neighbors helping neighbors.",
     canonical: "https://www.louisianahelpr.com/community",
+    ogTitle: "Thank You, Louisiana — Helpr",
+    ogDescription:
+      "A thank-you to the Louisiana neighbors, Helprs, and posters who make Helpr a community. Money that stays home, neighbors helping neighbors.",
   });
   useScrollFadeUp();
 
   return (
     <PublicLayout
       ctaHeadline="Join your neighbors"
-      ctaSubcopy="Post a task or find work — and become part of the Louisiana community."
+      ctaSubcopy="Post a job or find work — and become part of the Louisiana community."
     >
-      <div className="container mx-auto px-5 max-w-4xl">
-        {/* Hero */}
-        <section className="text-center pt-10 pb-12 lg:pt-16 lg:pb-16 observe-fade-up">
-          <span
-            className="font-serif italic uppercase text-[0.7rem]"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.8)", letterSpacing: "0.2em" }}
-          >
-            From all of us at Helpr
-          </span>
-          <h1
-            className="font-display italic font-bold mt-3 text-balance"
-            style={{
-              fontSize: "clamp(2.5rem, 6vw + 1rem, 4.5rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.03em",
-              lineHeight: 1.02,
-            }}
-          >
-            Thank you,{" "}
-            <span style={{ color: "hsl(var(--burnt-sienna))" }}>Louisiana.</span>
-          </h1>
+      <PageHeader
+        eyebrow="From all of us at Helpr"
+        title="Thank you, Louisiana"
+        meta="A note to the neighbors who make Helpr more than an app"
+        onBack={() => navigate("/")}
+      />
+
+      <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 lg:px-8 xl:px-12">
+        {/* Lead */}
+        <section className="pt-4 pb-12 lg:pb-16 observe-fade-up">
           <p
-            className="subhead-serif mt-5 mx-auto max-w-xl text-ds-17 lg:text-ds-20 leading-relaxed"
+            className="subhead-serif max-w-2xl text-ds-17 lg:text-ds-20 leading-relaxed"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
-            Every job posted, every task completed, every neighbor who showed up
+            Every job posted, every job completed, every neighbor who showed up
             for another — you are what makes Helpr more than an app. This one's
             for you.
           </p>
@@ -138,7 +131,7 @@ const CommunityThanks = () => {
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             &ldquo;A community isn&rsquo;t built by an app. It&rsquo;s built by
-            people who decide to show up for each other — one task at a
+            people who decide to show up for each other — one job at a
             time.&rdquo;
           </blockquote>
           <div
@@ -148,25 +141,6 @@ const CommunityThanks = () => {
             <MapPin className="w-3.5 h-3.5" />
             Serving every parish in Louisiana
           </div>
-        </section>
-
-        {/* See the impact link */}
-        <section className="text-center pb-6 observe-fade-up">
-          <Button
-            asChild
-            variant="outline"
-            size="lg"
-            className="group rounded-ds-md px-8"
-            style={{
-              borderColor: "hsl(var(--olivewood) / 0.3)",
-              color: "hsl(var(--ink-deep))",
-            }}
-          >
-            <Link to="/impact">
-              See our community impact
-              <ArrowRight className="ml-1.5 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
-          </Button>
         </section>
       </div>
     </PublicLayout>

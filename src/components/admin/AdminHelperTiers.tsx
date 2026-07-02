@@ -63,14 +63,9 @@ const AdminHelperTiers = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-ds-20 font-display font-bold text-foreground flex items-center gap-2">
-          <Crown className="w-5 h-5 text-primary" /> Helpr Tiers
-        </h2>
-        <p className="text-ds-11 text-muted-foreground mt-0.5">
-          Performance-tiered view of approved helprs. "Rising Stars" = recent review momentum (last 30 days). Reach out to feature them.
-        </p>
-      </div>
+      <p className="text-ds-11 text-muted-foreground">
+        Performance-tiered view of approved Helprs. "Rising Stars" = recent review momentum (last 30 days). Reach out to feature them.
+      </p>
 
       <div className="flex gap-2 flex-wrap">
         <Button
@@ -95,7 +90,7 @@ const AdminHelperTiers = () => {
       {isInitialLoading ? (
         <p className="text-ds-11 text-muted-foreground">Loading tiers…</p>
       ) : visible.length === 0 ? (
-        <p className="text-ds-11 text-muted-foreground text-center py-8">No helprs in this tier yet.</p>
+        <p className="text-ds-11 text-muted-foreground text-center py-8">No Helprs in this tier yet.</p>
       ) : (
         <div className="space-y-2">
           {visible.map((helper) => {

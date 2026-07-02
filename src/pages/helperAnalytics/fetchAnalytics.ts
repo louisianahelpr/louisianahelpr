@@ -37,18 +37,19 @@ export async function fetchAnalytics(userId: string) {
     // Postgres exception inside the function) would otherwise fail the whole
     // Promise.all and brick the page with the error state. Normalizing the
     // rejection into the resolved {error} shape routes it through the existing
-    // per-card fallback instead.
-    (supabase.rpc as any)("get_platform_benchmarks").catch(() => ({
+    // per-card fallback instead. Wrap in Promise.resolve() first: the supabase
+    // query builder is a thenable, not a real Promise, so it has no .catch().
+    Promise.resolve((supabase.rpc as any)("get_platform_benchmarks")).catch(() => ({
       data: null,
       error: { code: "PGRST202" },
     })),
     // Repeat hire percent — card hidden on error or < 3 jobs.
-    (supabase.rpc as any)("get_user_repeat_hire_percent", { p_user_id: userId }).catch(() => ({
+    Promise.resolve((supabase.rpc as any)("get_user_repeat_hire_percent", { p_user_id: userId })).catch(() => ({
       data: null,
       error: { code: "PGRST202" },
     })),
     // Profile view count — falls back to 0 if not yet deployed or on failure.
-    (supabase.rpc as any)("get_monthly_profile_view_count", { p_user_id: userId })
+    Promise.resolve((supabase.rpc as any)("get_monthly_profile_view_count", { p_user_id: userId }))
       .catch(() => ({ data: null, error: { code: "PGRST202" } })),
   ]);
 

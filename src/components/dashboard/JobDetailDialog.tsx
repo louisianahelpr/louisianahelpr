@@ -151,7 +151,7 @@ const JobDetailDialog = ({
         // record_job_view isn't in the generated Functions map (migration
         // unapplied to prod); call it via a narrowly-typed wrapper. PGRST202
         // is swallowed by the surrounding try/catch.
-        const recordJobViewRpc = supabase.rpc as unknown as (
+        const recordJobViewRpc = supabase.rpc.bind(supabase) as unknown as (
           fn: "record_job_view",
           args: { p_job_id: string },
         ) => Promise<{ data: unknown; error: { code?: string } | null }>;
@@ -487,7 +487,7 @@ const JobDetailDialog = ({
             {job.is_group_job && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-ds-10 font-semibold uppercase tracking-wider border border-primary/20">
                 <Users className="w-3 h-3" strokeWidth={2.25} />
-                {job.helpers_needed ?? 2} helprs needed
+                {job.helpers_needed ?? 2} Helprs needed
               </span>
             )}
             {job.is_recurring && (
@@ -825,7 +825,7 @@ const JobDetailDialog = ({
               style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
             >
               <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-                {applicationCount} helpr{applicationCount === 1 ? "" : "s"} already applied.
+                {applicationCount} Helpr{applicationCount === 1 ? "" : "s"} already applied.
               </span>{" "}
               You'd be #{applicationCount + 1} in line.
             </p>
@@ -1015,7 +1015,7 @@ const JobDetailDialog = ({
                   textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)",
                 }}
               >
-                <span className="truncate">{job.instant_book ? "Book now" : "Apply"}</span>
+                <span className="truncate">{job.pricing_mode === "accept_bids" ? "Bid" : job.instant_book ? "Book now" : "Apply"}</span>
                 <ChevronRight
                   className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
                   strokeWidth={2.5}

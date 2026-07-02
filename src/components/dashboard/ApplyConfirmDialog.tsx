@@ -87,7 +87,7 @@ function getApplyTips(job: {
 
   // High-budget jobs — experience matters more
   if (job.budget != null && job.budget >= 150) {
-    tips.push("Higher-budget jobs go to helprs who mention relevant experience");
+    tips.push("Higher-budget jobs go to Helprs who mention relevant experience");
   }
 
   // Bid-mode — price explanation helps
@@ -303,7 +303,7 @@ export function ApplyConfirmDialog({
             className="font-display italic font-bold leading-tight pt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
-            {confirmApplyJob ? `"${confirmApplyJob.title}"` : isBidMode ? "Submit a bid" : isInstantBook ? "Book this task" : "Apply for this task"}
+            {confirmApplyJob ? `"${confirmApplyJob.title}"` : isBidMode ? "Submit a bid" : isInstantBook ? "Book this job" : "Apply for this job"}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             {confirmApplyJob ? (
@@ -366,7 +366,7 @@ export function ApplyConfirmDialog({
               </div>
             ) : (
               <p className="font-serif italic pt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Are you sure you want to apply for this task?
+                Are you sure you want to apply for this job?
               </p>
             )}
           </AlertDialogDescription>

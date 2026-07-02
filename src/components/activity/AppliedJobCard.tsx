@@ -179,7 +179,7 @@ function AppliedJobCardInner({
       // `respond_to_counter_offer` isn't in the generated RPC union yet
       // (migration lag — PGRST202-tolerant call). Cast the rpc fn rather
       // than `as any` so the args object stays type-checked.
-      const rpc = supabase.rpc as unknown as (
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
         fn: "respond_to_counter_offer",
         args: { p_application_id: string; p_accept: boolean },
       ) => Promise<{ error: { code?: string } | null }>;
@@ -247,7 +247,7 @@ function AppliedJobCardInner({
           onToggle={() => setExpandedJobId(isExpanded ? null : app.job_id)}
         >
           <JobCardTitleBar
-            title={job.title || "Task"}
+            title={job.title || "Job"}
             amount={formatPrice(payout)}
             amountTitle={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
           />
@@ -544,7 +544,7 @@ function AppliedJobCardInner({
               <button
                 type="button"
                 disabled={withdrawingAppId === app.id}
-                onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Task", jobId: job.id ?? null })}
+                onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Job", jobId: job.id ?? null })}
                 className="inline-flex items-center gap-1.5 text-[0.72rem] font-sans font-semibold tracking-wide px-2.5 py-1 rounded-full active:opacity-70 transition-opacity disabled:opacity-50"
                 style={{
                   color: "hsl(var(--burnt-sienna))",
@@ -779,7 +779,10 @@ function AppliedJobCardInner({
                   )}
                   {job.revision_completed_at ? (
                     <div className="space-y-2">
-                      <div className="text-ds-11 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-600 font-medium w-full"><Check className="w-3 h-3 shrink-0" strokeWidth={3} /> Marked as fixed — waiting for poster</div>
+                      <div
+                        className="text-ds-11 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded font-medium w-full"
+                        style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}
+                      ><Check className="w-3 h-3 shrink-0" strokeWidth={3} /> Marked as fixed — waiting for poster</div>
                       {job.revision_acceptance_deadline && (
                         <DeadlineCountdown
                           deadline={job.revision_acceptance_deadline}
@@ -961,7 +964,7 @@ function AppliedJobCardInner({
                             setSubmittingResponse(true);
                             const { error } = await supabase.from("jobs").update({ dispute_helper_response: disputeResponse.trim(), dispute_status: "helper_responded" }).eq("id", app.job_id);
                             if (error) { hapticError(); toast.error("We couldn't submit your response — please try again."); setSubmittingResponse(false); return; }
-                            if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: `The helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, type: "info", link: "/my-posts?filter=disputed" });
+                            if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: `The Helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, type: "info", link: "/my-posts?filter=disputed" });
                             hapticSuccess();
                             toast.success("Response submitted — poster will review");
                             setSubmittingResponse(false);
@@ -1077,7 +1080,7 @@ function AppliedJobCardInner({
               {job.is_group_job && (
                 <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
                   <Users className="w-3 h-3 text-primary" />
-                  <span>{job.helpers_needed ? `${job.helpers_needed} helprs needed` : "Group task"}</span>
+                  <span>{job.helpers_needed ? `${job.helpers_needed} Helprs needed` : "Group job"}</span>
                 </div>
               )}
             </div>

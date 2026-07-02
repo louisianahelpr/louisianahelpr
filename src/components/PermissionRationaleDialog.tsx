@@ -34,7 +34,7 @@ const EYEBROW_FOR_KIND: Record<PermissionKind, string> = {
   notifications: "Stay in the loop",
   camera: "Quick capture",
   photos: "From your library",
-  location: "Nearby tasks",
+  location: "Nearby jobs",
   contacts: "Invite friends",
 };
 

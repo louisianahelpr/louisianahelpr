@@ -56,6 +56,8 @@ interface CheckoutStepProps {
   helprActivity: HelprActivity | null;
   customerFee: number | null;
   customerFeeAmount: number;
+  /** One-time account-setup fee, in dollars — 0 once the poster has paid it. */
+  onboardingFeeAmount: number;
   totalCharge: number;
   /** Job Protection opt-in state. */
   protectionOptedIn: boolean;
@@ -71,9 +73,6 @@ interface CheckoutStepProps {
   uploadProgress?: { done: number; total: number } | null;
   onEdit: () => void;
   onSubmit: () => void;
-  /** Helper-side commission percent — used to compute "helper earns $X" in
-   *  the fee summary row. Optional: omit to hide that line. */
-  helperFee?: number | null;
   /** Whether instant-book is enabled for this post. */
   isInstantBook?: boolean;
   /** Poster's parish — shown in the location row when available. */
@@ -111,6 +110,7 @@ export function CheckoutStep({
   helprActivity,
   customerFee,
   customerFeeAmount,
+  onboardingFeeAmount,
   totalCharge,
   protectionOptedIn,
   setProtectionOptedIn,
@@ -124,23 +124,15 @@ export function CheckoutStep({
   uploadProgress,
   onEdit,
   onSubmit,
-  helperFee,
   isInstantBook,
   parish,
   preferredHelper,
   sendToPreferred,
   onSendToPreferredChange,
 }: CheckoutStepProps) {
-  // Compute helper's net payout: budget minus the helper-side commission.
-  // Shown in the "Review & Post" summary so posters understand both sides
-  // of the fee structure — transparency here reduces post-job disputes.
-  const helperEarns =
-    helperFee != null && budgetNum > 0
-      ? budgetNum - budgetNum * (helperFee / 100)
-      : null;
   return (
     <>
-      <p className="text-muted-foreground text-ds-11">Review your task before paying</p>
+      <p className="text-muted-foreground text-ds-11">Review your job before paying</p>
 
       {/* ── Review & Post summary card ─────────────────────────────
           A clean read-only summary of everything the poster set. Shows
@@ -198,15 +190,11 @@ export function CheckoutStep({
             </span>
             <div className="text-right">
               <p className="text-ds-13 font-bold text-foreground">${budgetNum.toFixed(2)}</p>
-              {helperEarns !== null && (
+              {budgetNum > 0 && (
                 <p className="text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   You pay{" "}
                   <span className="font-semibold text-foreground">
-                    ${(budgetNum + customerFeeAmount + urgentFeeNum).toFixed(2)}
-                  </span>
-                  {" · "}helper earns{" "}
-                  <span className="font-semibold text-foreground">
-                    ${helperEarns.toFixed(2)}
+                    ${(budgetNum + customerFeeAmount + urgentFeeNum + onboardingFeeAmount).toFixed(2)}
                   </span>
                 </p>
               )}
@@ -321,11 +309,11 @@ export function CheckoutStep({
           <Users className="w-4 h-4 text-primary shrink-0" strokeWidth={2.25} />
           <p className="text-ds-11 leading-snug text-foreground">
             <span className="font-display font-bold tabular-nums">
-              {helprActivity.count} helprs
+              {helprActivity.count} Helprs
             </span>{" "}
             <span className="text-muted-foreground">
               have worked jobs in {helprActivity.parish} Parish — your
-              task will reach an active community.
+              job will reach an active community.
             </span>
           </p>
         </div>
@@ -342,7 +330,7 @@ export function CheckoutStep({
           {/* What the customer pays */}
           <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>
           <div className="flex justify-between text-ds-13">
-            <span className="text-muted-foreground">Task budget</span>
+            <span className="text-muted-foreground">Job budget</span>
             <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-ds-13">
@@ -351,8 +339,14 @@ export function CheckoutStep({
           </div>
           {isUrgent && urgentFeeNum > 0 && (
             <div className="flex justify-between text-ds-13">
-              <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent bonus (goes to helpr)</span>
+              <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent bonus (goes to Helpr)</span>
               <span className="font-medium text-foreground">${urgentFeeNum.toFixed(2)}</span>
+            </div>
+          )}
+          {onboardingFeeAmount > 0 && (
+            <div className="flex justify-between text-ds-13">
+              <span className="text-muted-foreground">One-time account setup <span className="text-ds-11 italic">(first job only)</span></span>
+              <span className="font-medium text-foreground">${onboardingFeeAmount.toFixed(2)}</span>
             </div>
           )}
           <div className="flex justify-between text-ds-13">
@@ -493,7 +487,7 @@ export function CheckoutStep({
           className="mt-0.5 shrink-0"
         />
         <span className="text-ds-13 text-foreground leading-snug">
-          I've reviewed all details above and confirm everything is correct. I understand the helpr's payout will be released after both parties confirm job completion.
+          I've reviewed all details above and confirm everything is correct. I understand the Helpr's payout will be released after both parties confirm job completion.
         </span>
       </label>
 

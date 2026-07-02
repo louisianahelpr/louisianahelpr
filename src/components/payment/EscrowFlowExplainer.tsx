@@ -41,7 +41,7 @@ export function EscrowFlowExplainer() {
             className="font-serif italic text-ds-11 mt-0.5"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Stripe holds the funds. Your helpr is paid only after the job
+            Stripe holds the funds. Your Helpr is paid only after the job
             is verified complete.
           </p>
         </div>
@@ -53,19 +53,19 @@ export function EscrowFlowExplainer() {
             icon: Lock,
             label: "Held securely until you approve",
             body:
-              "When you pay, Stripe holds the full amount in a protected account — your helpr can't withdraw it yet.",
+              "When you pay, Stripe holds the full amount in a protected account — your Helpr can't withdraw it yet.",
           },
           {
             icon: CheckCircle2,
             label: "Both parties confirm",
             body:
-              "Once the job is done, both you and your helpr confirm completion in-app. Helpr can't take the payout without your confirmation.",
+              "Once the job is done, both you and your Helpr confirm completion in-app. Helpr can't take the payout without your confirmation.",
           },
           {
             icon: Wallet,
-            label: "Released to your helpr",
+            label: "Released to your Helpr",
             body:
-              "Stripe releases the budget + urgent bonus (if any) to your helpr. The service fee covers platform safety, support, and disputes.",
+              "Stripe releases the budget + urgent bonus (if any) to your Helpr. The service fee covers platform safety, support, and disputes.",
           },
         ].map((step, i) => {
           const Icon = step.icon;

@@ -80,7 +80,7 @@ test.describe("customer post-job happy path", () => {
     // /post-job now opens on the entry-landing step (start fresh / draft /
     // template) before the full form. ProtectedRoute does an async profile
     // fetch + Big-7 gate before it renders children, so allow extra time.
-    await expect(page.getByRole("heading", { name: /post a task/i })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /post a job/i })).toBeVisible({
       timeout: 15_000,
     });
 

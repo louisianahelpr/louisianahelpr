@@ -74,6 +74,8 @@ serve(async (req) => {
           tier,
         },
       },
+    }, {
+      idempotencyKey: `bizseat:${user.id}:${tier}`,
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

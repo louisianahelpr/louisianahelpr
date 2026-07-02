@@ -102,6 +102,8 @@ serve(async (req) => {
         kind: "background_check",
         user_id: user.id,
       },
+    }, {
+      idempotencyKey: `bgc:${user.id}`,
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

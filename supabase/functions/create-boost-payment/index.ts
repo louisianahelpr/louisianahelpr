@@ -150,6 +150,8 @@ serve(async (req) => {
         customer_id: user.id,
         duration_hours: String(BOOST_DURATION_HOURS),
       },
+    }, {
+      idempotencyKey: `boost:${user.id}:${job_id}`,
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

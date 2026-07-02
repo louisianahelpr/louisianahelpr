@@ -94,7 +94,29 @@ Legend: ✅ = fixed this pass (in-branch or already merged) · ⬜ = open · ❌
 ### Prod introspection results (2026-07-01, via Management API)
 - **`cron.job`:** 27 active jobs enumerated — `auto-release-payment` every 30 min, `auto-expire-jobs` hourly, `auto-resolve-disputes` 6-hourly, `expire-subscriptions` daily, `process-email-queue` 5-min, sweeps as expected. **`process-scheduled-payouts` and `stripe-payouts` are NOT scheduled** (F-MONEY-13 downgrade validated).
 - **Zero-drift check:** all objects from the 12 most recent migrations exist (8/8 recent functions incl. `business_spend_summary`, `get_ranked_open_jobs`; `open_jobs_browse` view; `partner_applications` dropped as intended; `profiles.background_check_status` present).
-- **Edge functions:** `create-payment` and `release-payout` (this branch's hardened versions) **deployed to prod** via `supabase functions deploy` during this pass — prod does not lag the repo.
+- **Edge functions:** `create-payment` and `release-payout` (this branch's hardened versions) **deployed to prod** via `supabase functions deploy` during this pass — prod does not lag the repo. Re-deployed a second time after the silent-failure fixes below.
+
+### Silent-failure-hunter pass (2026-07-01) — 14 findings, ALL ✅ fixed (commit `dca62a64`) + redeployed
+
+Defect class: **supabase-js never throws** — an undestructured `await supabaseAdmin.from(...).update(...)` after an irreversible Stripe refund/transfer silently succeeds with the wrong DB state. Every DB write that follows money movement now checks `error`, logs `CRITICAL` with the Stripe object id, and returns 5xx for manual reconciliation.
+
+| ID | Sev | Finding | File | Fix |
+|----|-----|---------|------|-----|
+| F-MONEY-16 | 🔴 | 4 unchecked `jobs.update` after refund/transfer (`cancel_escrow`, `admin_release_dispute`, `admin_refund_dispute`, `admin_refund_general`) | `create-payment/index.ts` | ✅ check → CRITICAL log + 500 w/ payment-intent id |
+| F-MONEY-17 | 🟠 | Final `released` flip unchecked after transfer | `release-payout/index.ts` | ✅ check → CRITICAL log + 500 w/ transfer id |
+| F-MONEY-18 | 🟠 | Tips ledger insert unchecked → paid tip with no row; also re-insertable | `create-payment/index.ts` | ✅ deduped on `stripe_session_id`; insert/lookup errors throw |
+| F-MONEY-19 | 🟠 | Dead `void-cancelled-payments` client invoke — cron-secret-only auth ⇒ 401 every call | `CancellationDialog.tsx` | ✅ removed; copy now promises "within the hour" (cron latency) |
+| F-MONEY-20 | 🟡 | Tip helper-profile read error silently rerouted tip to platform balance | `create-payment/index.ts` | ✅ `.maybeSingle()` + throw |
+| F-MONEY-21 | 🟡 | Escrow post-session update unchecked | `create-payment/index.ts` | ✅ check + throw (session unused is harmless) |
+| F-MONEY-22 | 🟡 | Notification payout estimate diverged from actual fee | `CancellationDialog.tsx` | ✅ softened to "approximately $X" |
+| F-MONEY-23 | 🟡 | Onboarding-fee claim + rollback writes unchecked | `release-payout/index.ts` | ✅ claim fails closed pre-transfer; rollback failure → CRITICAL + 422 |
+| F-MONEY-24 | 🟡 | `stripe.accounts.retrieve` uncaught (no outer catch in handler) | `release-payout/index.ts` | ✅ try/catch → structured log + 502 |
+| F-MONEY-25 | 🟡 | `getHelperFeePercent` fallback silent — Elite 8% becomes 10-12% invisibly | `_shared/helperFees.ts` | ✅ `console.warn` on both branches (fallback kept — never block a payout) |
+| F-MONEY-26 | 🟡 | Dup-transfer / helper-profile pre-checks failed **open** on read error | both functions | ✅ `.maybeSingle()` + fail-closed 500 |
+| F-MONEY-27 | 🟢 | Refund idempotency comments claimed "one key per job, ever" (keys expire ~24h) | `create-payment/index.ts` | ✅ comments corrected; `charge_already_refunded` backstop noted |
+| F-NAV-01 | 🟢 | Stale `/job-history` route in nav config (route deleted) | `MobileNav.tsx`, `desktopNavRoutes.ts` | ✅ removed (queryKeys `["job-history"]` cache string intentionally kept) |
+
+**Verified clean by the hunter** (recorded so they aren't re-raised): dispute-status guard allowlist `["resolved","auto_resolved"]` exactly matches the closed-in-helper's-favor states (`dispute_won` correctly stays blocked — `admin_release_dispute` bypasses `release-payout`); all three idempotency catch/rethrow paths; `unwrap` semantics at all three `fetchRatingStats` call sites; `helper_fee_percent` prop plumbing; `Jobs.tsx` hook ordering + deep-link preservation; deleted-page route hygiene. All four gates re-verified after the batch fix (typecheck/lint/build ✅, vitest 1179/1179 ✅).
 
 ---
 
@@ -139,7 +161,7 @@ Legend: ✅ = fixed this pass (in-branch or already merged) · ⬜ = open · ❌
 ## Coverage-honesty note
 
 Explicitly **not fully verified** this pass:
-- **Prod introspection (blocked):** Supabase MCP was down (classifier outage) for the whole session. `cron.job` schedule listing, `RELEASE_PAYOUT_AUTO` env (F-MONEY-12), and the zero-drift object-existence sweep are OUTSTANDING — they are merge blockers, not accepted gaps.
+- ~~Prod introspection (blocked)~~ — **RESOLVED**: completed via the Management API (see "Prod introspection results" above); cron listing, `RELEASE_PAYOUT_AUTO=1`, and the zero-drift sweep all verified.
 - **Authed iOS surface:** the sim pass covered the guest surface (boot → /browse, push deep-link → /jobs → /browse redirect, job-detail dialog). Authed native screens were not re-driven this pass (last full authed sim pass: 2026-06 audits).
 - **Stripe test-card drives:** money-path verification this pass was source-level (line-traced `create-payment`, `release-payout`, `process-scheduled-payouts`, `auto-release-payment`, `cash-out-credits`, `instant-payout`, `stripe-webhook`, `create-pro-checkout`); live test-card runs of every charge path were not repeated.
 - **E2E reality gap (standing):** Playwright runs Chromium against mocked Supabase; green CI ≠ native-verified.

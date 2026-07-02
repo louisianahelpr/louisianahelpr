@@ -1,107 +1,29 @@
-import { memo, useRef, useState } from "react";
+import { memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Skeleton } from "@/components/ui/skeleton";
-import { TrustRow } from "@/components/TrustRow";
-import { SaveHelperButton } from "@/components/SaveHelperButton";
-import { CompletionChoiceSheet } from "@/components/activity/CompletionChoiceSheet";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { successToast } from "@/lib/toast";
-import { hapticError, hapticSuccess } from "@/lib/haptics";
-import { createNotification } from "@/lib/notifications";
-import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import {
-  MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
-  Users, Pencil, AlertTriangle, RefreshCw, Rocket, Clock, Wrench,
-  RotateCw, Check, ChevronDown, ChevronUp, Ban, Eye, Send, X, ChevronRight,
+  MapPin, DollarSign, CheckCircle2, RotateCcw,
+  Users, AlertTriangle, RefreshCw, Clock,
+  Check, ChevronDown, ChevronUp, Ban, Eye,
 } from "lucide-react";
-import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
-import { JobTracking, type TrackingData } from "@/components/JobTracking";
+import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
-import type { GroupHelperLite } from "@/hooks/useActivityData";
-import { parseLocalDate } from "@/lib/dateUtils";
-import { type Job, type EnrichedApplication } from "./activityConstants";
 import {
   EscrowProgressBar,
   deriveEscrowStepFromJob,
 } from "@/components/payment/EscrowProgressBar";
-import { ShareJobButton } from "@/components/jobs/ShareJobButton";
-import { DisputeLink } from "@/components/jobs/DisputeLink";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { IncomingReportCard } from "./PetReportCard";
 import { formatPrice } from "@/lib/format";
-
-/** Bid column added by a later migration not yet regenerated into the
-    Supabase types (PGRST202 migration-lag pattern — see CLAUDE.md).
-    Optional: absent on a production DB where the migration hasn't run. */
-type WithBidPrice = { proposed_price?: number | null };
-
-interface PostedJobCardProps {
-  /** The job + its embedded data — one row of the posted feed. */
-  job: Job;
-  applicantCounts: Record<string, number>;
-  expandedJobId: string | null;
-  setExpandedJobId: (id: string | null) => void;
-  helperNames: Record<string, string>;
-  completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
-  startRequestedJobIds: Set<string>;
-  userId: string;
-  /** Job-lifecycle handlers, owned by the parent ActivityTab. */
-  onBoost: (jobId: string) => void;
-  onEdit: (job: Job) => void;
-  onCancel: (job: Job) => void;
-  onComplete: (jobId: string) => void;
-  completingJobId: string | null;
-  onRevision: (jobId: string) => void;
-  onNoShow: (jobId: string) => void;
-  onTip: (jobId: string, helperName: string) => void;
-  onReview: (job: Job) => void;
-  onDispute: (job: Job) => void;
-  /** Open the read-only timeline + follow-up evidence uploader for a
-   *  job that's already in dispute. */
-  onViewDispute: (job: Job) => void;
-  onConfirmStart: (jobId: string) => void;
-  onConfirmArrival: (jobId: string) => void;
-  onConfirmWorking: (jobId: string) => void;
-  onLoadApplications: (job: Job) => void;
-  /** Inline applicant data for the expanded open-job card. */
-  onLoadInlineApplicants: (jobId: string) => void;
-  inlineApplicants: Record<string, EnrichedApplication[]>;
-  loadingApplicants: Record<string, boolean>;
-  /** Per-job applicant fetch error, for inline retry. */
-  applicantErrors: Record<string, boolean>;
-  /** Pre-fetched latest tracking row for this job, threaded down to
-      <JobTracking> so the card doesn't fire its own SELECT on mount.
-      `null` = pre-fetched and no row exists yet; `undefined` = not
-      pre-fetched (the child falls back to its own per-mount query). */
-  initialTracking?: TrackingData | null;
-  /** Pre-fetched group-helper rows for this job (only relevant for active
-      group jobs), threaded into <GroupJobHelpers> to skip its own 2-query
-      waterfall on mount. */
-  initialGroupHelpers?: GroupHelperLite[];
-  /** Refetch the posted-jobs feed after an inline mutation (dispute
-      resolve/escalate) instead of a full-page reload. */
-  onActionComplete: () => void;
-  /** Number of unique helprs who have viewed this job. Only shown when > 0. */
-  viewCount?: number;
-  /** Pre-computed analytics for this job — views, applicant count,
-   *  conversion rate, and bid range (bid fields only for accept_bids jobs). */
-  jobAnalytics?: {
-    viewCount: number;
-    applicantCount: number;
-    conversionRate: number | null;
-    bidMin: number | null;
-    bidMax: number | null;
-    bidAvg: number | null;
-  };
-}
+import { type PostedJobCardProps } from "./postedJobCard/types";
+import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
+import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 
 /**
  * PostedJobCard — one card in the poster's "my posts" feed: the job
@@ -147,80 +69,6 @@ function PostedJobCardInner({
   jobAnalytics,
 }: PostedJobCardProps) {
   const navigate = useNavigate();
-  const [completionSheetOpen, setCompletionSheetOpen] = useState(false);
-  // Broadcast boost state — tracks whether a notification blast has been
-  // sent for this job in the current session so the button disables after
-  // one tap (until the page refreshes). Separate from the paid "Boost"
-  // (create-boost-payment) which controls feed ranking.
-
-  // "Message all applicants" compose state — inline below the applicant list.
-  const [broadcastOpen, setBroadcastOpen] = useState(false);
-  const [broadcastText, setBroadcastText] = useState("");
-  const [broadcastSending, setBroadcastSending] = useState(false);
-  const broadcastRef = useRef<HTMLTextAreaElement>(null);
-  // Guards the Mark Resolved / Escalate to Admin buttons while their
-  // supabase UPDATE is in-flight — prevents double-tap submission.
-  const [disputeActing, setDisputeActing] = useState(false);
-
-  /**
-   * handleBroadcastMessage — inserts one message row per pending applicant
-   * into the `messages` table, targeting their per-applicant conversation
-   * thread with the poster (keyed by job_id + participant pair). Each
-   * insert uses the poster's userId as sender_id and the applicant's
-   * helper_id as receiver_id, matching the schema used by the ChatView.
-   * Errors are surfaced individually; a partial failure still shows the
-   * success count so the poster knows which sends went through.
-   */
-  const handleBroadcastMessage = async () => {
-    if (!broadcastText.trim() || broadcastSending) return;
-    const pendingApplicants = (inlineApplicants[job.id] ?? []).filter(
-      (a) => a.status === "pending",
-    );
-    if (pendingApplicants.length === 0) return;
-
-    setBroadcastSending(true);
-    let successCount = 0;
-    let failCount = 0;
-
-    await Promise.all(
-      pendingApplicants.map(async (app) => {
-        const { error } = await supabase.from("messages").insert({
-          job_id: job.id,
-          sender_id: userId,
-          receiver_id: app.helper_id,
-          content: broadcastText.trim(),
-        });
-        if (error) {
-          failCount++;
-          report(error, { tags: { source: "PostedJobCard.broadcastMessage", jobId: job.id } });
-        } else {
-          successCount++;
-          // Notify the helper so they see the message in their inbox.
-          void createNotification({
-            user_id: app.helper_id,
-            title: "New message from poster",
-            message: broadcastText.trim().slice(0, 120),
-            type: "info",
-            link: `/messages`,
-          });
-        }
-      }),
-    );
-
-    setBroadcastSending(false);
-
-    if (successCount > 0) {
-      hapticSuccess();
-      successToast(
-        `Message sent to ${successCount} Helpr${successCount !== 1 ? "s" : ""}${failCount > 0 ? ` (${failCount} failed)` : ""}`,
-      );
-      setBroadcastOpen(false);
-      setBroadcastText("");
-    } else {
-      hapticError();
-      toast.error("Couldn't send the message — please try again.");
-    }
-  };
 
   const meta = completedJobMeta[job.id];
   const isFullyCompleted = job.status === "completed" && meta?.tipped && meta?.reviewed;
@@ -476,7 +324,7 @@ function PostedJobCardInner({
               )}
             </div>
 
-            
+
 
             {/* Completed hint */}
             {job.status === "completed" && (() => {
@@ -534,267 +382,23 @@ function PostedJobCardInner({
                 <div className="px-4 pb-3 space-y-3">
                   <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
                   {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} initialHelpers={initialGroupHelpers} />}
-                  
+
                 </div>
               )}
 
               {/* Applicants button + inline expanded applicant list */}
               {job.status === "open" && (
-                <div className="px-4 py-2 space-y-2" onClick={(e) => e.stopPropagation()}>
-                  <Button size="sm" className="w-full rounded-ds-md glass-press" onClick={() => onLoadApplications(job)}>
-                    <Users className="w-4 h-4 mr-1" /> Applicants{(applicantCounts[job.id] || 0) > 0 ? ` (${applicantCounts[job.id]})` : ""}
-                  </Button>
-
-                  {/* Inline applicants — load when the card is expanded.
-                      Shows a skeleton while loading, an error+retry when
-                      the fetch failed, and an empty-state with a share/boost
-                      hint when there are zero applicants. */}
-                  {isExpanded && (() => {
-                    const isLoadingInline = loadingApplicants[job.id];
-                    const hasError = applicantErrors[job.id];
-                    const apps = inlineApplicants[job.id];
-
-                    // Kick off the fetch the first time the card expands.
-                    if (!isLoadingInline && !hasError && apps === undefined) {
-                      onLoadInlineApplicants(job.id);
-                    }
-
-                    if (isLoadingInline) {
-                      return (
-                        <div className="space-y-2 py-1">
-                          {[1, 2].map((i) => (
-                            <Skeleton key={i} className="h-10 rounded-ds-sm" />
-                          ))}
-                        </div>
-                      );
-                    }
-
-                    if (hasError) {
-                      return (
-                        <div
-                          className="rounded-ds-md px-3 py-2.5 flex items-center gap-2"
-                          style={{
-                            background: "hsl(var(--destructive) / 0.06)",
-                            border: "0.5px solid hsl(var(--destructive) / 0.22)",
-                          }}
-                        >
-                          <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-destructive" />
-                          <p className="font-serif italic flex-1" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.85)" }}>
-                            Couldn't load applicants.
-                          </p>
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1 text-ds-11 font-semibold text-primary hover:underline"
-                            onClick={() => onLoadInlineApplicants(job.id)}
-                          >
-                            <RotateCw className="w-3 h-3" /> Retry
-                          </button>
-                        </div>
-                      );
-                    }
-
-                    if (apps !== undefined && apps.length === 0) {
-                      return (
-                        <div
-                          className="rounded-ds-md px-3 py-2.5 space-y-1.5"
-                          style={{
-                            background: "hsl(var(--olivewood) / 0.05)",
-                            border: "0.5px solid hsl(var(--olivewood) / 0.16)",
-                          }}
-                        >
-                          <p
-                            className="font-display italic font-bold"
-                            style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
-                          >
-                            No applicants yet
-                          </p>
-                          <p
-                            className="font-serif italic leading-snug"
-                            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
-                          >
-                            Share your job or Boost it (below) to reach more Helprs nearby.
-                          </p>
-                        </div>
-                      );
-                    }
-
-                    // Render the inline applicant list with TrustRow
-                    // showing each applicant's completed jobs and rating.
-                    if (apps !== undefined && apps.length > 0) {
-                      const pendingCount = apps.filter((a) => a.status === "pending").length;
-                      return (
-                        <div className="space-y-2 py-1">
-                          {apps.map((app) => {
-                            const name = app.profiles?.full_name || "Helpr";
-                            return (
-                              <div
-                                key={app.id}
-                                className="flex items-center gap-2 px-2.5 py-2 rounded-ds-sm"
-                                style={{
-                                  background: "hsl(var(--olivewood) / 0.05)",
-                                  border: "0.5px solid hsl(var(--olivewood) / 0.14)",
-                                }}
-                              >
-                                {/* Left: avatar + name + trust — tappable to
-                                    open the helper's full profile page. The
-                                    whole left column is the tap target; action
-                                    buttons (Save, etc.) stay on the right so
-                                    there's no accidental nav when tapping them. */}
-                                <button
-                                  type="button"
-                                  className="min-w-0 flex-1 flex items-center gap-2 text-left active:opacity-70 transition-opacity"
-                                  onClick={() => navigate(`/user/${app.helper_id}`)}
-                                  aria-label={`View ${name}'s profile`}
-                                >
-                                  {/* Avatar circle */}
-                                  <div
-                                    className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-ds-11 font-bold overflow-hidden"
-                                    style={{ background: "hsl(var(--primary) / 0.12)", color: "hsl(var(--primary))" }}
-                                  >
-                                    {app.profiles?.avatar_url ? (
-                                      <img
-                                        src={app.profiles.avatar_url}
-                                        alt={name}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      name[0].toUpperCase()
-                                    )}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1 flex-wrap">
-                                      <p
-                                        className="font-display italic font-bold truncate"
-                                        style={{ fontSize: "0.82rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
-                                      >
-                                        {name}
-                                      </p>
-                                      {/* Subtle arrow signals the row is tappable */}
-                                      <ChevronRight
-                                        className="w-3 h-3 shrink-0"
-                                        style={{ color: "hsl(var(--olivewood) / 0.80)" }}
-                                        aria-hidden="true"
-                                      />
-                                      {(app as WithBidPrice).proposed_price != null && (
-                                        <span
-                                          className="text-ds-11 font-semibold px-2 py-0.5 rounded-full shrink-0"
-                                          style={{
-                                            background: "hsl(var(--sage) / 0.15)",
-                                            color: "hsl(var(--sage))",
-                                          }}
-                                        >
-                                          Bid: ${formatPrice((app as WithBidPrice).proposed_price ?? 0)}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <TrustRow
-                                      completedJobs={
-                                        typeof (app as { completedJobs?: number }).completedJobs === "number"
-                                          ? (app as { completedJobs?: number }).completedJobs
-                                          : undefined
-                                      }
-                                      avgRating={app.avgRating ?? undefined}
-                                      reviewCount={app.reviewCount ?? undefined}
-                                      className="mt-0.5"
-                                    />
-                                  </div>
-                                </button>
-                                {app.status === "pending" && userId && (
-                                  <SaveHelperButton
-                                    helperId={app.helper_id}
-                                    customerId={userId}
-                                    className="shrink-0 h-8 w-8"
-                                  />
-                                )}
-                              </div>
-                            );
-                          })}
-
-                          {/* "Message all" — only when 2+ pending applicants */}
-                          {pendingCount >= 2 && (
-                            <div className="pt-1">
-                              {!broadcastOpen ? (
-                                <button
-                                  type="button"
-                                  className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-ds-md text-ds-12 font-semibold transition-colors"
-                                  style={{
-                                    background: "hsl(var(--info-tint) / 0.10)",
-                                    color: "hsl(var(--info-ink))",
-                                    border: "0.5px solid hsl(var(--info-tint) / 0.28)",
-                                  }}
-                                  onClick={() => {
-                                    setBroadcastOpen(true);
-                                    // Focus the textarea on next tick after render.
-                                    setTimeout(() => broadcastRef.current?.focus(), 50);
-                                  }}
-                                >
-                                  <MessageSquare className="w-3.5 h-3.5" />
-                                  Message all {pendingCount} applicants
-                                </button>
-                              ) : (
-                                /* Inline compose area */
-                                <div
-                                  className="rounded-ds-md p-3 space-y-2"
-                                  style={{
-                                    background: "hsl(var(--info-tint) / 0.06)",
-                                    border: "0.5px solid hsl(var(--info-tint) / 0.24)",
-                                  }}
-                                >
-                                  <div className="flex items-center justify-between mb-0.5">
-                                    <p
-                                      className="text-ds-11 font-semibold"
-                                      style={{ color: "hsl(var(--info-ink))" }}
-                                    >
-                                      Message all {pendingCount} applicants
-                                    </p>
-                                    <button
-                                      type="button"
-                                      aria-label="Close"
-                                      className="p-1 rounded-full hover:bg-muted/60 transition-colors"
-                                      onClick={() => {
-                                        setBroadcastOpen(false);
-                                        setBroadcastText("");
-                                      }}
-                                    >
-                                      <X className="w-3.5 h-3.5 text-muted-foreground" />
-                                    </button>
-                                  </div>
-                                  <textarea
-                                    ref={broadcastRef}
-                                    aria-label="Message to all applicants"
-                                    className="w-full resize-none rounded-ds-sm px-3 py-2 text-ds-12 text-foreground placeholder:text-muted-foreground/60 bg-background border border-border/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
-                                    rows={3}
-                                    placeholder={`e.g. "I'm running 15 min late — please bring your own gloves"`}
-                                    value={broadcastText}
-                                    onChange={(e) => setBroadcastText(e.target.value)}
-                                    maxLength={500}
-                                    disabled={broadcastSending}
-                                  />
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="text-ds-10 text-muted-foreground">
-                                      {broadcastText.length}/500
-                                    </span>
-                                    <Button
-                                      size="sm"
-                                      disabled={!broadcastText.trim() || broadcastSending}
-                                      onClick={handleBroadcastMessage}
-                                      className="h-8 px-3 rounded-ds-md text-ds-12"
-                                    >
-                                      <Send className="w-3.5 h-3.5 mr-1" />
-                                      {broadcastSending ? "Sending…" : `Send to all`}
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
-
-                    return null;
-                  })()}
-                </div>
+                <PostedJobApplicants
+                  job={job}
+                  userId={userId}
+                  isExpanded={isExpanded}
+                  applicantCounts={applicantCounts}
+                  inlineApplicants={inlineApplicants}
+                  loadingApplicants={loadingApplicants}
+                  applicantErrors={applicantErrors}
+                  onLoadApplications={onLoadApplications}
+                  onLoadInlineApplicants={onLoadInlineApplicants}
+                />
               )}
 
               {/* Analytics mini-panel — reach/views readout. The applicant
@@ -830,444 +434,28 @@ function PostedJobCardInner({
               )}
 
               {/* Actions */}
-              <div className="border-t border-[hsl(var(--olivewood)/0.1)] bg-card px-4 py-3">
-                <div className="space-y-2">
-                  {job.status === "open" && (() => {
-                    // Boost cooldown — show when the job is currently
-                    // boosted so the poster knows the boost is running
-                    // and when they can re-boost (after expiry).
-                    const boostExp = job.boost_expires_at
-                      ? new Date(job.boost_expires_at)
-                      : null;
-                    const isBoosted = boostExp && boostExp > new Date();
-                    return (
-                    <>
-                      {isBoosted && (
-                        <div
-                          className="rounded-ds-md px-3 py-2 mb-2 flex items-center gap-2"
-                          style={{
-                            background: "hsl(var(--gold-warm) / 0.10)",
-                            border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
-                          }}
-                        >
-                          <Rocket className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.25} />
-                          <p
-                            className="font-serif italic leading-snug"
-                            style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.85)" }}
-                          >
-                            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-                              Boosted until {boostExp.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}.
-                            </span>{" "}
-                            Re-boost available after expiry.
-                          </p>
-                        </div>
-                      )}
-                      {/* Color-coded actions — each lever gets its own muted
-                          hue so the row reads at a glance without shouting:
-                          Boost = orange (visibility), Edit = gold/yellow,
-                          Share = blue, Cancel = red. Applicants (above) stays
-                          the single solid-green primary, so these four sit
-                          together as one secondary icon row — Boost included,
-                          not promoted to a full-width near-primary. Tints are
-                          kept low so it's colorful, not loud. */}
-                      <div className="space-y-2">
-                        {/* Compact glanceable row: at 375px four labelled
-                            pills won't fit side-by-side, so each cell stacks
-                            its icon over a small label. Keeps every action
-                            named (clearer than icon-only) while the color
-                            tints still let the row read at a glance. */}
-                        <div className="grid grid-cols-4 gap-1.5">
-                          <Button
-                            variant="outline" size="sm"
-                            className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
-                            style={{ background: "hsl(var(--boost-tint) / 0.14)", color: "hsl(var(--boost-ink))", border: "0.5px solid hsl(var(--boost-tint) / 0.34)" }}
-                            disabled={!!isBoosted}
-                            onClick={() => onBoost(job.id)}
-                          >
-                            <Rocket className="w-4 h-4" />
-                            <span className="text-[0.66rem] leading-none font-medium">{isBoosted ? "Boosted" : "Boost"}</span>
-                          </Button>
-                          <Button
-                            variant="outline" size="sm"
-                            className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
-                            style={{ background: "hsl(var(--gold-warm) / 0.16)", color: "hsl(var(--amber-ink))", border: "0.5px solid hsl(var(--gold-warm) / 0.36)" }}
-                            onClick={() => onEdit(job)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                            <span className="text-[0.66rem] leading-none font-medium">Edit</span>
-                          </Button>
-                          <ShareJobButton
-                            job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-                            layout="stack"
-                            className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
-                            style={{ background: "hsl(var(--info-tint) / 0.12)", color: "hsl(var(--info-ink))", border: "0.5px solid hsl(var(--info-tint) / 0.32)" }}
-                          />
-                          <Button
-                            variant="outline" size="sm"
-                            className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
-                            style={{ background: "hsl(var(--cancel-tint) / 0.11)", color: "hsl(var(--cancel-ink))", border: "0.5px solid hsl(var(--cancel-tint) / 0.32)" }}
-                            onClick={() => onCancel(job)}
-                          >
-                            <XCircle className="w-4 h-4" />
-                            <span className="text-[0.66rem] leading-none font-medium">Cancel</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </>
-                    );
-                  })()}
-                  {job.status === "accepted" && (
-                    <div className="space-y-2">
-                      <p className="text-ds-11 text-muted-foreground text-center">
-                        <Clock className="w-3 h-3 inline mr-1" />
-                        Helpr must confirm 24 hours before the job starts — tracking actions unlock then
-                      </p>
-                      {startRequestedJobIds.has(job.id) && !job.helper_confirmed_at && (
-                        <Button size="sm" className="w-full" onClick={() => onConfirmStart(job.id)}><CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Start</Button>
-                      )}
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="destructive" className="flex-1" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
-                        <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
-                      </div>
-                      {/* Share link — lets the poster spread the word even
-                          after a helper has been accepted. Opens the OS
-                          Share Sheet on native; copies the URL on web. */}
-                      <ShareJobButton
-                        job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-                        className="w-full glass-press border-0"
-                        style={{ background: "hsl(var(--info-tint) / 0.10)", color: "hsl(var(--info-ink))", border: "0.5px solid hsl(var(--info-tint) / 0.28)" }}
-                      />
-                    </div>
-                  )}
-                  {(job.status === "in_progress" || job.status === "revision_requested") && (
-                    <div className="space-y-2">
-                      {/* Confirm Arrival notice */}
-                      {job.helper_arrived_at && !job.poster_confirmed_arrival_at && (
-                        <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm" style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}>
-                          <MapPin className="w-3.5 h-3.5 shrink-0" />
-                          <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
-                          <span className="ml-auto text-ds-10 text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                      )}
-                      {/* Confirm Arrival + No-Show side by side */}
-                      {job.status === "in_progress" && (
-                        <div className="flex items-center gap-2">
-                          {!job.poster_completed_at && !job.helper_arrived_at && (() => {
-                            const now = new Date();
-                            // 1hr after start time OR 1hr after on_the_way
-                            let canNoShow = false;
-                            if (job.helper_on_the_way_at) {
-                              canNoShow = now.getTime() - new Date(job.helper_on_the_way_at).getTime() >= 60 * 60 * 1000;
-                            }
-                            if (job.start_time && job.date_needed) {
-                              const base = parseLocalDate(job.date_needed);
-                              const [h, m] = job.start_time.split(":").map(Number);
-                              base.setHours(h, m, 0, 0);
-                              const startPlus1h = new Date(base.getTime() + 60 * 60 * 1000);
-                              if (now >= startPlus1h) canNoShow = true;
-                            }
-                            if (!canNoShow) return null;
-                            return (
-                              <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onNoShow(job.id)}>
-                                <XCircle className="w-4 h-4 mr-1" /> No-Show
-                              </Button>
-                            );
-                          })()}
-                          {job.helper_arrived_at && !job.poster_confirmed_arrival_at && (
-                            <Button size="sm" className="flex-1" onClick={() => onConfirmArrival(job.id)}>
-                              <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                      {/* Confirm Working */}
-                      {job.status === "in_progress" && !job.poster_confirmed_working_at && job.poster_confirmed_arrival_at && (
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm" style={{ background: "hsl(var(--amber-tint) / 0.10)", color: "hsl(var(--amber-ink))" }}>
-                            <Wrench className="w-3.5 h-3.5 shrink-0" />
-                            <span className="font-medium">Is the Helpr working?</span>
-                          </div>
-                          <Button size="sm" className="w-full" onClick={() => onConfirmWorking(job.id)}>
-                            <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Working
-                          </Button>
-                        </div>
-                      )}
-                      {/* 72h countdown after helper marks complete */}
-                      {job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at && (
-                        <DeadlineCountdown
-                          deadline={new Date(new Date(job.helper_completed_at).getTime() + 72 * 60 * 60 * 1000).toISOString()}
-                          expiredText="72 hours passed — payment auto-released to Helpr"
-                          consequenceText="Approve & complete or request a revision before the timer expires, or payment will auto-release to the Helpr."
-                          variant="warning"
-                        />
-                      )}
-                      {/* Approve & Complete (primary) — only after helper marks done.
-                          Opens the two-path CompletionChoiceSheet so the poster
-                          can either confirm ("looks great") or request a revision
-                          before escrow releases. */}
-                      {job.helper_completed_at && (
-                        <>
-                          <Button
-                            size="sm"
-                            className="w-full rounded-ds-md"
-                            onClick={() => {
-                              if (!job.poster_completed_at) {
-                                setCompletionSheetOpen(true);
-                              }
-                            }}
-                            disabled={completingJobId === job.id || !!job.poster_completed_at}
-                            style={
-                              !job.poster_completed_at
-                                ? {
-                                    background: "hsl(var(--bark))",
-                                    backgroundImage: "none",
-                                    border: "1px solid hsl(var(--bark))",
-                                    color: "hsl(var(--parchment))",
-                                    fontFamily: "Montserrat, system-ui, sans-serif",
-                                    fontWeight: 600,
-                                    letterSpacing: "0.01em",
-                                    boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
-                                  }
-                                : undefined
-                            }
-                          >
-                            <CheckCircle2 className="w-4 h-4 mr-1" />
-                            {completingJobId === job.id ? "…" : job.poster_completed_at ? "Approved" : "Approve & release payment"}
-                          </Button>
-                          <CompletionChoiceSheet
-                            open={completionSheetOpen}
-                            jobId={job.id}
-                            jobTitle={job.title}
-                            helperId={job.helper_id}
-                            helperName={job.helper_id ? (helperNames[job.helper_id] || "Helpr") : "Helpr"}
-                            userId={userId}
-                            onClose={() => setCompletionSheetOpen(false)}
-                            onConfirm={() => onComplete(job.id)}
-                            onRevisionSubmitted={onActionComplete}
-                          />
-                        </>
-                      )}
-                      {/* Message — primary action while work is in progress */}
-                      <Button
-                        size="sm"
-                        variant={job.helper_completed_at ? "outline" : "default"}
-                        className="w-full"
-                        onClick={() => navigate("/messages")}
-                      >
-                        <MessageSquare className="w-4 h-4 mr-1" /> Message Helpr
-                      </Button>
-                      {/* Share link — available while work is in progress so
-                          the poster can still spread the word or share proof
-                          of work with others. Opens the OS Share Sheet on
-                          native; copies the URL on web. */}
-                      <ShareJobButton
-                        job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-                        className="w-full glass-press border-0"
-                        style={{ background: "hsl(var(--info-tint) / 0.10)", color: "hsl(var(--info-ink))", border: "0.5px solid hsl(var(--info-tint) / 0.28)" }}
-                      />
-                      {/* Request Revision — only after helper marks complete (Stage 2) */}
-                      {job.status === "in_progress" && !job.poster_completed_at && job.helper_completed_at && (
-                        <Button size="sm" variant="ghost" className="w-full text-muted-foreground hover:text-destructive text-ds-11" onClick={() => onRevision(job.id)}>
-                          <AlertTriangle className="w-3.5 h-3.5 mr-1" /> Request a revision instead
-                        </Button>
-                      )}
-                      {/* Dispute — Stage 3, only after revision deadline has passed without resolution */}
-                      {job.status === "revision_requested" && job.revision_deadline && new Date(job.revision_deadline) < new Date() && !job.revision_completed_at && (
-                        <button
-                          onClick={() => onDispute(job)}
-                          className="w-full text-ds-11 text-muted-foreground hover:text-destructive underline underline-offset-2 py-1 transition-colors"
-                        >
-                          Still unresolved? File a formal dispute
-                        </button>
-                      )}
-                      {/* Issue #113 — always-findable dispute path during a
-                          pending revision. Distinct from the deadline-gated
-                          button above: this surfaces *whenever* a revision is
-                          open, not only after the deadline elapses. The
-                          component self-hides for jobs already in dispute. */}
-                      <DisputeLink
-                        job={job}
-                        side="customer"
-                        onOpenDispute={() => onDispute(job)}
-                      />
-                    </div>
-                  )}
-                  {job.status === "completed" && (() => {
-                    const meta = completedJobMeta[job.id];
-                    const hasTipped = meta?.tipped;
-                    const hasReviewed = meta?.reviewed;
-                    const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
-                    return (
-                      <div className="space-y-2">
-                        <PhotoProofGroup
-                          jobId={job.id}
-                          beforeUrls={job.proof_before_urls || []}
-                          afterUrls={job.proof_after_urls || []}
-                          canUpload={false}
-                        />
-                        {!hasTipped ? (
-                          <Button size="sm" className="w-full bg-accent/15 text-accent hover:bg-accent/25 border-0" onClick={() => onTip(job.id, helperName)}>
-                            <DollarSign className="w-4 h-4 mr-1" /> Tip {helperName}
-                          </Button>
-                        ) : (
-                          <Button size="sm" className="w-full bg-muted text-muted-foreground border-0 cursor-default" disabled>
-                            <CheckCircle2 className="w-4 h-4 mr-1" /> Tipped
-                          </Button>
-                        )}
-                        {job.payment_status === "released" && (
-                          !hasReviewed ? (
-                            <Button size="sm" className="w-full bg-accent/15 text-accent hover:bg-accent/25 border-0" onClick={() => onReview(job)}>
-                              <Star className="w-4 h-4 mr-1" /> Review
-                            </Button>
-                          ) : (
-                            <Button size="sm" className="w-full bg-muted text-muted-foreground border-0 cursor-default" disabled>
-                              <CheckCircle2 className="w-4 h-4 mr-1" /> Reviewed
-                            </Button>
-                          )
-                        )}
-                        {/* Hire again — direct offer to the same helper.
-                            Routes to PostJob with offerTo + rebook query so
-                            the form is prefilled AND the offer goes straight
-                            to them (skipping the open-application queue). */}
-                        {job.helper_id ? (
-                          <Button
-                            variant="bark"
-                            size="sm"
-                            className="w-full rounded-ds-md"
-                            onClick={() => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`)}
-                          >
-                            <RotateCcw className="w-4 h-4 mr-1" /> Hire {helperName} again
-                          </Button>
-                        ) : (
-                          <Button size="sm" variant="outline" className="w-full liquid-glass glass-press" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
-                            <RotateCcw className="w-4 h-4 mr-1" /> Re-post this job
-                          </Button>
-                        )}
-                        {!job.poster_completed_at && (
-                          <>
-                            {job.revision_requested_at ? (
-                              <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onDispute(job)}>
-                                <AlertTriangle className="w-4 h-4 mr-1" /> Dispute
-                              </Button>
-                            ) : (
-                              <>
-                                <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
-                                  <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
-                                </Button>
-                                <p className="text-ds-10 text-muted-foreground text-center italic">Request a revision first before filing a dispute</p>
-                              </>
-                            )}
-                          </>
-                        )}
-                        {/* Issue #113 — quiet, always-findable dispute path for
-                            the 7-day window after completion. The component
-                            self-hides outside that window or once a dispute is
-                            already filed, so this lives unconditionally here. */}
-                        <DisputeLink
-                          job={job}
-                          side="customer"
-                          onOpenDispute={() => onDispute(job)}
-                        />
-                      </div>
-                    );
-                  })()}
-                  {job.status === "disputed" && (() => {
-                    const disputeStatus = job.dispute_status || "open";
-                    const isDisputer = job.disputed_by === userId;
-                    return (
-                    <div className="space-y-2">
-                      {job.poster_confirmed_working_at && (
-                        <PhotoProofGroup
-                          jobId={job.id}
-                          beforeUrls={job.proof_before_urls || []}
-                          afterUrls={job.proof_after_urls || []}
-                          canUploadBefore={false}
-                          canUploadAfter={false}
-                          requireAfter={true}
-                          budget={job.budget}
-                        />
-                      )}
-                      <div className="p-3 rounded-ds-sm bg-destructive/5 border border-destructive/20">
-                        <p className="text-ds-11 text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> 
-                          {disputeStatus === "escalated" ? "Escalated to Admin" : disputeStatus === "resolved" ? "Dispute Resolved" : "Dispute Under Review"}
-                        </p>
-                        <p className="text-ds-11 text-muted-foreground mt-1">Payment is on hold pending resolution.</p>
-                        {job.dispute_reason && <p className="text-ds-11 text-muted-foreground mt-1 italic">"{job.dispute_reason}"</p>}
-                        {job.dispute_helper_response && (
-                          <div className="mt-2 p-2 rounded bg-muted/50">
-                            <p className="text-ds-10 text-muted-foreground font-medium">Helpr's response:</p>
-                            <p className="text-ds-11 text-foreground mt-0.5">"{job.dispute_helper_response}"</p>
-                          </div>
-                        )}
-                        {job.dispute_deadline && disputeStatus !== "resolved" && (
-                          <DeadlineCountdown
-                            deadline={job.dispute_deadline}
-                            expiredText="Deadline passed — payment auto-releasing to Helpr"
-                            consequenceText="Confirm the issue is fixed or escalate to admin. If no action is taken, payment auto-releases to the Helpr."
-                            variant="destructive"
-                          />
-                        )}
-                      </div>
-                      <div className="p-2 rounded-ds-sm bg-card">
-                        <p className="text-ds-10 text-muted-foreground leading-relaxed">
-                          <strong>Policy:</strong> You have 72 hours to confirm the issue is fixed or escalate to admin. If you do nothing, payment auto-releases to the Helpr.
-                        </p>
-                      </div>
-                      {/* Disputer actions: Mark Resolved or Escalate */}
-                      {isDisputer && disputeStatus === "open" && (
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button size="sm" disabled={disputeActing} className="w-full bg-success text-success-foreground hover:bg-success/90 disabled:opacity-60" onClick={async (e) => {
-                            e.stopPropagation();
-                            setDisputeActing(true);
-                            try {
-                              const { error } = await supabase.from("jobs").update({ status: "completed", dispute_status: "resolved", dispute_resolved_at: new Date().toISOString() }).eq("id", job.id);
-                              if (error) { hapticError(); toast.error("We couldn't mark that resolved — please try again."); return; }
-                              if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
-                              hapticSuccess();
-                              toast.success("Dispute resolved — payment released to Helpr");
-                              onActionComplete();
-                            } finally {
-                              setDisputeActing(false);
-                            }
-                          }}><CheckCircle2 className="w-4 h-4 mr-1" /> Mark Resolved</Button>
-                          <Button size="sm" variant="outline" disabled={disputeActing} className="w-full text-destructive border-destructive/30 hover:bg-destructive/5 disabled:opacity-60" onClick={async (e) => {
-                            e.stopPropagation();
-                            setDisputeActing(true);
-                            try {
-                              const { error } = await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id);
-                              if (error) { hapticError(); toast.error("We couldn't escalate that — please try again."); return; }
-                              const { data: adminRoles, error: adminErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-                              if (adminErr) report(adminErr, { tags: { source: "PostedJobCard.escalateNotifyAdmins" } });
-                              if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin" }); } }
-                              hapticSuccess();
-                              toast.success("Dispute escalated to admin for final decision");
-                              onActionComplete();
-                            } finally {
-                              setDisputeActing(false);
-                            }
-                          }}><AlertTriangle className="w-4 h-4 mr-1" /> Escalate to Admin</Button>
-                        </div>
-                      )}
-                      {isDisputer && disputeStatus === "escalated" && (
-                        <div className="text-ds-11 text-center text-muted-foreground px-2 py-1.5 rounded bg-muted/50">Admin is reviewing this dispute. You'll be notified of the outcome.</div>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full"
-                        onClick={(e) => { e.stopPropagation(); onViewDispute(job); }}
-                      >
-                        <AlertTriangle className="w-4 h-4 mr-1" /> View timeline & add evidence
-                      </Button>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>
-                        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact Admin</Button>
-                      </div>
-                    </div>
-                    );
-                  })()}
-                </div>
-              </div>
+              <PostedJobActions
+                job={job}
+                userId={userId}
+                helperNames={helperNames}
+                completedJobMeta={completedJobMeta}
+                startRequestedJobIds={startRequestedJobIds}
+                onBoost={onBoost}
+                onEdit={onEdit}
+                onCancel={onCancel}
+                onComplete={onComplete}
+                completingJobId={completingJobId}
+                onRevision={onRevision}
+                onNoShow={onNoShow}
+                onTip={onTip}
+                onReview={onReview}
+                onDispute={onDispute}
+                onViewDispute={onViewDispute}
+                onConfirmStart={onConfirmStart}
+                onConfirmArrival={onConfirmArrival}
+                onConfirmWorking={onConfirmWorking}
+                onActionComplete={onActionComplete}
+              />
             </div>
             )}
           </JobCardShell>

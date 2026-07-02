@@ -1,0 +1,102 @@
+import { Loader2, Camera } from "lucide-react";
+import type { Profile } from "./types";
+
+interface PhotoNameSectionProps {
+  profile: Profile | null;
+  firstName: string;
+  lastName: string;
+  initials: string;
+  avatarBroken: boolean;
+  setAvatarBroken: (v: boolean) => void;
+  avatarUploading: boolean;
+  onAvatarUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onContactSupport?: () => void;
+}
+
+export function PhotoNameSection({
+  profile,
+  firstName,
+  lastName,
+  initials,
+  avatarBroken,
+  setAvatarBroken,
+  avatarUploading,
+  onAvatarUpload,
+  onContactSupport,
+}: PhotoNameSectionProps) {
+  return (
+    <div className="rounded-2xl liquid-glass p-5 space-y-4">
+      <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+        Photo &amp; name
+      </p>
+      <div className="flex items-center gap-4">
+        {/* Avatar always shows the actual photo (previously hidden behind
+            a full-coverage Camera overlay at opacity-100 on mobile).
+            Upload trigger moved to a small floating chip at the bottom-
+            right of the avatar so the user always sees their photo. */}
+        <div className="relative shrink-0">
+          {/* Squircle (rounded-[26px]) to match the avatar on the
+              Profile landing hero exactly — both use the same 26px
+              curve so the avatar reads identically across pages. */}
+          {profile?.avatar_url && !avatarBroken ? (
+            <img
+              loading="lazy"
+              decoding="async"
+              src={profile.avatar_url}
+              alt=""
+              className="w-20 h-20 rounded-[26px] squircle object-cover border-2 border-primary/20"
+              onError={() => setAvatarBroken(true)}
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-[26px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold border-2 border-primary/20">
+              {initials}
+            </div>
+          )}
+          <label
+            className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+            style={{
+              background: "hsl(var(--bark))",
+              border: "2px solid hsl(var(--parchment))",
+              boxShadow:
+                "0 1px 2px hsl(70 20% 18% / 0.22), " +
+                "0 4px 10px -2px hsl(var(--bark) / 0.4)",
+            }}
+            aria-label="Change profile photo"
+          >
+            {avatarUploading ? (
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: "hsl(var(--parchment))" }} />
+            ) : (
+              <Camera className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} />
+            )}
+            <input type="file" accept="image/*" className="hidden" onChange={onAvatarUpload} disabled={avatarUploading} />
+          </label>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-display italic font-bold leading-tight truncate text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+            {`${firstName} ${lastName}`.trim() || "Your name"}
+          </p>
+          <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            Tap the photo to change it.
+          </p>
+        </div>
+      </div>
+      <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+        Your name is locked after signup
+        {onContactSupport ? (
+          <>
+            {" — "}
+            <button
+              type="button"
+              onClick={onContactSupport}
+              className="not-italic font-sans font-semibold underline active:opacity-70"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              contact support
+            </button>
+            {" to change it."}
+          </>
+        ) : "."}
+      </p>
+    </div>
+  );
+}

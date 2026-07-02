@@ -139,10 +139,16 @@ serve(async (req) => {
         console.error(
           `[instant-payout] fee transfer NOT collected for instant_payout ${record.id} (helper ${user.id}, fee ${feeCents}¢): ${feeMsg}`
         );
-        await supabaseAdmin
+        // The reconciliation write is itself best-effort: if it fails we still
+        // want the net payout below to proceed, so log rather than throw (a
+        // throw here would surface as an uncaught rejection inside .catch()).
+        const { error: recErr } = await supabaseAdmin
           .from("instant_payouts")
           .update({ error_message: `fee_uncollected: ${feeMsg}` })
           .eq("id", record.id);
+        if (recErr) {
+          console.error(`[instant-payout] failed to record fee_uncollected for ${record.id}:`, recErr);
+        }
       });
 
       // Execute the instant payout for net amount.

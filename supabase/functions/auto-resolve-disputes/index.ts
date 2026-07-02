@@ -25,7 +25,12 @@ Deno.serve(async (req) => {
       (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!
     );
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    // Fail loud on a missing key rather than passing "" to the SDK, which the
+    // constructor accepts and only throws on later — an undiagnosable generic
+    // error. Matches auto-release-payment's upfront config check.
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeSecretKey) throw new Error("Missing required env var: STRIPE_SECRET_KEY");
+    const stripe = new Stripe(stripeSecretKey, {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -112,7 +117,10 @@ Deno.serve(async (req) => {
         .update({
           status: "completed",
           payment_status: "payout_pending",
-          payout_scheduled_at: new Date().toISOString(),
+          // +24h hold before the payout actually fires — a chargeback buffer,
+          // matching auto-release-payment. now() would make the job eligible on
+          // the very next payout cron tick with no safety window.
+          payout_scheduled_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
           dispute_status: "auto_resolved",
           dispute_resolved_at: new Date().toISOString(),
           dispute_reason: `[AUTO-RESOLVED] Original: ${job.dispute_reason || "N/A"}. Dispute expired after 72 hours without resolution. Payment released to helper.`,

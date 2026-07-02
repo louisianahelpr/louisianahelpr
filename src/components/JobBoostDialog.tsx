@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Rocket, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { BOOST_FEE_CENTS, formatFeeUsd } from "@/lib/productPrices";
+
+const BOOST_PRICE = formatFeeUsd(BOOST_FEE_CENTS);
 
 interface JobBoostDialogProps {
   jobId: string;
@@ -125,7 +128,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                   className="font-display italic font-bold tabular-nums leading-none"
                   style={{ fontSize: "2.5rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
                 >
-                  $3
+                  {BOOST_PRICE}
                 </p>
                 <p
                   className="font-serif italic mt-1.5"
@@ -178,7 +181,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             className="rounded-ds-md"
           >
             <Rocket className="w-4 h-4 mr-1.5" />
-            {boosting ? "Boosting…" : isSubscriber ? "Boost — included" : "Boost for $3"}
+            {boosting ? "Boosting…" : isSubscriber ? "Boost — included" : `Boost for ${BOOST_PRICE}`}
           </Button>
         </DialogFooter>
       </DialogContent>

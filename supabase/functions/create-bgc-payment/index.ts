@@ -3,15 +3,12 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
+import { BGC_FEE_CENTS } from "../_shared/productPrices.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-// One-time background-screening fee the helper pays themselves to earn the
-// "Background-Checked" badge. Keep in sync with the dialog copy.
-const BGC_FEE_CENTS = 3499; // $34.99
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

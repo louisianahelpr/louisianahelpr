@@ -3,14 +3,12 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
+import { BOOST_FEE_CENTS, BOOST_DURATION_HOURS } from "../_shared/productPrices.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-const BOOST_FEE_CENTS = 300; // $3.00 — match the dialog
-const BOOST_DURATION_HOURS = 24;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

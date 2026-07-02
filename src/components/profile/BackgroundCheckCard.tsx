@@ -6,8 +6,9 @@ import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
 import { functionErrorMessage } from "@/lib/supabaseResult";
+import { BGC_FEE_CENTS, formatFeeUsd } from "@/lib/productPrices";
 
-const BGC_PRICE = "$34.99";
+const BGC_PRICE = formatFeeUsd(BGC_FEE_CENTS);
 
 /**
  * Own-profile card letting a helper pay for their own background check to

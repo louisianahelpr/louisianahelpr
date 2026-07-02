@@ -8,7 +8,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 
 /**
  * PublicLayout — shared chrome for the public marketing / SEO surface
- * (landing, /jobs, /for-business, /how-it-works, /help,
+ * (landing, /jobs, /for-business, /help,
  * /discharge, /insurance-claim).
  *
  * Gives every marketing page ONE consistent nav (the shared <Navbar>) and
@@ -22,7 +22,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
  */
 interface PublicLayoutProps {
   children: ReactNode;
-  /** Render the shared CTA band above the footer. Default true. */
+  /** Render the shared CTA band above the footer. Default false. */
   showCtaBand?: boolean;
   /** Headline for the CTA band. */
   ctaHeadline?: string;
@@ -136,7 +136,7 @@ const PublicLayout = ({
                       color: "hsl(var(--ink-deep))",
                     }}
                   >
-                    <Link to="/how-it-works">How it works</Link>
+                    <Link to="/#how-it-works">How it works</Link>
                   </Button>
                 </>
               )}

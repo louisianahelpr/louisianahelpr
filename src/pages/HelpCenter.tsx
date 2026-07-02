@@ -195,6 +195,31 @@ const FAQ_SECTIONS: FaqSection[] = [
       },
     ],
   },
+  {
+    topic: "Membership & Billing",
+    items: [
+      {
+        q: "What does a membership do?",
+        a: `It lowers the commission Helpr deducts from the real-world jobs you get paid for — from ${TIER_PERKS.free.platformFeePercent}% down to as low as ${TIER_PERKS.business.platformFeePercent}% — and adds visibility perks like priority placement and a featured badge. The lower commission applies to every job you complete.`,
+      },
+      {
+        q: "How am I billed for a membership?",
+        a: "Membership is billed securely through Stripe — the same processor that handles your job payments. You can manage or cancel it anytime from Manage membership.",
+      },
+      {
+        q: "Can I cancel my membership anytime?",
+        a: "Yes — downgrade at any time. Your paid perks stay active through the end of your billing period, then you revert to Free.",
+      },
+      {
+        q: "Does my fee reduction apply immediately?",
+        a: "Yes. On your very next accepted job, the lower platform fee applies — no waiting period.",
+      },
+      {
+        q: "What's the difference between Pro and Elite?",
+        a: "Elite adds the featured crown badge (visible to all posters), 10-minute early job access before other helpers see it, and dedicated priority support — on top of everything Pro offers.",
+      },
+    ],
+  },
 ];
 
 // ─── FaqAccordionItem ─────────────────────────────────────────────────────────
@@ -579,7 +604,7 @@ const HelpCenter = () => {
                 icon: BookOpen,
                 label: "How Helpr works",
                 desc: "Post, hire, and get paid — end to end.",
-                to: "/how-it-works",
+                to: "/#how-it-works",
                 accent: "hsl(var(--bark))",
                 accentBg: "hsl(var(--bark) / 0.1)",
               },

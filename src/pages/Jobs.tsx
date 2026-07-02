@@ -2,14 +2,11 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 
 import { ArrowRight, Search, SlidersHorizontal, X, Lock, Briefcase } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import BackButton from "@/components/BackButton";
 import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
-import { supabase } from "@/integrations/supabase/client";
-import { unwrap } from "@/lib/supabaseResult";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -20,95 +17,23 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { VirtualList } from "@/components/VirtualList";
 import { categoryLabels } from "@/components/activity/activityConstants";
-import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import JobCard from "@/components/dashboard/JobCard";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useJobRef } from "@/hooks/useJobRef";
+import {
+  ALL_CATEGORIES,
+  CARDS_PER_ROW,
+  DEBUG_AUTH,
+  MAX_STAGGER_CARDS,
+  noop,
+  toEnrichedJob,
+} from "./jobs/jobsConstants";
+import { useOpenJobsFeed } from "./jobs/useOpenJobsFeed";
 
 // Read-only job detail for logged-out visitors. Lazy so the guest browse
 // grid paints without pulling the heavy dialog chunk until a card is tapped.
 const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
-
-const DEBUG_AUTH = import.meta.env.DEV;
-
-// Shape of a row from get_ranked_open_jobs. The RPC returns the full job
-// detail set; we type the subset the guest browse card actually reads.
-interface PublicJob {
-  id: string;
-  title: string;
-  description: string | null;
-  category: string;
-  location: string;
-  budget: number;
-  date_needed: string;
-  start_time: string | null;
-  is_urgent: boolean | null;
-  urgent_fee: number | null;
-  is_recurring: boolean | null;
-  recurrence_interval: string | null;
-  is_group_job: boolean | null;
-  helpers_needed: number | null;
-  created_at: string;
-  expires_at: string | null;
-  boost_expires_at: string | null;
-  pricing_mode?: string | null;
-}
-
-const ALL_CATEGORIES = Object.keys(categoryLabels);
-
-const PAGE_SIZE = 30;
-
-// Two cards per virtualized row on desktop-web so the wide browse page fills
-// its container instead of stranding a single narrow column in a sea of empty
-// margin. The row's grid collapses to one column under `md` (phones/tablet).
-const CARDS_PER_ROW = 2;
-
-// Cap the staggered entrance animation to roughly the first screenful of
-// cards. Beyond this the per-card animationDelay would compound layout
-// work on long lists for an effect nobody scrolls fast enough to see.
-const MAX_STAGGER_CARDS = 9;
-
-interface JobsPage {
-  jobs: PublicJob[];
-  nextOffset: number | null;
-}
-
-// Adapt a PublicJob (anon RPC row) to the EnrichedJob shape JobCard
-// expects. Guests have no poster-profile enrichment, so the poster-*
-// fields are intentionally omitted — JobCard renders a neutral avatar
-// fallback. `customer_id`/`status`/`description` satisfy the type;
-// `isBoosted` is derived from the boost-expiry timestamp.
-const toEnrichedJob = (job: PublicJob): EnrichedJob => ({
-  id: job.id,
-  title: job.title,
-  description: job.description ?? "",
-  // The RPC returns the job_category enum; PublicJob types it loosely as
-  // string. JobCard only uses it for categoryLabels/Colors lookups
-  // (both keyed by string), so the cast is display-safe.
-  category: job.category as EnrichedJob["category"],
-  budget: job.budget,
-  date_needed: job.date_needed,
-  start_time: job.start_time,
-  location: job.location,
-  customer_id: "",
-  status: "open",
-  created_at: job.created_at,
-  expires_at: job.expires_at,
-  is_urgent: job.is_urgent ?? false,
-  urgent_fee: job.urgent_fee ?? 0,
-  is_recurring: job.is_recurring ?? false,
-  recurrence_interval: job.recurrence_interval,
-  is_group_job: job.is_group_job ?? false,
-  helpers_needed: job.helpers_needed,
-  pricing_mode: job.pricing_mode ?? undefined,
-  isBoosted: !!job.boost_expires_at && new Date(job.boost_expires_at) > new Date(),
-});
-
-// JobCard requires apply/report/select/save handlers. On the public
-// browse page every interaction routes to /signup via the wrapping
-// <Link>, so these are inert no-ops.
-const noop = () => {};
 
 const Jobs = () => {
   usePageMeta({
@@ -163,41 +88,17 @@ const Jobs = () => {
     navigate(id ? `/dashboard?quickApply=${id}` : "/dashboard", { replace: true });
   }, [authLoading, user, searchParams, navigate]);
 
-  // Paginated open-jobs feed via React Query, consistent with the
-  // dashboard's useInfiniteQuery feed. get_ranked_open_jobs ranks by boost
-  // (1000) + parish match (500) + urgent (100) + recency (0-50) and coarsens
-  // the address to "City, ST" via mask_job_location server-side. Anon callers
-  // work (EXECUTE granted) — they just don't get the parish-match boost.
   const {
-    data: pagesData,
-    isLoading: jobsLoading,
-    isError: jobsError,
+    jobs,
+    filtered,
+    rows,
+    jobsLoading,
+    jobsError,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     refetch,
-  } = useInfiniteQuery({
-    queryKey: queryKeys.jobs.open(),
-    initialPageParam: 0,
-    queryFn: async ({ pageParam }): Promise<JobsPage> => {
-      const offset = pageParam as number;
-      // unwrap surfaces a failed fetch as the query's error state (drives
-      // <ErrorState/>) instead of silently degrading to a blank feed.
-      const rows = unwrap(
-        await supabase.rpc("get_ranked_open_jobs", { p_limit: PAGE_SIZE, p_offset: offset }),
-      );
-      const jobs = (rows ?? []) as unknown as PublicJob[];
-      return { jobs, nextOffset: jobs.length === PAGE_SIZE ? offset + PAGE_SIZE : null };
-    },
-    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
-    staleTime: 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-  });
-
-  const jobs = useMemo<PublicJob[]>(
-    () => (pagesData?.pages ?? []).flatMap((p) => p.jobs),
-    [pagesData],
-  );
+  } = useOpenJobsFeed({ search, selectedCategory, pricingMode });
 
   // Mirror the open job into the URL (?job=<id>) so a jump to a sub-route from
   // inside the dialog — e.g. the Helper Pro "Learn more" → /subscription —
@@ -249,34 +150,6 @@ const Jobs = () => {
       route: window.location.pathname,
     });
   }, [authLoading, jobsLoading, user?.id]);
-
-  const filtered = useMemo(() => {
-    const now = new Date();
-    return jobs.filter((job) => {
-      // Hide jobs that have expired in real-time (between fetches)
-      if (job.expires_at && new Date(job.expires_at) <= now) return false;
-      const matchesSearch =
-        !search ||
-        job.title.toLowerCase().includes(search.toLowerCase()) ||
-        job.location.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = !selectedCategory || job.category === selectedCategory;
-      // "accept_bids" = open to bids; any other value (fixed / null) = set budget.
-      const isBids = job.pricing_mode === "accept_bids";
-      const matchesPricing =
-        pricingMode === "all" || (pricingMode === "bids" ? isBids : !isBids);
-      return matchesSearch && matchesCategory && matchesPricing;
-    });
-  }, [jobs, search, selectedCategory, pricingMode]);
-
-  // Wrap each job in its own single-item row so the window-scroll
-  // VirtualList (single-column row primitive) renders one card per row.
-  const rows = useMemo<PublicJob[][]>(() => {
-    const out: PublicJob[][] = [];
-    for (let i = 0; i < filtered.length; i += CARDS_PER_ROW) {
-      out.push(filtered.slice(i, i + CARDS_PER_ROW));
-    }
-    return out;
-  }, [filtered]);
 
   // Drives the badge on the Filters icon + the sheet's "Clear all" gate.
   const activeFilterCount =

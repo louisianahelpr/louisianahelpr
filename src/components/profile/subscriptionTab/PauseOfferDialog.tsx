@@ -1,0 +1,105 @@
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Loader2, PauseCircle } from "lucide-react";
+
+// Pause-offer dialog — shown first when an active subscriber taps
+// Manage. The lightest-touch retention move ("just pause for a
+// month, free") is the first thing a leaving user sees; from
+// here they can accept, route into the cancel survey, or back
+// out. Reduces churn at the moment of intent.
+export const PauseOfferDialog = ({
+  pauseOfferOpen,
+  setPauseOfferOpen,
+  setCancelSurveyOpen,
+  currentTier,
+  handleAcceptPause,
+  acceptingPause,
+}: {
+  pauseOfferOpen: boolean;
+  setPauseOfferOpen: (open: boolean) => void;
+  setCancelSurveyOpen: (open: boolean) => void;
+  currentTier: string | null;
+  handleAcceptPause: () => void;
+  acceptingPause: boolean;
+}) => {
+  return (
+    <Dialog open={pauseOfferOpen} onOpenChange={setPauseOfferOpen}>
+      <DialogContent className="!gap-3">
+        <DialogHeader className="!text-left space-y-0">
+          <span
+            className="font-serif italic uppercase inline-flex items-center gap-1.5"
+            style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
+          >
+            <PauseCircle className="w-3 h-3" /> Take a breather
+          </span>
+          <DialogTitle
+            className="font-display italic font-bold leading-tight mt-2"
+            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+          >
+            Pause 1 month free instead?
+          </DialogTitle>
+          <p
+            className="font-serif italic mt-1"
+            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
+          >
+            Keep your spot — request a one-month, no-charge pause on your {(currentTier ?? "plan")}. We'll confirm by email and your plan resumes after the pause. Cancel anytime if you've changed your mind.
+          </p>
+        </DialogHeader>
+        <div
+          className="rounded-ds-md p-3 mt-1 space-y-1"
+          style={{
+            background: "hsl(var(--gold-warm) / 0.10)",
+            border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
+          }}
+        >
+          <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}>
+            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+              What you keep:
+            </span>{" "}
+            Your verification status, saved helpers, payout history, and reviews — all untouched. Once we confirm your pause by email, we'll send a heads-up a week before it ends.
+          </p>
+        </div>
+        <DialogFooter className="!gap-2 sm:!justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setPauseOfferOpen(false);
+              setCancelSurveyOpen(true);
+            }}
+            className="rounded-ds-md"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          >
+            Cancel instead
+          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setPauseOfferOpen(false)}
+              className="rounded-ds-md"
+            >
+              Never mind
+            </Button>
+            <Button
+              onClick={handleAcceptPause}
+              disabled={acceptingPause}
+              className="rounded-ds-md"
+              style={{
+                background: "hsl(var(--bark))",
+                color: "hsl(var(--parchment))",
+                border: "1px solid hsl(var(--bark))",
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+              }}
+            >
+              {acceptingPause ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Requesting</>
+              ) : (
+                <><PauseCircle className="w-4 h-4 mr-2" /> Request 1 month free</>
+              )}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};

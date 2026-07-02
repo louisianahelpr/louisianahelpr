@@ -7,95 +7,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import {
-  Bell, Briefcase, MessageSquare, DollarSign, Star, Megaphone,
-  Loader2, Mail, Smartphone, Navigation, CheckCircle2, Lock, Moon, Send,
+  Bell, CheckCircle2, Loader2, Mail, Smartphone, Lock, Moon, Send,
 } from "lucide-react";
 import { QuietHoursClock } from "@/components/profile/QuietHoursClock";
-
-interface Prefs {
-  // Legacy (kept for backward compat / write-through)
-  job_applications: boolean;
-  job_updates: boolean;
-  messages: boolean;
-  payments: boolean;
-  reviews: boolean;
-  promotions: boolean;
-  system_alerts: boolean;
-  push_enabled: boolean;
-  email_job_applications: boolean;
-  email_job_updates: boolean;
-  email_messages: boolean;
-  email_payments: boolean;
-  email_reviews: boolean;
-  email_promotions: boolean;
-  email_system_alerts: boolean;
-  // New granular categories
-  new_offers: boolean;
-  email_new_offers: boolean;
-  transit_updates: boolean;
-  email_transit_updates: boolean;
-  work_status: boolean;
-  email_work_status: boolean;
-  financial_alerts: boolean;
-  email_financial_alerts: boolean;
-  /** When true, non-urgent job matches are batched into a daily
-      digest instead of being pushed individually. Urgent jobs always
-      fire realtime regardless. */
-  match_digest_mode: boolean;
-  /** Local-time `HH:MM` start of the quiet-hours window. NULL when
-      quiet hours are disabled. Wired in migration
-      `20260609120000_notification_quiet_hours.sql`. */
-  quiet_start: string | null;
-  /** Local-time `HH:MM` end of the quiet-hours window. NULL when
-      quiet hours are disabled. */
-  quiet_end: string | null;
-}
-
-const defaultPrefs: Prefs = {
-  job_applications: true, job_updates: true, messages: true, payments: true,
-  reviews: true, promotions: true, system_alerts: true, push_enabled: true,
-  email_job_applications: true, email_job_updates: true, email_messages: false,
-  email_payments: true, email_reviews: true, email_promotions: false, email_system_alerts: true,
-  new_offers: true, email_new_offers: true,
-  transit_updates: true, email_transit_updates: false,
-  work_status: true, email_work_status: true,
-  financial_alerts: true, email_financial_alerts: true,
-  match_digest_mode: false,
-  quiet_start: null,
-  quiet_end: null,
-};
-
-// Coerce a Postgres `time` column (e.g. "22:00:00") to the `HH:MM`
-// shape that `<input type="time">` expects. Returns null untouched so
-// the toggle stays off until the user sets a window.
-const trimTime = (v: string | null | undefined): string | null => {
-  if (!v) return null;
-  return v.length >= 5 ? v.slice(0, 5) : v;
-};
-
-// Boolean-valued keys only — `Row` references the per-category
-// toggles, and Prefs now includes string-valued keys (quiet_start /
-// quiet_end) that have no place in the per-category switch grid.
-type BoolPrefKey = {
-  [K in keyof Prefs]: Prefs[K] extends boolean ? K : never;
-}[keyof Prefs];
-
-interface Row {
-  key: BoolPrefKey;
-  emailKey: BoolPrefKey;
-  label: string;
-  icon: React.ReactNode;
-}
-
-const rows: Row[] = [
-  { key: "new_offers", emailKey: "email_new_offers", label: "Job Offers", icon: <Briefcase className="w-3.5 h-3.5" /> },
-  { key: "messages", emailKey: "email_messages", label: "Messages", icon: <MessageSquare className="w-3.5 h-3.5" /> },
-  { key: "transit_updates", emailKey: "email_transit_updates", label: "Transit (On the Way / Arrived)", icon: <Navigation className="w-3.5 h-3.5" /> },
-  { key: "work_status", emailKey: "email_work_status", label: "Work Status", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-  { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payments & Tips", icon: <DollarSign className="w-3.5 h-3.5" /> },
-  { key: "reviews", emailKey: "email_reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" /> },
-  { key: "promotions", emailKey: "email_promotions", label: "Promotions", icon: <Megaphone className="w-3.5 h-3.5" /> },
-];
+import type { Prefs } from "./notificationPreferences/types";
+import { defaultPrefs, trimTime, rows } from "./notificationPreferences/constants";
 
 const NotificationPreferences = () => {
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);

@@ -44,6 +44,7 @@ serve(async (req) => {
       .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate")
       .eq("status", "completed")
       .eq("payment_status", "payout_pending")
+      .is("disputed_at", null)          // defense-in-depth: never pay out disputed jobs
       .lte("payout_scheduled_at", now);
 
     if (error) throw error;
@@ -75,11 +76,16 @@ serve(async (req) => {
       let helperPayout = perHelperBudget - helperCommission + (job.urgent_fee ?? 0);
 
       // ── Step 1: Get helper's connected Stripe account & onboarding fee status ──
-      const { data: helperProfile } = await supabaseAdmin
+      const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id, onboarding_fee_paid")
         .eq("user_id", job.helper_id)
         .single();
+      if (helperProfileErr) {
+        console.error(`[process-scheduled-payouts] helper profile read failed for ${job.helper_id} (job ${job.id}):`, helperProfileErr);
+        results.push({ job_id: job.id, status: "helper_profile_read_failed" });
+        continue;
+      }
 
       // First-payout onboarding fee — race-safe atomic claim BEFORE deducting.
       // The atomic UPDATE only flips the flag if it was still false at write

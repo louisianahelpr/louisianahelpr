@@ -41,7 +41,8 @@ serve(async (req) => {
       });
     }
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    const { data, error: userErr } = await supabaseClient.auth.getUser(token);
+    if (userErr) console.error("[create-payment] auth.getUser error:", userErr.message);
     const user = data.user;
     if (!user?.email) throw new Error("Not authenticated");
 

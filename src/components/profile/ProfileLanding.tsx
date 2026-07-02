@@ -239,10 +239,10 @@ export function ProfileLanding({
     !stripeConnectStatus.payouts_enabled;
   const subscriptionDesc =
     tier === "elite"
-      ? "Elite plan — top visibility"
+      ? "Elite — top visibility"
       : tier === "pro"
-        ? "Pro plan — upgrade to Elite"
-        : "Free plan — tap to upgrade";
+        ? "Pro — upgrade to Elite"
+        : "Free — tap to upgrade";
 
   // ─── Portfolio gallery + completion meter ──────────────────────────
   // portfolio_urls is on profiles (text[]). Gallery shows up to 6 inline
@@ -408,7 +408,7 @@ export function ProfileLanding({
           needsAction: stripeNeedsAction,
           incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
         },
-        { key: "subscription", label: "Upgrade plan", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)", href: "/subscription" },
+        { key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)", href: "/subscription" },
         { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--gold-warm)" },
         {
           key: "work-record",
@@ -1243,7 +1243,7 @@ export function ProfileLanding({
           <button
             type="button"
             onClick={() => { hapticLight(); onNavigate("/post-job"); }}
-            aria-label="Post a task"
+            aria-label="Post a job"
             className="w-full rounded-ds-lg overflow-hidden active:scale-[0.99] transition-transform text-left"
             style={{
               background:
@@ -1261,7 +1261,7 @@ export function ProfileLanding({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-ds-15 font-semibold leading-tight" style={{ color: "hsl(var(--parchment))" }}>
-                  Post a task
+                  Post a job
                 </p>
                 <p className="text-ds-11 font-serif italic mt-0.5" style={{ color: "hsl(var(--parchment) / 0.82)" }}>
                   Get help from a trusted local Helpr

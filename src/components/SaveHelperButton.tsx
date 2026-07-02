@@ -80,13 +80,13 @@ export const SaveHelperButton = ({
       // Revert on failure so the persisted state stays consistent.
       setSaved(previousSaved);
       onChange?.(previousSaved);
-      toast.error(previousSaved ? "Couldn't unsave helpr" : "Couldn't save helpr");
+      toast.error(previousSaved ? "Couldn't unsave Helpr" : "Couldn't save Helpr");
     } else if (nextSaved) {
-      successToast("Saved to your helprs", {
+      successToast("Saved to your Helprs", {
         action: { label: "View", onClick: () => navigate("/saved-helpers") },
       });
     } else {
-      toast.success("Removed from your saved helprs");
+      toast.success("Removed from your saved Helprs");
     }
 
     setWorking(false);
@@ -136,8 +136,8 @@ export const SaveHelperButton = ({
       onClick={toggle}
       disabled={working}
       className={`rounded-ds-md h-10 w-10 shrink-0 ${className}`}
-      aria-label={saved ? "Unsave helpr" : "Save helpr"}
-      title={saved ? "Saved — tap to remove" : "Save this helpr"}
+      aria-label={saved ? "Unsave Helpr" : "Save Helpr"}
+      title={saved ? "Saved — tap to remove" : "Save this Helpr"}
     >
       {working ? (
         <Loader2 className="w-4 h-4 animate-spin" />

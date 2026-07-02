@@ -38,7 +38,7 @@ export default function FamilyAcceptPage() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const { user } = useCurrentUser();
-  usePageTitle("Care invite");
+  usePageTitle("Care invite — Helpr");
 
   const [invite, setInvite] = useState<PendingInvite | null>(null);
   const [loading, setLoading] = useState(true);

@@ -157,7 +157,7 @@ function CareRecipientCard({
         <button
           aria-label="Remove access"
           onClick={() => onRevokeAccess(relationship.id)}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 active:scale-95 transition-all"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-destructive/10 active:scale-95 transition-all"
           style={{ color: "hsl(var(--destructive))" }}
         >
           <X className="w-4 h-4" />
@@ -434,7 +434,7 @@ function InviteForm({ myUserId }: { myUserId: string }) {
 export default function FamilyDashboard() {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
-  usePageTitle("Family & care");
+  usePageTitle("Family & care — Helpr");
 
   const userId = user?.id ?? null;
 

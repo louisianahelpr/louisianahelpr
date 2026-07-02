@@ -26,7 +26,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
         title={isPosted ? "Posted jobs" : "Completed jobs"}
         meta={
           isPosted
-            ? `${jobs.length} task${jobs.length === 1 ? "" : "s"} posted`
+            ? `${jobs.length} job${jobs.length === 1 ? "" : "s"} posted`
             : `${jobs.length} job${jobs.length === 1 ? "" : "s"} delivered`
         }
         onBack={onBack}
@@ -43,7 +43,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
           }
           action={
             isPosted ? (
-              <Button onClick={() => navigate("/post-job")}>Post your first task</Button>
+              <Button onClick={() => navigate("/post-job")}>Post your first job</Button>
             ) : undefined
           }
         />

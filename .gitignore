@@ -72,6 +72,11 @@ playwright-report/
 .playwright-mcp/
 browse-guest.png
 
+# Chrome-DevTools-MCP audit scratch: screenshots + temp files from the
+# interactive audit passes. Regenerated every run, never source.
+.audit-shots/
+.audit-tmp/
+
 # Edge-function test harness scratch files (see src/test/edge/harness.ts).
 # The harness writes a rewritten copy of an edge function here, imports it,
 # then deletes it — this catches any left behind by an interrupted run.

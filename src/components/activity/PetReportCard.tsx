@@ -119,7 +119,7 @@ export function SendReportCard({
       await createNotification({
         user_id: ownerId,
         title: `${petName}'s report card is ready`,
-        message: `Your helpr sent a daily update — check ${petName}'s activity, mood, and notes.`,
+        message: `Your Helpr sent a daily update — check ${petName}'s activity, mood, and notes.`,
         type: "info",
         link: "/my-posts",
       });

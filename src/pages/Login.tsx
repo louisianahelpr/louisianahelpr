@@ -100,7 +100,7 @@ const Login = () => {
     description: "Sign in to your Helpr account.",
     canonical: "https://www.louisianahelpr.com/login",
     ogTitle: "Log In — Helpr",
-    ogDescription: "Sign in to your Helpr account to post tasks or pick up local work across Louisiana.",
+    ogDescription: "Sign in to your Helpr account to post jobs or pick up local work across Louisiana.",
   });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -466,7 +466,7 @@ const Login = () => {
             </Link>
           </p>
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Have a business?{" "}
+            Signing up a business?{" "}
             <Link
               to="/signup?type=business"
               className="font-semibold hover:underline"
@@ -474,6 +474,10 @@ const Login = () => {
             >
               Business sign-up
             </Link>
+            <br />
+            <span style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+              Invite your team &amp; bill jobs to one card.
+            </span>
           </p>
         </div>
         </>

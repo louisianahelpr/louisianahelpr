@@ -120,9 +120,14 @@ export function usePostJobForm() {
   const [bidsSealed, setBidsSealed] = useState(false);
   const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [customerFee, setCustomerFee] = useState<number | null>(null);
-  // Helper-side commission (deducted from the helpr's payout). Surfaced
-  // in the budget-step "We keep X% — helpr sees $Y net" preview chip.
-  const [helperFee, setHelperFee] = useState<number | null>(null);
+  // One-time account-setup fee — mirrors the edge function (create-payment
+  // action=escrow), which adds a "One-time Account Setup" line item of
+  // onboarding_fee_cents the FIRST time a poster funds a job. We must show
+  // it here so the displayed total equals the amount Stripe charges. Default
+  // to "already paid" so a returning poster never sees a phantom fee; only
+  // flip to unpaid once the profile row confirms it's owed.
+  const [onboardingFeeCents, setOnboardingFeeCents] = useState(200);
+  const [onboardingFeePaid, setOnboardingFeePaid] = useState(true);
   const salesTaxRate = 10;
 
   // Wraps the raw state setter to handle smart-price auto-fill and the
@@ -222,8 +227,8 @@ export function usePostJobForm() {
         const custFee = row.customer_fee_percent ?? 10;
         setPlatformFee(custFee);
         setCustomerFee(custFee);
-        const helperPct = (row as { helper_fee_percent?: number }).helper_fee_percent ?? 12;
-        setHelperFee(helperPct);
+        const setupCents = (row as { onboarding_fee_cents?: number }).onboarding_fee_cents;
+        if (typeof setupCents === "number") setOnboardingFeeCents(setupCents);
       }
     });
   }, []);
@@ -239,6 +244,14 @@ export function usePostJobForm() {
         .eq("customer_id", user.id)
         .eq("status", "open")
         .then(({ count }) => { setOpenJobCount(count ?? 0); });
+      // Whether this poster still owes the one-time setup fee, so the
+      // checkout total matches what the edge function will actually charge.
+      supabase
+        .from("profiles")
+        .select("onboarding_fee_paid")
+        .eq("user_id", user.id)
+        .single()
+        .then(({ data }) => { setOnboardingFeePaid(data?.onboarding_fee_paid ?? true); });
     });
   }, []);
 
@@ -304,7 +317,7 @@ export function usePostJobForm() {
       .rpc("get_safe_profiles", { user_ids: [offerTo] })
       .then(({ data }) => {
         const prof = Array.isArray(data) ? data[0] : null;
-        if (prof) setOfferToHelperName(prof.full_name || "this helpr");
+        if (prof) setOfferToHelperName(prof.full_name || "this Helpr");
       });
   }, [searchParams]);
 
@@ -497,7 +510,7 @@ export function usePostJobForm() {
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) { toast.error("Task title is required"); scrollToField("title"); return; }
+    if (!title.trim()) { toast.error("Job title is required"); scrollToField("title"); return; }
     if (!description.trim()) { toast.error("Description is required"); scrollToField("description"); return; }
     if (hasUnfilledPlaceholders(description)) { toast.error("Replace the [bracketed] placeholders with your own details before posting"); scrollToField("description"); return; }
     if (!category) { toast.error("Category is required"); scrollToField("category-picker"); return; }
@@ -915,7 +928,10 @@ export function usePostJobForm() {
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
   const customerFeeAmount = budgetNum * ((customerFee ?? 10) / 100);
   const protectionFeeNum = protectionOptedIn ? 3.0 : 0;
-  const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum + protectionFeeNum; // + Sales tax at checkout
+  // Charged once per account on the first funded job — mirror the edge
+  // function so the shown total equals the Stripe charge (see state above).
+  const onboardingFeeAmount = onboardingFeePaid ? 0 : onboardingFeeCents / 100;
+  const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum + protectionFeeNum + onboardingFeeAmount; // + Sales tax at checkout
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   // Section completion for the 3-step progress bar. Photos are optional
@@ -1205,8 +1221,8 @@ export function usePostJobForm() {
     urgentFeeNum,
     customerFee,
     customerFeeAmount,
+    onboardingFeeAmount,
     totalCharge,
-    helperFee,
     categoryLabel,
     detailsComplete,
     logisticsComplete,

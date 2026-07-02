@@ -234,7 +234,7 @@ const AdminDisputes = () => {
         });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
-        toast.success("Payment released to helpr. Dispute resolved.");
+        toast.success("Payment released to Helpr. Dispute resolved.");
       } else {
         // Refund to customer — cancel the payment intent
         const { data, error } = await supabase.functions.invoke("create-payment", {
@@ -320,7 +320,7 @@ const AdminDisputes = () => {
           // payout out-of-band.
           toast.warning("Decision recorded, but Stripe payout failed — retry manually.");
         } else {
-          toast.success("Decision recorded. Payment released to helpr.");
+          toast.success("Decision recorded. Payment released to Helpr.");
         }
       } else if (helperShare === 0) {
         const { data, error } = await supabase.functions.invoke("create-payment", {
@@ -697,10 +697,10 @@ const AdminDisputes = () => {
       <BrandConfirmDialog
         open={!!confirm}
         onOpenChange={(open) => { if (!open) setConfirm(null); }}
-        title={confirm?.action === "release" ? "Release payment to helpr?" : "Refund the customer?"}
+        title={confirm?.action === "release" ? "Release payment to Helpr?" : "Refund the customer?"}
         description={
           confirm?.action === "release"
-            ? `This releases the escrowed $${confirm?.job.budget} to ${profiles[confirm?.job.helper_id || ""] || "the helpr"} and closes the dispute. This moves real money and can't be undone here.`
+            ? `This releases the escrowed $${confirm?.job.budget} to ${profiles[confirm?.job.helper_id || ""] || "the Helpr"} and closes the dispute. This moves real money and can't be undone here.`
             : `This refunds $${confirm?.job.budget} to ${profiles[confirm?.job.customer_id || ""] || "the customer"} and closes the dispute. This moves real money and can't be undone here.`
         }
         primaryLabel={confirm && resolving === confirm.job.id ? "Working…" : (confirm?.action === "release" ? "Release payment" : "Refund customer")}

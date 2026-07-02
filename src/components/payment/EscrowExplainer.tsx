@@ -111,7 +111,7 @@ export function EscrowExplainer({
               style={{ color: "hsl(var(--bark))" }}
             >
               Your payment is held securely until the job is verified
-              complete — then it&apos;s released to your helpr.
+              complete — then it&apos;s released to your Helpr.
               You&apos;re never charged for unfinished work.
             </p>
           </div>

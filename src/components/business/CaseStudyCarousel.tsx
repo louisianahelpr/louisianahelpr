@@ -23,7 +23,7 @@ const BASE_CASE_STUDIES: CaseStudyCard[] = [
     company: "Audubon Family Dental",
     industry: "Healthcare office services",
     quote:
-      "Our after-hours cleaner cancelled. We had an ID-verified helpr in the office that night for $90.",
+      "Our after-hours cleaner cancelled. We had an ID-verified Helpr in the office that night for $90.",
     outcome: "Cut helper-hiring time by 60%",
     metric: "60% faster",
   },

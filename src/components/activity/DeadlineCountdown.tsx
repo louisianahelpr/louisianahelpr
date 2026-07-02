@@ -34,18 +34,38 @@ const DeadlineCountdown = ({ deadline, expiredText, consequenceText, variant = "
 
   const isUrgent = totalMinutes < 720; // < 12 hours
 
+  // Destructive states map to token-backed Tailwind utilities. The warning
+  // states use the amber tint/ink family, which are not Tailwind utilities,
+  // so they're applied inline via style below.
+  const isWarningUrgent = isUrgent && variant !== "destructive";
+  const isWarningCalm = !isExpired && !isUrgent && variant !== "destructive";
+
   const colorClasses = isExpired
     ? "bg-destructive/10 border-destructive/30 text-destructive"
     : isUrgent
     ? variant === "destructive"
       ? "bg-destructive/10 border-destructive/30 text-destructive"
-      : "bg-yellow-500/15 border-yellow-500/30 text-yellow-700 dark:text-yellow-400"
+      : ""
     : variant === "destructive"
     ? "bg-destructive/5 border-destructive/20 text-muted-foreground"
-    : "bg-yellow-500/5 border-yellow-500/20 text-muted-foreground";
+    : "";
+
+  const warningStyle: React.CSSProperties | undefined = isWarningUrgent
+    ? {
+        background: "hsl(var(--amber-tint) / 0.15)",
+        borderColor: "hsl(var(--amber-tint) / 0.30)",
+        color: "hsl(var(--amber-ink))",
+      }
+    : isWarningCalm
+    ? {
+        background: "hsl(var(--amber-tint) / 0.05)",
+        borderColor: "hsl(var(--amber-tint) / 0.20)",
+        color: "hsl(var(--muted-foreground))",
+      }
+    : undefined;
 
   return (
-    <div className={`flex items-start gap-2 p-2 rounded-ds-sm border ${colorClasses}`}>
+    <div className={`flex items-start gap-2 p-2 rounded-ds-sm border ${colorClasses}`} style={warningStyle}>
       <Timer className="w-4 h-4 shrink-0 mt-0.5" />
       <div className="min-w-0">
         {isExpired ? (

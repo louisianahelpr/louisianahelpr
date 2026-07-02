@@ -73,8 +73,8 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
             ) => {
               const palette = {
                 destructive: { ring: "border-destructive/40", icon: "text-destructive", title: "hsl(var(--destructive))" },
-                orange: { ring: "border-orange-500/30", icon: "text-orange-500", title: "hsl(25 90% 45%)" },
-                amber: { ring: "border-amber-500/30", icon: "text-amber-500", title: "hsl(38 92% 45%)" },
+                orange: { ring: "border-warning/30", icon: "text-warning", title: "hsl(25 90% 45%)" },
+                amber: { ring: "border-warning/30", icon: "text-warning", title: "hsl(38 92% 45%)" },
                 primary: { ring: "border-primary/30", icon: "text-primary", title: "hsl(var(--primary))" },
               }[tone];
               const Icon = icon;
@@ -120,8 +120,8 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                     <div className="flex items-center gap-2 min-w-0">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-ds-10 font-bold uppercase tracking-wider shrink-0 ${
                         v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive"
-                        : v.action_taken === "suspension" || v.action_taken === "temporary_ban" ? "bg-orange-500/10 text-orange-600"
-                        : "bg-amber-500/10 text-amber-600"
+                        : v.action_taken === "suspension" || v.action_taken === "temporary_ban" ? "bg-warning/10 text-warning"
+                        : "bg-warning/10 text-warning"
                       }`}>
                         {v.action_taken.replace(/_/g, " ")}
                       </span>

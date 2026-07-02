@@ -245,7 +245,7 @@ export function JobPrice({
           className="font-display font-bold tabular-nums leading-none mt-1"
           style={{ fontSize: "1.5rem", color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
         >
-          ${amount.toFixed(2)}
+          ${earnings}
         </p>
       )}
       {isBidMode && (
@@ -262,8 +262,8 @@ export function JobPrice({
           className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          ${budget.toFixed(0)} budget{helpers > 1 ? ` ÷ ${helpers}` : ""} − {effectiveFee}% fee
-          {urgentFee > 0 ? ` + $${urgentFee.toFixed(0)} urgent` : ""}
+          ${formatPrice(budget)} budget{helpers > 1 ? ` ÷ ${helpers}` : ""} − {effectiveFee}% fee
+          {urgentFee > 0 ? ` + $${formatPrice(urgentFee)} urgent` : ""}
         </p>
       )}
       {/* Only pitch the Pro fee reduction when the fee actually shown is above
@@ -271,7 +271,7 @@ export function JobPrice({
           a fee line already reading 10% or lower. */}
       {!useGross && showProUpsell && effectiveFee > 10 && (
         <p className="font-serif italic text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          <span style={{ color: "hsl(var(--burnt-sienna))" }}>Helper Pro</span> reduces your fee to 10%
+          <span style={{ color: "hsl(var(--burnt-sienna))" }}>Helpr Pro</span> reduces your fee to 10%
           {" "}·{" "}
           <button
             type="button"

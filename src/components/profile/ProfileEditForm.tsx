@@ -74,9 +74,9 @@ export function ProfileEditForm({
   const idStatus = profile?.idv_status ?? null;
   const hasId = !!profile?.id_document_url;
   const idBadge = idStatus === "verified"
-    ? { label: "Verified", cls: "bg-green-500/10 text-green-600 dark:text-green-500" }
+    ? { label: "Verified", cls: "bg-success/10 text-success" }
     : (idStatus === "pending" || idStatus === "processing" || idStatus === "manual_review" || (hasId && !idStatus))
-    ? { label: "Pending review", cls: "bg-amber-500/10 text-amber-600 dark:text-amber-500" }
+    ? { label: "Pending review", cls: "bg-warning/10 text-warning" }
     : idStatus === "failed"
     ? { label: "Action needed", cls: "bg-destructive/10 text-destructive" }
     : { label: "Not uploaded", cls: "bg-muted text-muted-foreground" };
@@ -419,7 +419,7 @@ export function ProfileEditForm({
                 user is past it reads like an over-limit error. So:
                 "X/20" while short of the minimum, a check once met. */}
             {bioOk ? (
-              <span className="text-ds-11 font-medium text-green-600 dark:text-green-500 inline-flex items-center gap-1">
+              <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1">
                 <Check className="w-3 h-3" strokeWidth={3} /> Looks good
               </span>
             ) : (

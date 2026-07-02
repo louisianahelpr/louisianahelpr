@@ -323,10 +323,10 @@ export function ConversationList({
                 illustration={<EmptyStateIllustration variant="inbox" />}
                 eyebrow="Quiet for now"
                 title="No messages yet."
-                body="Apply to a task or accept a helpr's offer — conversations appear here once they start."
+                body="Apply to a job or accept a Helpr's offer — conversations appear here once they start."
                 action={
                   <BarkPillButton onClick={() => navigate("/dashboard")}>
-                    Browse tasks
+                    Browse jobs
                   </BarkPillButton>
                 }
               />

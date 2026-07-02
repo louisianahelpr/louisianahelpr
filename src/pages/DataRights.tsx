@@ -24,6 +24,8 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticError } from "@/lib/haptics";
 import { safeStorage } from "@/lib/safeStorage";
+import PublicLayout from "@/components/marketing/PublicLayout";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 const DataRights = () => {
   usePageMeta({
@@ -104,8 +106,8 @@ const DataRights = () => {
     toast.success(next ? "Opted out of data sharing" : "Opted in to data sharing");
   };
 
-  return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+  const inner = (
+    <>
       <PageHeader
         eyebrow="Privacy controls"
         title="Your Data Rights"
@@ -113,13 +115,14 @@ const DataRights = () => {
         showBrand
         rightSlot={<NotificationPanel />}
       />
-      <main className="container mx-auto px-5 py-6 max-w-lg space-y-6">
-        <p className="text-ds-11 text-muted-foreground">
+      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pb-10 space-y-5 mt-2">
+        <p className="text-ds-11 text-muted-foreground max-w-2xl">
           Under the EU GDPR and California CCPA, you have specific rights about how Helpr handles your personal data.
           Use the controls below to exercise them. For all other privacy questions email{" "}
           <a href="mailto:admin@louisianahelpr.com" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>admin@louisianahelpr.com</a>.
         </p>
 
+        <div className="grid gap-4 sm:grid-cols-2">
         {/* Export */}
         <section className="rounded-2xl liquid-glass p-5 space-y-3">
           <div className="flex items-start gap-3">
@@ -161,6 +164,7 @@ const DataRights = () => {
             <Switch checked={doNotSell} onCheckedChange={toggleDoNotSell} aria-label="Do not sell my personal information" />
           </div>
         </section>
+        </div>
 
         {/* Account deletion (GDPR Art. 17 erasure) lives on the Profile /
             Settings screen — keeping a single entry point avoids a confusing
@@ -171,9 +175,14 @@ const DataRights = () => {
             <ArrowLeft className="w-4 h-4" /> Back to Privacy Policy
           </Link>
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
+
+  if (isNativePlatform) {
+    return <div className="min-h-screen bg-premium-page pb-safe-nav">{inner}</div>;
+  }
+  return <PublicLayout showCtaBand={false}>{inner}</PublicLayout>;
 };
 
 export default DataRights;

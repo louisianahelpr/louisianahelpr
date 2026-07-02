@@ -212,7 +212,7 @@ function PostedJobCardInner({
     if (successCount > 0) {
       hapticSuccess();
       successToast(
-        `Message sent to ${successCount} helpr${successCount !== 1 ? "s" : ""}${failCount > 0 ? ` (${failCount} failed)` : ""}`,
+        `Message sent to ${successCount} Helpr${successCount !== 1 ? "s" : ""}${failCount > 0 ? ` (${failCount} failed)` : ""}`,
       );
       setBroadcastOpen(false);
       setBroadcastText("");
@@ -276,7 +276,7 @@ function PostedJobCardInner({
                    <span className="flex items-center gap-1"><RefreshCw className="w-3 h-3 shrink-0 text-primary" /> {job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}</span>
                  )}
                  {job.is_group_job && (
-                   <span className="flex items-center gap-1"><Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} helper${job.helpers_needed === 1 ? "" : "s"}` : "Group task"}</span>
+                   <span className="flex items-center gap-1"><Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} Helpr${job.helpers_needed === 1 ? "" : "s"}` : "Group job"}</span>
                  )}
                </JobCardMetaRow>
             {(job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() || job.special_requirements?.trim()) && (
@@ -378,7 +378,7 @@ function PostedJobCardInner({
                     onClick={(e) => { e.stopPropagation(); navigate(`/post-job?rebook=${job.id}`); }}
                   >
                     <RotateCcw className="w-4 h-4 mr-1.5" />
-                    Re-post this task
+                    Re-post this job
                   </Button>
                 </div>
               )}
@@ -389,7 +389,7 @@ function PostedJobCardInner({
                   <div className="flex items-center gap-2 flex-wrap">
                     {job.helper_confirmed_at
                       ? <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} accepted</span>
-                      : <span className="text-ds-11 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"} to accept</span>
+                      : <span className="text-ds-11 px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1" style={{ background: "hsl(var(--amber-tint) / 0.10)", color: "hsl(var(--amber-ink))" }}><Clock className="w-3 h-3" /> Waiting for {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} to accept</span>
                     }
                   </div>
                   {/* Job countdown */}
@@ -398,13 +398,13 @@ function PostedJobCardInner({
                     <div className="space-y-1.5">
                       {job.helper_arrived_at && (
                         <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm bg-emerald-500/10 text-emerald-600">
+                          <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm" style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}>
                             <MapPin className="w-3.5 h-3.5 shrink-0" />
                             <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
                             <span className="ml-auto text-ds-10 text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                           {job.poster_confirmed_arrival_at ? (
-                            <span className="text-ds-11 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> Arrival confirmed</span>
+                            <span className="text-ds-11 px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1" style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}><Check className="w-3 h-3" strokeWidth={3} /> Arrival confirmed</span>
                           ) : (
                             <Button size="sm" className="w-full" onClick={() => onConfirmArrival(job.id)}>
                               <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
@@ -419,7 +419,7 @@ function PostedJobCardInner({
 
 
               {(job.status === "in_progress" || job.status === "revision_requested") && job.poster_confirmed_arrival_at && !job.poster_confirmed_working_at && (
-                <span className="text-ds-11 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> Arrival confirmed</span>
+                <span className="text-ds-11 px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1" style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}><Check className="w-3 h-3" strokeWidth={3} /> Arrival confirmed</span>
               )}
 
               {/* Completion confirmation */}
@@ -428,7 +428,7 @@ function PostedJobCardInner({
                   {job.poster_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> You confirmed</span>}
                   {job.helper_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>}
                   {!job.poster_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for you</span>}
-                  {!job.helper_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "helpr" : "helpr"}</span>}
+                  {!job.helper_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"}</span>}
                 </div>
               )}
 
@@ -448,17 +448,17 @@ function PostedJobCardInner({
 
               {/* Revision notice */}
               {job.status === "revision_requested" && (
-                <div className="p-2 rounded-ds-sm bg-yellow-500/10 border border-yellow-500/20 space-y-1.5">
-                  <p className="text-ds-11 text-yellow-700 dark:text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Revision requested</p>
+                <div className="p-2 rounded-ds-sm border space-y-1.5" style={{ background: "hsl(var(--amber-tint) / 0.10)", borderColor: "hsl(var(--amber-tint) / 0.20)" }}>
+                  <p className="text-ds-11 flex items-center gap-1" style={{ color: "hsl(var(--amber-ink))" }}><AlertTriangle className="w-3 h-3" /> Revision requested</p>
                   {job.revision_note && <p className="text-ds-11 text-muted-foreground">{job.revision_note}</p>}
                   {job.revision_completed_at && (
-                    <div className="p-1.5 rounded bg-emerald-500/10 border border-emerald-500/20">
-                      <p className="text-ds-11 text-emerald-600 font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> Helpr marked revision as fixed</p>
+                    <div className="p-1.5 rounded border" style={{ background: "hsl(var(--success-tint))", borderColor: "hsl(var(--success-border))" }}>
+                      <p className="text-ds-11 font-medium inline-flex items-center gap-1" style={{ color: "hsl(var(--success-ink))" }}><Check className="w-3 h-3" strokeWidth={3} /> Helpr marked revision as fixed</p>
                       {job.revision_acceptance_deadline && (
                         <DeadlineCountdown
                           deadline={job.revision_acceptance_deadline}
-                          expiredText="Acceptance deadline passed — payment releasing to helpr"
-                          consequenceText="Accept the fix, or dispute. If no action is taken, payment auto-releases to the helpr."
+                          expiredText="Acceptance deadline passed — payment releasing to Helpr"
+                          consequenceText="Accept the fix, or dispute. If no action is taken, payment auto-releases to the Helpr."
                           variant="warning"
                         />
                       )}
@@ -612,7 +612,7 @@ function PostedJobCardInner({
                             className="font-serif italic leading-snug"
                             style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
                           >
-                            Share your task or Boost it (below) to reach more helprs nearby.
+                            Share your job or Boost it (below) to reach more Helprs nearby.
                           </p>
                         </div>
                       );
@@ -683,7 +683,7 @@ function PostedJobCardInner({
                                             color: "hsl(var(--sage))",
                                           }}
                                         >
-                                          Bid: ${(app as WithBidPrice).proposed_price}
+                                          Bid: ${formatPrice((app as WithBidPrice).proposed_price ?? 0)}
                                         </span>
                                       )}
                                     </div>
@@ -823,7 +823,7 @@ function PostedJobCardInner({
                   {/* Bid range — only for accept_bids jobs */}
                   {jobAnalytics.bidAvg !== null && (
                     <p className="text-ds-11" style={{ color: "hsl(var(--ink-deep) / 0.55)" }}>
-                      Bids: ${jobAnalytics.bidMin?.toFixed(0)}–${jobAnalytics.bidMax?.toFixed(0)} · avg ${jobAnalytics.bidAvg.toFixed(0)}
+                      Bids: ${formatPrice(jobAnalytics.bidMin ?? 0)}–${formatPrice(jobAnalytics.bidMax ?? 0)} · avg ${formatPrice(jobAnalytics.bidAvg)}
                     </p>
                   )}
                 </div>
@@ -943,7 +943,7 @@ function PostedJobCardInner({
                     <div className="space-y-2">
                       {/* Confirm Arrival notice */}
                       {job.helper_arrived_at && !job.poster_confirmed_arrival_at && (
-                        <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm bg-emerald-500/10 text-emerald-600">
+                        <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm" style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}>
                           <MapPin className="w-3.5 h-3.5 shrink-0" />
                           <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
                           <span className="ml-auto text-ds-10 text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -983,9 +983,9 @@ function PostedJobCardInner({
                       {/* Confirm Working */}
                       {job.status === "in_progress" && !job.poster_confirmed_working_at && job.poster_confirmed_arrival_at && (
                         <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm bg-amber-500/10 text-amber-600">
+                          <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm" style={{ background: "hsl(var(--amber-tint) / 0.10)", color: "hsl(var(--amber-ink))" }}>
                             <Wrench className="w-3.5 h-3.5 shrink-0" />
-                            <span className="font-medium">Is the helpr working?</span>
+                            <span className="font-medium">Is the Helpr working?</span>
                           </div>
                           <Button size="sm" className="w-full" onClick={() => onConfirmWorking(job.id)}>
                             <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Working
@@ -996,8 +996,8 @@ function PostedJobCardInner({
                       {job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at && (
                         <DeadlineCountdown
                           deadline={new Date(new Date(job.helper_completed_at).getTime() + 72 * 60 * 60 * 1000).toISOString()}
-                          expiredText="72 hours passed — payment auto-released to helpr"
-                          consequenceText="Approve & complete or request a revision before the timer expires, or payment will auto-release to the helpr."
+                          expiredText="72 hours passed — payment auto-released to Helpr"
+                          consequenceText="Approve & complete or request a revision before the timer expires, or payment will auto-release to the Helpr."
                           variant="warning"
                         />
                       )}
@@ -1054,7 +1054,7 @@ function PostedJobCardInner({
                         className="w-full"
                         onClick={() => navigate("/messages")}
                       >
-                        <MessageSquare className="w-4 h-4 mr-1" /> Message Helper
+                        <MessageSquare className="w-4 h-4 mr-1" /> Message Helpr
                       </Button>
                       {/* Share link — available while work is in progress so
                           the poster can still spread the word or share proof
@@ -1140,7 +1140,7 @@ function PostedJobCardInner({
                           </Button>
                         ) : (
                           <Button size="sm" variant="outline" className="w-full liquid-glass glass-press" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
-                            <RotateCcw className="w-4 h-4 mr-1" /> Re-post this task
+                            <RotateCcw className="w-4 h-4 mr-1" /> Re-post this job
                           </Button>
                         )}
                         {!job.poster_completed_at && (
@@ -1202,21 +1202,21 @@ function PostedJobCardInner({
                         {job.dispute_deadline && disputeStatus !== "resolved" && (
                           <DeadlineCountdown
                             deadline={job.dispute_deadline}
-                            expiredText="Deadline passed — payment auto-releasing to helpr"
-                            consequenceText="Confirm the issue is fixed or escalate to admin. If no action is taken, payment auto-releases to the helpr."
+                            expiredText="Deadline passed — payment auto-releasing to Helpr"
+                            consequenceText="Confirm the issue is fixed or escalate to admin. If no action is taken, payment auto-releases to the Helpr."
                             variant="destructive"
                           />
                         )}
                       </div>
                       <div className="p-2 rounded-ds-sm bg-card">
                         <p className="text-ds-10 text-muted-foreground leading-relaxed">
-                          <strong>Policy:</strong> You have 72 hours to confirm the issue is fixed or escalate to admin. If you do nothing, payment auto-releases to the helpr.
+                          <strong>Policy:</strong> You have 72 hours to confirm the issue is fixed or escalate to admin. If you do nothing, payment auto-releases to the Helpr.
                         </p>
                       </div>
                       {/* Disputer actions: Mark Resolved or Escalate */}
                       {isDisputer && disputeStatus === "open" && (
                         <div className="grid grid-cols-2 gap-2">
-                          <Button size="sm" disabled={disputeActing} className="w-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60" onClick={async (e) => {
+                          <Button size="sm" disabled={disputeActing} className="w-full bg-success text-success-foreground hover:bg-success/90 disabled:opacity-60" onClick={async (e) => {
                             e.stopPropagation();
                             setDisputeActing(true);
                             try {
@@ -1224,7 +1224,7 @@ function PostedJobCardInner({
                               if (error) { hapticError(); toast.error("We couldn't mark that resolved — please try again."); return; }
                               if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
                               hapticSuccess();
-                              toast.success("Dispute resolved — payment released to helpr");
+                              toast.success("Dispute resolved — payment released to Helpr");
                               onActionComplete();
                             } finally {
                               setDisputeActing(false);

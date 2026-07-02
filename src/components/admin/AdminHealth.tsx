@@ -363,10 +363,7 @@ const AdminHealth = () => {
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-ds-20 font-display font-bold text-foreground flex items-center gap-2">
-          <Activity className="w-5 h-5 text-primary" /> System Health
-        </h2>
+      <div className="flex items-center justify-end">
         <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey })} disabled={isFetching}>
           <RefreshCw className={`w-3 h-3 mr-1 ${isFetching ? "animate-spin" : ""}`} /> Refresh
         </Button>

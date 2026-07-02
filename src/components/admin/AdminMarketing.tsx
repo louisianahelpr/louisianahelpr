@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Mail, Send, Users, AlertTriangle } from "lucide-react";
+import { Loader2, Send, Users, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type Segment = "all" | "helpers" | "posters" | "by_parish";
@@ -89,17 +89,9 @@ const AdminMarketing = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center">
-          <Mail className="w-5 h-5" />
-        </div>
-        <div>
-          <h2 className="text-ds-24 font-display font-bold">Marketing Campaigns</h2>
-          <p className="text-ds-11 text-muted-foreground">
-            One-off announcement emails to segmented users. Honors promotional opt-out.
-          </p>
-        </div>
-      </div>
+      <p className="text-ds-11 text-muted-foreground">
+        One-off announcement emails to segmented users. Honors promotional opt-out.
+      </p>
 
       <Alert>
         <AlertTriangle className="w-4 h-4" />

@@ -127,9 +127,9 @@ export function SignupStep1({
               Business account
             </p>
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Invite your team and bill jobs to one card.{" "}
+              Add your company, invite teammates, and bill every job to one card.{" "}
               <Link to="/signup" replace className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
-                Personal instead?
+                Just for me instead?
               </Link>
             </p>
           </div>
@@ -261,8 +261,8 @@ export function SignupStep1({
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           I agree to the{" "}
-          <Link to="/rules" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Platform Rules</Link>,{" "}
-          <Link to="/terms" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Terms</Link>, and{" "}
+          <Link to="/terms" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Terms</Link>,{" "}
+          <Link to="/rules" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Platform Rules</Link>, and{" "}
           <Link to="/privacy" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Privacy Policy</Link>.
         </span>
       </label>

@@ -152,7 +152,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                 className="block font-display italic font-bold"
                 style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
               >
-                Repost a recent task
+                Repost a recent job
               </span>
               <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Quickest way to ask for the same help again.
@@ -246,7 +246,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               Use a template
             </span>
             <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Start from a common task and tweak the details.
+              Start from a common job and tweak the details.
             </span>
           </span>
           <ChevronDown

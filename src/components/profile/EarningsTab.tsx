@@ -861,10 +861,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                   className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
-                  Apply to a task and your earnings will land here.
+                  Apply to a job and your earnings will land here.
                 </p>
               </div>
-              <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md mt-1">Browse tasks</Button>
+              <Button onClick={() => navigate("/dashboard")} className="rounded-ds-md mt-1">Browse jobs</Button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -925,7 +925,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">
         <Info className="w-3 h-3 mt-0.5 shrink-0" />
         <span>
-          <strong className="text-muted-foreground">Tax reporting:</strong> Louisiana law requires 1099-K forms for helprs who exceed $20,000 in gross payments and 200 transactions in a calendar year. Stripe issues these automatically — no action needed.
+          <strong className="text-muted-foreground">Tax reporting:</strong> Louisiana law requires 1099-K forms for Helprs who exceed $20,000 in gross payments and 200 transactions in a calendar year. Stripe issues these automatically — no action needed.
         </span>
       </p>
 

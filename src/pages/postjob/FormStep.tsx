@@ -193,7 +193,7 @@ export function FormStep({ form }: FormStepProps) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-semibold text-ds-13">Require W-9 from accepted helper</p>
+                <p className="font-semibold text-ds-13">Require W-9 from accepted Helpr</p>
                 <Switch checked={form.requiresW9} onCheckedChange={form.setRequiresW9} />
               </div>
               <p className="text-ds-11 text-muted-foreground mt-1">

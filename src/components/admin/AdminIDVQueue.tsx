@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ShieldCheck, ShieldAlert, RefreshCw, Loader2, CheckCircle2, XCircle, Eye } from "lucide-react";
+import { ShieldAlert, RefreshCw, Loader2, CheckCircle2, XCircle, Eye } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -187,14 +187,9 @@ const AdminIDVQueue = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-page-title text-foreground text-ds-24 flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-primary" /> Identity Verification
-        </h2>
-        <p className="text-ds-11 text-muted-foreground mt-1">
-          Hybrid IDV: Stripe auto-approves clear submissions; uncertain ones land here.
-        </p>
-      </div>
+      <p className="text-ds-11 text-muted-foreground">
+        Hybrid IDV: Stripe auto-approves clear submissions; uncertain ones land here.
+      </p>
 
       {/* Settings card */}
       <div className="rounded-ds-md liquid-glass p-5 space-y-4 max-w-2xl">
@@ -300,10 +295,9 @@ const AdminIDVQueue = () => {
                     <>
                       <Button
                         size="sm"
-                        variant="default"
+                        variant="bark"
                         onClick={() => setConfirmAction({ profile: p, action: "approve" })}
                         disabled={actioning === p.user_id}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
                       >
                         Approve
                       </Button>

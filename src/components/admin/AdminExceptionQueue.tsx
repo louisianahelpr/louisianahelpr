@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, Loader2, ClipboardList } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import {
   AlertDialog,
@@ -118,23 +118,15 @@ const ExceptionQueueInner = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-ds-md bg-amber-500/10 text-amber-600 flex items-center justify-center">
-          <ClipboardList className="w-5 h-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h2 className="text-ds-20 font-display font-bold text-foreground">Exception queue</h2>
-            {rows.length > 0 && (
-              <span className="inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-ds-10 font-bold px-2 py-0.5 min-w-[1.4rem]">
-                {rows.length}
-              </span>
-            )}
-          </div>
-          <p className="text-ds-11 text-muted-foreground">
-            Verification cases flagged for manual review — adverse actions, name mismatches, boards with no API.
-          </p>
-        </div>
+      <div className="flex items-center gap-2">
+        <p className="text-ds-11 text-muted-foreground">
+          Verification cases flagged for manual review — adverse actions, name mismatches, boards with no API.
+        </p>
+        {rows.length > 0 && (
+          <span className="inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-ds-10 font-bold px-2 py-0.5 min-w-[1.4rem]">
+            {rows.length}
+          </span>
+        )}
       </div>
 
       {rows.length === 0 ? (

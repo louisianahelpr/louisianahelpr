@@ -200,7 +200,7 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
               className="font-serif italic mt-1"
               style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              Pick up a task before Sunday and we'll project your earnings here.
+              Pick up a job before Sunday and we'll project your earnings here.
             </p>
             <Button
               size="sm"

@@ -372,6 +372,26 @@ const ProfilePage = () => {
     if (deleteConfirmText !== "DELETE") return;
     setDeletingAccount(true);
     try {
+      // Block deletion while the user is mid-transaction: an active job or
+      // escrowed funds would be orphaned. The edge function enforces this too
+      // (409), but pre-checking here lets us show a clear, human message
+      // instead of a generic "Failed to delete" from a non-2xx response.
+      if (user?.id) {
+        const { data: activeJobs, error: activeErr } = await supabase
+          .from("jobs")
+          .select("id")
+          .or(`customer_id.eq.${user.id},helper_id.eq.${user.id}`)
+          .or("status.in.(accepted,arrived,in_progress,awaiting),payment_status.eq.escrow")
+          .limit(1);
+        if (activeErr) throw activeErr;
+        if (activeJobs && activeJobs.length > 0) {
+          toast.error(
+            "You have an active job or funds in escrow. Finish or cancel your open jobs and let any payments settle before deleting your account.",
+          );
+          setDeletingAccount(false);
+          return;
+        }
+      }
       const { error } = await supabase.functions.invoke("delete-own-account", {
         body: { confirmation: "DELETE MY ACCOUNT" },
       });
@@ -398,11 +418,11 @@ const ProfilePage = () => {
         contentClassName="overflow-hidden"
         className="bg-premium-page"
       >
-        <main className="container mx-auto px-5 lg:px-8 xl:px-12 py-4 flex-1 min-h-0 overflow-y-auto">
+        <div className="container mx-auto px-5 lg:px-8 xl:px-12 py-4 flex-1 min-h-0 overflow-y-auto">
           <div className="max-w-lg mx-auto">
             <ProfilePageSkeleton />
           </div>
-        </main>
+        </div>
       </AppShell>
     );
   }
@@ -439,7 +459,7 @@ const ProfilePage = () => {
       contentClassName="overflow-hidden"
       className="bg-premium-page"
     >
-      <main className="container mx-auto px-5 lg:px-8 xl:px-12 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+      <div className="container mx-auto px-5 lg:px-8 xl:px-12 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
         {tab === "landing" ? (
           /* Landing scrolls inside a PullToRefreshWrapper so swiping
              down re-syncs the profile, Stripe status, stats + reviews. */
@@ -702,7 +722,7 @@ const ProfilePage = () => {
           </SectionBoundary>
           </div>
         )}
-      </main>
+      </div>
     </AppShell>
 
     <BrandConfirmDialog

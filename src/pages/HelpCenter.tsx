@@ -13,13 +13,13 @@ import {
   ChevronDown,
   ChevronRight,
   BookOpen,
-  Tag,
   Scale,
   X,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 
 // ─── Topic cards ──────────────────────────────────────────────────────────────
@@ -102,11 +102,11 @@ const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "Is Helpr available everywhere in Louisiana?",
-        a: "We're active in 64 parishes and growing. If your area isn't busy yet, posting a job is the best way to attract local helprs.",
+        a: "We're growing across Louisiana's 64 parishes. If your area isn't busy yet, posting a job is the best way to attract local Helprs.",
       },
       {
-        q: "Can I both post jobs and work as a helper?",
-        a: 'Yes — every account can do both. There\'s no separate "poster" or "helper" mode.',
+        q: "Can I both post jobs and work as a Helpr?",
+        a: 'Yes — every account can do both. There\'s no separate "poster" or "Helpr" mode.',
       },
     ],
   },
@@ -115,11 +115,11 @@ const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: "What should I write in my job description?",
-        a: "The more specific, the better. Include the exact task, how long you expect it to take, any equipment needed, and whether parking is available.",
+        a: "The more specific, the better. Include the exact job, how long you expect it to take, any equipment needed, and whether parking is available.",
       },
       {
         q: "How is the price determined?",
-        a: "You can set your own price, accept bids from competing helprs, or use Helpr's Smart Price suggestion based on local market data.",
+        a: "You can set your own price, accept bids from competing Helprs, or use Helpr's Smart Price suggestion based on local market data.",
       },
       {
         q: "Can I cancel after someone applies?",
@@ -140,7 +140,7 @@ const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "What if a poster doesn't confirm completion?",
-        a: "If a poster doesn't confirm within 48 hours of you marking work done, it auto-completes and payment releases.",
+        a: "If a poster doesn't confirm within 72 hours of you marking work done, it auto-completes and payment releases.",
       },
     ],
   },
@@ -153,7 +153,7 @@ const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "What fees does Helpr charge?",
-        a: "Free account Helprs keep 88% (12% platform fee). Pro members keep 90%, Elite keeps 92%. Posters pay a small service fee at checkout.",
+        a: `Free-account Helprs keep ${100 - TIER_PERKS.free.platformFeePercent}% (${TIER_PERKS.free.platformFeePercent}% platform fee). Pro keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, Elite ${100 - TIER_PERKS.elite.platformFeePercent}%, and Business ${100 - TIER_PERKS.business.platformFeePercent}% (${TIER_PERKS.business.platformFeePercent}% fee) — the platform fee drops as your plan tier rises. Posters pay a 10% service fee at checkout.`,
       },
       {
         q: "What if there's a dispute?",
@@ -165,15 +165,15 @@ const FAQ_SECTIONS: FaqSection[] = [
     topic: "Trust & Safety",
     items: [
       {
-        q: "How are helpers verified?",
-        a: "Every helper submits a government-issued ID. Licensed trade work (electrical, plumbing) requires matching verified license.",
+        q: "How are Helprs verified?",
+        a: "Every Helpr submits a government-issued ID. Licensed trade work (electrical, plumbing) requires matching verified license.",
       },
       {
         q: "What is the cancellation rate?",
-        a: "We show a helper's cancellation history on their profile once they've completed 5+ jobs. Low cancellation is a strong trust signal.",
+        a: "We show a Helpr's cancellation history on their profile once they've completed 5+ jobs. Low cancellation is a strong trust signal.",
       },
       {
-        q: "Can I report a helper or poster?",
+        q: "Can I report a Helpr or poster?",
         a: 'Yes — the "Report" option is in every job detail and profile. Our team reviews all reports within 24 hours.',
       },
     ],
@@ -296,7 +296,7 @@ const HelpCenter = () => {
     canonical: "https://www.louisianahelpr.com/help",
     ogTitle: "Louisiana Helpr Help Center",
     ogDescription:
-      "Quick answers about posting jobs, earning as a helper, escrow, disputes, and more.",
+      "Quick answers about posting jobs, earning as a Helpr, escrow, disputes, and more.",
   });
 
   return (
@@ -472,7 +472,7 @@ const HelpCenter = () => {
 
           {noResults ? (
             <div
-              className="rounded-2xl p-6 text-center space-y-1"
+              className="rounded-2xl p-6 text-center space-y-1 max-w-2xl"
               style={{
                 background: "hsl(var(--parchment) / 0.5)",
                 border: "1px solid hsl(var(--olivewood) / 0.14)",
@@ -500,13 +500,16 @@ const HelpCenter = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            // Multi-column masonry-style layout: on desktop the FAQ topic
+            // cards flow into 2–3 balanced columns instead of one tall stack,
+            // using horizontal space and cutting page height roughly in half.
+            <div className="[column-fill:balance] gap-4 columns-1 md:columns-2 xl:columns-3">
               {filteredSections.map((section) => {
                 const accent = SECTION_ACCENTS[section.topic] ?? "hsl(var(--burnt-sienna))";
                 return (
                 <div
                   key={section.topic}
-                  className="liquid-glass overflow-hidden"
+                  className="liquid-glass overflow-hidden mb-4 break-inside-avoid"
                 >
                   {/* Topic header */}
                   <div
@@ -547,6 +550,9 @@ const HelpCenter = () => {
           )}
         </section>
 
+        {/* ── Resources + Contact: side-by-side split on desktop ── */}
+        <div className="grid lg:grid-cols-2 gap-6 items-start">
+
         {/* ── More resources ── */}
         <section aria-labelledby="resources-heading" className="space-y-4">
           <h2
@@ -565,7 +571,7 @@ const HelpCenter = () => {
             className="font-sans text-ds-13 -mt-2"
             style={{ color: "hsl(var(--olivewood))" }}
           >
-            Browse these guides for the full picture, or reach our team below.
+            Browse these guides for the full picture, or reach our team.
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {[
@@ -576,14 +582,6 @@ const HelpCenter = () => {
                 to: "/how-it-works",
                 accent: "hsl(var(--bark))",
                 accentBg: "hsl(var(--bark) / 0.1)",
-              },
-              {
-                icon: Tag,
-                label: "Pricing guide",
-                desc: "Fair-price ranges for common Louisiana jobs.",
-                to: "/local-guide",
-                accent: "hsl(var(--gold-warm))",
-                accentBg: "hsl(var(--gold-warm) / 0.14)",
               },
               {
                 icon: Scale,
@@ -644,7 +642,7 @@ const HelpCenter = () => {
         {/* ── Contact section ── */}
         <section
           aria-labelledby="contact-heading"
-          className="rounded-2xl p-5 lg:p-7 space-y-4"
+          className="rounded-2xl p-5 lg:p-7 space-y-4 h-full"
           style={{
             background:
               "linear-gradient(135deg, hsl(var(--bark) / 0.06) 0%, hsl(var(--burnt-sienna) / 0.06) 100%)",
@@ -717,6 +715,8 @@ const HelpCenter = () => {
             For urgent safety or dispute concerns, flag it in the subject line.
           </p>
         </section>
+
+        </div>
 
       </div>
     </PublicLayout>

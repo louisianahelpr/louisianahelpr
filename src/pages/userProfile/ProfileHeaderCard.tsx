@@ -477,7 +477,12 @@ export const ProfileHeaderCard = ({
               deployed (PGRST202 returns null from the query). */}
           {hasSubmittedCredentials && (
             <span
-              className="inline-flex items-center rounded-full font-medium border bg-amber-50 text-amber-700 border-amber-300/50 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30 text-ds-11 px-2.5 py-1 gap-1"
+              className="inline-flex items-center rounded-full font-medium border text-ds-11 px-2.5 py-1 gap-1"
+              style={{
+                backgroundColor: "hsl(var(--amber-tint) / 0.15)",
+                color: "hsl(var(--amber-ink))",
+                borderColor: "hsl(var(--amber-tint) / 0.4)",
+              }}
               title="Credential submitted — verification in progress"
             >
               <Clock className="w-3.5 h-3.5" />

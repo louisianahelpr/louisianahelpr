@@ -272,7 +272,7 @@ export function SignupStep2(props: SignupStep2Props) {
             />
           </label>
           <p className="text-ds-11 text-muted-foreground text-center max-w-[260px] leading-relaxed">
-            <span className="font-semibold text-[hsl(var(--ink-deep))]">A profile photo is required</span> — a clear face shot builds trust with neighbors. JPG or PNG · Max 5MB.
+            <span className="font-semibold text-[hsl(var(--ink-deep))]">A profile photo is required.</span> A clear photo of your face helps neighbors trust who they're working with. JPG or PNG, up to 5MB.
           </p>
           <FieldError id="avatar-error" message={fieldErrors.avatar} />
         </div>

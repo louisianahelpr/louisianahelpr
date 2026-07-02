@@ -126,7 +126,7 @@ export const DashboardHome = ({
           </div>
           <div className="grid sm:grid-cols-2 gap-2.5 sm:gap-3">
             {stats.pendingApprovals > 0 && (
-              <PriorityAlert label="Pending helpr approvals" count={stats.pendingApprovals} color="accent" onClick={() => onNavigate("people")} />
+              <PriorityAlert label="Pending Helpr approvals" count={stats.pendingApprovals} color="accent" onClick={() => onNavigate("people")} />
             )}
             {stats.disputedJobs > 0 && (
               <PriorityAlert label="Active disputes" count={stats.disputedJobs} color="destructive" onClick={() => onNavigate("disputes")} />

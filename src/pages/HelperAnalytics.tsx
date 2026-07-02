@@ -92,7 +92,7 @@ const HelperAnalytics = () => {
         rightSlot={<NotificationPanel />}
       />
 
-      <main className="container mx-auto px-5 py-6">
+      <div className="container mx-auto px-5 py-6">
         <div className="max-w-lg mx-auto space-y-5">
 
           {/* A failed fetch leaves `analytics` undefined, which would render
@@ -195,7 +195,7 @@ const HelperAnalytics = () => {
           </>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 };

@@ -26,9 +26,9 @@ export interface StatusFilter {
 // deliberately read different from any single job_status. Kept inline
 // because the canonical statusColors map only covers enum values.
 const DERIVED_DIRECT_OFFER =
-  "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40";
+  "bg-destructive/15 text-destructive border-destructive/30";
 const DERIVED_OFFERED =
-  "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40";
+  "bg-warning/15 text-warning border-warning/30";
 const DERIVED_PENDING_APPLIED = "bg-secondary text-secondary-foreground border-border";
 const DERIVED_NOT_SELECTED = "bg-destructive/15 text-destructive border-destructive/30";
 

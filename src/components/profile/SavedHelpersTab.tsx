@@ -338,14 +338,14 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const activeSortLabel = sortOptions.find((o) => o.value === sortBy)?.label ?? sortOptions[0].label;
 
   const metaText = helpers.length > 0
-    ? `${helpers.length} ${helpers.length === 1 ? "helpr" : "helprs"} saved · send a direct offer with a 24-hour first-look window.`
-    : "Save helprs you trust so you can rebook in one tap.";
+    ? `${helpers.length} ${helpers.length === 1 ? "Helpr" : "Helprs"} saved · send a direct offer with a 24-hour first-look window.`
+    : "Save Helprs you trust so you can rebook in one tap.";
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
       <ProfileTabHeader
         eyebrow="Your shortlist"
-        title="Saved helprs"
+        title="Saved Helprs"
         meta={metaText}
         onBack={onBack}
       />
@@ -434,12 +434,12 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
             title={
               wasOffline
                 ? "We can't reach the network."
-                : "We couldn't load your saved helprs."
+                : "We couldn't load your saved Helprs."
             }
             body={
               wasOffline
-                ? "Check your connection and try again — your saved helprs are safe."
-                : "Tap Try again. Your saved helprs are safe — this is just a loading hiccup on our end."
+                ? "Check your connection and try again — your saved Helprs are safe."
+                : "Tap Try again. Your saved Helprs are safe — this is just a loading hiccup on our end."
             }
             onRetry={loadSavedHelpers}
             retryDisabled={loading}
@@ -450,7 +450,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 onClick={() => navigate("/post-job")}
                 className="text-ds-13"
               >
-                Post a task instead
+                Post a job instead
               </Button>
             }
           />
@@ -464,16 +464,16 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
               ) : undefined
             }
             eyebrow={helpers.length === 0 ? "Nothing saved" : "No matches"}
-            title={helpers.length === 0 ? "No saved helprs yet." : "Nothing matches that search."}
+            title={helpers.length === 0 ? "No saved Helprs yet." : "Nothing matches that search."}
             body={
               helpers.length === 0
-                ? "After your next task, tap the heart on the helpr's profile — they'll land here for one-tap rebooking."
+                ? "After your next job, tap the heart on the Helpr's profile — they'll land here for one-tap rebooking."
                 : "Try a different search term — your saved list is intact."
             }
             action={
               helpers.length === 0 ? (
                 <BarkPillButton onClick={() => navigate("/post-job")}>
-                  Post a task
+                  Post a job
                 </BarkPillButton>
               ) : (
                 <BarkPillButton onClick={() => setSearch("")}>
@@ -580,7 +580,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                         placeholder="e.g. great with painting, prefers Tuesdays"
                         rows={2}
                         maxLength={500}
-                        aria-label="Private note about this helpr"
+                        aria-label="Private note about this Helpr"
                         className="w-full rounded-ds-sm border border-border/40 bg-card px-2 py-1.5 text-ds-13 font-serif italic resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
                       />
                       <div className="flex items-center justify-end gap-2">

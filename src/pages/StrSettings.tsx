@@ -4,8 +4,8 @@
  * "Rental Host Automation" settings page. Lets users connect Airbnb / VRBO
  * iCal feeds so Helpr auto-posts a cleaning job each time a guest checks out.
  *
- * Document-scroll page (listed in DOCUMENT_SCROLL_ROUTES). Uses BackButton +
- * the standard min-h-screen wrapper — same pattern as SubscriptionPage.
+ * Document-scroll page (listed in DOCUMENT_SCROLL_ROUTES). Uses the canonical
+ * PageHeader + min-h-screen wrapper — same pattern as PayItForward.
  */
 
 import { useState } from "react";
@@ -16,7 +16,8 @@ import {
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import BackButton from "@/components/BackButton";
+import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,7 +80,7 @@ const cardStyle: React.CSSProperties = {
   background:
     "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.06) 0%, transparent 55%), " +
     "var(--surface-premium)",
-  border: "0.5px solid hsl(var(var(--bark)) / 0.18)",
+  border: "0.5px solid hsl(var(--bark) / 0.18)",
   borderColor: "hsl(var(--bark) / 0.18)",
   boxShadow:
     "inset 0 1px 1px 0 rgba(255,255,255,0.55), " +
@@ -580,28 +581,14 @@ export default function StrSettings() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      {/* Page header */}
-      <div className="px-4 pt-safe-top pt-4 pb-2">
-        <div className="mb-2">
-          <BackButton />
-        </div>
-        <div>
-          <h1
-            className="font-display italic font-bold leading-none"
-            style={{ fontSize: "1.55rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Host Automation
-          </h1>
-          <p
-            className="font-serif italic mt-0.5"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Auto-post cleaning jobs on guest checkout
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Host Automation"
+        meta="Auto-post cleaning jobs on guest checkout"
+        showBrand
+        rightSlot={<NotificationPanel />}
+      />
 
-      <div className="px-4 space-y-4 mt-2 pb-8">
+      <div className="max-w-lg mx-auto px-4 space-y-4 mt-2 pb-8">
 
         {/* Explanation card */}
         <div className="rounded-ds-md p-4" style={cardStyle}>

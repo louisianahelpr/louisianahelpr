@@ -91,8 +91,6 @@ const InsuranceClaim = lazy(() => import("./pages/InsuranceClaim"));
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
 const HelperAnalytics = lazy(() => import("./pages/HelperAnalytics"));
 const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
-const ParishPage = lazy(() => import("./pages/ParishPage"));
-const ParishesPage = lazy(() => import("./pages/ParishesPage"));
 const HelprWrapped = lazy(() => import("./pages/HelprWrapped"));
 const BusinessBilling = lazy(() => import("./pages/business/BusinessBilling"));
 const BusinessApi = lazy(() => import("./pages/business/BusinessApi"));
@@ -103,11 +101,7 @@ const BusinessReports = lazy(() => import("./pages/business/BusinessReports"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
-const ImpactPage = lazy(() => import("./pages/ImpactPage"));
 const CommunityThanks = lazy(() => import("./pages/CommunityThanks"));
-const BecomeAPartner = lazy(() => import("./pages/BecomeAPartner"));
-const EnterprisePage = lazy(() => import("./pages/EnterprisePage"));
-const LocalGuide = lazy(() => import("./pages/LocalGuide"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const HomeHistory = lazy(() => import("./pages/HomeHistory"));
@@ -215,7 +209,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/schedule" element={<Navigate to="/profile?tab=schedule" replace />} />
       <Route path="/availability" element={<Navigate to="/profile?tab=availability" replace />} />
       <Route path="/saved-helpers" element={<Navigate to="/profile?tab=saved_helpers" replace />} />
-      <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><SubscriptionPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* Public so the footer "Plans" link and marketing CTAs resolve for
+          logged-out visitors. The page renders read-only for guests (current
+          plan shows Free); tapping Upgrade routes them to sign in first. */}
+      <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<PageTransition><SubscriptionPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Pay It Forward — community credit marketplace */}
       <Route path="/pay-it-forward" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -238,17 +235,21 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/work-record" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><WorkRecord /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/job-history" element={<Navigate to="/profile" replace />} />
 
-      {/* Community discovery — public, document-scroll, SEO-indexable */}
-      {/* Public impact transparency page — no auth required */}
-      <Route path="/impact" element={<RouteErrorBoundary>{routeEl(<PageTransition><ImpactPage /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Growth / business-development pages — no auth required */}
-      <Route path="/become-a-partner" element={<RouteErrorBoundary>{routeEl(<PageTransition><BecomeAPartner /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/enterprise" element={<RouteErrorBoundary>{routeEl(<PageTransition><EnterprisePage /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/local-guide" element={<RouteErrorBoundary>{routeEl(<PageTransition><LocalGuide /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* /become-a-partner retired: partner === business. Redirect legacy links. */}
+      <Route path="/become-a-partner" element={<Navigate to="/for-business" replace />} />
+      {/* /enterprise retired until we're bigger — the industry verticals now
+          live under Business. Redirect legacy links so they don't 404. */}
+      <Route path="/enterprise" element={<Navigate to="/for-business" replace />} />
       <Route path="/how-it-works" element={<RouteErrorBoundary>{routeEl(<PageTransition><HowItWorks /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/parishes" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishesPage /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/parish/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><ParishPage /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Retired public discovery pages — redirect legacy links.
+          Jobs are discovered via the landing strip + /jobs; parish/impact/
+          pricing-guide standalone pages were removed. */}
+      <Route path="/impact" element={<Navigate to="/" replace />} />
+      <Route path="/local-guide" element={<Navigate to="/help" replace />} />
+      <Route path="/parishes" element={<Navigate to="/jobs" replace />} />
+      <Route path="/parish/:slug" element={<Navigate to="/jobs" replace />} />
       {/* Helpr Wrapped — auth-gated, HelprWrapped handles the redirect */}
       <Route path="/wrapped" element={<RouteErrorBoundary>{routeEl(<HelprWrapped />)}</RouteErrorBoundary>} />
       {/* Benefits marketplace — partner perks for helpers */}

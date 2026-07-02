@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { DollarSign, Send, Clock, CheckCircle2, AlertTriangle, ListChecks, Pause, Play } from "lucide-react";
+import { Send, Clock, CheckCircle2, AlertTriangle, ListChecks, Pause, Play } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { safeStorage } from "@/lib/safeStorage";
 import { formatDistanceToNow } from "date-fns";
@@ -266,14 +266,9 @@ const AdminPayoutBatches = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-ds-20 font-display font-bold text-foreground flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-primary" /> Payout Batches
-          </h2>
-          <p className="text-ds-11 text-muted-foreground mt-0.5">
-            Helprs with completed jobs awaiting payout. Trigger Stripe transfers in bulk per helpr.
-          </p>
-        </div>
+        <p className="text-ds-11 text-muted-foreground">
+          Helprs with completed jobs awaiting payout. Trigger Stripe transfers in bulk per Helpr.
+        </p>
         <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey })} disabled={isFetching}>
           {isFetching ? "Refreshing…" : "Refresh"}
         </Button>
@@ -599,7 +594,7 @@ const AdminPayoutBatches = () => {
           </p>
           <div className="space-y-1.5">
             {ledger.map((t) => {
-              const helperName = formatName(t.profiles?.full_name, "Unknown helpr");
+              const helperName = formatName(t.profiles?.full_name, "Unknown Helpr");
               const jobTitle = t.jobs?.title ?? "—";
               const amount = (t.amount_cents / 100).toFixed(2);
               const fee = (t.platform_fee_cents / 100).toFixed(2);

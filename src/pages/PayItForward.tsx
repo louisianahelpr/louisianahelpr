@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Heart, Gift, Sparkles, CheckCircle2 } from "lucide-react";
+import { Gift, Sparkles, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -347,30 +347,17 @@ export default function PayItForward() {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Pay It Forward" onBack={() => navigate(-1)} showBrand rightSlot={<NotificationPanel />} />
+      <PageHeader
+        eyebrow="Community giving"
+        title="Pay It Forward"
+        meta="Help a neighbor who needs it"
+        onBack={() => navigate(-1)}
+        showBrand
+        rightSlot={<NotificationPanel />}
+        width="2xl"
+      />
 
-      <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
-        {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-3">
-          <span
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: "hsl(var(--pif-tint) / 0.12)" }}
-          >
-            <Heart className="w-5 h-5" style={{ color: "hsl(var(--pif-green))" }} />
-          </span>
-          <div>
-            <h1
-              className="font-display italic font-bold leading-tight"
-              style={{ fontSize: "1.25rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-            >
-              Pay It Forward
-            </h1>
-            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Help a neighbor who needs it
-            </p>
-          </div>
-        </div>
-
+      <div className="max-w-2xl mx-auto px-5 lg:px-8 pt-4 space-y-6">
         {/* ── What is this? ───────────────────────────────────────────────── */}
         <div
           className="rounded-ds-md p-4"

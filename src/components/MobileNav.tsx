@@ -361,6 +361,15 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         toast.error("Couldn't mark messages read — give it another try.");
         return;
       }
+      // Keep the bell in sync with the messages badge: each chat message also
+      // spawned a type='message' notifications row, so clear those too or the
+      // bell would keep counting messages the user just marked read.
+      void supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", user.id)
+        .eq("type", "message")
+        .eq("read", false);
       toast.success("All messages marked read.");
     };
 
@@ -737,7 +746,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 onClick={handlePostClick}
                 onMouseEnter={() => !isGuest && prefetchRoute("/post-job")}
                 onFocus={() => !isGuest && prefetchRoute("/post-job")}
-                aria-label={isGuest ? "Post a new task — sign up required" : "Post a new task"}
+                aria-label={isGuest ? "Post a new job — sign up required" : "Post a new job"}
                 className="group relative w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform duration-200"
                 style={{
                   // Lit-from-top orb — a radial highlight in the upper-left
@@ -781,7 +790,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           <SheetHeader className="text-left">
             <SheetTitle>Create your free account</SheetTitle>
             <SheetDescription>
-              Join Helpr to post jobs, message helprs, and track your activity. It only takes a minute.
+              Join Helpr to post jobs, message Helprs, and track your activity. It only takes a minute.
             </SheetDescription>
           </SheetHeader>
           <div className="flex flex-col gap-3 mt-6">

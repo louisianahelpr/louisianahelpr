@@ -59,7 +59,7 @@ export function SectionProgress({
       */}
       <div
         role="group"
-        aria-label={`Post a task — ${doneCount} of ${sections.length} sections complete`}
+        aria-label={`Post a job — ${doneCount} of ${sections.length} sections complete`}
         className="flex items-center"
       >
         {sections.map((s, i) => {

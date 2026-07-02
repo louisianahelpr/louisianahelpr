@@ -276,7 +276,7 @@ export function BrowseTasksFeed({
           title={
             filters.hasFilters
               ? (nearbyActive
-                ? `No tasks within ${currentMiles} mi of you.`
+                ? `No jobs within ${currentMiles} mi of you.`
                 : "No jobs match your filters.")
               : "Nothing today, neighbor."
           }
@@ -310,7 +310,7 @@ export function BrowseTasksFeed({
                     className="rounded-ds-md font-sans font-medium"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
-                    Browse all parishes
+                    Show all locations
                   </Button>
                 </div>
               ) : (
@@ -330,7 +330,7 @@ export function BrowseTasksFeed({
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   <Plus className="w-4 h-4 mr-1" strokeWidth={2.25} />
-                  Post your first task
+                  Post your first job
                 </Button>
                 <Button
                   variant="ghost"

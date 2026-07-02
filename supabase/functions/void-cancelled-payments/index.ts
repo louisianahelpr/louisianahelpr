@@ -36,6 +36,85 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
+    // Transfer the cancellation fee (minus platform commission) to the helper.
+    // Shared by BOTH settlement branches (captured-then-refunded AND
+    // uncaptured-hold-partial-capture) so a helper is paid identically however
+    // the escrow was held. Best-effort: a failed transfer notifies admins but
+    // never throws — the customer's refund/capture has already succeeded and
+    // must not be rolled back over a payout hiccup.
+    const payHelperCancellationFee = async (
+      job: { id: string; title: string; helper_id: string | null },
+      cancellationFee: number,
+      pi: Stripe.PaymentIntent,
+    ) => {
+      if (!(cancellationFee > 0) || !job.helper_id) return;
+      // Resolve commission from the helper's live subscription tier; fall back
+      // to the platform-settings rate if the profile read fails.
+      const { data: settings } = await supabaseAdmin
+        .from("platform_settings")
+        .select("helper_fee_percent")
+        .limit(1)
+        .single();
+      const commissionPercent = await getHelperFeePercent(
+        supabaseAdmin,
+        job.helper_id,
+        settings?.helper_fee_percent ?? 10,
+      );
+      const platformCut = Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
+      const helperPayout = cancellationFee - platformCut;
+
+      const { data: helperProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("stripe_account_id")
+        .eq("user_id", job.helper_id)
+        .single();
+
+      if (!helperProfile?.stripe_account_id || !(helperPayout > 0)) return;
+      try {
+        const transferParams: any = {
+          amount: Math.round(helperPayout * 100),
+          currency: "usd",
+          destination: helperProfile.stripe_account_id,
+          metadata: { job_id: job.id, helper_id: job.helper_id, type: "cancellation_fee", platform_cut: platformCut },
+        };
+        // Link to the source charge so the transfer draws from these funds.
+        if (pi.latest_charge) {
+          transferParams.source_transaction = typeof pi.latest_charge === "string"
+            ? pi.latest_charge
+            : pi.latest_charge.id;
+        }
+        // Idempotency key prevents double-payment if the cron overlaps or
+        // retries before payment_status is flipped to "refunded".
+        await stripe.transfers.create(transferParams, {
+          idempotencyKey: `cancel-fee-${job.id}`,
+        });
+        console.log(`Cancellation fee $${cancellationFee}: platform kept $${platformCut}, transferred $${helperPayout} to helper ${job.helper_id} for job ${job.id}`);
+
+        await supabaseAdmin.from("notifications").insert({
+          user_id: job.helper_id,
+          title: "Cancellation fee received",
+          message: `You received a $${helperPayout.toFixed(2)} cancellation fee for "${job.title}" (${commissionPercent}% commission deducted).`,
+          type: "payment",
+          link: "/earnings",
+        });
+      } catch (transferErr: any) {
+        console.error(`Failed to transfer cancellation fee to helper ${job.helper_id}:`, transferErr);
+        // Notify admins about the failed transfer
+        const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
+        if (adminRoles) {
+          for (const admin of adminRoles) {
+            await supabaseAdmin.from("notifications").insert({
+              user_id: admin.user_id,
+              title: "⚠️ Cancellation fee transfer failed",
+              message: `Failed to transfer $${cancellationFee.toFixed(2)} cancellation fee to helper for job ${job.id}. Error: ${transferErr.message}`,
+              type: "warning",
+              link: "/admin",
+            });
+          }
+        }
+      }
+    };
+
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
@@ -111,23 +190,41 @@ serve(async (req) => {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
 
         if (pi.status === "requires_capture") {
-          // Cancel the uncaptured hold — releases the funds back to the customer
-          await stripe.paymentIntents.cancel(paymentIntentId);
-          await supabaseAdmin.from("jobs").update({ payment_status: "cancelled" }).eq("id", job.id);
-          voided++;
-          results.push({ job_id: job.id, title: job.title, status: "voided", amount: pi.amount / 100 });
-        } else if (pi.status === "succeeded") {
-          // Already captured — issue a refund (minus cancellation fee if applicable)
-          // Server-side fee: flat 5% of budget when a helper was selected
-          let cancellationFee = 0;
-          if (job.helper_id) {
-            cancellationFee = Math.round(job.budget * 5) / 100;
+          // Uncaptured authorization. Use the fee the poster actually agreed to
+          // at cancellation time (persisted on the job), NOT a recomputed rate.
+          const cancellationFee = job.cancellation_fee ?? 0;
+          if (cancellationFee > 0) {
+            // Capture ONLY the fee — Stripe auto-releases the uncaptured
+            // remainder (budget + customer fee) back to the poster. Charging
+            // the fee here is what a bare cancel() previously skipped, silently
+            // waiving every fee owed on an uncaptured hold.
+            const feeCents = Math.round(cancellationFee * 100);
+            await stripe.paymentIntents.capture(paymentIntentId, { amount_to_capture: feeCents });
+            // Re-fetch so latest_charge is populated for the helper transfer's
+            // source_transaction link.
+            const captured = await stripe.paymentIntents.retrieve(paymentIntentId);
+            await payHelperCancellationFee(job, cancellationFee, captured);
+            await supabaseAdmin.from("jobs").update({
+              payment_status: "refunded",
+              cancellation_fee_status: "charged",
+            }).eq("id", job.id);
+            refunded++;
+            results.push({ job_id: job.id, title: job.title, status: "fee_captured", cancellation_fee: cancellationFee });
+          } else {
+            // No fee owed — cancel the uncaptured hold in full; funds release to
+            // the poster.
+            await stripe.paymentIntents.cancel(paymentIntentId);
+            await supabaseAdmin.from("jobs").update({ payment_status: "cancelled" }).eq("id", job.id);
+            voided++;
+            results.push({ job_id: job.id, title: job.title, status: "voided", amount: pi.amount / 100 });
           }
-          // Update the job record with the server-calculated fee and status
-          await supabaseAdmin.from("jobs").update({
-            cancellation_fee: cancellationFee,
-            cancellation_fee_status: cancellationFee > 0 ? "charged" : null,
-          }).eq("id", job.id);
+        } else if (pi.status === "succeeded") {
+          // Already captured — refund the poster everything EXCEPT the fee they
+          // agreed to at cancellation time. Use the persisted, user-agreed
+          // `cancellation_fee` (the amount shown on the "Cancel · pay $X"
+          // button) — never a recomputed rate, so the charge always equals what
+          // the poster was told.
+          const cancellationFee = job.cancellation_fee ?? 0;
           // Refund the entire captured amount minus the cancellation fee.
           // pi.amount_received is what Stripe actually collected, which is
           // larger than job.budget when a customer service fee, sales tax,
@@ -144,81 +241,13 @@ serve(async (req) => {
             );
           }
 
-          // Transfer cancellation fee to helper minus platform commission
-          if (cancellationFee > 0 && job.helper_id) {
-            // Resolve commission from the helper's live subscription tier; fall
-            // back to the platform-settings rate if the profile read fails.
-            const { data: settings } = await supabaseAdmin
-              .from("platform_settings")
-              .select("helper_fee_percent")
-              .limit(1)
-              .single();
-            const commissionPercent = await getHelperFeePercent(
-              supabaseAdmin,
-              job.helper_id,
-              settings?.helper_fee_percent ?? 10,
-            );
-            const platformCut = Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
-            const helperPayout = cancellationFee - platformCut;
+          // Transfer the agreed fee to the helper (minus platform commission).
+          await payHelperCancellationFee(job, cancellationFee, pi);
 
-            const { data: helperProfile } = await supabaseAdmin
-              .from("profiles")
-              .select("stripe_account_id")
-              .eq("user_id", job.helper_id)
-              .single();
-
-            if (helperProfile?.stripe_account_id && helperPayout > 0) {
-              try {
-                const transferParams: any = {
-                  amount: Math.round(helperPayout * 100),
-                  currency: "usd",
-                  destination: helperProfile.stripe_account_id,
-                  metadata: { job_id: job.id, helper_id: job.helper_id, type: "cancellation_fee", platform_cut: platformCut },
-                };
-
-                // Link to source charge
-                try {
-                  if (pi.latest_charge) {
-                    transferParams.source_transaction = typeof pi.latest_charge === "string"
-                      ? pi.latest_charge
-                      : pi.latest_charge.id;
-                  }
-                } catch (_e) { /* ignore */ }
-
-                // Idempotency key prevents double-payment if the cron overlaps
-                // or retries before payment_status is flipped to "refunded".
-                await stripe.transfers.create(transferParams, {
-                  idempotencyKey: `cancel-fee-${job.id}`,
-                });
-                console.log(`Cancellation fee $${cancellationFee}: platform kept $${platformCut}, transferred $${helperPayout} to helper ${job.helper_id} for job ${job.id}`);
-
-                await supabaseAdmin.from("notifications").insert({
-                  user_id: job.helper_id,
-                  title: "Cancellation fee received",
-                  message: `You received a $${helperPayout.toFixed(2)} cancellation fee for "${job.title}" (${commissionPercent}% commission deducted).`,
-                  type: "payment",
-                  link: "/earnings",
-                });
-              } catch (transferErr: any) {
-                console.error(`Failed to transfer cancellation fee to helper ${job.helper_id}:`, transferErr);
-                // Notify admins about the failed transfer
-                const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
-                if (adminRoles) {
-                  for (const admin of adminRoles) {
-                    await supabaseAdmin.from("notifications").insert({
-                      user_id: admin.user_id,
-                      title: "⚠️ Cancellation fee transfer failed",
-                      message: `Failed to transfer $${cancellationFee.toFixed(2)} cancellation fee to helper for job ${job.id}. Error: ${transferErr.message}`,
-                      type: "warning",
-                      link: "/admin",
-                    });
-                  }
-                }
-              }
-            }
-          }
-
-          await supabaseAdmin.from("jobs").update({ payment_status: "refunded" }).eq("id", job.id);
+          await supabaseAdmin.from("jobs").update({
+            payment_status: "refunded",
+            cancellation_fee_status: cancellationFee > 0 ? "charged" : null,
+          }).eq("id", job.id);
           refunded++;
           results.push({ job_id: job.id, title: job.title, status: "refunded", amount: refundAmount / 100, cancellation_fee_transferred: cancellationFee > 0 });
         } else {

@@ -91,19 +91,9 @@ const AdminBusinessVerificationQueue = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center">
-          <Building2 className="w-5 h-5" />
-        </div>
-        <div>
-          <h2 className="text-ds-20 font-display font-bold text-foreground">
-            Business verification queue
-          </h2>
-          <p className="text-ds-11 text-muted-foreground">
-            Approve to grant the Verified Business badge to the owner and every active team member.
-          </p>
-        </div>
-      </div>
+      <p className="text-ds-11 text-muted-foreground">
+        Approve to grant the Verified Business badge to the owner and every active team member.
+      </p>
 
       {rows.length === 0 ? (
         <div className="rounded-2xl liquid-glass p-10 text-center text-ds-11 text-muted-foreground">

@@ -1,12 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import {
   ClipboardList,
-  Users,
   Lock,
-  Star,
-  UserCircle2,
-  MapPin,
-  CheckCircle2,
   Banknote,
   ShieldCheck,
   HeartHandshake,
@@ -21,45 +16,37 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 
 const POSTER_STEPS = [
   {
-    icon: ClipboardList,
     title: "Describe what you need",
     body: "Pick a category, write a quick description, and set your budget — or let Helpr suggest one based on local market data.",
   },
   {
-    icon: Users,
     title: "Get applications fast",
-    body: "Most jobs see applications within the first hour. Review helper profiles, ratings, and verifications before you choose.",
+    body: "Most jobs see applications within the first hour. Review Helpr profiles, ratings, and verifications before you choose.",
   },
   {
-    icon: Lock,
     title: "Choose and pay securely",
     body: "Pick your Helpr. Payment is held securely until you confirm the work is done — never released early.",
   },
   {
-    icon: Star,
     title: "Rate the experience",
-    body: "Your feedback builds the community and helps the best helprs rise to the top for everyone.",
+    body: "Your feedback builds the community and helps the best Helprs rise to the top for everyone.",
   },
 ];
 
 const HELPER_STEPS = [
   {
-    icon: UserCircle2,
     title: "Create your profile",
     body: "Add your skills, service area, and a brief intro. Takes two minutes. A strong profile gets noticed first.",
   },
   {
-    icon: MapPin,
     title: "Apply to jobs nearby",
     body: "Browse open jobs in your parish. A quick ID check on your first application keeps the platform safe for everyone.",
   },
   {
-    icon: CheckCircle2,
     title: "Do great work",
     body: "Communicate through the app; payment releases when the poster confirms you're done.",
   },
   {
-    icon: Banknote,
     title: "Get paid and grow",
     body: "Funds hit your account same day. Build your rating for higher-earning opportunities over time.",
   },
@@ -74,7 +61,7 @@ const TRUST_ITEMS = [
   },
   {
     icon: ShieldCheck,
-    label: "ID-verified helpers",
+    label: "ID-verified Helprs",
     body: "Every Helpr clears government-ID verification before their first job. Licensed trades are license-verified too.",
     accent: "burnt-sienna",
   },
@@ -90,51 +77,42 @@ const TRUST_ITEMS = [
 
 interface StepCardProps {
   step: number;
-  icon: React.ElementType;
   title: string;
   body: string;
-  /** Accent token (without the hsl(var()) wrapper) — varies per step so the
-   *  numbered rail reads rich rather than monochrome. */
+  /** Accent token (without the hsl(var()) wrapper) for the number badge. */
   accent: string;
 }
 
-const StepCard = ({ step, icon: Icon, title, body, accent }: StepCardProps) => (
+const StepCard = ({ step, title, body, accent }: StepCardProps) => (
   <div className="flex gap-4 items-start">
-    {/* Step number + icon column */}
+    {/* Step-number column — a single soft-tinted badge is the only focal
+        point per row, so the stepped rail reads calm rather than cluttered. */}
     <div className="flex flex-col items-center gap-2 shrink-0">
       <div
-        className="w-10 h-10 rounded-full flex items-center justify-center font-sans font-bold text-ds-13"
+        className="w-8 h-8 rounded-full flex items-center justify-center font-sans font-bold text-ds-13"
         style={{
-          background: `hsl(var(--${accent}))`,
-          color: "hsl(var(--parchment))",
-          boxShadow: `0 2px 8px hsl(var(--${accent}) / 0.30)`,
+          background: `hsl(var(--${accent}) / 0.12)`,
+          color: `hsl(var(--${accent}))`,
         }}
       >
         {step}
       </div>
       {/* Connector line — hidden on last item */}
       <div
-        className="step-connector w-px flex-1 min-h-[2.5rem]"
+        className="step-connector w-px flex-1 min-h-[2rem]"
         style={{ background: "hsl(var(--olivewood) / 0.15)" }}
         aria-hidden
       />
     </div>
 
     {/* Content */}
-    <div className="pb-7">
-      <div className="flex items-center gap-2 mb-1">
-        <Icon
-          className="w-4 h-4 shrink-0"
-          style={{ color: `hsl(var(--${accent}))` }}
-          strokeWidth={1.75}
-        />
-        <h3
-          className="font-display italic font-bold text-ds-17 tracking-[-0.02em] leading-tight"
-          style={{ color: "hsl(var(--ink-deep))" }}
-        >
-          {title}
-        </h3>
-      </div>
+    <div className="pb-6">
+      <h3
+        className="font-display font-bold text-ds-17 tracking-[-0.02em] leading-tight mb-1"
+        style={{ color: "hsl(var(--ink-deep))" }}
+      >
+        {title}
+      </h3>
       <p
         className="font-sans text-ds-13 leading-relaxed"
         style={{ color: "hsl(var(--olivewood))" }}
@@ -162,11 +140,11 @@ const HowItWorks = () => {
   usePageMeta({
     title: "How It Works — Louisiana Helpr",
     description:
-      "Learn how Louisiana Helpr connects neighbors in two minutes — whether you need a job done or want to earn. Secure escrow, ID-verified helpers, Louisiana team.",
+      "Learn how Louisiana Helpr connects neighbors in two minutes — whether you need a job done or want to earn. Secure escrow, ID-verified Helprs, Louisiana team.",
     canonical: "https://www.louisianahelpr.com/how-it-works",
     ogTitle: "How Louisiana Helpr works — post a job or start earning today.",
     ogDescription:
-      "Post a job in under two minutes or build income as a verified helper. Helpr Escrow keeps every transaction safe.",
+      "Post a job in under two minutes or build income as a verified Helpr. Helpr Escrow keeps every transaction safe.",
   });
 
   return (
@@ -180,7 +158,7 @@ const HowItWorks = () => {
 
         {/* ── Hero subtext ── */}
         <div
-          className="rounded-2xl p-6 lg:p-8 space-y-4 relative overflow-hidden max-w-3xl mx-auto w-full"
+          className="rounded-2xl p-6 lg:p-8 relative overflow-hidden w-full"
           style={{
             background:
               "linear-gradient(135deg, hsl(var(--parchment) / 0.55) 0%, hsl(var(--sage) / 0.18) 100%)",
@@ -195,42 +173,79 @@ const HowItWorks = () => {
                 "radial-gradient(ellipse 80% 60% at 90% 10%, hsl(var(--burnt-sienna) / 0.07) 0%, transparent 70%)",
             }}
           />
-          <span className="text-display-eyebrow">
-            Whether you post or earn
-          </span>
-          <h2
-            className="font-display italic font-bold leading-[1.05] text-balance"
-            style={{
-              fontSize: "clamp(1.9rem, 4.5vw + 0.5rem, 3rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.03em",
-            }}
-          >
-            Get started in about{" "}
-            <span style={{ color: "hsl(var(--burnt-sienna))" }}>
-              two minutes
-            </span>
-            .
-          </h2>
-          <p className="subhead-serif text-foreground text-ds-17 lg:text-ds-20 leading-relaxed max-w-xl">
-            Every account can both post jobs and earn as a helper — no
-            separate modes, no switching. Jump to whichever side fits your day.
-          </p>
+          <div className="relative grid lg:grid-cols-[1.5fr_1fr] gap-6 lg:gap-10 items-center">
+            <div className="space-y-3">
+              <span className="text-display-eyebrow">
+                Whether you post or earn
+              </span>
+              <h2
+                className="font-display italic font-bold leading-[1.05] text-balance"
+                style={{
+                  fontSize: "clamp(1.9rem, 4.5vw + 0.5rem, 3rem)",
+                  color: "hsl(var(--ink-deep))",
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                Up and running in{" "}
+                <span style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  two minutes
+                </span>
+                .
+              </h2>
+              <p className="subhead-serif text-foreground text-ds-17 lg:text-ds-20 leading-relaxed">
+                One account, both sides. Post a job or earn as a Helpr — no
+                separate modes, nothing to switch.
+              </p>
+            </div>
+
+            {/* Right rail — fills the horizontal space the copy used to leave
+                empty, and front-loads the three trust facts. */}
+            <ul
+              className="flex flex-col gap-3.5 lg:border-l lg:pl-8"
+              style={{ borderColor: "hsl(var(--olivewood) / 0.18)" }}
+            >
+              {[
+                { icon: ShieldCheck, label: "ID-verified Helprs" },
+                { icon: Lock, label: "Escrow-protected pay" },
+                { icon: Banknote, label: "Free to post a job" },
+              ].map(({ icon: Icon, label }) => (
+                <li key={label} className="flex items-center gap-3">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{
+                      background: "hsl(var(--bark) / 0.08)",
+                      color: "hsl(var(--bark))",
+                    }}
+                  >
+                    <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                  </div>
+                  <span
+                    className="font-sans font-semibold text-ds-15"
+                    style={{ color: "hsl(var(--ink-deep))" }}
+                  >
+                    {label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
+        {/* ── Post a job / Earn as a helper — side-by-side rails ── */}
+        <div className="grid lg:grid-cols-2 gap-5 items-start">
         {/* ── Post a job section ── */}
         <section
           id="post-a-job"
-          className="liquid-glass rounded-2xl p-5 lg:p-7 space-y-5 scroll-mt-20 max-w-3xl mx-auto w-full"
+          className="liquid-glass rounded-2xl p-5 lg:p-7 space-y-5 scroll-mt-20 w-full h-full"
         >
           {/* Section header */}
           <div className="flex items-center gap-3">
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
               style={{
-                background: "hsl(var(--bark))",
-                color: "hsl(var(--parchment))",
-                boxShadow: "0 8px 20px -8px hsl(var(--bark) / 0.5)",
+                background: "hsl(var(--bark) / 0.06)",
+                color: "hsl(var(--bark))",
+                border: "1.5px solid hsl(var(--bark) / 0.5)",
               }}
             >
               <ClipboardList className="w-7 h-7" strokeWidth={1.75} />
@@ -261,10 +276,9 @@ const HowItWorks = () => {
               <div key={s.title} className={i === POSTER_STEPS.length - 1 ? "[&_.step-connector]:hidden" : ""}>
                 <StepCard
                   step={i + 1}
-                  icon={s.icon}
                   title={s.title}
                   body={s.body}
-                  accent={STEP_ACCENTS[i % STEP_ACCENTS.length]}
+                  accent="burnt-sienna"
                 />
               </div>
             ))}
@@ -276,39 +290,24 @@ const HowItWorks = () => {
             className="group w-full rounded-ds-md font-sans font-semibold gap-2"
             onClick={() => navigate("/post-job")}
           >
-            Post a task now
+            Post a job now
             <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2} />
           </Button>
         </section>
 
-        {/* ── Divider ornament ── */}
-        <div className="flex justify-center gap-1.5 py-2" aria-hidden>
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="rounded-full"
-              style={{
-                width: i === 1 ? "7px" : "4px",
-                height: i === 1 ? "7px" : "4px",
-                background: `hsl(var(--olivewood) / ${i === 1 ? 0.35 : 0.2})`,
-              }}
-            />
-          ))}
-        </div>
-
         {/* ── Earn as a helper section ── */}
         <section
           id="earn-as-a-helper"
-          className="liquid-glass rounded-2xl p-5 lg:p-7 space-y-5 scroll-mt-20 max-w-3xl mx-auto w-full"
+          className="liquid-glass rounded-2xl p-5 lg:p-7 space-y-5 scroll-mt-20 w-full h-full"
         >
           {/* Section header */}
           <div className="flex items-center gap-3">
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
               style={{
-                background: "hsl(var(--bark))",
-                color: "hsl(var(--parchment))",
-                boxShadow: "0 8px 20px -8px hsl(var(--bark) / 0.5)",
+                background: "hsl(var(--bark) / 0.06)",
+                color: "hsl(var(--bark))",
+                border: "1.5px solid hsl(var(--bark) / 0.5)",
               }}
             >
               <Banknote className="w-7 h-7" strokeWidth={1.75} />
@@ -322,28 +321,26 @@ const HowItWorks = () => {
                   className="inline-block w-1 h-4 rounded-full mr-2 align-middle"
                   style={{ background: "hsl(var(--sage))" }}
                 />
-                For helpers
+                For Helprs
               </span>
               <h2
                 className="font-display italic font-bold text-ds-22 tracking-[-0.02em] leading-tight"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
-                Earn as a helper
+                Earn as a Helpr
               </h2>
             </div>
           </div>
 
-          {/* Steps — accent rotation offset from the poster rail so the two
-              columns don't mirror each other's colors. */}
+          {/* Last step hides its connector line (no card follows it). */}
           <div>
             {HELPER_STEPS.map((s, i) => (
               <div key={s.title} className={i === HELPER_STEPS.length - 1 ? "[&_.step-connector]:hidden" : ""}>
                 <StepCard
                   step={i + 1}
-                  icon={s.icon}
                   title={s.title}
                   body={s.body}
-                  accent={STEP_ACCENTS[(i + 2) % STEP_ACCENTS.length]}
+                  accent="burnt-sienna"
                 />
               </div>
             ))}
@@ -353,12 +350,13 @@ const HowItWorks = () => {
             variant="bark"
             size="lg"
             className="w-full rounded-ds-md font-sans font-semibold gap-2"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/jobs")}
           >
             Find work nearby
             <ArrowRight className="w-4 h-4" strokeWidth={2} />
           </Button>
         </section>
+        </div>
 
         {/* ── Trust callout strip ── */}
         <section
@@ -399,62 +397,6 @@ const HowItWorks = () => {
               </p>
             </div>
           ))}
-        </section>
-
-        {/* ── Closing CTA ── */}
-        <section className="text-center space-y-5 py-6">
-          {/* Ornament */}
-          <div className="flex justify-center gap-1.5 mb-4" aria-hidden>
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className="rounded-full"
-                style={{
-                  width: i === 1 ? "8px" : "5px",
-                  height: i === 1 ? "8px" : "5px",
-                  background: `hsl(var(--burnt-sienna) / ${i === 1 ? 0.7 : 0.4})`,
-                }}
-              />
-            ))}
-          </div>
-
-          <h2
-            className="font-display italic font-bold text-ds-26 tracking-[-0.025em] text-balance"
-            style={{ color: "hsl(var(--ink-deep))" }}
-          >
-            Ready to{" "}
-            <span style={{ color: "hsl(var(--burnt-sienna))" }}>start</span>?
-          </h2>
-          <p
-            className="font-serif italic text-ds-15 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Join your Louisiana neighbors on the platform.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Button
-              onClick={() => navigate("/post-job")}
-              size="lg"
-              variant="bark"
-              className="rounded-ds-md px-8 font-sans font-semibold gap-2 w-full sm:w-auto"
-            >
-              Post a task
-              <ArrowRight className="w-4 h-4" strokeWidth={2} />
-            </Button>
-            <Button
-              onClick={() => navigate("/dashboard")}
-              size="lg"
-              variant="outline"
-              className="rounded-ds-md px-8 font-sans font-semibold w-full sm:w-auto"
-              style={{
-                borderColor: "hsl(var(--olivewood) / 0.3)",
-                color: "hsl(var(--ink-deep))",
-              }}
-            >
-              Find work
-            </Button>
-          </div>
         </section>
 
       </div>

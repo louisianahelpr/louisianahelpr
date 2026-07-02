@@ -184,7 +184,7 @@ const HeroSection = () => {
       {/* Hero content — centered in the section. */}
       <div className="flex-1 flex flex-col justify-center pt-8 sm:pt-10 lg:pt-12">
       <div
-        className="mx-auto w-full max-w-7xl relative"
+        className="mx-auto w-full max-w-7xl 2xl:max-w-[90rem] relative"
         style={{ zIndex: 1 }}
       >
         {/* Asymmetric 60/40 hero — branding on the left, phone cluster on
@@ -220,7 +220,7 @@ const HeroSection = () => {
               className="font-display font-black leading-[1.0] text-balance break-words mt-5 sm:mt-6 text-[2.25rem] sm:text-5xl lg:text-6xl xl:text-7xl"
               style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
             >
-              Louisiana&rsquo;s Local Task{" "}
+              Louisiana&rsquo;s Local Job{" "}
               <em
                 style={{
                   fontStyle: "italic",
@@ -242,7 +242,7 @@ const HeroSection = () => {
             >
               Hire a Helpr or find local work. Whether you need a hand or
               you&rsquo;re ready to lend one, we&rsquo;re your trusted Louisiana
-              partner for everyday tasks.
+              partner for everyday jobs.
             </p>
 
             {/* CTAs — stacked vertically directly under the subhead. */}
@@ -302,7 +302,7 @@ const HeroSection = () => {
               same reason as the LEFT column — the inner `PhoneCluster` has
               fixed-width phone children whose min-content would otherwise
               stretch this grid track past the container. */}
-          <div className="lg:col-span-5 lg:mt-4 min-w-0 flex flex-col items-center justify-center">
+          <div className="lg:col-span-5 lg:mt-4 min-w-0 flex flex-col items-center justify-center" aria-hidden="true">
             <PhoneCluster />
           </div>
 

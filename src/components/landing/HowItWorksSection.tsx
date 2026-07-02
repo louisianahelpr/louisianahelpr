@@ -18,7 +18,7 @@ const steps = [
   },
   {
     icon: Users,
-    title: "Pick your helpr",
+    title: "Pick your Helpr",
     description:
       "Local applicants come to you. Compare profiles, ratings, and reviews — choose with confidence.",
     accent: "Step 02",
@@ -34,16 +34,16 @@ const steps = [
 
 const trustFacts = [
   { icon: Lock, label: "Escrow-protected payment" },
-  { icon: Shield, label: "ID-verified helprs" },
+  { icon: Shield, label: "ID-verified Helprs" },
   { icon: Check, label: "Free to post" },
 ];
 
 const HowItWorksSection = () => (
   <section
     id="how-it-works"
-    className="py-10 sm:py-14 lg:py-20 px-4 sm:px-6 lg:px-8 scroll-mt-24"
+    className="py-10 sm:py-14 lg:py-20 px-5 sm:px-8 lg:px-12 scroll-mt-24"
   >
-    <div className="container mx-auto max-w-6xl">
+    <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
       {/* Eyebrow + headline live OUTSIDE the glass — same pattern as the FAQ,
           so the title acts as a section ribbon and the box below is
           read as the answer. */}

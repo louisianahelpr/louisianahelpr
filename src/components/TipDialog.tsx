@@ -60,7 +60,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
             className="font-serif italic pt-1"
             style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Pure thanks — goes straight to the helpr, no platform cut.
+            Pure thanks — goes straight to the Helpr, no platform cut.
           </p>
         </DialogHeader>
         <div className="space-y-4">

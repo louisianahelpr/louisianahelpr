@@ -255,7 +255,7 @@ export const PostedJobsTab = ({
         }
         return;
       }
-      toast.success("Counter sent! Waiting for the helpr's response.");
+      toast.success("Counter sent! Waiting for the Helpr's response.");
       // Optimistic update so the UI reflects the sent counter immediately.
       setLocalNegotiation((prev) => ({ ...prev, [appId]: { status: "countered", price: counterPrice } }));
       setCounterShowing(null);
@@ -713,10 +713,10 @@ export const PostedJobsTab = ({
         icon={Wrench}
         illustration={<EmptyStateIllustration variant="posts" />}
         title="No posts yet in this view"
-        body="Post your first task and we'll match you with ID-verified Louisiana helprs nearby."
+        body="Post your first job and we'll match you with ID-verified Louisiana Helprs nearby."
         action={
           <Button onClick={() => navigate("/post-job")} className="rounded-ds-md btn-press">
-            <Wrench className="w-4 h-4 mr-1.5" /> Post a task
+            <Wrench className="w-4 h-4 mr-1.5" /> Post a job
           </Button>
         }
       />
@@ -871,7 +871,7 @@ export const PostedJobsTab = ({
                       No one has applied yet
                     </p>
                     <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.80)" }}>
-                      Your job was just posted! Sharing it reaches more helprs nearby.
+                      Your job was just posted! Sharing it reaches more Helprs nearby.
                     </p>
                   </div>
                   <ShareJobButton
@@ -1493,7 +1493,7 @@ export const PostedJobsTab = ({
                     value={declineNote}
                     onChange={(e) => setDeclineNote(e.target.value.slice(0, DECLINE_NOTE_MAX))}
                     maxLength={DECLINE_NOTE_MAX}
-                    placeholder="The helper will see this as a notification…"
+                    placeholder="The Helpr will see this as a notification…"
                     rows={2}
                     className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed resize-none"
                   />

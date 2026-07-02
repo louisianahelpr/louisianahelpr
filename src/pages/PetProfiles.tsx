@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -436,6 +437,7 @@ function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormProps) {
 
 const PetProfiles = () => {
   usePageTitle("My Pets — Helpr");
+  const navigate = useNavigate();
   const { user } = useCurrentUser();
   const userId = user?.id ?? null;
   const queryClient = useQueryClient();
@@ -493,9 +495,17 @@ const PetProfiles = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="My Pets" showBrand rightSlot={<NotificationPanel />} />
+      <PageHeader
+        eyebrow="Your animals"
+        title="My Pets"
+        meta="Care details your Helpr should know"
+        onBack={() => navigate("/profile")}
+        showBrand
+        rightSlot={<NotificationPanel />}
+        width="2xl"
+      />
 
-      <div className="px-4 pt-4 space-y-3">
+      <div className="max-w-2xl mx-auto px-5 lg:px-8 pt-4 space-y-3">
         {isLoading && (
           <div className="space-y-2">
             {[1, 2].map((n) => (

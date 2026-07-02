@@ -55,7 +55,7 @@ export function ActivityHeader({
                 className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
                 style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
               >
-                {tab === "posted" ? "Posted tasks" : "Applied tasks"}
+                {tab === "posted" ? "Posted jobs" : "Applied jobs"}
               </span>
               <h2
                 className="font-display italic font-bold leading-tight mt-1 truncate"
@@ -72,7 +72,7 @@ export function ActivityHeader({
               <button
                 type="button"
                 onClick={() => { hapticLight(); setSearchOpen(!searchOpen); }}
-                aria-label="Search tasks"
+                aria-label="Search jobs"
                 aria-expanded={searchOpen}
                 className={`h-11 w-11 rounded-ds-md flex items-center justify-center btn-press transition ${
                   searchOpen || searchQuery
@@ -173,8 +173,8 @@ export function ActivityHeader({
             <input
               autoFocus
               type="search"
-              aria-label="Search tasks"
-              placeholder="Search tasks…"
+              aria-label="Search jobs"
+              placeholder="Search jobs…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"

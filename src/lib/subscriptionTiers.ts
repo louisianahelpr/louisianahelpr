@@ -44,7 +44,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     ctaLabel: "Current plan",
   },
   pro: {
-    name: "Helper Pro",
+    name: "Helpr Pro",
     price: 9.99,
     annualPrice: 7.99,
     platformFeePercent: 10,

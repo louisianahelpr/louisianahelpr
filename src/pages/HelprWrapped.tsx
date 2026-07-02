@@ -255,7 +255,7 @@ const HelprWrapped = () => {
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader eyebrow="Louisiana Helpr" title={`Your ${SEASON.title}`} />
 
-      <main className="px-5 py-6 flex flex-col items-center">
+      <div className="px-5 py-6 flex flex-col items-center">
         <div
           className="w-full max-w-[420px] rounded-ds-lg overflow-hidden"
           style={{
@@ -353,7 +353,7 @@ const HelprWrapped = () => {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 };

@@ -16,7 +16,7 @@ export const ImpersonationBanner = () => {
   if (!impersonation) return null;
   return (
     <div
-      className="sticky top-0 z-50 flex items-center gap-2 px-3 sm:px-4 py-2 bg-amber-500 text-amber-950 shadow-sm"
+      className="sticky top-0 z-50 flex items-center gap-2 px-3 sm:px-4 py-2 bg-warning text-warning-foreground shadow-sm"
       style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.5rem)" }}
       role="status"
       aria-live="polite"
@@ -30,7 +30,7 @@ export const ImpersonationBanner = () => {
         type="button"
         onClick={stop}
         aria-label="Exit impersonation"
-        className="shrink-0 inline-flex items-center gap-1 rounded-md bg-amber-950/15 hover:bg-amber-950/25 px-2 h-7 text-ds-11 font-semibold"
+        className="shrink-0 inline-flex items-center gap-1 rounded-md bg-[hsl(var(--amber-ink)/0.15)] hover:bg-[hsl(var(--amber-ink)/0.25)] px-2 h-7 text-ds-11 font-semibold"
       >
         <X className="w-3 h-3" /> Exit
       </button>

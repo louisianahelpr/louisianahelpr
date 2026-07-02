@@ -454,7 +454,7 @@ const CompleteProfile = () => {
                     className={cn(
                       "flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
                       item.done
-                        ? "bg-emerald-500/15 text-emerald-600"
+                        ? "bg-success/15 text-success"
                         : "bg-destructive/10 text-destructive",
                     )}
                     aria-hidden
@@ -678,23 +678,11 @@ const CompleteProfile = () => {
             <Button
               type="submit"
               size="lg"
-              className="w-full rounded-ds-md"
+              className={cn(
+                "w-full rounded-ds-md",
+                allComplete && !submitting && "btn-grad-primary",
+              )}
               disabled={submitting || !allComplete}
-              style={
-                allComplete && !submitting
-                  ? {
-                      background: "hsl(var(--bark))",
-                      backgroundImage: "none",
-                      border: "1px solid hsl(var(--bark))",
-                      color: "hsl(var(--parchment))",
-                      fontFamily: "Montserrat, system-ui, sans-serif",
-                      fontWeight: 600,
-                      letterSpacing: "0.01em",
-                      boxShadow:
-                        "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -8px hsl(var(--bark) / 0.5)",
-                    }
-                  : undefined
-              }
             >
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
               {submitting ? "Saving…" : allComplete ? "Enter app" : "Complete all items above"}

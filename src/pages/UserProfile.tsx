@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { formatName } from "@/lib/utils";
@@ -42,6 +42,8 @@ import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 import { haversineMiles } from "@/lib/geo";
 import { useUserLocation } from "@/hooks/useUserLocation";
+import PublicLayout from "@/components/marketing/PublicLayout";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -157,7 +159,7 @@ const UserProfile = () => {
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
-        supabase.from("reviews").select("id, rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, response_text, response_at", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(20),
+        supabase.from("reviews").select("id, rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at, latitude, longitude").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("jobs").select("id, title, status, category, budget, created_at, latitude, longitude").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
         supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId!),
@@ -212,9 +214,10 @@ const UserProfile = () => {
         // in that set. Degrades gracefully to empty on error.
         supabase
           .from("reviews")
-          .select("rating, job_id")
+          .select("rating, job_id, jobs!inner(status)")
           .eq("reviewee_id", userId!)
-          .lte("feedback_visible_at", new Date().toISOString()),
+          .lte("feedback_visible_at", new Date().toISOString())
+          .neq("jobs.status", "cancelled"),
         // Repeat-hire % (#milestones) — % of unique customers who hired
         // this helper more than once. PGRST202-safe: function may not be
         // deployed on production yet; falls back to null (milestone hidden).
@@ -662,9 +665,20 @@ const UserProfile = () => {
     </div>
   ) : null;
 
+  // Web carries the shared marketing chrome (Navbar/Footer via PublicLayout);
+  // native supplies its own nav, so it stays bare with just the page bg. Every
+  // rendered state (loading/error/not-found/loaded) routes through this so the
+  // chrome is consistent across them on web.
+  const wrap = (inner: ReactNode) =>
+    isNativePlatform ? (
+      <div className="min-h-screen bg-premium-page pb-safe-nav">{inner}</div>
+    ) : (
+      <PublicLayout showCtaBand={false}>{inner}</PublicLayout>
+    );
+
   if (loading) {
-    return (
-      <div className="min-h-screen bg-premium-page pb-safe-nav">
+    return wrap(
+      <>
         <PageHeader
           showBrand
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
@@ -672,7 +686,7 @@ const UserProfile = () => {
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           rightSlot={headerActionPlaceholder}
         />
-        <main className="container mx-auto px-5 py-6">
+        <div className="container mx-auto px-5 py-6">
           <div className="max-w-lg mx-auto space-y-5">
             <div className="rounded-2xl liquid-glass p-5 text-center space-y-3">
               <div className="w-24 h-24 rounded-ds-pill squircle bg-muted animate-pulse mx-auto" />
@@ -689,14 +703,14 @@ const UserProfile = () => {
               ))}
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </>
     );
   }
 
   if (isError) {
-    return (
-      <div className="min-h-screen bg-premium-page pb-safe-nav">
+    return wrap(
+      <>
         <PageHeader
           showBrand
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
@@ -704,18 +718,18 @@ const UserProfile = () => {
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           rightSlot={headerActionPlaceholder}
         />
-        <main className="container mx-auto px-5 py-6">
+        <div className="container mx-auto px-5 py-6">
           <div className="max-w-lg mx-auto flex">
             <ErrorState onRetry={() => refetch()} />
           </div>
-        </main>
-      </div>
+        </div>
+      </>
     );
   }
 
   if (!profile) {
-    return (
-      <div className="min-h-screen bg-premium-page pb-safe-nav">
+    return wrap(
+      <>
         <PageHeader
           showBrand
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
@@ -723,7 +737,7 @@ const UserProfile = () => {
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           rightSlot={headerActionPlaceholder}
         />
-        <main className="container mx-auto px-5 py-6">
+        <div className="container mx-auto px-5 py-6">
           <div className="max-w-lg mx-auto flex">
             <EmptyState
               variant="inline"
@@ -736,8 +750,8 @@ const UserProfile = () => {
               }
             />
           </div>
-        </main>
-      </div>
+        </div>
+      </>
     );
   }
 
@@ -797,8 +811,8 @@ const UserProfile = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+  return wrap(
+    <>
       <PageHeader
         showBrand
         eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
@@ -846,7 +860,7 @@ const UserProfile = () => {
         }
       />
 
-      <main className="container mx-auto px-5 py-6">
+      <div className="container mx-auto px-5 py-6">
         <div className="max-w-lg mx-auto space-y-5">
           {/* Profile Card — brand-aligned hero. Avatar with tier ring,
               italic display name, italic serif meta and bio. */}
@@ -1058,7 +1072,7 @@ const UserProfile = () => {
             </div>
           )}
         </div>
-      </main>
+      </div>
 
       {showReport && userId && (
         <ReportDialog
@@ -1078,7 +1092,7 @@ const UserProfile = () => {
           onBlocked={() => navigate("/dashboard", { replace: true })}
         />
       )}
-    </div>
+    </>
   );
 };
 

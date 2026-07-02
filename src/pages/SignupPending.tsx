@@ -142,7 +142,7 @@ const SignupPending = () => {
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>
               <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                You're all set — post tasks and accept jobs the moment you're in.
+                You're all set — post and accept jobs the moment you're in.
               </p>
             </div>
           </div>

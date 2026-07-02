@@ -28,7 +28,7 @@ const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
  */
 const Footer = () => (
   <footer
-    className="px-4 sm:px-6 lg:px-8 relative"
+    className="px-5 sm:px-8 lg:px-12 relative"
     style={{
       /* Floating-glass footer — minimal tint, blur-only, NO horizontal line.
          The page's mesh gradient flows continuously into the footer area
@@ -39,7 +39,7 @@ const Footer = () => (
       color: "hsl(var(--olivewood))",
     }}
   >
-    <div className="container mx-auto max-w-6xl py-7 md:py-9">
+    <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] py-7 md:py-9">
       <div className="grid gap-8 md:gap-10 md:grid-cols-12">
         {/* Brand */}
         <div className="md:col-span-4 space-y-3">
@@ -62,12 +62,12 @@ const Footer = () => (
           </Link>
           <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">
             Hire a Helpr or find local work — your trusted Louisiana partner for
-            everyday tasks.
+            everyday jobs.
           </p>
           <div className="flex flex-col gap-1.5 text-ds-11 text-[hsl(var(--olivewood))]/80 pt-1">
             <a
               href="mailto:admin@louisianahelpr.com"
-              className="inline-flex items-center gap-2 hover:text-[hsl(var(--olivewood))] transition-colors w-fit"
+              className="inline-flex items-center gap-2 link-standard w-fit"
             >
               <Mail className="w-3.5 h-3.5" />
               admin@louisianahelpr.com
@@ -80,7 +80,7 @@ const Footer = () => (
         </div>
 
         {/* Company */}
-        <div className="md:col-span-2">
+        <div className="md:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
@@ -89,35 +89,35 @@ const Footer = () => (
           </h3>
           <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
             <li>
-              <Link to="/how-it-works" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+              <Link to="/how-it-works" className="link-standard">
                 How It Works
               </Link>
             </li>
             <li>
-              <Link to="/become-a-partner" className="hover:text-[hsl(var(--olivewood))] transition-colors">
-                Become a Partner
-              </Link>
-            </li>
-            <li>
-              <Link to="/enterprise" className="hover:text-[hsl(var(--olivewood))] transition-colors">
-                Enterprise
-              </Link>
-            </li>
-            <li>
-              <Link to="/for-business" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+              <Link to="/for-business" className="link-standard">
                 Business
               </Link>
             </li>
             <li>
-              <Link to="/support" className="hover:text-[hsl(var(--olivewood))] transition-colors">
-                Contact / Support
+              <Link to="/subscription" className="link-standard">
+                Membership
+              </Link>
+            </li>
+            <li>
+              <Link to="/community" className="link-standard">
+                Community
+              </Link>
+            </li>
+            <li>
+              <Link to="/help" className="link-standard">
+                Help Center
               </Link>
             </li>
           </ul>
         </div>
 
         {/* Legal */}
-        <div className="md:col-span-2">
+        <div className="md:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
@@ -126,55 +126,18 @@ const Footer = () => (
           </h3>
           <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
             <li>
-              <Link to="/rules" className="hover:text-[hsl(var(--olivewood))] transition-colors">
-                Rules &amp; Pricing
-              </Link>
-            </li>
-            <li>
-              <Link to="/terms" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+              <Link to="/terms" className="link-standard">
                 Terms
               </Link>
             </li>
             <li>
-              <Link to="/privacy" className="hover:text-[hsl(var(--olivewood))] transition-colors">
+              <Link to="/rules" className="link-standard">
+                Rules
+              </Link>
+            </li>
+            <li>
+              <Link to="/privacy" className="link-standard">
                 Privacy
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        {/* Resources */}
-        <div className="md:col-span-2">
-          <h3
-            className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--heritage-gold))" }}
-          >
-            Resources
-          </h3>
-          <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
-            <li>
-              <Link to="/help" className="hover:text-[hsl(var(--olivewood))] transition-colors">
-                Help Center
-              </Link>
-            </li>
-            <li>
-              <Link to="/local-guide" className="hover:text-[hsl(var(--olivewood))] transition-colors">
-                Pricing Guide
-              </Link>
-            </li>
-            <li>
-              <Link to="/jobs" className="hover:text-[hsl(var(--olivewood))] transition-colors">
-                Browse Jobs
-              </Link>
-            </li>
-            <li>
-              <Link to="/parishes" className="hover:text-[hsl(var(--olivewood))] transition-colors">
-                By Parish
-              </Link>
-            </li>
-            <li>
-              <Link to="/impact" className="hover:text-[hsl(var(--olivewood))] transition-colors">
-                Our Impact
               </Link>
             </li>
           </ul>

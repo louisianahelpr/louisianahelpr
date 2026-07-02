@@ -202,7 +202,7 @@ export const AppliedJobsTab = ({
           illustration={<EmptyStateIllustration variant="jobs" />}
           eyebrow="No applications"
           title="Nothing in this view yet."
-          body="New tasks are posted across Louisiana every day."
+          body="New jobs are posted across Louisiana every day."
           action={
             <>
               <Button onClick={() => navigate("/jobs")} className="rounded-ds-md btn-press">
@@ -326,7 +326,7 @@ export const AppliedJobsTab = ({
               <Textarea
                 value={withdrawDetail}
                 onChange={(e) => setWithdrawDetail(e.target.value.slice(0, 240))}
-                placeholder="Tell us briefly — helps us improve helpr."
+                placeholder="Tell us briefly — helps us improve Helpr."
                 rows={2}
                 aria-label="Withdraw reason — other"
                 className="mt-2 rounded-ds-md focus-visible:border-primary/40 text-[14px] leading-relaxed resize-none"

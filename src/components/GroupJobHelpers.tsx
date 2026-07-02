@@ -62,7 +62,7 @@ export function GroupJobHelpers({
     if (error) {
       console.error("[GroupJobHelpers] failed to load group helpers:", error);
       report(error, { severity: "warning", tags: { source: "GroupJobHelpers.load" } });
-      toast.error("Couldn't load group helprs");
+      toast.error("Couldn't load group Helprs");
       return;
     }
     const rows = (data ?? []) as unknown as GroupHelper[];
@@ -106,7 +106,7 @@ export function GroupJobHelpers({
     if (error) {
       console.error("[GroupJobHelpers] failed to remove helper:", error);
       report(error, { tags: { source: "GroupJobHelpers.remove" } });
-      toast.error("Couldn't remove helpr");
+      toast.error("Couldn't remove Helpr");
       // Revert: re-add the removed helper, or reload if we lost the snapshot.
       if (removed) {
         setHelpers((prev) => (prev.some((h) => h.id === id) ? prev : [...prev, removed]));
@@ -145,7 +145,7 @@ export function GroupJobHelpers({
           />
         </div>
         <span className="text-ds-11 font-medium text-foreground">
-          {filledSlots}/{helpersNeeded} helprs
+          {filledSlots}/{helpersNeeded} Helprs
         </span>
       </div>
 
@@ -176,7 +176,7 @@ export function GroupJobHelpers({
 
       {filledSlots < helpersNeeded && (
         <p className="text-ds-11 text-muted-foreground text-center">
-          {helpersNeeded - filledSlots} more helpr{helpersNeeded - filledSlots > 1 ? "s" : ""} needed
+          {helpersNeeded - filledSlots} more Helpr{helpersNeeded - filledSlots > 1 ? "s" : ""} needed
         </p>
       )}
     </div>

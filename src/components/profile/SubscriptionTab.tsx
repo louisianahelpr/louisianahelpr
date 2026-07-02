@@ -41,7 +41,7 @@ const tierConfig: Array<{
     id: "pro",
     name: "Pro",
     iconName: "sparkles",
-    forWhom: "For helprs picking up regular work",
+    forWhom: "For Helprs picking up regular work",
     monthly: "$10/mo",
     annual: "$100/yr",
     oneTime: "$10 one-time",
@@ -52,7 +52,7 @@ const tierConfig: Array<{
     id: "elite",
     name: "Elite",
     iconName: "crown",
-    forWhom: "For helprs running this as their main income.",
+    forWhom: "For Helprs running this as their main income.",
     monthly: "$15/mo",
     annual: "$150/yr",
     oneTime: "$15 one-time",
@@ -88,7 +88,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     try {
       await supabase.functions.invoke("check-pro-subscription");
       await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
-      toast.success("Subscription updated!");
+      toast.success("Membership updated!");
     } catch {
       toast.error("Refresh failed");
     } finally {
@@ -189,7 +189,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     <div className="flex flex-col min-h-full gap-4 pb-4">
       <ProfileTabHeader
         eyebrow="Membership"
-        title="Subscription"
+        title="My membership"
         meta={currentTier && !isExpired ? `${currentTier[0].toUpperCase()}${currentTier.slice(1)} plan${expiresAt ? ` · renews ${expiresAt.toLocaleDateString([], { month: "short", day: "numeric" })}` : ""}` : isExpired ? "Plan expired — pick one to renew" : "Free plan · upgrade to unlock more"}
         onBack={onBack}
       />

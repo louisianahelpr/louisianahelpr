@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Building2, ArrowRight, RefreshCw, Home, Truck } from "lucide-react";
+import { Building2, ArrowRight, Home, Wrench, HeartPulse, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
  */
 const BusinessCTASection = () => (
   <section className="px-5 sm:px-8 lg:px-12 py-10 sm:py-12">
-    <div className="container mx-auto max-w-5xl">
+    <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
       <div
         className="observe-fade-up relative overflow-hidden rounded-[2rem] px-6 py-8 sm:px-10 sm:py-10"
         style={{
@@ -33,17 +33,20 @@ const BusinessCTASection = () => (
               className="font-display font-bold leading-tight text-ds-24 sm:text-ds-32"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
-              Running a business or rental property?
+              One trusted crew for everything your business runs on.
             </h2>
             <p className="text-ds-13 sm:text-ds-15 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-              Helpr handles your recurring tasks — cleanings, hauling, repairs, and
-              turnovers — on demand, with ID-verified local help.
+              Post jobs or find work — Helpr connects businesses with ID-verified local
+              pros across every industry. Cleanings, turnovers, hauling, repairs, and
+              the skilled trades, recurring or on-demand. Whatever your industry needs,
+              we cover it.
             </p>
             <div className="flex flex-wrap gap-2 mt-4">
               {[
-                { Icon: RefreshCw, label: "Recurring cleanings" },
-                { Icon: Home, label: "Property turnovers" },
-                { Icon: Truck, label: "On-demand hauling" },
+                { Icon: Home, label: "Property & rentals" },
+                { Icon: Wrench, label: "Skilled trades" },
+                { Icon: HeartPulse, label: "Healthcare" },
+                { Icon: Plus, label: "Any industry" },
               ].map(({ Icon, label }) => (
                 <span
                   key={label}
@@ -60,22 +63,51 @@ const BusinessCTASection = () => (
               ))}
             </div>
           </div>
-          <Button
-            asChild
-            size="lg"
-            className="btn-grad-primary group shrink-0 rounded-2xl font-sans font-semibold transition-[transform,filter] duration-200 hover:brightness-110 active:scale-[0.98] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+          {/* Action panel — a contained module rather than a lone button
+              floating at the far edge of the wide band. Surfaces both sides of
+              the marketplace: the Business hub AND browsing open work. */}
+          <div
+            className="shrink-0 w-full sm:w-[16.5rem] rounded-3xl p-5 flex flex-col gap-3"
             style={{
-              color: "hsl(var(--parchment))",
-              border: "1px solid hsl(66 25% 19%)",
-              boxShadow:
-                "inset 0 1px 0 0 hsl(var(--parchment) / 0.22), 0 8px 24px -8px hsl(var(--bark) / 0.35)",
+              background: "hsl(var(--bark) / 0.06)",
+              border: "1px solid hsl(var(--bark) / 0.15)",
+              boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.45)",
             }}
           >
-            <Link to="/for-business">
-              Helpr for Business
-              <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
+            <p
+              className="text-ds-11 font-sans font-medium leading-snug"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+            >
+              Post a job or find local work — get started in minutes.
+            </p>
+            <Button
+              asChild
+              size="lg"
+              className="btn-grad-primary group rounded-2xl font-sans font-semibold transition-[transform,filter] duration-200 hover:brightness-110 active:scale-[0.98] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+              style={{
+                color: "hsl(var(--parchment))",
+                border: "1px solid hsl(66 25% 19%)",
+                boxShadow:
+                  "inset 0 1px 0 0 hsl(var(--parchment) / 0.22), 0 8px 24px -8px hsl(var(--bark) / 0.35)",
+              }}
+            >
+              <Link to="/for-business">
+                Helpr for Business
+                <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
+              </Link>
+            </Button>
+            <Link
+              to="/jobs"
+              className="group inline-flex items-center justify-center gap-1.5 rounded-2xl px-5 py-2.5 text-ds-13 font-sans font-semibold transition-colors hover:bg-[hsl(var(--bark)/0.08)]"
+              style={{
+                color: "hsl(var(--bark))",
+                border: "1px solid hsl(var(--bark) / 0.25)",
+              }}
+            >
+              Browse open jobs
+              <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
             </Link>
-          </Button>
+          </div>
         </div>
       </div>
     </div>

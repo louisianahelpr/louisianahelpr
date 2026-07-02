@@ -30,7 +30,7 @@ import { formatPrice } from "@/lib/format";
 // machine: open → accepted → in_progress → completed) but presents it
 // as scannable steps so customers know what to expect next.
 const LIFECYCLE_STEPS = [
-  { icon: Megaphone, label: "Posted", caption: "Your job is live for nearby helprs." },
+  { icon: Megaphone, label: "Posted", caption: "Your job is live for nearby Helprs." },
   { icon: Handshake, label: "Accepted", caption: "You review applicants and pick one." },
   { icon: Hammer, label: "In progress", caption: "Helpr arrives and gets to work." },
   { icon: Wallet, label: "Released", caption: "Both confirm — payment goes out." },
@@ -193,7 +193,7 @@ const PaymentSuccess = () => {
         >
           <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
           <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
-            We hold it until you confirm the job's done. The helpr is paid once both you and the helpr mark it complete — your money stays protected the whole time.
+            We hold it until you confirm the job's done. The Helpr is paid once both you and the Helpr mark it complete — your money stays protected the whole time.
           </p>
         </div>
 

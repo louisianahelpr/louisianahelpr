@@ -247,7 +247,7 @@ export const BudgetContent = ({
           {budgetRangeLabel(lo, hi)}
         </span>
         <span className="text-ds-10 font-medium text-muted-foreground">
-          {hi >= BUDGET_MAX && lo <= BUDGET_MIN ? "Any budget" : "per task"}
+          {hi >= BUDGET_MAX && lo <= BUDGET_MIN ? "Any budget" : "per job"}
         </span>
       </div>
       <Slider

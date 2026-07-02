@@ -82,7 +82,7 @@ export function ROICalculator() {
                 className="text-ds-13 font-semibold"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
-                Tasks per week
+                Jobs per week
               </label>
               <span
                 className="text-ds-17 font-bold tabular-nums"
@@ -100,7 +100,7 @@ export function ROICalculator() {
               value={tasksPerWeek}
               onChange={(e) => setTasksPerWeek(Number(e.target.value))}
               className="w-full accent-primary"
-              aria-label="Tasks per week"
+              aria-label="Jobs per week"
             />
             <div className="flex justify-between text-ds-11 text-muted-foreground mt-1">
               <span>1</span>
@@ -115,7 +115,7 @@ export function ROICalculator() {
                 className="text-ds-13 font-semibold"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
-                Avg. task budget
+                Avg. job budget
               </label>
               <span
                 className="text-ds-17 font-bold tabular-nums"
@@ -133,7 +133,7 @@ export function ROICalculator() {
               value={avgBudget}
               onChange={(e) => setAvgBudget(Number(e.target.value))}
               className="w-full accent-primary"
-              aria-label="Average task budget in dollars"
+              aria-label="Average job budget in dollars"
             />
             <div className="flex justify-between text-ds-11 text-muted-foreground mt-1">
               <span>$25</span>
@@ -143,7 +143,7 @@ export function ROICalculator() {
 
           <p className="text-ds-11 text-muted-foreground leading-relaxed">
             W-2 baseline: ${W2_HOURLY}/hr loaded at {Math.round(W2_BURDEN * 100)}%
-            payroll burden, {W2_HOURS_PER_TASK} hrs equivalent per task
+            payroll burden, {W2_HOURS_PER_TASK} hrs equivalent per job
             (schedule, supervision, idle).
           </p>
         </div>
@@ -158,7 +158,7 @@ export function ROICalculator() {
           <div className="space-y-3">
             <div className="flex items-baseline justify-between">
               <span className="text-ds-11 text-muted-foreground">
-                ~{numbers.tasksPerMonth} tasks/mo on Helpr
+                ~{numbers.tasksPerMonth} jobs/mo on Helpr
               </span>
               <span className="text-ds-13 font-semibold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
                 <AnimatedCounter

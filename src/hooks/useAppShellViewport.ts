@@ -70,10 +70,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/work-record",  // WorkRecord (PageHeader + min-h-screen document-scroll)
 
   // Community discovery pages — long-form, document-scroll SEO content
-  "/parishes",   // Parish directory listing all 8 supported parishes
-  "/parish",     // /parish/:slug — individual parish community pages
   "/wrapped",    // Helpr Wrapped year-in-review
-  "/impact",     // Public impact transparency page — long-form, document-scroll
   "/benefits",    // Benefits marketplace — partner perks (document-scroll)
 
   // Public vertical landing pages (PageHeader + min-h-screen document-scroll)
@@ -83,11 +80,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   // Public marketing / informational pages (document-scroll)
   "/how-it-works", // How It Works — conversion page for new visitors
   "/help",         // Help Center — static FAQ / support page
-
-  // Growth / business-development pages — public, long-form, document-scroll
-  "/become-a-partner", // Partner intake form for service businesses
-  "/enterprise",       // B2B / enterprise integration page
-  "/local-guide",      // Public pricing guide (footer Resources)
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

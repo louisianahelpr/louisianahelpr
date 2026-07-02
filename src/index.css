@@ -726,6 +726,44 @@ html.web-desktop {
   transform: translateY(-2px);
 }
 
+/* Link hover — the ONE canonical text-link affordance, used app-wide so every
+   text link hovers/focuses identically regardless of surface or color. Shares
+   the primary CTA's motion language (GREEN_CTA_HOVER in button.tsx): a 1px lift
+   + brighten on the SAME brand spring easing, plus an underline that slides in
+   (decoration-color transparent → currentColor) and a focus-visible ring for
+   keyboard a11y. Base text color is set by context (footer olivewood, legal
+   bark, etc.); only the EFFECT is shared. Buttons remain filled pills — a link
+   gets the button's *feel*, not its fill.
+   In @layer components so a Tailwind display utility (e.g. inline-flex on the
+   footer email link) still wins; plain links fall back to inline-block, which
+   is required for the transform lift to apply to otherwise-inline anchors. */
+@layer components {
+  .link-standard {
+    display: inline-block;
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.18em;
+    text-decoration-thickness: 1.5px;
+    transition: text-decoration-color 0.2s ease-out,
+                color 0.2s ease-out,
+                transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+                filter 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @media (hover: hover) {
+    .link-standard:hover {
+      text-decoration-color: currentColor;
+      transform: translateY(-1px);
+      filter: brightness(1.1);
+    }
+  }
+  .link-standard:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+    border-radius: 3px;
+    text-decoration-color: currentColor;
+  }
+}
+
 
 /* Typography Utilities — page titles use the editorial Bodoni Moda italic
    treatment so internal pages match the landing's typographic voice. The

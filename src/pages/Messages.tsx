@@ -443,6 +443,21 @@ const Messages = () => {
           });
       }
     }
+    // Reconcile the bell badge with the messages badge. A new chat message
+    // fires the notify_message_recipient trigger, which inserts a
+    // type='message' notifications row (link `/messages?job=<id>`). Marking
+    // the thread's messages read above clears the messages/nav badge but
+    // leaves that notifications row unread — so the bell would keep counting
+    // a message the user has already seen. Clear it here on thread open.
+    if (userId) {
+      void supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", userId)
+        .eq("type", "message")
+        .eq("read", false)
+        .like("link", `%job=${convo.jobId}%`);
+    }
     scrollToBottom();
   }, [userId, navigate, scrollToBottom]);
 
@@ -598,6 +613,16 @@ const Messages = () => {
           if (active && msg.job_id === active.jobId) {
             setMessages((prev) => [...prev, msg]);
             supabase.from("messages").update({ read: true }).eq("id", msg.id);
+            // The insert also spawned a type='message' notifications row via
+            // trigger; the user is looking at this thread, so clear it now to
+            // keep the bell from counting a message they're actively reading.
+            void supabase
+              .from("notifications")
+              .update({ read: true })
+              .eq("user_id", userId)
+              .eq("type", "message")
+              .eq("read", false)
+              .like("link", `%job=${msg.job_id}%`);
             scrollToBottom();
           }
           // Patch just the affected conversation row instead of

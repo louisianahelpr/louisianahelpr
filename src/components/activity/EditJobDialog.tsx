@@ -96,12 +96,12 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     <Dialog open={!!job} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto !gap-3">
         <DialogHeader className="space-y-0 text-left">
-          <span className={eyebrowCls} style={eyebrowStyle}>Editing your task</span>
+          <span className={eyebrowCls} style={eyebrowStyle}>Editing your job</span>
           <DialogTitle
             className="font-display italic font-bold leading-tight pt-2"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
-            {title ? `"${title}"` : "Edit task"}
+            {title ? `"${title}"` : "Edit job"}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-5">
@@ -114,13 +114,13 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
                 border: "0.5px solid hsl(var(--gold-warm) / 0.30)",
               }}
             >
-              These fields are locked — a helpr's already accepted this task.
+              These fields are locked — a Helpr's already accepted this job.
             </p>
           )}
 
           {/* ── The task — what it is ─────────────────────────────────── */}
           <section className="space-y-4">
-            <SectionHeading>The task</SectionHeading>
+            <SectionHeading>The job</SectionHeading>
             <div className="space-y-1.5">
               <Label className={eyebrowCls} style={eyebrowStyle}>Title</Label>
               <Input aria-label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={hasHelper} autoCapitalize="sentences" enterKeyHint="next" />

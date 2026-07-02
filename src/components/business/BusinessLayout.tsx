@@ -1,6 +1,5 @@
-import { useNavigate, useLocation, NavLink } from "react-router-dom";
+import { useLocation, NavLink } from "react-router-dom";
 import {
-  ArrowLeft,
   Users,
   CreditCard,
   CalendarClock,
@@ -13,6 +12,8 @@ import {
 import { type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import HelprMark from "@/components/HelprMark";
+import BackButton from "@/components/BackButton";
+import NotificationPanel from "@/components/NotificationPanel";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 
 interface NavItem {
@@ -58,45 +59,54 @@ interface Props {
  * (see useAppShellViewport.ts). Do NOT introduce AppShell here.
  */
 const BusinessLayout = ({ eyebrow, title, meta, children }: Props) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const { business } = useMyBusiness();
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
+      {/* Standard authed top bar built on the DashboardHeader chrome
+          (glass-header, sticky, HelprMark left, NotificationPanel right) so
+          /business/* shares the app's nav instead of a bespoke one. The
+          business-name badge lives inline on the right, before the bell, to
+          keep the current workspace identifiable at a glance. */}
       <header className="glass-header sticky top-0 z-50">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-5 lg:px-8 justify-between">
           <HelprMark to="/dashboard" size="md" />
-          {business && (
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2 h-8 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              {business.business_name}
-            </span>
-          )}
+          <div className="flex items-center gap-2 min-w-0">
+            {business && (
+              <span className="inline-flex items-center gap-1.5 px-2 h-7 rounded-ds-md bg-primary/10 text-primary text-ds-11 font-semibold min-w-0">
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{business.business_name}</span>
+              </span>
+            )}
+            <NotificationPanel />
+          </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-6xl px-5 lg:px-8 py-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 h-11 -ml-1 px-1 text-ds-11 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-
-        <div className="flex flex-col leading-none mb-6 mt-1">
-          <span
-            className="font-serif italic uppercase text-[0.62rem]"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-          >
-            {eyebrow}
-          </span>
-          <h1 className="text-page-title leading-tight mt-1">{title}</h1>
-          {meta && (
-            <p className="font-serif italic mt-1 text-[0.82rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {meta}
-            </p>
-          )}
+        {/* Back affordance matches every other in-app header: the canonical
+            frosted-glass round BackButton sits to the LEFT of the title block
+            (chevron as lead-in), vertically centered against the whole
+            eyebrow/title/meta stack — identical to PageHeader. */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="shrink-0">
+            <BackButton />
+          </div>
+          <div className="flex flex-col leading-none min-w-0">
+            <span
+              className="font-serif italic uppercase text-[0.62rem]"
+              style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            >
+              {eyebrow}
+            </span>
+            <h1 className="text-page-title leading-tight mt-1">{title}</h1>
+            {meta && (
+              <p className="font-serif italic mt-1 text-[0.82rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                {meta}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
@@ -110,9 +120,9 @@ const BusinessLayout = ({ eyebrow, title, meta, children }: Props) => {
                     to={to}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex items-center gap-2 px-3 h-11 rounded-ds-sm text-ds-13 font-medium whitespace-nowrap transition-colors",
+                      "flex items-center gap-2 px-3 h-11 rounded-ds-sm text-ds-13 font-medium whitespace-nowrap transition-all duration-200",
                       active
-                        ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
+                        ? "btn-grad-primary squircle border border-[hsl(66_24%_20%)] !text-[hsl(var(--parchment))] [&_svg]:!text-[hsl(var(--parchment))]"
                         : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
                     )}
                   >

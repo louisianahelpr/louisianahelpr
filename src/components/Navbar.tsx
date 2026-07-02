@@ -10,7 +10,19 @@ import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { isDesktopRailRoute, useIsWebDesktop } from "@/components/DesktopSidebarNav";
 
-const Navbar = forwardRef<HTMLElement>((_props, ref) => {
+interface NavbarProps {
+  /**
+   * Force the bordered/opaque "scrolled" chrome from the top of the page,
+   * independent of scroll position. Interior pages (anything with a nav
+   * spacer) opt in so the Heritage Gold hairline always marks where the
+   * nav ends — otherwise the transparent nav has no visible bottom edge
+   * against the page surface. The landing hero leaves this off so the nav
+   * floats over the photo until the user scrolls.
+   */
+  solid?: boolean;
+}
+
+const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   // Session-only auth (no profile DB round-trip) so the marketing nav can
@@ -52,7 +64,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
       aria-label="Primary"
       className={cn(
         "fixed top-0 left-0 right-0 z-50 glass-nav transition-[border-color,background-color,box-shadow] duration-300",
-        scrolled && "is-scrolled",
+        (scrolled || solid) && "is-scrolled",
       )}
       style={{
         // The iOS Capacitor WebView is edge-to-edge (`overlaysWebView: true`
@@ -91,7 +103,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
             How it works
           </Link>
           <Link
-            to="/browse"
+            to="/#jobs"
             className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
           >
             Jobs
@@ -242,7 +254,7 @@ const Navbar = forwardRef<HTMLElement>((_props, ref) => {
                 How it works
               </Link>
               <Link
-                to="/browse"
+                to="/#jobs"
                 className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
                 style={{
                   fontSize: "1rem",

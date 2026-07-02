@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles, Star, PauseCircle } from "lucide-react";
+import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
@@ -10,62 +9,11 @@ import type { Database } from "@/integrations/supabase/types";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
+import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierConfig";
+import { PauseOfferDialog } from "@/components/profile/subscriptionTab/PauseOfferDialog";
+import { CancelSurveyDialog } from "@/components/profile/subscriptionTab/CancelSurveyDialog";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-
-type TierIconName = "star" | "sparkles" | "crown";
-
-const tierConfig: Array<{
-  id: string;
-  name: string;
-  iconName: TierIconName;
-  forWhom: string;
-  monthly: string;
-  annual: string;
-  oneTime: string;
-  annualSave: string;
-  features: string[];
-}> = [
-  {
-    id: "basic",
-    name: "Basic",
-    iconName: "star",
-    forWhom: "Great for an occasional weekend job",
-    monthly: "$5/mo",
-    annual: "$50/yr",
-    oneTime: "$5 one-time",
-    annualSave: "Save 17%",
-    features: ["Helpr Badge", "Instant Payouts", "Search Priority", "5-min Early Access"],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    iconName: "sparkles",
-    forWhom: "For Helprs picking up regular work",
-    monthly: "$10/mo",
-    annual: "$100/yr",
-    oneTime: "$10 one-time",
-    annualSave: "Save 17%",
-    features: ["Everything in Basic", "Instant Payouts", "Portfolio Showcase", "10-min Early Access"],
-  },
-  {
-    id: "elite",
-    name: "Elite",
-    iconName: "crown",
-    forWhom: "For Helprs running this as their main income.",
-    monthly: "$15/mo",
-    annual: "$150/yr",
-    oneTime: "$15 one-time",
-    annualSave: "Save 17%",
-    features: ["Everything in Pro", "Free Job Boosts", "Landing Spotlight", "Auto-Match", "20-min Early Access"],
-  },
-];
-
-const TierIcon = ({ name, className, style }: { name: TierIconName; className?: string; style?: React.CSSProperties }) => {
-  if (name === "star") return <Star className={className} style={style} strokeWidth={2} />;
-  if (name === "sparkles") return <Sparkles className={className} style={style} strokeWidth={2} />;
-  return <Crown className={className} style={style} strokeWidth={2} />;
-};
 
 export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Profile | null; user: User | null; onBack: () => void }) => {
   const [loadingPortal, setLoadingPortal] = useState(false);
@@ -529,187 +477,21 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         })}
       </div>
 
-      {/* Pause-offer dialog — shown first when an active subscriber taps
-          Manage. The lightest-touch retention move ("just pause for a
-          month, free") is the first thing a leaving user sees; from
-          here they can accept, route into the cancel survey, or back
-          out. Reduces churn at the moment of intent. */}
-      <Dialog open={pauseOfferOpen} onOpenChange={setPauseOfferOpen}>
-        <DialogContent className="!gap-3">
-          <DialogHeader className="!text-left space-y-0">
-            <span
-              className="font-serif italic uppercase inline-flex items-center gap-1.5"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
-            >
-              <PauseCircle className="w-3 h-3" /> Take a breather
-            </span>
-            <DialogTitle
-              className="font-display italic font-bold leading-tight mt-2"
-              style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-            >
-              Pause 1 month free instead?
-            </DialogTitle>
-            <p
-              className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              Keep your spot — request a one-month, no-charge pause on your {(currentTier ?? "plan")}. We'll confirm by email and your plan resumes after the pause. Cancel anytime if you've changed your mind.
-            </p>
-          </DialogHeader>
-          <div
-            className="rounded-ds-md p-3 mt-1 space-y-1"
-            style={{
-              background: "hsl(var(--gold-warm) / 0.10)",
-              border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
-            }}
-          >
-            <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}>
-              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-                What you keep:
-              </span>{" "}
-              Your verification status, saved helpers, payout history, and reviews — all untouched. Once we confirm your pause by email, we'll send a heads-up a week before it ends.
-            </p>
-          </div>
-          <DialogFooter className="!gap-2 sm:!justify-between">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setPauseOfferOpen(false);
-                setCancelSurveyOpen(true);
-              }}
-              className="rounded-ds-md"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
-            >
-              Cancel instead
-            </Button>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setPauseOfferOpen(false)}
-                className="rounded-ds-md"
-              >
-                Never mind
-              </Button>
-              <Button
-                onClick={handleAcceptPause}
-                disabled={acceptingPause}
-                className="rounded-ds-md"
-                style={{
-                  background: "hsl(var(--bark))",
-                  color: "hsl(var(--parchment))",
-                  border: "1px solid hsl(var(--bark))",
-                  fontFamily: "Montserrat, system-ui, sans-serif",
-                  fontWeight: 600,
-                }}
-              >
-                {acceptingPause ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Requesting</>
-                ) : (
-                  <><PauseCircle className="w-4 h-4 mr-2" /> Request 1 month free</>
-                )}
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PauseOfferDialog
+        pauseOfferOpen={pauseOfferOpen}
+        setPauseOfferOpen={setPauseOfferOpen}
+        setCancelSurveyOpen={setCancelSurveyOpen}
+        currentTier={currentTier}
+        handleAcceptPause={handleAcceptPause}
+        acceptingPause={acceptingPause}
+      />
 
-      {/* Cancellation drag survey — gentle "are you sure" with a stay
-          offer before Stripe portal opens. Reduces churn at the
-          moment of intent, before the user has committed to leaving. */}
-      <Dialog open={cancelSurveyOpen} onOpenChange={setCancelSurveyOpen}>
-        <DialogContent className="!gap-3">
-          <DialogHeader className="!text-left space-y-0">
-            <span
-              className="font-serif italic uppercase inline-flex items-center gap-1.5"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-            >
-              Before you go
-            </span>
-            <DialogTitle
-              className="font-display italic font-bold leading-tight mt-2"
-              style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-            >
-              Thinking of cancelling?
-            </DialogTitle>
-            <p
-              className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              Quick — what's holding you back? It helps us improve, and we might be able to fix it.
-            </p>
-          </DialogHeader>
-          <div className="space-y-2">
-            {[
-              "Too expensive",
-              "Not enough jobs match me",
-              "Took a break — coming back later",
-              "Different reason — just managing my plan",
-            ].map((reason) => (
-              <button
-                key={reason}
-                type="button"
-                onClick={async () => {
-                  // Log the reason via Slack alert so retention has signal.
-                  // Fire-and-forget; the portal redirect doesn't wait.
-                  try {
-                    const { fireSlackAlert } = await import("@/lib/slackAlerts");
-                    fireSlackAlert({
-                      kind: "custom",
-                      severity: "info",
-                      title: "Subscription cancel-intent",
-                      message: `User indicated reason: ${reason}`,
-                      fields: { tier: currentTier ?? "unknown", reason },
-                    });
-                  } catch { /* analytics is best-effort */ }
-                  setCancelSurveyOpen(false);
-                  void openStripePortal();
-                }}
-                className="w-full text-left px-4 py-3 rounded-ds-md transition-all active:scale-[0.99]"
-                style={{
-                  background: "hsla(0, 0%, 100%, 0.55)",
-                  border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                  color: "hsl(var(--ink-deep))",
-                  fontFamily: "Bodoni Moda, Garamond, serif",
-                  fontStyle: "italic",
-                  fontSize: "0.92rem",
-                }}
-              >
-                {reason}
-              </button>
-            ))}
-          </div>
-          <div
-            className="rounded-ds-md p-3 mt-1"
-            style={{
-              background: "hsl(var(--gold-warm) / 0.10)",
-              border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
-            }}
-          >
-            <p
-              className="font-serif italic leading-snug"
-              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
-            >
-              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-                Reach out before you cancel.
-              </span>{" "}
-              Email{" "}
-              <a
-                href="mailto:hello@louisianahelpr.com?subject=Considering cancelling — can we help?"
-                className="underline"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                hello@louisianahelpr.com
-              </a>{" "}
-              and we'll see what we can do — including discounted retention rates.
-            </p>
-          </div>
-          <DialogFooter className="!gap-2">
-            <Button variant="ghost" onClick={() => setCancelSurveyOpen(false)} className="rounded-ds-md">
-              Never mind
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CancelSurveyDialog
+        cancelSurveyOpen={cancelSurveyOpen}
+        setCancelSurveyOpen={setCancelSurveyOpen}
+        currentTier={currentTier}
+        openStripePortal={openStripePortal}
+      />
     </div>
   );
 };

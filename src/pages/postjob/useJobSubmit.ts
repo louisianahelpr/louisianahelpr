@@ -1,0 +1,498 @@
+import { useRef } from "react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { track, AhaEvent } from "@/lib/analytics";
+import { safeStorage } from "@/lib/safeStorage";
+import { report } from "@/lib/errorLogger";
+import { requireOnline } from "@/lib/requireOnline";
+import { assertWritable } from "@/hooks/useImpersonation";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
+import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
+import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
+import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
+import { buildJobInsertPayload } from "./jobSubmitHelpers";
+import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
+import type { PricingMode } from "@/components/postjob/BudgetSection";
+import type { BusinessMembership } from "@/hooks/useMyBusiness";
+import type { JobInsert, Step } from "./postJobFormTypes";
+import { composeSpecialRequirements, scrollToField } from "./postJobFormHelpers";
+
+/**
+ * useJobSubmit — owns the review-gate, pre-submit checks, and the full
+ * job-insert → payment-redirect flow. Pure structural extraction from
+ * usePostJobForm: every Supabase call, error check, `report()`, and money
+ * calculation is unchanged and runs in the same order.
+ *
+ * All form state, setters, and media-upload callbacks are passed in via a
+ * single params object so the parent hook remains the single source of
+ * truth — this hook only reads that state and drives the submit behavior.
+ */
+export interface UseJobSubmitParams {
+  // Auth / business
+  business: BusinessMembership | null | undefined;
+  // Overlay / status setters (parent-owned)
+  saving: boolean;
+  setSaving: (v: boolean) => void;
+  setRedirecting: (v: boolean) => void;
+  setStep: (s: Step) => void;
+  setConfirmed: (v: boolean) => void;
+  // IDV dialog setters
+  setIdvStatus: (v: string | undefined) => void;
+  setIdvFailureReason: (v: string | undefined) => void;
+  setIdvDialogOpen: (v: boolean) => void;
+  // Draft
+  clearDraft: () => void;
+  // Details fields
+  title: string;
+  description: string;
+  category: string;
+  // Logistics fields
+  streetAddress: string;
+  city: string;
+  addrState: string;
+  zipCode: string;
+  parish: string | null;
+  dateNeeded: string;
+  startTime: string;
+  isFlexibleSchedule: boolean;
+  estimatedHours: string;
+  // Budget fields
+  budget: string;
+  specialRequirements: string;
+  isRecurring: boolean;
+  recurrenceInterval: string;
+  recurrenceEndDate: string;
+  isGroupJob: boolean;
+  helpersNeeded: string;
+  isUrgent: boolean;
+  urgentFee: string;
+  platformFee: number | null;
+  salesTaxRate: number;
+  offerToHelperId: string | null;
+  isInstantBook: boolean;
+  credentialTier: number;
+  department: string;
+  requiresW9: boolean;
+  pricingMode: PricingMode;
+  bidCeiling: string;
+  bidDeadline: string;
+  bidsSealed: boolean;
+  // Materials + protection + card
+  includeMaterials: boolean;
+  materialsNote: string;
+  protectionOptedIn: boolean;
+  saveCardForFuture: boolean;
+  // Media upload callbacks
+  uploadAndAttachPhotos: (jobId: string) => Promise<void>;
+  uploadAndAttachScopeVideo: (jobId: string) => Promise<void>;
+}
+
+export function useJobSubmit(params: UseJobSubmitParams) {
+  const {
+    business,
+    saving,
+    setSaving,
+    setRedirecting,
+    setStep,
+    setConfirmed,
+    setIdvStatus,
+    setIdvFailureReason,
+    setIdvDialogOpen,
+    clearDraft,
+    title,
+    description,
+    category,
+    streetAddress,
+    city,
+    addrState,
+    zipCode,
+    parish,
+    dateNeeded,
+    startTime,
+    isFlexibleSchedule,
+    estimatedHours,
+    budget,
+    specialRequirements,
+    isRecurring,
+    recurrenceInterval,
+    recurrenceEndDate,
+    isGroupJob,
+    helpersNeeded,
+    isUrgent,
+    urgentFee,
+    platformFee,
+    salesTaxRate,
+    offerToHelperId,
+    isInstantBook,
+    credentialTier,
+    department,
+    requiresW9,
+    pricingMode,
+    bidCeiling,
+    bidDeadline,
+    bidsSealed,
+    includeMaterials,
+    materialsNote,
+    protectionOptedIn,
+    saveCardForFuture,
+    uploadAndAttachPhotos,
+    uploadAndAttachScopeVideo,
+  } = params;
+
+  const handleReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) { toast.error("Job title is required"); scrollToField("title"); return; }
+    if (!description.trim()) { toast.error("Description is required"); scrollToField("description"); return; }
+    if (hasUnfilledPlaceholders(description)) { toast.error("Replace the [bracketed] placeholders with your own details before posting"); scrollToField("description"); return; }
+    if (!category) { toast.error("Category is required"); scrollToField("category-picker"); return; }
+    // Photo is optional — a photo dramatically improves applicant count and
+    // quote accuracy, so it's strongly nudged in the UI, but tasks like
+    // dog-walking or errands have no natural photo and shouldn't be blocked.
+    if (!streetAddress.trim()) { toast.error("Street address is required"); scrollToField("streetAddress"); return; }
+    if (!city.trim()) { toast.error("City is required"); scrollToField("city"); return; }
+    if (!addrState.trim()) { toast.error("State is required"); scrollToField("state"); return; }
+    if (!zipCode.trim()) { toast.error("Zip code is required"); scrollToField("zipCode"); return; }
+    if (!dateNeeded) { toast.error("Date needed is required"); scrollToField("date"); return; }
+    // Validate date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(dateNeeded + "T00:00:00");
+    if (selectedDate < today) { toast.error("Date cannot be in the past"); scrollToField("date"); return; }
+    if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); scrollToField("flexible"); return; }
+    if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); scrollToField("hours"); return; }
+    // special_requirements is optional — no validation needed
+    // In accept_bids mode, budget is optional — helpers set their own price.
+    if (pricingMode !== "accept_bids") {
+      if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); scrollToField("budget"); return; }
+      if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000."); scrollToField("budget"); return; }
+    }
+    if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent bonus must be at least $5"); scrollToField("custom-urgent-fee"); return; }
+    setConfirmed(false);
+    setStep("checkout");
+  };
+
+  const submittingRef = useRef(false);
+  const COOLDOWN_KEY = "helpr_last_job_submit";
+  const COOLDOWN_MS = 30_000; // 30 second cooldown
+
+  /**
+   * Pre-flight gating before any job INSERT — double-click guard, submit
+   * cooldown, auth, identity-verification gate, and the open-job limit.
+   *
+   * Returns the authenticated `user` when all checks pass, or `null` when
+   * a check failed (in which case it has already shown the right toast /
+   * dialog and reset `saving` + `submittingRef`). Behavior is identical to
+   * the inline checks it replaces — same order, same messages.
+   */
+  const runPreSubmitChecks = async () => {
+    // Prevent double-click
+    if (submittingRef.current || saving) return null;
+    // Read-only impersonation: admins viewing as another user cannot post.
+    if (!assertWritable()) return null;
+
+    // Cooldown check
+    const lastSubmit = safeStorage.getItem(COOLDOWN_KEY);
+    if (lastSubmit && Date.now() - parseInt(lastSubmit) < COOLDOWN_MS) {
+      toast.error("Please wait before posting another job. You recently submitted one.");
+      return null;
+    }
+
+    submittingRef.current = true;
+    setSaving(true);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in");
+      setSaving(false);
+      submittingRef.current = false;
+      return null;
+    }
+
+    // Identity verification gate — required before posting. Same Stripe
+    // IDV used at job-acceptance, applied here so posters can't onboard
+    // strangers under a fake identity.
+    {
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("idv_status, idv_failure_reason")
+        .eq("user_id", user.id)
+        .single();
+      // Don't drop this error: on a transient fetch failure `prof` is
+      // undefined, which would read as "not verified" and wrongly trap an
+      // already-verified poster in the IDV dialog. Surface it and abort.
+      if (profErr) {
+        report(profErr, { tags: { source: "usePostJobForm.idvGate" } });
+        toast.error("Couldn't check your verification status — please try again.");
+        setSaving(false);
+        submittingRef.current = false;
+        return null;
+      }
+      const profStatus = (prof as { idv_status?: string })?.idv_status;
+      if (profStatus !== "verified") {
+        setIdvStatus(profStatus);
+        setIdvFailureReason((prof as { idv_failure_reason?: string })?.idv_failure_reason);
+        setIdvDialogOpen(true);
+        setSaving(false);
+        submittingRef.current = false;
+        return null;
+      }
+    }
+
+    // Check open job limit (server enforces too, but show friendly message)
+    const { count: openCount, error: openCountErr } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", user.id).eq("status", "open");
+    if (openCountErr) {
+      report(openCountErr, { tags: { source: "usePostJobForm.openJobLimit" } });
+      toast.error("Couldn't check your open job count — please try again.");
+      setSaving(false);
+      submittingRef.current = false;
+      return null;
+    }
+    if ((openCount ?? 0) >= 5) {
+      toast.error("You can have a maximum of 5 open jobs at a time. Close or wait for existing jobs first.");
+      setSaving(false);
+      submittingRef.current = false;
+      return null;
+    }
+
+    return user;
+  };
+
+  const handleSubmit = async () => {
+    if (!requireOnline()) return;
+    const user = await runPreSubmitChecks();
+    if (!user) return;
+
+    // When the poster opted into "I'll provide materials", append the
+    // note into special_requirements with a tagged prefix so helprs can
+    // see it on the job card. Avoids a schema migration for what's
+    // effectively a label on a freeform note.
+    const composedSpecialRequirements = composeSpecialRequirements({
+      includeMaterials,
+      materialsNote,
+      specialRequirements,
+    });
+
+    // Approval workflow — if this is a business post and the business
+    // has set a `require_approval_above` threshold, route the post to
+    // pending_approval instead of straight to open.
+    const requiresApproval =
+      !!business &&
+      business.require_approval_above != null &&
+      !!budget &&
+      parseFloat(budget) > Number(business.require_approval_above);
+
+    const buildPayload = (opts: { withExtras: boolean }) =>
+      buildJobInsertPayload({
+        userId: user.id,
+        businessId: business?.business_id ?? null,
+        title,
+        description,
+        category,
+        streetAddress,
+        city,
+        addrState,
+        zipCode,
+        parish,
+        dateNeeded,
+        startTime,
+        isFlexibleSchedule,
+        estimatedHours,
+        budget,
+        specialRequirements: composedSpecialRequirements,
+        isRecurring,
+        recurrenceInterval,
+        recurrenceEndDate,
+        isGroupJob,
+        helpersNeeded,
+        isUrgent,
+        urgentFee,
+        platformFee,
+        salesTaxRate,
+        offerToHelperId,
+        isInstantBook: opts.withExtras ? isInstantBook : false,
+        credentialTier: opts.withExtras ? credentialTier : 0,
+        department: opts.withExtras ? department : null,
+        initialStatus: opts.withExtras && requiresApproval ? "pending_approval" : undefined,
+        requiresW9: opts.withExtras && business ? requiresW9 : false,
+        pricingMode: opts.withExtras ? pricingMode : "set_price",
+        bidCeiling: opts.withExtras ? (bidCeiling ? parseFloat(bidCeiling) : null) : null,
+        bidDeadline: opts.withExtras ? (bidDeadline ? bidDeadline : null) : null,
+        bidsSealed: opts.withExtras ? bidsSealed : false,
+      });
+
+    // Merge Job Protection opt-in into the payload when enabled.
+    // protection_opted_in / protection_fee ship in migration 20260612120000;
+    // a pre-push prod (missing the columns) still gets the fallback retry via
+    // the PGRST204/42703 error path below.
+    const protectionExtras: Partial<JobInsert> = protectionOptedIn
+      ? { protection_opted_in: true, protection_fee: 3.0 }
+      : {};
+
+    let { data: jobData, error } = await supabase
+      .from("jobs")
+      .insert({ ...buildPayload({ withExtras: true }), ...protectionExtras })
+      .select("id")
+      .single();
+
+    if (error) {
+      // jobs.department / pending_approval enum value may not exist on
+      // prod yet (migration unapplied). Strip the new fields and retry
+      // so the post still lands.
+      const code = (error as { code?: string }).code;
+      const missingNew = code === "PGRST204" || code === "42703" || code === "22P02";
+      if (missingNew) {
+        const retry = await supabase
+          .from("jobs")
+          .insert(buildPayload({ withExtras: false }))
+          .select("id")
+          .single();
+        jobData = retry.data;
+        error = retry.error;
+      }
+    }
+
+    if (error || !jobData) {
+      toast.error(error?.message || "Couldn't post your job just yet — give it another try?");
+      setSaving(false);
+      submittingRef.current = false;
+      return;
+    }
+
+    // Set cooldown timestamp immediately after successful insert
+    safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
+
+    // Stash the just-posted job id so the post-payment success sheet can
+    // show share-this-link / view-applicants / post-another-like-this
+    // CTAs without re-querying Supabase. Cheap to write, the success
+    // page consumes-and-clears so it doesn't leak across sessions.
+    try { safeStorage.setItem("helpr_last_posted_job_id", jobData.id); } catch { /* ignore */ }
+
+    // First job action recorded — gates the deferred notification
+    // permission prompt (`useNotificationPermissionPrompt`). Idempotent
+    // and fast, safe to call on every post.
+    recordJobActionForPermissionPrompt();
+
+    // Funnel: track job posted (and first ever for activation)
+    track(AhaEvent.JobPosted, {
+      job_id: jobData.id,
+      category,
+      budget_cents: Math.round(parseFloat(budget) * 100),
+      parish,
+      is_urgent: isUrgent,
+    });
+    const { count: postedCount } = await supabase
+      .from("jobs")
+      .select("id", { count: "exact", head: true })
+      .eq("customer_id", user.id);
+    if ((postedCount ?? 0) <= 1) {
+      track(AhaEvent.FirstJobPosted, { job_id: jobData.id, category, parish });
+    }
+
+    await uploadAndAttachPhotos(jobData.id);
+    await uploadAndAttachScopeVideo(jobData.id);
+
+    hapticSuccess();
+    void maybeFireFirstPostConfetti();
+    toast.info("Redirecting to payment…");
+
+    // Geocode the address and patch the job row with lat/lng so it shows
+    // up on /browse?view=map. Kicked off here so it runs concurrently with
+    // the create-payment round-trip below, then awaited before the redirect
+    // (see geocodePromise await) — previously this was fire-and-forget, but
+    // `window.location.href` to Stripe unloads the page and cancelled the
+    // in-flight fetch, so most jobs never got coords and never hit the map.
+    // The map's RPC rounds these to ~110m so the doorstep is never exposed.
+    const geocodePromise = (async () => {
+      const composed = composeJobAddress({
+        streetAddress,
+        city,
+        state: addrState,
+        zipCode,
+      });
+      const coords = await geocodeAddress(composed);
+      if (coords) {
+        await supabase
+          .from("jobs")
+          .update({ latitude: coords.latitude, longitude: coords.longitude })
+          .eq("id", jobData.id);
+      }
+    })();
+
+    try {
+      const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-payment", {
+        body: {
+          action: "escrow",
+          jobId: jobData.id,
+          // Optional opt-in: ask Stripe to save the card for off-session
+          // future-use. The edge function decides whether to honor it.
+          saveCardForFuture,
+        },
+      });
+
+
+
+      setSaving(false);
+
+      // supabase.functions.invoke wraps errors in `data.error` sometimes
+      const paymentUrl = paymentData?.url;
+      const hasError = paymentError || paymentData?.error || !paymentUrl;
+
+      if (hasError) {
+        // Delete the job since payment setup failed — don't leave orphan jobs.
+        const { error: cleanupError } = await supabase.from("jobs").delete().eq("id", jobData.id);
+        if (cleanupError) report(cleanupError, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobData.id } });
+        safeStorage.removeItem(COOLDOWN_KEY);
+        const errorMsg = paymentData?.error || paymentError?.message || "Payment setup failed";
+        hapticError();
+        toast.error(`Could not start payment: ${errorMsg}. Please try again.`);
+        setRedirecting(false);
+        setStep("checkout");
+        // Reset consent — payment failed, so the user must re-confirm
+        // before retrying (avoids a stale confirmation being reused).
+        setConfirmed(false);
+        submittingRef.current = false;
+        return;
+      }
+
+      clearDraft();
+      // Notify matching helprs now that escrow is set up — done here, not
+      // before create-payment, so a failed payment setup (which deletes the
+      // job above) never fires ghost notifications for a job that no longer
+      // exists. Awaited so it lands before the redirect unloads the page;
+      // best-effort — the job is still discoverable via browse if it fails.
+      try {
+        await supabase.functions.invoke("instant-job-match", { body: { jobId: jobData.id } });
+      } catch { /* best-effort */ }
+      // Land the geocode write before the redirect unloads the page. It's
+      // been running concurrently since job insert, so it's usually already
+      // done; cap the wait at 2.5s so a slow/blocked Nominatim never stalls
+      // checkout (the job is still usable, it just won't pin on the map).
+      try {
+        await Promise.race([
+          geocodePromise,
+          new Promise((resolve) => window.setTimeout(resolve, 2500)),
+        ]);
+      } catch { /* best-effort — coords are non-critical */ }
+      // Show the blocking overlay before the redirect so the user can't
+      // re-tap submit during the navigation delay on slow networks.
+      setRedirecting(true);
+      window.location.href = paymentUrl;
+    } catch (err) {
+      report(err, { tags: { source: "PostJob.paymentInvoke" }, context: { job_id: jobData.id } });
+      // Delete the job since payment setup failed
+      const { error: cleanupError } = await supabase.from("jobs").delete().eq("id", jobData.id);
+      if (cleanupError) report(cleanupError, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobData.id } });
+      safeStorage.removeItem(COOLDOWN_KEY);
+      hapticError();
+      toast.error("We couldn't set up payment just yet — please try again.");
+      setSaving(false);
+      setRedirecting(false);
+      setStep("checkout");
+      // Reset consent — same as the inline error path above.
+      setConfirmed(false);
+      submittingRef.current = false;
+    }
+  };
+
+  return { handleReview, handleSubmit };
+}

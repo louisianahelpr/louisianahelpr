@@ -30,9 +30,13 @@ export function initPostHog() {
       person_profiles: "identified_only",
       capture_pageview: true,
       capture_pageleave: true,
-      // Auto-capture window.onerror + unhandledrejection into PostHog
-      // Error Tracking. Complements Sentry + error_logs (triple redundancy).
-      capture_exceptions: true,
+      // PostHog 1.396.5 introduced an eval() call inside its exception-capture
+      // code path that the production CSP (no `unsafe-eval`) correctly blocks,
+      // generating a flood of unhandled-rejection Sentry events (JAVASCRIPT-17).
+      // Sentry already captures all exceptions (primary), and error_logs captures
+      // them too, so PostHog exception capture is triple-redundant. Disable it to
+      // stay within the CSP without weakening the policy.
+      capture_exceptions: false,
       // Capacitor wraps the app in a WebView; disable session recording
       // by default to avoid surprising bandwidth on cellular.
       disable_session_recording: true,

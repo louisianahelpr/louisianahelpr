@@ -5,6 +5,7 @@ import type { User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { errorToast } from "@/lib/toast";
 import { queryKeys } from "@/lib/queryKeys";
+import { hapticLight } from "@/lib/haptics";
 
 type UseSaveJobArgs = {
   user: SupaUser | null;
@@ -40,6 +41,7 @@ export function useSaveJob({ user, savedJobIds, setSavedJobIds }: UseSaveJobArgs
       }
     },
     onMutate: async ({ jobId, saved, userId }) => {
+      hapticLight();
       // Cancel any in-flight refetch so it can't overwrite our optimistic
       // value after we've applied it.
       await queryClient.cancelQueries({ queryKey: queryKeys.dashboard.savedJobs(userId) });

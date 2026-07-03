@@ -37,7 +37,9 @@ interface PostedJobActionsProps {
   onViewDispute: (job: Job) => void;
   onConfirmStart: (jobId: string) => void;
   onConfirmArrival: (jobId: string) => void;
+  confirmingArrivalJobId: string | null;
   onConfirmWorking: (jobId: string) => void;
+  confirmingWorkingJobId: string | null;
   onActionComplete: () => void;
 }
 
@@ -66,7 +68,9 @@ export function PostedJobActions({
   onViewDispute,
   onConfirmStart,
   onConfirmArrival,
+  confirmingArrivalJobId,
   onConfirmWorking,
+  confirmingWorkingJobId,
   onActionComplete,
 }: PostedJobActionsProps) {
   const navigate = useNavigate();
@@ -220,8 +224,8 @@ export function PostedJobActions({
                   );
                 })()}
                 {job.helper_arrived_at && !job.poster_confirmed_arrival_at && (
-                  <Button size="sm" className="flex-1" onClick={() => onConfirmArrival(job.id)}>
-                    <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
+                  <Button size="sm" className="flex-1" disabled={confirmingArrivalJobId === job.id} onClick={() => onConfirmArrival(job.id)}>
+                    <CheckCircle2 className="w-4 h-4 mr-1" /> {confirmingArrivalJobId === job.id ? "…" : "Confirm Arrival"}
                   </Button>
                 )}
               </div>
@@ -233,8 +237,8 @@ export function PostedJobActions({
                   <Wrench className="w-3.5 h-3.5 shrink-0" />
                   <span className="font-medium">Is the Helpr working?</span>
                 </div>
-                <Button size="sm" className="w-full" onClick={() => onConfirmWorking(job.id)}>
-                  <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Working
+                <Button size="sm" className="w-full" disabled={confirmingWorkingJobId === job.id} onClick={() => onConfirmWorking(job.id)}>
+                  <CheckCircle2 className="w-4 h-4 mr-1" /> {confirmingWorkingJobId === job.id ? "…" : "Confirm Working"}
                 </Button>
               </div>
             )}

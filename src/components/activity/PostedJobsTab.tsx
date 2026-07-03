@@ -48,7 +48,9 @@ interface PostedJobsTabProps {
   onViewDispute: (job: Job) => void;
   onConfirmStart: (jobId: string) => void;
   onConfirmArrival: (jobId: string) => void;
+  confirmingArrivalJobId: string | null;
   onConfirmWorking: (jobId: string) => void;
+  confirmingWorkingJobId: string | null;
   onLoadApplications: (job: Job) => void;
   selectedJob: Job | null;
   setSelectedJob: (job: Job | null) => void;
@@ -78,7 +80,7 @@ export const PostedJobsTab = ({
   helperNames, completedJobMeta, startRequestedJobIds,
   latestTracking, groupHelpersByJob, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
-  onRevision, onNoShow, onTip, onReview, onDispute, onViewDispute, onConfirmStart, onConfirmArrival, onConfirmWorking,
+  onRevision, onNoShow, onTip, onReview, onDispute, onViewDispute, onConfirmStart, onConfirmArrival, confirmingArrivalJobId, onConfirmWorking, confirmingWorkingJobId,
   onLoadApplications, selectedJob, setSelectedJob, applications,
   applicationsLoading = false, applicationsError = false,
   onAcceptApplication, onDeclineApplication, onLoadInlineApplicants,
@@ -161,7 +163,9 @@ export const PostedJobsTab = ({
         onViewDispute={onViewDispute}
         onConfirmStart={onConfirmStart}
         onConfirmArrival={onConfirmArrival}
+        confirmingArrivalJobId={confirmingArrivalJobId}
         onConfirmWorking={onConfirmWorking}
+        confirmingWorkingJobId={confirmingWorkingJobId}
         onLoadApplications={onLoadApplications}
         onLoadInlineApplicants={onLoadInlineApplicants}
         inlineApplicants={inlineApplicants}

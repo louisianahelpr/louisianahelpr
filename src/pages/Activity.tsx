@@ -373,7 +373,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onViewDispute={actions.setViewDisputeJob}
               onConfirmStart={actions.confirmStartJob}
               onConfirmArrival={actions.confirmArrival}
+              confirmingArrivalJobId={actions.confirmingArrivalJobId}
               onConfirmWorking={actions.confirmWorking}
+              confirmingWorkingJobId={actions.confirmingWorkingJobId}
               onLoadApplications={actions.loadApplications}
               selectedJob={actions.selectedJob}
               setSelectedJob={actions.setSelectedJob}
@@ -409,6 +411,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               latestTracking={latestTracking}
               userId={user!.id}
               onHelperResponse={actions.handleHelperResponse}
+              respondingHelperAppId={actions.respondingHelperAppId}
               onComplete={actions.completeJob}
               completingJobId={actions.completingJobId}
               onResolveRevision={actions.resolveRevision}

@@ -33,7 +33,11 @@ export interface PostedJobCardProps {
   onViewDispute: (job: Job) => void;
   onConfirmStart: (jobId: string) => void;
   onConfirmArrival: (jobId: string) => void;
+  /** Non-null (=== job.id) while the confirmArrival DB write is in-flight. */
+  confirmingArrivalJobId: string | null;
   onConfirmWorking: (jobId: string) => void;
+  /** Non-null (=== job.id) while the confirmWorking DB write is in-flight. */
+  confirmingWorkingJobId: string | null;
   onLoadApplications: (job: Job) => void;
   /** Inline applicant data for the expanded open-job card. */
   onLoadInlineApplicants: (jobId: string) => void;

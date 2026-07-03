@@ -79,6 +79,10 @@ export function useActivityActions({
   const [idvStatus, setIdvStatus] = useState<string | undefined>(undefined);
   const [idvFailureReason, setIdvFailureReason] = useState<string | undefined>(undefined);
   const [pendingAcceptApp, setPendingAcceptApp] = useState<Application | null>(null);
+  // In-flight guards for offer response and poster confirm actions.
+  const [respondingHelperAppId, setRespondingHelperAppId] = useState<string | null>(null);
+  const [confirmingArrivalJobId, setConfirmingArrivalJobId] = useState<string | null>(null);
+  const [confirmingWorkingJobId, setConfirmingWorkingJobId] = useState<string | null>(null);
 
   // W-9 e-sign — surfaces when the accepted job has `requires_w9 = true`
   // (set by business posters at post time). We open the dialog after the
@@ -116,6 +120,7 @@ export function useActivityActions({
     setIdvDialogOpen,
     setW9Context,
     setW9DialogOpen,
+    setRespondingHelperAppId,
   });
 
   const {
@@ -144,6 +149,8 @@ export function useActivityActions({
     setCompletionPromptJob,
     setReviewTarget,
     setReviewJob,
+    setConfirmingArrivalJobId,
+    setConfirmingWorkingJobId,
   });
 
   return {
@@ -179,6 +186,9 @@ export function useActivityActions({
     pendingAcceptApp, setPendingAcceptApp,
     w9DialogOpen, setW9DialogOpen,
     w9Context,
+    respondingHelperAppId,
+    confirmingArrivalJobId,
+    confirmingWorkingJobId,
     // Handlers
     loadApplications,
     loadInlineApplicants,

@@ -1050,6 +1050,18 @@ on the way to their first success.
   consequences, and admin-only gating truly blocks a non-admin. Admin `AdminSupport`
   and `AdminDisputes`/`AdminIDVQueue`/`AdminCredentialQueue`/`AdminExceptionQueue`
   queues each get worked through, not just opened.
+  - **Admin user-management endpoints are server-authorized + audit-logged.** The
+    admin actions ship as standalone edge functions (`admin-user-actions` —
+    formal_warning / manual_verify / request_id_reupload / status overrides —
+    plus `admin-update-email`, `admin-resend-verification`, `admin-delete-user`),
+    so the gate must live in the FUNCTION, not the UI: each verifies the CALLER is
+    an admin server-side (a non-admin token calling the endpoint directly is
+    rejected), writes an `admin_audit_log` row attributing who did what to whom,
+    and the account-takeover-grade ones get extra care — `admin-update-email`
+    changes a user's login identity (notify the old address; never silently
+    reassign) and `admin-delete-user` routes through the same purge path as
+    user-initiated deletion. An admin endpoint callable by a non-admin, or one
+    that leaves no audit trail, is a HIGH finding.
 - **User-facing disputes & revision — drive the filing side, both roles.** Beyond
   the admin console: a poster or helper must be able to FILE a dispute from the
   job/activity surface (`DisputeDialog.tsx`: reasons work_not_done / poor_quality
@@ -1121,6 +1133,14 @@ on the way to their first success.
   blasts (`send-marketing-blast`) respect opt-out. A channel that drops the event,
   ships a broken/placeholder template, or deep-links to the wrong screen is a HIGH
   finding for transactional mail/push, Medium for marketing.
+  - **Lifecycle / re-engagement automations obey the same consent rules.**
+    `engagement-automations` (re-engagement "win-back" emails, admin digest) is a
+    SECOND automated email sender beyond `send-marketing-blast` and gets the same
+    scrutiny: a re-engagement email is marketing, so it honors the marketing opt-out
+    and unsubscribe; it never targets a deleted, banned, or pending-deletion account;
+    its templates render with real data (no `{{placeholder}}`); and the cron is
+    idempotent (a re-run doesn't re-mail the same cohort same-day). An automation
+    that mails an opted-out or deleted user is a HIGH (compliance) finding.
 
 **Medium value (consistency & functional polish)**
 - **Every primary bottom-nav destination is driven — the 5 tabs the app opens

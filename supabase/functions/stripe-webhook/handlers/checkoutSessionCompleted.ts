@@ -91,6 +91,7 @@ export async function handleCheckoutSessionCompleted(
         .update({ payment_status: "paid" })
         .eq("job_id", tipJobId)
         .eq("tipper_id", tipperId)
+        .eq("stripe_session_id", session.id)
         .eq("payment_status", "pending");
       if (tipError) logStep("ERROR updating tip status", { error: tipError.message });
       else logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId });

@@ -35,29 +35,21 @@ describe("escrow auto-release timing — config source of truth", () => {
     expect(TOTAL_TO_PAYOUT_HOURS).toBe(AUTO_COMPLETE_HOURS + PAYOUT_HOLD_HOURS);
   });
 
-  it("records the auto-release window stated in user-facing copy", () => {
-    // Legal, Terms, PaymentSuccess, Help Center, and the dispute dialogs all
-    // quote "72 hours" for the auto-release window.
-    expect(COPY_AUTO_RELEASE_HOURS).toBe(72);
+  it("keeps the stated auto-release ACTION window in lock-step with the cron cutoff", () => {
+    // Reconciled 2026-07-02: the one-sided-completion auto-release copy (Legal,
+    // Terms, PaymentSuccess, Help Center, and the activity DeadlineCountdowns)
+    // now states the real 48h window the cron enforces, so the promised
+    // "confirm-or-it-auto-releases" window can never again drift from what the
+    // timer/cron actually does. If someone changes one side, this fails.
+    expect(COPY_AUTO_RELEASE_HOURS).toBe(AUTO_COMPLETE_HOURS);
+    expect(COPY_AUTO_RELEASE_HOURS).toBe(48);
   });
 
-  // ── KNOWN DIVERGENCE — this is a real finding, not a config nicety. ──
-  // The copy tells posters payment "auto-releases if you don't act within
-  // 72 hours", but the cron auto-completes at 48h (its own notifications even
-  // say "auto-completed after 48 hours"). The 72h figure only matches the FULL
-  // 48h auto-complete + 24h payout-hold path — i.e. when funds LAND — not the
-  // auto-complete moment the copy describes. This assertion documents the gap
-  // deliberately; it is GREEN today so it doesn't block the build, but it will
-  // fail loudly the moment someone "fixes" one side without the other, forcing
-  // an explicit reconciliation decision. See task report for the recommended fix
-  // (align the cron cutoff to 72h, OR restate copy as "72 hours until payout /
-  // 48 hours to act"). DO NOT silently delete this test to make it pass.
-  it("FLAGS the copy↔cron divergence: stated auto-release (72h) ≠ cron auto-complete (48h)", () => {
-    // The stated window matches TOTAL time to payout, NOT the cron cutoff.
-    expect(COPY_AUTO_RELEASE_HOURS).toBe(TOTAL_TO_PAYOUT_HOURS);
-    // ...and is deliberately NOT equal to the actual auto-complete cutoff. If a
-    // future change makes these agree, this line fails on purpose so the
-    // divergence documentation is revisited rather than left stale.
-    expect(COPY_AUTO_RELEASE_HOURS).not.toBe(AUTO_COMPLETE_HOURS);
+  it("still distinguishes the 48h action window from the ~72h time-to-funds", () => {
+    // The 72h that copy legitimately cites is the TOTAL time until funds LAND
+    // (48h auto-complete + 24h payout hold), NOT the action window. Guarding
+    // the gap keeps "funds arrive ~72h after completion" copy honest too.
+    expect(TOTAL_TO_PAYOUT_HOURS).toBe(72);
+    expect(COPY_AUTO_RELEASE_HOURS).not.toBe(TOTAL_TO_PAYOUT_HOURS);
   });
 });

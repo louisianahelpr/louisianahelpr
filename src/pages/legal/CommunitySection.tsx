@@ -12,7 +12,7 @@ export const CommunityContent = () => (
     <TldrCard
       items={[
         "Cancel free 24+ hours ahead. Inside 24h, fees apply (25% / 50%). No-show = permanent ban.",
-        "Payment auto-releases after 72 hours if either side doesn't act.",
+        "Payment auto-releases 48 hours after completion if either side doesn't act.",
         "If something's wrong, request a revision first → file a dispute → admin decides. Each step has a 72-hour window.",
         "Three strikes = ban. Fraud, harassment, off-platform payments, and identity fraud skip the strikes.",
         "Helprs are independent contractors — taxes are your responsibility. We send 1099s when thresholds are met.",
@@ -114,13 +114,13 @@ export const CommunityContent = () => (
       />
       <PolicyRowItem
         icon={Clock}
-        title="One-sided confirmation = 72-hour window"
-        body={<p>If only one party confirms, the other has 72 hours to confirm or request a revision. Both parties are notified every 12 hours.</p>}
+        title="One-sided confirmation = 48-hour window"
+        body={<p>If only one party confirms, the other has 48 hours to confirm or request a revision. Both parties are notified every 12 hours.</p>}
       />
       <PolicyRowItem
         icon={CheckCircle}
-        title="Auto-release after 72 hours"
-        body={<p>If neither confirmation nor revision is received within 72 hours, payment is automatically released to the Helpr.</p>}
+        title="Auto-release after 48 hours"
+        body={<p>If neither confirmation nor revision is received within 48 hours, the job auto-completes and payment is released to the Helpr (funds reach them about 72 hours after completion).</p>}
       />
       <PolicyRowItem
         icon={FileText}

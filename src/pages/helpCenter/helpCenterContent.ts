@@ -135,7 +135,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "What if a poster doesn't confirm completion?",
-        a: "If a poster doesn't confirm within 72 hours of you marking work done, it auto-completes and payment releases.",
+        a: "If a poster doesn't confirm within 48 hours of you marking work done, it auto-completes and payment releases (funds typically reach you about 72 hours after completion).",
       },
     ],
   },

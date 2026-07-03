@@ -70,13 +70,13 @@ export function ActiveJobSection({
               <li><span className="text-foreground font-medium">Approve & complete</span> the job</li>
               <li>Or <span className="text-foreground font-medium">request a revision</span></li>
             </ul>
-            <p className="text-ds-10 text-muted-foreground/70 pt-1">If the poster doesn't respond within 72 hours, payment will automatically be released to you.</p>
+            <p className="text-ds-10 text-muted-foreground/70 pt-1">If the poster doesn't respond within 48 hours, payment will automatically be released to you.</p>
           </div>
           {job.helper_completed_at && (
             <div className="px-3 pb-2.5">
               <DeadlineCountdown
-                deadline={new Date(new Date(job.helper_completed_at).getTime() + 72 * 60 * 60 * 1000).toISOString()}
-                expiredText="72 hours passed — payment auto-releasing to you"
+                deadline={new Date(new Date(job.helper_completed_at).getTime() + 48 * 60 * 60 * 1000).toISOString()}
+                expiredText="48 hours passed — payment auto-releasing to you"
                 consequenceText="Payment will auto-release to you when this timer expires."
                 variant="warning"
               />

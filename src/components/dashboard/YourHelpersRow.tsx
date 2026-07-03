@@ -120,7 +120,7 @@ export function YourHelpersRow() {
                     title="Available now"
                   >
                     <span
-                      className="absolute inset-0 rounded-full animate-ping opacity-75"
+                      className="absolute inset-0 rounded-full motion-safe:animate-ping opacity-75"
                       style={{ background: "hsl(var(--sage))" }}
                     />
                   </span>

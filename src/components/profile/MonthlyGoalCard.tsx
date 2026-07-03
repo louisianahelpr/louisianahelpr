@@ -173,6 +173,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
                 if (e.key === "Escape") setEditing(false);
               }}
               autoFocus
+              aria-label="Monthly earnings goal in dollars"
               className="w-full rounded-ds-md border border-input bg-background pl-6 pr-3 py-1.5 text-ds-13"
             />
           </div>

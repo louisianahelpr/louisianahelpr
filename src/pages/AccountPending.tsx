@@ -254,7 +254,7 @@ const AccountPending = () => {
               <div className="flex flex-col items-center text-center">
                 <div className="relative w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                   <Clock className="w-8 h-8 text-primary" />
-                  <span className="absolute inset-0 rounded-2xl ring-2 ring-primary/20 animate-ping" />
+                  <span className="absolute inset-0 rounded-2xl ring-2 ring-primary/20 motion-safe:animate-ping" />
                 </div>
                 <span className="text-display-eyebrow mb-1">Almost ready</span>
                 <h1

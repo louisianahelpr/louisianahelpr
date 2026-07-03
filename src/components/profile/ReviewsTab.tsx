@@ -36,7 +36,7 @@ interface ReviewsTabProps {
 const MiniStars = ({ value, size = "sm" }: { value: number; size?: "sm" | "xs" }) => {
   const cls = size === "xs" ? "w-2.5 h-2.5" : "w-3 h-3";
   return (
-    <div className="flex gap-0.5">
+    <div role="img" aria-label={`${value.toFixed(1)} out of 5 stars`} className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
         <Star
           key={s}

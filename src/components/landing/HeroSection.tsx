@@ -170,7 +170,7 @@ const HeroSection = () => {
             glow match the brand's "Live" heartbeat and don't read as a
             clashing green glow. */}
         <span
-          className="w-1.5 h-1.5 rounded-full animate-pulse"
+          className="w-1.5 h-1.5 rounded-full motion-safe:animate-pulse"
           style={{
             backgroundColor: "hsl(var(--burnt-sienna))",
             boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.6)",

@@ -110,7 +110,7 @@ export const DashboardScreen = ({ scale = 1 }: { scale?: number }) => {
           <div>
             <div className="flex items-center" style={{ gap: `${0.3 * scale}rem` }}>
               <span
-                className="rounded-full animate-pulse"
+                className="rounded-full motion-safe:animate-pulse"
                 style={{
                   width: `${4 * scale}px`,
                   height: `${4 * scale}px`,

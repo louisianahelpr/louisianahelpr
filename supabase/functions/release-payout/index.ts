@@ -360,6 +360,16 @@ serve(async (req) => {
   // Persist the ledger row + flip the job's payment_status. If the
   // ledger insert fails, the transfer already happened — log loudly so
   // someone can reconcile by hand.
+  //
+  // Insert as "paid" immediately: Stripe marketplace transfers settle
+  // synchronously on creation. The transfer.created webhook handler also
+  // tries to flip this row from "pending" → "paid", but it can fire before
+  // this insert executes (webhook delivery is async and often within
+  // milliseconds of the API call returning). If the webhook finds no row,
+  // the UPDATE is a no-op and no future event ever re-fires to fix it,
+  // leaving the row stuck at "pending" forever. Inserting as "paid" upfront
+  // eliminates that race entirely; the webhook UPDATE becomes a harmless
+  // no-op on a row already in its terminal state.
   const { error: ledgerErr } = await supabaseAdmin
     .from("payout_transfers")
     .insert({
@@ -369,7 +379,8 @@ serve(async (req) => {
       stripe_account_id: helper.stripe_account_id,
       amount_cents: payoutCents,
       platform_fee_cents: platformFeeCents,
-      status: "pending",
+      status: "paid",
+      paid_at: new Date().toISOString(),
       initiated_by: initiatedBy,
       initiated_by_user_id: initiatedByUserId,
       metadata: { transfer_group: transfer.transfer_group ?? null },

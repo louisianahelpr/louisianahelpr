@@ -83,7 +83,7 @@ export const HelprSpinner = ({
         draggable={false}
         width={size}
         height={size}
-        className="select-none animate-[spin_1.4s_linear_infinite]"
+        className="select-none motion-safe:animate-[spin_1.4s_linear_infinite]"
         style={{
           width: size,
           height: size,

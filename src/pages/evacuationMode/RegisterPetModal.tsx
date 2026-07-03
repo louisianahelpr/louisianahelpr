@@ -134,10 +134,11 @@ function RegisterPetModal({ ownerId, onClose, onRegistered }: RegisterPetModalPr
         </div>
 
         <div>
-          <label className="text-ds-13 font-semibold text-foreground block mb-1">
+          <label htmlFor="evac-destination" className="text-ds-13 font-semibold text-foreground block mb-1">
             Destination (optional)
           </label>
           <input
+            id="evac-destination"
             className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
             placeholder="e.g. Baton Rouge, LA or family address"
             value={destination}
@@ -146,10 +147,11 @@ function RegisterPetModal({ ownerId, onClose, onRegistered }: RegisterPetModalPr
         </div>
 
         <div>
-          <label className="text-ds-13 font-semibold text-foreground block mb-1">
+          <label htmlFor="evac-notes" className="text-ds-13 font-semibold text-foreground block mb-1">
             Notes for helper (optional)
           </label>
           <textarea
+            id="evac-notes"
             rows={3}
             className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"
             placeholder="Carrier included, kennel cough, needs medication twice daily…"

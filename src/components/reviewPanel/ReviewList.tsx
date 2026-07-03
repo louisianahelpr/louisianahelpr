@@ -97,7 +97,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
           <div key={r.id} className="rounded-ds-sm liquid-glass p-4">
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2">
-                <div className="flex">
+                <div role="img" aria-label={`${r.rating} out of 5 stars`} className="flex">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
                   ))}
@@ -107,7 +107,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
               <button
                 onClick={() => setReportReviewId(r.id)}
                 className="text-muted-foreground hover:text-destructive transition-colors p-1"
-                title="Report this review"
+                aria-label="Report this review"
               >
                 <Flag className="w-3.5 h-3.5" />
               </button>

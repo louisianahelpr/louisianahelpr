@@ -162,8 +162,9 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
               </div>
             </div>
             <div>
-              <label className="text-ds-11 text-muted-foreground block mb-1">Name</label>
+              <label htmlFor="pet-name" className="text-ds-11 text-muted-foreground block mb-1">Name</label>
               <input
+                id="pet-name"
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                 placeholder="Max, Luna, Biscuit…"
                 value={form.name}
@@ -172,8 +173,9 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-ds-11 text-muted-foreground block mb-1">Breed</label>
+                <label htmlFor="pet-breed" className="text-ds-11 text-muted-foreground block mb-1">Breed</label>
                 <input
+                  id="pet-breed"
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                   placeholder="e.g. Golden Retriever"
                   value={form.breed ?? ""}
@@ -181,8 +183,9 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
                 />
               </div>
               <div>
-                <label className="text-ds-11 text-muted-foreground block mb-1">Age (years)</label>
+                <label htmlFor="pet-age" className="text-ds-11 text-muted-foreground block mb-1">Age (years)</label>
                 <input
+                  id="pet-age"
                   type="number"
                   min={0}
                   max={30}
@@ -198,8 +201,9 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-ds-11 text-muted-foreground block mb-1">Weight (lbs)</label>
+                <label htmlFor="pet-weight" className="text-ds-11 text-muted-foreground block mb-1">Weight (lbs)</label>
                 <input
+                  id="pet-weight"
                   type="number"
                   min={0}
                   step={0.5}
@@ -212,8 +216,9 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
                 />
               </div>
               <div>
-                <label className="text-ds-11 text-muted-foreground block mb-1">Color / markings</label>
+                <label htmlFor="pet-color" className="text-ds-11 text-muted-foreground block mb-1">Color / markings</label>
                 <input
+                  id="pet-color"
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                   placeholder="Black & white"
                   value={form.color_markings ?? ""}
@@ -235,8 +240,9 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
           <div className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-ds-11 text-muted-foreground block mb-1">Vet name</label>
+                <label htmlFor="pet-vet-name" className="text-ds-11 text-muted-foreground block mb-1">Vet name</label>
                 <input
+                  id="pet-vet-name"
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                   placeholder="Dr. Tran"
                   value={form.vet_name ?? ""}
@@ -244,8 +250,9 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
                 />
               </div>
               <div>
-                <label className="text-ds-11 text-muted-foreground block mb-1">Vet phone</label>
+                <label htmlFor="pet-vet-phone" className="text-ds-11 text-muted-foreground block mb-1">Vet phone</label>
                 <input
+                  id="pet-vet-phone"
                   type="tel"
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                   placeholder="(504) 555-0100"
@@ -255,8 +262,9 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
               </div>
             </div>
             <div>
-              <label className="text-ds-11 text-muted-foreground block mb-1">Microchip ID</label>
+              <label htmlFor="pet-microchip" className="text-ds-11 text-muted-foreground block mb-1">Microchip ID</label>
               <input
+                id="pet-microchip"
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                 placeholder="985112345678901"
                 value={form.microchip_id ?? ""}
@@ -264,10 +272,11 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
               />
             </div>
             <div>
-              <label className="text-ds-11 text-muted-foreground block mb-1">
+              <label htmlFor="pet-medical-notes" className="text-ds-11 text-muted-foreground block mb-1">
                 Medical notes
               </label>
               <textarea
+                id="pet-medical-notes"
                 rows={3}
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"
                 placeholder="Allergies, medications, special health needs…"
@@ -276,10 +285,11 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
               />
             </div>
             <div>
-              <label className="text-ds-11 text-muted-foreground block mb-1">
+              <label htmlFor="pet-behavioral-notes" className="text-ds-11 text-muted-foreground block mb-1">
                 Behavioral notes
               </label>
               <textarea
+                id="pet-behavioral-notes"
                 rows={2}
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"
                 placeholder="Anxious around thunder, reactive on leash, loves people…"
@@ -300,8 +310,9 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
           </h3>
           <div className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3 space-y-3">
             <div>
-              <label className="text-ds-11 text-muted-foreground block mb-1">Feeding schedule</label>
+              <label htmlFor="pet-feeding" className="text-ds-11 text-muted-foreground block mb-1">Feeding schedule</label>
               <textarea
+                id="pet-feeding"
                 rows={2}
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"
                 placeholder="1 cup dry food at 7am + 6pm, no table scraps…"
@@ -310,8 +321,9 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
               />
             </div>
             <div>
-              <label className="text-ds-11 text-muted-foreground block mb-1">Emergency contact</label>
+              <label htmlFor="pet-emergency-contact" className="text-ds-11 text-muted-foreground block mb-1">Emergency contact</label>
               <input
+                id="pet-emergency-contact"
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                 placeholder="Mom — (504) 555-0199"
                 value={form.emergency_contact ?? ""}

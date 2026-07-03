@@ -790,7 +790,15 @@ on the way to their first success.
   Submitting recomputes the aggregate rating correctly and that aggregate is
   identical everywhere it appears (profile ↔ card ↔ detail ↔ search). Star
   rendering matches the numeric value; empty-state ("no reviews yet") is handled.
-- **Money-display consistency — every surfaced amount, everywhere.** Beyond the
+- **Review moderation — report, edit, and operator takedown.** Creating a review is
+  covered above; moderating one is its own path. Verify: the recipient of an unfair/
+  abusive review can **report** it (from the review surface), the author can **edit
+  or delete** their own within whatever window the product allows (and the aggregate
+  recomputes on edit/delete), and an **operator can remove** a review + the aggregate
+  recomputes without it. This is the anti-review-bombing / anti-retaliation control —
+  a review path with no report + no takedown is a trust gap (Medium; High if reviews
+  gate trust/eligibility and a coordinated attack can't be undone). Ties to UGC
+  moderation. Beyond the
   checkout total: fee %, service fee, escrow held/released/refunded, tip, payout,
   and subscription price must ALL derive from the single source of truth
   (`subscriptionTiers.ts` / RPC / config) and be formatted identically across
@@ -815,6 +823,18 @@ on the way to their first success.
   takes effect (blocked user disappears from discovery/chat), and can't be
   trivially bypassed. Any safety affordance (share-location, emergency, dispute)
   is reachable and does what it claims. Missing or dead safety controls are HIGH.
+- **Block during an ACTIVE job — the collision no one plans for.** Blocking is
+  simple between strangers; the audit must drive the hard case: one party blocks the
+  other while they share a LIVE job (accepted, escrow held, chat open, maybe helper
+  en route). Define and verify a coherent outcome — the job cannot simply vanish
+  with escrow held. Confirm what happens to: the job state, the open chat thread, the
+  held escrow, and live location. A sane resolution routes it into the cancellation/
+  dispute path (so escrow reconciles to one party and both are notified), not a
+  silent freeze that strands money or a block that's quietly ignored because a job is
+  active. Whatever the product's choice, it must be deliberate and leave no orphaned
+  escrow, no dangling chat the blocked user can still post to, and no location still
+  broadcasting. An active-job block that strands escrow or silently no-ops is a HIGH
+  finding.
 - **Live location during an active job — drive share (helper) AND view (poster),
   and prove it STOPS.** The en-route tracking surface (`JobTracking.tsx`) is a
   safety+privacy feature, so both ends are audited. Sharer side (helper): starting
@@ -1149,6 +1169,30 @@ on the way to their first success.
   flow works end-to-end (e.g. accept a family invite, add a pet), and empty/error/
   loading states are handled. Credit-bearing routes here (referrals, Pay It Forward)
   additionally get the High-value **credit-economy** reconciliation treatment above.
+- **Family accounts — permissions, shared payment, and invite BOTH sides.**
+  `/family` (`FamilyDashboard`) + `/family/accept/:token` is a multi-user surface, so
+  drive it as a permission + money model, not just a page render. Invite flow both
+  ends: the inviter sends an invite (email validation, dupe/self-invite blocked) and
+  the invitee **accepts via the token link** (valid/expired/already-used token all
+  handled, cold-start-safe). Permissions: define and verify who in a family can post
+  jobs, spend, and manage members — a member must not silently exceed an owner's
+  intent (spending limit/approval if the product has one), and member removal
+  actually revokes access. Shared payment: if a family shares a payment method or
+  pooled balance, a charge is attributed to the right member and reconciles like any
+  other money path (idempotent, no double-spend across members). A family member who
+  can spend without authorization, an invite token that's reusable/never-expires, or
+  a removed member who retains access is a HIGH finding.
+- **AI job builder — generated content is moderated, bounded, and user-owned.**
+  `ai-job-builder` turns a prompt into a draft listing, so its output is UGC that
+  reaches a public surface. Verify: the generated job text passes the SAME moderation
+  + off-platform-contact scanner as hand-typed content (the AI can't smuggle a phone
+  number, slur, or unsafe request into a live listing), the user can **review and
+  edit** the draft before it posts (never auto-publishes), the call is cost/rate
+  bounded (can't be spammed to run up spend), prompt-injection in the user's input
+  can't make it emit system/other-user data, and a failure (timeout/refusal) degrades
+  to the normal manual post form rather than a dead end. Unmoderated AI output
+  reaching a public listing, or an AI post that bypasses the edit/consent step, is a
+  finding (High if it publishes unmoderated, Medium otherwise).
 - **Account-state gate screens & the route-guard matrix are driven.** Every entry
   state has its own screen and must render correctly + route onward: `/account-
   pending` / `/signup-pending` (awaiting approval), `/account-denied`, `/account-

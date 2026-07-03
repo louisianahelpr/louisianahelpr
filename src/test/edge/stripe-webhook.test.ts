@@ -289,12 +289,19 @@ describe("stripe-webhook edge function", () => {
   });
 
   describe("charge.refunded", () => {
-    it("flips the job to refunded and notifies the poster", async () => {
+    it("flips the job to refunded and notifies the poster on a FULL refund", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
         id: "evt_refund",
         type: "charge.refunded",
-        data: { object: { id: "ch_1", payment_intent: "pi_refunded" } },
+        data: {
+          object: {
+            id: "ch_1",
+            payment_intent: "pi_refunded",
+            amount: 5000,
+            amount_refunded: 5000,
+          },
+        },
       });
       scenario.reads.jobs = {
         rows: [{ id: "job-1", customer_id: "poster-1", title: "Job" }],
@@ -306,6 +313,30 @@ describe("stripe-webhook edge function", () => {
       expect((jobWrite?.payload as Record<string, unknown>).payment_status).toBe(
         "refunded",
       );
+    });
+
+    it("leaves the job status unchanged on a PARTIAL refund (funds still in escrow)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_refund_partial",
+        type: "charge.refunded",
+        data: {
+          object: {
+            id: "ch_2",
+            payment_intent: "pi_partial",
+            amount: 5000,
+            amount_refunded: 300,
+          },
+        },
+      });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job" }],
+      };
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const jobWrite = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update",
+      );
+      expect(jobWrite).toBeUndefined();
     });
   });
 

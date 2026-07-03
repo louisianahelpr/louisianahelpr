@@ -9,9 +9,22 @@ export async function handleChargeRefunded(
   const refundPiId = typeof charge.payment_intent === "string"
     ? charge.payment_intent
     : (charge.payment_intent as any)?.id;
-  logStep("Charge refunded", { chargeId: charge.id, pi: refundPiId });
+  logStep("Charge refunded", {
+    chargeId: charge.id,
+    pi: refundPiId,
+    amount: charge.amount,
+    amountRefunded: charge.amount_refunded,
+  });
 
-  if (refundPiId) {
+  // Only a FULL refund flips the job to "refunded". A partial refund (e.g. a
+  // one-off duplicate-onboarding-fee correction, or a partial-dispute payout)
+  // leaves the bulk of escrow in place, so marking the whole job refunded would
+  // strand held funds in a wrong terminal state. Reconcile on the actual amounts.
+  const isFullRefund = charge.amount_refunded >= charge.amount;
+  const isOnboardingFeeCorrection =
+    (charge.metadata as Record<string, string> | null)?.reason === "duplicate_onboarding_fee";
+
+  if (refundPiId && isFullRefund && !isOnboardingFeeCorrection) {
     const { data: refundedJob } = await supabase
       .from("jobs")
       .select("id, customer_id, title")
@@ -29,5 +42,14 @@ export async function handleChargeRefunded(
       });
       logStep("Job marked as refunded", { jobId: refundedJob.id });
     }
+  } else if (refundPiId) {
+    // Partial refund or an onboarding-fee correction — intentionally NOT flipping
+    // the job to refunded. Logged (not silent) so partial-refund reconciliation
+    // is auditable rather than a mystery no-op.
+    logStep("Refund not full — job status left unchanged", {
+      pi: refundPiId,
+      isFullRefund,
+      isOnboardingFeeCorrection,
+    });
   }
 }

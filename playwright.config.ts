@@ -1,4 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 
 // Minimal Playwright config for the e2e/ smoke suite.
 //
@@ -14,6 +16,41 @@ import { defineConfig, devices } from "@playwright/test";
 //                    so the suite stands alone in CI.
 //
 // Set PLAYWRIGHT_BASE_URL to override the chromium project's base URL.
+
+// In cloud/pre-built environments PLAYWRIGHT_BROWSERS_PATH may contain a
+// headless shell at a different revision than the installed @playwright/test
+// package expects, and browser downloads are often network-restricted.
+// This function finds the best available headless shell so tests can run
+// without downloading browsers. Returns undefined when not needed (i.e. when
+// the expected browser is already present at the default path).
+function findAvailableHeadlessShell(): string | undefined {
+  // Explicit override always wins.
+  if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+    return process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+  }
+  const browsersDir = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  if (!browsersDir || !existsSync(browsersDir)) return undefined;
+  try {
+    for (const entry of readdirSync(browsersDir)) {
+      if (!entry.startsWith("chromium_headless_shell-")) continue;
+      const revDir = join(browsersDir, entry);
+      try {
+        for (const subdir of readdirSync(revDir)) {
+          // Both "chrome-headless-shell" (newer) and "headless_shell"
+          // (older pre-built naming) are tried.
+          for (const bin of ["chrome-headless-shell", "headless_shell"]) {
+            const candidate = join(revDir, subdir, bin);
+            if (existsSync(candidate)) return candidate;
+          }
+        }
+      } catch { /* skip unreadable sub-dirs */ }
+    }
+  } catch { /* browsers dir unreadable */ }
+  return undefined;
+}
+
+const headlessShell = findAvailableHeadlessShell();
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 30_000,
@@ -31,10 +68,9 @@ export default defineConfig({
     // Allow CI environments that pre-install a specific Chromium build to
     // point Playwright at it directly, bypassing the headless-shell lookup
     // (which requires an exact revision match that may not be available when
-    // browser downloads are network-restricted).
-    ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
-      : {}),
+    // browser downloads are network-restricted). headlessShell is resolved
+    // at config-load time by findAvailableHeadlessShell() above.
+    ...(headlessShell ? { executablePath: headlessShell } : {}),
   },
   projects: [
     {

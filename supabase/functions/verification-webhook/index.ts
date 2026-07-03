@@ -16,7 +16,10 @@ Deno.serve(async (req) => {
   // Stripe: stripe-signature header verified with stripe.webhooks.constructEvent.
   // Certificial / Certemy: vendor-specific header.
   // TODO: implement per-vendor signature verification when API keys are configured.
-  if (!signature && Deno.env.get("ENFORCE_WEBHOOK_SIGNATURES") === "true") {
+  // Fail closed: an unsigned request can never mutate verification status. No
+  // real vendor is live yet, so rejecting unsigned callers costs nothing and
+  // closes the window where a forged POST could mark an identity check passed.
+  if (!signature) {
     return new Response("Unauthorized", { status: 401 });
   }
 

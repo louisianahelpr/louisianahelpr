@@ -90,7 +90,7 @@ jobs:
               | awk -F/ '{print $3}' \
               | grep -v '^_shared$' \
               | sort -u \
-              | tr '\n' ' ')
+              | tr '\n' ' ' || true)
             if [ -z "$FUNCTIONS" ]; then
               echo "No function changes detected (or only _shared changed). Nothing to deploy."
               echo "skip_deploy=true" >> $GITHUB_OUTPUT

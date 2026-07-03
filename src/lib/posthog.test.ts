@@ -137,7 +137,7 @@ describe("initPostHog", () => {
     const [key, config] = initMock.mock.calls[0];
     expect(key).toMatch(/^phc_/);
     expect((config as Record<string, unknown>).person_profiles).toBe("identified_only");
-    expect((config as Record<string, unknown>).capture_exceptions).toBe(true);
+    expect((config as Record<string, unknown>).capture_exceptions).toBe(false);
     expect((config as Record<string, unknown>).disable_session_recording).toBe(true);
     // Bundle-size guards: surveys + autocapture + external deps OFF
     expect((config as Record<string, unknown>).disable_surveys).toBe(true);

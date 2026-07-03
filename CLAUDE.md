@@ -1016,6 +1016,26 @@ on the way to their first success.
   empty-state (no saved helpers) hides the strip rather than showing a broken rail.
   A targeted offer that leaks to the open pool, or a rehire tap that dead-ends, is a
   HIGH finding.
+  - **Receiver side — drive what the TARGETED helper sees, not just the sender.**
+    A direct offer is only correct if the other end works: the targeted helper gets
+    a distinct notification/badge that says the job was offered *to them* (not a
+    generic "new job nearby"), the job renders in an unambiguous **"offered to you"**
+    state — visually and in copy different from an open-pool listing — and they can
+    **accept OR decline directly** from it. Verify the offer is visible ONLY to that
+    helper while it's pending (it must not appear in any other helper's browse/feed),
+    accept sets `helper_confirmed_at` and moves escrow exactly like a normal accept,
+    and decline releases the target so the poster can re-offer or open it — with the
+    poster notified either way. A direct offer that shows up in the open pool while
+    pending, or a decline/accept that doesn't notify the poster, is a HIGH finding.
+  - **Offer expiry — an unanswered direct offer must auto-fall-back, not strand.**
+    If the targeted helper never responds, the offer cannot sit private forever. The
+    audit must verify a pending direct offer **expires after a defined window and
+    converts to a normal open job**, with the poster notified that it's now open —
+    driven as one of the cron/background flows (it moves job state on a timer, so it
+    gets the same idempotent/reconciled scrutiny: the timeout matches any countdown
+    shown to the poster, the fall-back fires exactly once, and escrow/hold is intact
+    across the transition). A direct offer that silently expires into nothing, never
+    opens up, or double-notifies is a HIGH finding.
 - **Every profile `?tab=` and self-service surface is driven.** `/profile` has 18
   tabs (`src/pages/Profile.tsx` `Tab` type): landing, profile, earnings, schedule,
   availability, payment, security, legal, reviews, referral, subscription, support,
@@ -1119,6 +1139,15 @@ on the way to their first success.
   category/radius/price filters apply and are clearable, sort works, map ↔ list
   stay in sync, geolocation "near me" handles grant/deny/re-request, and the
   no-results / end-of-list / loading states all render on both surfaces.
+- **Search / filter / sort state PERSISTS across navigation, deep-link, and
+  refresh — not just "applies once."** A user who sets filters/sort, opens a job,
+  and hits back must return to the SAME filtered/sorted list — not a reset default;
+  the state survives an in-app nav round-trip, a hard refresh, and a deep-link into
+  the browse route (URL params or persisted state, verified on both surfaces). Same
+  for any paginated/infinite list: scroll position and loaded pages aren't silently
+  discarded on back. Applies beyond browse-jobs to every filterable surface
+  (activity, messages, admin tables, saved helpers). A filter set that silently
+  resets on back/refresh is a finding — it's the "I lost my place" class.
 - **Onboarding / first-run & empty-account state.** Walk a brand-new account
   (zero jobs, zero reviews, incomplete profile): every "empty" surface shows a
   purposeful zero-state (not a blank/broken layout), first-run prompts (complete
@@ -1128,14 +1157,45 @@ on the way to their first success.
   both surfaces, past dates/times are prevented, timezone is handled (no off-by-
   one day), and derived time copy ("starts in 2h", "due tomorrow") matches the
   stored value and updates as it should.
+- **Timezone correctness end-to-end — the SAME instant everywhere it renders.**
+  Beyond the picker: trace a scheduled job's date/time from the value stored at
+  post through every surface that re-displays it — job detail, `PostedJobCard`/
+  `ActiveJob`, messages/chat, notifications (in-app + email + push), calendar/wallet
+  pass, and admin — and confirm they all show the SAME wall-clock time with no
+  off-by-one-day and no UTC-vs-local drift. The store is one canonical instant
+  (UTC/`timestamptz`); every render formats it via `Intl` in the job's intended
+  timezone, never by naive string-slicing a date. A time that reads "tomorrow 9am"
+  on the card but "today 3am" in the email/notification is a finding — this is the
+  class that silently makes people miss jobs.
+- **Optimistic UI rolls back on failure — drive the failure, not just the success.**
+  Every action that updates the UI *before* the server confirms (send message, apply/
+  bid, accept, save/unsave a helper, mark on-my-way/arrived/complete, react, toggle a
+  pref) must **visibly revert** when the server call fails — with an error the user
+  can act on and a retry, never a phantom success that looks done but never persisted.
+  Audit this by forcing the failure (offline, or a rejected write), not by watching the
+  happy path: confirm the optimistic row/state disappears or reverts, the truth is
+  re-fetched, and no duplicate/ghost entry is left behind. The worst case — a message
+  or application that shows as sent but silently never reached the server — is a HIGH
+  finding (it's a silent-failure of a core-loop action); a benign toggle that mis-reverts
+  is Medium.
 - **App-shell resilience (native + web) — the states that aren't a happy-path
   screen.** (1) **Offline / flaky network:** with the network cut, the app shows a
   purposeful offline/error state and a retry — never an infinite spinner or a
   white screen; queued actions don't silently drop. (2) **Session expiry / forced
   logout:** an expired or revoked token routes cleanly to login (not a broken authed
   shell), and re-login returns the user where they were. (3) **Deep-link cold
-  start:** opening a push/email/universal link while the app is closed lands on the
-  correct route after auth, not the default home. (4) **Permission prompts
+  start — a MATRIX, not one case:** for EVERY notifiable event (application/bid,
+  accept/decline, on-my-way, arrival, completion, payout, review, message, direct
+  offer, dispute, subscription), opening its push OR email deep-link **while the app
+  is fully closed** must cold-start, authenticate, and land on the *exact* target
+  entity/screen — not the default home, not a generic list. Verify both channels
+  (push + email) for each event, the unauthenticated case (link → login → then the
+  target, destination preserved), and a stale/deleted target (a link to a job that
+  was cancelled degrades to a sensible screen, not a crash). This is native-primary
+  — drive it in the iOS sim from a cold launch, don't assume from the warm in-app
+  nav. A deep link that lands on home, drops the destination through login, or
+  crashes on a dead target is a defect (HIGH if it strands an authed user).
+  (4) **Permission prompts
   (native):** location / notifications / camera prompts fire at a sensible moment and
   grant/deny/re-request are all handled. (5) **Error boundaries:** a thrown render
   error shows a recoverable boundary (like the `/analytics` crash we fixed), not a

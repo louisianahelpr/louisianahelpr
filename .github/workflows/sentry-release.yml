@@ -47,10 +47,11 @@ jobs:
     name: Tag release and upload source maps
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Skip entirely when Sentry secrets haven't been wired up yet — the
-    # action throws a hard error on missing SENTRY_ORG, which marks every
-    # push to main as red even for repos that don't use Sentry.
-    if: ${{ secrets.SENTRY_AUTH_TOKEN != '' && secrets.SENTRY_ORG != '' && secrets.SENTRY_PROJECT != '' }}
+    # No job-level `if` — a job-level skip causes GitHub to report the entire
+    # workflow run as failure when all jobs are skipped (0 jobs ran → failure).
+    # Instead the "Check Sentry secrets" step below exits early with a warning
+    # and all subsequent steps are guarded by its output, so the job always
+    # exits successfully whether or not secrets are wired up.
 
     env:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -61,22 +62,6 @@ jobs:
       VITE_SENTRY_RELEASE: ${{ github.sha }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          # Full history so `sentry-cli releases set-commits --auto` can
-          # diff against the previous release and attach commit metadata.
-          fetch-depth: 0
-
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund --legacy-peer-deps
-
       - name: Check Sentry secrets
         id: check-secrets
         run: |
@@ -86,6 +71,25 @@ jobs:
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Checkout
+        if: steps.check-secrets.outputs.configured == 'true'
+        uses: actions/checkout@v7
+        with:
+          # Full history so `sentry-cli releases set-commits --auto` can
+          # diff against the previous release and attach commit metadata.
+          fetch-depth: 0
+
+      - name: Setup Node
+        if: steps.check-secrets.outputs.configured == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        if: steps.check-secrets.outputs.configured == 'true'
+        run: npm ci --no-audit --no-fund --legacy-peer-deps
 
       - name: Build production bundle
         if: steps.check-secrets.outputs.configured == 'true'

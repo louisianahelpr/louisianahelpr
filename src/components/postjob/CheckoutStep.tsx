@@ -59,10 +59,6 @@ interface CheckoutStepProps {
   /** One-time account-setup fee, in dollars — 0 once the poster has paid it. */
   onboardingFeeAmount: number;
   totalCharge: number;
-  /** Job Protection opt-in state. */
-  protectionOptedIn: boolean;
-  setProtectionOptedIn: (v: boolean) => void;
-  protectionFeeNum: number;
   confirmed: boolean;
   setConfirmed: (v: boolean) => void;
   /** Opt-in to saving the card for off-session future use (Stripe `setup_future_usage`). */
@@ -112,9 +108,6 @@ export function CheckoutStep({
   customerFeeAmount,
   onboardingFeeAmount,
   totalCharge,
-  protectionOptedIn,
-  setProtectionOptedIn,
-  protectionFeeNum,
   confirmed,
   setConfirmed,
   saveCardForFuture,
@@ -364,14 +357,6 @@ export function CheckoutStep({
           <div className="pt-1">
             <EscrowExplainer />
           </div>
-          {protectionOptedIn && protectionFeeNum > 0 && (
-            <div className="flex justify-between text-ds-13">
-              <span className="text-muted-foreground flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-primary" /> Job Protection
-              </span>
-              <span className="font-medium text-foreground">+${protectionFeeNum.toFixed(2)}</span>
-            </div>
-          )}
           <p className="text-muted-foreground text-ds-11">Sales tax is automatically calculated based on your location at checkout. Payment is held securely until both parties confirm job completion.</p>
         </div>
       </div>
@@ -411,30 +396,6 @@ export function CheckoutStep({
         </label>
       )}
 
-      {/* Job Protection add-on — $3 flat fee funds Helpr's happiness
-          guarantee. The full card is a <label> so tapping anywhere toggles
-          the checkbox, matching the confirmation card tap-target pattern. */}
-      <label
-        htmlFor="job-protection"
-        className="flex items-start gap-3 rounded-ds-md liquid-glass p-4 cursor-pointer min-h-[44px]"
-      >
-        <Checkbox
-          id="job-protection"
-          checked={protectionOptedIn}
-          onCheckedChange={(checked) => setProtectionOptedIn(checked === true)}
-          className="mt-0.5 shrink-0"
-        />
-        <div className="flex flex-col gap-0.5">
-          <span className="text-ds-13 font-semibold text-foreground flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
-            Add Job Protection
-            <span className="text-ds-12 font-medium text-muted-foreground">(+$3)</span>
-          </span>
-          <span className="text-ds-11 text-muted-foreground leading-snug">
-            Your $3 covers Helpr's happiness guarantee — if something goes wrong, we'll make it right with a redo or credit.
-          </span>
-        </div>
-      </label>
 
       {/* Preferred helper shortcut — shown when the poster has a trusted
           repeat helper. Lets them route this job to that helper first

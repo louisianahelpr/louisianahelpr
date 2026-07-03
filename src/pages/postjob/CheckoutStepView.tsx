@@ -95,9 +95,6 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         customerFeeAmount={form.customerFeeAmount}
         onboardingFeeAmount={form.onboardingFeeAmount}
         totalCharge={form.totalCharge}
-        protectionOptedIn={form.protectionOptedIn}
-        setProtectionOptedIn={form.setProtectionOptedIn}
-        protectionFeeNum={form.protectionFeeNum}
         confirmed={form.confirmed}
         setConfirmed={form.setConfirmed}
         saveCardForFuture={form.saveCardForFuture}

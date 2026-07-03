@@ -14,7 +14,7 @@ import { buildJobInsertPayload } from "./jobSubmitHelpers";
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
 import type { PricingMode } from "@/components/postjob/BudgetSection";
 import type { BusinessMembership } from "@/hooks/useMyBusiness";
-import type { JobInsert, Step } from "./postJobFormTypes";
+import type { Step } from "./postJobFormTypes";
 import { composeSpecialRequirements, scrollToField } from "./postJobFormHelpers";
 
 /**
@@ -77,10 +77,9 @@ export interface UseJobSubmitParams {
   bidCeiling: string;
   bidDeadline: string;
   bidsSealed: boolean;
-  // Materials + protection + card
+  // Materials + card
   includeMaterials: boolean;
   materialsNote: string;
-  protectionOptedIn: boolean;
   saveCardForFuture: boolean;
   // Media upload callbacks
   uploadAndAttachPhotos: (jobId: string) => Promise<void>;
@@ -133,7 +132,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     bidsSealed,
     includeMaterials,
     materialsNote,
-    protectionOptedIn,
     saveCardForFuture,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
@@ -320,17 +318,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         bidsSealed: opts.withExtras ? bidsSealed : false,
       });
 
-    // Merge Job Protection opt-in into the payload when enabled.
-    // protection_opted_in / protection_fee ship in migration 20260612120000;
-    // a pre-push prod (missing the columns) still gets the fallback retry via
-    // the PGRST204/42703 error path below.
-    const protectionExtras: Partial<JobInsert> = protectionOptedIn
-      ? { protection_opted_in: true, protection_fee: 3.0 }
-      : {};
-
     let { data: jobData, error } = await supabase
       .from("jobs")
-      .insert({ ...buildPayload({ withExtras: true }), ...protectionExtras })
+      .insert(buildPayload({ withExtras: true }))
       .select("id")
       .single();
 

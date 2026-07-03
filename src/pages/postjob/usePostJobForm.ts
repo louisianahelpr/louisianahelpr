@@ -154,10 +154,6 @@ export function usePostJobForm() {
   // `setup_future_usage` session option. The toggle is sticky via
   // localStorage so a returning poster who opted in once doesn't have to
   // re-tap it every time. Default off — explicit opt-in only.
-  // Job Protection add-on — $3 flat fee that funds Helpr's happiness
-  // guarantee. Stored in jobs.protection_opted_in / protection_fee.
-  const [protectionOptedIn, setProtectionOptedIn] = useState(false);
-
   const [saveCardForFuture, setSaveCardForFutureState] = useState<boolean>(() => {
     try {
       return safeStorage.getItem("helpr_save_card_pref") === "1";
@@ -311,7 +307,6 @@ export function usePostJobForm() {
     bidsSealed,
     includeMaterials,
     materialsNote,
-    protectionOptedIn,
     saveCardForFuture,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
@@ -324,7 +319,6 @@ export function usePostJobForm() {
     budgetNum,
     urgentFeeNum,
     customerFeeAmount,
-    protectionFeeNum,
     onboardingFeeAmount,
     totalCharge,
     categoryLabel,
@@ -341,7 +335,6 @@ export function usePostJobForm() {
     isUrgent,
     urgentFee,
     customerFee,
-    protectionOptedIn,
     onboardingFeePaid,
     onboardingFeeCents,
     category,
@@ -500,10 +493,6 @@ export function usePostJobForm() {
     setIncludeMaterials,
     materialsNote,
     setMaterialsNote,
-    // job protection opt-in (checkout)
-    protectionOptedIn,
-    setProtectionOptedIn,
-    protectionFeeNum,
     // save-card opt-in (checkout)
     saveCardForFuture,
     setSaveCardForFuture,

@@ -8,7 +8,7 @@ import { computeBudgetPresets } from "./postJobFormHelpers";
 
 /**
  * useJobDerived — pure derived values for the Post-a-Task form: checkout
- * money math (budget, fees, protection, onboarding, total), per-chapter
+ * money math (budget, fees, onboarding, total), per-chapter
  * completion flags for the progress bar, live pricing stats, two-sided
  * liquidity signal, and the budget preset pills. Structural extraction
  * from usePostJobForm; every calculation is unchanged.
@@ -18,7 +18,6 @@ export interface UseJobDerivedParams {
   isUrgent: boolean;
   urgentFee: string;
   customerFee: number | null;
-  protectionOptedIn: boolean;
   onboardingFeePaid: boolean;
   onboardingFeeCents: number;
   category: string;
@@ -41,7 +40,6 @@ export function useJobDerived(params: UseJobDerivedParams) {
     isUrgent,
     urgentFee,
     customerFee,
-    protectionOptedIn,
     onboardingFeePaid,
     onboardingFeeCents,
     category,
@@ -61,11 +59,10 @@ export function useJobDerived(params: UseJobDerivedParams) {
   const budgetNum = parseFloat(budget) || 0;
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
   const customerFeeAmount = budgetNum * ((customerFee ?? 10) / 100);
-  const protectionFeeNum = protectionOptedIn ? 3.0 : 0;
   // Charged once per account on the first funded job — mirror the edge
   // function so the shown total equals the Stripe charge (see state above).
   const onboardingFeeAmount = onboardingFeePaid ? 0 : onboardingFeeCents / 100;
-  const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum + protectionFeeNum + onboardingFeeAmount; // + Sales tax at checkout
+  const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum + onboardingFeeAmount; // + Sales tax at checkout
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   // Section completion for the 3-step progress bar. Photos are optional
@@ -105,7 +102,6 @@ export function useJobDerived(params: UseJobDerivedParams) {
     budgetNum,
     urgentFeeNum,
     customerFeeAmount,
-    protectionFeeNum,
     onboardingFeeAmount,
     totalCharge,
     categoryLabel,

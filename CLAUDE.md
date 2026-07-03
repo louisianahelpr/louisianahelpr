@@ -763,6 +763,16 @@ on the way to their first success.
     phone number or address embedded in an image caption/text is caught, and an
     operator can take a message/image down. Attachment access is scoped to the two
     parties — no viewing another thread's media via a guessable URL.
+  - **Content-policy interstitial — the scanner must BLOCK, not just warn.** When a
+    message trips the off-platform-contact / content scanner, the composer surfaces
+    `ViolationDialog` ("We detected <violation> in your message"). Drive it: the
+    detection fires BEFORE the message is sent, the dialog names what was caught, and
+    the send is genuinely gated — the block must be enforced **server-side** (the RPC/
+    edge function re-scans), not merely by a client dialog a determined user can skip
+    by calling the send API directly. Verify repeat violations escalate (warning/
+    strike, not an infinite silent allow) and that a legitimate message is not
+    false-positived into being unsendable. A scanner that only warns client-side while
+    the server still delivers the contraband is a HIGH finding.
 - **Notifications parity — in-app panel AND native push must agree.** Every
   event that should notify (application/bid, accept/decline, on-my-way, arrival,
   completion, payout, review, message) produces a notification that is accurate,
@@ -818,6 +828,14 @@ on the way to their first success.
   included), upload shows progress, success replaces the placeholder, failure is
   recoverable, oversized/wrong-type files are rejected with human copy, and
   images render at the right aspect/crop on both surfaces without layout shift.
+  - **Helper intro video — UGC that also needs moderation.** A helper can attach an
+    intro video that a poster plays via `VideoPreviewModal` (the intro-video pill).
+    Drive both sides: upload/record shows progress and is size/format-gated, the
+    video plays on BOTH surfaces (WKWebView `<video>` autoplay/inline `playsinline`
+    quirks) and the modal traps focus + closes cleanly, a missing/broken URL degrades
+    gracefully (no dead pill, no crash), and — because it is user-generated media —
+    it is **reportable and operator-removable** on the same moderation path as photos.
+    An intro video that bypasses moderation, or a pill that plays nothing, is a finding.
 - **Report / block / safety controls.** A user can report or block another user
   from the relevant surfaces (profile, chat, job detail); the action confirms,
   takes effect (blocked user disappears from discovery/chat), and can't be
@@ -897,6 +915,26 @@ on the way to their first success.
   to the correct party (full/partial), the cancellation reason + confirmation
   copy is human, both sides' status/notifications update, and no money is stranded
   or double-moved. A refund that doesn't reconcile with escrow is a HIGH finding.
+  - **Cancellation-fee settlement — the split, not just the refund.** When a
+    cancellation incurs a fee (late poster-cancel, no-show), `void-cancelled-payments`
+    both VOIDS/refunds the un-owed portion of the authorization to the poster AND
+    transfers the cancellation fee **minus platform commission** to the helper. Drive
+    both legs: the helper's cut derives from config (`getHelperFeePercent`/
+    `_shared/helperFees.ts`), never a hardcode; the poster is refunded exactly the
+    balance; the two amounts sum to the original hold with zero cents stranded; and
+    the settlement is idempotent + cron-authorized (a re-run doesn't double-pay the
+    helper or double-refund the poster). A cancellation-fee split that doesn't
+    reconcile to the original authorization is a HIGH finding.
+- **Instant-match / instant-book — the auto-assign path, both sides.** A job can be
+  matched to a helper without the open apply→accept loop (`instant-job-match`): drive
+  that it only ever matches an ELIGIBLE, available, non-blocked helper (respects
+  credential/IDV gating and radius), that a direct-offer/targeted job is never leaked
+  into the instant pool, that it assigns exactly ONE helper under contention (no
+  double-assign, no over-filled roster — server-settled, not client-timed), that the
+  matched helper gets a distinct notification and the poster is told, and that its
+  rate-limit is enforced server-side. Escrow/acceptance must behave identically to a
+  normal accept. An instant-match that assigns twice, matches an ineligible helper, or
+  leaks a targeted offer is a HIGH finding.
 - **Edit a live posted job — the money-safe mutation path, sender AND receiver.**
   A poster can edit a job after posting (`EditJobDialog.tsx`), so the edit is driven
   as a first-class money+lifecycle flow, not an afterthought. Sender side: which
@@ -1133,6 +1171,16 @@ on the way to their first success.
     shown to the poster, the fall-back fires exactly once, and escrow/hold is intact
     across the transition). A direct offer that silently expires into nothing, never
     opens up, or double-notifies is a HIGH finding.
+  - **Response deadline — the countdown the poster SETS must be the one enforced.**
+    When a poster attaches a response window to an offer/application
+    (`ResponseDeadlineDialog`: 1 / 2 / 4 / 8 hours), that chosen value must be the
+    exact deadline the expiry cron enforces and the exact countdown the receiver sees
+    — no drift between the picked hours, the stored deadline, the timer rendered to
+    the helper, and the moment the fall-back/expiry actually fires. Drive it: pick
+    each option, confirm the helper's countdown matches, and confirm lapse triggers
+    the auto-fall-back + notification on schedule (not early, not never). A deadline
+    that renders one number but expires on another is a finding — same "one source of
+    truth for time" class as timezone correctness.
 - **Every profile `?tab=` and self-service surface is driven.** `/profile` has 18
   tabs (`src/pages/Profile.tsx` `Tab` type): landing, profile, earnings, schedule,
   availability, payment, security, legal, reviews, referral, subscription, support,

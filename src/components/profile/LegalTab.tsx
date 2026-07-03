@@ -116,8 +116,8 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           body={
             <>
               <p><strong className="text-foreground">Secure Payments:</strong> Payments are charged upfront via Stripe and held by the platform. The Helpr is paid only after both parties confirm the job is complete. Refunds are issued for cancelled jobs (subject to the cancellation policy).</p>
-              <p><strong className="text-foreground">Auto-Release:</strong> If a job is not confirmed as complete within 72 hours after one party marks it done, payment is automatically released to the Helpr.</p>
-              <p><strong className="text-foreground">Revisions:</strong> Posters can request revisions within a 72-hour window before approving completion.</p>
+              <p><strong className="text-foreground">Auto-Release:</strong> If a job is not confirmed as complete within 48 hours after one party marks it done, it auto-completes and payment is released to the Helpr (funds typically reach them about 72 hours after completion).</p>
+              <p><strong className="text-foreground">Revisions:</strong> Posters can request revisions within that same 48-hour confirmation window before approving completion.</p>
               <p><strong className="text-foreground">Disputes:</strong> If a revision doesn't resolve the issue, file a formal dispute. See Dispute Resolution for the full 3-step process.</p>
             </>
           }

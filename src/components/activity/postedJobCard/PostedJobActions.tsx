@@ -238,11 +238,12 @@ export function PostedJobActions({
                 </Button>
               </div>
             )}
-            {/* 72h countdown after helper marks complete */}
+            {/* 48h auto-release countdown after helper marks complete
+                (matches auto-release-payment cron cutoff). */}
             {job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at && (
               <DeadlineCountdown
-                deadline={new Date(new Date(job.helper_completed_at).getTime() + 72 * 60 * 60 * 1000).toISOString()}
-                expiredText="72 hours passed — payment auto-released to Helpr"
+                deadline={new Date(new Date(job.helper_completed_at).getTime() + 48 * 60 * 60 * 1000).toISOString()}
+                expiredText="48 hours passed — payment auto-released to Helpr"
                 consequenceText="Approve & complete or request a revision before the timer expires, or payment will auto-release to the Helpr."
                 variant="warning"
               />

@@ -239,7 +239,7 @@ const PaymentSuccess = () => {
             })}
           </ol>
           <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            If one side confirms and the other doesn't respond within 72 hours, payment is released automatically.
+            If one side confirms and the other doesn't respond within 48 hours, the job auto-completes and payment is released automatically.
           </p>
         </div>
 

@@ -42,15 +42,15 @@ export function initPostHog() {
       disable_session_recording: true,
       // Skip the surveys + exception-autocapture extension scripts (~37KB
       // of unused JS flagged by Lighthouse). We never use surveys, and
-      // capture_exceptions above already wires error tracking via the
-      // core SDK without the standalone extension.
+      // exception capture is delegated to Sentry, so the standalone
+      // extension is unnecessary.
       disable_surveys: true,
       autocapture: false,
       // Prevent PostHog from fetching its optional extension scripts
       // (surveys.js ~33KB, exception-autocapture.js ~5KB, toolbar, etc.)
       // from us-assets.i.posthog.com. We don't use any of them — surveys
-      // and toolbar are off, and capture_exceptions above wires error
-      // tracking via the core SDK instead of the standalone extension.
+      // and toolbar are off, and exception capture is disabled here and
+      // handled by Sentry instead.
       disable_external_dependency_loading: true,
       loaded: (ph) => {
         if (import.meta.env.DEV) ph.debug(false);

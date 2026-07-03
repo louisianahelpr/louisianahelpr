@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Flag, Bookmark, MessageSquare, ChevronRight, ShieldCheck } from "lucide-react";
+import { Flag, Bookmark, MessageSquare, ChevronRight, ShieldCheck, Check } from "lucide-react";
 import { getCity } from "@/lib/locationUtils";
 import { IconActionButton } from "../IconActionButton";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
@@ -144,6 +144,26 @@ export const JobDetailFooter = ({
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             This is your post
+          </span>
+        </div>
+      ) : viewerAppPosition !== null ? (
+        <div
+          className="flex-1 rounded-ds-md h-11 sm:h-12 px-3 flex items-center justify-center gap-2"
+          style={{
+            background: "hsl(var(--success-tint))",
+            border: "0.5px solid hsl(var(--success-border) / 0.35)",
+          }}
+        >
+          <Check
+            className="w-4 h-4 shrink-0"
+            style={{ color: "hsl(var(--success-ink))" }}
+            strokeWidth={2.5}
+          />
+          <span
+            className="font-display italic font-semibold text-ds-14"
+            style={{ color: "hsl(var(--success-ink-deep))" }}
+          >
+            Applied — #{viewerAppPosition}
           </span>
         </div>
       ) : (job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0) ? (

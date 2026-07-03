@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, Clock, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { hapticError, hapticSuccess } from "@/lib/haptics";
 
 type CancellationDialogProps = {
   jobId: string;
@@ -181,10 +182,12 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         toast.success("Job cancelled. Any held payment will be refunded within the hour.");
       }
 
+      hapticSuccess();
       onCancelled();
       onClose();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to cancel job";
+      hapticError();
       toast.error(message);
     } finally {
       setCancelling(false);
@@ -395,6 +398,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         <DialogFooter className="!gap-2">
           <Button
             variant="ghost"
+            disabled={cancelling}
             onClick={onClose}
             className="rounded-ds-md font-sans font-semibold"
             style={{ color: "hsl(var(--bark))" }}

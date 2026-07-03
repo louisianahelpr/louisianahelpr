@@ -40,6 +40,7 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
   setIdvDialogOpen: (open: boolean) => void;
   setW9Context: (ctx: { jobId: string; businessId: string | null } | null) => void;
   setW9DialogOpen: (open: boolean) => void;
+  setRespondingHelperAppId: (id: string | null) => void;
 }
 
 export function createOfferHandlers(deps: OfferHandlersDeps) {
@@ -63,6 +64,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     setIdvDialogOpen,
     setW9Context,
     setW9DialogOpen,
+    setRespondingHelperAppId,
   } = deps;
 
   const acceptApplication = async (app: EnrichedApplication) => {
@@ -211,6 +213,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
 
   const handleHelperResponse = async (app: Application, accept: boolean) => {
     if (!user) return;
+    setRespondingHelperAppId(app.id);
+    try {
     if (accept) {
       const stripeCheck = await checkHelperStripeConnect();
       if (!stripeCheck.ok) { hapticError(); toast.error(stripeCheck.reason); return; }
@@ -379,6 +383,9 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       }
       toast.info("You declined the job. The poster can select someone else.");
       refresh();
+    }
+    } finally {
+      setRespondingHelperAppId(null);
     }
   };
 

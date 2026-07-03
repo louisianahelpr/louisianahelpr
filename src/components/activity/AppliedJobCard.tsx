@@ -47,6 +47,7 @@ function AppliedJobCardInner({
   initialTracking,
   userId,
   onHelperResponse,
+  respondingHelperAppId,
   onComplete,
   completingJobId,
   onResolveRevision,
@@ -251,7 +252,7 @@ function AppliedJobCardInner({
               is a poster reaching out directly. Gold-warm accent
               surfaces the "you were picked" moment without shouting. */}
           {isOffered && (
-            <OfferedActions app={app} job={job} onHelperResponse={onHelperResponse} />
+            <OfferedActions app={app} job={job} onHelperResponse={onHelperResponse} respondingHelperAppId={respondingHelperAppId} />
           )}
 
           {/* Confirmed: show tracking + message */}

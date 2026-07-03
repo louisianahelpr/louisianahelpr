@@ -31,6 +31,8 @@ export interface LifecycleHandlersDeps extends OptimisticJobCache {
   setCompletionPromptJob: (v: { job: Job; revieweeId: string; revieweeName: string } | null) => void;
   setReviewTarget: (v: { id: string; name: string } | null) => void;
   setReviewJob: (job: Job | null) => void;
+  setConfirmingArrivalJobId: (id: string | null) => void;
+  setConfirmingWorkingJobId: (id: string | null) => void;
 }
 
 export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
@@ -51,6 +53,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
     setCompletionPromptJob,
     setReviewTarget,
     setReviewJob,
+    setConfirmingArrivalJobId,
+    setConfirmingWorkingJobId,
   } = deps;
 
   const tryCancelJob = async (job: Job) => {
@@ -261,31 +265,41 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
   };
 
   const confirmArrival = async (jobId: string) => {
-    // Optimistic: mark arrival confirmed on the card right away.
-    const arrivedAt = new Date().toISOString();
-    const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_arrival_at: arrivedAt });
-    const { error } = await supabase.from("jobs").update({ poster_confirmed_arrival_at: arrivedAt }).eq("id", jobId);
-    if (error) { rollbackActivity(snapshot); hapticError(); toast.error("We couldn't confirm arrival just now — please try again."); return; }
-    const job = postedJobs.find(j => j.id === jobId);
-    if (job?.helper_id) {
-      await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
+    setConfirmingArrivalJobId(jobId);
+    try {
+      // Optimistic: mark arrival confirmed on the card right away.
+      const arrivedAt = new Date().toISOString();
+      const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_arrival_at: arrivedAt });
+      const { error } = await supabase.from("jobs").update({ poster_confirmed_arrival_at: arrivedAt }).eq("id", jobId);
+      if (error) { rollbackActivity(snapshot); hapticError(); toast.error("We couldn't confirm arrival just now — please try again."); return; }
+      const job = postedJobs.find(j => j.id === jobId);
+      if (job?.helper_id) {
+        await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
+      }
+      toast.success("Arrival confirmed!");
+      refresh();
+    } finally {
+      setConfirmingArrivalJobId(null);
     }
-    toast.success("Arrival confirmed!");
-    refresh();
   };
 
   const confirmWorking = async (jobId: string) => {
-    // Optimistic: mark "helpr working" confirmed on the card right away.
-    const workingAt = new Date().toISOString();
-    const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_working_at: workingAt });
-    const { error } = await supabase.from("jobs").update({ poster_confirmed_working_at: workingAt }).eq("id", jobId);
-    if (error) { rollbackActivity(snapshot); hapticError(); toast.error("We couldn't confirm that just now — please try again."); return; }
-    const job = postedJobs.find(j => j.id === jobId);
-    if (job?.helper_id) {
-      await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
+    setConfirmingWorkingJobId(jobId);
+    try {
+      // Optimistic: mark "helpr working" confirmed on the card right away.
+      const workingAt = new Date().toISOString();
+      const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_working_at: workingAt });
+      const { error } = await supabase.from("jobs").update({ poster_confirmed_working_at: workingAt }).eq("id", jobId);
+      if (error) { rollbackActivity(snapshot); hapticError(); toast.error("We couldn't confirm that just now — please try again."); return; }
+      const job = postedJobs.find(j => j.id === jobId);
+      if (job?.helper_id) {
+        await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
+      }
+      toast.success("Confirmed Helpr is working!");
+      refresh();
+    } finally {
+      setConfirmingWorkingJobId(null);
     }
-    toast.success("Confirmed Helpr is working!");
-    refresh();
   };
 
   const handleNoShow = async (jobId: string) => {

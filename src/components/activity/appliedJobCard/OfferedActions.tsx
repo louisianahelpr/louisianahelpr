@@ -10,6 +10,7 @@ interface OfferedActionsProps {
   app: AppliedApp;
   job: Job;
   onHelperResponse: (app: Application, accept: boolean) => void;
+  respondingHelperAppId: string | null;
 }
 
 /**
@@ -17,7 +18,7 @@ interface OfferedActionsProps {
  * reaching out directly. Gold-warm accent surfaces the "you were picked"
  * moment without shouting.
  */
-export function OfferedActions({ app, job, onHelperResponse }: OfferedActionsProps) {
+export function OfferedActions({ app, job, onHelperResponse, respondingHelperAppId }: OfferedActionsProps) {
   return (
     <div
       className="px-4 py-3 space-y-2.5"
@@ -93,6 +94,7 @@ export function OfferedActions({ app, job, onHelperResponse }: OfferedActionsPro
           size="sm"
           variant="outline"
           className="flex-1 rounded-ds-md"
+          disabled={respondingHelperAppId === app.id}
           onClick={() => onHelperResponse(app, false)}
           style={{
             color: "hsl(var(--burnt-sienna))",
@@ -105,9 +107,10 @@ export function OfferedActions({ app, job, onHelperResponse }: OfferedActionsPro
           variant="bark"
           size="sm"
           className="flex-1 rounded-ds-md"
+          disabled={respondingHelperAppId === app.id}
           onClick={() => onHelperResponse(app, true)}
         >
-          <ThumbsUp className="w-4 h-4 mr-1" /> Accept job
+          <ThumbsUp className="w-4 h-4 mr-1" /> {respondingHelperAppId === app.id ? "…" : "Accept job"}
         </Button>
       </div>
     </div>

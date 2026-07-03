@@ -33,6 +33,7 @@ interface AppliedJobsTabProps {
   latestTracking: Record<string, TrackingData | null>;
   userId: string;
   onHelperResponse: (app: Application, accept: boolean) => void;
+  respondingHelperAppId: string | null;
   onComplete: (jobId: string) => void;
   completingJobId: string | null;
   onResolveRevision: (jobId: string) => void;
@@ -54,6 +55,7 @@ interface AppliedJobsTabProps {
 export const AppliedJobsTab = ({
   apps, highlightAppId, expandedJobId, setExpandedJobId,
   helperReviewedJobIds, latestTracking, userId, onHelperResponse,
+  respondingHelperAppId,
   onComplete, completingJobId,
   onResolveRevision, onHelperReview, onDispute, onViewDispute, onRefresh,
   groupByStatus = false,
@@ -86,10 +88,10 @@ export const AppliedJobsTab = ({
     setSavingMessage(true);
     const { error } = await supabase.from("applications").update({ message: editMessageText.trim() || null }).eq("id", appId);
     if (error) toast.error("Couldn't save your note — try again?");
-    else toast.success("Message updated");
+    else { toast.success("Message updated"); onRefresh(); }
     setSavingMessage(false);
     setEditingMessageAppId(null);
-  }, [editMessageText]);
+  }, [editMessageText, onRefresh]);
 
   const confirmWithdraw = useCallback(async () => {
     if (!withdrawTarget) return;
@@ -159,6 +161,7 @@ export const AppliedJobsTab = ({
       initialTracking={latestTracking[app.job_id]}
       userId={userId}
       onHelperResponse={onHelperResponse}
+      respondingHelperAppId={respondingHelperAppId}
       onComplete={onComplete}
       completingJobId={completingJobId}
       onResolveRevision={onResolveRevision}

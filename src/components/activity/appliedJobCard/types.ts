@@ -32,6 +32,10 @@ export interface AppliedJobCardProps {
   userId: string;
   /** Job-lifecycle handlers, owned by the parent ActivityTab. */
   onHelperResponse: (app: Application, accept: boolean) => void;
+  /** When set to this card's app.id, the Accept/Decline buttons are
+   *  disabled so the helper can't double-tap while the async offer
+   *  response is in-flight. */
+  respondingHelperAppId: string | null;
   onComplete: (jobId: string) => void;
   completingJobId: string | null;
   onResolveRevision: (jobId: string) => void;

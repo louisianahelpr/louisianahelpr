@@ -90,7 +90,7 @@ jobs:
               | awk -F/ '{print $3}' \
               | grep -v '^_shared$' \
               | sort -u \
-              | tr '\n' ' ')
+              | tr '\n' ' ' || true)
             if [ -z "$FUNCTIONS" ]; then
               echo "No function changes detected (or only _shared changed). Nothing to deploy."
               echo "skip_deploy=true" >> $GITHUB_OUTPUT
@@ -108,7 +108,7 @@ jobs:
           else
             if echo "$CHANGED" | grep -qE '^supabase/functions/_shared/'; then
               echo "::warning::_shared changed — promoting to deploy-all to avoid leaving stale callers."
-              FUNCTIONS=$(ls supabase/functions/ | grep -v '^_shared$' | tr '\n' ' ')
+              FUNCTIONS=$(ls supabase/functions/ | grep -v '^_shared$' | tr '\n' ' ' || true)
             fi
           fi
 

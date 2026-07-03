@@ -115,12 +115,109 @@ this list tight; project-specific trivia belongs in code comments, not here.
   receives every platform-wide write), and a unique channel-name nonce via
   `channelNonce()` (`src/lib/realtimeChannel.ts`) — Supabase dedupes channels
   by name, so a reused name silently drops the second subscription.
-- **Branch + PR; never commit to `main` directly.** Before opening a PR run
-  `npm run typecheck && npm run lint && npm run build` — all three must pass.
+- **Commit directly to `main`.** No feature branch / PR ceremony is required —
+  commit straight to `main`. But the gate is NON-NEGOTIABLE and moves earlier:
+  run `npm run typecheck && npm run lint && npm run build` (all three must pass,
+  and `npx vitest run` when touching tested code) BEFORE every commit — never
+  commit red. This matters more here, not less: `main` auto-deploys migrations to
+  prod (`db-deploy.yml`) and is what cuts the app build, so a broken commit to
+  `main` ships to prod with nothing in between. Two things to know: (1) `main`
+  has branch protection (required Playwright/CodeQL/Vitest checks + PR), but
+  `enforce_admins` is FALSE — the owner account bypasses it, so a direct
+  `git push origin main` succeeds without changing any GitHub setting. The
+  flip side: those required CI checks DON'T run on a direct admin push, so the
+  local `typecheck && lint && build` (+ vitest) gate above is the ONLY thing
+  standing between a bad commit and prod — run it every time, no exceptions.
+  (2) Since there's no PR, run the review agents (`code-reviewer`,
+  `silent-failure-hunter`, `security-auditor`) against the working diff before
+  committing money/auth/data-model changes, so losing the PR gate doesn't lose
+  the review.
 - End every commit message with:
   `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`
 
 ## Audit standard — MANDATORY for every audit, no exceptions
+
+**You are the Lead Product Engineer for Louisiana Helpr — audit as one.** This
+is the single mandate the entire checklist below serves; read every rule as
+evidence-gathering toward it, not as an isolated box to tick. The goal is not
+"no defects found" — it is: **the whole app must feel like ONE person with
+impeccable product taste and engineering discipline built every screen, end to
+end, and it is ready to charge real people real money today.** Three lenses,
+applied to every surface, define that:
+1. **Cohesion — the app is one product, not a pile of screens.** The reason an
+   audit "feels pieced together" is the app does. Your job is to make every
+   screen feel like a sibling of every other: same chrome, same spacing rhythm,
+   same one interaction language, same nouns, same money formatting. When you
+   touch a screen, your unit of judgment is not the screen alone — it's the
+   screen *next to its canonical siblings*. Anything that reads as "a different
+   person built this one" is a defect, even if nothing is technically broken.
+2. **Product sense — every screen earns its place in the core loop.** You are not
+   only checking that things work; you are asking "is this the right thing, in
+   the right place, with the least friction?" (the funnel lens below). A screen
+   that works but adds a needless step, buries its primary action, or clutters
+   the path to success is a finding.
+3. **Trust — it is safe to charge money on this.** Money, escrow, credit, auth,
+   and safety are the load-bearing walls; a crack there outranks any polish item.
+
+**You are empowered to challenge — not just to catch defects.** As the Lead
+Product Engineer you have standing authority to push back on an *incoming*
+request — a feature, a copy change, a layout or flow ask — BEFORE building it,
+when it would introduce UX friction, break the visual hierarchy, or threaten the
+marketplace loop. Don't silently implement something that makes the product
+worse. Say so plainly, name which of the three lenses it harms, and propose the
+concrete better alternative. This is a heads-up with a recommendation, not a
+veto: the user can always override, and once they do you build it as asked.
+
+Run the checklist below in service of those three — cohesion, product sense,
+trust. If a finding doesn't ladder up to one of them, it's noise; if it does,
+it's in scope no matter how small. This framing is WHY the rules exist; the
+rules are HOW you prove it.
+
+### How this standard is organized — read the spine first
+
+Read top-to-bottom once, then use it as a reference by section. The spine below
+is deliberate: **method → principles → what to check → how bad → how it ends →
+tooling.** The two things people confuse are §3 and §4 — §3 (dimensions) is
+*what to check on every screen*; §4 (severity tiers) is *how bad a finding is
+and in what order to fix it*. Same checks, two axes, not a duplicate list.
+
+- **The Mandate** (above) — the ONE goal; every rule ladders to cohesion /
+  product sense / trust.
+- **§1 — How to run it (method & process):** the three methods, scope, the
+  phased sweep→fix→verify loop, self-provision auth, surface order, screenshot
+  proof.
+- **§2 — Cross-cutting principles (state once, apply everywhere):** the Parity
+  Principle (derived, never guessed) and global chrome & cohesion — the rules
+  that recur on *every* screen, named once here instead of restated per-check.
+- **§3 — Per-screen dimension checklist:** what to verify on every surface
+  (layout, spacing, type, color, a11y, native/WKWebView, forms, motion, …).
+- **§4 — Severity tiers (triage order):** the product-&-funnel lens, then
+  High → Medium → Low → polish. Tells you what to fix first, not what to check.
+- **§5 — Completeness & deliverables (how an audit ends):** no partial audits,
+  the coverage manifest, the completion overview, and pop-up decisions.
+- **§6 — Review tooling:** the automated second net (agents + `/ultrareview`).
+
+### §1 — How to run it (method & process)
+
+**Three methods, all mandatory — nothing gets missed.** This is the definition
+of the method; everything in §1 serves it. Every audit uses ALL three:
+1. **Code review** — read the actual source line-by-line (not grep alone) and
+   cross-reference data models/configs. Catches semantic/factual/structural
+   defects that render fine (e.g. a wrong fee %, a hardcoded value that should
+   derive from config, a skipped heading level).
+2. **Visual review** — actually render each page and look at it, on BOTH
+   surfaces (Chrome at every breakpoint + the iOS WKWebView). Catches spacing,
+   alignment, font-size drift, broken effects/glass, jank, overflow, and
+   platform-specific breakage that source reading cannot reveal.
+3. **Interactive verification** — actually operate every interactive element:
+   if it can be clicked/tapped/hovered/focused/submitted/dismissed, DO it and
+   confirm it works. Click every link (goes to the right place), press every
+   button (fires + correct pending/disabled state), open every accordion/tab/
+   sheet/modal, toggle every switch, submit every form (valid AND invalid),
+   trigger hover/focus/active on interactive elements. Never assume something
+   works because the markup looks right — exercise it.
+No method substitutes for another. A dimension is only "clean" after it has
+been checked by whichever method(s) can actually detect a defect in it.
 
 An "audit" is NOT a typo/casing grep. A grep is lexical; most real defects are
 semantic, visual, or structural and grep cannot see them. Every audit MUST
@@ -228,6 +325,22 @@ the sim mid-Chrome-pass (or hopping between views) leaves both surfaces
 half-checked and violates the "no partial audit" rule below. One surface fully
 done, then the next.
 
+### §2 — Cross-cutting principles (state once, apply everywhere)
+
+These are the rules that recur on *every* screen. They're stated once here and
+referenced by name below, rather than restated inside each check — when a §3
+dimension or §4 finding says "derived, not guessed" or "match the sibling," it
+is invoking one of these.
+
+**The Parity Principle — derived, never guessed.** Any spacing, width, color,
+radius, header pattern, font size, fee, or component "that seems right" is a
+guess, and a guess is a defect. Before you set or accept ANY such value, open
+the 2–3 nearest canonical sibling screens/components and copy their exact
+token/class/structure. This one principle is what the per-check reminders below
+("widths are DERIVED", "header pattern is DERIVED", fee/price from
+`subscriptionTiers.ts`, colors via `--token`) are all instances of — a value no
+sibling uses is a defect even if it "looks fine."
+
 **Global chrome & cross-page consistency (STRICT — this is where audits keep failing)**
 - **Every web page carries the shared site chrome.** On the browser surface a
   page must render the global top navigation AND the footer exactly like its
@@ -307,6 +420,12 @@ done, then the next.
   every feature (jobs, bids, payouts, referrals, etc.), not just this one.
   Internal-only strings — function names, DB columns, route paths, Slack/analytics
   event titles, code comments — are NOT user-facing and stay as-is.
+
+### §3 — Per-screen dimension checklist (what to verify on every surface)
+
+Run every block below on every screen in scope. These are the *what*; §4 tells
+you the *how bad*. "Derived / match the sibling" reminders here are instances of
+the Parity Principle (§2).
 
 **Layout & structure**
 - Grid/column alignment; elements share axes; nothing visually off-center.
@@ -397,6 +516,12 @@ done, then the next.
   links resolve to the right route (incl. protected-route redirects).
 
 **Accessibility**
+- **The bar is WCAG 2.1 AA — a named target, not a vibe.** Every accessibility
+  check below ladders to that standard: text/UI contrast meets AA ratios, all
+  functionality is keyboard-reachable with a visible focus order, interactive
+  elements have accessible names, motion respects `prefers-reduced-motion`, and
+  touch targets meet size guidance. "Looks accessible" is not a pass — measure
+  against AA.
 - alt text, `aria-label`s, visible focus states, keyboard nav, `aria-hidden`
   on decorative elements, color never the sole signal.
 
@@ -529,7 +654,38 @@ done, then the next.
   marketing, and in-app copy; required policy links present on every relevant
   screen; "last updated" stamps on legal docs.
 
-### Additional checks by value tier (all still mandatory — tiers = triage order)
+### §4 — Severity tiers (triage order for findings)
+
+All still mandatory — the tiers are triage order (what to fix first), not
+permission to skip. §3 tells you *what* to check on a screen; this section tells
+you *how bad* a finding is and the order to resolve them.
+
+**Product & funnel lens (Lead Product Engineer — apply to every core-loop
+surface, not just marketing).** The dimensions below judge whether a screen is
+*correct*; these three judge whether it is *good product*. They are cross-cutting
+— run them on the whole Post → Browse/Bid → Accept → Complete → Release → Review
+loop from BOTH personas (poster and helper), and on every screen a new user hits
+on the way to their first success.
+- **Time to Success (friction budget).** For each core-loop step, count the taps,
+  screens, and required form fields between intent and done, and flag anything
+  that inflates that count without earning it: a redundant confirm, a field that
+  could be defaulted/remembered/derived, a dead wait with no skeleton, a step
+  that could be merged into the previous one. The fastest path to a poster's
+  first posted job and a helper's first accepted job is a product metric — a
+  screen that adds a step to the shortest correct path is a finding, not a nicety.
+  State the current step-count and the leaner one when you flag it.
+- **Visual hierarchy & one primary action.** Every screen must have exactly ONE
+  unambiguous primary action, and the eye must land on it first — correct size,
+  weight, glossy `btn-grad-primary` treatment, and position relative to secondary
+  actions. Two competing glossy CTAs, a primary action that looks like a link, or
+  a destructive action with equal visual weight to the safe one is a hierarchy
+  defect. The user should never have to hunt for "what do I do here."
+- **Information density & clutter.** Judge whether the screen is doing too much:
+  competing sections with no clear order, every field shown at once when a
+  progressive-disclosure step would be calmer, badges/labels/metadata that add
+  noise not signal. A cluttered screen that "has everything" is worse product
+  than a calm one that surfaces the next action — flag density that fights the
+  primary task, and propose what to demote, defer, or cut.
 
 **High value (money, auth, data integrity, trust)**
 - **Checkout/payment math:** subtotal + service fee = displayed total; the amount
@@ -624,11 +780,49 @@ done, then the next.
   takes effect (blocked user disappears from discovery/chat), and can't be
   trivially bypassed. Any safety affordance (share-location, emergency, dispute)
   is reachable and does what it claims. Missing or dead safety controls are HIGH.
+- **UGC moderation & EULA — Apple guideline 1.2 (App-Store-gating).** Because the
+  app hosts user-generated content (job text, messages, community posts, profile
+  bios, uploaded photos), Apple requires ALL of: a method to filter objectionable
+  content, a way to report it (Report covered above), a way to block abusive users
+  (Block covered above), a way for the developer to remove content and eject the
+  user, AND a displayed **EULA / content agreement with a zero-tolerance clause**
+  accepted at signup. Verify each exists and works: text/image uploads pass through
+  some moderation or scan (incl. the off-platform-contact scanner), an operator can
+  take a post/photo down and ban its author (`/admin`), and the EULA is present +
+  its acceptance recorded (ties to consent capture). Missing content-moderation
+  tooling or a missing EULA is a release-blocking finding, not a polish item.
+- **Stripe webhook integrity — the endpoint that actually settles escrow.** Charges
+  are driven from the UI, but escrow/subscription/payout state is finalized by
+  webhooks (`stripe-webhook`, `stripe-idv-webhook`, `verification-webhook`), so the
+  endpoints get their own hardening pass: the signature is verified (a forged/
+  unsigned event is rejected — never trust the body), handling is idempotent so a
+  re-delivered event doesn't double-apply (ties to the idempotency check),
+  out-of-order and unknown event types are tolerated (no crash, no wrong
+  transition), and a *missed* webhook is recoverable/reconciled rather than leaving
+  escrow stuck forever. A webhook that trusts unsigned input, double-applies on
+  replay, or can strand escrow on a dropped event is a HIGH finding.
 - **Account lifecycle.** Delete / deactivate / reactivate account and data-export
   (DataRights) each work end-to-end: destructive account actions confirm and
   state consequences (in-flight jobs, escrow, reviews), export returns real data,
   and a deactivated account is handled on next login rather than crashing. Ties
   to Destructive-action safeguards but is its own driven flow.
+- **Data-deletion completeness (CCPA / right-to-be-forgotten).** A delete request
+  must actually PURGE the user across every store, not just flip an `is_deleted`
+  flag: their `profiles` row and dependent rows (jobs, messages, reviews, credits,
+  ledger), their uploaded media in storage, and their Stripe customer/Connect
+  linkage are all removed or irreversibly anonymized — while legally-required
+  financial records (completed-transaction/tax rows) are retained per policy. Verify
+  the deletion path (`cleanup-abandoned-accounts` + user-initiated delete) leaves no
+  PII orphaned in a table the audit can query, and that a re-signup with the same
+  email starts clean. Residual PII after a delete is a HIGH (compliance) finding.
+- **Tax & marketplace reporting — 1099-K / W-9 correctness.** As a real-money
+  marketplace paying helpers, the platform's tax surface must be correct: a helper
+  crossing the reporting threshold is prompted for **W-9** info, **1099-K**
+  totals reconcile with actual escrow-released earnings (not gross posted, not
+  double-counted tips), and the `parishtax` admin view + any earnings/tax export
+  agree with the ledger. Verify amounts derive from settled payouts and match
+  `/profile?tab=earnings`. A tax figure that disagrees with the payout ledger, or a
+  missing W-9 gate on an over-threshold earner, is a HIGH (compliance) finding.
 - **Cancellation, dispute & refund path — the unhappy branch of the lifecycle.**
   Beyond accept/decline/counter: drive what happens when a job is cancelled
   AFTER acceptance (by either side), a no-show occurs, or a completion is
@@ -684,6 +878,43 @@ done, then the next.
   path that isn't driven, or whose displayed amount disagrees with its source, is
   a HIGH finding. Also verify credit flows (`cash-out-credits`, Pay It Forward
   donation/redemption) don't create or destroy credit value on failure.
+- **Idempotency on EVERY user-facing charge — a retry must never double-charge.**
+  Beyond the UI-level "button can't double-fire": every charge-creating edge
+  function (`create-payment`, `create-pro-checkout`, `create-business-seat-checkout`,
+  `create-boost-payment`, `create-bgc-payment`, `instant-payout`, `cash-out-credits`)
+  must pass a server-side **Stripe idempotency key** derived from the operation
+  (e.g. job+user+action), so a refresh, a network retry, a double-tap that slips
+  past the client guard, or a webhook re-delivery results in ONE charge and ONE
+  state transition — not two. Verify by reading each function for the key AND, in
+  test mode, firing the same intent twice (rapid double-submit / replay) and
+  confirming Stripe shows a single charge and the ledger a single row. A charge
+  path with no idempotency key, or one that produces two escrow/credit rows on
+  replay, is a HIGH finding — same tier as an escrow mismatch.
+- **Cross-user concurrency & races resolve to exactly one winner — server-side.**
+  The marketplace has inherently contended actions; the audit must reason about
+  (and where feasible drive) the simultaneous case, not just the sequential happy
+  path: two helpers accepting the same single-slot job at once, a group job filling
+  its LAST slot from two applicants, an accept racing a poster-cancel, a
+  helper-marks-complete racing a poster-dispute, a double-apply, and a
+  credit-redeem racing a checkout. In every case the server (RPC/edge function,
+  via row locks / conditional `UPDATE ... WHERE status=` / unique constraints, not
+  client-side checks) must settle to ONE outcome with escrow/credit/roster intact —
+  never two winners, an over-filled roster, a job both accepted and cancelled, or
+  money moved twice. A contended action whose correctness depends on client timing,
+  or that can corrupt escrow/roster under simultaneity, is a HIGH finding.
+- **App Store payment-model compliance — classify every charge path (Apple 3.1.1).**
+  Apple requires digital/in-app purchases to use IAP, but exempts **real-world
+  services** bought in-app. Classify each Stripe charge on the iOS surface: job
+  **escrow**, **tip**, **boost**, **background check**, business **seats**, and
+  **payouts** are real-world-service/marketplace flows → Stripe is allowed (and IAP
+  would be *wrong*). The **membership subscription** (Pro/Elite, `create-pro-checkout`)
+  is the risk case — a recurring digital entitlement can trip guideline 3.1.1 and
+  get the build rejected. Verify the current shipping decision is deliberate and
+  defensible (there is a stranded `feat/apple-iap` branch signalling this is a known
+  open question), that no iOS surface routes a *digital-only* purchase through
+  external Stripe checkout in violation, and that any external-purchase link copy
+  meets Apple's current anti-steering rules. A misclassified charge path is an
+  App-Store-gating (release-blocking) finding.
 - **Admin console — drive EVERY `?view=`, always in scope, every pass.** `/admin`
   has 27 sub-views (`src/pages/Admin.tsx` `View` type + `viewLabels`): home,
   analytics, people, jobs, settings, disputes, broadcasts, notifications,
@@ -757,6 +988,34 @@ done, then the next.
   finding for transactional mail/push, Medium for marketing.
 
 **Medium value (consistency & functional polish)**
+- **Every primary bottom-nav destination is driven — the 5 tabs the app opens
+  into.** The `MobileNav` / bottom tab bar routes are the spine of the app and each
+  is a must-drive cell, top-level and every interactive element within: **Home**
+  (`Dashboard.tsx` — greeting, "Your Helprs" rebook row, feed, quick actions),
+  **Post** (`PostJob.tsx` — the 3-step wizard above), **Jobs** (`Activity.tsx` —
+  BOTH tabs, every status filter), **Messages** (thread list + a real 2-way
+  conversation), **Profile** (`Profile.tsx` — the 18 tabs below). For each: the
+  active-tab indicator is correct, deep-linking/refresh directly into the route
+  renders it (not only via in-app nav), and every button/link/tab/toggle on it is
+  actually exercised (§1 Method 3) — no primary-route control is assumed to work
+  from markup. This enumerates by name what "every rendered state" already
+  requires, so route coverage is provable, not implied.
+- **Direct offer & rehire ("hire again") — drive the whole targeted-offer path.**
+  A poster can send a job straight to a specific helper instead of posting it open,
+  and re-book someone they've used before — this is a distinct money+lifecycle flow
+  that must be driven end to end, both entry points: (1) **Your Helprs** rebook
+  strip on the Dashboard (`YourHelpersRow.tsx`, backed by `get_my_saved_helpers`)
+  and **Profile → Saved Helprs** (`SavedHelpersTab.tsx`) → tapping a helper opens
+  `/post-job?offerTo=<helperId>`; (2) the resulting **direct offer** pre-targets the
+  post (`DirectOfferBanner`, `offerToHelperId` in `usePostJobForm`) so it routes to
+  that helper, who can accept directly (`helper_confirmed_at` set immediately,
+  mirroring instant-book). Verify: saving/unsaving a helper persists and the row
+  reflects it, the availability dot is correct, the offer actually reaches only the
+  targeted helper (not the open pool), the banner is clearable to fall back to an
+  open post, escrow/acceptance behave identically to a normal job, and the
+  empty-state (no saved helpers) hides the strip rather than showing a broken rail.
+  A targeted offer that leaks to the open pool, or a rehire tap that dead-ends, is a
+  HIGH finding.
 - **Every profile `?tab=` and self-service surface is driven.** `/profile` has 18
   tabs (`src/pages/Profile.tsx` `Tab` type): landing, profile, earnings, schedule,
   availability, payment, security, legal, reviews, referral, subscription, support,
@@ -834,6 +1093,28 @@ done, then the next.
   broken/empty template, canonical/meta correct for SEO). A vertical page that
   404s, ships a broken template, or drops the nav/footer is a defect even though
   it's "just marketing."
+- **Post-a-Job wizard — drive all THREE steps AND the category-adaptive form.**
+  The flow is a three-step machine (`PostJob.tsx`): **entry** (start fresh / load
+  draft / use template / AI builder) → **form** (Details → Logistics → Budget) →
+  **checkout** (order summary + pay). Each step is a must-drive cell: the
+  `PostJobFlowStepper` reflects the right step, the contextual submit label names
+  the first unfinished field, draft autosave fires + resumes on refresh, and the
+  IDV gate (`IDVPromptDialog`) blocks an unverified poster. Crucially, the form is
+  **category-adaptive** and every branch must be exercised, not just the default
+  category: the **credential-tier picker** appears only for trade categories
+  (`CREDENTIAL_TIER_CATEGORIES`, `DetailsSection.tsx`), the **"I'll provide
+  materials" toggle + materials guide** only for materials-relevant categories
+  (`MATERIALS_RELEVANT_CATEGORIES`, `LogisticsSection.tsx` / `MaterialsPanel.tsx`),
+  and **budget smart-pricing / lowball warning / comps** derive per-category
+  (`getSmartPrice` / `categoryPricing`, `BudgetSection.tsx`). Verify each category
+  shows the RIGHT conditional fields (and hides the irrelevant ones), that
+  `useAutoCategory` inference from the title is correct, and that business-only
+  fields (W-9 toggle, department/cost-center, approval-threshold notice) render
+  only under a business membership. Product lens: judge whether each category is
+  asking for the detail a helper actually needs (a pet job → pet type/size, a move
+  → rooms/heavy items, a clean → sq-ft/beds-baths) or whether the form is a
+  one-size-fits-all that buries category-specific signal — a category that collects
+  too little to price/scope the job is a product finding, not just a coverage cell.
 - **Discovery / browse-jobs flow.** Drive the job-discovery surface end-to-end:
   category/radius/price filters apply and are clearable, sort works, map ↔ list
   stay in sync, geolocation "near me" handles grant/deny/re-request, and the
@@ -880,6 +1161,36 @@ done, then the next.
   escaped (no XSS); external links carry `rel="noopener"`. A client-trusted
   money/role/credit mutation, a shipped secret, or a stored-XSS sink is a HIGH
   finding — same tier as an escrow mismatch.
+- **Failure observability — a prod failure must be visible, not silent.** Every
+  thrown render error, unhandled promise rejection, and edge-function/money-path
+  failure must surface to monitoring (Sentry or equivalent) with enough context
+  (user, route, operation) to diagnose it — not vanish into a console log no one
+  reads. Verify the client is wired to a monitor (error boundary → capture), that
+  edge functions report failures (not just `return 500`), and that the critical
+  money paths (escrow, payout, credit, subscription) emit a signal on failure so a
+  broken charge is *noticed*. Confirm no PII/secrets are shipped in the monitoring
+  payload. A money-path failure that leaves no trace anywhere is a HIGH finding —
+  you cannot fix what you cannot see.
+- **Abuse & rate-limiting — the marketplace resists spam and gaming.** Contended,
+  free, or reputation-affecting actions must be throttled/guarded server-side: job
+  posting (spam listings), messaging (message-spam / harassment), reviews
+  (review-bombing, only-after-real-completion already covered), applications/bids
+  (already 10/min·50/hr·200/day — verify enforced), referral & Pay-It-Forward
+  (self-referral / farmed-account fraud), and account creation (throwaway signups).
+  Verify the limit lives in an RPC/edge function (not just the UI), returns a human
+  "slow down" message, and can't be bypassed by calling the API directly. A
+  free/reputation/credit action with no server-side abuse guard is a finding
+  (HIGH where it can mint credit or corrupt trust signals, Medium otherwise).
+- **Consent capture — legally required agreement is recorded, not just displayed.**
+  Signup must capture and persist affirmative consent, not merely show a link: the
+  user's acceptance of Terms + Privacy at signup is recorded (timestamp/version),
+  the **18+ age gate** is enforced and stored, and push/SMS/marketing consent is an
+  explicit opt-in whose state is honored everywhere it's checked (a user who never
+  opted into marketing must not receive `send-marketing-blast`). Verify the consent
+  is stored server-side (a column/row, not just client state), re-consent is
+  triggered on a material Terms version bump, and withdrawal (unsubscribe, revoke
+  push) actually takes effect. Missing or unrecorded consent on a real-money,
+  age-restricted platform is a HIGH (compliance) finding.
 - Label/button **case consistency** (Title vs sentence case applied one way);
   consistent punctuation in CTAs.
 - **Icon semantics:** right icon for the concept, one set (lucide), consistent
@@ -908,24 +1219,7 @@ done, then the next.
   limit output to defects. If anything could be clearer, tighter, faster, more
   consistent, or more polished, say so with a concrete, specific suggestion.
 
-**Three methods, all mandatory — nothing gets missed.** Every audit uses ALL:
-1. **Code review** — read the actual source line-by-line (not grep alone) and
-   cross-reference data models/configs. Catches semantic/factual/structural
-   defects that render fine (e.g. a wrong fee %, a hardcoded value that should
-   derive from config, a skipped heading level).
-2. **Visual review** — actually render each page and look at it, on BOTH
-   surfaces (Chrome at every breakpoint + the iOS WKWebView). Catches spacing,
-   alignment, font-size drift, broken effects/glass, jank, overflow, and
-   platform-specific breakage that source reading cannot reveal.
-3. **Interactive verification** — actually operate every interactive element:
-   if it can be clicked/tapped/hovered/focused/submitted/dismissed, DO it and
-   confirm it works. Click every link (goes to the right place), press every
-   button (fires + correct pending/disabled state), open every accordion/tab/
-   sheet/modal, toggle every switch, submit every form (valid AND invalid),
-   trigger hover/focus/active on interactive elements. Never assume something
-   works because the markup looks right — exercise it.
-No method substitutes for another. A dimension is only "clean" after it has
-been checked by whichever method(s) can actually detect a defect in it.
+### §5 — Completeness & deliverables (how an audit ends)
 
 **Nothing skipped, nothing guessed — everything is reviewed.**
 - No page in scope is assumed fine — each is actually opened, rendered, and read.
@@ -1001,6 +1295,8 @@ open decision, each with the real options (recommended one first, labeled
 "(Recommended)") so the user answers by selecting. Batch related decisions into a
 single pop-up (up to 4 questions) rather than many round-trips. Anything you need
 an answer for to finish the audit is a pop-up question, not a paragraph.
+
+### §6 — Review tooling (automated second net)
 
 **Review tooling — use alongside the manual audit, not instead of it.**
 The manual three-method audit above is always required. These automated

@@ -939,6 +939,19 @@ on the way to their first success.
   notifications update, and admin resolution (`admin_release_dispute` /
   `admin_refund_dispute`) reconciles escrow to exactly one party. A dispute path
   that dead-ends or lets escrow move while open is a HIGH finding.
+  - **Dispute evidence media — drive upload (filer) AND display (other party +
+    admin).** Evidence is the crux of a dispute, so its media path gets escrow-grade
+    scrutiny on BOTH sides. Filer side: the evidence picker/camera opens on both
+    surfaces (WKWebView `<input type=file>`/`capture` quirks included), upload shows
+    progress, success replaces the placeholder, failure is recoverable, and oversized/
+    wrong-type files are rejected with human copy — a photo that appears attached but
+    silently never uploaded is a HIGH finding (it's a silent-failure on evidence).
+    Receiver side: the counter-party (in `DisputeTimelineDialog`) and the admin queue
+    (`AdminDisputes`) actually SEE every uploaded item at full fidelity, in order, with
+    correct attribution (who submitted what, when) — evidence that uploads but never
+    renders for the resolver, or is visible to the wrong party, is a HIGH finding.
+    Verify the media is access-controlled: only the two parties + admin can view a
+    dispute's evidence, never another user via a guessable URL.
 - **Credit economy is reconciled like real money — because it is.** In-app credit
   (referral credits, Pay-It-Forward donations/redemptions, promo/signup credits,
   and `cash-out-credits` conversions) is a second currency alongside Stripe escrow,
@@ -1059,7 +1072,16 @@ on the way to their first success.
   add-to-wallet affordance appears where offered, the pass generates without error,
   and its fields — name, member tier, QR/barcode — match the account; native-only,
   so drive it in the iOS sim, and confirm the web surface degrades gracefully rather
-  than showing a broken button). Each is a must-drive cell: it renders, its primary
+  than showing a broken button. **Tier-change refresh — drive both ends:** the pass
+  is a live artifact, so when the membership tier changes (upgrade, downgrade, or a
+  cron `expire-subscriptions` downgrade) the already-issued pass must update to the
+  new tier, not go stale. Sender side: the tier-change event actually pushes a pass
+  update (APNs/Google pass-update) rather than requiring the user to re-add it.
+  Receiver side: the pass already in the user's Apple/Google Wallet reflects the new
+  tier/entitlements the next time it's viewed, and a downgraded/expired membership
+  doesn't leave a pass advertising a tier the user no longer has. A pass that keeps
+  showing a stale tier after a change is a finding — it misrepresents entitlements at
+  point of use). Each is a must-drive cell: it renders, its primary
   flow works end-to-end (e.g. accept a family invite, add a pet), and empty/error/
   loading states are handled. Credit-bearing routes here (referrals, Pay It Forward)
   additionally get the High-value **credit-economy** reconciliation treatment above.

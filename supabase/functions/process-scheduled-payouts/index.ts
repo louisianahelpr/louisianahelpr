@@ -259,6 +259,11 @@ serve(async (req) => {
         // release-payout's duplicate-transfer guard (which queries
         // payout_transfers) finds nothing and issues a second Stripe transfer
         // under a different idempotency key — doubling the payout.
+        // Insert as "paid" immediately: Stripe marketplace transfers settle
+        // synchronously on creation. The transfer.created webhook handler also
+        // tries to flip this row from "pending" → "paid", but it can fire before
+        // this insert executes, leaving the row stuck at "pending" forever with no
+        // future event to fix it. Inserting as "paid" upfront eliminates that race.
         const { error: ledgerErr } = await supabaseAdmin
           .from("payout_transfers")
           .insert({
@@ -268,7 +273,8 @@ serve(async (req) => {
             stripe_account_id: helperProfile.stripe_account_id,
             amount_cents: Math.round(helperPayout * 100),
             platform_fee_cents: Math.round(helperCommission * 100),
-            status: "pending",
+            status: "paid",
+            paid_at: new Date().toISOString(),
             initiated_by: "system",
             metadata: {
               source: "scheduled_payout",

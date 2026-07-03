@@ -380,7 +380,13 @@ describe("stripe-webhook edge function", () => {
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
         id: "evt_boom",
         type: "customer.subscription.updated",
-        data: { object: { customer: "cus_1", items: { data: [] }, status: "active" } },
+        data: {
+          object: {
+            customer: "cus_1",
+            items: { data: [{ price: { product: "prod_U8rS2fR6KvQoRk" } }] },
+            status: "active",
+          },
+        },
       });
       // customer.retrieve throwing simulates an unexpected Stripe failure
       // mid-processing — the webhook must still ack 200 to stop retries.

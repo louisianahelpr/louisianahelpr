@@ -15,7 +15,7 @@ export const PAGE_TITLES: Record<TabKey, string> = {
 
 export const PAGE_DESCRIPTIONS: Record<TabKey, string> = {
   terms:
-    "Helpr's Terms of Service — eligibility, binding job agreements, escrow, split fees, subscription tiers, and tax responsibilities for Louisiana's task marketplace.",
+    "Helpr's Terms of Service — eligibility, binding job agreements, escrow, split fees, membership tiers, and tax responsibilities for Louisiana's task marketplace.",
   community:
     "Helpr's Community Rules — cancellation windows, escrow release, the revision-and-dispute process, strikes, bans, and money-and-taxes guidance.",
   privacy:

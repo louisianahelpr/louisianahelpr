@@ -35,8 +35,13 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
       }
       if (data && data.length > 0) {
         const reviewerIds = [...new Set(data.map((r) => r.reviewer_id))];
-        const { data: profiles } = await supabase
+        const { data: profiles, error: profErr } = await supabase
           .rpc("get_safe_profiles", { user_ids: reviewerIds });
+        // Non-fatal: reviews still render, reviewer names just fall back to
+        // "User". Report so a broken RPC doesn't silently degrade every card.
+        if (profErr) {
+          report(profErr, { severity: "warning", tags: { source: "ReviewPanel.loadNames" } });
+        }
 
         const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
         setReviews(data.map((r: any) => ({ ...r, reviewerName: profileMap.get(r.reviewer_id) })));

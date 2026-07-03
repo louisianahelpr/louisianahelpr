@@ -149,7 +149,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
         />
         <PolicyRowItem
           icon={Crown}
-          title="Subscription Tiers"
+          title="Membership Tiers"
           body={
             <>
               <p><strong className="text-foreground">Free ⭐:</strong> Standard access with a {TIER_PERKS.free.platformFeePercent}% platform fee on earnings.</p>

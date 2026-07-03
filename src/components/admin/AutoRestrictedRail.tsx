@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ShieldAlert, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { report } from "@/lib/errorLogger";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { createNotification } from "@/lib/notifications";
@@ -43,7 +44,7 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
   const [reversing, setReversing] = useState<string | null>(null);
 
   const load = async () => {
-    const { data: profs } = await supabase
+    const { data: profs, error: profErr } = await supabase
       .from("profiles")
       .select("user_id, full_name, email, auto_suspended_until")
       .eq("ban_status", "temp_banned")
@@ -51,15 +52,22 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
       .gt("auto_suspended_until", new Date().toISOString())
       .order("auto_suspended_until", { ascending: false })
       .limit(10);
+    if (profErr) {
+      report(profErr, { severity: "warning", tags: { source: "AutoRestrictedRail.loadProfiles" } });
+      return;
+    }
     if (!profs || profs.length === 0) {
       setUsers([]);
       return;
     }
     const ids = profs.map((p) => p.user_id);
-    const { data: vios } = await supabase
+    const { data: vios, error: vioErr } = await supabase
       .from("user_violations")
       .select("user_id")
       .in("user_id", ids);
+    if (vioErr) {
+      report(vioErr, { severity: "warning", tags: { source: "AutoRestrictedRail.loadViolations" } });
+    }
     const counts: Record<string, number> = {};
     (vios ?? []).forEach((v) => {
       if (v.user_id) counts[v.user_id] = (counts[v.user_id] || 0) + 1;

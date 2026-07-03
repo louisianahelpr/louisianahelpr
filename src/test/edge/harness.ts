@@ -10,13 +10,20 @@
  * This harness makes them testable WITHOUT modifying production source
  * (the test task is strictly additive):
  *
- *   1. Read the function's `index.ts` from `supabase/functions/<name>/`.
- *   2. Rewrite its Deno/npm/esm imports to point at the local mock modules
- *      in `./mocks/`, and rewrite `../_shared/*` imports likewise.
- *   3. Write the rewritten source to a temp `.gen.ts` file inside this
- *      directory so vitest's own TypeScript transform compiles it.
- *   4. Dynamically `import()` the temp module. A mock `serve()` (injected via
- *      the rewrite) captures the request handler.
+ *   1. Read the function's `index.ts` from `supabase/functions/<name>/`, then
+ *      follow its LOCAL relative imports (`./context.ts`, `../constants.ts`,
+ *      `./handlers/*.ts`) breadth-first so a multi-file function is bundled in
+ *      full — not just its entry point.
+ *   2. For each module, rewrite its Deno/npm/esm imports to point at the local
+ *      mock modules in `./mocks/`, rewrite `_shared/*` imports likewise (at any
+ *      `../` depth), and rewrite each intra-function local specifier to the
+ *      flat `.gen.ts` sibling that module was emitted as.
+ *   3. Write every rewritten module to a temp `.gen.ts` file inside this
+ *      directory so vitest's own TypeScript transform compiles it, and so the
+ *      `./mocks/*` + `./<sibling>.gen.ts` specifiers all resolve from one dir.
+ *   4. Dynamically `import()` the ENTRY temp module (its static imports pull in
+ *      the rest of the graph). A mock `serve()` (injected via the rewrite)
+ *      captures the request handler.
  *   5. Hand the test a `fetch`-style callable plus the env + mocks.
  *
  * The function's REAL branching logic (auth checks, ownership checks, charge /
@@ -24,7 +31,7 @@
  * only its external dependencies are swapped for inspectable doubles.
  */
 import { readFileSync, writeFileSync, rmSync } from "node:fs";
-import { join, resolve, dirname } from "node:path";
+import { join, resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 
@@ -42,23 +49,27 @@ const MOCK = {
 };
 
 /**
- * Rewrites a single edge-function source string so it imports the test
- * doubles instead of the Deno-only modules, and so its top-level `serve()`
- * call registers the handler on a harness-controlled global.
+ * Rewrites an edge-function module's EXTERNAL imports (Deno/npm/esm/`_shared`)
+ * to the test doubles. Intra-function local imports are handled separately by
+ * the bundler in `loadEdgeFunction`. `type`-only variants (`import type Stripe`,
+ * `import type { SupabaseClient }`) are matched too — they're erased by the TS
+ * transform, but rewriting keeps their specifiers resolvable and consistent.
  */
-function rewriteSource(src: string): string {
+function rewriteExternalImports(src: string): string {
   let out = src;
 
   // Stripe: `import Stripe from "https://esm.sh/stripe@..."`
+  // (also the `import type Stripe from ...` form used by context + handlers).
   out = out.replace(
-    /import\s+Stripe\s+from\s+["']https:\/\/esm\.sh\/stripe@[^"']+["'];?/g,
-    `import Stripe from "${MOCK.stripe}";`,
+    /import\s+(type\s+)?Stripe\s+from\s+["']https:\/\/esm\.sh\/stripe@[^"']+["'];?/g,
+    `import $1Stripe from "${MOCK.stripe}";`,
   );
 
   // supabase-js: `import { createClient } from "npm:@supabase/supabase-js@2"`
+  // (also `import type { SupabaseClient } from ...`).
   out = out.replace(
-    /import\s+\{([^}]*)\}\s+from\s+["']npm:@supabase\/supabase-js@[^"']+["'];?/g,
-    `import {$1} from "${MOCK.supabase}";`,
+    /import\s+(type\s+)?\{([^}]*)\}\s+from\s+["']npm:@supabase\/supabase-js@[^"']+["'];?/g,
+    `import $1{$2} from "${MOCK.supabase}";`,
   );
 
   // serve: `import { serve } from "https://deno.land/std@.../http/server.ts"`
@@ -68,31 +79,46 @@ function rewriteSource(src: string): string {
     "",
   );
 
-  // Shared helpers: `../_shared/rate-limit.ts`, `../_shared/slack-alerts.ts`,
-  // `../_shared/cors.ts`, and `../_shared/appUrl.ts`
+  // Shared helpers: `_shared/rate-limit.ts`, `_shared/slack-alerts.ts`,
+  // `_shared/cors.ts`, `_shared/appUrl.ts` — at ANY `../` depth (index.ts uses
+  // `../_shared/...`; nested handlers use `../../_shared/...`).
   out = out.replace(
-    /import\s+\{([^}]*)\}\s+from\s+["']\.\.\/_shared\/(rate-limit|slack-alerts|cors|appUrl)\.ts["'];?/g,
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(rate-limit|slack-alerts|cors|appUrl)\.ts["'];?/g,
     `import {$1} from "${MOCK.shared}";`,
   );
 
-  // Tiered fee resolver: `../_shared/helperFees.ts` is pure TypeScript (it
-  // takes the Supabase client as a param and has no Deno/remote imports), so
-  // point the generated file at the REAL module — relative to a `.gen.ts` in
-  // THIS dir (src/test/edge) — instead of a mock. The live ladder logic stays
-  // under test; with no subscription row in the mocked client it falls back to
-  // the caller's prior fee, so existing fee assertions hold unchanged.
+  // Tiered fee resolver: `_shared/helperFees.ts` is pure TypeScript (it takes
+  // the Supabase client as a param and has no Deno/remote imports), so point
+  // the generated file at the REAL module — relative to a `.gen.ts` in THIS
+  // dir (src/test/edge) — instead of a mock. The live ladder logic stays under
+  // test; with no subscription row in the mocked client it falls back to the
+  // caller's prior fee, so existing fee assertions hold unchanged. Matched at
+  // any `../` depth for parity with the block above.
   out = out.replace(
-    /import\s+\{([^}]*)\}\s+from\s+["']\.\.\/_shared\/helperFees\.ts["'];?/g,
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/helperFees\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/helperFees.ts";`,
   );
 
-  // Prepend the harness preamble: a `serve` that records the handler and a
-  // `Deno` global backed by an env map the test controls.
-  const preamble = `
+  return out;
+}
+
+/**
+ * The harness preamble, prepended ONLY to the entry module: a `serve` that
+ * records the handler and a `Deno` global backed by a test-controlled env map.
+ */
+const HARNESS_PREAMBLE = `
 import { __registerHandler as __hReg, __denoStub as Deno } from "${MOCK.deno}";
 const serve = (h) => __hReg(h);
 `;
-  return preamble + out;
+
+/** True for an intra-function local module import (`./x.ts`, `../y.ts`) that is
+ * NOT a `_shared/*` helper (those are mocked/aliased by external rewriting). */
+function isLocalModuleSpecifier(spec: string): boolean {
+  return (
+    (spec.startsWith("./") || spec.startsWith("../")) &&
+    spec.endsWith(".ts") &&
+    !spec.includes("/_shared/")
+  );
 }
 
 export interface EdgeHarness {
@@ -108,36 +134,110 @@ export interface EdgeHarness {
   }) => Request;
 }
 
+/** A module in the function's local graph, emitted as a flat `.gen.ts`. */
+interface GenModule {
+  /** Absolute path of the original source module. */
+  absPath: string;
+  /** Flat filename it's emitted as inside HERE (sibling to `./mocks/`). */
+  genName: string;
+}
+
 /**
  * Load an edge function and return a harness to drive it.
+ *
+ * Follows the entry's LOCAL relative imports breadth-first, flattening the
+ * whole module graph into sibling `.gen.ts` files so a multi-file function
+ * (entry + `context.ts` + `constants.ts` + `handlers/*.ts`) is fully bundled.
  *
  * @param fnName  Directory name under `supabase/functions/`.
  */
 export async function loadEdgeFunction(fnName: string): Promise<EdgeHarness> {
-  const srcPath = join(FUNCTIONS_DIR, fnName, "index.ts");
-  const src = readFileSync(srcPath, "utf8");
-  const rewritten = rewriteSource(src);
+  const entryPath = join(FUNCTIONS_DIR, fnName, "index.ts");
+  const runId = randomBytes(4).toString("hex");
 
-  // Write into THIS directory (NOT a subdir) so the relative `./mocks/*`
-  // specifiers in the rewritten source resolve, and vitest applies its
-  // TypeScript transform on import. The `.gen.` infix is git-ignored.
-  const genPath = join(
-    HERE,
-    `${fnName}.${randomBytes(4).toString("hex")}.gen.ts`,
-  );
-  writeFileSync(genPath, rewritten, "utf8");
+  // Dedupe by absolute path so a module imported by many handlers
+  // (e.g. `context.ts`) is emitted exactly once and every specifier that
+  // points at it rewrites to the same flat gen filename.
+  const byAbs = new Map<string, GenModule>();
+  let counter = 0;
+  const register = (absPath: string): GenModule => {
+    const existing = byAbs.get(absPath);
+    if (existing) return existing;
+    const base = basename(absPath).replace(/\.ts$/, "");
+    const mod: GenModule = {
+      absPath,
+      genName: `${fnName}.${runId}.${counter++}_${base}.gen.ts`,
+    };
+    byAbs.set(absPath, mod);
+    return mod;
+  };
+
+  const entry = register(entryPath);
+  const queue: GenModule[] = [entry];
+  const written: string[] = [];
+
+  // BFS the local import graph, rewriting each module's specifiers and
+  // collecting its emitted source. Nothing is written until the whole graph
+  // is walked so gen filenames are stable across cross-references.
+  const toWrite: Array<{ genName: string; source: string }> = [];
+  while (queue.length > 0) {
+    const mod = queue.shift()!;
+    const dir = dirname(mod.absPath);
+    let src = readFileSync(mod.absPath, "utf8");
+
+    // Collect local specifiers from the ORIGINAL source, BEFORE external
+    // rewriting introduces `./mocks/*.ts` specifiers we must not treat as
+    // local graph modules.
+    const localSpecs = new Set<string>();
+    for (const m of src.matchAll(/from\s+["']([^"']+)["']/g)) {
+      if (isLocalModuleSpecifier(m[1])) localSpecs.add(m[1]);
+    }
+
+    // Rewrite each local specifier to its flat gen sibling, enqueueing any
+    // module we haven't seen yet.
+    for (const spec of localSpecs) {
+      const depAbs = resolve(dir, spec);
+      const isNew = !byAbs.has(depAbs);
+      const depMod = register(depAbs);
+      if (isNew) queue.push(depMod);
+      // `split().join()` is a target-lib-safe literal replace-all (no
+      // `String.prototype.replaceAll`, which needs ES2021).
+      src = src
+        .split(`"${spec}"`)
+        .join(`"./${depMod.genName}"`)
+        .split(`'${spec}'`)
+        .join(`'./${depMod.genName}'`);
+    }
+
+    src = rewriteExternalImports(src);
+    // Only the entry calls `serve()` / reads `Deno` — inject the preamble there.
+    if (mod === entry) src = HARNESS_PREAMBLE + src;
+
+    toWrite.push({ genName: mod.genName, source: src });
+  }
+
+  // Write into THIS directory (NOT a subdir) so relative `./mocks/*` and
+  // `./<sibling>.gen.ts` specifiers resolve, and vitest applies its TypeScript
+  // transform on import. The `.gen.` infix is git-ignored. All files must be on
+  // disk before the entry is imported, since its static imports pull them in.
+  for (const { genName, source } of toWrite) {
+    const p = join(HERE, genName);
+    writeFileSync(p, source, "utf8");
+    written.push(p);
+  }
 
   // Reset the captured handler before importing so each load is isolated.
   const deno = await import("./mocks/deno-runtime.ts");
   deno.__clearHandler();
 
+  const entryGenPath = join(HERE, entry.genName);
   try {
     // `?t=` cache-bust so repeated loads in one process re-evaluate the module.
-    await import(/* @vite-ignore */ `${genPath}?t=${Date.now()}`);
+    await import(/* @vite-ignore */ `${entryGenPath}?t=${Date.now()}`);
   } finally {
-    // The module has been evaluated + cached by vite; the temp file is no
+    // The graph has been evaluated + cached by vite; the temp files are no
     // longer needed on disk.
-    rmSync(genPath, { force: true });
+    for (const p of written) rmSync(p, { force: true });
   }
 
   const handler = deno.__getHandler();

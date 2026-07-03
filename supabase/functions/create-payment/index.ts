@@ -218,7 +218,7 @@ serve(async (req) => {
         payment_intent_data: paymentIntentExtras,
         success_url: `${getAppUrl()}/payment-success?job_id=${jobId}`,
         cancel_url: `${getAppUrl()}/post-job`,
-        metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false" },
+        metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents) },
       }, {
         // Idempotency: a double-submit (double-tap, retried request) for the same
         // job reuses the existing Checkout Session instead of creating a second

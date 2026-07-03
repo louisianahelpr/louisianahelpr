@@ -241,7 +241,7 @@ export async function handleCheckoutSessionCompleted(
           // re-deliveries don't create multiple refunds for the same
           // duplicate charge.
           try {
-            const ONBOARDING_FEE_CENTS = 200;
+            const ONBOARDING_FEE_CENTS = parseInt((session.metadata as any)?.onboarding_fee_cents || "200", 10);
             const refund = await stripe.refunds.create(
               {
                 payment_intent: piId,

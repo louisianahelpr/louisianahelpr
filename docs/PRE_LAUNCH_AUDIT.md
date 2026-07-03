@@ -1,23 +1,33 @@
 # Louisiana Helpr — Pre-Release Full-App Audit
 
-_Generated: 2026-07-01 · Branch: `audit/pre-launch-fixes-2026-07` · Static review of the real shipping tree (`src/` + `supabase/`) + gate runs + visual/interactive verification (Chrome web pass + iOS Simulator). Supersedes the 2026-06-21 report._
+_Generated: 2026-07-03 · Branch: `main` (direct-commit workflow) · Static review of the real shipping tree (`src/` + `supabase/`) + gate runs + prod posture verification (migration-drift CLI check + live anon REST behavior probes). Supersedes the 2026-07-01 report. This was a **grading rerun** against the newly-expanded audit standard — findings are graded and cited, not fixed in-pass._
+
+---
+
+## Completion overview
+
+- **What was covered:** all 15 phases of the audit skill, executed as a parallel source sweep — Phase 1 gates (run fresh), Phase 0+2 screen inventory & persona parity, Phase 3 core journeys, Phase 4+7 security/RLS + location privacy (incl. live anon REST probes against prod), Phase 5 trust & safety, Phase 6 money/escrow deep-read, Phase 8 SEO, Phase 9 performance, Phase 10 cross-cutting. The 2026-07-01 visual/interactive pass (Chrome breakpoints + iOS Simulator) is **carried forward, not re-driven** — this rerun was a code + prod-posture grading pass; no UI changed since that pass except audited-clean copy fixes.
+- **Headline numbers:** **32 findings — 3 🔴, 8 🟠, 16 🟡, 5 🟢.** Zero fixed in-session (grading pass by design); every finding has a stated fix.
+- **What changed this pass:** nothing in `src/`/`supabase/` — this document only.
+- **Top things to fix next (in order):** F-MONEY-28 (cancel_escrow refund-after-payout double-pay), F-MONEY-29 (helper can self-release escrow via all-columns RLS), F-MONEY-01 (silent 10% fee fallback), F-MONEY-30/31 (reversal & failed-transfer retry traps), F-SEC-01 (unauthenticated instant-job-match), F-DISC-02 (direct offers leak onto anon map), F-TRUST-01 (block is client-side only), F-AUTH-01 (no server-side 18+ gate).
+- **Release state:** typecheck ✅ · lint ✅ · build ✅ · vitest ✅ (1218/1218). **Verdict: 🟠 CONDITIONAL GO** — the platform architecture, idempotency coverage, state machine, RLS breadth, and secret hygiene are genuinely strong, but the three 🔴 money findings are cracks in load-bearing walls and must land before charging real users. Each is a small, surgical diff.
 
 ---
 
 ## Executive Summary
 
-**Readiness verdict: 🟢 CONDITIONAL GO**
+**Readiness verdict: 🟠 CONDITIONAL GO** — conditional on the three 🔴 money fixes.
 
-The money path is materially safer after this pass: every remaining Stripe call without an idempotency key got one (tip checkout, both admin refund actions — on top of `cancel_escrow` shipped in #977), `release-payout` now guards the dispute check against unexpected `dispute_status` values (fails closed), and the one dropped-Supabase-error blocker (`reviewStats`) is fixed. The two 🔴 findings of this pass (stale sitemap poisoning SEO with 64 dead parish URLs; silent error-drop in rating stats) are both fixed in-branch. A user-reported native regression — the guest `/jobs` web page (marketing chrome) rendering inside the iOS shell — was root-caused and fixed with a native → `/browse` redirect, screenshot-verified in the simulator.
+Since 2026-07-01 the money path improved measurably: idempotency keys now cover **every** charge path (verified per-function this pass — escrow `escrow-${jobId}`, pro checkout `pro:${user}:${tier}`, seats, boost, BGC, tips 10-min-bucketed, cancel refund `cancel-escrow-${jobId}`, scheduled payouts), webhook signature verification / redelivery / unknown-event handling are clean, the job state machine is trigger-enforced server-side for all writes, `accept_application` closes the double-accept race with `FOR UPDATE`, reviews are once-only and dispute-blocked, and the 48h escrow copy is reconciled everywhere and parity-tested. Security posture verified against prod: **zero migration drift (353/353 both sides), all 73 tables RLS-enabled, no anon mutation grants anywhere, no service-role/`sk_` material in the shipped bundle, guarded crons (`verifyCronSecret`), bounded unauth paths.**
 
-The former "conditional" items are **closed**: both edited edge functions (`create-payment`, `release-payout`) were deployed to prod via the Supabase CLI during this pass, and the prod introspection completed (via the Management API after the MCP outage): all 27 cron jobs enumerated, `process-scheduled-payouts` confirmed **absent** from `cron.job` (validates F-MONEY-13's downgrade), `RELEASE_PAYOUT_AUTO` confirmed `= 1` (secret hash matches `sha256("1")` — resolves F-MONEY-12: the payout notification is truthful), and the zero-drift object-existence check passed for every recent migration (8/8 functions, `open_jobs_browse` view, `partner_applications` correctly dropped, `background_check_status` column present).
-
-The remaining "conditional" is the open 🟡 punch list — chiefly F-MONEY-01 — none of which is launch-gating on its own.
+What this pass found is the *edges* of the money machine — the unhappy branches:
 
 ### Top risks (priority order)
-1. **F-MONEY-01** — `create-payment` silently falls back to 10% fees if `platform_settings` is missing (lines 94–95). Should fail loud; a config outage would silently misprice every escrow.
-2. **F-MONEY-04** — refunds leave no DB ledger row; reconciliation depends on Stripe logs alone.
-3. **F-MONEY-13 residue** — the unscheduled `process-scheduled-payouts` function still exists in the repo with its ledger hole; retire it so it can't be re-scheduled as-is.
+1. **F-MONEY-28 🔴** — `cancel_escrow` checks ownership only, never `payment_status`. A refund can fire **after** the payout released → platform pays twice (helper transfer + customer refund).
+2. **F-MONEY-29 🔴** — the jobs RLS policy `Helpers can update their assigned jobs` is all-columns. A helper can write `poster_completed_at` directly via REST, then call `release` — `bothDone` computes true and payout schedules **without real poster confirmation**, bypassing the dispute window.
+3. **F-MONEY-01 🔴 (carried)** — `create-payment` and `release-payout` silently fall back to 10% fees when `platform_settings` reads fail. A config outage silently misprices every escrow.
+4. **F-MONEY-30/31 🟠** — post-payout webhook edges: a reversed transfer on a previously-resolved dispute can be double-paid; a failed-transfer retry reuses the same idempotency key and falsely flips the job "released" with a false "Payout sent!" notification.
+5. **F-SEC-01 / F-DISC-02 / F-TRUST-01 / F-AUTH-01 🟠** — four server-enforcement gaps where the client is currently the only guard: instant-match triggerable unauthenticated, pending direct offers visible on the anon map, blocks not enforced in DB triggers, and the 18+ age gate not validated at auto-approval.
 
 ---
 
@@ -28,140 +38,138 @@ The remaining "conditional" is the open 🟡 punch list — chiefly F-MONEY-01 �
 | Typecheck | `npm run typecheck` | ✅ exit 0 |
 | Lint | `npm run lint` | ✅ exit 0, 0 warnings |
 | Build | `npm run build` | ✅ exit 0 |
-| Unit tests (not in CI) | `npx vitest run` | ✅ **1179 passed / 121 files** (incl. 3 new `CancellationDialog` fee-derivation tests) |
-| Web visual check | `node scripts/audit-visual-check.mjs` | ✅ 18/18 (9 surfaces × 375/1440: meta, redirects, overflow, console) |
-| E2E (required CI gate) | Playwright | ✅ required on `main` (2 Playwright + 2 CodeQL) — Chromium vs mocked Supabase, see coverage note |
+| Unit tests (not in CI) | `npx vitest run` | ✅ **1218 passed / 127 files** |
+| E2E (required CI gate) | Playwright | ✅ required on `main` (2 Playwright + 2 CodeQL) — Chromium vs mocked Supabase |
+| Migration drift | `supabase migration list --linked` | ✅ 353 migrations, zero one-sided rows |
 
-Largest shipped JS chunks unchanged from the June pass (jspdf 399 kB · CartesianChart 261 kB · supabase 202 kB · html2canvas 200 kB · posthog 196 kB — PDF deps route-split; acceptable).
+Largest shipped JS chunks (pre-gzip): jspdf 399 kB · CartesianChart 279 kB · sentry 219 kB · posthog 206 kB · supabase 203 kB · html2canvas 200 kB · leaflet 153 kB · PostJob 141 kB. All route-split or dynamic-import-only (verified Phase 9); PDF deps excluded from PWA precache. Acceptable.
 
 ---
 
-## Phase 0 — Screen inventory (delta from 2026-06-21)
+## Phase 0 — Screen inventory & persona parity
 
-The June inventory (App.tsx routes, personas, shell archetypes) still holds, with these deltas:
-- **Removed dead pages:** `src/pages/Community.tsx` (748 lines, unrouted) and `src/pages/JobHistory.tsx` (210 lines, unrouted) deleted; `/community` and `/job-history` remain as redirects.
-- **Redirect-only routes verified live in Chrome:** `/parishes` → `/jobs`, `/parish/:slug` → `/jobs`, `/become-a-partner` → `/for-business`, `/impact` → `/`, `/job-history` → activity.
-- **Native surface rule:** `/jobs` (web SEO browse, PublicLayout) now redirects to `/browse` inside the Capacitor shell — same pattern as `/` (`NativeRedirect`).
+- **48 real routed pages** + redirect-only routes, all valid; every redirect target resolves. 0 orphan/unreachable routes, 0 dead-ends.
+- Shell architecture consistent: every page's shell choice (AppShell/PageScaffold vs document-scroll) agrees with `DOCUMENT_SCROLL_ROUTES` in `useAppShellViewport.ts`.
+- **Persona parity holds:** no accidental role-gating anywhere — every account can both post and work jobs. Account-state gates (Pending / Denied / Banned / CompleteProfile) enforced by `ProtectedRoute` and behave correctly.
+- 1 benign placeholder (non-shipping); no App-Store-gating unreachable content.
 
 ---
 
 ## Findings — consolidated, severity-grouped
 
-Legend: ✅ = fixed this pass (in-branch or already merged) · ⬜ = open · ❌ = refuted on verification.
+Legend: ⬜ = open (nothing was fixed in this grading pass) · IDs continue the 2026-07-01 numbering (`F-MONEY-01..27`, `F-SEO-01..05`, `F-XC-01..04` are prior IDs; carried items keep their ID).
 
-### 🔴 Blocker
-| ID | Location | Finding | Status |
-|----|----------|---------|--------|
-| F-XC-01 | `src/lib/reviewStats.ts:16-21` | `fetchRatingStats` dropped the Supabase `error` — rating stats silently empty on failure | ✅ fixed (`unwrap()`) |
-| F-SEO-01 | `public/sitemap.xml` | Sitemap listed `/parishes` + 64 dead `/parish/:slug` entries plus `/become-a-partner`, `/impact` — all redirects since the parish pages were retired | ✅ fixed (entries removed) |
+### 🔴 Blocker (3)
 
-### 🟠 High
-| ID | Location | Finding | Status |
-|----|----------|---------|--------|
-| F-MONEY-03 | `create-payment` (tip action) | Tip transfer had no `idempotencyKey` → double-submit could duplicate tips | ✅ fixed |
-| F-MONEY-06 | `create-payment` (`admin_refund_dispute`) | No `idempotencyKey` on refund call → admin retry could double-refund. (Original 🔴 "fail-open" half **refuted**: the catch re-throws, job is NOT flipped on refund failure) | ✅ fixed |
-| F-MONEY-07 | `create-payment` (`admin_refund_general`) | Same as F-MONEY-06 for general refunds (partial-refund support + `admin_audit_log` row confirmed present) | ✅ fixed |
-| F-MONEY-15 | `release-payout` | Dispute check matched only known `dispute_status` values — an unexpected enum value could slip past the guard | ✅ fixed (fails closed on any non-cleared status) |
-| F-SEC (PR #973) | Stripe redirect URLs | Attacker-controlled `Origin` header used in redirect URLs | ✅ merged to main |
-| F-MONEY (PR #977) | `create-payment` (`cancel_escrow`) | Missing idempotency key on cancel refund | ✅ merged to main |
-| Native regression | `src/pages/Jobs.tsx` | Guest `/jobs` rendered web marketing chrome (Navbar+Footer) inside the iOS shell (user-reported) | ✅ fixed (native → `/browse` redirect, sim-verified) |
-
-### 🟡 Medium (open — punch list)
 | ID | Location | Finding | Fix |
 |----|----------|---------|-----|
-| F-MONEY-01 | `create-payment/index.ts:94-95` | Silent fallback to 10% fees when `platform_settings` row missing (`settings?.customer_fee_percent ?? 10`) | Fail loud (500 + Sentry) instead of silently mispricing |
-| F-MONEY-04 | `create-payment` (refund paths) | Refunds write no ledger row — visible only in Stripe logs | Insert a `payout_transfers`/refund-ledger row |
-| F-MONEY-08 | `create-pro-checkout/index.ts:10-17` | `PRICE_MAP` Stripe price IDs hardcoded, never validated against the live account | Validate at deploy or fetch dynamically |
-| F-MONEY-09 | `stripe-webhook/index.ts:248-256` | Boost expiry denormalized onto the job; no `job_boosts` ledger | Insert a ledger row |
-| F-MONEY-11 | `instant-payout/index.ts:7-13` | Fee hardcoded (3% + $1, min $2) — no config source | Move to `platform_settings` |
-| F-MONEY-13 | `process-scheduled-payouts/index.ts:245-269` | Ledger-insert failure leaves transfer sent + job `payout_pending` → manual retry double-pays. Downgraded from 🔴: **prod-verified absent from `cron.job`** (never fires) | Retire the legacy function from the repo so it can't be re-scheduled as-is |
-| F-XC-02 | codebase-wide | 245 `: any` / `as any` (~58 on RPC calls; worst: AdminHealth, AdminDisputes) | Chip away; generate RPC types |
-| F-XC-03 | mostly `src/pages/Admin*` | 41 Tailwind color-utility violations (project rule: tokens via inline `hsl(var(--…))`) | Batch-convert in an admin polish pass |
+| F-MONEY-28 | `supabase/functions/create-payment/index.ts:528-574` | `cancel_escrow` verifies only ownership (`:535`) — **no `payment_status` state guard**. If the payout has already released (or is releasing), the customer can still trigger a full refund of the PI → double-pay (helper keeps the transfer, customer gets the refund). The `cancel-escrow-${jobId}` idempotency key stops double-*refunds*, not refund-after-release. | Atomic state claim before refunding: `UPDATE jobs SET payment_status='cancelling' WHERE id=$1 AND payment_status='escrow'` and abort with 409 if 0 rows. |
+| F-MONEY-29 | `supabase/migrations/20260312010219_….sql:2-6` + `create-payment/index.ts:286-288` | RLS policy `Helpers can update their assigned jobs` is `FOR UPDATE USING/WITH CHECK (auth.uid() = helper_id)` with **no column restriction**, and no trigger guards completion stamps (verified: only status transitions are trigger-gated). A helper can PATCH `poster_completed_at` on their job via REST, then call `create-payment action=release` — `bothDone` computes true and the payout schedules with **no real poster confirmation**, collapsing the poster's confirm/dispute window. | Column-restrict the helper policy (trigger whitelist of helper-writable columns: status, `helper_completed_at`, proof/tracking fields) or move completion stamps behind edge functions only. |
+| F-MONEY-01 (carried) | `create-payment/index.ts:95-97` · `release-payout/index.ts` (same pattern) | `platform_settings` read drops its error and falls back `?? 10` / `?? 10` / `?? 200`. A transient read failure silently misprices every escrow/payout at default fees. Open since 2026-07-01. | Fail loud: throw when `settings` is null; alert via the existing Slack ops hook. |
 
-### 🟢 Low / hardening / notes
-- **F-MONEY-02** (design note): helper-tier fee resolved at release, not frozen at escrow — documented behavior; `CancellationDialog` now derives from the job's frozen `helper_fee_percent` (fixed the one UI divergence, with tests).
-- **F-MONEY-05**: admin-release source lives in transfer metadata only, not on the job row — optional `payment_released_by` column.
-- **F-XC-04/05/06**: empty catch on localStorage quota; unrecovered audio-context closure; URI-decode fallback — cosmetic hardening.
-- **F-SEO-05/06/07** (clean): robots.txt correct; all public pages set `usePageMeta()` (Jobs + Evacuation fixed this pass, F-SEO-03/04 ✅); JSON-LD (Breadcrumb, WebApplication, FAQ + static LocalBusiness/Organization) present.
-- **F-SEO-02** ✅: `/subscription` added to sitemap.
+### 🟠 High (8)
 
-### ❌ Refuted / resolved on verification (recorded so they aren't re-raised)
-- **F-MONEY-06/07 "fail-open" halves** — both refund catches re-throw; job status is not flipped on Stripe failure.
-- **F-MONEY-10** (`cash-out-credits` rollback race) — idempotency key + rollback present.
-- **F-MONEY-12** (`auto-release-payment` false-promise notification) — prod-verified `RELEASE_PAYOUT_AUTO = 1` (secret hash matches `sha256("1")`); Phase-2 auto-payout IS live, notification is truthful.
-- **F-MONEY-14** (`release-payout` ledger hole) — ledger failure returns 500 *without* flipping status; retry converges via idempotency key + duplicate-transfer pre-check.
+| ID | Location | Finding | Fix |
+|----|----------|---------|-----|
+| F-MONEY-30 | `stripe-webhook/handlers/transferReversed.ts:33-45` · `release-payout/index.ts:136-149,176-181` | **Reversal-freeze bypass.** transferReversed stamps `disputed_at` but leaves `dispute_status` untouched. `release-payout` allows payout when `dispute_status ∈ {resolved, auto_resolved}` — exactly the state a previously-auto-resolved dispute leaves behind — and its dedupe matches only `pending`/`paid` ledger rows, ignoring the now-`reversed` row. Re-running release after a reversal double-pays. | transferReversed also sets a hard-block status (e.g. `dispute_status='reversal_hold'`); include `reversed` in the dedupe check with an explicit operator-cleared flag to re-pay. |
+| F-MONEY-31 | `stripe-webhook/handlers/transferFailed.ts:34` + `process-scheduled-payouts` | Retry after a failed transfer reuses the **same** `scheduled-payout-${job.id}` idempotency key. Within Stripe's ~24h idempotency window the retry returns the *same failed transfer*, the job falsely flips `released`, a false "💰 Payout sent!" notification goes out, and the helper is never paid. | Attempt counter in the key (`scheduled-payout-${job.id}-${attempt}`) or verify the returned transfer's status before flipping state. |
+| F-MONEY-04 (carried) | `cancel_escrow`, `admin_refund_dispute`, `admin_refund_general`, `void-cancelled-payments` | Refunds write **no DB ledger row** — reconciliation depends on Stripe logs alone. Open since 2026-07-01; now also blocks detecting F-MONEY-28-class incidents. | Insert a `payout_transfers`-style refund ledger row on every refund path. |
+| F-SEC-01 | `supabase/functions/instant-job-match/index.ts:39-50` | Trigger is effectively **unauthenticated**: `callerId` is nullable and the ownership check is `if (callerId && …)` — an anonymous caller passes. The job select (`:39-43`) has **no status filter and no direct-offer exclusion** → anyone can fire match-notification blasts for any job, including closed jobs and pending direct offers (leaking targeted jobs into the pool). | Require auth + ownership unconditionally; select filter `status='open' AND offered_to_helper_id IS NULL`. |
+| F-DISC-02 | `supabase/migrations/20260608120000_coarsen_open_jobs_map_precision.sql` | `get_open_jobs_for_map()` lacks the `offered_to_helper_id` filter that `get_public_open_jobs` (`20260426095550:59`) and `get_ranked_open_jobs` (`20260628120000`) both have → **pending direct offers render on the anonymous public map**. Live-verified: seeded direct-offer jobs appear in the anon REST response. (Coordinate coarsening itself is correct — 2dp ≈ 1.1 km, verified live; direct coordinate selects return 42501.) | New migration: add `AND (offered_to_helper_id IS NULL OR direct_offer_status <> 'pending')` to the map RPC. |
+| F-TRUST-01 | `20260418053532` (`user_blocks`, `are_users_blocked()`) vs `src/lib/userBlocks.ts:9-23`, `loadConversations.ts:52` | **Block is enforced client-side only.** The DB function exists but is never referenced by the messages insert trigger or the apply RPC — a direct REST caller can still message and apply to someone who blocked them. | Add `NOT are_users_blocked(sender, recipient)` to a messages `BEFORE INSERT` trigger and to the apply RPC. |
+| F-TRUST-02 | signup/complete-profile flow (no column exists) | **Terms/EULA consent is displayed but never recorded** — no `terms_accepted_at`/`terms_version` column anywhere in the schema. On a real-money, age-restricted, UGC platform (Apple 1.2 zero-tolerance EULA), acceptance must be evidenced. | Persist timestamp + version in `complete-signup`; re-consent on material version bump. |
+| F-AUTH-01 | `supabase/functions/complete-signup/index.ts:311-323` | **No server-side 18+ validation at auto-approval**: `approval_status: "approved"` is set unconditionally (`:312`) while `date_of_birth` is optional (`if (dateOfBirth)`, `:323`). The age gate lives only in `Signup.tsx:113-114` / `CompleteProfile.tsx:122-127` — a direct API call creates an approved account with no or false DOB. | Require DOB and validate ≥18 server-side before setting approved. |
 
-### Prod introspection results (2026-07-01, via Management API)
-- **`cron.job`:** 27 active jobs enumerated — `auto-release-payment` every 30 min, `auto-expire-jobs` hourly, `auto-resolve-disputes` 6-hourly, `expire-subscriptions` daily, `process-email-queue` 5-min, sweeps as expected. **`process-scheduled-payouts` and `stripe-payouts` are NOT scheduled** (F-MONEY-13 downgrade validated).
-- **Zero-drift check:** all objects from the 12 most recent migrations exist (8/8 recent functions incl. `business_spend_summary`, `get_ranked_open_jobs`; `open_jobs_browse` view; `partner_applications` dropped as intended; `profiles.background_check_status` present).
-- **Edge functions:** `create-payment` and `release-payout` (this branch's hardened versions) **deployed to prod** via `supabase functions deploy` during this pass — prod does not lag the repo. Re-deployed a second time after the silent-failure fixes below.
+### 🟡 Medium (16)
 
-### Silent-failure-hunter pass (2026-07-01) — 14 findings, ALL ✅ fixed (commit `dca62a64`) + redeployed
+| ID | Location | Finding | Fix |
+|----|----------|---------|-----|
+| F-MONEY-32 | `void-cancelled-payments` | Helper cancellation-fee transfer is best-effort — on transfer failure the helper's cut is stranded with no retry path (poster refund already out). | Persist a retryable pending-transfer row; retry on next cron run. |
+| F-MONEY-33 | `release-payout` vs other release paths | Check-then-act payout dedupe with divergent idempotency keys across paths → a narrow concurrent double-transfer window (defense-in-depth gap; each path alone is keyed). | Unify on one key scheme + rely on the ledger `UNIQUE` with an atomic claim. |
+| F-MONEY-34 | `create-payment` (`admin_release_dispute`) | Doesn't verify `status==='disputed'` before releasing — an admin action on a non-disputed job proceeds. | Add status guard, 409 otherwise. |
+| F-MONEY-35 | `instant-payout/index.ts:7-13` | Fee hardcoded (3%, $1 min $2) instead of deriving from config — violates the single-source-of-truth money rule. | Move to `platform_settings`/config; render fee copy from the same source. |
+| F-MONEY-36 | cancellation-fee + `cash-out-credits` transfers | Unledgered (same class as F-MONEY-04, lower traffic). | Same ledger-row fix. |
+| F-SEC-02 | `instant-job-match` | No blocked-relationship filter — a blocked helper can be matched/notified to their blocker's job. | Join against `user_blocks` in the eligible-helpers query. |
+| F-TRUST-03 | `src/lib/userBlocks.ts:84` | Invokes `void-cancelled-payments` with the user JWT — the function accepts only `CRON_SECRET`/service key → **guaranteed 401**. Money still lands via the hourly cron, but the toast falsely says "cancelled and refunded" immediately. | Drop the doomed invoke; word the toast as "refund processing (within the hour)". |
+| F-TRUST-04 | `20260418082439` (scanner trigger) | Off-platform-contact scanner covers **chat only** — job descriptions, bios, and review text are unscanned channels for contact-info leakage. | Extend the trigger (or an edge scan) to those columns. |
+| F-TRUST-05 | `delete-own-account` | Fails closed on in-flight jobs/escrow (good) but never purges storage media or Stripe customer linkage — CCPA deletion completeness gap. | Add storage prefix deletion + Stripe customer detach/delete to the purge. |
+| F-AUTH-02 | `complete-signup/index.ts:193-272` | All five identity-upload failures (avatar, ID front/back, selfie, intro video) are `console.error` + continue — an account can auto-approve with a silently missing ID document. | Fail the request (or set `pending`) when identity uploads fail. |
+| F-AUTH-03 | `complete-signup/index.ts:290-304` | Name/phone/bio validation runs only on the resubmission path; the initial path inserts unvalidated. | Apply the same validation to both paths. |
+| F-XC-05 | `userBlocks.ts:56,78` | Blocking drops the active-jobs lookup error — a failed read means block "succeeds" with **no job cancellation, silently**; per-job `cancelErr` also swallowed. | Surface both errors; abort the block or warn the user. |
+| F-XC-06 | 24 sites (worst: `useLifecycleHandlers.ts:61,82,103,328`, `useReferralData.ts:48`) | Named-destructure Supabase error-drops (`const { data } = …`) outside React Query — silent failures. | Convert to `unwrap()` / explicit error checks; the lifecycle handlers first. |
+| F-SEO-06 | `public/sitemap.xml` | No dynamic `/jobs/:id` (or category) URLs — the marketplace long-tail is invisible to crawlers; static file also omits public `/wrapped`. | Generate sitemap incl. open-job URLs at build/cron; add `/wrapped`. |
+| F-SEO-07 | `src/hooks/usePageMeta.ts` (SPA-wide) | All per-route title/OG/canonical are client-injected — OG scrapers (iMessage/FB/Slack, no JS) render the homepage card for every route. | Prerender public routes or edge OG rewriting. Acceptable to ship as-is. |
+| F-PERF-01 | `src/hooks/useActivityData.ts:66-68` | `select("*")` on jobs-by-customer / applications-by-helper with no `.limit()` — unbounded growth for heavy users. | `.order().limit()` + paginate. |
 
-Defect class: **supabase-js never throws** — an undestructured `await supabaseAdmin.from(...).update(...)` after an irreversible Stripe refund/transfer silently succeeds with the wrong DB state. Every DB write that follows money movement now checks `error`, logs `CRITICAL` with the Stripe object id, and returns 5xx for manual reconciliation.
+### 🟢 Low / hardening (5)
 
-| ID | Sev | Finding | File | Fix |
-|----|-----|---------|------|-----|
-| F-MONEY-16 | 🔴 | 4 unchecked `jobs.update` after refund/transfer (`cancel_escrow`, `admin_release_dispute`, `admin_refund_dispute`, `admin_refund_general`) | `create-payment/index.ts` | ✅ check → CRITICAL log + 500 w/ payment-intent id |
-| F-MONEY-17 | 🟠 | Final `released` flip unchecked after transfer | `release-payout/index.ts` | ✅ check → CRITICAL log + 500 w/ transfer id |
-| F-MONEY-18 | 🟠 | Tips ledger insert unchecked → paid tip with no row; also re-insertable | `create-payment/index.ts` | ✅ deduped on `stripe_session_id`; insert/lookup errors throw |
-| F-MONEY-19 | 🟠 | Dead `void-cancelled-payments` client invoke — cron-secret-only auth ⇒ 401 every call | `CancellationDialog.tsx` | ✅ removed; copy now promises "within the hour" (cron latency) |
-| F-MONEY-20 | 🟡 | Tip helper-profile read error silently rerouted tip to platform balance | `create-payment/index.ts` | ✅ `.maybeSingle()` + throw |
-| F-MONEY-21 | 🟡 | Escrow post-session update unchecked | `create-payment/index.ts` | ✅ check + throw (session unused is harmless) |
-| F-MONEY-22 | 🟡 | Notification payout estimate diverged from actual fee | `CancellationDialog.tsx` | ✅ softened to "approximately $X" |
-| F-MONEY-23 | 🟡 | Onboarding-fee claim + rollback writes unchecked | `release-payout/index.ts` | ✅ claim fails closed pre-transfer; rollback failure → CRITICAL + 422 |
-| F-MONEY-24 | 🟡 | `stripe.accounts.retrieve` uncaught (no outer catch in handler) | `release-payout/index.ts` | ✅ try/catch → structured log + 502 |
-| F-MONEY-25 | 🟡 | `getHelperFeePercent` fallback silent — Elite 8% becomes 10-12% invisibly | `_shared/helperFees.ts` | ✅ `console.warn` on both branches (fallback kept — never block a payout) |
-| F-MONEY-26 | 🟡 | Dup-transfer / helper-profile pre-checks failed **open** on read error | both functions | ✅ `.maybeSingle()` + fail-closed 500 |
-| F-MONEY-27 | 🟢 | Refund idempotency comments claimed "one key per job, ever" (keys expire ~24h) | `create-payment/index.ts` | ✅ comments corrected; `charge_already_refunded` backstop noted |
-| F-NAV-01 | 🟢 | Stale `/job-history` route in nav config (route deleted) | `MobileNav.tsx`, `desktopNavRoutes.ts` | ✅ removed (queryKeys `["job-history"]` cache string intentionally kept) |
-
-**Verified clean by the hunter** (recorded so they aren't re-raised): dispute-status guard allowlist `["resolved","auto_resolved"]` exactly matches the closed-in-helper's-favor states (`dispute_won` correctly stays blocked — `admin_release_dispute` bypasses `release-payout`); all three idempotency catch/rethrow paths; `unwrap` semantics at all three `fetchRatingStats` call sites; `helper_fee_percent` prop plumbing; `Jobs.tsx` hook ordering + deep-link preservation; deleted-page route hygiene. All four gates re-verified after the batch fix (typecheck/lint/build ✅, vitest 1179/1179 ✅).
+| ID | Location | Finding | Fix |
+|----|----------|---------|-----|
+| F-CONF-01 | `supabase/config.toml:12` | Declares `submit-partner-application` — the function directory doesn't exist and nothing calls it. Stale entry. | Delete the block. |
+| F-MONEY-37 | referral credit mint | Narrow theoretical double-mint race (read-then-insert). Credit paths otherwise race-safe (`cash-out-credits` uses an atomic claim). | Unique constraint on (referrer, referee). |
+| F-MONEY-38 | `src/pages/PaymentSuccess.tsx:110-127` | Success page is display-only — direct navigation shows "Payment authorized" without verifying `session_id`. Cosmetic; webhook is the real reconciler. | Optionally verify the session before asserting success. |
+| F-MONEY-39 | `create-payment/index.ts:264-269` | Unreachable `disputed` check (`:264` already rejects) — dead code, behavior correct. | Delete `:267-269`. |
+| F-XC-07 | 221 `any` (hotspots: `useUserProfileData` 19, `useOpenProfile` 12, `Admin.tsx` 8) | Type-safety debt; no behavior risk identified. | Chip away hotspots-first. |
 
 ---
 
-## Scorecards (1–5)
+## Explicitly clean (checked, not just unmentioned)
 
-### Money path
-| Dimension | Score | Note |
-|-----------|-------|------|
-| Idempotency | 5 | Keys now on **every** Stripe call (escrow, release, tip, both admin refunds, cancel) |
-| Race safety | 5 | DB dup-check + atomic fee claim |
-| Fail-closed disputes | 5 | Enum-guarded; re-throws; never marks released on failed transfer |
-| Ledger integrity | 4 | `payout_transfers` solid on payouts; refunds/boosts lack rows (F-MONEY-04/09) |
-| Config-derived fees | 4 | UI derives everywhere; server fallback `?? 10` remains (F-MONEY-01) |
+- **Idempotency (Phase 6):** every user-facing charge path carries a server-side Stripe idempotency key — escrow, tip (10-min bucket), pro checkout, business seats, boost, BGC, instant payout, cash-out, cancel refund, scheduled payouts. Verified per-function.
+- **Webhooks:** signature verified, redelivery idempotent, unknown events tolerated. `transferCreated`/ledger flow correct on the happy path.
+- **State machine (Phase 3):** `enforce_job_status_transition` trigger gates ALL status writes server-side; `accept_application` RPC uses `FOR UPDATE` — double-accept race closed; budget bounded $5–5000 by trigger.
+- **Escrow release gating:** party + status + 30-min minimum + PI `succeeded` verification; auto-release uses the 48h cutoff with an optimistic-concurrency claim on `payment_status='escrow'` and DB-level payout dedupe.
+- **Reviews:** parties-only, other-party-only, completed+released, dispute-blocked, 30-day window, `UNIQUE (job_id, reviewer_id)`.
+- **48h escrow copy:** reconciled at every site; remaining 72h references are the legitimate revision-acceptance window; guarded by `escrowTiming.parity.test.ts`.
+- **Security & RLS (Phase 4, prod-verified):** 73/73 tables RLS-enabled; zero `GRANT INSERT/UPDATE/DELETE … anon` in any migration; no service-role/`sk_` strings in `dist/`; client env is 8 publishable `VITE_*` vars only; SECURITY DEFINER functions pin `search_path`; crons guarded by `verifyCronSecret`; `complete-signup`'s unauth path bounded (existing user, 30-min window, no prior sign-in); admin functions gate via JWT + `has_role` with `admin_audit_log`. Zero migration drift (353/353).
+- **Location privacy (Phase 7, live-verified):** anon map coordinates rounded to 2dp; direct coordinate selects denied (42501); `mask_job_location()` masks text locations except for the offered helper; ranked/browse RPCs filter pending direct offers correctly (the map RPC is the one gap — F-DISC-02).
+- **Trust & safety (Phase 5):** Report path complete (job/message/user/profile/review + AdminReports triage + auto-escalation); server-side chat scan authoritative with 7-day auto-suspend escalation (containment-by-design); dispute path party-scoped, escrow held while open, excluded from auto-release; chat media in a private participant-scoped bucket; realtime channels all filtered + nonced; Apple 1.2 required set (filter/report/block/removal/EULA-display) present — minus the consent-*recording* gap (F-TRUST-02).
+- **Cross-cutting (Phase 10):** route error boundaries complete; console logs DEV-gated; a11y sample clean.
+- **SEO statics (Phase 8):** index.html title/description/canonical/OG/Twitter/favicons/geo + LocalBusiness & Organization JSON-LD; robots.txt correct; `usePageMeta` covers all 14 public pages; prior sitemap dead-URL blocker (F-SEO-01) stays fixed.
+- **Performance (Phase 9):** every route lazy-loaded; jspdf/html2canvas/leaflet dynamic-only; recharts rides lazy routes; feed/messages/notifications/admin queries paginated or limited (except F-PERF-01); vendor chunks split with `modulePreload` disabled.
 
-### Per-screen (representative, this pass)
-| Screen | Score | Note |
-|--------|-------|------|
-| Jobs (web) | 5 | Full meta + canonical; native redirect |
-| Browse (native guest) | 5 | Sim-verified chrome, deep-link preserved |
-| Evacuation | 5 | Meta added |
-| CancellationDialog | 5 | Fee derived from frozen `helper_fee_percent`, tested |
-| Admin | 3 | F-XC-02/03 debt concentrated here |
+---
+
+## Scorecards
+
+| Area | Score | Note |
+|------|-------|------|
+| Money path — charge & idempotency | 5/5 | Every path keyed; math server-computed; fee snapshot loud |
+| Money path — refund/reversal edges | 2/5 | F-MONEY-28/29/30/31/04 all live here — the unhappy branches are the gap |
+| Auth & signup | 3/5 | Flows solid; server-side age/consent/upload enforcement missing (F-AUTH-01/02/03, F-TRUST-02) |
+| RLS & server enforcement | 4/5 | Broad and clean; two width gaps (helper all-columns, block not in triggers) |
+| Discovery & location privacy | 4/5 | Coarsening + masking verified live; one map-RPC filter gap |
+| Trust & safety / App-Store 1.2 | 4/5 | Full toolset present; consent recording + scanner breadth open |
+| SEO / web surface | 4/5 | Statics excellent; SPA OG limitation known and accepted |
+| Performance | 5/5 | Aggressive route-splitting throughout; one unbounded query |
+| Cross-cutting health | 4/5 | Error boundaries + DEV-gating clean; 24 silent error-drops remain |
 
 ---
 
 ## Prioritized punch list
 
-**Done this pass (formerly must-do at merge)**
-- ✅ `create-payment` + `release-payout` deployed to prod.
-- ✅ Prod introspection complete (cron listing, `RELEASE_PAYOUT_AUTO=1`, zero-drift check).
+**Must fix before charging real users (release-gating):**
+1. F-MONEY-28 — `cancel_escrow` atomic state claim
+2. F-MONEY-29 — column-restrict helper job updates
+3. F-MONEY-01 — fail loud on missing `platform_settings`
+4. F-MONEY-30 — reversal hard-block status
+5. F-MONEY-31 — failed-transfer retry key
+6. F-SEC-01 — authenticate + filter instant-job-match
+7. F-DISC-02 — direct-offer filter on the map RPC (migration)
+8. F-TRUST-01 — block enforcement in DB triggers (migration)
+9. F-AUTH-01 — server-side 18+ validation
+10. F-TRUST-02 — record Terms consent (migration + complete-signup)
 
-**Quick wins**
-1. F-MONEY-01 — fail loud on missing `platform_settings`.
-2. F-MONEY-13 — retire the unscheduled legacy `process-scheduled-payouts` function from the repo.
+**Quick wins (small diffs, do alongside):** F-CONF-01, F-MONEY-34, F-MONEY-39, F-TRUST-03 (toast copy), F-AUTH-02/03, F-XC-05.
 
-**Deferred**
-3. F-MONEY-04/08/09/11 — ledger rows + config-sourcing for refunds, price map, boosts, instant-payout fee.
-4. F-XC-02/03 — `any` debt + admin Tailwind color-utility cleanup.
+**Deferred (post-launch acceptable):** F-SEO-06/07 (prerender/dynamic sitemap), F-TRUST-05 (storage/Stripe purge), F-TRUST-04 (scanner breadth), F-PERF-01, F-XC-06/07, F-MONEY-32/33/35/36/37/38.
 
 ---
 
-## Coverage-honesty note
+## Coverage honesty
 
-Explicitly **not fully verified** this pass:
-- ~~Prod introspection (blocked)~~ — **RESOLVED**: completed via the Management API (see "Prod introspection results" above); cron listing, `RELEASE_PAYOUT_AUTO=1`, and the zero-drift sweep all verified.
-- **Authed iOS surface:** the sim pass covered the guest surface (boot → /browse, push deep-link → /jobs → /browse redirect, job-detail dialog). Authed native screens were not re-driven this pass (last full authed sim pass: 2026-06 audits).
-- **Stripe test-card drives:** money-path verification this pass was source-level (line-traced `create-payment`, `release-payout`, `process-scheduled-payouts`, `auto-release-payment`, `cash-out-credits`, `instant-payout`, `stripe-webhook`, `create-pro-checkout`); live test-card runs of every charge path were not repeated.
-- **E2E reality gap (standing):** Playwright runs Chromium against mocked Supabase; green CI ≠ native-verified.
+- **Method mix this pass:** full parallel static source sweep (all phases), fresh gate runs, prod posture verification via `supabase migration list --linked` (zero drift) and **live anon REST behavior probes** against prod (map RPC coordinate precision, direct coordinate denial, direct-offer leak reproduction). The **visual/interactive pass (Chrome 375/768/1440/2xl + iOS Simulator) was NOT re-driven this session** — the 2026-07-01 visual results are carried forward; no UI-affecting code changed since.
+- **MCP prod SQL introspection was classifier-blocked all session** (`execute_sql` unavailable). The planned `pg_proc` anon-EXECUTE enumeration was substituted with: zero migration drift (ledger repaired 2026-07-01, versions trustworthy) + migration-file GRANT/REVOKE enumeration + the live anon REST probes above, which test actual prod behavior rather than catalog state. Residual risk assessed low.
+- **No live Stripe test-card driving this pass** — idempotency/gating verified by full code reads; the 2026-07-01 pass drove test-mode cards.
+- **Spot-checked, not exhaustively read:** decline/counter client handlers (DB trigger authoritative regardless), `process-scheduled-payouts` internals, all 27 admin views' queries, per-image `loading="lazy"` on every card variant, Stripe Price objects vs `subscriptionTiers.ts` display amounts, boost-job and Pay-It-Forward full paths.
+- **F-MONEY-29 caveat:** asserted from migrations as written; greps for any later narrowing (`REVOKE`/`GRANT UPDATE`, guard triggers, policy re-creates) found none, and no trigger touches `poster_completed_at`.

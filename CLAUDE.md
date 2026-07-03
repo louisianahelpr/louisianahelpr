@@ -726,6 +726,17 @@ on the way to their first success.
 - **Auth & session flows:** login / signup / logout / password-reset / social /
   biometric all work; protected-route redirect preserves & returns to
   destination; expired-session handling doesn't dump the user to a blank screen.
+- **Auth-link integrity — the emailed links must be single-use, expiring, and
+  cold-start-safe.** Password-reset and email-change flows hinge on a link mailed
+  to the user (`auth-email-hook`), so the link itself gets hardened, not just the
+  form: it opens correctly from a COLD app start on both surfaces (web + native
+  universal link), it is **one-time** (a second click after use is rejected with
+  human copy, not a silent re-reset), it **expires** and an expired link routes to
+  a "request a new one" path rather than a dead error, and an **email change
+  confirms BOTH addresses** (old + new notified/authorized) so an account can't be
+  silently reassigned. A reset/verify link that is reusable, never expires, or
+  changes the login email without confirming the old one is a HIGH (account-takeover)
+  finding.
 - **Cross-view data integrity:** the same entity shows identical data across
   list ↔ detail ↔ checkout (a job's title/price/time never disagree between views).
 - **Destructive-action safeguards:** delete/cancel/irreversible actions confirm,
@@ -741,6 +752,17 @@ on the way to their first success.
   shows a retry — never silently drops. Chat controls stay role/state-gated (no
   messaging a job you're not party to). A dropped or mis-routed message is a HIGH
   finding.
+  - **Chat media / attachments — drive send AND receive, with moderation.** If the
+    composer (`ChatComposer`) accepts a photo/attachment, drive the whole path both
+    directions: the picker/camera opens on both surfaces (WKWebView `<input
+    type=file>`/`capture` quirks), upload shows progress, the image renders at the
+    right aspect on the RECEIVER's side in realtime, and a failed send shows a retry
+    — never a phantom-sent image that silently never uploaded (that's a HIGH
+    silent-failure, same as a dropped message). Moderation is not optional: chat
+    media + text pass the off-platform-contact scanner and content moderation, so a
+    phone number or address embedded in an image caption/text is caught, and an
+    operator can take a message/image down. Attachment access is scoped to the two
+    parties — no viewing another thread's media via a guessable URL.
 - **Notifications parity — in-app panel AND native push must agree.** Every
   event that should notify (application/bid, accept/decline, on-my-way, arrival,
   completion, payout, review, message) produces a notification that is accurate,
@@ -749,6 +771,19 @@ on the way to their first success.
   with `useActivityBadgeCounts`; read-state syncs across surfaces; no stale, dead,
   or duplicate notifications. Tapping a notification lands on the correct target,
   not a generic list.
+- **Push-token lifecycle — a logged-out or handed-off device must STOP receiving
+  the user's notifications.** Delivery parity is moot if the token routing is wrong,
+  so audit the token's whole life: it is registered/upserted on login (and on
+  permission grant), **cleared server-side on logout** (the row is removed/
+  invalidated, not just locally forgotten), refreshed when the OS rotates it, and
+  de-duplicated so one device holds one active token. The failure this prevents is a
+  privacy leak: on a shared/handed-off phone, user A logs out and user B logs in —
+  user A's push notifications must NOT keep arriving on that device, and B must not
+  receive A's. Verify by reading the register/unregister path (`PushNotifications`
+  listeners + the token table) and, in the sim, driving login → logout → second
+  login and confirming the token table reflects exactly the current session. A token
+  that survives logout, or notifications delivered to a signed-out device, is a HIGH
+  (privacy) finding.
 - **Reviews & ratings integrity.** A review can be left ONLY after the job is
   complete, only by a party to it, in both directions (poster↔helper), exactly
   once (no double-review, no self-review, no review of a cancelled/declined job).
@@ -780,6 +815,18 @@ on the way to their first success.
   takes effect (blocked user disappears from discovery/chat), and can't be
   trivially bypassed. Any safety affordance (share-location, emergency, dispute)
   is reachable and does what it claims. Missing or dead safety controls are HIGH.
+- **Live location during an active job — drive share (helper) AND view (poster),
+  and prove it STOPS.** The en-route tracking surface (`JobTracking.tsx`) is a
+  safety+privacy feature, so both ends are audited. Sharer side (helper): starting
+  "on my way" begins location sharing with a clear indication it's live, the OS
+  location permission grant/deny/re-request is handled, and it works on both
+  surfaces. Viewer side (poster): the helper's position renders and updates in
+  realtime, scoped so ONLY the job's poster can see it (never another user, never
+  after they're no longer party to the job). The privacy-critical assertion:
+  location sharing **automatically stops** at job completion/cancellation and is not
+  left broadcasting — verify the watcher is torn down and no further positions are
+  written once the job leaves its active state. Location visible to a non-party, or
+  sharing that keeps running after the job ends, is a HIGH (privacy) finding.
 - **UGC moderation & EULA — Apple guideline 1.2 (App-Store-gating).** Because the
   app hosts user-generated content (job text, messages, community posts, profile
   bios, uploaded photos), Apple requires ALL of: a method to filter objectionable
@@ -830,6 +877,23 @@ on the way to their first success.
   to the correct party (full/partial), the cancellation reason + confirmation
   copy is human, both sides' status/notifications update, and no money is stranded
   or double-moved. A refund that doesn't reconcile with escrow is a HIGH finding.
+- **Edit a live posted job — the money-safe mutation path, sender AND receiver.**
+  A poster can edit a job after posting (`EditJobDialog.tsx`), so the edit is driven
+  as a first-class money+lifecycle flow, not an afterthought. Sender side: which
+  fields are editable must be **gated by job state** — freely editable while open/
+  unaccepted, but once a helper is accepted and ESPECIALLY once escrow is held, a
+  price/scope change cannot silently move money or rewrite the deal underneath the
+  helper. Receiver side: the accepted helper is notified of any change, sees the new
+  terms clearly diffed from the old, and a material change (price/scope/time)
+  requires their **re-consent** rather than auto-applying; escrow adjusts correctly
+  (top-up charged / partial refunded through the same idempotent, reconciled path as
+  a normal charge) and never ends up under- or over-funded versus the displayed
+  amount. Verify the server enforces the state gate (not just the dialog hiding a
+  field), and that editing after escrow can't strand or double-move funds. A live
+  edit that changes the price past a held escrow without re-consent + reconciliation,
+  or that a helper isn't told about, is a HIGH finding. Same rules for **cancelling**
+  a job via the edit surface — it routes into the cancellation/refund path above,
+  not a silent delete that orphans escrow.
 - **Subscription / membership management.** Beyond the initial purchase: upgrade,
   downgrade, cancel, and resume a membership each work end-to-end — proration/
   effective-date is stated correctly, the new tier's entitlements take effect

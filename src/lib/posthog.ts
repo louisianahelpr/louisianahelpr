@@ -30,23 +30,27 @@ export function initPostHog() {
       person_profiles: "identified_only",
       capture_pageview: true,
       capture_pageleave: true,
-      // Auto-capture window.onerror + unhandledrejection into PostHog
-      // Error Tracking. Complements Sentry + error_logs (triple redundancy).
-      capture_exceptions: true,
+      // PostHog 1.396.5 introduced an eval() call inside its exception-capture
+      // code path that the production CSP (no `unsafe-eval`) correctly blocks,
+      // generating a flood of unhandled-rejection Sentry events (JAVASCRIPT-17).
+      // Sentry already captures all exceptions (primary), and error_logs captures
+      // them too, so PostHog exception capture is triple-redundant. Disable it to
+      // stay within the CSP without weakening the policy.
+      capture_exceptions: false,
       // Capacitor wraps the app in a WebView; disable session recording
       // by default to avoid surprising bandwidth on cellular.
       disable_session_recording: true,
       // Skip the surveys + exception-autocapture extension scripts (~37KB
       // of unused JS flagged by Lighthouse). We never use surveys, and
-      // capture_exceptions above already wires error tracking via the
-      // core SDK without the standalone extension.
+      // exception capture is delegated to Sentry, so the standalone
+      // extension is unnecessary.
       disable_surveys: true,
       autocapture: false,
       // Prevent PostHog from fetching its optional extension scripts
       // (surveys.js ~33KB, exception-autocapture.js ~5KB, toolbar, etc.)
       // from us-assets.i.posthog.com. We don't use any of them — surveys
-      // and toolbar are off, and capture_exceptions above wires error
-      // tracking via the core SDK instead of the standalone extension.
+      // and toolbar are off, and exception capture is disabled here and
+      // handled by Sentry instead.
       disable_external_dependency_loading: true,
       loaded: (ph) => {
         if (import.meta.env.DEV) ph.debug(false);

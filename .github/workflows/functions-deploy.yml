@@ -108,7 +108,7 @@ jobs:
           else
             if echo "$CHANGED" | grep -qE '^supabase/functions/_shared/'; then
               echo "::warning::_shared changed — promoting to deploy-all to avoid leaving stale callers."
-              FUNCTIONS=$(ls supabase/functions/ | grep -v '^_shared$' | tr '\n' ' ')
+              FUNCTIONS=$(ls supabase/functions/ | grep -v '^_shared$' | tr '\n' ' ' || true)
             fi
           fi
 

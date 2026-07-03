@@ -356,7 +356,7 @@ describe("release-payout edge function", () => {
       const ledger = scenario.writes.find(
         (w) => w.table === "payout_transfers" && w.op === "insert",
       );
-      expect((ledger?.payload as Record<string, unknown>).status).toBe("pending");
+      expect((ledger?.payload as Record<string, unknown>).status).toBe("paid");
       expect((ledger?.payload as Record<string, unknown>).amount_cents).toBe(8800);
 
       const jobWrite = scenario.writes.find(

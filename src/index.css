@@ -222,6 +222,12 @@
   --amber-ink:    36 72% 28%;   /* label & body text */
   --amber-solid:  36 72% 35%;   /* solid button fill */
 
+  /* Live "In progress / Upcoming" header pill — a yellower, brighter hue (45°
+     vs amber's 36°) so the live-status chip reads distinctly sunny, not the
+     muted awaiting-revision amber above. Kept separate on purpose. */
+  --live-pill-tint:  45 95% 50%;   /* dot / fill / border base */
+  --live-pill-ink:   42 90% 26%;   /* label text, legible on the faint fill */
+
   /* "Charged / paid" green status chip (activity payment state). */
   --charged-tint:   142 35% 96%;   /* chip fill */
   --charged-ink:    142 38% 28%;   /* chip text */
@@ -371,6 +377,9 @@
   --amber-tint:   36 65% 56%;   /* lighter base so low-alpha fills read on dark */
   --amber-ink:    36 78% 66%;   /* legible amber text on the dark canvas */
   --amber-solid:  36 60% 50%;
+
+  --live-pill-tint:  46 92% 58%;   /* brighter yellow so it reads on dark */
+  --live-pill-ink:   46 95% 70%;   /* legible yellow label on the dark canvas */
 
   --charged-tint:   142 24% 15%;   /* deep green chip fill on dark card */
   --charged-ink:    142 45% 66%;   /* legible green text on dark */

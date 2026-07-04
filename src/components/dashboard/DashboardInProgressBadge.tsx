@@ -42,29 +42,29 @@ const DashboardInProgressBadge = ({ job, onView }: DashboardInProgressBadgeProps
         <button
           type="button"
           aria-label={`${label}: ${job.title}. Tap for details.`}
-          className="btn-press inline-flex h-8 items-center gap-1.5 rounded-full pl-2 pr-2.5 transition-transform active:scale-[0.97]"
+          className="btn-press inline-flex h-6 items-center gap-1 rounded-full pl-1.5 pr-2 transition-transform active:scale-[0.97]"
           style={{
-            background: "hsl(var(--amber-tint) / 0.18)",
-            border: "1px solid hsl(var(--amber-tint) / 0.5)",
+            background: "hsl(var(--live-pill-tint) / 0.22)",
+            border: "1px solid hsl(var(--live-pill-tint) / 0.6)",
           }}
         >
           {/* Pulsing "live" dot — the ping ring only animates for an
               actively-in-progress job so the pulse genuinely signals live. */}
-          <span className="relative flex h-2 w-2 shrink-0">
+          <span className="relative flex h-1.5 w-1.5 shrink-0">
             {live && (
               <span
                 className="absolute inline-flex h-full w-full rounded-full opacity-75 motion-safe:animate-ping"
-                style={{ background: "hsl(var(--amber-solid))" }}
+                style={{ background: "hsl(var(--live-pill-tint))" }}
               />
             )}
             <span
-              className="relative inline-flex h-2 w-2 rounded-full"
-              style={{ background: "hsl(var(--amber-solid))" }}
+              className="relative inline-flex h-1.5 w-1.5 rounded-full"
+              style={{ background: "hsl(var(--live-pill-tint))" }}
             />
           </span>
           <span
             className="font-serif italic uppercase tracking-[0.1em] text-ds-9"
-            style={{ color: "hsl(var(--amber-ink))" }}
+            style={{ color: "hsl(var(--live-pill-ink))" }}
           >
             {label}
           </span>

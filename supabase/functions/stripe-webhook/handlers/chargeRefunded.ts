@@ -21,8 +21,13 @@ export async function handleChargeRefunded(
   // leaves the bulk of escrow in place, so marking the whole job refunded would
   // strand held funds in a wrong terminal state. Reconcile on the actual amounts.
   const isFullRefund = charge.amount_refunded >= charge.amount;
+  // The onboarding-fee correction refund is created with
+  // metadata.reason = "duplicate_onboarding_fee" on the Refund object itself,
+  // NOT on the parent Charge. Read from the latest refund (data[0] = newest
+  // first in Stripe's reverse-chronological list) to correctly detect it.
+  const latestRefund = charge.refunds?.data?.[0];
   const isOnboardingFeeCorrection =
-    (charge.metadata as Record<string, string> | null)?.reason === "duplicate_onboarding_fee";
+    (latestRefund?.metadata as Record<string, string> | null)?.reason === "duplicate_onboarding_fee";
 
   if (refundPiId && isFullRefund && !isOnboardingFeeCorrection) {
     const { data: refundedJob } = await supabase

@@ -16,11 +16,9 @@ describe("useAppShellViewport", () => {
 
   // The "app-shell" class on <html> locks the viewport to 100dvh +
   // overflow:hidden, forcing pages to use AppShell's internal scroll
-  // container. Marketing, long-form, and the auth/onboarding pages that
-  // may exceed the viewport on small devices (Signup, CompleteProfile,
-  // ForgotPassword, ResetPassword) need normal document scroll. Only
-  // genuinely-short auth pages (Login) deliberately KEEP the lock so iOS
-  // doesn't rubber-band the body around content that already fits.
+  // container. Marketing, long-form, and auth/onboarding pages that may
+  // exceed the viewport height (including Login on short landscape viewports)
+  // need normal document scroll and must NOT have the lock.
 
   it("removes app-shell on the marketing root /", () => {
     document.documentElement.classList.add("app-shell"); // start locked
@@ -28,9 +26,10 @@ describe("useAppShellViewport", () => {
     expect(document.documentElement.classList.contains("app-shell")).toBe(false);
   });
 
-  it("ADDS app-shell on /login (short auth page — viewport-locked, not document scroll)", () => {
+  it("removes app-shell on /login (AuthShell document-scroll — card can exceed fold on landscape)", () => {
+    document.documentElement.classList.add("app-shell");
     renderHook(() => useAppShellViewport(), { wrapper: wrapperFor("/login") });
-    expect(document.documentElement.classList.contains("app-shell")).toBe(true);
+    expect(document.documentElement.classList.contains("app-shell")).toBe(false);
   });
 
   it("removes app-shell on /signup", () => {

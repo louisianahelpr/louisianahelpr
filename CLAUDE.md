@@ -425,6 +425,22 @@ sibling uses is a defect even if it "looks fine."
      (Sheets that can't use `DialogHero` directly must still mirror the same
      eyebrow→title→subtitle stack and tokens — same parts, same order, same
      spacing — so a bottom sheet reads as a sibling of a centered dialog.)
+  3. **ZERO hand-rolled headers may remain — this is a standing backlog, not a
+     touch-only rule.** Every popup in the app must render its header through
+     `DialogHero` (or, for a `Sheet`/`Drawer`, the identical mirrored stack), so
+     that EVERY popup has basically the SAME header layout — same eyebrow→title
+     (→subtitle) parts, in the same order, at the same sizes/spacing/colors. A
+     dialog that still composes its own `<DialogHeader>`/`<DialogTitle>`/
+     `<DialogDescription>` stack (or any bespoke `<h2>`+`<p>` header) is a DEFECT
+     to migrate, whether or not the current change touches it. There are ~60 such
+     files today (`BlockUserDialog`, `ReportDialog`, `DisputeDialog`, `TipDialog`,
+     `CancellationDialog`, the whole `admin/*` dialog set, etc.); migrating them
+     to `DialogHero` is in scope for every audit pass until the count is zero.
+     The ONLY popups exempt are the confirm primitives whose header is itself the
+     shared canonical component — `AlertDialog`/`BrandConfirmDialog` (their
+     `AlertDialogHeader`/`AlertDialogTitle` IS the one shared confirm header) —
+     and even those must not be re-styled per-instance. Goal state: not one popup
+     in the app has a header a reader could tell "a different person built."
 - Any time you're about to pick a spacing/width/color/component "that seems
   right," STOP: find the source-of-truth sibling and copy it. Inventing a value
   is a guess.

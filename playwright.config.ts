@@ -70,7 +70,9 @@ export default defineConfig({
     // (which requires an exact revision match that may not be available when
     // browser downloads are network-restricted). headlessShell is resolved
     // at config-load time by findAvailableHeadlessShell() above.
-    ...(headlessShell ? { executablePath: headlessShell } : {}),
+    // executablePath must live inside launchOptions — setting it directly on
+    // the use block is silently ignored by @playwright/test.
+    ...(headlessShell ? { launchOptions: { executablePath: headlessShell } } : {}),
   },
   projects: [
     {

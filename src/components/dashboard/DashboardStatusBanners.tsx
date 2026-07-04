@@ -12,22 +12,19 @@ export type UpcomingJob = {
 
 interface DashboardStatusBannersProps {
   isPendingReview: boolean;
-  upcomingJob: UpcomingJob | null;
   onPendingClick: () => void;
-  onUpcomingClick: () => void;
 }
 
 /**
- * The `beforePanel` status strips lifted verbatim out of Dashboard: the
- * progressive-activation "verification in progress" banner and the
- * upcoming-booked-job reminder row. Pure presentation; navigation is
- * threaded in as explicit callbacks.
+ * The `beforePanel` verification banner lifted out of Dashboard: the
+ * progressive-activation "verification in progress" strip. Pure
+ * presentation; navigation is threaded in as an explicit callback. (The
+ * upcoming/in-progress job reminder moved to the pinned top nav as
+ * `DashboardInProgressBadge` so it no longer costs a content row.)
  */
 const DashboardStatusBanners = ({
   isPendingReview,
-  upcomingJob,
   onPendingClick,
-  onUpcomingClick,
 }: DashboardStatusBannersProps) => {
   return (
     <>
@@ -66,49 +63,6 @@ const DashboardStatusBanners = ({
             </p>
           </button>
         </motion.div>
-      )}
-
-      {/* Upcoming booked-job reminder — only visible to helpers with an
-          accepted or in-progress job. Keeps commitments front-of-mind
-          without forcing a trip to Activity > My Jobs. */}
-      {upcomingJob && (
-        // SINGLE-LINE reminder, full column width so it shares the same
-        // left/right edges as the greeting + Browse cards bracketing it
-        // (the FAB is the screen's only primary fill). Label + title + date
-        // stay on one line — slim by height, but a properly-aligned box, not
-        // a narrower/fainter lesser-tier strip.
-        <button
-          type="button"
-          onClick={onUpcomingClick}
-          className="w-full rounded-2xl px-4 py-2.5 text-left flex items-center gap-2 transition-transform active:scale-[0.99]"
-          style={{
-            background: "hsl(var(--bark) / 0.10)",
-            border: "1px solid hsl(var(--bark) / 0.28)",
-          }}
-        >
-          <span
-            className="shrink-0 font-serif italic uppercase tracking-[0.12em] text-ds-9"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
-          >
-            {upcomingJob.status === "in_progress" ? "In progress" : "Upcoming"}
-          </span>
-          <span className="flex-1 min-w-0 truncate text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
-            <span className="font-semibold">{upcomingJob.title}</span>
-            {upcomingJob.date_needed && (
-              <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {" · "}
-                {new Date(upcomingJob.date_needed).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-                {upcomingJob.start_time ? ` ${upcomingJob.start_time.slice(0, 5)}` : ""}
-              </span>
-            )}
-          </span>
-          <span
-            className="shrink-0 text-ds-11 font-sans font-semibold"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            View ›
-          </span>
-        </button>
       )}
     </>
   );

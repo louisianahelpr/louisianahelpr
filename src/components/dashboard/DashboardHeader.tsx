@@ -4,13 +4,19 @@ import { Shield, Menu } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import HelprMark from "@/components/HelprMark";
+import DashboardInProgressBadge from "@/components/dashboard/DashboardInProgressBadge";
+import type { UpcomingJob } from "@/components/dashboard/DashboardStatusBanners";
 
 interface DashboardHeaderProps {
   title?: string;
   onMenuClick?: () => void;
+  /** Nearest accepted / in-progress job — shows the live status pill. */
+  inProgressJob?: UpcomingJob | null;
+  /** Navigate to the in-progress job. */
+  onViewInProgress?: () => void;
 }
 
-const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
+const DashboardHeader = ({ title, onMenuClick, inProgressJob, onViewInProgress }: DashboardHeaderProps) => {
   const navigate = useNavigate();
   const { isAdmin } = useCurrentUser();
 
@@ -29,7 +35,10 @@ const DashboardHeader = ({ title, onMenuClick }: DashboardHeaderProps) => {
             <HelprMark to="/dashboard" size="md" />
           )}
         </div>
-        <div className="flex items-center gap-1 -mr-1">
+        <div className="flex items-center gap-1.5 -mr-1">
+          {inProgressJob && onViewInProgress && (
+            <DashboardInProgressBadge job={inProgressJob} onView={onViewInProgress} />
+          )}
           {isAdmin && (
             <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} className="btn-press rounded-ds-md h-10 w-10" aria-label="Admin panel" style={{ color: "hsl(var(--olivewood))" }}>
               <Shield className="w-4 h-4" />

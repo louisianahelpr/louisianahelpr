@@ -16,7 +16,6 @@ import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
 import BroadcastBanner from "@/components/BroadcastBanner";
-import DashboardGreetingCard from "@/components/dashboard/DashboardGreetingCard";
 import DashboardStatusBanners from "@/components/dashboard/DashboardStatusBanners";
 import PayItForwardTeaser from "@/components/dashboard/PayItForwardTeaser";
 import { DashboardBannedScreen, DashboardDeniedScreen } from "@/components/dashboard/DashboardBlockedScreen";
@@ -61,7 +60,7 @@ const Dashboard = () => {
 
   const {
     user, profile, isAdmin, loading, helprTier, allJobs, platformFee,
-    helperAvailability, recommendedJobs, refresh, loadError, isRefreshing,
+    helperAvailability, recommendedJobs, refresh, loadError,
     fetchNextPage, hasNextPage, isFetchingNextPage,
   } = useDashboardData();
 
@@ -164,7 +163,7 @@ const Dashboard = () => {
   const userParish = profile?.parish ?? null;
 
   const {
-    topSavedSearch, pifCount, upcomingJob,
+    pifCount, upcomingJob,
     savedJobIds, setSavedJobIds, dismissedJobIds, setDismissedJobIds,
   } = useDashboardSideQueries({ userId: user?.id, userParish, allJobs });
 
@@ -269,29 +268,21 @@ const Dashboard = () => {
       panelElevation="raised"
       header={
         <>
-          <DashboardHeader />
+          <DashboardHeader
+            inProgressJob={upcomingJob}
+            onViewInProgress={() => navigate("/activity?tab=myjobs")}
+          />
           <Suspense fallback={null}>
             <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
           </Suspense>
         </>
       }
       aboveTitle={<BroadcastBanner />}
-      titleCard={
-        <DashboardGreetingCard
-          recommendedCount={recommendedJobs.length}
-          isRefreshing={isRefreshing}
-          hasNoFilteredJobs={filters.filteredJobs.length === 0}
-          topSavedSearch={topSavedSearch}
-          onWatchingClick={() => navigate("/profile?tab=notifications")}
-        />
-      }
       beforePanel={
         <>
           <DashboardStatusBanners
             isPendingReview={isPendingReview}
-            upcomingJob={upcomingJob}
             onPendingClick={() => navigate("/account-pending")}
-            onUpcomingClick={() => navigate("/activity?tab=myjobs")}
           />
 
           {/* Quick-rebook strip — the customer's saved helprs, one tap

@@ -15,7 +15,6 @@ export interface TierPerks {
   annualPrice: number | null;   // billed annually (2 months free), null = free
   platformFeePercent: number;   // % taken from helper payout — descends as price rises (free 12% → pro 10% → elite 8% → business 6%)
   priorityPlacement: boolean;   // application floated higher in poster's recommended list
-  instantBook: boolean;         // can be booked without applying on instant-book jobs
   featuredBadge: boolean;       // gold/crown badge on profile and applicant cards
   earlyAccess: boolean;         // sees new jobs 10 min before non-subscribers
   advancedAnalytics: boolean;   // earnings trends, category breakdown, best hours
@@ -33,7 +32,6 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     annualPrice: null,
     platformFeePercent: 12,
     priorityPlacement: false,
-    instantBook: false,
     featuredBadge: false,
     earlyAccess: false,
     advancedAnalytics: false,
@@ -49,7 +47,6 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     annualPrice: 7.99,
     platformFeePercent: 10,
     priorityPlacement: true,
-    instantBook: true,
     featuredBadge: false,
     earlyAccess: false,
     advancedAnalytics: true,
@@ -65,7 +62,6 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     annualPrice: 19.99,
     platformFeePercent: 8,
     priorityPlacement: true,
-    instantBook: true,
     featuredBadge: true,
     earlyAccess: true,
     advancedAnalytics: true,
@@ -81,7 +77,6 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     annualPrice: 39.99,
     platformFeePercent: 6,
     priorityPlacement: true,
-    instantBook: true,
     featuredBadge: true,
     earlyAccess: true,
     advancedAnalytics: true,

@@ -69,8 +69,6 @@ interface CheckoutStepProps {
   uploadProgress?: { done: number; total: number } | null;
   onEdit: () => void;
   onSubmit: () => void;
-  /** Whether instant-book is enabled for this post. */
-  isInstantBook?: boolean;
   /** Poster's parish — shown in the location row when available. */
   parish?: string | null;
   /** Preferred helper stub — shown as a "Send to [name] first?" shortcut
@@ -117,7 +115,6 @@ export function CheckoutStep({
   uploadProgress,
   onEdit,
   onSubmit,
-  isInstantBook,
   parish,
   preferredHelper,
   sendToPreferred,
@@ -254,22 +251,6 @@ export function CheckoutStep({
                   ) : null,
                 )}
               </div>
-            </div>
-          )}
-
-          {/* Instant book badge */}
-          {isInstantBook && (
-            <div className="px-4 py-3 flex items-center justify-between gap-3">
-              <span className="text-ds-11 text-muted-foreground w-20 shrink-0">Booking</span>
-              <span
-                className="text-ds-11 font-semibold px-2 py-0.5 rounded-full"
-                style={{
-                  background: "hsl(var(--bark) / 0.09)",
-                  color: "hsl(var(--bark))",
-                }}
-              >
-                Instant Book on
-              </span>
             </div>
           )}
 

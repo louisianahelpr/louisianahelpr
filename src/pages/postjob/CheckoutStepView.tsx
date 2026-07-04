@@ -104,7 +104,6 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         uploadProgress={form.uploadProgress}
         onEdit={() => form.setStep("form")}
         onSubmit={form.handleSubmit}
-        isInstantBook={form.isInstantBook}
         parish={null}
         preferredHelper={preferredHelper}
         sendToPreferred={form.sendToPreferred}

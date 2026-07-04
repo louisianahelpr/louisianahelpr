@@ -67,7 +67,6 @@ export function usePostJobForm() {
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [helpersNeeded, setHelpersNeeded] = useState("2");
-  const [isInstantBook, setIsInstantBook] = useState(false);
   // Credential tier requirement for the job:
   // 0 = open (anyone), 1 = ID-verified, 2 = licensed, 3 = licensed + insured.
   // Only relevant for trade categories; other categories always use 0.
@@ -297,7 +296,6 @@ export function usePostJobForm() {
     platformFee,
     salesTaxRate,
     offerToHelperId,
-    isInstantBook,
     credentialTier,
     department,
     requiresW9,
@@ -449,11 +447,6 @@ export function usePostJobForm() {
     // budget fields
     budget,
     setBudget,
-    /** When true the job is flagged instant-book: a helper who applies is
-        auto-confirmed without poster review, reusing the direct-offer accept
-        path (helper_confirmed_at set immediately). */
-    isInstantBook,
-    setIsInstantBook,
     /** Credential tier required to apply (0–3). Only set for trade categories;
         others always use 0. */
     credentialTier,

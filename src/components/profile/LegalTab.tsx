@@ -153,7 +153,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           body={
             <>
               <p><strong className="text-foreground">Free ⭐:</strong> Standard access with a {TIER_PERKS.free.platformFeePercent}% platform fee on earnings.</p>
-              <p><strong className="text-foreground">{TIER_PERKS.pro.name} 🔥 ({fmtMo(TIER_PERKS.pro.price)}):</strong> Priority placement, instant book, advanced analytics, and a reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
+              <p><strong className="text-foreground">{TIER_PERKS.pro.name} 🔥 ({fmtMo(TIER_PERKS.pro.price)}):</strong> Priority placement, advanced analytics, and a reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
               <p><strong className="text-foreground">{TIER_PERKS.elite.name} 💎 ({fmtMo(TIER_PERKS.elite.price)}):</strong> Everything in Pro plus a featured badge, early job access, dedicated support, and the lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
               <p><strong className="text-foreground">{TIER_PERKS.business.name} 🏢 ({fmtMo(TIER_PERKS.business.price)}):</strong> Team management, a verified business badge, and priority support.</p>
               <p><strong className="text-foreground">Annual Plans:</strong> Billed yearly at a discount (about 2 months free).</p>

@@ -64,7 +64,6 @@ function TierIcon({ tier, className }: { tier: SubscriptionTier; className?: str
 const PERK_ROWS: Array<{ label: string; key: keyof typeof TIER_PERKS.free }> = [
   { label: "Platform fee", key: "platformFeePercent" },
   { label: "Priority placement", key: "priorityPlacement" },
-  { label: "Instant-book jobs", key: "instantBook" },
   { label: "Featured badge", key: "featuredBadge" },
   { label: "10-min early access", key: "earlyAccess" },
   { label: "Advanced analytics", key: "advancedAnalytics" },
@@ -300,7 +299,6 @@ export default function SubscriptionPage() {
                       <>
                         <PerkBullet color={color}>{perks.platformFeePercent}% platform fee (save {TIER_PERKS.free.platformFeePercent - perks.platformFeePercent}%)</PerkBullet>
                         <PerkBullet color={color}>Priority placement in applicant list</PerkBullet>
-                        <PerkBullet color={color}>Instant-book job eligibility</PerkBullet>
                         <PerkBullet color={color}>Advanced earnings analytics</PerkBullet>
                       </>
                     ) : tier === "elite" ? (

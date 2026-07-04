@@ -69,7 +69,6 @@ export interface UseJobSubmitParams {
   platformFee: number | null;
   salesTaxRate: number;
   offerToHelperId: string | null;
-  isInstantBook: boolean;
   credentialTier: number;
   department: string;
   requiresW9: boolean;
@@ -122,7 +121,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     platformFee,
     salesTaxRate,
     offerToHelperId,
-    isInstantBook,
     credentialTier,
     department,
     requiresW9,
@@ -306,7 +304,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         platformFee,
         salesTaxRate,
         offerToHelperId,
-        isInstantBook: opts.withExtras ? isInstantBook : false,
         credentialTier: opts.withExtras ? credentialTier : 0,
         department: opts.withExtras ? department : null,
         initialStatus: opts.withExtras && requiresApproval ? "pending_approval" : undefined,

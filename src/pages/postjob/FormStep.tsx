@@ -1,4 +1,4 @@
-import { FileSignature, Zap } from "lucide-react";
+import { FileSignature } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
@@ -199,46 +199,6 @@ export function FormStep({ form }: FormStepProps) {
             </div>
           </div>
         )}
-
-        {/* Instant book — available to all posters. When on, the first
-            helper to apply is auto-confirmed without poster review; the
-            accept path sets helper_confirmed_at immediately, mirroring
-            the direct-offer acceptance flow. */}
-        <div
-          className="rounded-ds-md border p-4 flex items-start gap-3"
-          style={{
-            borderColor: form.isInstantBook
-              ? "hsl(var(--sage) / 0.45)"
-              : "hsl(var(--border))",
-            background: form.isInstantBook
-              ? "hsl(var(--sage) / 0.07)"
-              : undefined,
-          }}
-        >
-          <div
-            className="w-9 h-9 rounded-ds-sm flex items-center justify-center shrink-0"
-            style={{
-              background: "hsl(var(--sage) / 0.15)",
-              color: "hsl(var(--sage))",
-            }}
-          >
-            <Zap className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-3">
-              <p className="font-semibold text-ds-13">Instant book</p>
-              <Switch
-                id="instant-book"
-                checked={form.isInstantBook}
-                onCheckedChange={form.setIsInstantBook}
-              />
-            </div>
-            <p className="text-ds-11 text-muted-foreground mt-1">
-              When this is on, the first qualified helper who applies is
-              confirmed immediately — no waiting for your review.
-            </p>
-          </div>
-        </div>
 
         {/* Business-only: department / cost-center field. Only rendered
             when the user is posting under a business membership so we

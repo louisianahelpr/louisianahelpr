@@ -157,7 +157,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     const selectedDate = new Date(dateNeeded + "T00:00:00");
     if (selectedDate < today) { toast.error("Date cannot be in the past"); scrollToField("date"); return; }
     if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); scrollToField("flexible"); return; }
-    if (!estimatedHours || parseFloat(estimatedHours) < 0.5) { toast.error("Minimum job duration is 30 minutes (0.5 hours)"); scrollToField("hours"); return; }
     // special_requirements is optional — no validation needed
     // In accept_bids mode, budget is optional — helpers set their own price.
     if (pricingMode !== "accept_bids") {

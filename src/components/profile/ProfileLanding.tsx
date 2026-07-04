@@ -17,18 +17,14 @@ export function ProfileLanding({
   setAvatarBroken,
   avgRating,
   reviewCount,
-  postedCount,
   completedCount,
   stripeConnectStatus,
   onSelectTab,
   onNavigate,
-  onLoadInlineJobs,
   onRequestDelete,
   onRequestLogout,
   reviewsPreview = [],
-  statsError = false,
   reviewsError = false,
-  onRetryStats,
   onRetryReviews,
   seniorMode = false,
   onToggleSeniorMode,
@@ -72,14 +68,10 @@ export function ProfileLanding({
         setAvatarBroken={setAvatarBroken}
         avgRating={avgRating}
         reviewCount={reviewCount}
-        postedCount={postedCount}
         completedCount={completedCount}
         onSelectTab={onSelectTab}
-        onLoadInlineJobs={onLoadInlineJobs}
         reviewsPreview={reviewsPreview}
-        statsError={statsError}
         reviewsError={reviewsError}
-        onRetryStats={onRetryStats}
         onRetryReviews={onRetryReviews}
         earningsSparkline={earningsSparkline}
         totalEarnings={totalEarnings}

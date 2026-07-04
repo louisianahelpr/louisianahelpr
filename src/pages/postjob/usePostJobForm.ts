@@ -346,7 +346,6 @@ export function usePostJobForm() {
     zipCode,
     dateNeeded,
     startTime,
-    estimatedHours,
     pricingMode,
     parish,
   });

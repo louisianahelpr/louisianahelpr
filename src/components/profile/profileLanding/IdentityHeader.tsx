@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import {
   MapPin, ChevronRight as ChevronRightIcon, ChevronDown,
   BadgeCheck, Camera, Crown, QrCode, Video, Play,
+  Star, Share2, Edit,
 } from "lucide-react";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { avatarGradientFor } from "@/lib/avatarGradient";
@@ -12,10 +13,9 @@ import { ProfileStatsTrend } from "@/components/profile/ProfileStatsTrend";
 import { SkillsManager } from "@/components/profile/SkillsManager";
 import { EarningsSparkline } from "@/components/profile/EarningsSparkline";
 import { hapticLight } from "@/lib/haptics";
+import { shareNative } from "@/lib/nativeShare";
 import type { Profile, ReviewPreview } from "./types";
 import { formatVideoDuration } from "./identityHeader/identityHeaderHelpers";
-import { IdentityActionRow } from "./identityHeader/IdentityActionRow";
-import { IdentityTrustStrip } from "./identityHeader/IdentityTrustStrip";
 import { IntroVideoOverlay } from "./identityHeader/IntroVideoOverlay";
 import { RecentReviewsList } from "./identityHeader/RecentReviewsList";
 
@@ -27,14 +27,10 @@ interface IdentityHeaderProps {
   setAvatarBroken: (v: boolean) => void;
   avgRating: number | null;
   reviewCount: number;
-  postedCount: number;
   completedCount: number;
   onSelectTab: (key: string) => void;
-  onLoadInlineJobs: () => void;
   reviewsPreview: ReviewPreview[];
-  statsError: boolean;
   reviewsError: boolean;
-  onRetryStats?: () => void;
   onRetryReviews?: () => void;
   earningsSparkline: number[] | null;
   totalEarnings: number;
@@ -56,14 +52,10 @@ export function IdentityHeader({
   setAvatarBroken,
   avgRating,
   reviewCount,
-  postedCount,
   completedCount,
   onSelectTab,
-  onLoadInlineJobs,
   reviewsPreview,
-  statsError,
   reviewsError,
-  onRetryStats,
   onRetryReviews,
   earningsSparkline,
   totalEarnings,
@@ -105,16 +97,6 @@ export function IdentityHeader({
             "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
         }}
       >
-        {/* Action row — Edit pill (right) + Share icon (left of Edit).
-            Both sit in the top-right corner without crowding the header. */}
-        <IdentityActionRow
-          userId={userId}
-          displayName={displayName}
-          avgRating={avgRating}
-          completedCount={completedCount}
-          onSelectTab={onSelectTab}
-        />
-
         <div className="flex flex-row items-center gap-4">
           {/* Avatar — a real focal point on this applicant-facing page.
               Tier-styled ring uses gold for elite, sienna for pro,
@@ -188,13 +170,7 @@ export function IdentityHeader({
 
           {/* Name + tier + location, vertically centered against the avatar */}
           <div className="flex-1 min-w-0 text-left">
-            {/* Only the name line clears the absolutely-positioned Share
-                icon (40px) + gap (6px) + Edit pill (~86px) at top-right via
-                pr-[132px]. The location + badges sit BELOW the buttons'
-                bottom edge, so they take the full column width instead of
-                being needlessly crushed (which forced "New Orleans, LA" to
-                wrap mid-phrase). */}
-            <div className="flex items-center gap-2 flex-wrap pr-[132px]">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1
                 className="font-display italic font-bold leading-tight"
                 style={{
@@ -292,20 +268,78 @@ export function IdentityHeader({
           </div>
         </div>
 
-        {/* Trust strip — rating · jobs done · jobs posted, given room to
-            breathe in three even columns instead of a cramped inline
-            line. A failed stats load shows a small inline error here, so
-            a partial failure stays scoped to this strip. */}
-        <IdentityTrustStrip
-          statsError={statsError}
-          avgRating={avgRating}
-          reviewCount={reviewCount}
-          completedCount={completedCount}
-          postedCount={postedCount}
-          onSelectTab={onSelectTab}
-          onLoadInlineJobs={onLoadInlineJobs}
-          onRetryStats={onRetryStats}
-        />
+        {/* Affordance row — Reviews · Share · Edit · QR code, side by
+            side in four even boxes. The Reviews box keeps the star +
+            rating so the headline trust signal stays visible; the other
+            three are the profile's primary self-actions. */}
+        <div className="mt-3.5 grid grid-cols-4 gap-2">
+          <button
+            type="button"
+            onClick={() => { hapticLight(); onSelectTab("reviews"); }}
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-xl px-1 py-2 active:scale-95 transition-transform"
+            style={{ background: "hsl(var(--bark) / 0.06)" }}
+          >
+            <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--ink-deep))" }}>
+              <Star className="w-3.5 h-3.5 fill-current" style={{ color: "hsl(var(--gold-warm))" }} />
+              <span className="text-ds-13 font-bold leading-none">
+                {avgRating ? avgRating.toFixed(1) : "New"}
+              </span>
+            </span>
+            <span className="text-ds-9 font-sans font-semibold" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+              {reviewCount === 1 ? "1 review" : `${reviewCount} reviews`}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            aria-label="Share your profile"
+            disabled={!userId}
+            onClick={() => {
+              hapticLight();
+              const ratingText = avgRating ? avgRating.toFixed(1) + "★" : "New helper";
+              void shareNative({
+                title: `${displayName} on Helpr`,
+                text: `${displayName} · ${completedCount} job${completedCount === 1 ? "" : "s"} · ${ratingText}\n\nHire me on Helpr:`,
+                url: `https://www.louisianahelpr.com/user/${userId}`,
+                dialogTitle: "Share your profile",
+              });
+            }}
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-xl px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
+            style={{ background: "hsl(var(--bark) / 0.06)" }}
+          >
+            <Share2 className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
+            <span className="text-ds-9 font-sans font-semibold" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+              Share
+            </span>
+          </button>
+
+          <button
+            type="button"
+            aria-label="Edit profile"
+            onClick={() => { hapticLight(); onSelectTab("profile"); }}
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-xl px-1 py-2 active:scale-95 transition-transform"
+            style={{ background: "hsl(var(--bark) / 0.06)" }}
+          >
+            <Edit className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
+            <span className="text-ds-9 font-sans font-semibold" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+              Edit
+            </span>
+          </button>
+
+          <button
+            type="button"
+            aria-label="My QR code"
+            disabled={!profile?.user_id}
+            onClick={() => { hapticLight(); setQrOpen(true); }}
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-xl px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
+            style={{ background: "hsl(var(--bark) / 0.06)" }}
+          >
+            <QrCode className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
+            <span className="text-ds-9 font-sans font-semibold" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+              QR code
+            </span>
+          </button>
+        </div>
 
         {/* Earnings sparkline teaser — a tiny last-6-weeks take-home
             trend that taps through to the full Earnings screen. Only
@@ -474,35 +508,6 @@ export function IdentityHeader({
             when a user_id is known (i.e. a real signed-in account row). */}
         {profile?.user_id && (
           <SkillsManager userId={profile.user_id} />
-        )}
-
-        {/* QR code button — shows the helper's shareable verification QR.
-            Only visible on the user's own profile (profile.user_id is
-            always set on the self-view). */}
-        {profile?.user_id && (
-          <div className="mt-3.5 pt-3.5" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-            <button
-              type="button"
-              onClick={() => setQrOpen(true)}
-              className="flex items-center gap-2.5 w-full text-left active:opacity-70 transition-opacity"
-            >
-              <div
-                className="w-9 h-9 rounded-ds-sm flex items-center justify-center shrink-0"
-                style={{ background: "hsl(var(--bark) / 0.08)" }}
-              >
-                <QrCode className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-ds-13 font-semibold leading-tight" style={{ color: "hsl(var(--ink-deep))" }}>
-                  My QR Code
-                </p>
-                <p className="text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  Share with your poster to verify at the door
-                </p>
-              </div>
-              <ChevronRightIcon className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-            </button>
-          </div>
         )}
 
         {/* Work & reviews — collapsed into one disclosure so the header

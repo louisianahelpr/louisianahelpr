@@ -27,6 +27,14 @@ interface PageHeaderProps {
    * page's main heading, aligned with the content beneath it.
    */
   width?: "default" | "2xl" | "5xl";
+  /**
+   * Set when a sibling header (e.g. DashboardHeader) already sits ABOVE this
+   * PageHeader and has already cleared the notch/status-bar safe-area inset.
+   * Without this, PostJob-style pages that stack DashboardHeader + PageHeader
+   * double-count `env(safe-area-inset-top)` and render a large dead band
+   * between the top bar and the title block. When true, use plain top padding.
+   */
+  topInsetHandled?: boolean;
 }
 
 const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, string> = {
@@ -35,7 +43,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, string> = {
   "5xl": "max-w-5xl px-5 lg:px-8",
 };
 
-const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false, showBrand = false, width = "default" }: PageHeaderProps) => {
+const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
   const containerWidth = WIDTH_CLASS[width];
 
   // The sticky top bar renders when there's brand or a rightSlot to show.
@@ -43,6 +51,9 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false,
   // safe-area-top padding — pages like PostJob were paying ~100px of dead
   // space for a header bar that had nothing in it.
   const showTopBar = showBrand || !!rightSlot;
+  // Only absorb the safe-area inset when nothing above us has already cleared
+  // it: no own top bar AND no sibling header stacked above (topInsetHandled).
+  const absorbSafeArea = !showTopBar && !topInsetHandled;
   return (
     <>
       {showTopBar && (
@@ -56,7 +67,7 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false,
 
       <div
         className={`mx-auto ${containerWidth} pt-3 pb-2`}
-        style={!showTopBar ? { paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" } : undefined}
+        style={absorbSafeArea ? { paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" } : undefined}
       >
         {/* Back button sits to the LEFT of the title block (not stacked above
             it) so the chevron reads as a lead-in to the heading and the title

@@ -1,5 +1,5 @@
 import {
-  Edit, Shield, Bell, Users, PawPrint, ClipboardList,
+  Shield, Bell, Users, PawPrint, ClipboardList,
   CalendarDays, BarChart2, Heart, ShieldCheck, Home, Star,
   TrendingUp, CreditCard, Crown, FileText, Gavel, HelpCircle,
   AlertTriangle,
@@ -138,7 +138,6 @@ export function useProfileLandingDerived({
     {
       title: "Account",
       items: [
-        { key: "profile", label: "Edit profile", icon: <Edit className="w-5 h-5" />, desc: "Name, photo, bio & contact details", tint: "var(--bark)" },
         {
           key: "security",
           label: "Account Security",

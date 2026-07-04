@@ -47,8 +47,7 @@ export function FormStep({ form }: FormStepProps) {
     if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
       submitLabel = "Add the address to continue";
     else if (!form.dateNeeded) submitLabel = "Pick a date to continue";
-    else if (!form.startTime) submitLabel = "Pick a start time to continue";
-    else submitLabel = "Set the hours to continue";
+    else submitLabel = "Pick a start time to continue";
   } else if (!form.budgetComplete) {
     submitLabel = "Set a budget to continue";
   }
@@ -130,8 +129,6 @@ export function FormStep({ form }: FormStepProps) {
             setStartTime={form.setStartTime}
             isFlexibleSchedule={form.isFlexibleSchedule}
             setIsFlexibleSchedule={form.setIsFlexibleSchedule}
-            estimatedHours={form.estimatedHours}
-            setEstimatedHours={form.setEstimatedHours}
             specialRequirements={form.specialRequirements}
             setSpecialRequirements={form.setSpecialRequirements}
             isRecurring={form.isRecurring}

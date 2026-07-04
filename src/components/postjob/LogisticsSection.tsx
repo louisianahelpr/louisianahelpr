@@ -59,8 +59,6 @@ interface LogisticsSectionProps {
   setStartTime: (v: string) => void;
   isFlexibleSchedule: boolean;
   setIsFlexibleSchedule: (v: boolean) => void;
-  estimatedHours: string;
-  setEstimatedHours: (v: string) => void;
   specialRequirements: string;
   setSpecialRequirements: (v: string) => void;
   isRecurring: boolean;
@@ -110,8 +108,6 @@ export function LogisticsSection({
   setStartTime,
   isFlexibleSchedule,
   setIsFlexibleSchedule,
-  estimatedHours,
-  setEstimatedHours,
   specialRequirements,
   setSpecialRequirements,
   isRecurring,
@@ -267,34 +263,6 @@ export function LogisticsSection({
           <span className="font-medium text-foreground">Flexible schedule</span> — Helpr can start earlier or later on the scheduled day
         </span>
       </label>
-
-      <div className="space-y-3">
-        <Label htmlFor="hours">Estimated hours <span className="text-destructive">*</span></Label>
-        {/* Quick-pick chips for the common durations — faster than the
-            number stepper and steers posters away from odd values. The
-            input stays for anything custom. */}
-        <div className="flex flex-wrap gap-2">
-          {["1", "2", "3", "4", "6", "8"].map((h) => {
-            const active = estimatedHours === h;
-            return (
-              <button
-                key={h}
-                type="button"
-                onClick={() => setEstimatedHours(h)}
-                aria-pressed={active}
-                className={`min-h-9 px-3.5 rounded-full text-ds-13 font-semibold tabular-nums transition-all border ${
-                  active
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-transparent text-foreground border-border hover:border-primary/50 hover:bg-primary/5"
-                }`}
-              >
-                {h}h
-              </button>
-            );
-          })}
-        </div>
-        <Input id="hours" type="number" inputMode="decimal" step="0.5" min="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="Or enter a custom number of hours" required />
-      </div>
 
       <div className="space-y-2.5">
         <Label htmlFor="requirements">Access &amp; parking notes</Label>

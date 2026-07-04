@@ -401,7 +401,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             background: "linear-gradient(to top, var(--nav-curtain-top), var(--nav-curtain-fade))",
           }}
         />
-        <div className="relative mx-3 mb-3 flex items-end gap-3.5 max-w-lg md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl md:mx-auto md:px-8 xl:px-12">
+        <div className="relative mx-3 mb-1.5 flex items-end gap-3.5 max-w-lg md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl md:mx-auto md:px-8 xl:px-12">
           {/* Main nav pill — liquid glass. Shadow stack switches to the
               deeper "lifted" variant when the page is scrolled, so the bar
               reads as floating above content rather than glued to the

@@ -1,11 +1,10 @@
 import {
   LogOut, ShieldCheck, Trash2, AlertTriangle,
-  ChevronRight as ChevronRightIcon, ClipboardList,
+  ChevronRight as ChevronRightIcon,
   TrendingUp, MoreHorizontal, Type, CheckCircle2,
   Sun, Moon, Monitor,
 } from "lucide-react";
 import { type Theme } from "@/hooks/useDarkMode";
-import { hapticLight } from "@/lib/haptics";
 import type { MenuItem, Profile } from "./types";
 
 interface SettingsSectionProps {
@@ -46,43 +45,6 @@ export function SettingsSection({
       }}
     >
       <div className="px-4 pt-3 pb-4 space-y-4">
-        {/* ── Post a task ─────────────────────────────────────────────
-            Primary poster action surfaced on the profile so posting a
-            job is one tap from here (it previously lived only on the
-            dashboard / welcome flow). Solid bark fill marks it as the
-            screen's strongest CTA, distinct from the muted settings
-            rows below. */}
-        <button
-          type="button"
-          onClick={() => { hapticLight(); onNavigate("/post-job"); }}
-          aria-label="Post a job"
-          className="w-full rounded-ds-lg overflow-hidden active:scale-[0.99] transition-transform text-left"
-          style={{
-            background:
-              "linear-gradient(135deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.9) 100%)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255,255,255,0.18), 0 6px 18px -8px hsl(var(--bark) / 0.5)",
-          }}
-        >
-          <div className="flex items-center gap-3 px-4 py-3.5">
-            <div
-              className="w-10 h-10 rounded-ds-md flex items-center justify-center shrink-0"
-              style={{ background: "hsl(var(--parchment) / 0.16)" }}
-            >
-              <ClipboardList className="w-5 h-5" style={{ color: "hsl(var(--parchment))" }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-ds-15 font-semibold leading-tight" style={{ color: "hsl(var(--parchment))" }}>
-                Post a job
-              </p>
-              <p className="text-ds-11 font-serif italic mt-0.5" style={{ color: "hsl(var(--parchment) / 0.82)" }}>
-                Get help from a trusted local Helpr
-              </p>
-            </div>
-            <ChevronRightIcon className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--parchment) / 0.85)" }} />
-          </div>
-        </button>
-
         {/* Payout banner — slim single-row alert. The whole row taps
             through to Payment Settings. */}
         {profile?.approval_status === "approved" && stripeConnectStatus && !stripeConnectStatus.payouts_enabled && (

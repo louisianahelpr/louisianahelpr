@@ -29,7 +29,6 @@ export interface UseJobDerivedParams {
   zipCode: string;
   dateNeeded: string;
   startTime: string;
-  estimatedHours: string;
   pricingMode: PricingMode;
   parish: string | null;
 }
@@ -51,7 +50,6 @@ export function useJobDerived(params: UseJobDerivedParams) {
     zipCode,
     dateNeeded,
     startTime,
-    estimatedHours,
     pricingMode,
     parish,
   } = params;
@@ -69,7 +67,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // (strongly nudged, never required), so the Details chapter is "done"
   // once title, description, and category are set.
   const detailsComplete = !!(title.trim() && description.trim() && category && !hasUnfilledPlaceholders(description));
-  const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime && estimatedHours && parseFloat(estimatedHours) >= 0.5);
+  const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime);
   // In accept_bids mode the budget is optional — helpers set their own price.
   const budgetComplete =
     pricingMode === "accept_bids"

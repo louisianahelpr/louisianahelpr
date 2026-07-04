@@ -47,7 +47,7 @@ export function ChatComposer({
        backend RLS policy enforces the same rule server-side. */
     return (
       <div
-        className="pt-2 pb-3 glass-header sticky bottom-0"
+        className="pt-2 pb-3 glass-dock sticky bottom-0"
         style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
       >
         <div
@@ -80,7 +80,7 @@ export function ChatComposer({
      gap and keeps the backdrop consistent. */
   return (
     <div
-      className="pt-2 pb-3 glass-header sticky bottom-0"
+      className="pt-2 pb-3 glass-dock sticky bottom-0"
       style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
     >
       {/* First-message chips — three ice-breaker suggestions shown

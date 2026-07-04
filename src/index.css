@@ -432,6 +432,11 @@
   background-color: hsl(20 15% 9% / 0.82);
 }
 
+[data-theme="dark"] .glass-dock {
+  border-top-color: hsla(0, 0%, 100%, 0.06);
+  background-color: hsl(20 15% 9% / 0.82);
+}
+
 [data-theme="dark"] .glass-nav {
   background-color: hsl(var(--parchment) / 0.82);
 }
@@ -1417,6 +1422,21 @@ button,
      inside the transformed AppShell containing block (WebKit fixed-descendant
      bug), which let the header collide with the status bar / Dynamic Island. */
   padding-top: var(--safe-area-top, 0px);
+}
+
+/* Composer/footer dock material — the SAME frosted glass as .glass-header,
+   but anchored to the BOTTOM of the screen (the chat composer). It carries
+   a top hairline instead of a bottom one, an upward shadow, and crucially
+   NO `padding-top: var(--safe-area-top)`. That top inset exists to clear the
+   notch/Dynamic Island on a TOP header; reused on a bottom dock it injected
+   ~59px of empty space above the quick-reply chips — the "empty white box"
+   the composer showed. Bottom safe-area is handled inline per composer. */
+.glass-dock {
+  border-top: 1px solid hsla(0, 0%, 100%, 0.2);
+  background-color: hsla(0, 0%, 100%, 0.6);
+  backdrop-filter: blur(12px) saturate(1.5);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
+  box-shadow: 0 -4px 20px -8px hsl(0 0% 0% / 0.08);
 }
 
 /* Modal content surface — the frosted card that Dialog and AlertDialog

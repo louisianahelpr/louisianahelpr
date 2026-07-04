@@ -395,11 +395,15 @@ serve(async (req) => {
       if (job.customer_id !== user.id) throw new Error("Not authorized");
       if (job.status !== "in_progress") throw new Error("Job must be in progress to request revision");
 
-      await supabaseAdmin.from("jobs").update({
+      const { error: revisionUpdateErr } = await supabaseAdmin.from("jobs").update({
         status: "revision_requested",
         revision_note: note || "The poster has requested revisions.",
         revision_requested_at: new Date().toISOString(),
       }).eq("id", jobId);
+      if (revisionUpdateErr) {
+        console.error("[create-payment] request_revision update failed:", revisionUpdateErr);
+        throw new Error("Failed to record revision request — please try again");
+      }
 
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
@@ -429,10 +433,14 @@ serve(async (req) => {
       const now = new Date();
       const acceptanceDeadline = new Date(now.getTime() + 72 * 60 * 60 * 1000);
 
-      await supabaseAdmin.from("jobs").update({
+      const { error: resolveUpdateErr } = await supabaseAdmin.from("jobs").update({
         revision_completed_at: now.toISOString(),
         revision_acceptance_deadline: acceptanceDeadline.toISOString(),
       }).eq("id", jobId);
+      if (resolveUpdateErr) {
+        console.error("[create-payment] resolve_revision update failed:", resolveUpdateErr);
+        throw new Error("Failed to record revision completion — please try again");
+      }
 
       await supabaseAdmin.from("notifications").insert({
         user_id: job.customer_id,

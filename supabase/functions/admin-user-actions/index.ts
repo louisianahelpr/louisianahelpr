@@ -112,13 +112,14 @@ Deno.serve(async (req) => {
 
     // ---- Action handlers ----
     if (action === 'manual_verify') {
-      await admin.from('profiles').update({
+      const { error: verifyErr } = await admin.from('profiles').update({
         idv_status: 'verified',
         idv_confidence: 100,
         idv_failure_reason: null,
         approval_status: 'approved',
         legacy_manual_review: true,
       } as any).eq('user_id', targetUserId)
+      if (verifyErr) throw new Error(`Failed to verify user: ${verifyErr.message}`)
 
       await admin.from('admin_audit_log').insert({
         admin_id: userData.user.id,
@@ -151,10 +152,11 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'request_id_reupload') {
-      await admin.from('profiles').update({
+      const { error: reuploadErr } = await admin.from('profiles').update({
         idv_status: 'action_needed',
         idv_failure_reason: note || 'ID document was unclear. Please re-upload.',
       } as any).eq('user_id', targetUserId)
+      if (reuploadErr) throw new Error(`Failed to update IDV status: ${reuploadErr.message}`)
 
       await admin.from('admin_audit_log').insert({
         admin_id: userData.user.id,
@@ -284,14 +286,16 @@ Deno.serve(async (req) => {
       const violationDescription = reasonCategory
         ? `[${reasonCategory}] ${note}${bypassStrike ? ' (bypass: previous strike forgiven)' : ''}`
         : `${note}${bypassStrike ? ' (bypass: previous strike forgiven)' : ''}`
-      await admin.from('user_violations').insert({
+      const { error: violationErr } = await admin.from('user_violations').insert({
         user_id: targetUserId,
         violation_type: 'admin_warning',
         description: violationDescription,
         action_taken: actionTaken,
         reported_by: userData.user.id,
       })
-      await admin.from('profiles').update(banStatusUpdate).eq('user_id', targetUserId)
+      if (violationErr) throw new Error(`Failed to record violation: ${violationErr.message}`)
+      const { error: banErr } = await admin.from('profiles').update(banStatusUpdate).eq('user_id', targetUserId)
+      if (banErr) throw new Error(`Failed to apply ban status: ${banErr.message}`)
 
       await admin.from('admin_audit_log').insert({
         admin_id: userData.user.id,

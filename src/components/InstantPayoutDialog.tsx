@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Zap, Loader2, Clock } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { requireBiometric } from "@/lib/biometricGate";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import { INSTANT_PAYOUT_FEE_PERCENT } from "@/lib/instantPayoutFee";
 
 interface Props {
@@ -36,7 +37,12 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
       });
       setLoading(false);
       if (error || data?.error) {
-        setError(data?.error || error?.message || "Could not load quote");
+        // On a non-2xx the SDK's error.message is generic and `data` is null —
+        // recover the edge function's real message (e.g. the below-$25 floor
+        // notice) from the response body. See functionErrorMessage.
+        setError(
+          data?.error || (error ? await functionErrorMessage(error, "Could not load quote") : "Could not load quote")
+        );
         return;
       }
       setQuote(data);
@@ -56,7 +62,9 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
     setProcessing(false);
 
     if (error || data?.error) {
-      toast.error(data?.error || error?.message || "Payout failed");
+      toast.error(
+        data?.error || (error ? await functionErrorMessage(error, "Payout failed") : "Payout failed")
+      );
       return;
     }
 

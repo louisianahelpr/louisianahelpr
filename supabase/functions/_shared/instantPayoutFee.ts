@@ -16,6 +16,16 @@
 export const INSTANT_PAYOUT_FEE_PERCENT = 3;
 
 /**
+ * Minimum available balance (in CENTS) required to use instant payout. Below
+ * this, instant is disabled and the helper is steered to the free standard
+ * payout. Rationale: Stripe charges the account ~1% ($0.50 minimum) per instant
+ * payout, so a flat 3% only clears that cost once the gross is large enough. At
+ * $25 the fee is $0.75 — always above Stripe's $0.50 floor, so no instant payout
+ * loses money.
+ */
+export const INSTANT_PAYOUT_MIN_CENTS = 2500;
+
+/**
  * Instant-payout fee in CENTS for a given gross payout in cents. A flat
  * percentage, rounded to the nearest cent — no fixed add-on, no floor.
  */

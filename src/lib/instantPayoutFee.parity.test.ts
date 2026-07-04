@@ -6,11 +6,14 @@ import { describe, it, expect } from "vitest";
 // src/lib/instantPayoutFee.ts, pinning F-MONEY-35.
 import {
   INSTANT_PAYOUT_FEE_PERCENT as EDGE_PERCENT,
+  INSTANT_PAYOUT_MIN_CENTS as EDGE_MIN,
   computeInstantPayoutFeeCents,
 } from "../../supabase/functions/_shared/instantPayoutFee";
 import {
   INSTANT_PAYOUT_FEE_PERCENT as CLIENT_PERCENT,
+  INSTANT_PAYOUT_MIN_CENTS as CLIENT_MIN,
   instantPayoutFeeLabel,
+  instantPayoutMinLabel,
 } from "./instantPayoutFee";
 
 describe("instant-payout fee parity (client mirror ↔ edge authority)", () => {
@@ -24,6 +27,20 @@ describe("instant-payout fee parity (client mirror ↔ edge authority)", () => {
 
   it("derives the inline label from the shared rate", () => {
     expect(instantPayoutFeeLabel()).toBe(`${EDGE_PERCENT}% fee`);
+  });
+
+  it("client and edge minimum-cashout floors never drift", () => {
+    expect(CLIENT_MIN).toBe(EDGE_MIN);
+  });
+
+  it("requires at least a $25 balance to use instant payout", () => {
+    // The floor keeps every instant payout profitable: 3% of $25 = $0.75, above
+    // Stripe's $0.50 per-instant-payout minimum. Below this, standard (free).
+    expect(EDGE_MIN).toBe(2500);
+  });
+
+  it("formats the minimum as a clean dollar label", () => {
+    expect(instantPayoutMinLabel()).toBe("$25");
   });
 });
 

@@ -2,7 +2,11 @@ import { Wallet, RefreshCw, Loader2, Banknote, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents } from "./earningsTabHelpers";
-import { instantPayoutFeeLabel } from "@/lib/instantPayoutFee";
+import {
+  instantPayoutFeeLabel,
+  instantPayoutMinLabel,
+  INSTANT_PAYOUT_MIN_CENTS,
+} from "@/lib/instantPayoutFee";
 import type { StripePayoutData } from "./types";
 
 interface WalletCardProps {
@@ -131,6 +135,16 @@ export function WalletCard({
       {(() => {
         const instantAvailable = (stripeData.instant_available ?? []).reduce((s, b) => s + b.amount, 0);
         if (instantAvailable <= 0) return null;
+        // Subscribed helpers still can't cash out below the minimum — a flat 3%
+        // doesn't clear Stripe's per-instant-payout cost on tiny balances. Their
+        // funds pay out free on the standard schedule; instant unlocks at the
+        // threshold. Mirrors the server-side gate in instant-payout/index.ts.
+        const belowMin = canUseInstantPayout && instantAvailable < INSTANT_PAYOUT_MIN_CENTS;
+        const subCopy = !canUseInstantPayout
+          ? "Subscribe to unlock instant payouts"
+          : belowMin
+          ? `Instant unlocks at ${instantPayoutMinLabel()} — smaller balances pay out free on the standard schedule`
+          : `~30 min · ${instantPayoutFeeLabel()}`;
         return (
           <div className="mt-3 rounded-ds-md border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -151,13 +165,16 @@ export function WalletCard({
                 )}
               </div>
               <p className="text-ds-15 font-bold text-foreground">{formatCents(instantAvailable)}</p>
-              <p className="text-muted-foreground text-ds-11">
-                {canUseInstantPayout ? `~30 min · ${instantPayoutFeeLabel()}` : "Subscribe to unlock instant payouts"}
-              </p>
+              <p className="text-muted-foreground text-ds-11">{subCopy}</p>
             </div>
             <Button
               size="sm"
-              onClick={() => canUseInstantPayout ? onCashOut() : onUpgrade()}
+              disabled={belowMin}
+              onClick={() => {
+                if (belowMin) return;
+                if (canUseInstantPayout) onCashOut();
+                else onUpgrade();
+              }}
               className="h-8 text-ds-11 gap-1.5 shrink-0"
             >
               <Zap className="w-3.5 h-3.5" /> Cash out

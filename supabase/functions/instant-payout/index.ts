@@ -3,7 +3,10 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { computeInstantPayoutFeeCents } from "../_shared/instantPayoutFee.ts";
+import {
+  computeInstantPayoutFeeCents,
+  INSTANT_PAYOUT_MIN_CENTS,
+} from "../_shared/instantPayoutFee.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -59,6 +62,18 @@ serve(async (req) => {
 
     if (availableCents <= 0) {
       throw new Error("No funds available for instant payout right now. Funds become available once jobs are completed and released.");
+    }
+
+    // Minimum-cashout floor. Below this, a flat 3% doesn't reliably clear
+    // Stripe's per-instant-payout cost (~1%, $0.50 minimum), so instant is
+    // disabled and the free standard payout is the path. Enforced here on the
+    // server for BOTH quote and execute so a client that skips the UI gate
+    // (or calls the API directly) still can't cash out under the floor.
+    if (availableCents < INSTANT_PAYOUT_MIN_CENTS) {
+      const min = (INSTANT_PAYOUT_MIN_CENTS / 100).toFixed(2);
+      throw new Error(
+        `Instant payout needs at least $${min} available. You have less than that right now, so these funds will pay out on the standard schedule for free.`
+      );
     }
 
     const feeCents = computeInstantPayoutFeeCents(availableCents);

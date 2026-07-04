@@ -1,6 +1,32 @@
 # Louisiana Helpr — Pre-Release Full-App Audit
 
-_Generated: 2026-07-03 · Branch: `main` (direct-commit workflow) · Static review of the real shipping tree (`src/` + `supabase/`) + gate runs + prod posture verification (migration-drift CLI check + live anon REST behavior probes). Supersedes the 2026-07-01 report. This was a **grading rerun** against the newly-expanded audit standard — findings are graded and cited, not fixed in-pass._
+_Generated: 2026-07-03 · **Re-verified 2026-07-04** · Branch: `main` (direct-commit workflow) · Static review of the real shipping tree (`src/` + `supabase/`) + gate runs + prod posture verification (migration-drift CLI check + live anon REST behavior probes). Supersedes the 2026-07-01 report. This was a **grading rerun** against the newly-expanded audit standard — findings are graded and cited, not fixed in-pass._
+
+---
+
+## ⚑ 2026-07-04 re-verification update
+
+The 32 findings below were graded on 2026-07-03. The next day, commit **`58e5c89a` — "fix: pre-launch money/auth/trust hardening (8 audit findings)"** (on `main`) plus follow-ups landed and were re-verified against the current tree this pass. **All 3 🔴 Blockers and 7 of the 8 🟠 High findings are now RESOLVED and on main:**
+
+| ID | Sev | Status (2026-07-04) | Evidence |
+|----|-----|---------------------|----------|
+| F-MONEY-28 | 🔴 | ✅ Fixed | `create-payment/index.ts:557-571` — atomic `payment_status IN ('escrow','cancelling')` claim → 409 if unclaimable |
+| F-MONEY-29 | 🔴 | ✅ Fixed | `20260703161000_helper_jobs_column_whitelist.sql` — BEFORE UPDATE trigger whitelists helper-writable columns (`poster_completed_at` excluded) |
+| F-MONEY-01 | 🔴 | ✅ Fixed | `create-payment/index.ts:91-100` — throws loud when `platform_settings` read fails; no `?? 10` fallback |
+| F-MONEY-30 | 🟠 | ✅ Fixed | `transferReversed` stamps `dispute_status='reversal_hold'`; both payout paths hard-block reversed rows |
+| F-MONEY-31 | 🟠 | ✅ Fixed | Payout idempotency keys salted by prior failed-attempt count |
+| F-SEC-01 | 🟠 | ✅ Fixed | `instant-job-match` requires session (401), filters `status='open'` + no pending direct offer |
+| F-DISC-02 | 🟠 | ✅ Fixed | `get_open_jobs_for_map()` now applies the pending-direct-offer visibility rule |
+| F-TRUST-01 | 🟠 | ✅ Fixed | BEFORE INSERT trigger enforces `are_users_blocked()` on messages server-side |
+| F-TRUST-02 | 🟠 | ✅ Fixed | `complete-signup` records a `legal_acceptances` consent row |
+| F-AUTH-01 | 🟠 | ✅ Fixed | `complete-signup` enforces the 18+ gate server-side before approval |
+| F-MONEY-04 | 🟠 | ⬜ Open | Refund paths still write no DB ledger row — reconciliation depends on Stripe logs (observability gap, not a double-pay). Recommended next. |
+
+Also landed since the report (spot-verified in `git log`): `11d5c2ec`/`3f4eaa41`/`e9f278d3`/`7b0bef0f` (throw-loud on critical DB write failures across admin actions, scheduled-payouts, IDV webhook, revision handlers) — hardening several F-XC-06 silent-drop sites.
+
+**Updated verdict: 🟢 GO (conditional only on the standard pre-build verification pass).** With every 🔴 and all but one 🟠 closed, there is no known release-gating code defect. The remaining conditions are process, not code: (a) close F-MONEY-04 (refund ledger row — small, do it in the same sweep); and (b) run the live Stripe test-card + iOS-sim visual + per-screen interactive verification the standard requires before cutting the build (not performed in these static grading passes). Remaining open items are all 🟡/🟢 and post-launch-acceptable.
+
+_The 2026-07-03 grading content below is retained verbatim for the finding detail + fixes; read it through the status table above._
 
 ---
 
@@ -59,7 +85,7 @@ Largest shipped JS chunks (pre-gzip): jspdf 399 kB · CartesianChart 279 kB · s
 
 Legend: ⬜ = open (nothing was fixed in this grading pass) · IDs continue the 2026-07-01 numbering (`F-MONEY-01..27`, `F-SEO-01..05`, `F-XC-01..04` are prior IDs; carried items keep their ID).
 
-### 🔴 Blocker (3)
+### 🔴 Blocker (3) — ✅ ALL RESOLVED 2026-07-04 (commit `58e5c89a`; see status table at top)
 
 | ID | Location | Finding | Fix |
 |----|----------|---------|-----|
@@ -67,7 +93,7 @@ Legend: ⬜ = open (nothing was fixed in this grading pass) · IDs continue the 
 | F-MONEY-29 | `supabase/migrations/20260312010219_….sql:2-6` + `create-payment/index.ts:286-288` | RLS policy `Helpers can update their assigned jobs` is `FOR UPDATE USING/WITH CHECK (auth.uid() = helper_id)` with **no column restriction**, and no trigger guards completion stamps (verified: only status transitions are trigger-gated). A helper can PATCH `poster_completed_at` on their job via REST, then call `create-payment action=release` — `bothDone` computes true and the payout schedules with **no real poster confirmation**, collapsing the poster's confirm/dispute window. | Column-restrict the helper policy (trigger whitelist of helper-writable columns: status, `helper_completed_at`, proof/tracking fields) or move completion stamps behind edge functions only. |
 | F-MONEY-01 (carried) | `create-payment/index.ts:95-97` · `release-payout/index.ts` (same pattern) | `platform_settings` read drops its error and falls back `?? 10` / `?? 10` / `?? 200`. A transient read failure silently misprices every escrow/payout at default fees. Open since 2026-07-01. | Fail loud: throw when `settings` is null; alert via the existing Slack ops hook. |
 
-### 🟠 High (8)
+### 🟠 High (8) — 7 ✅ RESOLVED 2026-07-04; only F-MONEY-04 remains open (see status table at top)
 
 | ID | Location | Finding | Fix |
 |----|----------|---------|-----|

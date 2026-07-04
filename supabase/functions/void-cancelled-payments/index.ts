@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
+import { computeCancellationFee } from "../_shared/cancellationFee.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -190,9 +191,11 @@ serve(async (req) => {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
 
         if (pi.status === "requires_capture") {
-          // Uncaptured authorization. Use the fee the poster actually agreed to
-          // at cancellation time (persisted on the job), NOT a recomputed rate.
-          const cancellationFee = job.cancellation_fee ?? 0;
+          // Uncaptured authorization. RECOMPUTE the fee server-side from trusted
+          // job fields (F-MONEY-32) — never trust the persisted, client-writable
+          // `job.cancellation_fee`, which an assigned helper could inflate to
+          // capture more of the poster's hold than the schedule allows.
+          const cancellationFee = computeCancellationFee(job);
           if (cancellationFee > 0) {
             // Capture ONLY the fee — Stripe auto-releases the uncaptured
             // remainder (budget + customer fee) back to the poster. Charging
@@ -219,12 +222,14 @@ serve(async (req) => {
             results.push({ job_id: job.id, title: job.title, status: "voided", amount: pi.amount / 100 });
           }
         } else if (pi.status === "succeeded") {
-          // Already captured — refund the poster everything EXCEPT the fee they
-          // agreed to at cancellation time. Use the persisted, user-agreed
-          // `cancellation_fee` (the amount shown on the "Cancel · pay $X"
-          // button) — never a recomputed rate, so the charge always equals what
-          // the poster was told.
-          const cancellationFee = job.cancellation_fee ?? 0;
+          // Already captured — refund the poster everything EXCEPT the fee owed.
+          // RECOMPUTE the fee server-side from trusted job fields (F-MONEY-32);
+          // never trust the persisted, client-writable `cancellation_fee`. The
+          // tiered schedule is deterministic from budget + scheduled date +
+          // cancel time, so this still equals the amount the poster was shown on
+          // the "Cancel · pay $X" button (both derive from the same ladder),
+          // while removing the ability for a helper to skim the refund.
+          const cancellationFee = computeCancellationFee(job);
           // Refund the entire captured amount minus the cancellation fee.
           // pi.amount_received is what Stripe actually collected, which is
           // larger than job.budget when a customer service fee, sales tax,

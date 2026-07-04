@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import AppShell from "@/components/AppShell";
+import { authPages } from "@/components/mobileNav/mobileNavHelpers";
+import { isNativePlatform } from "@/lib/nativeInit";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
 /**
@@ -53,6 +56,38 @@ const PublicLayout = ({
   // Navbar: an authenticated visitor sees "Open app" instead of the
   // logged-out "Get started".
   const { user } = useAuthReady();
+  const location = useLocation();
+
+  // NATIVE (iOS/Android WebView): the marketing Navbar + Footer are web-only
+  // chrome — an "App Store download" footer inside the app is nonsensical and
+  // reads as a different product. On native, render the page content in the
+  // canonical in-app shell (AppShell + a status-bar cap for the notch inset),
+  // dropping the marketing nav, footer, CTA band, and web nav spacer. The
+  // global MobileNav supplies bottom navigation on authed routes, so reserve
+  // that space only when the current route carries the bottom bar. Centralised
+  // here so no PublicLayout page can regress the footer onto the app surface.
+  if (isNativePlatform) {
+    const reserveBottomNav = authPages.some((p) => location.pathname.startsWith(p));
+    const statusBarCap = (
+      <div
+        aria-hidden
+        style={{
+          paddingTop: "env(safe-area-inset-top, 0px)",
+          background: "hsl(var(--surface-band))",
+        }}
+      />
+    );
+    return (
+      <AppShell
+        header={statusBarCap}
+        reserveBottomNav={reserveBottomNav}
+        className="bg-premium-page"
+        contentClassName="bg-premium-page"
+      >
+        {children}
+      </AppShell>
+    );
+  }
 
   return (
     <div className="min-h-screen page-warmth pb-safe-nav relative flex flex-col">

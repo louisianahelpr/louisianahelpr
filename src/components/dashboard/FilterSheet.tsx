@@ -4,9 +4,7 @@ import { ArrowUpRight, Clock, Rocket, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
+  SheetHero,
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { hapticLight } from "@/lib/haptics";
@@ -84,16 +82,16 @@ export function FilterSheet({
         <div className="flex justify-center pt-3 pb-1" aria-hidden>
           <span className="h-1 w-9 rounded-full bg-[hsl(var(--olivewood)/0.25)]" />
         </div>
-        <SheetHeader className="px-5 pt-2 pb-3 text-left">
-          <SheetTitle className="font-display italic text-[1.25rem] leading-tight text-[hsl(var(--ink-deep))]">
-            Filters
-          </SheetTitle>
-          <SheetDescription>
-            {activeFilterCount > 0
-              ? `${activeFilterCount} active`
-              : "Narrow your results"}
-          </SheetDescription>
-        </SheetHeader>
+        <SheetHero
+          className="px-5 pt-2 pb-3"
+          eyebrow="Filters"
+          title="Refine your search"
+          subtitle={
+            activeFilterCount > 0
+              ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} active`
+              : "Narrow your results"
+          }
+        />
 
         <div className="px-5 pb-4 space-y-5">
           {sections.map((s) => (

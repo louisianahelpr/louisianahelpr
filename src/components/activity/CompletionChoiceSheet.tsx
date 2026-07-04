@@ -23,6 +23,7 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetHero,
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
@@ -180,17 +181,12 @@ export function CompletionChoiceSheet({
       <SheetContent side="bottom" className="pb-safe-nav">
         {mode === "choice" ? (
           <>
-            <SheetHeader className="text-left mb-4">
-              <SheetTitle
-                className="font-display italic font-bold leading-tight"
-                style={{ fontSize: "clamp(1.2rem, 2vw + 0.4rem, 1.5rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-              >
-                How did it go?
-              </SheetTitle>
-              <SheetDescription className="font-serif italic" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                Your choice determines what happens to payment.
-              </SheetDescription>
-            </SheetHeader>
+            <SheetHero
+              className="mb-4"
+              eyebrow="Wrapping up"
+              title="How did it go?"
+              subtitle="Your choice determines what happens to payment."
+            />
 
             <div className="space-y-3">
               {/* Path A — release payment */}
@@ -266,11 +262,11 @@ export function CompletionChoiceSheet({
           </>
         ) : (
           <>
-            <SheetHeader className="text-left mb-4">
+            <SheetHeader className="space-y-0 text-left pr-12 mb-4">
               <div className="flex items-center justify-between">
                 <SheetTitle
                   className="font-display italic font-bold leading-tight"
-                  style={{ fontSize: "clamp(1.1rem, 2vw + 0.3rem, 1.35rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+                  style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
                 >
                   What needs to be fixed?
                 </SheetTitle>
@@ -284,7 +280,7 @@ export function CompletionChoiceSheet({
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <SheetDescription className="font-serif italic" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+              <SheetDescription className="font-serif italic leading-relaxed pt-1.5" style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.85)" }}>
                 {helperName} will be notified and can respond before the job closes.
               </SheetDescription>
             </SheetHeader>

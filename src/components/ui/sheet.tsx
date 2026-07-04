@@ -181,6 +181,65 @@ const SheetDescription = React.forwardRef<
 ));
 SheetDescription.displayName = SheetPrimitive.Description.displayName;
 
+/**
+ * SheetHero — the bottom/side-sheet twin of DialogHero. Sheets use the same
+ * Radix dialog primitive but their own Title/Description components and a
+ * floating round close button (SheetCloseButton) anchored top-right, so this
+ * mirrors DialogHero's eyebrow → title → subtitle stack and type tokens
+ * EXACTLY while reserving a `pr-12` lane so the title never collides with that
+ * close button. Adopt this for any sheet that has a real titled header (filters,
+ * NPS, notifications, mute, attach) so every titled sheet reads identical to
+ * every dialog. (Tiny tap-a-row action menus intentionally keep their own
+ * compact label — a full hero on a 2-button menu reads overbuilt.)
+ *
+ *   <SheetHero eyebrow="Filters" title="Refine your search" subtitle="…" />
+ */
+const SheetHero = ({
+  eyebrow,
+  title,
+  subtitle,
+  className,
+  titleClassName,
+  titleStyle,
+  eyebrowClassName,
+  eyebrowStyle,
+}: {
+  eyebrow?: React.ReactNode;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  className?: string;
+  titleClassName?: string;
+  titleStyle?: React.CSSProperties;
+  eyebrowClassName?: string;
+  eyebrowStyle?: React.CSSProperties;
+}) => (
+  <SheetHeader className={cn("space-y-0 text-left pr-12", className)}>
+    {eyebrow && (
+      <span
+        className={cn("font-serif italic uppercase block", eyebrowClassName)}
+        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em", ...eyebrowStyle }}
+      >
+        {eyebrow}
+      </span>
+    )}
+    <SheetTitle
+      className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
+      style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}
+    >
+      {title}
+    </SheetTitle>
+    {subtitle && (
+      <SheetDescription
+        className="font-serif italic leading-relaxed pt-1.5"
+        style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.85)" }}
+      >
+        {subtitle}
+      </SheetDescription>
+    )}
+  </SheetHeader>
+);
+SheetHero.displayName = "SheetHero";
+
 export {
   Sheet,
   SheetClose,
@@ -188,6 +247,7 @@ export {
   SheetDescription,
   SheetFooter,
   SheetHeader,
+  SheetHero,
   SheetOverlay,
   SheetPortal,
   SheetTitle,

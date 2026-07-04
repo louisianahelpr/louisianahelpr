@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -142,14 +142,11 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
         // form (bg-parchment would silently no-op).
         className="bg-[hsl(var(--parchment))] border-t border-[hsl(var(--bark)/0.18)] rounded-t-3xl"
       >
-        <SheetHeader className="text-left">
-          <SheetTitle className="font-display text-[hsl(var(--olivewood))]">
-            How are we doing?
-          </SheetTitle>
-          <p className="text-ds-13 text-[hsl(var(--olivewood)/0.8)]">
-            How likely are you to recommend Helpr to a friend?
-          </p>
-        </SheetHeader>
+        <SheetHero
+          eyebrow="Your feedback"
+          title="How are we doing?"
+          subtitle="How likely are you to recommend Helpr to a friend?"
+        />
 
         <div className="mt-5 space-y-4">
           {/* 0..10 row. On narrow viewports the row stays one line because

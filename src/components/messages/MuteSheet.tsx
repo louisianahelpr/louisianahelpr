@@ -2,8 +2,7 @@ import { Bell, BellOff, Clock } from "lucide-react";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
+  SheetHero,
 } from "@/components/ui/sheet";
 import {
   SNOOZE_PRESETS,
@@ -55,53 +54,34 @@ export function MuteSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-w-md mx-auto rounded-t-2xl">
-        <SheetHeader className="!text-left space-y-1.5">
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
+        <SheetHero
+          eyebrow={
+            <>
+              <BellOff className="w-3 h-3" />
+              Quiet hours
+            </>
+          }
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title="Mute notifications"
+          subtitle={`New messages from ${convo.otherUserName} won't notify you, but you'll still see them in your inbox.`}
+        />
+        {isMuted && (
+          <div
+            className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
             style={{
-              fontSize: "0.62rem",
-              color: "hsl(var(--burnt-sienna) / 0.78)",
-              letterSpacing: "0.18em",
+              background: "hsl(var(--olivewood) / 0.08)",
+              border: "0.5px solid hsl(var(--olivewood) / 0.18)",
             }}
           >
-            <BellOff className="w-3 h-3" />
-            Quiet hours
-          </span>
-          <SheetTitle
-            className="font-display italic font-bold leading-tight"
-            style={{
-              fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.025em",
-            }}
-          >
-            Mute notifications
-          </SheetTitle>
-          <p
-            className="font-serif italic text-[0.82rem] leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            New messages from {convo.otherUserName} won't notify you, but
-            you'll still see them in your inbox.
-          </p>
-          {isMuted && (
-            <div
-              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-              style={{
-                background: "hsl(var(--olivewood) / 0.08)",
-                border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-              }}
+            <Clock className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+            <span
+              className="font-serif italic text-[0.74rem]"
+              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
-              <Clock className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-              <span
-                className="font-serif italic text-[0.74rem]"
-                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-              >
-                {isForever ? "Muted until you turn it back on" : remaining ?? "Muted"}
-              </span>
-            </div>
-          )}
-        </SheetHeader>
+              {isForever ? "Muted until you turn it back on" : remaining ?? "Muted"}
+            </span>
+          </div>
+        )}
 
         <div className="mt-4 grid gap-1.5">
           {SNOOZE_PRESETS.map((preset) => (

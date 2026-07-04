@@ -26,8 +26,10 @@ const DOCUMENT_SCROLL_ROUTES = [
   // belongs here. AuthShell uses `min-h-screen` document scroll; if the
   // route is NOT in this list, `html.app-shell { overflow: hidden }`
   // clips anything below the fold and the user can't reach it. Login is
-  // deliberately OFF this list — it's tuned to fit a single non-scrolling
-  // viewport (see Login.tsx's compact spacing).
+  // ON this list too: on a short desktop/landscape viewport its card
+  // exceeds the fold, and off the list the overflow:hidden lock stranded
+  // the form with no way to scroll.
+  "/login",
   "/signup",
   "/signup-pending",
   "/complete-profile",

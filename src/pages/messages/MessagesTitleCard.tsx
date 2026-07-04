@@ -16,10 +16,12 @@ export const MessagesTitleCard = ({
 }) => (
   <div className="flex items-center justify-between gap-3">
     <div className="flex flex-col leading-none min-w-0">
-      <h1 className="text-page-title leading-tight">Messages</h1>
-      {!loading && conversations.length > 0 && (
+      {/* Section name lives in the top bar now (Instagram/Facebook pattern);
+          this desktop bar keeps only the thread count on the left and the
+          unread pill on the right so the wide bar isn't dead space. */}
+      {!loading && conversations.length > 0 ? (
         <p
-          className="mt-1 truncate font-sans font-semibold uppercase"
+          className="truncate font-sans font-semibold uppercase leading-none"
           style={{
             fontSize: "0.62rem",
             letterSpacing: "0.16em",
@@ -29,7 +31,7 @@ export const MessagesTitleCard = ({
           {conversations.length}{" "}
           {conversations.length === 1 ? "thread" : "threads"}
         </p>
-      )}
+      ) : null}
     </div>
     {(() => {
       const totalUnread = conversations.reduce(

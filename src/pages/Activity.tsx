@@ -214,13 +214,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // bg-premium-page shell with skeleton cards inside the bottom box.
     return (
       <PageScaffold
-        header={<DashboardHeader />}
-        titleCard={
-          <>
-            <Skeleton className="h-7 w-32 rounded" />
-            <Skeleton className="h-3 w-44 mt-2 rounded" />
-          </>
-        }
+        header={<DashboardHeader title={tab === "posted" ? "My Posts" : "My Jobs"} />}
+        titleCard={<Skeleton className="h-3 w-44 rounded" />}
       >
         <div className="px-4 pt-3 space-y-2.5">
           {/* On the "applied" tab use the application-card-shaped skeleton
@@ -269,34 +264,28 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     <>
       <PageScaffold
         animate
-        header={<DashboardHeader />}
+        header={<DashboardHeader title={tab === "posted" ? "My Posts" : "My Jobs"} />}
         titleCard={
-            <div className="flex flex-col leading-none">
-              <h1 className="text-page-title leading-tight">
-                {tab === "posted" ? "My Posts" : "My Jobs"}
-              </h1>
-              {/* Count chip — hidden when the list is truly empty (a
-                  "0 tasks" badge over an empty-state card is noise).
-                  When the user has manually pulled-to-refresh this tab
-                  at least once, append a per-tab "Updated Xm ago" hint
-                  so they trust the freshness independently of the other
-                  tab. */}
-              {!isTrulyEmpty && (
-                <p
-                  className="mt-1 truncate font-sans font-semibold uppercase"
-                  style={{
-                    fontSize: "0.62rem",
-                    letterSpacing: "0.16em",
-                    color: "hsl(var(--olivewood) / 0.8)",
-                  }}
-                >
-                  {filteredCount} {filteredCount === 1 ? "job" : "jobs"}
-                  {refreshIndicator && (
-                    <span aria-hidden="true">{" · "}{refreshIndicator}</span>
-                  )}
-                </p>
+          /* The section name now lives in the top bar (Instagram/Facebook
+             pattern), so the title card holds only the count chip. When the
+             list is truly empty that chip is hidden — and rather than float an
+             empty frosted card, we drop the whole title card so the empty-state
+             panel sits flush below the titled top bar. */
+          isTrulyEmpty ? undefined : (
+            <p
+              className="truncate font-sans font-semibold uppercase leading-none"
+              style={{
+                fontSize: "0.62rem",
+                letterSpacing: "0.16em",
+                color: "hsl(var(--olivewood) / 0.8)",
+              }}
+            >
+              {filteredCount} {filteredCount === 1 ? "job" : "jobs"}
+              {refreshIndicator && (
+                <span aria-hidden="true">{" · "}{refreshIndicator}</span>
               )}
-            </div>
+            </p>
+          )
         }
       >
           {/* Secondary header (status title + search/filter) is hidden

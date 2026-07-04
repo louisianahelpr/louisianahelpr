@@ -1,6 +1,6 @@
 import {
   Home,
-  Send,
+  Briefcase,
   MessageSquare,
   User,
   ClipboardList,
@@ -38,11 +38,11 @@ export function writeCachedUnread(n: number) {
 
 export const leftItems = [
   { path: "/dashboard", icon: Home, label: "Home" },
-  { path: "/my-posts", icon: Send, label: "Posts", badgeKey: "posts" as const },
+  { path: "/my-posts", icon: ClipboardList, label: "Posts", badgeKey: "posts" as const },
 ];
 
 export const rightItems = [
-  { path: "/my-jobs", icon: ClipboardList, label: "Jobs", badgeKey: "jobs" as const },
+  { path: "/my-jobs", icon: Briefcase, label: "Jobs", badgeKey: "jobs" as const },
   { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" as const },
   { path: "/profile", icon: User, label: "Profile" },
 ];

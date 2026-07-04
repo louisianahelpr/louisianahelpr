@@ -376,7 +376,7 @@ const ProfilePage = () => {
     // inset) so the HelprMark never overlaps the iOS status bar clock.
     return (
       <AppShell
-        header={<DashboardHeader />}
+        header={<DashboardHeader title="Profile" />}
         scrollable={false}
         contentClassName="overflow-hidden"
         className="bg-premium-page"
@@ -417,7 +417,7 @@ const ProfilePage = () => {
   return (
     <>
     <AppShell
-      header={<DashboardHeader />}
+      header={<DashboardHeader title="Profile" />}
       scrollable={false}
       contentClassName="overflow-hidden"
       className="bg-premium-page"

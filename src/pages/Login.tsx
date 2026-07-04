@@ -274,15 +274,6 @@ const Login = () => {
         >
           {redirectTarget ? "Sign in to continue." : "Pick up right where you left off."}
         </p>
-        {/* Same dual-role serif line as Signup step 1 — the auth screens
-            (login / personal signup / business signup) share this tagline
-            so they read as one set. */}
-        <p
-          className="font-serif italic text-ds-13 mx-auto max-w-[34ch]"
-          style={{ color: "hsl(var(--burnt-sienna) / 0.9)" }}
-        >
-          Post a job or earn helping — one account does both.
-        </p>
       </div>
 
       <div className="liquid-glass px-6 sm:px-8 py-8 space-y-6">

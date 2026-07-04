@@ -1,7 +1,6 @@
 import { Search } from "lucide-react";
 
 interface DashboardGreetingCardProps {
-  firstName: string;
   recommendedCount: number;
   isRefreshing: boolean;
   /** True when 0 jobs match the current filters — shows the "watching for" chip. */
@@ -16,7 +15,6 @@ interface DashboardGreetingCardProps {
  * date·picks·updating eyebrow, and the "watching for" saved-search chip.
  */
 const DashboardGreetingCard = ({
-  firstName,
   recommendedCount,
   isRefreshing,
   hasNoFilteredJobs,
@@ -25,38 +23,12 @@ const DashboardGreetingCard = ({
 }: DashboardGreetingCardProps) => {
   return (
     <>
-      {/* Condensed greeting — the greeting + date eyebrow are folded
-          into one tight two-line block (greeting line + a small
-          date·jobs eyebrow). The greeting was its own tall line that
-          pushed the feed down; the old standalone "stat of the day"
-          paragraph (a 3rd line) is dropped — the job count it echoed
-          already appears in the eyebrow below. */}
-      {/* Canonical page title — same hero size as the Messages /
-          Posts / Jobs headers (`.text-page-title`) so the greeting
-          matches those tabs exactly. */}
-      <h1 className="text-page-title">
-        {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
-        {/* Beth Ellen has a small x-height, so at the hero size it reads
-            undersized next to the Bodoni greeting — bump ~1.15em to bring
-            the name to visual parity. inline-block + tight line-height keep
-            the taller glyph from disturbing the greeting's baseline. */}
-        <em
-          className="signature"
-          style={{
-            fontStyle: "normal",
-            color: "hsl(var(--burnt-sienna))",
-            fontSize: "1.15em",
-            lineHeight: 1,
-            display: "inline-block",
-            verticalAlign: "baseline",
-          }}
-        >
-          {firstName}
-        </em>
-        .
-      </h1>
+      {/* The big "Good evening, <name>." headline was removed — the
+          section name now lives in the top bar (Instagram/Facebook
+          pattern), so this surface keeps only the small info eyebrow
+          (date · picks · syncing) and the "watching for" chip. */}
       <p
-        className="mt-1 truncate font-sans font-semibold uppercase"
+        className="truncate font-sans font-semibold uppercase"
         style={{
           fontSize: "0.62rem",
           letterSpacing: "0.16em",

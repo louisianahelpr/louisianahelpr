@@ -13,6 +13,7 @@ import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
+import { UserAvatar } from "@/components/UserAvatar";
 import { GateSheet } from "@/components/mobileNav/GateSheet";
 import { QuickActionSheet, type QuickActionTab } from "@/components/mobileNav/QuickActionSheet";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
@@ -280,11 +281,35 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           />
         )}
         <div className="relative z-10">
-          <Icon
-            className="w-[22px] h-[22px] transition-all duration-200"
-            strokeWidth={isActive ? 2.3 : 1.8}
-            fill={isActive ? "hsl(var(--bark) / 0.16)" : "none"}
-          />
+          {/* Profile tab shows the signed-in user's avatar (like Instagram /
+              Facebook) instead of a generic person glyph. UserAvatar falls
+              back to a deterministic initials-gradient when there's no photo,
+              so it's never a broken image. The active state is signalled by a
+              bark-green ring (matching the active icon color) rather than the
+              icon-fill treatment the other tabs use. Guests have no user, so
+              they keep the plain person icon (their Profile tab routes to
+              /login). */}
+          {path === "/profile" && !isGuest ? (
+            <UserAvatar
+              userId={user?.id}
+              src={profile?.avatar_url}
+              name={profile?.full_name}
+              pixelSize={48}
+              alt=""
+              className="w-[24px] h-[24px] transition-all duration-200"
+              style={{
+                boxShadow: isActive
+                  ? "0 0 0 2px hsl(var(--bark)), 0 0 0 3.5px hsl(var(--bark) / 0.18)"
+                  : "0 0 0 1.5px hsl(var(--olivewood) / 0.18)",
+              }}
+            />
+          ) : (
+            <Icon
+              className="w-[22px] h-[22px] transition-all duration-200"
+              strokeWidth={isActive ? 2.3 : 1.8}
+              fill={isActive ? "hsl(var(--bark) / 0.16)" : "none"}
+            />
+          )}
           {/* No per-tab padlock for guests — three padlocks in a row read
               as a barrier wall on a first-time guest's home screen. The tab
               is gently dimmed (opacity-50) and a tap routes to sign-up, so
@@ -302,20 +327,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </span>
           )}
         </div>
-        {/* Italic Bodoni microtype label — matches the eyebrow style on
-            the rest of the app. Slightly tighter tracking than Montserrat
-            so 5 tabs still fit on a 320px viewport. */}
-        <span
-          className="relative z-10 font-serif italic leading-none tracking-tight transition-[font-weight,color] duration-200"
-          style={{
-            fontSize: "0.66rem",
-            fontWeight: isActive ? 700 : 500,
-            letterSpacing: isActive ? "0.01em" : "0.02em",
-            color: isActive ? "hsl(var(--bark))" : undefined,
-          }}
-        >
-          {label}
-        </span>
+        {/* Icon-only bar — the per-tab word label was removed deliberately:
+            every destination already shows its title at the top of the page,
+            so the bottom-nav word was redundant chrome. The tab's accessible
+            name is preserved via TabButton's `ariaLabel`, so screen readers
+            still announce "Home / Posts / Jobs / Messages / Profile". */}
         {/* Burnt-Sienna underline accent — 4px wide × 1.5px tall dot
             below the active label. Only renders for active so the
             non-active tabs stay clean. */}

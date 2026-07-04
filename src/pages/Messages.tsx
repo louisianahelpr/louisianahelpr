@@ -257,7 +257,7 @@ const Messages = () => {
     <>
       {isWebDesktop ? (
         <PageScaffold
-          header={<DashboardHeader />}
+          header={<DashboardHeader title="Messages" />}
           titleCard={
             <MessagesTitleCard conversations={conversations} loading={loading} />
           }

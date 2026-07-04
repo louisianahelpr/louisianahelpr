@@ -203,16 +203,19 @@ const Index = () => {
 
       <HowItWorksSection />
 
-      {/* Live open-jobs strip (#62) — sits between "how it works" and the
-          reviews/FAQ so a visitor who just learned the flow immediately sees
-          real work happening. Lazy + self-hiding, so it never blocks paint
-          and never shows an empty rail on a quiet platform. */}
+      {/* Live open-jobs strip (#62) — sits right after "how it works" so a
+          visitor who just learned the flow immediately sees real work
+          happening. Lazy + self-hiding, so it never blocks paint and never
+          shows an empty rail on a quiet platform. */}
       <Suspense fallback={null}>
         <LandingJobsStrip />
       </Suspense>
 
-      <CommunityVoice />
+      {/* Business band sits directly under the live-jobs strip, then the
+          reviews + FAQ (CommunityVoice) close the page — so the scroll reads
+          how-it-works → real jobs → business offering → social proof/answers. */}
       <BusinessCTASection />
+      <CommunityVoice />
 
       {/* 120px breathing room before the footer so the FAQ accordion
           doesn't crash into the footer surface. */}

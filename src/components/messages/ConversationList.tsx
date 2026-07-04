@@ -194,30 +194,24 @@ export function ConversationList({
     onRefresh: async () => { if (userId) await loadConversations(userId); },
   });
 
-  const titleCard = (
-          <div className="flex flex-col leading-none">
-            {/* Canonical page-title — same `.text-page-title` (Bodoni Moda
-                italic 700, --headline-hero) used by the Activity tabs
-                (My Posts / My Jobs) so the four signed-in title cards read
-                as one family. */}
-            <h1 className="text-page-title leading-tight">Messages</h1>
-            {/* Count chip — gated on `showThreadCount` (!loading &&
-                length > 0) so it never flashes "0 threads" during the
-                skeleton load, the screen-jump the user reported. */}
-            {showThreadCount && (
-              <p
-                className="mt-1 truncate font-sans font-semibold uppercase"
-                style={{
-                  fontSize: "0.62rem",
-                  letterSpacing: "0.16em",
-                  color: "hsl(var(--olivewood) / 0.8)",
-                }}
-              >
-                {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
-              </p>
-            )}
-          </div>
-  );
+  // The "Messages" section name now lives in the top bar (Instagram/Facebook
+  // pattern — passed as `title` to DashboardHeader below), so the title card
+  // holds only the count chip. Count is gated on `showThreadCount`
+  // (!loading && length > 0) so it never flashes "0 threads" during the
+  // skeleton load. When there's no chip we drop the whole title card
+  // (undefined) rather than float an empty frosted card above the panel.
+  const titleCard = showThreadCount ? (
+    <p
+      className="truncate font-sans font-semibold uppercase leading-none"
+      style={{
+        fontSize: "0.62rem",
+        letterSpacing: "0.16em",
+        color: "hsl(var(--olivewood) / 0.8)",
+      }}
+    >
+      {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
+    </p>
+  ) : undefined;
 
   const listBody = (
     <>
@@ -497,7 +491,7 @@ export function ConversationList({
   }
 
   return (
-    <PageScaffold header={<DashboardHeader />} titleCard={titleCard}>
+    <PageScaffold header={<DashboardHeader title="Messages" />} titleCard={titleCard}>
       {listBody}
     </PageScaffold>
   );

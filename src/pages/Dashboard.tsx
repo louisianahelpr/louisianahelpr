@@ -278,7 +278,6 @@ const Dashboard = () => {
       aboveTitle={<BroadcastBanner />}
       titleCard={
         <DashboardGreetingCard
-          firstName={firstName}
           recommendedCount={recommendedJobs.length}
           isRefreshing={isRefreshing}
           hasNoFilteredJobs={filters.filteredJobs.length === 0}

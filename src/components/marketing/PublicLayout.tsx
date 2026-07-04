@@ -99,12 +99,16 @@ const PublicLayout = ({
           surface. The landing hero (noNavSpacer) stays transparent until
           scroll so it can float over the photo. */}
       <Navbar solid={!noNavSpacer} />
-      {/* Spacer clears the fixed Navbar (h-12 + safe-area top inset). The
-          landing hero opts out (noNavSpacer) so it flows under the nav. */}
+      {/* Spacer clears the fixed Navbar (h-12 = 3rem + safe-area top inset)
+          AND adds a comfortable breathing gap below it so a page's title/header
+          doesn't crowd the nav. The min breathing room is 1.5rem (was 0.25rem,
+          which read as touching); a notched device's larger safe-area inset
+          wins via max(). The landing hero opts out (noNavSpacer) so it flows
+          under the nav. */}
       {!noNavSpacer && (
         <div
           aria-hidden
-          style={{ height: "calc(max(env(safe-area-inset-top), 0.25rem) + 3rem)" }}
+          style={{ height: "calc(max(env(safe-area-inset-top), 1.5rem) + 3rem)" }}
         />
       )}
 

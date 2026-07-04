@@ -20,66 +20,55 @@ const BusinessCTASection = () => (
             "inset 0 1px 1px 0 rgba(255,255,255,0.4), 0 12px 32px -12px hsl(var(--bark) / 0.18)",
         }}
       >
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="max-w-xl space-y-2.5">
-            <span
-              className="inline-flex items-center gap-2 font-serif italic uppercase text-[0.66rem] tracking-[0.18em]"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
-            >
-              <Building2 className="w-3.5 h-3.5" strokeWidth={1.75} />
-              For business
-            </span>
-            <h2
-              className="font-display font-bold leading-tight text-ds-24 sm:text-ds-32"
-              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-            >
-              One trusted crew for everything your business runs on.
-            </h2>
-            <p className="text-ds-13 sm:text-ds-15 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-              Post jobs or find work — Helpr connects businesses with ID-verified local
-              pros across every industry. Cleanings, turnovers, hauling, repairs, and
-              the skilled trades, recurring or on-demand. Whatever your industry needs,
-              we cover it.
-            </p>
-            <div className="flex flex-wrap gap-2 mt-4">
-              {[
-                { Icon: Home, label: "Property & rentals" },
-                { Icon: Wrench, label: "Skilled trades" },
-                { Icon: HeartPulse, label: "Healthcare" },
-                { Icon: Plus, label: "Any industry" },
-              ].map(({ Icon, label }) => (
-                <span
-                  key={label}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ds-11 font-sans font-medium"
-                  style={{
-                    backgroundColor: "hsl(var(--bark) / 0.08)",
-                    color: "hsl(var(--olivewood))",
-                    border: "1px solid hsl(var(--bark) / 0.15)",
-                  }}
-                >
-                  <Icon className="w-3 h-3 shrink-0" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-          {/* Action panel — a contained module rather than a lone button
-              floating at the far edge of the wide band. Surfaces both sides of
-              the marketplace: the Business hub AND browsing open work. */}
-          <div
-            className="shrink-0 w-full sm:w-[16.5rem] rounded-3xl p-5 flex flex-col gap-3"
-            style={{
-              background: "hsl(var(--bark) / 0.06)",
-              border: "1px solid hsl(var(--bark) / 0.15)",
-              boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.45)",
-            }}
+        {/* Single stacked column — words first, then the two CTAs directly
+            under them. Previously the copy sat on the left and the action
+            panel floated at the far right edge of the wide band, leaving an
+            odd blank gap through the middle on desktop. Stacking closes that
+            gap and keeps the band tight. */}
+        <div className="max-w-2xl space-y-2.5">
+          <span
+            className="inline-flex items-center gap-2 font-serif italic uppercase text-[0.66rem] tracking-[0.18em]"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
           >
-            <p
-              className="text-ds-11 font-sans font-medium leading-snug"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              Post a job or find local work — get started in minutes.
-            </p>
+            <Building2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+            For business
+          </span>
+          <h2
+            className="font-display font-bold leading-tight text-ds-24 sm:text-ds-32"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+          >
+            One trusted crew for everything your business runs on.
+          </h2>
+          <p className="text-ds-13 sm:text-ds-15 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            Post jobs or find work — Helpr connects businesses with ID-verified local
+            pros across every industry. Cleanings, turnovers, hauling, repairs, and
+            the skilled trades, recurring or on-demand. Whatever your industry needs,
+            we cover it.
+          </p>
+          <div className="flex flex-wrap gap-2 mt-4">
+            {[
+              { Icon: Home, label: "Property & rentals" },
+              { Icon: Wrench, label: "Skilled trades" },
+              { Icon: HeartPulse, label: "Healthcare" },
+              { Icon: Plus, label: "Any industry" },
+            ].map(({ Icon, label }) => (
+              <span
+                key={label}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ds-11 font-sans font-medium"
+                style={{
+                  backgroundColor: "hsl(var(--bark) / 0.08)",
+                  color: "hsl(var(--olivewood))",
+                  border: "1px solid hsl(var(--bark) / 0.15)",
+                }}
+              >
+                <Icon className="w-3 h-3 shrink-0" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+                {label}
+              </span>
+            ))}
+          </div>
+          {/* Two CTAs sit inline under the words (stack on mobile) — surfaces
+              both sides of the marketplace: the Business hub AND browsing work. */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-5">
             <Button
               asChild
               size="lg"

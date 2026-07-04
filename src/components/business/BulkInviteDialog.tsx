@@ -13,9 +13,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+  DialogHero,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Loader2, FileSpreadsheet, CheckCircle2, XCircle, Clock } from "lucide-react";
@@ -205,16 +203,21 @@ export function BulkInviteDialog({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="w-4 h-4" />
-            Bulk invite by CSV
-          </DialogTitle>
-          <DialogDescription>
-            Drop a CSV with <code className="font-mono text-xs">email,role</code> columns. Roles
-            can be viewer, poster, approver, or admin (defaults to poster).
-          </DialogDescription>
-        </DialogHeader>
+        <DialogHero
+          eyebrow={
+            <>
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Bulk invite
+            </>
+          }
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title="Bulk invite by CSV"
+          subtitle={
+            <>
+              Drop a CSV with <code className="font-mono text-xs">email,role</code> columns. Roles
+              can be viewer, poster, approver, or admin (defaults to poster).
+            </>
+          }
+        />
 
         {rows.length === 0 ? (
           <label

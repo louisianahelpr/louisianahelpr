@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, Clock, ArrowRight, ShieldCheck } from "lucide-react";
@@ -200,20 +200,15 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         className="max-w-lg"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader className="!text-left space-y-0">
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-          >
-            <Clock className="w-3 h-3" /> Heads up
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight pt-2"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Cancel "{jobTitle}"?
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={
+            <>
+              <Clock className="w-3 h-3" /> Heads up
+            </>
+          }
+          title={`Cancel "${jobTitle}"?`}
+        />
         <div className="space-y-4">
 
           {/* Full Cancellation Policy */}

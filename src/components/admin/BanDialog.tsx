@@ -9,8 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -233,12 +232,15 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
   return (
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-5">
-        <DialogHeader className="pr-8 space-y-1">
-          <DialogTitle className="font-display flex items-center gap-2 text-ds-15 sm:text-ds-17">
-            <ShieldAlert className="w-5 h-5 text-destructive shrink-0" />
-            <span className="truncate">Take Action: {profile?.full_name || "User"}</span>
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrow={
+            <>
+              <ShieldAlert className="w-3.5 h-3.5" /> Take action
+            </>
+          }
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title={`Take Action: ${profile?.full_name || "User"}`}
+        />
         <div className="space-y-5">
           <div className="space-y-2">
             <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Action type</p>

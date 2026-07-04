@@ -7,8 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -84,11 +83,15 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
   return (
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-2">
-            <Pencil className="w-5 h-5 text-primary" /> Change Email for {profile?.full_name || "User"}
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrow={
+            <>
+              <Pencil className="w-3.5 h-3.5" /> Change email
+            </>
+          }
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title={`Change Email for ${profile?.full_name || "User"}`}
+        />
         <div className="space-y-4">
           <div className="rounded-ds-sm bg-muted/50 border border-border p-3">
             <p className="text-ds-11 text-muted-foreground">

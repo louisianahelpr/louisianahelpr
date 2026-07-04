@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Gift } from "lucide-react";
@@ -43,26 +43,12 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="!gap-4">
-        <DialogHeader className="!text-left space-y-0">
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
-          >
-            <Gift className="w-3 h-3" /> A little extra
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight pt-2"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Send a tip{helperName ? ` to ${helperName}` : ""}.
-          </DialogTitle>
-          <p
-            className="font-serif italic pt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Pure thanks — goes straight to the Helpr, no platform cut.
-          </p>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={<><Gift className="w-3 h-3" /> A little extra</>}
+          title={`Send a tip${helperName ? ` to ${helperName}` : ""}.`}
+          subtitle="Pure thanks — goes straight to the Helpr, no platform cut."
+        />
         <div className="space-y-4">
           {/* Suggested amounts — celebratory tier-styled pills first
               since most people pick from quick-picks rather than typing. */}

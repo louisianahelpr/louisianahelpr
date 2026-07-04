@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Rocket, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -63,26 +63,16 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="!gap-4">
-        <DialogHeader className="!text-left space-y-0">
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
-          >
-            <Rocket className="w-3 h-3" /> Lift it to the top
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight pt-2"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Boost your job.
-          </DialogTitle>
-          <p
-            className="font-serif italic pt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Featured placement and a Boosted badge for 24 hours.
-          </p>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={
+            <>
+              <Rocket className="w-3 h-3" /> Lift it to the top
+            </>
+          }
+          title="Boost your job."
+          subtitle="Featured placement and a Boosted badge for 24 hours."
+        />
         <div className="space-y-3">
           {/* Price card — parchment-gold pill recipe (matches Tip + Payout).
               Subscribers see "Included" instead of $3 since Boosted

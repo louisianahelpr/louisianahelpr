@@ -2,8 +2,7 @@ import { QrCode, Share2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHero,
 } from "@/components/ui/dialog";
 import { shareNative } from "@/lib/nativeShare";
 import type { Profile } from "./types";
@@ -19,9 +18,11 @@ export function QrCodeModal({ profile, qrOpen, setQrOpen, qrDataUrl }: QrCodeMod
   return (
     <Dialog open={qrOpen} onOpenChange={setQrOpen}>
       <DialogContent className="max-w-xs mx-auto text-center">
-        <DialogHeader>
-          <DialogTitle className="text-center">My QR Code</DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={<><QrCode className="w-3 h-3" /> Verify at the door</>}
+          title="My QR Code"
+        />
         <div className="flex flex-col items-center gap-4 py-2">
           {qrDataUrl ? (
             <img

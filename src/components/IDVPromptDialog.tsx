@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, Camera, FileCheck2, Loader2, AlertTriangle, Hourglass } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,31 +100,17 @@ export function IDVPromptDialog({
         className="sm:max-w-md gap-3"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader className="!text-left space-y-0 pr-8">
-          <span
-            className="font-serif italic uppercase text-[0.62rem] inline-flex items-center gap-1.5"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-          >
-            <Icon className="w-3 h-3" strokeWidth={2} aria-hidden="true" />
-            Identity check
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight pt-2"
-            style={{
-              fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.025em",
-            }}
-          >
-            {headline}
-          </DialogTitle>
-          <DialogDescription
-            className="font-serif italic pt-2 text-[0.92rem] leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            {description}
-          </DialogDescription>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={
+            <>
+              <Icon className="w-3 h-3" strokeWidth={2} aria-hidden="true" />
+              Identity check
+            </>
+          }
+          title={headline}
+          subtitle={description}
+        />
 
         {/* Admin-review state — show Stripe's reason for transparency, but
             no self-service retry CTA. Per owner policy, Stripe Identity is

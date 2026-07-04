@@ -14,7 +14,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { PayoutBatch, PayoutLedgerRow } from "./adminPayoutBatches/types";
 import { loadHolds, saveHolds } from "./adminPayoutBatches/adminPayoutBatchesHelpers";
@@ -366,11 +366,15 @@ const AdminPayoutBatches = () => {
       {/* Hold dialog — captures the reason that surfaces on the row + audit. */}
       <Dialog open={!!holdReasonDraft} onOpenChange={(o) => { if (!o) setHoldReasonDraft(null); }}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <Pause className="w-5 h-5 text-amber-600" /> Hold payout for review
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHero
+            eyebrow={
+              <>
+                <Pause className="w-3.5 h-3.5" /> Hold payout
+              </>
+            }
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            title="Hold payout for review"
+          />
           <div className="space-y-3">
             <p className="text-ds-11 text-muted-foreground">
               Moves this helper's batch to the Hold-for-review queue. No
@@ -402,11 +406,15 @@ const AdminPayoutBatches = () => {
 
       <Dialog open={!!denyDraft} onOpenChange={(o) => { if (!o) setDenyDraft(null); }}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" /> Deny this payout
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHero
+            eyebrow={
+              <>
+                <AlertTriangle className="w-3.5 h-3.5" /> Deny payout
+              </>
+            }
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            title="Deny this payout"
+          />
           <div className="space-y-3">
             <p className="text-ds-11 text-muted-foreground">
               Records the denial decision to admin_audit_log and tags the

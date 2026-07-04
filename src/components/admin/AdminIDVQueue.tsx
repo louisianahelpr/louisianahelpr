@@ -12,7 +12,7 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 
@@ -321,9 +321,10 @@ const AdminIDVQueue = () => {
       {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{formatName(selected?.full_name, "User")}</DialogTitle>
-          </DialogHeader>
+          <DialogHero
+            eyebrow="Identity verification"
+            title={formatName(selected?.full_name, "User")}
+          />
           {selected && (
             <div className="space-y-3 text-ds-13">
               <Row label="Email" value={selected.email || "—"} />

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
@@ -96,28 +96,20 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="!gap-3">
-          <DialogHeader className="!text-left space-y-0">
-            <span
-              className="font-serif italic uppercase inline-flex items-center gap-1.5"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-            >
-              <Camera className="w-3 h-3" /> Proof of work
-            </span>
-            <DialogTitle
-              className="font-display italic font-bold leading-tight mt-2"
-              style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-            >
-              {type === "before" ? "Before" : "After"} photos
-            </DialogTitle>
-            <p
-              className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              {type === "before"
+          <DialogHero
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            eyebrow={
+              <>
+                <Camera className="w-3 h-3" /> Proof of work
+              </>
+            }
+            title={`${type === "before" ? "Before" : "After"} photos`}
+            subtitle={
+              type === "before"
                 ? "Snap a few shots before you start so everyone has a baseline."
-                : "Show the finished work — required before payment can release."}
-            </p>
-          </DialogHeader>
+                : "Show the finished work — required before payment can release."
+            }
+          />
           <div className="space-y-3">
             {existingUrls.length > 0 && (
               <div className="space-y-1.5">
@@ -364,9 +356,15 @@ export const PhotoProofGroup = ({
       {/* Full view dialog */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display">Photo Proof</DialogTitle>
-          </DialogHeader>
+          <DialogHero
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            eyebrow={
+              <>
+                <Image className="w-3 h-3" /> Proof of work
+              </>
+            }
+            title="Photo Proof"
+          />
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             {hasBefore && (
               <div className="space-y-2">

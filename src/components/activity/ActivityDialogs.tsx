@@ -1,7 +1,7 @@
 import { useState, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -123,9 +123,10 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       {/* Revision Request Dialog */}
       <Dialog open={!!props.revisionJobId} onOpenChange={() => props.setRevisionJobId(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display">Request Revision</DialogTitle>
-          </DialogHeader>
+          <DialogHero
+            eyebrow="Not quite right"
+            title="Request Revision"
+          />
           <div className="space-y-4">
             <p className="text-ds-11 text-muted-foreground">Describe what needs to be fixed or redone. The Helpr will be notified.</p>
             <Textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} placeholder="Please fix…" rows={3} aria-label="Revision request details" />
@@ -164,11 +165,15 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       {/* No-Show Confirmation Dialog */}
       <Dialog open={!!props.noShowJobId} onOpenChange={() => props.setNoShowJobId(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" /> Report No-Show
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHero
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            eyebrow={
+              <>
+                <AlertTriangle className="w-3 h-3" /> No-show
+              </>
+            }
+            title="Report No-Show"
+          />
           <div className="space-y-3">
             <p className="text-ds-11 text-muted-foreground">Are you sure the Helpr didn't show up? This will:</p>
             <ul className="text-ds-11 text-muted-foreground space-y-1 list-disc pl-5">

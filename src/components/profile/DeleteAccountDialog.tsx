@@ -1,4 +1,4 @@
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHero } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -61,21 +61,13 @@ export function DeleteAccountDialog({
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent className="max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle
-            className="font-display italic font-bold flex items-center justify-center gap-2 text-balance"
-            style={{
-              fontSize: "clamp(1.3rem, 2vw + 0.3rem, 1.5rem)",
-              color: "hsl(var(--burnt-sienna))",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            <AlertTriangle className="w-5 h-5" /> Final confirmation
-          </AlertDialogTitle>
-          <AlertDialogDescription className="text-center font-serif italic text-ds-13 text-balance" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Type <strong className="not-italic font-sans" style={{ color: "hsl(var(--ink-deep))" }}>{CONFIRM_PHRASE}</strong> below to confirm. There is no undo.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+        <AlertDialogHero
+          className="text-center"
+          title={<><AlertTriangle className="w-5 h-5" /> Final confirmation</>}
+          titleClassName="flex items-center justify-center gap-2 text-balance"
+          titleStyle={{ color: "hsl(var(--burnt-sienna))" }}
+          subtitle={<>Type <strong className="not-italic font-sans" style={{ color: "hsl(var(--ink-deep))" }}>{CONFIRM_PHRASE}</strong> below to confirm. There is no undo.</>}
+        />
         <Input
           autoFocus
           aria-label={`Type ${CONFIRM_PHRASE} to confirm account deletion`}

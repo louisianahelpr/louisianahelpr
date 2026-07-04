@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import {
   Users, Repeat, Rocket, Zap,
 } from "lucide-react";
@@ -110,38 +110,29 @@ const JobDetailDialog = ({
           _onSelect(_allJobs[nextIdx]);
         }}
       >
-        {/* Header — mirrors the dashboard's Browse Tasks block: italic
-            Garamond eyebrow (category) → bold italic Bodoni headline (job
-            title) → italic Garamond meta (location · time · status pills). */}
-        <DialogHeader className="!text-left space-y-0 pr-10">
-          <span
-            className="text-[0.62rem] font-serif italic uppercase tracking-[0.18em] flex items-center gap-1.5"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
-          >
-            <span
-              aria-label={categoryLabels[job.category] || job.category}
-              className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ${catStyle.dot}`}
-            >
-              <CategoryIcon
-                category={job.category}
-                aria-hidden
-                className="w-2.5 h-2.5 text-white/90"
-                strokeWidth={2.5}
-              />
-            </span>
-            {categoryLabels[job.category] || job.category}
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight pt-2"
-            style={{
-              fontSize: "1.5rem",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            {job.title}
-          </DialogTitle>
-        </DialogHeader>
+        {/* Canonical popup header (DialogHero). The category dot keeps its
+            category color; the eyebrow text stays the canonical burnt-sienna,
+            so this job dialog reads as a sibling of every other popup. */}
+        <DialogHero
+          eyebrowClassName="flex items-center gap-1.5"
+          eyebrow={
+            <>
+              <span
+                aria-label={categoryLabels[job.category] || job.category}
+                className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ${catStyle.dot}`}
+              >
+                <CategoryIcon
+                  category={job.category}
+                  aria-hidden
+                  className="w-2.5 h-2.5 text-white/90"
+                  strokeWidth={2.5}
+                />
+              </span>
+              {categoryLabels[job.category] || job.category}
+            </>
+          }
+          title={job.title}
+        />
 
         {/* Photo cover wrapped so Boosted (top-right) and Urgent
             (top-left) can stamp the corners without being clipped by

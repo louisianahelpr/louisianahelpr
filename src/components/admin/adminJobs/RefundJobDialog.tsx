@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { DollarSign } from "lucide-react";
 import type { Job } from "./types";
@@ -32,11 +32,15 @@ export const RefundJobDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display text-destructive flex items-center gap-2">
-            <DollarSign className="w-5 h-5" /> Refund Customer
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrow={
+            <>
+              <DollarSign className="w-3.5 h-3.5" /> Refund
+            </>
+          }
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title="Refund Customer"
+        />
         <div className="space-y-3">
           <p className="text-ds-11 text-muted-foreground">
             Issues a Stripe refund for the captured payment. Leave the

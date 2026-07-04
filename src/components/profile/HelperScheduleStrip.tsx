@@ -7,8 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHero,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -388,17 +387,23 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
         }}
       >
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {openDayDate
+          <DialogHero
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            eyebrow={
+              <>
+                <CalendarDays className="w-3 h-3" /> Your schedule
+              </>
+            }
+            title={
+              openDayDate
                 ? openDayDate.toLocaleDateString("en-US", {
                     weekday: "long",
                     month: "long",
                     day: "numeric",
                   })
-                : "Schedule"}
-            </DialogTitle>
-          </DialogHeader>
+                : "Schedule"
+            }
+          />
           <ul className="space-y-2.5">
             {openDayJobs.map((j) => {
               const time = formatTime(j.start_time);

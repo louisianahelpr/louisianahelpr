@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,14 +82,16 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileSignature className="w-5 h-5" /> Sign your W-9
-          </DialogTitle>
-          <DialogDescription>
-            This job requires a W-9 from the accepted Helpr. Type your full legal name to sign — we'll mail you a copy on file.
-          </DialogDescription>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={
+            <>
+              <FileSignature className="w-3 h-3" /> Tax form
+            </>
+          }
+          title="Sign your W-9"
+          subtitle="This job requires a W-9 from the accepted Helpr. Type your full legal name to sign — we'll mail you a copy on file."
+        />
         <div className="space-y-3">
           <div>
             <Label htmlFor="w9-name">Full legal name</Label>

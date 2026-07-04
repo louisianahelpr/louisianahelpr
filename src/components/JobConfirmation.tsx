@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { CheckCircle2, Clock, AlertTriangle, ShieldCheck } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
@@ -180,26 +180,16 @@ export function JobConfirmation({
       {/* Confirmation popup */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="!gap-3">
-          <DialogHeader className="!text-left space-y-0">
-            <span
-              className="font-serif italic uppercase inline-flex items-center gap-1.5"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-            >
-              <ShieldCheck className="w-3 h-3" /> Locking it in
-            </span>
-            <DialogTitle
-              className="font-display italic font-bold leading-tight pt-2"
-              style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-            >
-              Commit to this job?
-            </DialogTitle>
-            <p
-              className="font-serif italic pt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              The other party will see you're locked in for the scheduled date.
-            </p>
-          </DialogHeader>
+          <DialogHero
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            eyebrow={
+              <>
+                <ShieldCheck className="w-3 h-3" /> Locking it in
+              </>
+            }
+            title="Commit to this job?"
+            subtitle="The other party will see you're locked in for the scheduled date."
+          />
           <div className="space-y-3">
             <div
               className="rounded-ds-md p-3"

@@ -69,6 +69,62 @@ const AlertDialogDescription = React.forwardRef<
 ));
 AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayName;
 
+/**
+ * AlertDialogHero — the confirm-box twin of DialogHero. AlertDialogs can't use
+ * DialogHero (different Radix primitive, no X close button), so this mirrors its
+ * eyebrow → title → subtitle stack and type tokens EXACTLY, using the AlertDialog
+ * Title/Description primitives Radix requires for a11y. Adopt this instead of
+ * hand-rolling a header inside an AlertDialog so every confirm box reads identical
+ * to every other popup app-wide.
+ *
+ *   <AlertDialogHero eyebrow="Safety" title="Block Sarah?" subtitle="They won't…" />
+ */
+const AlertDialogHero = ({
+  eyebrow,
+  title,
+  subtitle,
+  className,
+  titleClassName,
+  titleStyle,
+  eyebrowClassName,
+  eyebrowStyle,
+}: {
+  eyebrow?: React.ReactNode;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  className?: string;
+  titleClassName?: string;
+  titleStyle?: React.CSSProperties;
+  eyebrowClassName?: string;
+  eyebrowStyle?: React.CSSProperties;
+}) => (
+  <AlertDialogHeader className={cn("space-y-0 text-left", className)}>
+    {eyebrow && (
+      <span
+        className={cn("font-serif italic uppercase block", eyebrowClassName)}
+        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em", ...eyebrowStyle }}
+      >
+        {eyebrow}
+      </span>
+    )}
+    <AlertDialogTitle
+      className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
+      style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}
+    >
+      {title}
+    </AlertDialogTitle>
+    {subtitle && (
+      <AlertDialogDescription
+        className="font-serif italic leading-relaxed pt-1.5"
+        style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.85)" }}
+      >
+        {subtitle}
+      </AlertDialogDescription>
+    )}
+  </AlertDialogHeader>
+);
+AlertDialogHero.displayName = "AlertDialogHero";
+
 const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
@@ -103,6 +159,7 @@ export {
   AlertDialogFooter,
   AlertDialogTitle,
   AlertDialogDescription,
+  AlertDialogHero,
   AlertDialogAction,
   AlertDialogCancel,
 };

@@ -11,8 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -94,11 +93,10 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
   return (
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display">
-            Deny {formatName(profile?.full_name)}
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrow="Deny application"
+          title={`Deny ${formatName(profile?.full_name)}`}
+        />
         <div className="space-y-4">
           <p className="text-ds-11 text-muted-foreground">
             Provide a reason for denying this application.

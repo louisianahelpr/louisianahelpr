@@ -11,10 +11,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogHero,
 } from "@/components/ui/alert-dialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import SectionBoundary from "@/components/SectionBoundary";
@@ -189,12 +187,10 @@ const ExceptionQueueInner = () => {
 
       <AlertDialog open={!!resolveTarget} onOpenChange={(o) => !o && setResolveTarget(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Resolve exception</AlertDialogTitle>
-            <AlertDialogDescription>
-              Optionally add a resolution note. The exception will be marked resolved and removed from the queue.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+          <AlertDialogHero
+            title="Resolve exception"
+            subtitle="Optionally add a resolution note. The exception will be marked resolved and removed from the queue."
+          />
           <Textarea
             aria-label="Resolution note"
             placeholder="e.g. Manually verified license via state portal — credential approved"

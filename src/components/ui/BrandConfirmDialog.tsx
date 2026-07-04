@@ -15,10 +15,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogHero,
 } from "@/components/ui/alert-dialog";
 import { AlertTriangle, type LucideIcon } from "lucide-react";
 import {
@@ -118,24 +116,12 @@ export function BrandConfirmDialog({
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle
-            className="font-display italic font-bold text-center text-balance"
-            style={{
-              fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.65rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.025em",
-            }}
-          >
-            {title}
-          </AlertDialogTitle>
-          <AlertDialogDescription
-            className="text-center font-serif italic text-ds-13 text-balance"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            {description}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+        <AlertDialogHero
+          className="text-center"
+          title={title}
+          titleClassName="text-center text-balance"
+          subtitle={description}
+        />
 
         {callout && (
           <div

@@ -7,8 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -59,11 +58,15 @@ export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswo
   return (
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-primary" /> Send Password Reset Link
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrow={
+            <>
+              <KeyRound className="w-3.5 h-3.5" /> Password reset
+            </>
+          }
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title="Send Password Reset Link"
+        />
         <div className="space-y-3">
           <p className="text-ds-11 text-muted-foreground">
             Email a one-time password reset link to{" "}

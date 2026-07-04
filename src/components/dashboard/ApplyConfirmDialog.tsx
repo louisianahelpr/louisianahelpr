@@ -4,10 +4,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogHero,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { FileText, Paperclip, Trash2, WifiOff, Sparkles, BookmarkCheck, ChevronDown, Plus } from "lucide-react";
@@ -169,30 +167,17 @@ export function ApplyConfirmDialog({
   return (
     <AlertDialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <AlertDialogContent className="!gap-3">
-        <AlertDialogHeader className="!text-left space-y-0">
-          <span
-            className="font-serif italic uppercase"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-          >
-            {isBidMode ? "You're bidding" : isInstantBook ? "You're booking" : "You're applying"}
-          </span>
-          <AlertDialogTitle
-            className="font-display italic font-bold leading-tight pt-2"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            {confirmApplyJob ? `"${confirmApplyJob.title}"` : isBidMode ? "Submit a bid" : isInstantBook ? "Book this job" : "Apply for this job"}
-          </AlertDialogTitle>
-          <AlertDialogDescription asChild>
-            {confirmApplyJob ? (
-              <div className="pt-3">
-                <ApplyEarningsBreakdown confirmApplyJob={confirmApplyJob} platformFee={platformFee} />
-              </div>
-            ) : (
-              <p className="font-serif italic pt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Are you sure you want to apply for this job?
-              </p>
-            )}
-          </AlertDialogDescription>
+        <div className="!text-left space-y-0">
+          <AlertDialogHero
+            eyebrow={isBidMode ? "You're bidding" : isInstantBook ? "You're booking" : "You're applying"}
+            title={confirmApplyJob ? `"${confirmApplyJob.title}"` : isBidMode ? "Submit a bid" : isInstantBook ? "Book this job" : "Apply for this job"}
+            subtitle={confirmApplyJob ? undefined : "Are you sure you want to apply for this job?"}
+          />
+          {confirmApplyJob && (
+            <div className="pt-3">
+              <ApplyEarningsBreakdown confirmApplyJob={confirmApplyJob} platformFee={platformFee} />
+            </div>
+          )}
           {/* Bid price — only shown when the job uses "Accept bids" pricing */}
           {isBidMode && (
             <div className="space-y-1 mt-3">
@@ -474,7 +459,7 @@ export function ApplyConfirmDialog({
           </div>
             </>
           )}
-        </AlertDialogHeader>
+        </div>
         {!online && (
           <p
             className="flex items-center gap-1.5 font-serif italic text-[0.78rem] leading-snug -mt-1"

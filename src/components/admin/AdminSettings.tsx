@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
 import { ShieldCheck, Trash2, Plus, Search, UserPlus, Flag, Smartphone } from "lucide-react";
@@ -492,9 +492,7 @@ const AdminSettings = () => {
       {/* Add Admin Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display">Add Admin User</DialogTitle>
-          </DialogHeader>
+          <DialogHero eyebrow="Admin access" title="Add Admin User" />
           <div className="space-y-4">
             <div className="flex gap-2">
               <Input

@@ -11,8 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -82,12 +81,15 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
   return (
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-5">
-        <DialogHeader className="pr-8 space-y-1">
-          <DialogTitle className="font-display flex items-center gap-2 text-ds-15 sm:text-ds-17">
-            <MessageSquareWarning className="w-5 h-5 text-accent shrink-0" />
-            <span className="truncate">Issue Manual Strike</span>
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrow={
+            <>
+              <MessageSquareWarning className="w-3.5 h-3.5" /> Manual strike
+            </>
+          }
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title="Issue Manual Strike"
+        />
         <div className="space-y-5">
           <p className="text-ds-11 text-muted-foreground leading-relaxed">
             Per the Repeat Offender Policy: <strong>1st</strong> = warning, <strong>2nd</strong> = final warning banner, <strong>3rd</strong> = 7-day suspension.

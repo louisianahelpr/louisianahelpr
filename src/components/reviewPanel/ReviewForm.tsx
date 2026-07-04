@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { ImagePlus, X as XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { maybeRequestInAppReview } from "@/lib/inAppReview";
@@ -174,26 +174,11 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto !gap-3">
-        <DialogHeader className="!text-left space-y-0">
-          <span
-            className="font-serif italic uppercase"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-          >
-            Your turn
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Rate {revieweeName}.
-          </DialogTitle>
-          <p
-            className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Reviews are how other neighbors decide who to trust.
-          </p>
-        </DialogHeader>
+        <DialogHero
+          eyebrow="Your turn"
+          title={`Rate ${revieweeName}.`}
+          subtitle="Reviews are how other neighbors decide who to trust."
+        />
         <div className="space-y-3">
           {CATEGORY_ROWS.map((row) => (
             <StarRow
@@ -356,23 +341,11 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           waiting for the separate tip flow on Activity. */}
       <Dialog open={tipPromptOpen} onOpenChange={(o) => { if (!o) { setTipPromptOpen(false); onClose(); } }}>
         <DialogContent className="!gap-3 sm:max-w-sm">
-          <DialogHeader className="!text-left space-y-0">
-            <span
-              className="font-serif italic uppercase"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
-            >
-              Five stars — nice
-            </span>
-            <DialogTitle
-              className="font-display italic font-bold leading-tight mt-2"
-              style={{ fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.5rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-            >
-              Send {revieweeName} a tip?
-            </DialogTitle>
-            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-              Goes straight to the Helpr — no platform cut. Most posters tip 10–15% for great work.
-            </p>
-          </DialogHeader>
+          <DialogHero
+            eyebrow="Five stars — nice"
+            title={`Send ${revieweeName} a tip?`}
+            subtitle="Goes straight to the Helpr — no platform cut. Most posters tip 10–15% for great work."
+          />
           <DialogFooter className="!gap-2">
             <Button
               variant="ghost"

@@ -4,10 +4,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogHero,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ShieldAlert } from "lucide-react";
@@ -112,21 +110,12 @@ export function BlockUserDialog({
   return (
     <AlertDialog open={open} onOpenChange={(o) => !o && !submitting && onClose()}>
       <AlertDialogContent className="!gap-3">
-        <AlertDialogHeader className="!text-left space-y-0">
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-          >
-            <ShieldAlert className="w-3 h-3" /> Safety
-          </span>
-          <AlertDialogTitle
-            className="font-display italic font-bold leading-tight pt-2"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Block {blockedUserName}?
-          </AlertDialogTitle>
-          <AlertDialogDescription asChild>
-            <div className="space-y-3 mt-2">
+        <AlertDialogHero
+          eyebrow={<><ShieldAlert className="w-3 h-3" /> Safety</>}
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title={<>Block {blockedUserName}?</>}
+        />
+        <div className="space-y-3 mt-2">
               <ul
                 className="font-serif italic space-y-1 list-disc pl-5 leading-relaxed"
                 style={{ fontSize: "0.84rem", color: "hsl(var(--olivewood) / 0.85)" }}
@@ -157,8 +146,6 @@ export function BlockUserDialog({
                 />
               </div>
             </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
         {/* Force normal (top-down) column order — shadcn's footer defaults to
             flex-col-reverse on mobile, which would float Cancel to the top.
             We want the action stack to read Just block → Block and report →

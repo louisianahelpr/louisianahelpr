@@ -7,7 +7,7 @@ import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
@@ -354,11 +354,15 @@ const AdminReports = () => {
       {/* Message Dialog */}
       <Dialog open={!!messageTarget} onOpenChange={(open) => { if (!open) setMessageTarget(null); }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <Send className="w-5 h-5 text-primary" /> Message {messageTarget?.name}
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHero
+            eyebrow={
+              <>
+                <Send className="w-3.5 h-3.5" /> Message
+              </>
+            }
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            title={`Message ${messageTarget?.name}`}
+          />
           <div className="space-y-3">
             <p className="text-ds-11 text-muted-foreground">
               This will send an in-app notification to {messageTarget?.name}.

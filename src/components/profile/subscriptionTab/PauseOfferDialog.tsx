@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, PauseCircle } from "lucide-react";
 
 // Pause-offer dialog — shown first when an active subscriber taps
@@ -25,26 +25,12 @@ export const PauseOfferDialog = ({
   return (
     <Dialog open={pauseOfferOpen} onOpenChange={setPauseOfferOpen}>
       <DialogContent className="!gap-3">
-        <DialogHeader className="!text-left space-y-0">
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
-          >
-            <PauseCircle className="w-3 h-3" /> Take a breather
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Pause 1 month free instead?
-          </DialogTitle>
-          <p
-            className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Keep your spot — request a one-month, no-charge pause on your {(currentTier ?? "plan")}. We'll confirm by email and your plan resumes after the pause. Cancel anytime if you've changed your mind.
-          </p>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={<><PauseCircle className="w-3 h-3" /> Take a breather</>}
+          title="Pause 1 month free instead?"
+          subtitle={`Keep your spot — request a one-month, no-charge pause on your ${currentTier ?? "plan"}. We'll confirm by email and your plan resumes after the pause. Cancel anytime if you've changed your mind.`}
+        />
         <div
           className="rounded-ds-md p-3 mt-1 space-y-1"
           style={{

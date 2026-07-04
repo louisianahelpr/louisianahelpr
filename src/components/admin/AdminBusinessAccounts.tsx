@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { Building2, ChevronRight, Search, Users, ShieldCheck } from "lucide-react";
 import { queryKeys } from "@/lib/queryKeys";
 import { formatJobDate } from "@/lib/format";
@@ -162,11 +162,15 @@ const AdminBusinessAccounts = () => {
 
       <Dialog open={!!openBusiness} onOpenChange={(open) => { if (!open) setOpenBusiness(null); }}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="w-5 h-5" /> {openBusiness?.business_name}
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHero
+            eyebrow={
+              <>
+                <Building2 className="w-3.5 h-3.5" /> Business account
+              </>
+            }
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            title={openBusiness?.business_name}
+          />
           {openBusiness && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3 text-ds-12">

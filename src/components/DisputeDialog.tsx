@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { fireSlackAlert } from "@/lib/slackAlerts";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -168,26 +168,20 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="!gap-3">
-        <DialogHeader className="!text-left space-y-0">
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            <AlertTriangle className="w-3 h-3" /> Last resort
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight pt-2"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            File a dispute.
-          </DialogTitle>
-          <p
-            className="font-serif italic pt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            You've already requested a revision. Filing a dispute holds payment for <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>72 hours</strong> while an admin reviews.
-          </p>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={
+            <>
+              <AlertTriangle className="w-3 h-3" /> Last resort
+            </>
+          }
+          title="File a dispute."
+          subtitle={
+            <>
+              You've already requested a revision. Filing a dispute holds payment for <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>72 hours</strong> while an admin reviews.
+            </>
+          }
+        />
         <div className="space-y-3.5">
           <div className="space-y-1.5">
             <Label className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>

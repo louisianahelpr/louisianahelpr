@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { History as HistoryIcon } from "lucide-react";
 import { jobStatusLabel } from "@/lib/statusLabels";
@@ -35,11 +35,15 @@ export const StatusOverrideDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-2">
-            <HistoryIcon className="w-5 h-5 text-primary" /> Manual Status Override
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrow={
+            <>
+              <HistoryIcon className="w-3.5 h-3.5" /> Status override
+            </>
+          }
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title="Manual Status Override"
+        />
         <div className="space-y-3">
           <p className="text-ds-11 text-muted-foreground">
             Force the job into a different status. Logged to admin_audit_log and

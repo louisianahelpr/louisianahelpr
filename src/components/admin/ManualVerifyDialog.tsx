@@ -7,8 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -60,11 +59,15 @@ export function ManualVerifyDialog({ profile, onClose, onSuccess }: ManualVerify
   return (
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-primary" /> Manually Verify {formatName(profile?.full_name)}
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrow={
+            <>
+              <ShieldCheck className="w-3.5 h-3.5" /> Manual verification
+            </>
+          }
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title={`Manually Verify ${formatName(profile?.full_name)}`}
+        />
         <div className="space-y-3">
           <p className="text-ds-11 text-muted-foreground">
             Use this for someone you know personally, or whose ID is valid but our system couldn't read it.

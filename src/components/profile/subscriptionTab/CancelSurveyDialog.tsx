@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 
 // Cancellation drag survey — gentle "are you sure" with a stay
 // offer before Stripe portal opens. Reduces churn at the
@@ -18,26 +18,11 @@ export const CancelSurveyDialog = ({
   return (
     <Dialog open={cancelSurveyOpen} onOpenChange={setCancelSurveyOpen}>
       <DialogContent className="!gap-3">
-        <DialogHeader className="!text-left space-y-0">
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-          >
-            Before you go
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Thinking of cancelling?
-          </DialogTitle>
-          <p
-            className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Quick — what's holding you back? It helps us improve, and we might be able to fix it.
-          </p>
-        </DialogHeader>
+        <DialogHero
+          eyebrow="Before you go"
+          title="Thinking of cancelling?"
+          subtitle="Quick — what's holding you back? It helps us improve, and we might be able to fix it."
+        />
         <div className="space-y-2">
           {[
             "Too expensive",

@@ -17,10 +17,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogHero,
 } from "@/components/ui/alert-dialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 
@@ -167,12 +165,10 @@ const AdminBusinessVerificationQueue = () => {
 
       <AlertDialog open={!!rejectTarget} onOpenChange={(o) => !o && setRejectTarget(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reject business verification</AlertDialogTitle>
-            <AlertDialogDescription>
-              The owner will be notified and can re-upload. Add a short reason so they know what to fix.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+          <AlertDialogHero
+            title="Reject business verification"
+            subtitle="The owner will be notified and can re-upload. Add a short reason so they know what to fix."
+          />
           <Textarea
             aria-label="Business verification rejection reason"
             placeholder="e.g. Document is illegible, please upload a clearer scan"

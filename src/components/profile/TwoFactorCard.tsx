@@ -7,8 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ShieldCheck, Smartphone, Copy, Check } from "lucide-react";
@@ -209,27 +208,12 @@ function EnrollDialog({
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="!gap-3" onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHeader className="!text-left space-y-0">
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            <Smartphone className="w-3 h-3" /> Authenticator app
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
-            style={{ fontSize: "clamp(1.2rem, 2vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Turn on two-step.
-          </DialogTitle>
-          <p
-            className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Scan the code with Google Authenticator, 1Password, or any TOTP app,
-            then enter the 6-digit code it shows.
-          </p>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={<><Smartphone className="w-3 h-3" /> Authenticator app</>}
+          title="Turn on two-step."
+          subtitle="Scan the code with Google Authenticator, 1Password, or any TOTP app, then enter the 6-digit code it shows."
+        />
 
         {isLoading ? (
           <Skeleton className="h-44 rounded-ds-md" />
@@ -358,27 +342,12 @@ function DisableDialog({
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="!gap-3" onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHeader className="!text-left space-y-0">
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            <ShieldCheck className="w-3 h-3" /> Two-step verification
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
-            style={{ fontSize: "clamp(1.2rem, 2vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Turn off two-step?
-          </DialogTitle>
-          <p
-            className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Enter a current code from your authenticator app to confirm. Your
-            account will no longer ask for a code at sign-in.
-          </p>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={<><ShieldCheck className="w-3 h-3" /> Two-step verification</>}
+          title="Turn off two-step?"
+          subtitle="Enter a current code from your authenticator app to confirm. Your account will no longer ask for a code at sign-in."
+        />
 
         <div className="space-y-1.5">
           <Label

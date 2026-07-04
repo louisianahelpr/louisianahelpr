@@ -7,8 +7,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Mail, Lock, Monitor, Smartphone, Tablet, LogOut } from "lucide-react";
@@ -198,26 +197,12 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           className="!gap-3"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <DialogHeader className="!text-left space-y-0">
-            <span
-              className="font-serif italic uppercase inline-flex items-center gap-1.5"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-            >
-              <Mail className="w-3 h-3" /> Account
-            </span>
-            <DialogTitle
-              className="font-display italic font-bold leading-tight mt-2"
-              style={{ fontSize: "clamp(1.2rem, 2vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-            >
-              Change email address.
-            </DialogTitle>
-            <p
-              className="font-serif italic mt-1"
-              style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              A confirmation link will be sent to your new address before the change takes effect.
-            </p>
-          </DialogHeader>
+          <DialogHero
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            eyebrow={<><Mail className="w-3 h-3" /> Account</>}
+            title="Change email address."
+            subtitle="A confirmation link will be sent to your new address before the change takes effect."
+          />
 
           <div className="space-y-1.5">
             <Label

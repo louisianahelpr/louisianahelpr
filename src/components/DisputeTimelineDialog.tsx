@@ -15,7 +15,7 @@
  * migration shipped to production). Either way the UI is the same.
  */
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle, Upload, X, Clock, CheckCircle2, FileImage } from "lucide-react";
@@ -201,22 +201,20 @@ export const DisputeTimelineDialog = ({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="!gap-3">
-        <DialogHeader className="!text-left space-y-0">
-          <span className="font-serif italic uppercase inline-flex items-center gap-1.5" style={eyebrowStyle}>
-            <AlertTriangle className="w-3 h-3" /> Dispute in progress
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight pt-2"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Timeline
-          </DialogTitle>
-          <p className="font-serif italic pt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-            {decidedAt
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={
+            <>
+              <AlertTriangle className="w-3 h-3" /> Dispute in progress
+            </>
+          }
+          title="Timeline"
+          subtitle={
+            decidedAt
               ? "An admin has reached a decision on this dispute."
-              : "An admin is reviewing this dispute. Add more evidence to strengthen your case."}
-          </p>
-        </DialogHeader>
+              : "An admin is reviewing this dispute. Add more evidence to strengthen your case."
+          }
+        />
 
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>

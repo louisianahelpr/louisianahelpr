@@ -13,10 +13,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogHero,
 } from "@/components/ui/alert-dialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -208,12 +206,10 @@ const AdminCredentialQueue = () => {
 
       <AlertDialog open={!!rejectTarget} onOpenChange={(o) => !o && setRejectTarget(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reject credential</AlertDialogTitle>
-            <AlertDialogDescription>
-              The user will be notified and can re-upload. Add a short reason so they know what to fix.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+          <AlertDialogHero
+            title="Reject credential"
+            subtitle="The user will be notified and can re-upload. Add a short reason so they know what to fix."
+          />
           <Textarea
             aria-label="Credential rejection reason"
             placeholder="e.g. Document is blurry, please re-upload a clearer photo"

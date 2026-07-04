@@ -4,10 +4,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogHero,
 } from "@/components/ui/alert-dialog";
 import { Wallet } from "lucide-react";
 
@@ -28,20 +26,15 @@ export default function PayoutSetupDialog({ open, onOpenChange }: Props) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-              <Wallet className="w-5 h-5 text-primary" />
-            </div>
-            <AlertDialogTitle>Set up payouts to apply</AlertDialogTitle>
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+            <Wallet className="w-5 h-5 text-primary" />
           </div>
-          <AlertDialogDescription className="text-left">
-            Before you can apply to your first job, you'll need to connect a payout
-            account so we can send you your earnings. It takes about 2 minutes — just
-            once. After that, you're set for every future job and can edit your details
-            anytime in your profile.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+        </div>
+        <AlertDialogHero
+          title="Set up payouts to apply"
+          subtitle="Before you can apply to your first job, you'll need to connect a payout account so we can send you your earnings. It takes about 2 minutes — just once. After that, you're set for every future job and can edit your details anytime in your profile."
+        />
         <AlertDialogFooter>
           <AlertDialogCancel>Maybe later</AlertDialogCancel>
           <AlertDialogAction onClick={() => navigate("/profile?tab=payment")}>

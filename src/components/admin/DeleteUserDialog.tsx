@@ -7,8 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -55,11 +54,15 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
   return (
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-2 text-destructive">
-            <Trash2 className="w-5 h-5" /> Delete Account
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrow={
+            <>
+              <Trash2 className="w-3.5 h-3.5" /> Delete account
+            </>
+          }
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title="Delete Account"
+        />
         <div className="space-y-4">
           <p className="text-ds-11 text-muted-foreground">
             Are you sure you want to permanently delete{" "}

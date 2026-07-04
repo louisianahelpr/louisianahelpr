@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Trash2 } from "lucide-react";
 import type { Job } from "./types";
@@ -28,11 +28,15 @@ export const RemoveJobDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display text-destructive flex items-center gap-2">
-            <Trash2 className="w-5 h-5" /> Remove Job
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrow={
+            <>
+              <Trash2 className="w-3.5 h-3.5" /> Remove job
+            </>
+          }
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title="Remove Job"
+        />
         <div className="space-y-3">
           <p className="text-ds-11 text-muted-foreground">
             This will cancel the job and notify the poster{detailJob?.helper_id ? " and assigned helper" : ""}. Please provide a reason:

@@ -8,7 +8,7 @@
  * state lives in JobsTab. `viewBanStatus` is re-derived here and passed
  * to the two tabs that need it (Actions, Emails).
  */
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type Profile } from "./adminUserHelpers";
 import { DetailHeader } from "./userDetail/DetailHeader";
@@ -86,9 +86,11 @@ export function AdminUserDetailDialog({
   return (
     <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
       <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl h-[90vh] overflow-hidden p-3 sm:p-5 flex flex-col gap-0">
-        <DialogHeader className="pb-2 mb-2 border-b border-border flex-shrink-0">
-          <DialogTitle className="font-display text-ds-17 sm:text-ds-20">User Profile</DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          className="pb-2 mb-2 border-b border-border flex-shrink-0"
+          eyebrow="Admin"
+          title="User Profile"
+        />
         {viewProfile && (
           <div className="flex flex-col flex-1 min-h-0 min-w-0 break-words gap-3">
             <DetailHeader

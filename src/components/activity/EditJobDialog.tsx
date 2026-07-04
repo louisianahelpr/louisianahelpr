@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHero } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { categories, type Job } from "./activityConstants";
@@ -213,10 +213,11 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
 
     <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Confirm Changes</AlertDialogTitle>
-          <AlertDialogDescription>Are you sure you want to save these changes to your job?</AlertDialogDescription>
-        </AlertDialogHeader>
+        <AlertDialogHero
+          eyebrow="Editing your job"
+          title="Save these changes?"
+          subtitle="Your job listing will update right away."
+        />
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={save}>Save Changes</AlertDialogAction>

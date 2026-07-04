@@ -13,9 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+  DialogHero,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -101,16 +99,17 @@ export function ReassignMemberDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Remove {fromDisplay}?</DialogTitle>
-          <DialogDescription>
-            {inflightCount === null
+        <DialogHero
+          eyebrow="Remove teammate"
+          title={`Remove ${fromDisplay}?`}
+          subtitle={
+            inflightCount === null
               ? "Checking their open posts…"
               : inflightCount === 0
                 ? "They have no in-flight posts. You can remove them safely."
-                : `They have ${inflightCount} in-flight post${inflightCount === 1 ? "" : "s"}. Pick a teammate to take ownership.`}
-          </DialogDescription>
-        </DialogHeader>
+                : `They have ${inflightCount} in-flight post${inflightCount === 1 ? "" : "s"}. Pick a teammate to take ownership.`
+          }
+        />
 
         {inflightCount !== null && inflightCount > 0 && (
           <div className="space-y-2">

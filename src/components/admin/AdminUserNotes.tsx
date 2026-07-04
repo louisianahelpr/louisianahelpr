@@ -10,10 +10,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogHero,
 } from "@/components/ui/alert-dialog";
 import { StickyNote, Plus, Trash2, Pencil, Check, X, Loader2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
@@ -327,12 +325,10 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
 
       <AlertDialog open={!!deleteNote} onOpenChange={(open) => !open && setDeleteNote(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this note?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This internal admin note will be permanently removed. This action can't be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+          <AlertDialogHero
+            title="Delete this note?"
+            subtitle="This internal admin note will be permanently removed. This action can't be undone."
+          />
           {deleteNote && (
             <div className="rounded-ds-sm border border-border bg-secondary/30 p-3 text-ds-13 text-foreground whitespace-pre-wrap break-words max-h-40 overflow-auto">
               {deleteNote.note}

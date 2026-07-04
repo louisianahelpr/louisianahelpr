@@ -9,9 +9,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+  DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -81,13 +79,11 @@ export default function BusinessNoAccountState({ title }: { title: string }) {
 
       <Dialog open={open} onOpenChange={(v) => !submitting && setOpen(v)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create your business account</DialogTitle>
-            <DialogDescription>
-              You'll be the owner. You can invite teammates and manage seats
-              once it's set up.
-            </DialogDescription>
-          </DialogHeader>
+          <DialogHero
+            eyebrow="Helpr Business"
+            title="Create your business account"
+            subtitle="You'll be the owner. You can invite teammates and manage seats once it's set up."
+          />
           <div className="space-y-2">
             <Label htmlFor="business-name">Company name</Label>
             <Input

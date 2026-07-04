@@ -8,8 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -65,11 +64,15 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
   return (
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-2">
-            <Camera className="w-5 h-5 text-accent" /> Request ID Re-upload
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero
+          eyebrow={
+            <>
+              <Camera className="w-3.5 h-3.5" /> ID re-upload
+            </>
+          }
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title="Request ID Re-upload"
+        />
         <div className="space-y-3">
           <p className="text-ds-11 text-muted-foreground">
             Send {formatName(profile?.full_name)} a friendly email asking for a clearer ID photo.

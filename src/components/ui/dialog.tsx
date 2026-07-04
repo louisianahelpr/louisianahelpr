@@ -116,6 +116,8 @@ const DialogHero = ({
   className,
   titleClassName,
   titleStyle,
+  eyebrowClassName,
+  eyebrowStyle,
 }: {
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
@@ -123,12 +125,17 @@ const DialogHero = ({
   className?: string;
   titleClassName?: string;
   titleStyle?: React.CSSProperties;
+  // eyebrowClassName/eyebrowStyle let a caller recolor the eyebrow without
+  // forking the header — e.g. job dialogs tint it with the job's category
+  // color while every other dialog keeps the canonical burnt-sienna.
+  eyebrowClassName?: string;
+  eyebrowStyle?: React.CSSProperties;
 }) => (
   <DialogHeader className={cn("space-y-0 text-left", className)}>
     {eyebrow && (
       <span
-        className="font-serif italic uppercase block"
-        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+        className={cn("font-serif italic uppercase block", eyebrowClassName)}
+        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em", ...eyebrowStyle }}
       >
         {eyebrow}
       </span>

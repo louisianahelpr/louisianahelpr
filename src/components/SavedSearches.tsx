@@ -4,7 +4,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogFooter, DialogHero, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -188,31 +188,16 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
         // the field to focus when ready.
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <DialogHeader className="!text-left space-y-0 pr-8">
-          <span
-            className="font-serif italic uppercase text-[0.62rem] inline-flex items-center gap-1.5"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-          >
-            <Bookmark className="w-3 h-3" strokeWidth={2} aria-hidden="true" />
-            Get notified
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight mt-2"
-            style={{
-              fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.025em",
-            }}
-          >
-            Saved searches
-          </DialogTitle>
-          <DialogDescription
-            className="font-serif italic mt-1 text-[0.82rem] leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Save your filters and we'll send a push the moment a matching job posts.
-          </DialogDescription>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={
+            <>
+              <Bookmark className="w-3 h-3" strokeWidth={2} aria-hidden="true" /> Get notified
+            </>
+          }
+          title="Saved searches"
+          subtitle="Save your filters and we'll send a push the moment a matching job posts."
+        />
 
         <div className="space-y-2.5">
           <Label

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Zap, Loader2, Clock } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
@@ -69,23 +69,16 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!gap-3">
-        <DialogHeader className="!text-left space-y-0">
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-          >
-            <Zap className="w-3 h-3" /> Skip the wait
-          </span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight pt-2"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            Cash out instantly.
-          </DialogTitle>
-          <DialogDescription className="font-serif italic pt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-            In your debit card in ~30 minutes.
-          </DialogDescription>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={
+            <>
+              <Zap className="w-3 h-3" /> Skip the wait
+            </>
+          }
+          title="Cash out instantly."
+          subtitle="In your debit card in ~30 minutes."
+        />
 
         {loading ? (
           <div className="py-8 flex justify-center">

@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { MapPin, Calendar, Clock, DollarSign, User, Trash2, AlertTriangle, Shield, CheckCircle2, History as HistoryIcon } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { paymentStatusLabel } from "@/lib/statusLabels";
@@ -38,9 +38,7 @@ export const JobDetailDialog = ({
   return (
     <Dialog open={!!detailJob && !deleteOpen} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display">{detailJob?.title}</DialogTitle>
-        </DialogHeader>
+        <DialogHero eyebrow="Job details" title={detailJob?.title} />
         {detailJob && (
           <div className="space-y-4">
             {/* Flags banner */}

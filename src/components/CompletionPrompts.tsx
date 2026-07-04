@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -192,11 +192,15 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       {/* Review Prompt */}
       <Dialog open={step === "review"} onOpenChange={() => { setStep("tip"); }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <PartyPopper className="w-5 h-5 text-primary" /> Job Complete! Rate {revieweeName}
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHero
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            eyebrow={
+              <>
+                <PartyPopper className="w-3 h-3" /> Job complete
+              </>
+            }
+            title={`Rate ${revieweeName}`}
+          />
           <div className="space-y-4">
             <p className="text-ds-11 text-muted-foreground">How was your experience with {revieweeName} on "{jobTitle}"?</p>
             <div className="flex gap-1 justify-center">
@@ -237,11 +241,15 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
           for a referral ask). Skipping the tip still hits the share step. */}
       <Dialog open={step === "tip"} onOpenChange={() => setStep("share")}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <Gift className="w-5 h-5 text-primary" /> Say thanks with a tip?
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHero
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            eyebrow={
+              <>
+                <Gift className="w-3 h-3" /> Optional
+              </>
+            }
+            title="Say thanks with a tip?"
+          />
           <div className="space-y-4">
             <p className="text-ds-11 text-muted-foreground">Tips go directly to {revieweeName}. Totally optional!</p>
             <div className="space-y-2">
@@ -289,11 +297,15 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
           couldn't load a referral code (offline / first-time edge). */}
       <Dialog open={step === "share"} onOpenChange={() => setStep("nps")}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
-              <Heart className="w-5 h-5 text-primary" /> Loved it? Share Helpr.
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHero
+            eyebrowClassName="inline-flex items-center gap-1.5"
+            eyebrow={
+              <>
+                <Heart className="w-3 h-3" /> Spread the word
+              </>
+            }
+            title="Loved it? Share Helpr."
+          />
           <div className="space-y-4">
             <p className="text-ds-11 text-muted-foreground">
               Helpr grows by neighbors telling neighbors. Send a friend

@@ -2,7 +2,7 @@ import { lazy, Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogHero, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -281,15 +281,16 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
         </DialogTrigger>
       )}
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-primary" />
-            Earnings Export
-          </DialogTitle>
-          <DialogDescription>
-            Download by parish & tax status. Hand straight to your CPA.
-          </DialogDescription>
-        </DialogHeader>
+        <DialogHero
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          eyebrow={
+            <>
+              <Receipt className="w-3 h-3" /> Tax export
+            </>
+          }
+          title="Earnings Export"
+          subtitle="Download by parish & tax status. Hand straight to your CPA."
+        />
 
         <div className="space-y-4 py-2">
           <div>

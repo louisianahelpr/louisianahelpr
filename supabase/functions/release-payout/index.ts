@@ -35,12 +35,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Default fallback if platform_settings row is missing for any reason.
-// Real value is read from platform_settings.helper_fee_percent at runtime
-// so all three payout paths (this fn, process-scheduled-payouts,
-// create-payment) stay consistent without a code change in three places.
-const HELPER_FEE_PERCENT_FALLBACK = 10;
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -173,16 +167,21 @@ serve(async (req) => {
   // Block duplicate transfers. This read is the real dedupe (a fresh
   // transfers.create gets a NEW id, so UNIQUE(stripe_transfer_id) can't
   // stop a second send) — a failed read must fail closed, never proceed.
-  const { data: existing, error: existingErr } = await supabaseAdmin
+  // 'reversed' rows block too: a reversal means money DID move once and
+  // was clawed back — re-paying is an operator decision, made by setting
+  // the ledger row to 'reversal_cleared' after manual reconciliation.
+  // Only 'failed' (money never left) is safely re-payable automatically.
+  const { data: ledgerRows, error: existingErr } = await supabaseAdmin
     .from("payout_transfers")
     .select("id, stripe_transfer_id, status")
-    .eq("job_id", job.id)
-    .in("status", ["pending", "paid"])
-    .maybeSingle();
+    .eq("job_id", job.id);
   if (existingErr) {
     console.error(`[release-payout] duplicate-transfer check failed for job ${job.id}:`, existingErr);
     return jsonResponse({ error: "duplicate-transfer check failed — retry" }, 500);
   }
+  const existing = (ledgerRows ?? []).find((r) =>
+    ["pending", "paid", "reversed"].includes(r.status)
+  );
   if (existing) {
     return jsonResponse(
       {
@@ -192,6 +191,11 @@ serve(async (req) => {
       409,
     );
   }
+  // Prior FAILED attempts salt the Stripe idempotency key below: Stripe
+  // replays the ORIGINAL response (including a failure) for a reused key
+  // within its ~24h window, so a retry after transferFailed reset the job
+  // must use a fresh key to be a real new transfer attempt.
+  const failedTransferCount = (ledgerRows ?? []).filter((r) => r.status === "failed").length;
 
   const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
     apiVersion: "2025-08-27.basil",
@@ -228,12 +232,18 @@ serve(async (req) => {
   // elite 8 / business 6), resolved from their live subscription tier at
   // payout time. platform_settings.helper_fee_percent is the fallback if the
   // tier read fails, preserving prior behavior on a transient error.
-  const { data: feeSettings } = await supabaseAdmin
+  // Fail LOUD if platform_settings can't be read — silently paying out at
+  // a hardcoded default fee misprices the platform cut for the whole outage.
+  const { data: feeSettings, error: feeSettingsErr } = await supabaseAdmin
     .from("platform_settings")
-    .select("helper_fee_percent")
+    .select("helper_fee_percent, onboarding_fee_cents")
     .limit(1)
     .single();
-  const fallbackFeePercent = feeSettings?.helper_fee_percent ?? HELPER_FEE_PERCENT_FALLBACK;
+  if (feeSettingsErr || feeSettings?.helper_fee_percent == null) {
+    console.error(`[release-payout] platform_settings read failed for job ${job.id} — refusing default-fee payout:`, feeSettingsErr);
+    return jsonResponse({ error: "fee configuration unavailable — retry" }, 500);
+  }
+  const fallbackFeePercent = feeSettings.helper_fee_percent;
   const helperFeePercent = await getHelperFeePercent(
     supabaseAdmin,
     job.helper_id,
@@ -251,12 +261,7 @@ serve(async (req) => {
   // Same flag (profiles.onboarding_fee_paid) is checked by
   // create-payment when posting and process-scheduled-payouts when
   // auto-paying out — single source of truth across all three paths.
-  const { data: settingsRow } = await supabaseAdmin
-    .from("platform_settings")
-    .select("onboarding_fee_cents")
-    .limit(1)
-    .single();
-  const onboardingFeeCents = settingsRow?.onboarding_fee_cents ?? 200;
+  const onboardingFeeCents = feeSettings.onboarding_fee_cents; // NOT NULL DEFAULT 200 in schema; read verified above
   let onboardingFeeDeductedCents = 0;
 
   // Race-safe atomic claim BEFORE deducting (and BEFORE the transfer
@@ -340,7 +345,13 @@ serve(async (req) => {
       },
       // Idempotency: same job + same trigger pattern = same transfer. Stripe
       // will return the existing transfer instead of creating a new one.
-      { idempotencyKey: `release-payout-${job.id}` },
+      // Salted by prior failed-attempt count so a retry after a failed
+      // transfer isn't served Stripe's cached failure (see dedupe above).
+      {
+        idempotencyKey: failedTransferCount > 0
+          ? `release-payout-${job.id}-r${failedTransferCount}`
+          : `release-payout-${job.id}`,
+      },
     );
   } catch (e) {
     // Defensive logging: full Stripe error context lands in Supabase logs

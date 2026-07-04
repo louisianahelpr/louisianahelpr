@@ -17,15 +17,25 @@ Deno.serve(async (req) => {
   const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
 
   try {
-    // Authenticate user
+    // Authenticate — REQUIRED. An unauthenticated caller must never be able
+    // to trigger a platform-wide notification fan-out for an arbitrary job
+    // (spam vector + leaks targeted offers into the open pool).
     const authHeader = req.headers.get("Authorization");
-    let callerId: string | null = null;
-
-    if (authHeader) {
-      const supabaseAuth = createClient(supabaseUrl, (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY"))!);
-      const token = authHeader.replace("Bearer ", "");
-      const { data: userData } = await supabaseAuth.auth.getUser(token);
-      callerId = userData?.user?.id || null;
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseAuth = createClient(supabaseUrl, (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY"))!);
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData } = await supabaseAuth.auth.getUser(token);
+    const callerId = userData?.user?.id || null;
+    if (!callerId) {
+      return new Response(JSON.stringify({ error: "Invalid or expired session" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const { jobId } = await req.json();
@@ -35,18 +45,28 @@ Deno.serve(async (req) => {
 
     // Get the job details — include urgency so we can decide whether
     // this match goes out immediately (urgent) or rolls into the daily
-    // digest (everything else, for users who opt in).
+    // digest (everything else, for users who opt in). Only OPEN jobs are
+    // matchable, and a job with a pending direct offer is private to its
+    // targeted helper — it must never be blasted to the open pool.
     const { data: job, error: jobError } = await supabase
       .from("jobs")
       .select("id, title, category, location, budget, customer_id, is_urgent")
       .eq("id", jobId)
-      .single();
+      .eq("status", "open")
+      // Same visibility rule as get_public_open_jobs: hidden while a direct
+      // offer is pending; matchable again once it resolves (declined/expired).
+      .or("offered_to_helper_id.is.null,direct_offer_status.neq.pending")
+      .maybeSingle();
 
-    if (jobError || !job) throw new Error("Job not found");
+    if (jobError || !job) throw new Error("Job not found or not eligible for matching");
 
-    // Verify the caller owns the job (if authenticated)
-    if (callerId && callerId !== job.customer_id) {
-      throw new Error("Not authorized to trigger match for this job");
+    // Verify the caller owns the job — always, not just when a token happened
+    // to be attached.
+    if (callerId !== job.customer_id) {
+      return new Response(JSON.stringify({ error: "Not authorized to trigger match for this job" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Match-eligible users: anyone approved + not banned. After today's

@@ -198,19 +198,33 @@ serve(async (req) => {
       // filter above. They use DIFFERENT Stripe idempotency keys
       // ("release-payout-X" vs "scheduled-payout-X"), so Stripe would create
       // two distinct transfers — doubling the helper's payout. Checking
-      // payout_transfers here closes the race window: if a row already exists
-      // (pending or paid), the other path already sent the transfer and we skip.
-      const { data: existingPayout } = await supabaseAdmin
+      // payout_transfers here closes the race window. Fetch ALL ledger rows
+      // for the job once and derive two things:
+      //  - blocking rows: pending/paid (transfer already sent) and reversed
+      //    (money moved once and was clawed back — re-paying is a human
+      //    decision; an operator signals it by setting the row to
+      //    'reversal_cleared', which doesn't block). Mirrors release-payout.
+      //  - failedCount: number of prior FAILED attempts, used to salt the
+      //    Stripe idempotency key below.
+      const { data: ledgerRows, error: ledgerReadErr } = await supabaseAdmin
         .from("payout_transfers")
         .select("stripe_transfer_id, status")
-        .eq("job_id", job.id)
-        .in("status", ["pending", "paid"])
-        .maybeSingle();
-      if (existingPayout) {
-        console.log(`[process-scheduled-payouts] Payout already exists for job ${job.id} (${existingPayout.stripe_transfer_id}/${existingPayout.status}); skipping.`);
-        results.push({ job_id: job.id, status: "already_transferred", transfer_id: existingPayout.stripe_transfer_id });
+        .eq("job_id", job.id);
+      if (ledgerReadErr) {
+        // Fail closed: without the ledger we can't rule out a prior transfer.
+        console.error(`[process-scheduled-payouts] payout_transfers read failed for job ${job.id}:`, ledgerReadErr);
+        results.push({ job_id: job.id, status: "ledger_read_error", error: ledgerReadErr.message });
         continue;
       }
+      const blockingPayout = (ledgerRows ?? []).find((r) =>
+        ["pending", "paid", "reversed"].includes(r.status)
+      );
+      if (blockingPayout) {
+        console.log(`[process-scheduled-payouts] Payout already exists for job ${job.id} (${blockingPayout.stripe_transfer_id}/${blockingPayout.status}); skipping.`);
+        results.push({ job_id: job.id, status: "already_transferred", transfer_id: blockingPayout.stripe_transfer_id });
+        continue;
+      }
+      const failedCount = (ledgerRows ?? []).filter((r) => r.status === "failed").length;
 
       // ── Step 5: Transfer to helper (charge is confirmed captured) ──
       // Re-use the PI object from Step 3 verification above (already retrieved)
@@ -247,8 +261,19 @@ serve(async (req) => {
         // the first run's payment_status flip is visible (overlapping runs,
         // retry on timeout). Stripe returns the existing transfer on a
         // duplicate call with the same key instead of creating a new one.
+        // Salt the key with the count of prior FAILED attempts: Stripe's
+        // idempotency window (~24h) replays the ORIGINAL response for a key —
+        // including a failed transfer. When transferFailed resets the job to
+        // payout_pending for retry, an unsalted key would replay the same
+        // failure, yet the code below would still flip the job "released" and
+        // send a false "Payout sent!" notification. A fresh key per retry
+        // makes the retry a real new transfer attempt. First attempt keeps
+        // the legacy unsalted key so in-flight dedupe against older runs holds.
+        const idempotencyKey = failedCount > 0
+          ? `scheduled-payout-${job.id}-r${failedCount}`
+          : `scheduled-payout-${job.id}`;
         const transfer = await stripe.transfers.create(transferParams, {
-          idempotencyKey: `scheduled-payout-${job.id}`,
+          idempotencyKey,
         });
         console.log(`Payout: $${helperPayout.toFixed(2)} to helper ${job.helper_id} for job ${job.id} (onboarding fee deducted: $${onboardingFeeDollars.toFixed(2)})`);
 

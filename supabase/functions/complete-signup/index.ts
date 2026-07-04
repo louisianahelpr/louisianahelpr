@@ -280,11 +280,38 @@ serve(async (req) => {
     // 4. Check current profile to determine if this is a resubmission
     const { data: currentProfile } = await supabase
       .from("profiles")
-      .select("approval_status, application_count")
+      .select("approval_status, application_count, date_of_birth")
       .eq("user_id", userId)
       .single();
 
     const isResubmission = currentProfile?.approval_status === "denied";
+
+    // 4b. Server-side 18+ gate. The signup UI validates this too, but a
+    // direct API call could otherwise skip it and land on "approved" with
+    // no (or an underage) date of birth — this is a legal requirement on a
+    // real-money platform, so it must be enforced here, not just client-side.
+    const effectiveDob: string | null = dateOfBirth || currentProfile?.date_of_birth || null;
+    if (!effectiveDob) {
+      return new Response(
+        JSON.stringify({ error: "Date of birth is required. You must be at least 18 to use Helpr." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const dob = new Date(effectiveDob);
+    if (isNaN(dob.getTime())) {
+      return new Response(
+        JSON.stringify({ error: "Invalid date of birth." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 18);
+    if (dob > cutoff) {
+      return new Response(
+        JSON.stringify({ error: "You must be at least 18 years old to use Helpr." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // For resubmissions, require all essential documents and fields
     if (isResubmission) {
@@ -363,6 +390,24 @@ serve(async (req) => {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Record legal consent. The signup form cannot be submitted without the
+    // Terms + Privacy + Platform Rules checkbox, so a successful completion
+    // IS the acceptance event — write it to the legal_acceptances audit
+    // trail (the table existed but nothing populated it). Versions match
+    // the LAST_UPDATED stamps in src/pages/legal/legalSections.ts; bump
+    // both places together on a material policy change. Non-fatal: a failed
+    // consent write is logged loudly but must not strand a finished signup.
+    const { error: legalErr } = await supabase.from("legal_acceptances").insert({
+      user_id: userId,
+      terms_version: "Jun 2026",
+      privacy_version: "Jun 2026",
+      ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+      user_agent: req.headers.get("user-agent") ?? null,
+    });
+    if (legalErr) {
+      console.error(`[complete-signup] legal_acceptances insert failed for ${userId}:`, legalErr);
     }
 
     // Notify all admins about the new signup (deduped: skip if we already sent one for this user in the last 24h)

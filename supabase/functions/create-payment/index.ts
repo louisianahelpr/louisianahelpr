@@ -88,13 +88,19 @@ serve(async (req) => {
         throw new Error("Payment has already been initiated for this job. If you need to retry, please cancel the existing payment first.");
       }
 
-      const { data: settings } = await supabaseAdmin
+      // Fail LOUD if platform_settings can't be read — a silent default
+      // here misprices every escrow created during a config outage.
+      const { data: settings, error: settingsErr } = await supabaseAdmin
         .from("platform_settings")
         .select("customer_fee_percent, helper_fee_percent, platform_fee_percent, onboarding_fee_cents")
         .limit(1).single();
-      const customerFeePercent = settings?.customer_fee_percent ?? 10;
-      const helperFeePercent = settings?.helper_fee_percent ?? 10;
-      const onboardingFeeCents = settings?.onboarding_fee_cents ?? 200;
+      if (settingsErr || settings?.customer_fee_percent == null || settings?.helper_fee_percent == null) {
+        console.error(`[create-payment] platform_settings read failed — refusing to price escrow with default fees:`, settingsErr);
+        throw new Error("Pricing configuration is temporarily unavailable — please try again in a moment");
+      }
+      const customerFeePercent = settings.customer_fee_percent;
+      const helperFeePercent = settings.helper_fee_percent;
+      const onboardingFeeCents = settings.onboarding_fee_cents; // NOT NULL DEFAULT 200 in schema
 
       // Check if poster owes the one-time onboarding fee (first job post)
       const { data: posterProfile } = await supabaseAdmin
@@ -533,6 +539,28 @@ serve(async (req) => {
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
       if (job.customer_id !== user.id) throw new Error("Not authorized");
+
+      // Atomic state claim: only an escrow-held job may be refunded.
+      // Without this, a cancel racing the payout release could refund a
+      // PI whose funds were already transferred to the helper — the
+      // platform pays twice. 'cancelling' stays claimable so a run that
+      // failed after the claim can be retried (the Stripe idempotency
+      // key below makes the refund itself single-shot either way).
+      const { data: claimed, error: claimErr } = await supabaseAdmin
+        .from("jobs")
+        .update({ payment_status: "cancelling" })
+        .eq("id", jobId)
+        .in("payment_status", ["escrow", "cancelling"])
+        .select("id");
+      if (claimErr) {
+        console.error(`[create-payment] cancel_escrow state claim failed for job ${jobId}:`, claimErr);
+        throw new Error("Could not cancel — please try again");
+      }
+      if (!claimed || claimed.length === 0) {
+        return new Response(JSON.stringify({
+          error: "This payment can no longer be cancelled — it has already been released, refunded, or was never held in escrow.",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+      }
 
       // With immediate capture, we need to refund instead of cancel.
       // Errors propagate to the outer catch so the job is NOT silently

@@ -26,32 +26,54 @@ export async function handleTransferReversed(
   // re-queuing to "payout_pending" would let process-scheduled-payouts pay the
   // helper a SECOND time (its dedupe guard only skips on pending/paid ledger
   // rows, and this row is now "reversed"). So we reset to "payout_pending" for
-  // visibility but also stamp disputed_at, which the payout cron treats as a
-  // hard block (.is("disputed_at", null)) — the payout freezes until an operator
-  // reconciles manually. Scope to a currently-"released" job so we never regress
-  // one an operator has already refunded / charged back.
+  // visibility but also stamp disputed_at AND set dispute_status to a hard-block
+  // value. disputed_at alone is NOT enough: if this job previously had a dispute
+  // that closed as resolved/auto_resolved, release-payout's guard allows payout
+  // when dispute_status ∈ {resolved, auto_resolved} — the stale closed status
+  // would let a re-run pay the helper a second time. 'reversal_hold' is in no
+  // allow-list, so both payout paths freeze until an operator reconciles
+  // manually. Scope to a currently-"released" job so we never regress one an
+  // operator has already refunded / charged back.
+  let freezeFailed = false;
   if (reversedLedger?.job_id) {
-    await supabase
+    // This write is the freeze — it MUST NOT be fire-and-forget. If it fails,
+    // the job stays "released" with no hard-block markers and the next payout
+    // run could pay the helper a SECOND time on money that was already clawed
+    // back. Check the error and escalate the ops alert so a human reconciles
+    // manually rather than trusting a silent success.
+    const { error: freezeErr } = await supabase
       .from("jobs")
       .update({
         payment_status: "payout_pending",
         disputed_at: new Date().toISOString(),
+        dispute_status: "reversal_hold",
       })
       .eq("id", reversedLedger.job_id)
       .eq("payment_status", "released");
-    logStep("Reversed transfer — job frozen (payout_pending + disputed_at) for manual reconciliation", {
-      jobId: reversedLedger.job_id,
-    });
+    if (freezeErr) {
+      freezeFailed = true;
+      console.error(
+        `[transferReversed] FREEZE FAILED for job ${reversedLedger.job_id} after transfer ${transfer.id} reversal — job may still be re-payable:`,
+        freezeErr,
+      );
+    } else {
+      logStep("Reversed transfer — job frozen (payout_pending + disputed_at) for manual reconciliation", {
+        jobId: reversedLedger.job_id,
+      });
+    }
   }
 
   postSlackOpsAlert({
     kind: "payout_reversed",
-    severity: "warning",
-    title: "Helpr payout reversed",
-    message: `Stripe transfer ${transfer.id} was reversed. Investigate and reconcile.`,
+    severity: freezeFailed ? "critical" : "warning",
+    title: freezeFailed ? "Helpr payout reversed — FREEZE FAILED, double-pay risk" : "Helpr payout reversed",
+    message: freezeFailed
+      ? `Stripe transfer ${transfer.id} was reversed but the job freeze write FAILED — the job may still be re-payable by the payout cron. Manually set the job to payout_pending / dispute_status='reversal_hold' NOW.`
+      : `Stripe transfer ${transfer.id} was reversed. Investigate and reconcile.`,
     fields: {
       "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
       "Destination": String(transfer.destination ?? "—"),
+      ...(reversedLedger?.job_id ? { "Job": String(reversedLedger.job_id) } : {}),
     },
   });
 }

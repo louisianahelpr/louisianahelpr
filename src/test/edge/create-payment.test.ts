@@ -707,6 +707,10 @@ describe("create-payment edge function", () => {
         status: "succeeded",
       });
       stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+      // The atomic state claim (`update … in('payment_status', [escrow,
+      // cancelling]).select('id')`) must return a claimed row, otherwise the
+      // function correctly 409s as "already cancelled".
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
       const fn = await load();
       const res = await fn.fetch(
         fn.request({
@@ -719,10 +723,16 @@ describe("create-payment edge function", () => {
         { payment_intent: "pi_live" },
         { idempotencyKey: "cancel-escrow-job-1" },
       );
-      const jobUpdate = scenario.writes.find(
+      // First jobs update is the "cancelling" claim; the final one flips the
+      // job to cancelled.
+      const jobUpdates = scenario.writes.filter(
         (w) => w.table === "jobs" && w.op === "update",
       );
-      expect((jobUpdate?.payload as Record<string, unknown>).status).toBe(
+      expect(
+        (jobUpdates[0]?.payload as Record<string, unknown>).payment_status,
+      ).toBe("cancelling");
+      const cancelUpdate = jobUpdates[jobUpdates.length - 1];
+      expect((cancelUpdate?.payload as Record<string, unknown>).status).toBe(
         "cancelled",
       );
     });

@@ -2,6 +2,7 @@ import { Wallet, RefreshCw, Loader2, Banknote, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents } from "./earningsTabHelpers";
+import { instantPayoutFeeLabel } from "@/lib/instantPayoutFee";
 import type { StripePayoutData } from "./types";
 
 interface WalletCardProps {
@@ -151,7 +152,7 @@ export function WalletCard({
               </div>
               <p className="text-ds-15 font-bold text-foreground">{formatCents(instantAvailable)}</p>
               <p className="text-muted-foreground text-ds-11">
-                {canUseInstantPayout ? "~30 min · 3% + $1 fee" : "Subscribe to unlock instant payouts"}
+                {canUseInstantPayout ? `~30 min · ${instantPayoutFeeLabel()}` : "Subscribe to unlock instant payouts"}
               </p>
             </div>
             <Button

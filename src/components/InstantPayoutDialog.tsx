@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Zap, Loader2, Clock } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { requireBiometric } from "@/lib/biometricGate";
+import { INSTANT_PAYOUT_FEE_PERCENT } from "@/lib/instantPayoutFee";
 
 interface Props {
   open: boolean;
@@ -121,7 +122,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
                 <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>{fmt(quote.gross_cents)}</span>
               </div>
               <div className="flex justify-between text-[0.8rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                <span className="font-serif italic">− Instant fee (3% + $1, min $2)</span>
+                <span className="font-serif italic">− Instant fee ({INSTANT_PAYOUT_FEE_PERCENT}%)</span>
                 <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>−{fmt(quote.fee_cents)}</span>
               </div>
               <div

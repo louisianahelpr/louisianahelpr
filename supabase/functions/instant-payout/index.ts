@@ -3,14 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-
-// Fee: 3% + $1.00, minimum $2.00
-function calculateFee(grossCents: number): number {
-  const variable = Math.round(grossCents * 0.03);
-  const fixed = 100; // $1.00
-  const total = variable + fixed;
-  return Math.max(total, 200); // min $2.00
-}
+import { computeInstantPayoutFeeCents } from "../_shared/instantPayoutFee.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -68,7 +61,7 @@ serve(async (req) => {
       throw new Error("No funds available for instant payout right now. Funds become available once jobs are completed and released.");
     }
 
-    const feeCents = calculateFee(availableCents);
+    const feeCents = computeInstantPayoutFeeCents(availableCents);
     const netCents = availableCents - feeCents;
 
     if (netCents <= 0) {
@@ -109,6 +102,12 @@ serve(async (req) => {
 
     try {
       // Transfer the fee to the platform account first.
+      // Guard: a flat 3% of a sub-17¢ balance rounds to 0¢, and Stripe rejects a
+      // zero-amount transfer. Skip it — there's genuinely no fee to collect, so
+      // attempting the transfer would drop into the catch below and mislabel a
+      // normal $0 fee as `fee_uncollected`. (The old fee had a $2 minimum, so
+      // feeCents was never 0 and this case couldn't arise.)
+      if (feeCents > 0) {
       // Idempotency: keyed off the persisted instant_payouts.id so any retry —
       // network blip, function-restart mid-flight, client double-tap — reuses
       // the same Stripe Transfer instead of double-charging the helper.
@@ -150,6 +149,7 @@ serve(async (req) => {
           console.error(`[instant-payout] failed to record fee_uncollected for ${record.id}:`, recErr);
         }
       });
+      }
 
       // Execute the instant payout for net amount.
       // Same idempotency rationale as the transfer above. The key includes the

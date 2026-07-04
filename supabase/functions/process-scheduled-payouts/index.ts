@@ -268,11 +268,34 @@ serve(async (req) => {
           );
         }
 
-        await supabaseAdmin.from("jobs").update({
+        const { error: statusUpdateErr } = await supabaseAdmin.from("jobs").update({
           payment_status: "released",
           helper_fee_percent: jobHelperFeePercent,
           platform_fee_amount: Math.round(perHelperBudget * jobHelperFeePercent) / 100,
         }).eq("id", job.id);
+        if (statusUpdateErr) {
+          // The Stripe transfer already succeeded — throwing here would wrongly
+          // mark this job as transfer_failed. Log critically and alert ops so
+          // the row can be manually flipped; the cron will retry idempotently
+          // (same transfer key → Stripe dedupes, same ledger key → 23505 deduped).
+          console.error(
+            `[process-scheduled-payouts] CRITICAL: transfer sent but jobs.update failed for job ${job.id}:`,
+            statusUpdateErr,
+          );
+          postSlackOpsAlert({
+            kind: "payout_failed",
+            severity: "critical",
+            title: "Payout status flip failed — manual fix required",
+            message: `Transfer sent to helper for job ${job.id} but \`payment_status\` could not be flipped to "released". Job is stuck in payout_pending — requires manual DB update.`,
+            fields: {
+              "Job ID": job.id,
+              "Helpr ID": job.helper_id,
+              Amount: `$${helperPayout.toFixed(2)}`,
+              Error: (statusUpdateErr as Error)?.message?.slice(0, 200) ?? String(statusUpdateErr),
+            },
+            link: "https://www.louisianahelpr.com/admin?tab=payouts",
+          });
+        }
 
         // Note: the onboarding-fee flag was already flipped atomically
         // above, before the transfer ran, so no follow-up write is needed

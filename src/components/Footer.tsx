@@ -184,7 +184,7 @@ const Footer = () => (
           letterSpacing: "0.02em",
         }}
       >
-        Quietly serving Louisiana since 2026.
+        Serving Louisiana since 2026.
       </p>
 
       {/* Bottom: copyright */}

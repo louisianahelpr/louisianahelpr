@@ -74,7 +74,6 @@ export function useApplicantComparison({
         distanceKm: distanceMap.get(app.helper_id) ?? null,
         responseTimeMinutes: null,
         neighborCount,           // live from get_neighbor_hire_count RPC
-        stakeAmount: (app as EnrichedApplication & ApplicantBidFields).stake_amount ?? null,
       };
       const result = scoreApplicant(data);
       map.set(app.helper_id, result.score);

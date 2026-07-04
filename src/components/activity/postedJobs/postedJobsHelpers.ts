@@ -25,5 +25,4 @@ export type ApplicantBidFields = {
   proposed_price?: number | null;
   negotiation_status?: string | null;
   counter_price?: number | null;
-  stake_amount?: number | null;
 };

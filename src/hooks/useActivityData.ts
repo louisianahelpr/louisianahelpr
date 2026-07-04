@@ -181,6 +181,8 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
       offer_message: null,
       attachment_urls: null,
       proposed_rate: null,
+      // Columns still exist on the applications row (feature removed from UI,
+      // DB columns retained as harmless nullable) — set to satisfy the row shape.
       stake_amount: null,
       stake_status: "none",
       created_at: job.created_at,

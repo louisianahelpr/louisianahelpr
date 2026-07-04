@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Paperclip, Trash2, WifiOff, Sparkles, Shield, BookmarkCheck, ChevronDown, Plus } from "lucide-react";
+import { FileText, Paperclip, Trash2, WifiOff, Sparkles, BookmarkCheck, ChevronDown, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { hapticMedium, hapticLight } from "@/lib/haptics";
@@ -47,8 +47,6 @@ export function ApplyConfirmDialog({
   applyFiles,
   setApplyFiles,
   applyLoading,
-  stakeAmount,
-  setStakeAmount,
   bidPrice,
   setBidPrice,
   handleApplyConfirm,
@@ -63,15 +61,13 @@ export function ApplyConfirmDialog({
   const draftKey = pitchDraftKey(jobId);
   const starterSentences = useMemo(() => buildStarterSentences(confirmApplyJob), [confirmApplyJob]);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
-  // Both the reliability-stake and attachments sections are explicitly
-  // optional, and together they made the modal very tall on small phones.
-  // Collapse them behind one "Add more options" disclosure so the default
-  // modal stays short (earnings → bid → pitch → Apply). We auto-expand when
-  // a stake or file is already set so a restored/in-progress application
-  // never hides state the helpr already chose.
+  // The attachments section is optional; it made the modal taller on small
+  // phones, so it stays collapsed behind one "Add attachments" disclosure by
+  // default (earnings → bid → pitch → Apply). Auto-expand when a file is
+  // already attached so a restored/in-progress application never hides state
+  // the helpr already chose.
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const hasOptionalState = stakeAmount != null || applyFiles.length > 0;
-  const optionsExpanded = showMoreOptions || hasOptionalState;
+  const optionsExpanded = showMoreOptions || applyFiles.length > 0;
 
   // Restore a saved draft for THIS job when the dialog (re)opens with an
   // empty field — per-job scoping so switching jobs doesn't bleed text
@@ -379,10 +375,9 @@ export function ApplyConfirmDialog({
             );
           })()}
 
-          {/* Optional extras disclosure — keeps the default modal short by
-              hiding the (optional) reliability-stake and attachments sections
-              behind one tasteful toggle. Hidden once expanded or when either
-              optional value is already set. */}
+          {/* Attachments disclosure — keeps the default modal short by hiding
+              the (optional) attachments section behind one tasteful toggle.
+              Hidden once expanded or when a file is already attached. */}
           {!optionsExpanded && (
             <button
               type="button"
@@ -396,16 +391,16 @@ export function ApplyConfirmDialog({
               aria-expanded={false}
             >
               <Plus className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />
-              <span>Add more options</span>
+              <span>Add attachments</span>
               <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                reliability stake · attachments
+                certs · previous work
               </span>
             </button>
           )}
 
           {optionsExpanded && (
             <>
-              {showMoreOptions && !hasOptionalState && (
+              {showMoreOptions && applyFiles.length === 0 && (
                 <button
                   type="button"
                   onClick={() => { hapticLight(); setShowMoreOptions(false); }}
@@ -418,53 +413,13 @@ export function ApplyConfirmDialog({
                   aria-expanded
                 >
                   <ChevronDown className="w-3.5 h-3.5 rotate-180" strokeWidth={2.25} aria-hidden />
-                  <span>Hide extra options</span>
+                  <span>Hide attachments</span>
                 </button>
               )}
 
-          {/* Reliability stake */}
-          <div
-            className="mt-3.5 rounded-ds-md p-3"
-            style={{ background: "hsl(var(--bark) / 0.05)", border: "0.5px solid hsl(var(--bark) / 0.15)" }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <Shield className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-              <p className="font-display italic font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-                Add a reliability stake
-              </p>
-              <span
-                className="ml-auto text-ds-10 font-sans font-semibold uppercase px-1.5 py-0.5 rounded-ds-sm"
-                style={{ background: "hsl(var(--bark) / 0.1)", color: "hsl(var(--bark))", letterSpacing: "0.06em" }}
-              >
-                Optional
-              </span>
-            </div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Put $5–$25 on the line. Complete the job → get it back plus 10% bonus. Cancel last-minute → it goes to the poster. Shows posters you're serious.
-            </p>
-            <div className="flex gap-2">
-              {[0, 5, 10, 25].map((amt) => (
-                <button
-                  key={amt}
-                  type="button"
-                  onClick={() => setStakeAmount(amt === 0 ? null : amt)}
-                  className="flex-1 min-h-[44px] rounded-ds-sm text-ds-12 font-sans font-semibold"
-                  style={{
-                    background: stakeAmount === (amt === 0 ? null : amt) ? "hsl(var(--bark) / 0.15)" : "transparent",
-                    border: `1px solid hsl(var(--bark) / ${stakeAmount === (amt === 0 ? null : amt) ? "0.4" : "0.15"})`,
-                    color: "hsl(var(--bark))",
-                  }}
-                >
-                  {amt === 0 ? "None" : `$${amt}`}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* File attachments */}
           <div
-            className="space-y-1.5 mt-3.5 pt-3.5"
-            style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
+            className="space-y-1.5 mt-3.5"
           >
             {/* Was a bare <label> with no `htmlFor` — that fails the form-
                 control association rule. The file input below is wrapped

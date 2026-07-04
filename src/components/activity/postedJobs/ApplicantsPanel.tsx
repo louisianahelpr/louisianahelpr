@@ -495,19 +495,6 @@ export function ApplicantsPanel({
                                 {neighborCount} neighbor{neighborCount > 1 ? "s" : ""} hired them
                               </span>
                             )}
-                            {(bidApp.stake_amount ?? 0) > 0 && (
-                              <span
-                                className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"
-                                style={{ color: "hsl(var(--pif-tint))" }}
-                              >
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                                  style={{ background: "hsl(var(--pif-tint))" }}
-                                  aria-hidden="true"
-                                />
-                                ${bidApp.stake_amount} staked
-                              </span>
-                            )}
                             {/* "Available now" pill — shown when the helper
                                 has toggled their 4-hour availability signal
                                 and the window hasn't expired yet. */}

@@ -21,7 +21,6 @@ export type ApplyVars = {
   helperId: string;
   message: string;
   files: File[];
-  stakeAmt: number | null;
   /** When the poster enabled instant-book, confirm the booking immediately
       after the application INSERT — no poster review required. Reuses the
       same jobs UPDATE path as handleHelperResponse (helper_confirmed_at).

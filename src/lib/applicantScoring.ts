@@ -15,7 +15,6 @@ export interface ApplicantData {
   distanceKm: number | null;
   responseTimeMinutes: number | null;
   neighborCount: number;            // how many nearby addresses hired them (trust graph)
-  stakeAmount: number | null;       // optional reliability stake ($5–$25)
 }
 
 export function scoreApplicant(a: ApplicantData): ApplicantScore {
@@ -60,12 +59,6 @@ export function scoreApplicant(a: ApplicantData): ApplicantScore {
   if (a.neighborCount > 0) {
     score += Math.min(5, a.neighborCount * 1.5);
     signals.push(`${a.neighborCount} neighbor${a.neighborCount > 1 ? "s" : ""} hired them`);
-  }
-
-  // Reliability stake (up to 10 pts) — helper put money on the line
-  if (a.stakeAmount != null && a.stakeAmount > 0) {
-    score += Math.min(10, (a.stakeAmount / 25) * 10);
-    signals.push(`$${a.stakeAmount} staked`);
   }
 
   return { userId: a.userId, score, signals };

@@ -17,9 +17,6 @@ export interface ApplyConfirmDialogProps {
   setApplyFiles: Dispatch<SetStateAction<File[]>>;
   /** True while the application is being submitted — disables the controls. */
   applyLoading: boolean;
-  /** Optional reliability stake amount ($5, $10, $25, or null). */
-  stakeAmount: number | null;
-  setStakeAmount: (value: number | null) => void;
   /** Proposed bid price (only relevant when job pricing_mode='accept_bids'). */
   bidPrice: string;
   setBidPrice: (value: string) => void;

@@ -31,8 +31,6 @@ function makeProps(overrides: Record<string, unknown> = {}) {
     setApplyFiles: vi.fn(),
     applyLoading: false,
     handleApplyConfirm: vi.fn(),
-    stakeAmount: null,
-    setStakeAmount: vi.fn(),
     bidPrice: "",
     setBidPrice: vi.fn(),
     ...overrides,

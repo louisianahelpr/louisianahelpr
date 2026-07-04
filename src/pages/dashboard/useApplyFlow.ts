@@ -28,7 +28,6 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
-  const [stakeAmount, setStakeAmount] = useState<number | null>(null);
   // Proposed bid price — only populated for accept_bids jobs.
   const [bidPrice, setBidPrice] = useState("");
   // JIT verify gate — shown on first-ever Apply tap (has_applied_before=false).
@@ -92,7 +91,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   // The file-upload + insert run in the background; on error we restore
   // the snapshots so the job re-appears and the user can retry.
   const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
-    mutationFn: async ({ jobId, helperId, message, files, stakeAmt, isInstantBook, proposedPrice }) => {
+    mutationFn: async ({ jobId, helperId, message, files, isInstantBook, proposedPrice }) => {
       // Server-side rate limit check (10/min, 50/hr, 200/day) BEFORE any
       // attachment uploads — don't waste storage bandwidth on a blocked
       // attempt. The helper falls back to "allowed" if the RPC isn't
@@ -159,7 +158,6 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
           helper_id: helperId,
           message: message.trim() || null,
           attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : undefined,
-          ...(stakeAmt && stakeAmt > 0 ? { stake_amount: stakeAmt, stake_status: "staked" } : {}),
         });
         if (error) throw error as Error & { code?: string };
       } else {
@@ -167,12 +165,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         // Patch attachment_urls onto the new row if needed (RPC doesn't handle attachments).
         if (attachmentUrls.length > 0) {
           await supabase.from("applications")
-            .update({ attachment_urls: attachmentUrls, ...(stakeAmt && stakeAmt > 0 ? { stake_amount: stakeAmt, stake_status: "staked" } : {}) })
-            .eq("job_id", jobId)
-            .eq("helper_id", helperId);
-        } else if (stakeAmt && stakeAmt > 0) {
-          await supabase.from("applications")
-            .update({ stake_amount: stakeAmt, stake_status: "staked" })
+            .update({ attachment_urls: attachmentUrls })
             .eq("job_id", jobId)
             .eq("helper_id", helperId);
         }
@@ -321,16 +314,14 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     setApplyMessage("");
     setApplyFiles([]);
     setBidPrice("");
-    const stakeAmt = stakeAmount;
-    setStakeAmount(null);
     // setApplyLoading flips off on settled (handled below) — we still
     // set it true here so a fast double-tap can't enqueue twice.
     setApplyLoading(true);
     applyMutation.mutate(
-      { jobId, helperId: user.id, message, files, stakeAmt, isInstantBook, proposedPrice },
+      { jobId, helperId: user.id, message, files, isInstantBook, proposedPrice },
       { onSettled: () => setApplyLoading(false) },
     );
-  }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, stakeAmount, bidPrice, setBidPrice, applyMutation]);
+  }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, bidPrice, setBidPrice, applyMutation]);
 
   // JIT verify handlers. Both paths (Verify + Later) flip has_applied_before
   // so the nudge never shows again. "Later" records 'prompted' status and
@@ -379,8 +370,6 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     applyLoading,
     applyFiles,
     setApplyFiles,
-    stakeAmount,
-    setStakeAmount,
     bidPrice,
     setBidPrice,
     jitVerifyOpen,

@@ -183,7 +183,7 @@ const Dashboard = () => {
   const {
     confirmApplyJobId, setConfirmApplyJobId, confirmApplyJob,
     applyMessage, setApplyMessage, applyLoading, applyFiles, setApplyFiles,
-    stakeAmount, setStakeAmount, bidPrice, setBidPrice,
+    bidPrice, setBidPrice,
     jitVerifyOpen, pendingJobIdForVerify, setPendingJobIdForVerify,
     idvPromptOpen, setIdvPromptOpen,
     handleApplyRequest, handleApplyConfirm, handleJitVerifyProceed,
@@ -484,8 +484,6 @@ const Dashboard = () => {
             applyFiles={applyFiles}
             setApplyFiles={setApplyFiles}
             applyLoading={applyLoading}
-            stakeAmount={stakeAmount}
-            setStakeAmount={setStakeAmount}
             bidPrice={bidPrice}
             setBidPrice={setBidPrice}
             handleApplyConfirm={handleApplyConfirm}

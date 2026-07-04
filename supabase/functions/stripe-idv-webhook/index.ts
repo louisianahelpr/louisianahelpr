@@ -136,7 +136,9 @@ serve(async (req) => {
         .eq("user_id", userId);
 
       if (updErr) {
-        console.error("[stripe-idv-webhook] Profile update failed:", updErr);
+        // Throwing here routes into the outer catch which fires postSlackOpsAlert.
+        // A silent log would permanently lose the IDV status update with no operator alert.
+        throw updErr;
       }
 
       // Notify user + admins

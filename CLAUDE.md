@@ -400,6 +400,31 @@ sibling uses is a defect even if it "looks fine."
   rule to "every web page carries chrome": a page must have the shared chrome
   exactly ONCE — not zero times (missing) and not twice (duplicated). When you
   touch a title/header/nav, always confirm at which level it lives.
+- **Every popup (dialog / sheet / drawer) uses the ONE canonical header —
+  `DialogHero` — never a hand-rolled stack.** The source of truth is
+  `DialogHero` in `src/components/ui/dialog.tsx`: a fixed vertical stack of
+  **eyebrow** (small burnt-sienna uppercase italic serif — e.g. "EDITING YOUR
+  JOB", "DECLINE APPLICANT", "SEND A DIRECT OFFER"), then **title**
+  (display-italic, one shared size token), then an optional **subtitle** (quiet
+  olivewood serif line). Two hard rules this enforces, both of which were live
+  defects the user flagged repeatedly:
+  1. **Consistent X-to-title spacing — the title must NEVER crowd or collide
+     with the close (X) button.** The X sits at `right-4 top-4` (a 32px target),
+     so `DialogHeader` reserves a `pr-10` lane; every header inherits it through
+     `DialogHero`. A dialog whose long title runs under the X (the old Edit-Job
+     bug) is a DEFECT — the reserve is not optional and is never removed per-page.
+  2. **Consistent layout — every popup has the SAME parts in the SAME order.**
+     Some popups had the orange eyebrow, some didn't (ResponseDeadlineDialog used
+     a bare icon+title, no eyebrow, non-italic — an outlier). That divergence is
+     a DEFECT: give every popup the eyebrow+title(+subtitle) hero via `DialogHero`
+     so they read as siblings. Do NOT roll your own `<DialogHeader>` +
+     `<span eyebrow>` + `<DialogTitle>` stack in an individual dialog, and do NOT
+     invent a per-dialog title size/weight/italic — adopt `DialogHero`. When you
+     touch or add ANY popup, diff its header against `DialogHero` and confirm it
+     uses that component, exactly like the back-button and top-nav rules above.
+     (Sheets that can't use `DialogHero` directly must still mirror the same
+     eyebrow→title→subtitle stack and tokens — same parts, same order, same
+     spacing — so a bottom sheet reads as a sibling of a centered dialog.)
 - Any time you're about to pick a spacing/width/color/component "that seems
   right," STOP: find the source-of-truth sibling and copy it. Inventing a value
   is a guess.

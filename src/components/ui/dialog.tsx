@@ -60,8 +60,12 @@ const DialogContent = React.forwardRef<
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
+// `pr-10` reserves a lane for the close (X) button, which is absolutely
+// positioned at right-4 top-4 (a 32px hit target starting 16px from the
+// content edge). Without this reserve, a long left-aligned title runs under
+// the X and collides with it — the exact defect this padding prevents.
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
+  <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left pr-10", className)} {...props} />
 );
 DialogHeader.displayName = "DialogHeader";
 
@@ -90,6 +94,63 @@ const DialogDescription = React.forwardRef<
 ));
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
+/**
+ * DialogHero — the ONE canonical popup header. Every dialog/sheet header
+ * should render through this so the eyebrow → title → subtitle stack, its
+ * type tokens, and its clearance from the X (close) button are identical
+ * app-wide. Do NOT hand-roll a bespoke header stack in individual dialogs;
+ * adopt this instead (it wraps DialogHeader, so the X-collision reserve
+ * comes for free).
+ *
+ *   <DialogHero eyebrow="Editing your job" title={`"${title}"`} />
+ *
+ * The eyebrow is the small burnt-sienna uppercase serif label; the title is
+ * the display-italic heading; the optional subtitle is a quiet supporting
+ * line. `titleClassName`/`titleStyle` let a caller scale the title where a
+ * long name needs it, without forking the structure.
+ */
+const DialogHero = ({
+  eyebrow,
+  title,
+  subtitle,
+  className,
+  titleClassName,
+  titleStyle,
+}: {
+  eyebrow?: React.ReactNode;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  className?: string;
+  titleClassName?: string;
+  titleStyle?: React.CSSProperties;
+}) => (
+  <DialogHeader className={cn("space-y-0 text-left", className)}>
+    {eyebrow && (
+      <span
+        className="font-serif italic uppercase block"
+        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+      >
+        {eyebrow}
+      </span>
+    )}
+    <DialogTitle
+      className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
+      style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}
+    >
+      {title}
+    </DialogTitle>
+    {subtitle && (
+      <p
+        className="font-serif italic leading-relaxed pt-1.5"
+        style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.85)" }}
+      >
+        {subtitle}
+      </p>
+    )}
+  </DialogHeader>
+);
+DialogHero.displayName = "DialogHero";
+
 export {
   Dialog,
   DialogPortal,
@@ -98,6 +159,7 @@ export {
   DialogTrigger,
   DialogContent,
   DialogHeader,
+  DialogHero,
   DialogFooter,
   DialogTitle,
   DialogDescription,

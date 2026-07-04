@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -95,15 +95,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     <>
     <Dialog open={!!job} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto !gap-3">
-        <DialogHeader className="space-y-0 text-left">
-          <span className={eyebrowCls} style={eyebrowStyle}>Editing your job</span>
-          <DialogTitle
-            className="font-display italic font-bold leading-tight pt-2"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            {title ? `"${title}"` : "Edit job"}
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero eyebrow="Editing your job" title={title ? `"${title}"` : "Edit job"} />
         <div className="space-y-5">
           {locked && (
             <p

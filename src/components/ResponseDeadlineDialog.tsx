@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, MessageSquare } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -34,12 +34,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-2">
-            <Clock className="w-5 h-5 text-primary" />
-            Set Response Deadline
-          </DialogTitle>
-        </DialogHeader>
+        <DialogHero eyebrow="Send a direct offer" title="Set a response deadline" />
         <div className="space-y-4">
           <p className="text-ds-11 text-muted-foreground">
             How long should <span className="font-medium text-foreground">{helperName}</span> have to accept or decline this job?

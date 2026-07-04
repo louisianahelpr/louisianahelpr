@@ -43,13 +43,13 @@ export function DeclineApplicantSheet({
     >
       <SheetContent
         side="bottom"
-        className="rounded-t-2xl pb-safe-nav"
+        className="rounded-t-2xl pb-safe-nav p-5"
         style={{ background: "hsl(var(--parchment))" }}
       >
         {declineTarget && (() => {
           const targetName = formatName(declineTarget.profiles?.full_name, "this applicant");
           return (
-            <div className="px-1 pt-1 pb-2 space-y-4">
+            <div className="px-1 pt-1 pb-1 space-y-3.5">
               {/* Header */}
               <div>
                 <p
@@ -59,7 +59,7 @@ export function DeclineApplicantSheet({
                   Decline applicant
                 </p>
                 <h2
-                  className="font-display italic font-bold leading-tight mt-2"
+                  className="font-display italic font-bold leading-tight mt-1.5"
                   style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
                 >
                   Decline {targetName}?
@@ -135,7 +135,7 @@ export function DeclineApplicantSheet({
               </div>
 
               {/* Action buttons */}
-              <div className="flex gap-2 pt-1">
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   className="flex-1 rounded-ds-md"

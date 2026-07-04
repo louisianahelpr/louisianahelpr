@@ -65,6 +65,14 @@ export interface AppliedJobCardProps {
   setEditMessageText: (value: string) => void;
   savingMessage: boolean;
   handleSaveMessage: (appId: string) => void;
+  /** Bid-price edit (bidding jobs only, parent-owned). Editable while the
+   *  application is pending and the poster hasn't viewed it. */
+  editingBidAppId: string | null;
+  setEditingBidAppId: (id: string | null) => void;
+  editBidPrice: string;
+  setEditBidPrice: (value: string) => void;
+  savingBid: boolean;
+  handleSaveBid: (appId: string) => void;
   handleAddAttachment: (appId: string, jobId: string, currentUrls: string[], file: File) => void;
   handleRemoveAttachment: (appId: string, currentUrls: string[], urlToRemove: string) => void;
 }

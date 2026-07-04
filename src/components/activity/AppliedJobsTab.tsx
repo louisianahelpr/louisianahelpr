@@ -18,6 +18,16 @@ import { bucketAppliedApp } from "@/pages/activity/activityFilters";
 import type { TrackingData } from "@/components/JobTracking";
 import { logWithdrawReason, type WithdrawReason } from "@/lib/applicationWithdrawAnalytics";
 
+/** `proposed_price` / `poster_viewed_at` are negotiation columns that live
+    on the prod `applications` table but aren't in the generated Supabase
+    types yet. This narrow shape lets us build the bid-edit update + its
+    server-side "locked once viewed" guard without an `as any`. */
+type LooseAppUpdateBuilder = {
+  eq: (col: string, val: string) => LooseAppUpdateBuilder;
+  is: (col: string, val: null) => LooseAppUpdateBuilder;
+  select: (cols: string) => PromiseLike<{ data: unknown[] | null; error: { message?: string } | null }>;
+};
+
 interface AppliedJobsTabProps {
   apps: AppliedApp[];
   /** Application id from the ?highlight= deep-link. The matching card
@@ -83,6 +93,59 @@ export const AppliedJobsTab = ({
   const [editingMessageAppId, setEditingMessageAppId] = useState<string | null>(null);
   const [editMessageText, setEditMessageText] = useState("");
   const [savingMessage, setSavingMessage] = useState(false);
+  // Bid-price edit (bidding jobs only). Editable while the offer is pending
+  // AND the poster hasn't engaged it — the `.is("poster_viewed_at", null)`
+  // + `.is("counter_price", null)` filters below re-check the SAME lock the
+  // UI shows, server-side, so a poster who views/counters mid-edit locks the
+  // price rather than letting the helper rewrite a deal the poster is already
+  // acting on. (Belt-and-suspenders to the enforce_bid_price_lock BEFORE
+  // UPDATE trigger on applications, which enforces this even against a direct
+  // API call that skips this query.)
+  const [editingBidAppId, setEditingBidAppId] = useState<string | null>(null);
+  const [editBidPrice, setEditBidPrice] = useState("");
+  const [savingBid, setSavingBid] = useState(false);
+
+  const handleSaveBid = useCallback(async (appId: string) => {
+    const parsed = parseFloat(editBidPrice);
+    // Money value → reject non-finite / ≤0 / absurd, and round to whole cents
+    // so we never write a fraction-of-a-cent bid the poster can't be charged.
+    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 1_000_000) {
+      hapticError();
+      toast.error("Enter a valid amount");
+      return;
+    }
+    const cents = Math.round(parsed * 100) / 100;
+    setSavingBid(true);
+    const q = supabase
+      .from("applications")
+      .update({ proposed_price: cents } as never) as unknown as LooseAppUpdateBuilder;
+    const { data, error } = await q
+      .eq("id", appId)
+      .eq("helper_id", userId)
+      .is("poster_viewed_at", null)
+      .is("counter_price", null)
+      .select("id");
+    if (error) {
+      // Transient DB/network failure — keep the editor open (don't discard the
+      // amount they just typed) so they can retry without re-entering it.
+      hapticError();
+      toast.error("Couldn't update your offer — try again?");
+      setSavingBid(false);
+      return;
+    }
+    if (!data || data.length === 0) {
+      // Zero rows matched → the offer is no longer editable (the poster viewed
+      // or countered it). Fail closed and refresh; don't assert the exact cause.
+      hapticError();
+      toast.error("Couldn't update — the poster may have opened your bid. Refreshing…");
+      onRefresh();
+    } else {
+      toast.success("Offer updated");
+      onRefresh();
+    }
+    setSavingBid(false);
+    setEditingBidAppId(null);
+  }, [editBidPrice, userId, onRefresh]);
 
   const handleSaveMessage = useCallback(async (appId: string) => {
     setSavingMessage(true);
@@ -184,6 +247,12 @@ export const AppliedJobsTab = ({
       setEditMessageText={setEditMessageText}
       savingMessage={savingMessage}
       handleSaveMessage={handleSaveMessage}
+      editingBidAppId={editingBidAppId}
+      setEditingBidAppId={setEditingBidAppId}
+      editBidPrice={editBidPrice}
+      setEditBidPrice={setEditBidPrice}
+      savingBid={savingBid}
+      handleSaveBid={handleSaveBid}
       handleAddAttachment={handleAddAttachment}
       handleRemoveAttachment={handleRemoveAttachment}
     />

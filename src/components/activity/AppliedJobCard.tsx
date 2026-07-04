@@ -70,6 +70,12 @@ function AppliedJobCardInner({
   setEditMessageText,
   savingMessage,
   handleSaveMessage,
+  editingBidAppId,
+  setEditingBidAppId,
+  editBidPrice,
+  setEditBidPrice,
+  savingBid,
+  handleSaveBid,
   handleAddAttachment,
   handleRemoveAttachment,
 }: AppliedJobCardProps) {
@@ -185,6 +191,12 @@ function AppliedJobCardInner({
               setEditMessageText={setEditMessageText}
               savingMessage={savingMessage}
               handleSaveMessage={handleSaveMessage}
+              editingBidAppId={editingBidAppId}
+              setEditingBidAppId={setEditingBidAppId}
+              editBidPrice={editBidPrice}
+              setEditBidPrice={setEditBidPrice}
+              savingBid={savingBid}
+              handleSaveBid={handleSaveBid}
               handleAddAttachment={handleAddAttachment}
               handleRemoveAttachment={handleRemoveAttachment}
             />

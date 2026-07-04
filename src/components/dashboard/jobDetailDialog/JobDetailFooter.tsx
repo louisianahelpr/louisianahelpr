@@ -239,6 +239,10 @@ export const JobDetailFooter = ({
               textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)",
             }}
           >
+            {/* Invisible leading spacer the same width as the trailing chevron,
+                so the label sits at the button's true optical center instead of
+                being pushed left by the chevron (most visible on short "Bid"). */}
+            <span aria-hidden className="w-4 h-4 shrink-0" />
             <span className="truncate">{job.pricing_mode === "accept_bids" ? "Bid" : job.instant_book ? "Book now" : "Apply"}</span>
             <ChevronRight
               className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"

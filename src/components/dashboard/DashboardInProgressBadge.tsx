@@ -44,8 +44,8 @@ const DashboardInProgressBadge = ({ job, onView }: DashboardInProgressBadgeProps
           aria-label={`${label}: ${job.title}. Tap for details.`}
           className="btn-press inline-flex h-8 items-center gap-1.5 rounded-full pl-2 pr-2.5 transition-transform active:scale-[0.97]"
           style={{
-            background: "hsl(var(--bark) / 0.10)",
-            border: "1px solid hsl(var(--bark) / 0.28)",
+            background: "hsl(var(--amber-tint) / 0.18)",
+            border: "1px solid hsl(var(--amber-tint) / 0.5)",
           }}
         >
           {/* Pulsing "live" dot — the ping ring only animates for an
@@ -54,17 +54,17 @@ const DashboardInProgressBadge = ({ job, onView }: DashboardInProgressBadgeProps
             {live && (
               <span
                 className="absolute inline-flex h-full w-full rounded-full opacity-75 motion-safe:animate-ping"
-                style={{ background: "hsl(var(--burnt-sienna))" }}
+                style={{ background: "hsl(var(--amber-solid))" }}
               />
             )}
             <span
               className="relative inline-flex h-2 w-2 rounded-full"
-              style={{ background: "hsl(var(--burnt-sienna))" }}
+              style={{ background: "hsl(var(--amber-solid))" }}
             />
           </span>
           <span
             className="font-serif italic uppercase tracking-[0.1em] text-ds-9"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.9)" }}
+            style={{ color: "hsl(var(--amber-ink))" }}
           >
             {label}
           </span>

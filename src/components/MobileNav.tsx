@@ -5,7 +5,6 @@ import {
   Plus,
   type LucideIcon,
 } from "lucide-react";
-import { Capacitor } from "@capacitor/core";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -53,23 +52,60 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // nav, deepen the drop shadow so the bar reads as floating above the
   // page rather than glued to the bottom edge.
   const [scrolled, setScrolled] = useState(false);
+  // Hide-on-scroll: the whole bar (curtain + pill + Post FAB) slides off the
+  // bottom when the user scrolls DOWN into content, and returns on scroll UP
+  // or near the top — so the reading area is uncluttered but navigation is
+  // one upward flick away. The Post FAB rides with the bar, so it's never
+  // permanently gone; scrolling up reveals it again.
+  const [navHidden, setNavHidden] = useState(false);
 
   useEffect(() => {
-    const checkScroll = () => {
-      // Look at any scrollable region (window OR an internal AppShell scroll
-      // container — most app routes use the latter).
-      const winScrolled = window.scrollY > 8;
+    // A fresh route always shows the bar and resets the scroll baseline.
+    setNavHidden(false);
+    // Reads the active scroll offset from whichever region actually scrolled.
+    // Routes differ: AppShell pages scroll `.app-shell-scroll`, but several
+    // pages (guest browse, Activity) roll their own `overflow-auto` flex
+    // container, and document-scroll routes scroll the window. A capture-phase
+    // listener (below) hands us the true scroll target, so prefer its
+    // scrollTop; fall back to the AppShell container, then the window.
+    const getY = (target: EventTarget | null) => {
+      if (
+        target instanceof HTMLElement &&
+        target !== document.documentElement &&
+        target !== document.body
+      ) {
+        return target.scrollTop;
+      }
       const internal = document.querySelector<HTMLElement>(".app-shell-scroll");
-      const internalScrolled = internal ? internal.scrollTop > 8 : false;
-      setScrolled(winScrolled || internalScrolled);
+      return internal && internal.scrollTop > 0 ? internal.scrollTop : window.scrollY;
+    };
+    let lastY = getY(null);
+    const checkScroll = (e?: Event) => {
+      const y = getY(e?.target ?? null);
+      setScrolled(y > 8);
+      const delta = y - lastY;
+      // Ignore sub-threshold jitter and iOS rubber-band overscroll (y < 0),
+      // which would otherwise flicker the bar during momentum scrolling.
+      if (y < 0 || Math.abs(delta) < 6) {
+        lastY = y;
+        return;
+      }
+      if (y < 64) {
+        setNavHidden(false); // near the top → always reveal
+      } else if (delta > 0) {
+        setNavHidden(true); // scrolling down → hide
+      } else {
+        setNavHidden(false); // scrolling up → reveal
+      }
+      lastY = y;
     };
     checkScroll();
-    window.addEventListener("scroll", checkScroll, { passive: true });
-    const internal = document.querySelector<HTMLElement>(".app-shell-scroll");
-    internal?.addEventListener("scroll", checkScroll, { passive: true });
+    // Capture phase catches scroll from ANY nested container on the route
+    // (scroll events don't bubble but do capture), so one listener covers
+    // window-, AppShell-, and custom-container-scrolling pages uniformly.
+    document.addEventListener("scroll", checkScroll, { capture: true, passive: true });
     return () => {
-      window.removeEventListener("scroll", checkScroll);
-      internal?.removeEventListener("scroll", checkScroll);
+      document.removeEventListener("scroll", checkScroll, { capture: true });
     };
   }, [location.pathname]);
 
@@ -141,9 +177,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // exception (`isPendingApproval` above hides it) since /post-job is still
   // gated. Verification still fires at the moments that genuinely need it
   // (accepting a job, payout) inside the page components.
-  // Guest "tease & convert" bottom nav is iOS/Android-app only.
-  // On the web, guests should see only the top Navbar (no bottom bar).
-  if (isGuest && !Capacitor.isNativePlatform()) return null;
+  // The phone-sized website and the iOS/Android app are ALWAYS the same
+  // surface: the guest "tease & convert" bottom nav renders on both. (Wide
+  // desktop web hides the whole bar via CSS — `html.web-desktop
+  // .mobile-nav-frame { display:none }` — so this only ever shows on a
+  // phone/tablet browser or the native app, never the desktop rail.)
 
   // Hide nav when in an active message conversation
   const params = new URLSearchParams(location.search);
@@ -361,7 +399,23 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 
   return (
     <>
-      <nav ref={ref} aria-label="Bottom navigation" className="mobile-nav-frame fixed bottom-0 left-0 right-0 z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <nav
+        ref={ref}
+        aria-label="Bottom navigation"
+        aria-hidden={navHidden || undefined}
+        className="mobile-nav-frame fixed bottom-0 left-0 right-0 z-50"
+        style={{
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          // Slide the whole bar (incl. the upward-extending frosted curtain)
+          // fully off-screen when hidden. Offset = safe-area + a margin large
+          // enough to clear the curtain band (safe-area + 96 + 24px tall).
+          transform: navHidden
+            ? "translateY(calc(env(safe-area-inset-bottom, 0px) + 130px))"
+            : "translateY(0)",
+          transition: reducedMotion ? "none" : "transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)",
+          willChange: "transform",
+        }}
+      >
         {/* Frosted curtain — full-width backdrop-blur layer behind the
             nav so any content scrolling up the page softly blurs as it
             passes through this band, not just under the centered pill.

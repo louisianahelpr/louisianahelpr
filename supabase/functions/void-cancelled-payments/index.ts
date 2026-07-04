@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { computeCancellationFee } from "../_shared/cancellationFee.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -119,7 +120,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, cancellation_fee, date_needed, cancelled_at, helper_id")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, cancellation_fee, date_needed, cancelled_at, helper_id, customer_id")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -240,10 +241,44 @@ serve(async (req) => {
           if (refundAmount > 0) {
             // Idempotency key prevents a double-refund if the cron overlaps or
             // retries before the payment_status flip at the end of this block.
-            await stripe.refunds.create(
+            const refund = await stripe.refunds.create(
               { payment_intent: paymentIntentId, amount: refundAmount },
               { idempotencyKey: `cancel-refund-${job.id}` },
             );
+            // Ledger row (F-MONEY-04). Best-effort: the refund is already out,
+            // so a ledger write failure is logged, not thrown. Upsert on the
+            // Stripe refund id so a cron re-run doesn't duplicate the row.
+            const { error: refundLedgerErr } = await supabaseAdmin.from("payment_refunds").upsert({
+              job_id: job.id,
+              customer_id: job.customer_id,
+              stripe_refund_id: refund.id,
+              stripe_payment_intent_id: paymentIntentId,
+              amount_cents: Math.round(Number(refund.amount ?? refundAmount)),
+              currency: refund.currency ?? "usd",
+              is_partial: cancellationFee > 0,
+              reason: "cancellation refund (minus fee)",
+              source: "void_cancelled_payments",
+              initiated_by_user_id: null,
+            }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
+            if (refundLedgerErr) {
+              console.error(`[void-cancelled-payments] refund ledger write failed for refund ${refund.id} (job ${job.id}); refund succeeded, reconcile manually:`, refundLedgerErr);
+              // The refund already left Stripe, so we never throw — but a dropped
+              // ledger row is a real Stripe↔ledger divergence a human must
+              // reconcile, so surface it to ops rather than leaving it in a log.
+              postSlackOpsAlert({
+                kind: "custom",
+                severity: "warning",
+                title: "Refund ledger write failed",
+                message: "A Stripe refund succeeded but its payment_refunds row was not written. Reconcile manually.",
+                fields: {
+                  refund_id: refund.id,
+                  job_id: job.id,
+                  source: "void_cancelled_payments",
+                  amount_cents: Math.round(Number(refund.amount ?? refundAmount)),
+                  db_error: refundLedgerErr.message,
+                },
+              });
+            }
           }
 
           // Transfer the agreed fee to the helper (minus platform commission).

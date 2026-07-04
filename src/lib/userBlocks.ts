@@ -52,14 +52,20 @@ export async function blockUser(
     return { ok: false, cancelledJobIds: [], error: insertErr.message };
   }
 
-  // Find any active jobs between the two users
-  const { data: activeJobs } = await supabase
+  // Find any active jobs between the two users. Surface a lookup failure
+  // (previously the error was dropped) — if we can't enumerate the jobs we
+  // can't auto-cancel them, so it must be observable rather than silent.
+  const { data: activeJobs, error: activeJobsErr } = await supabase
     .from("jobs")
     .select("id, title, customer_id, helper_id, budget, date_needed, status")
     .or(
       `and(customer_id.eq.${blockerId},helper_id.eq.${blockedId}),and(customer_id.eq.${blockedId},helper_id.eq.${blockerId})`,
     )
     .in("status", ["accepted", "in_progress", "revision_requested"]);
+
+  if (activeJobsErr) {
+    report(activeJobsErr, { severity: "warning", tags: { source: "userBlocks.activeJobsLookup" } });
+  }
 
   const cancelledJobIds: string[] = [];
   if (activeJobs && activeJobs.length > 0) {
@@ -75,15 +81,19 @@ export async function blockUser(
           cancellation_fee_status: null,
         })
         .eq("id", job.id);
-      if (!cancelErr) cancelledJobIds.push(job.id);
+      if (cancelErr) {
+        // A job that failed to cancel is a live job with someone the user just
+        // blocked — surface it instead of silently swallowing the error.
+        report(cancelErr, { severity: "warning", tags: { source: "userBlocks.autoCancelJob", jobId: job.id } });
+      } else {
+        cancelledJobIds.push(job.id);
+      }
     }
-
-    // Trigger refunds via the existing edge function
-    try {
-      await supabase.functions.invoke("void-cancelled-payments", { body: {} });
-    } catch (e) {
-      report(e, { severity: "warning", tags: { source: "userBlocks.autoVoidAfterBlock" } });
-    }
+    // Refunds are NOT triggered here. void-cancelled-payments only accepts a
+    // cron/service-role bearer, so a client invoke with the user's JWT always
+    // 401s. The scheduled cron already sweeps every cancelled + escrow job
+    // (its "Part A"), so escrow on these auto-cancelled jobs is refunded on the
+    // next run — no client call needed.
   }
 
   return { ok: true, cancelledJobIds };

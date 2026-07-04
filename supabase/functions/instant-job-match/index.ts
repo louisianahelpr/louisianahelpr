@@ -87,10 +87,27 @@ Deno.serve(async (req) => {
 
     if (helpersError) throw helpersError;
 
+    // Exclude anyone in a block relationship with the poster (either
+    // direction). Without this, blocking a user doesn't stop them being
+    // auto-matched to — and notified about — the blocker's job, which
+    // defeats the point of Block as a safety control.
+    const { data: blocks, error: blocksError } = await supabase
+      .from("user_blocks")
+      .select("blocker_id, blocked_id")
+      .or(`blocker_id.eq.${job.customer_id},blocked_id.eq.${job.customer_id}`);
+    if (blocksError) throw blocksError;
+    const blockedUserIds = new Set<string>();
+    for (const b of blocks || []) {
+      if (b.blocker_id === job.customer_id) blockedUserIds.add(b.blocked_id);
+      if (b.blocked_id === job.customer_id) blockedUserIds.add(b.blocker_id);
+    }
+
     const now = new Date().toISOString();
     const activeHelpers = (helpers || []).filter((h) => {
       // Skip banned users (any non-active status).
       if (h.ban_status && ["banned", "temp_banned", "permanently_banned"].includes(h.ban_status)) return false;
+      // Skip anyone blocked by / blocking the poster.
+      if (blockedUserIds.has(h.user_id)) return false;
       // Drop expired-tier filter — at current scale we notify everyone
       // who scores above zero, regardless of tier. Re-add as a sort
       // boost once tiers are populated.

@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
+import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 
 export async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
@@ -255,6 +256,45 @@ export async function handleCheckoutSessionCompleted(
               },
               { idempotencyKey: `dup-onboarding-fee-${session.id}` },
             );
+            // Ledger the refund (best-effort). is_partial: this only refunds
+            // the $2 fee off a PI that also holds the job escrow, so it is not
+            // a full-PI refund. job_id is null — this is a profile/onboarding
+            // fee, not a job's escrow, so a per-job reconciliation query must
+            // NOT attribute it to the job on this session.
+            const { error: refundLedgerErr } = await supabase.from("payment_refunds").upsert({
+              job_id: null,
+              customer_id: posterId,
+              stripe_refund_id: refund.id,
+              stripe_payment_intent_id: piId,
+              amount_cents: Math.round(Number(refund.amount ?? ONBOARDING_FEE_CENTS)),
+              currency: refund.currency ?? "usd",
+              is_partial: true,
+              reason: "duplicate onboarding fee",
+              source: "duplicate_onboarding_fee",
+              initiated_by_user_id: null,
+            }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
+            if (refundLedgerErr) {
+              logStep("ERROR ledgering duplicate onboarding fee refund", {
+                error: refundLedgerErr.message,
+                refundId: refund.id,
+                sessionId: session.id,
+              });
+              // The refund already left Stripe, so we never throw — but a dropped
+              // ledger row is a real Stripe↔ledger divergence a human must
+              // reconcile, so surface it to ops rather than leaving it in a log.
+              postSlackOpsAlert({
+                kind: "custom",
+                severity: "warning",
+                title: "Refund ledger write failed",
+                message: "A Stripe refund succeeded but its payment_refunds row was not written. Reconcile manually.",
+                fields: {
+                  refund_id: refund.id,
+                  session_id: session.id,
+                  source: "duplicate_onboarding_fee",
+                  db_error: refundLedgerErr.message,
+                },
+              });
+            }
             await supabase.from("notifications").insert({
               user_id: posterId,
               type: "payment",

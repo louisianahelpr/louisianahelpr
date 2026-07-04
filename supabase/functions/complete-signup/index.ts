@@ -277,6 +277,23 @@ serve(async (req) => {
       }
     }
 
+    // 3b. A PROVIDED document that failed to upload must NOT slip through to
+    // auto-approval. Each upload block above only console.error'd on failure
+    // and continued, so a user could submit an ID / license / insurance, have
+    // the storage write fail, and still land "approved" with the doc missing.
+    // Detect provided-but-unstored files and make the caller retry instead.
+    const uploadFailures: string[] = [];
+    if (avatarBase64 && avatarExt && !avatarUrl) uploadFailures.push("profile picture");
+    if (idBase64 && idExt && !idDocumentUrl) uploadFailures.push("ID document");
+    if (licenseBase64 && licenseExt && !licenseUrl) uploadFailures.push("license");
+    if (insuranceBase64 && insuranceExt && !insuranceUrl) uploadFailures.push("insurance document");
+    if (uploadFailures.length > 0) {
+      return new Response(
+        JSON.stringify({ error: `We couldn't save your ${uploadFailures.join(", ")}. Please try again.` }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // 4. Check current profile to determine if this is a resubmission
     const { data: currentProfile } = await supabase
       .from("profiles")
@@ -313,21 +330,26 @@ serve(async (req) => {
       );
     }
 
-    // For resubmissions, require all essential documents and fields
-    if (isResubmission) {
-      const missing: string[] = [];
-      if (!avatarUrl) missing.push("profile picture");
-      if (!idDocumentUrl) missing.push("ID document");
-      if (!bio) missing.push("bio");
-      if (!phone) missing.push("phone number");
-      if (!location) missing.push("location");
+    // Require the essential profile fields on EVERY path, not just
+    // resubmissions. This function auto-approves, so a direct API call that
+    // skipped the signup UI could otherwise land on "approved" with a blank
+    // profile. avatar/bio/phone/location are collected by the initial signup
+    // flow (Signup.tsx validateAboutYouStep), so requiring them here matches
+    // what a real signup already sends. The ID document is resubmission-only —
+    // initial signup collects no ID (Stripe IDV handles identity later), so it
+    // must not be required on the initial path or it would reject real signups.
+    const missing: string[] = [];
+    if (!avatarUrl) missing.push("profile picture");
+    if (!bio) missing.push("bio");
+    if (!phone) missing.push("phone number");
+    if (!location) missing.push("location");
+    if (isResubmission && !idDocumentUrl) missing.push("ID document");
 
-      if (missing.length > 0) {
-        return new Response(
-          JSON.stringify({ error: `Resubmission requires: ${missing.join(", ")}. Please complete all required fields.` }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    if (missing.length > 0) {
+      return new Response(
+        JSON.stringify({ error: `Please complete all required fields: ${missing.join(", ")}.` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // 5. Update profile. Auto-approve — there's no manual admin review

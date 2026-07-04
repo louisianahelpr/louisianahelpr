@@ -5,6 +5,7 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -267,11 +268,15 @@ serve(async (req) => {
       const isPoster = job.customer_id === user.id;
       const isHelper = job.helper_id === user.id;
       if (!isPoster && !isHelper) throw new Error("Not authorized");
+      // Excludes "disputed" (and every other terminal state): a disputed job
+      // can only be resolved through the admin dispute actions below, never the
+      // normal two-party release path.
       if (!["in_progress", "revision_requested", "accepted"].includes(job.status)) {
-        throw new Error("Job is not in progress");
-      }
-      if (job.status === "disputed") {
-        throw new Error("This job is currently under dispute. Payment cannot be released until the dispute is resolved.");
+        throw new Error(
+          job.status === "disputed"
+            ? "This job is currently under dispute. Payment cannot be released until the dispute is resolved."
+            : "Job is not in progress",
+        );
       }
 
       // Minimum job time enforcement: 30 minutes after helper confirmed/accepted
@@ -580,10 +585,18 @@ serve(async (req) => {
           // Idempotency key prevents a double-refund on concurrent cancel
           // requests (double-tap, network retry) from both succeeding before
           // the payment_status flip below makes the second 409 out.
-          await stripe.refunds.create(
+          const refund = await stripe.refunds.create(
             { payment_intent: job.stripe_payment_intent_id },
             { idempotencyKey: `cancel-escrow-${jobId}` },
           );
+          await recordRefund(supabaseAdmin, {
+            refund,
+            jobId,
+            customerId: job.customer_id,
+            paymentIntentId: job.stripe_payment_intent_id,
+            source: "cancel_escrow",
+            initiatedByUserId: user.id,
+          });
         }
       }
 
@@ -621,6 +634,13 @@ serve(async (req) => {
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
+
+      // Only a job that is actually under dispute may be resolved here. Without
+      // this guard an admin call could release escrow on an already-completed,
+      // cancelled, or never-disputed job (double-pay / out-of-band release).
+      if (job.status !== "disputed") {
+        throw new Error(`Job is not under dispute (status: ${job.status}). Cannot resolve a dispute that doesn't exist.`);
+      }
 
       // Verify payment is captured (immediate capture — should already be succeeded)
       let paymentIntentId = job.stripe_payment_intent_id;
@@ -699,6 +719,13 @@ serve(async (req) => {
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new Error("Job not found");
 
+      // Same guard as admin_release_dispute: only a genuinely disputed job may
+      // be resolved via this path. Non-dispute refunds go through
+      // admin_refund_general (which intentionally accepts any state).
+      if (job.status !== "disputed") {
+        throw new Error(`Job is not under dispute (status: ${job.status}). Use a general refund for non-dispute cases.`);
+      }
+
       // Refund the captured payment
       let paymentIntentId = job.stripe_payment_intent_id;
       if (!paymentIntentId && job.stripe_session_id) {
@@ -712,10 +739,18 @@ serve(async (req) => {
             // A retried/double-clicked call within Stripe's ~24h key lifetime
             // returns the original refund. After key expiry, a repeat attempt
             // is rejected by Stripe with charge_already_refunded — still loud.
-            await stripe.refunds.create(
+            const refund = await stripe.refunds.create(
               { payment_intent: paymentIntentId },
               { idempotencyKey: `refund-dispute-${jobId}` },
             );
+            await recordRefund(supabaseAdmin, {
+              refund,
+              jobId,
+              customerId: job.customer_id,
+              paymentIntentId,
+              source: "admin_refund_dispute",
+              initiatedByUserId: user.id,
+            });
           }
         } catch (e) {
           console.error("[create-payment] admin_refund_dispute — refund error:", e);
@@ -792,7 +827,7 @@ serve(async (req) => {
         try {
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
           if (pi.status === "succeeded") {
-            await stripe.refunds.create({
+            const refund = await stripe.refunds.create({
               payment_intent: paymentIntentId,
               ...(isPartial ? { amount: requestedCents } : {}),
               metadata: {
@@ -808,6 +843,16 @@ serve(async (req) => {
               idempotencyKey: isPartial
                 ? `refund-general-${jobId}-${requestedCents}-${Math.floor(Date.now() / 600_000)}`
                 : `refund-general-${jobId}-full`,
+            });
+            await recordRefund(supabaseAdmin, {
+              refund,
+              jobId,
+              customerId: job.customer_id,
+              paymentIntentId,
+              source: "admin_refund_general",
+              isPartial,
+              reason: reason || null,
+              initiatedByUserId: user.id,
             });
           }
         } catch (e) {
@@ -1019,5 +1064,64 @@ async function transferToHelper(
     // Re-throw so the caller does NOT flip the job to 'released'. Fail closed:
     // the job stays disputed and an admin can retry once the cause is fixed.
     throw e;
+  }
+}
+
+/**
+ * Write a row to the payment_refunds ledger after a successful
+ * stripe.refunds.create(). Best-effort by design: the refund has already left
+ * Stripe and the job status has (or will) flip, so a ledger write failure must
+ * NOT throw and turn a successful refund into a 500 the customer sees — it is
+ * logged loudly instead so it can be reconciled. Upsert on stripe_refund_id so a
+ * retried/replayed refund (same Stripe idempotency key → same refund id) updates
+ * the one row rather than duplicating the ledger.
+ */
+async function recordRefund(
+  supabaseAdmin: any,
+  args: {
+    refund: { id: string; amount?: number; currency?: string };
+    jobId: string;
+    customerId: string | null;
+    paymentIntentId: string | null;
+    source: string;
+    isPartial?: boolean;
+    reason?: string | null;
+    initiatedByUserId: string | null;
+  },
+) {
+  try {
+    const { error } = await supabaseAdmin.from("payment_refunds").upsert({
+      job_id: args.jobId,
+      customer_id: args.customerId,
+      stripe_refund_id: args.refund.id,
+      stripe_payment_intent_id: args.paymentIntentId,
+      amount_cents: Math.round(Number(args.refund.amount ?? 0)),
+      currency: args.refund.currency ?? "usd",
+      is_partial: args.isPartial ?? false,
+      reason: args.reason ?? null,
+      source: args.source,
+      initiated_by_user_id: args.initiatedByUserId,
+    }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
+    if (error) {
+      console.error(`[create-payment] recordRefund — ledger write failed for refund ${args.refund.id} (job ${args.jobId}); refund succeeded, reconcile manually:`, error);
+      // The refund already left Stripe, so we never throw here — but a dropped
+      // ledger row is a real Stripe↔ledger divergence that a human must
+      // reconcile, so surface it to ops instead of leaving it in a Deno log.
+      postSlackOpsAlert({
+        kind: "custom",
+        severity: "warning",
+        title: "Refund ledger write failed",
+        message: `A Stripe refund succeeded but its payment_refunds row was not written. Reconcile manually.`,
+        fields: {
+          refund_id: args.refund.id,
+          job_id: args.jobId,
+          source: args.source,
+          amount_cents: Math.round(Number(args.refund.amount ?? 0)),
+          db_error: error.message,
+        },
+      });
+    }
+  } catch (e) {
+    console.error(`[create-payment] recordRefund — unexpected error for refund ${args.refund.id} (job ${args.jobId}):`, e);
   }
 }

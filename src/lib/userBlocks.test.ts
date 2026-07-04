@@ -1,9 +1,10 @@
 // userBlocks.blockUser is the most consequential function here:
-// blocking another user auto-cancels any active job between them
-// and invokes void-cancelled-payments to refund. A bug that misses
-// the cancellation step leaves a job running with someone the user
-// just blocked — bad UX. A bug that misses the void invocation leaves
-// money in escrow on a dead job — real money exposure.
+// blocking another user auto-cancels any active job between them.
+// A bug that misses the cancellation step leaves a job running with
+// someone the user just blocked — bad UX. Escrow on those cancelled
+// jobs is refunded by the void-cancelled-payments cron (which sweeps
+// every cancelled + escrow job), NOT by a client invoke — a user JWT
+// can't authorize that function, so blockUser never calls it.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -172,7 +173,7 @@ describe("blockUser", () => {
     expect(result.error).toBe("RLS denied");
   });
 
-  it("auto-cancels active jobs between the two users + invokes void-cancelled-payments", async () => {
+  it("auto-cancels active jobs between the two users (refund left to the cron)", async () => {
     const activeJobs = [
       { id: "job-1", title: "Yard", customer_id: "blocker", helper_id: "blocked", status: "accepted" },
       { id: "job-2", title: "Move", customer_id: "blocked", helper_id: "blocker", status: "in_progress" },
@@ -191,29 +192,50 @@ describe("blockUser", () => {
     expect(firstUpdateCall.cancellation_reason).toMatch(/blocked/i);
     expect(firstUpdateCall.cancellation_fee).toBe(0);
 
-    // void-cancelled-payments invoked exactly once for the batch
-    expect(invokeMock).toHaveBeenCalledOnce();
-    expect(invokeMock).toHaveBeenCalledWith("void-cancelled-payments", { body: {} });
+    // blockUser must NOT call void-cancelled-payments — a user JWT can't
+    // authorize it (guaranteed 401); the cron handles escrow instead.
+    expect(invokeMock).not.toHaveBeenCalled();
   });
 
-  it("does NOT invoke void-cancelled-payments when there are no active jobs", async () => {
+  it("never invokes void-cancelled-payments, even with no active jobs", async () => {
     setupHappyPath({ activeJobs: [] });
     await blockUser("blocker", "blocked");
     expect(invokeMock).not.toHaveBeenCalled();
   });
 
-  it("reports (but does not throw) when void-cancelled-payments invocation fails", async () => {
+  it("reports (but does not throw) when a job fails to cancel", async () => {
     const activeJobs = [{ id: "job-1", customer_id: "blocker", helper_id: "blocked" }];
     setupHappyPath({ activeJobs });
-    invokeMock.mockRejectedValue(new Error("function timeout"));
+    updateEqMock.mockResolvedValue({ error: { message: "RLS denied" } });
 
     const result = await blockUser("blocker", "blocked");
-    // Block + cancel still considered successful even if refund invocation hiccups
+    // Block itself still succeeds; the un-cancelled job is reported, not silent.
     expect(result.ok).toBe(true);
-    expect(result.cancelledJobIds).toEqual(["job-1"]);
+    expect(result.cancelledJobIds).toEqual([]);
     expect(reportMock).toHaveBeenCalledOnce();
     const [, opts] = reportMock.mock.calls[0];
-    expect((opts as { tags: { source: string } }).tags.source).toBe("userBlocks.autoVoidAfterBlock");
+    expect((opts as { tags: { source: string } }).tags.source).toBe("userBlocks.autoCancelJob");
+  });
+
+  it("reports (but does not throw) when the active-jobs lookup fails", async () => {
+    fromMock.mockImplementation((table: string) => {
+      if (table === "user_blocks") return { insert: insertMock, delete: deleteMock };
+      if (table === "jobs") {
+        return {
+          select: () => ({ or: () => ({ in: () => Promise.resolve({ data: null, error: { message: "RLS denied" } }) }) }),
+          update: updateMock,
+        };
+      }
+      return {};
+    });
+    insertMock.mockResolvedValue({ error: null });
+
+    const result = await blockUser("blocker", "blocked");
+    expect(result.ok).toBe(true);
+    expect(result.cancelledJobIds).toEqual([]);
+    expect(reportMock).toHaveBeenCalledOnce();
+    const [, opts] = reportMock.mock.calls[0];
+    expect((opts as { tags: { source: string } }).tags.source).toBe("userBlocks.activeJobsLookup");
   });
 });
 

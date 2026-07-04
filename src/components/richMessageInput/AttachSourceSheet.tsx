@@ -2,8 +2,7 @@ import { Paperclip, Camera, Image as ImageIcon, FilePlus2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
+  SheetHero,
 } from "@/components/ui/sheet";
 import { MESSAGE_ATTACHMENT_MAX_BYTES } from "@/lib/messageAttachments";
 
@@ -27,28 +26,11 @@ export const AttachSourceSheet = ({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-w-md mx-auto rounded-t-2xl">
-        <SheetHeader className="!text-left space-y-1.5">
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
-            style={{
-              fontSize: "0.62rem",
-              color: "hsl(var(--burnt-sienna) / 0.78)",
-              letterSpacing: "0.18em",
-            }}
-          >
-            <Paperclip className="w-3 h-3" /> Send an attachment
-          </span>
-          <SheetTitle
-            className="font-display italic font-bold leading-tight"
-            style={{
-              fontSize: "clamp(1.35rem, 2vw + 0.4rem, 1.65rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.025em",
-            }}
-          >
-            Where from?
-          </SheetTitle>
-        </SheetHeader>
+        <SheetHero
+          eyebrow={<><Paperclip className="w-3 h-3" /> Send an attachment</>}
+          eyebrowClassName="inline-flex items-center gap-1.5"
+          title="Where from?"
+        />
         <div className="mt-4 grid grid-cols-3 gap-2">
           <button
             type="button"

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticError, hapticLight } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Briefcase } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -348,15 +348,18 @@ export const AppliedJobsTab = ({
         >
           {/* Drag-handle affordance */}
           <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-muted-foreground/25" aria-hidden />
-          <SheetHeader className="text-center">
-            <SheetTitle className="font-display text-ds-24 font-bold tracking-tight">
-              Withdraw application?
-            </SheetTitle>
-            <SheetDescription className="text-ds-11 text-muted-foreground leading-relaxed">
-              You won&apos;t be able to re-apply to{" "}
-              <span className="font-medium text-foreground">"{withdrawTarget?.jobTitle}"</span>.
-            </SheetDescription>
-          </SheetHeader>
+          <SheetHero
+            eyebrow="Withdraw"
+            title="Withdraw application?"
+            subtitle={
+              <>
+                You won&apos;t be able to re-apply to{" "}
+                <span className="font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+                  "{withdrawTarget?.jobTitle}"
+                </span>.
+              </>
+            }
+          />
 
           <fieldset className="mt-5 space-y-1.5" disabled={!!withdrawingAppId}>
             <legend

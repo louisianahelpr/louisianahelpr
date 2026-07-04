@@ -270,7 +270,7 @@ const ProfilePage = () => {
     const ext = file.name.split(".").pop();
     const path = `${user.id}/id-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("id-documents").upload(path, file, { upsert: true });
-    if (upErr) { toast.error("Upload failed: " + upErr.message); setIdUploading(false); return; }
+    if (upErr) { toast.error("Couldn't upload your ID — " + upErr.message); setIdUploading(false); return; }
     const { error: updErr } = await supabase.from("profiles").update({ id_document_url: path, idv_status: "pending" }).eq("user_id", user.id);
     if (updErr) toast.error("Got your ID, but couldn't save it to your profile. Try again?");
     else {
@@ -298,7 +298,7 @@ const ProfilePage = () => {
       .upload(path, file, { upsert: true });
 
     if (uploadError) {
-      toast.error("Upload failed: " + uploadError.message);
+      toast.error("Couldn't upload your photo — " + uploadError.message);
       setAvatarUploading(false);
       return;
     }
@@ -363,7 +363,7 @@ const ProfilePage = () => {
       await supabase.auth.signOut();
       navigate("/");
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete account");
+      toast.error(err.message || "Couldn't delete your account — try again?");
     } finally {
       setDeletingAccount(false);
     }

@@ -65,7 +65,7 @@ const MODES = {
 type Mode = keyof typeof MODES;
 
 const trustFacts = [
-  { icon: Lock, label: "Escrow-protected payment" },
+  { icon: Lock, label: "Payment held until work is done" },
   { icon: Shield, label: "ID-verified Helprs" },
   { icon: Check, label: "Free to post" },
 ];

@@ -55,7 +55,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
       // on the job once payment captures, so we don't update the DB here.
       window.location.href = data.url;
     } catch (err: any) {
-      toast.error(err.message || "Failed to start boost checkout");
+      toast.error(err.message || "Couldn't start your boost — try again?");
       setBoosting(false);
     }
   };

@@ -80,7 +80,7 @@ export const SaveHelperButton = ({
       // Revert on failure so the persisted state stays consistent.
       setSaved(previousSaved);
       onChange?.(previousSaved);
-      toast.error(previousSaved ? "Couldn't unsave Helpr" : "Couldn't save Helpr");
+      toast.error(previousSaved ? "Couldn't unsave Helpr — try again?" : "Couldn't save Helpr — try again?");
     } else if (nextSaved) {
       successToast("Saved to your Helprs", {
         action: { label: "View", onClick: () => navigate("/saved-helpers") },

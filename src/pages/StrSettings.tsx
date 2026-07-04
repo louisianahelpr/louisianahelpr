@@ -101,7 +101,7 @@ export default function StrSettings() {
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });
     },
     onError: (err: Error) => {
-      toast.error(err.message ?? "Failed to connect calendar");
+      toast.error(err.message ?? "Couldn't connect your calendar — try again?");
     },
   });
 
@@ -122,12 +122,12 @@ export default function StrSettings() {
         body: JSON.stringify({ connection_id: connectionId }),
       });
 
-      if (!res.ok) throw new Error(`Sync failed: ${res.status}`);
+      if (!res.ok) throw new Error(`Couldn't sync your calendar (${res.status}) — try again?`);
       const body = await res.json() as { results?: Array<{ jobs_created?: number; error?: string }> };
       const result = body.results?.[0];
 
       if (result?.error) {
-        toast.error(`Sync error: ${result.error}`);
+        toast.error(`Couldn't sync — ${result.error}`);
       } else {
         const n = result?.jobs_created ?? 0;
         toast.success(
@@ -137,7 +137,7 @@ export default function StrSettings() {
         );
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Sync failed");
+      toast.error(err instanceof Error ? err.message : "Couldn't sync your calendar — try again?");
     } finally {
       setSyncingId(null);
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });

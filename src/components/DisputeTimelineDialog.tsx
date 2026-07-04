@@ -173,7 +173,7 @@ export const DisputeTimelineDialog = ({
       onUpdated();
     } catch (err: unknown) {
       hapticError();
-      toast.error(err instanceof Error ? err.message : "Failed to upload evidence");
+      toast.error(err instanceof Error ? err.message : "Couldn't upload your evidence — try again?");
     } finally {
       setSubmitting(false);
     }

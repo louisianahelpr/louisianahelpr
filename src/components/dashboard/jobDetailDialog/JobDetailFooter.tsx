@@ -30,6 +30,14 @@ export const JobDetailFooter = ({
   viewerUserId, viewerAppPosition, viewerTier, onAskQuestion,
 }: JobDetailFooterProps) => {
   if (guest) {
+    // Mirror the authenticated footer's verb so the CTA names the real action:
+    // a bidding job invites a bid, an instant-book job a booking, else an apply.
+    const guestCtaLabel =
+      job.pricing_mode === "accept_bids"
+        ? "Sign up to bid"
+        : job.instant_book
+          ? "Sign up to book"
+          : "Sign up to apply";
     return (
       <Button
         size="lg"
@@ -53,7 +61,7 @@ export const JobDetailFooter = ({
           className="relative z-10 inline-flex items-center justify-center gap-2 min-w-0"
           style={{ color: "white", textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)" }}
         >
-          <span className="truncate">Sign up to apply</span>
+          <span className="truncate">{guestCtaLabel}</span>
           <ChevronRight
             className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
             strokeWidth={2.5}

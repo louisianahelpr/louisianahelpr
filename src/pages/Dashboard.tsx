@@ -31,8 +31,6 @@ const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
-const JitVerifySheet = lazy(() => import("@/components/dashboard/JitVerifySheet").then(m => ({ default: m.JitVerifySheet })));
-const IDVPromptDialog = lazy(() => import("@/components/IDVPromptDialog").then(m => ({ default: m.IDVPromptDialog })));
 const WelcomeModal = lazy(() => import("@/components/dashboard/WelcomeModal"));
 // Map column for the web-desktop two-pane (leaflet is heavy — lazy so the
 // phone/native feed never pays for it).
@@ -184,9 +182,7 @@ const Dashboard = () => {
     confirmApplyJobId, setConfirmApplyJobId, confirmApplyJob,
     applyMessage, setApplyMessage, applyLoading, applyFiles, setApplyFiles,
     bidPrice, setBidPrice,
-    jitVerifyOpen, pendingJobIdForVerify, setPendingJobIdForVerify,
-    idvPromptOpen, setIdvPromptOpen,
-    handleApplyRequest, handleApplyConfirm, handleJitVerifyProceed,
+    handleApplyRequest, handleApplyConfirm,
   } = useApplyFlow({ user, allJobs });
 
   const handleDismissRequest = useCallback((jobId: string) => {
@@ -500,43 +496,6 @@ const Dashboard = () => {
       {payoutSetupDialogOpen && (
         <Suspense fallback={null}>
           <PayoutSetupDialog open={payoutSetupDialogOpen} onOpenChange={setPayoutSetupDialogOpen} />
-        </Suspense>
-      )}
-
-      {/* JIT verify nudge — shown once on the helper's very first Apply tap.
-          Soft nudge only; "I'll do this later" still proceeds with the
-          application. The sheet is lazy-loaded because it's only needed once
-          per lifetime per account. */}
-      {jitVerifyOpen && (
-        <Suspense fallback={null}>
-          <JitVerifySheet
-            open={jitVerifyOpen}
-            onVerify={() => handleJitVerifyProceed(true)}
-            onLater={() => handleJitVerifyProceed(false)}
-          />
-        </Suspense>
-      )}
-
-      {/* Stripe Identity prompt — launched from the JIT nudge's "Verify" path.
-          handleStart invokes stripe-idv-start and redirects in-place. If the
-          user launches Stripe, the page navigates away. If they back out
-          ("Not now"), resume the application they originally tapped Apply on so
-          the nudge is never a dead-end. */}
-      {idvPromptOpen && (
-        <Suspense fallback={null}>
-          <IDVPromptDialog
-            open={idvPromptOpen}
-            onOpenChange={(v) => {
-              if (v) return;
-              setIdvPromptOpen(false);
-              // Dismissed without launching Stripe — proceed with the pending
-              // application (onLaunched navigates away, so it won't reach here).
-              const jobId = pendingJobIdForVerify;
-              setPendingJobIdForVerify(null);
-              if (jobId) setConfirmApplyJobId(jobId);
-            }}
-            reason="Helpr requires a quick ID + selfie check before your first application. This protects posters and keeps the platform safe."
-          />
         </Suspense>
       )}
 

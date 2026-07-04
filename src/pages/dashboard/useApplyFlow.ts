@@ -30,15 +30,6 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
   // Proposed bid price — only populated for accept_bids jobs.
   const [bidPrice, setBidPrice] = useState("");
-  // JIT verify gate — shown on first-ever Apply tap (has_applied_before=false).
-  // pendingJobIdForVerify holds the job they tapped Apply on so we can
-  // proceed once they dismiss the sheet.
-  const [jitVerifyOpen, setJitVerifyOpen] = useState(false);
-  const [pendingJobIdForVerify, setPendingJobIdForVerify] = useState<string | null>(null);
-  // Stripe Identity prompt — opened when the helper picks "Verify" on the JIT
-  // nudge. IDVPromptDialog.handleStart is what actually invokes stripe-idv-start
-  // and redirects; the nudge itself must never mark verification "submitted".
-  const [idvPromptOpen, setIdvPromptOpen] = useState(false);
   const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
 
   const handleApplyRequest = useCallback(async (jobId: string) => {
@@ -52,33 +43,9 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     const job = allJobs.find((j) => j.id === jobId);
     if (job && job.customer_id === user.id) { toast.error("You can't apply to your own post."); return; }
 
-    // JIT verify gate: on the very first Apply tap, check whether the user
-    // has applied before. If not AND they haven't been prompted yet, show the
-    // identity-nudge sheet before proceeding. This is a soft nudge — not a
-    // hard block. If the profile columns don't exist yet (PGRST202), skip
-    // the check and proceed normally.
-    try {
-      const { data: profileSnap, error: profileErr } = await supabase
-        .from("profiles")
-        .select("has_applied_before, id_verification_status")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!profileErr && profileSnap) {
-        const needsNudge =
-          !profileSnap.has_applied_before &&
-          profileSnap.id_verification_status === "unverified";
-        if (needsNudge) {
-          setPendingJobIdForVerify(jobId);
-          setJitVerifyOpen(true);
-          return;
-        }
-      }
-      // PGRST202 or any other error: fall through silently and proceed.
-    } catch {
-      // Non-fatal — fall through.
-    }
-
+    // Applying to a job never prompts identity verification — that gate belongs
+    // to posting a job and to a helper's first accepted job, not to browsing +
+    // applying. Go straight to the apply confirmation.
     setConfirmApplyJobId(jobId);
   }, [user, allJobs, navigate]);
 
@@ -323,44 +290,6 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     );
   }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, bidPrice, setBidPrice, applyMutation]);
 
-  // JIT verify handlers. Both paths (Verify + Later) flip has_applied_before
-  // so the nudge never shows again. "Later" records 'prompted' status and
-  // proceeds with the application. "Verify" opens IDVPromptDialog, which is the
-  // only thing that actually starts a Stripe Identity session — we must NOT
-  // record 'submitted' here (nothing has been submitted until Stripe returns).
-  const handleJitVerifyProceed = useCallback(async (goVerify: boolean) => {
-    setJitVerifyOpen(false);
-    const jobId = pendingJobIdForVerify;
-    // Update profile flags in the background — non-blocking. Fall back
-    // gracefully if the columns aren't in prod yet (PGRST202).
-    if (user) {
-      supabase
-        .from("profiles")
-        .update({
-          has_applied_before: true,
-          // Only the "Later" branch touches verification status. "Verify"
-          // leaves it untouched and lets stripe-idv-start (via the dialog)
-          // own the real status transition.
-          ...(goVerify ? {} : { id_verification_status: "prompted" }),
-        })
-        .eq("user_id", user.id)
-        .then(({ error }) => {
-          if (error && (error as { code?: string }).code !== "PGRST202") {
-            // Non-fatal — just observe.
-          }
-        });
-    }
-    if (goVerify) {
-      // Keep the tapped job pending — after the user returns from Stripe (or
-      // dismisses the prompt) we resume their application on that job.
-      setIdvPromptOpen(true);
-      return;
-    }
-    // "Later" — proceed with the application.
-    setPendingJobIdForVerify(null);
-    if (jobId) setConfirmApplyJobId(jobId);
-  }, [user, pendingJobIdForVerify]);
-
   return {
     confirmApplyJobId,
     setConfirmApplyJobId,
@@ -372,13 +301,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     setApplyFiles,
     bidPrice,
     setBidPrice,
-    jitVerifyOpen,
-    pendingJobIdForVerify,
-    setPendingJobIdForVerify,
-    idvPromptOpen,
-    setIdvPromptOpen,
     handleApplyRequest,
     handleApplyConfirm,
-    handleJitVerifyProceed,
   };
 }

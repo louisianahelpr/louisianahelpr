@@ -92,3 +92,6 @@ src/test/edge/*.gen.ts
 # test-account password. Kept local-only — sibling fixtures like
 # scripts/seed-cowork-test-jobs.sql that are safe-for-history stay tracked.
 scripts/seed_test_data.sql
+
+# Sim sweep scratch screenshot (audit captures, not source)
+sim-sweep.png

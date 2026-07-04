@@ -34,7 +34,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
       if (data?.url) window.location.href = data.url;
       else throw new Error("Couldn't start checkout. Please try again.");
     } catch (err: any) {
-      toast.error(err.message || "Failed to create tip");
+      toast.error(err.message || "Couldn't send your tip — try again?");
     } finally {
       setSending(false);
     }

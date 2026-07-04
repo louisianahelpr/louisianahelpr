@@ -38,7 +38,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
       toast.success("Membership updated!");
     } catch {
-      toast.error("Refresh failed");
+      toast.error("Couldn't refresh your membership — try again?");
     } finally {
       setRefreshing(false);
     }
@@ -97,7 +97,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
     } catch (err: any) {
-      toast.error(err.message || "Failed to open portal");
+      toast.error(err.message || "Couldn't open the billing portal — try again?");
     } finally {
       setLoadingPortal(false);
     }
@@ -113,7 +113,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
     } catch (err: any) {
-      toast.error(err.message || "Checkout failed");
+      toast.error(err.message || "Couldn't start checkout — try again?");
     } finally {
       setLoadingCheckout(null);
     }

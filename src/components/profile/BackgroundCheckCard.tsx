@@ -48,7 +48,7 @@ export function BackgroundCheckCard({ status }: { status: string }) {
       window.location.href = data.url;
     } catch (err) {
       report(err, { tags: { area: "background_check.start" } });
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Couldn't start your background check — try again?");
       hapticError();
     } finally {
       setLoading(false);

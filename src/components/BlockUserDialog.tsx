@@ -78,7 +78,7 @@ export function BlockUserDialog({
       }
       const result = await blockUser(user.id, blockedUserId, reason.trim() || undefined);
       if (!result.ok) {
-        toast.error(result.error || "Failed to block user");
+        toast.error(result.error || "Couldn't block this person — try again?");
         return;
       }
 

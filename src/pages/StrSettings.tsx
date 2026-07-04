@@ -122,7 +122,7 @@ export default function StrSettings() {
         body: JSON.stringify({ connection_id: connectionId }),
       });
 
-      if (!res.ok) throw new Error(`Sync failed: ${res.status}`);
+      if (!res.ok) throw new Error(`Couldn't sync your calendar (${res.status}) — try again?`);
       const body = await res.json() as { results?: Array<{ jobs_created?: number; error?: string }> };
       const result = body.results?.[0];
 

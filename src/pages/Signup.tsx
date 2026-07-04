@@ -302,7 +302,7 @@ const Signup = () => {
       navigate("/signup-pending", { state: { email } });
     } catch (err: any) {
       hapticError();
-      toast.error(err.message || "Signup failed");
+      toast.error(err.message || "Couldn't create your account — try again?");
     } finally {
       setLoading(false);
     }

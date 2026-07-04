@@ -44,7 +44,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
 
     if (error) {
       console.error("[HelperAvailability] failed to load availability:", error);
-      toast.error("Couldn't load your availability");
+      toast.error("Couldn't load your availability — try again?");
       setLoaded(true);
       return;
     }

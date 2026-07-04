@@ -63,6 +63,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["helperSkills", userId] });
+      toast.success("Skill added!");
       setPickerOpen(false);
     },
     onError: (err: Error) => {
@@ -88,6 +89,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["helperSkills", userId] });
+      toast.success("Skill removed.");
     },
     onError: (err) => {
       report(err, { tags: { source: "SkillsManager.remove" } });

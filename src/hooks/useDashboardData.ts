@@ -11,7 +11,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { TIER_PERKS, tierFeePercent } from "@/lib/subscriptionTiers";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
@@ -446,6 +446,18 @@ export function useDashboardData() {
     (jobsFetching && !jobsLoading && !isFetchingNextPage && allJobs.length > 0) ||
     (ctxFetching && !ctxLoading);
 
+  // Helper commission shown on the dashboard (ApplyEarningsBreakdown) is the
+  // VIEWER's own tiered rate, not the global platform_settings.helper_fee_percent
+  // — a Pro helper sees their real 10% (Elite 8%, Business 6%), matching what the
+  // payout resolver charges (`_shared/helperFees.ts`). Derived from the already-
+  // loaded profile, so no extra fetch; reverts an expired paid tier to free. Falls
+  // back to the ctx (global) fee, then the free rate, until the profile row is
+  // available — never 0%, which would over-promise earnings ("you keep 100%").
+  const viewerFeePercent = useMemo(
+    () => tierFeePercent(profile?.subscription_tier, profile?.subscription_expires_at),
+    [profile?.subscription_tier, profile?.subscription_expires_at],
+  );
+
   return {
     user,
     profile,
@@ -453,7 +465,7 @@ export function useDashboardData() {
     loading,
     helprTier: proData ?? null,
     allJobs,
-    platformFee: ctx?.platformFee ?? 0,
+    platformFee: profile ? viewerFeePercent : (ctx?.platformFee ?? TIER_PERKS.free.platformFeePercent),
     helperAvailability: ctx?.helperAvailability ?? [],
     recommendedJobs,
     refresh,

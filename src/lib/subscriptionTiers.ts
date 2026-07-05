@@ -120,3 +120,20 @@ export function toSubscriptionTier(raw: string | null | undefined): Subscription
   if (raw === "pro" || raw === "elite" || raw === "business") return raw;
   return "free";
 }
+
+/**
+ * Resolve the tiered platform-fee percent from a raw `subscription_tier` and its
+ * `subscription_expires_at`. An expired paid tier reverts to the free rate even
+ * if the `expire-subscriptions` cron hasn't nulled the column yet — this mirrors
+ * the edge payout resolver (`_shared/helperFees.ts` `getHelperFeePercent`) so the
+ * commission the UI SHOWS a helper matches the fee their payout is actually
+ * charged. The ladder is identical for poster and helper (free 12 / pro 10 /
+ * elite 8 / business 6). Case is normalized so "PRO" resolves like "pro".
+ */
+export function tierFeePercent(
+  rawTier: string | null | undefined,
+  expiresAt?: string | null,
+): number {
+  const expired = expiresAt ? new Date(expiresAt).getTime() < Date.now() : false;
+  return TIER_PERKS[toSubscriptionTier(expired ? "free" : (rawTier ?? "").toLowerCase())].platformFeePercent;
+}

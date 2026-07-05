@@ -35,7 +35,9 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
 
   const hasReviews = (job.posterReviewCount ?? 0) >= 3;
   const hasTier =
-    job.posterSubscriptionTier === "elite" || job.posterSubscriptionTier === "pro";
+    job.posterSubscriptionTier === "elite" ||
+    job.posterSubscriptionTier === "pro" ||
+    job.posterSubscriptionTier === "basic";
   const showTrustRow = hasTier || hasReviews || repeatJobs >= 2;
 
   return (
@@ -174,6 +176,15 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
             >
               <Sparkles className="w-3.5 h-3.5" strokeWidth={2.25} />
               Pro Poster
+            </span>
+          )}
+          {job.posterSubscriptionTier === "basic" && (
+            <span
+              className="inline-flex items-center gap-1 text-ds-10 font-sans font-semibold uppercase"
+              style={{ color: "hsl(var(--bark))", letterSpacing: "0.06em" }}
+            >
+              <Star className="w-3.5 h-3.5" strokeWidth={2.25} />
+              Basic Poster
             </span>
           )}
           {/* Poster-data trust signals via the reusable TrustRow component.

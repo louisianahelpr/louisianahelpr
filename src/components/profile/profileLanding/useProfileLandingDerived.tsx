@@ -61,7 +61,9 @@ export function useProfileLandingDerived({
       ? "Elite — top visibility"
       : tier === "pro"
         ? "Pro — upgrade to Elite"
-        : "Free — tap to upgrade";
+        : tier === "basic"
+          ? "Basic — upgrade to Pro"
+          : "Free — tap to upgrade";
 
   // ─── Portfolio gallery + completion meter ──────────────────────────
   // portfolio_urls is on profiles (text[]). Gallery shows up to 6 inline

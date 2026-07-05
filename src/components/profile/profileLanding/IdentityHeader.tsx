@@ -182,7 +182,21 @@ export function IdentityHeader({
                 {displayName || "Welcome back"}
               </h1>
               {/* Subscription tier badge — only shown when tier is not free.
-                  Pro = sienna, Elite = gold-warm. */}
+                  Basic = neutral bark (gold is reserved for the earned
+                  Pro/Elite prestige, per HelperBadges), Pro = sienna,
+                  Elite = gold-warm. */}
+              {tier === "basic" && (
+                <span
+                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+                  style={{
+                    color: "hsl(var(--bark))",
+                    background: "hsl(var(--bark) / 0.10)",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  <Star className="w-2.5 h-2.5" /> Basic
+                </span>
+              )}
               {tier === "pro" && (
                 <span
                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"

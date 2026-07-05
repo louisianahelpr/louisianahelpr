@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "./StatusPill";
+import { formatCategory } from "@/lib/format";
 import type { PifCredit } from "./types";
 
 // ─── Credit card ──────────────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ export function CreditCard({
           className="font-sans text-ds-11 font-semibold uppercase mb-2"
           style={{ color: "hsl(var(--pif-green-soft))", letterSpacing: "0.06em" }}
         >
-          For: {credit.category}
+          For: {formatCategory(credit.category).toUpperCase()}
         </p>
       )}
 

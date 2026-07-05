@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColorClasses } from "@/lib/statusColors";
+import { formatPrice, formatShortDate } from "@/lib/format";
 import type { Job } from "./types";
 
 interface EarningHistoryProps {
@@ -122,19 +123,19 @@ export function EarningHistory({
                       <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${jobStatusColorClasses(job.status)}`}>{jobStatusLabel(job.status)}</span>
                     </div>
                     <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                      {job.location} <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span> {new Date(job.date_needed).toLocaleDateString()}
+                      {job.location} <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span> {formatShortDate(job.date_needed)}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
                     {payout !== null && (
                       <p className="font-display italic font-bold tabular-nums" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}>
-                        ${payout.toFixed(2)}
+                        ${formatPrice(payout)}
                       </p>
                     )}
-                    {tipTotal > 0 && <p className="text-ds-11 text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${tipTotal.toFixed(2)}</p>}
+                    {tipTotal > 0 && <p className="text-ds-11 text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${formatPrice(tipTotal)}</p>}
                     {job.status === "in_progress" && (
                       <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                        ${job.budget} budget
+                          ${formatPrice(job.budget)} budget
                       </p>
                     )}
                   </div>

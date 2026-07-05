@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Camera } from "lucide-react";
+import { formatShortDate } from "@/lib/format";
 
 type PortfolioItem = {
   jobTitle: string;
@@ -71,7 +72,7 @@ export function HelperPortfolio({ helperId }: { helperId: string }) {
             <div className="p-2.5">
               <p className="text-ds-11 font-medium text-foreground truncate">{item.jobTitle}</p>
               <p className="text-muted-foreground text-ds-11">
-                {new Date(item.completedAt).toLocaleDateString()}
+                {formatShortDate(item.completedAt)}
               </p>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 import type { AppliedApp } from "../activityConstants";
 import type { NegotiationFields } from "./types";
+import { formatPrice } from "@/lib/format";
 
 interface CounterOfferBarProps {
   app: AppliedApp;
@@ -30,11 +31,11 @@ export function CounterOfferBar({ app, bidApp, localCounterStatus, counterRespon
       >
         <div className="min-w-0">
           <p className="text-ds-12 font-semibold" style={{ color: "hsl(var(--heritage-gold))" }}>
-            Poster countered: ${bidApp.counter_price}
+            Poster countered: ${formatPrice(bidApp.counter_price ?? 0)}
           </p>
           {bidApp.proposed_price != null && (
             <p className="text-ds-11 text-muted-foreground">
-              Your bid: ${bidApp.proposed_price} · Accept or decline?
+              Your bid: ${formatPrice(bidApp.proposed_price ?? 0)} · Accept or decline?
             </p>
           )}
         </div>
@@ -73,7 +74,7 @@ export function CounterOfferBar({ app, bidApp, localCounterStatus, counterRespon
       >
         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--sage))" }} />
         <p className="text-ds-12 font-semibold" style={{ color: "hsl(var(--sage))" }}>
-          You accepted the counter offer at ${bidApp.counter_price}
+          You accepted the counter offer at ${formatPrice(bidApp.counter_price ?? 0)}
         </p>
       </div>
     );

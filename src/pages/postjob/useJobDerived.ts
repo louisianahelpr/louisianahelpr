@@ -1,6 +1,7 @@
 import { categoryPricing } from "@/lib/pricingGuide";
 import { categories } from "@/components/postjob/DetailsSection";
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
+import { posterServiceFeeCents } from "@/lib/posterFees";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
 import type { PricingMode } from "@/components/postjob/BudgetSection";
@@ -56,10 +57,19 @@ export function useJobDerived(params: UseJobDerivedParams) {
 
   const budgetNum = parseFloat(budget) || 0;
   const urgentFeeNum = isUrgent ? (parseFloat(urgentFee) || 0) : 0;
-  const customerFeeAmount = budgetNum * ((customerFee ?? 10) / 100);
   // Charged once per account on the first funded job — mirror the edge
   // function so the shown total equals the Stripe charge (see state above).
   const onboardingFeeAmount = onboardingFeePaid ? 0 : onboardingFeeCents / 100;
+  // The poster service fee is their OWN tier percent (12/10/8/6), floored at
+  // Stripe's real processing cost on the whole transaction so a tiny job can
+  // never lose the platform money to fees. Compute in cents via the same
+  // authority the create-payment edge function uses (posterFees), so the shown
+  // total equals the Stripe charge. Default 12 = free tier (never-undercharge).
+  const budgetCents = Math.round(budgetNum * 100);
+  const urgentFeeCents = Math.round(urgentFeeNum * 100);
+  const onboardingCents = onboardingFeePaid ? 0 : onboardingFeeCents;
+  const customerFeeAmount =
+    posterServiceFeeCents(budgetCents, customerFee ?? 12, urgentFeeCents + onboardingCents) / 100;
   const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum + onboardingFeeAmount; // + Sales tax at checkout
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 

@@ -108,6 +108,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/stripeFees.ts";`,
   );
 
+  // Poster tier service fee + Stripe floor: `_shared/posterFees.ts` is pure
+  // TypeScript too (it only re-exports the helper ladder + the floor helper), so
+  // the generated file points at the REAL module — the poster fee the checkout
+  // charges stays under test rather than being mocked away.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/posterFees\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/posterFees.ts";`,
+  );
+
   return out;
 }
 

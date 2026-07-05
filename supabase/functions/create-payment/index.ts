@@ -5,6 +5,7 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { stripeProcessingCostCents } from "../_shared/stripeFees.ts";
+import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
@@ -100,20 +101,44 @@ serve(async (req) => {
         console.error(`[create-payment] platform_settings read failed — refusing to price escrow with default fees:`, settingsErr);
         throw new Error("Pricing configuration is temporarily unavailable — please try again in a moment");
       }
-      const customerFeePercent = settings.customer_fee_percent;
+      const globalCustomerFeePercent = settings.customer_fee_percent; // fallback only
       const helperFeePercent = settings.helper_fee_percent;
       const onboardingFeeCents = settings.onboarding_fee_cents; // NOT NULL DEFAULT 200 in schema
 
-      // Check if poster owes the one-time onboarding fee (first job post)
-      const { data: posterProfile } = await supabaseAdmin
+      // Check if the poster owes the one-time onboarding fee (first job post) and
+      // resolve their OWN subscription tier so the service fee follows the
+      // 12/10/8/6 ladder (a Business poster pays 6%, matching the helper side).
+      // The global customer_fee_percent is only a fallback if the row can't be read.
+      const { data: posterProfile, error: posterProfileErr } = await supabaseAdmin
         .from("profiles")
-        .select("onboarding_fee_paid")
+        .select("onboarding_fee_paid, subscription_tier, subscription_expires_at")
         .eq("user_id", user.id)
         .single();
-      const owesOnboardingFee = !posterProfile?.onboarding_fee_paid && onboardingFeeCents > 0;
+      if (posterProfileErr) {
+        // Don't fail the charge — fall back to the global fee percent — but make
+        // the failure findable, never silent. Critically, only bill the one-time
+        // onboarding fee when we can PROVE it's unpaid: a read failure leaves
+        // posterProfile null, so guarding on `!!posterProfile` prevents
+        // re-charging onboarding to someone who already paid it.
+        console.error(`[create-payment] poster profile read failed — using global fee fallback, skipping onboarding charge:`, posterProfileErr);
+      }
+      const owesOnboardingFee = !!posterProfile && !posterProfile.onboarding_fee_paid && onboardingFeeCents > 0;
+      const customerFeePercent = posterProfile
+        ? posterFeePercentForTier(posterProfile.subscription_tier, posterProfile.subscription_expires_at)
+        : globalCustomerFeePercent;
 
-      // Customer service fee (added as a line item — taxable, platform revenue)
-      const customerFeeAmount = (job.budget * customerFeePercent) / 100;
+      // Customer service fee (added as a line item — taxable, platform revenue).
+      // Floored at Stripe's real processing cost on the WHOLE transaction (budget
+      // + fee + urgent tip + onboarding) so a tiny job can never leave the
+      // platform underwater on Stripe fees.
+      const urgentFeeCents = Math.round((job.urgent_fee ?? 0) * 100);
+      const onboardingChargeCents = owesOnboardingFee ? onboardingFeeCents : 0;
+      const customerFeeCents = posterServiceFeeCents(
+        Math.round(job.budget * 100),
+        customerFeePercent,
+        urgentFeeCents + onboardingChargeCents,
+      );
+      const customerFeeAmount = customerFeeCents / 100;
       // Helper commission is deducted at payout time, not charged to poster
       const helperFeeAmount = (job.budget * helperFeePercent) / 100;
 
@@ -161,7 +186,7 @@ serve(async (req) => {
               description: `${customerFeePercent}% platform service fee`,
               tax_code: "txcd_00000000", // Non-taxable until LDR clarifies
             },
-            unit_amount: Math.round(customerFeeAmount * 100),
+            unit_amount: customerFeeCents,
           },
           quantity: 1,
         });

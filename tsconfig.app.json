@@ -39,6 +39,7 @@
     "supabase/functions/_shared/escrowTiming.ts",
     "supabase/functions/_shared/cancellationFee.ts",
     "supabase/functions/_shared/instantPayoutFee.ts",
-    "supabase/functions/_shared/stripeFees.ts"
+    "supabase/functions/_shared/stripeFees.ts",
+    "supabase/functions/_shared/posterFees.ts"
   ]
 }

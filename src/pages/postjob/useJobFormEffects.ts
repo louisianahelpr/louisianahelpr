@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { report } from "@/lib/errorLogger";
+import { posterFeePercentForTier } from "@/lib/posterFees";
 import { validateResult } from "@/lib/validateResult";
 import { jobRowSchema } from "@/lib/schemas";
 import type { JobRow } from "./postJobFormTypes";
@@ -165,14 +166,30 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         .eq("customer_id", user.id)
         .eq("status", "open")
         .then(({ count }) => { setOpenJobCount(count ?? 0); });
-      // Whether this poster still owes the one-time setup fee, so the
-      // checkout total matches what the edge function will actually charge.
+      // Whether this poster still owes the one-time setup fee, and their own
+      // subscription tier — so the shown service fee (12/10/8/6) and total match
+      // what the create-payment edge function will actually charge. The global
+      // customer_fee_percent fetched above stays as the fallback if no row.
       supabase
         .from("profiles")
-        .select("onboarding_fee_paid")
+        .select("onboarding_fee_paid, subscription_tier, subscription_expires_at")
         .eq("user_id", user.id)
         .single()
-        .then(({ data }) => { setOnboardingFeePaid(data?.onboarding_fee_paid ?? true); });
+        .then(({ data, error }) => {
+          if (error) {
+            report(error, {
+              severity: "error",
+              tags: { source: "usePostJobForm.posterTierFetch" },
+            });
+            return;
+          }
+          setOnboardingFeePaid(data?.onboarding_fee_paid ?? true);
+          if (data) {
+            const tierFee = posterFeePercentForTier(data.subscription_tier, data.subscription_expires_at);
+            setPlatformFee(tierFee);
+            setCustomerFee(tierFee);
+          }
+        });
     });
   }, []);
 

@@ -15,7 +15,7 @@ export const TermsContent = () => (
       items={[
         "You must be 18+. All accounts are reviewed before approval.",
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
-        "Posters pay a 10% service fee on top. Helprs keep 88–94% of the agreed price — the platform fee (6–12%) drops as their plan tier rises.",
+        `Posters pay a plan-based service fee on top (${TIER_PERKS.free.platformFeePercent}% free down to ${TIER_PERKS.business.platformFeePercent}% Business). Helprs keep 88–94% of the agreed price — the platform fee (${TIER_PERKS.business.platformFeePercent}–${TIER_PERKS.free.platformFeePercent}%) also drops as their plan tier rises.`,
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
         "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
@@ -85,9 +85,9 @@ export const TermsContent = () => (
         title="Split fee model"
         body={
           <>
-            <p><strong className="text-foreground">Poster service fee:</strong> 10% added at checkout.</p>
+            <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite, {TIER_PERKS.business.platformFeePercent}% Business (minimum covers card processing on small jobs).</p>
             <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.pro.platformFeePercent}% Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% Helpr Elite, {TIER_PERKS.business.platformFeePercent}% Business.</p>
-            <p><strong className="text-foreground">Total platform take:</strong> the 10% poster service fee plus the Helpr's plan-based fee.</p>
+            <p><strong className="text-foreground">Total platform take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> $5 for priority placement.</p>
           </>
         }

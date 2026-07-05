@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { TIER_PERKS } from "./subscriptionTiers";
+import { posterFeePercentForTier } from "./posterFees";
 
 // moneyFigures.parity — guards the user-facing money figures that are NOT yet
 // consolidated into a single importable config: the poster "service fee" %, and
@@ -11,40 +12,51 @@ import { TIER_PERKS } from "./subscriptionTiers";
 //
 // Companion guards:
 //   - helperFees.parity.test.ts     — helper-side platform commission ladder
+//   - posterFees.parity.test.ts     — poster tier service-fee ladder + Stripe floor (UI↔edge)
 //   - escrowTiming.parity.test.ts   — escrow auto-release schedule (48h/24h/72h)
 //   - productPrices.parity.test.ts  — fixed boost / background-check prices
 
-describe("poster service fee (%) — single source of truth", () => {
-  // SOURCE OF TRUTH: platform_settings.customer_fee_percent (DB, admin-editable
-  // via AdminSettings.tsx). Both the client and the edge function fall back to
-  // the SAME literal when the row is missing; those fallbacks must never drift.
+describe("poster service fee (%) — tier-derived, not a flat rate", () => {
+  // SOURCE OF TRUTH: the poster's OWN subscription tier, resolved by
+  // posterFeePercentForTier (src/lib/posterFees.ts), mirroring the same 12/10/8/6
+  // ladder as the helper commission. The edge authority is
+  // supabase/functions/_shared/posterFees.ts and the two are guarded against
+  // drift by posterFees.parity.test.ts.
   //
-  //   src/pages/postjob/useJobFormEffects.ts:148  → `row.customer_fee_percent ?? 10`
-  //   supabase/functions/create-payment/index.ts:95 → `settings?.customer_fee_percent ?? 10`
+  // platform_settings.customer_fee_percent (DB, admin-editable via
+  // AdminSettings.tsx) is now only a FALLBACK, used when a poster's profile /
+  // tier can't be read:
+  //   src/pages/postjob/useJobFormEffects.ts     → `row.customer_fee_percent ?? 10` (fallback)
+  //   supabase/functions/create-payment/index.ts → global percent only when posterProfile is null
   //
-  // and the figure is restated verbatim as "10%" in user copy:
-  //   src/pages/legal/TermsSection.tsx:18,88,90
-  //   src/components/profile/LegalTab.tsx:132
-  //   src/pages/helpCenter/helpCenterContent.ts:151 ("Posters pay a 10% service fee")
-  //
-  // TODO(config): promote this to an exported const (e.g. DEFAULT_CUSTOMER_FEE_PERCENT
-  // in a shared module the way helperFees.ts holds the helper ladder) so this
-  // becomes an import-equality guard instead of a documented literal.
-  const CANONICAL_SERVICE_FEE_PERCENT = 10;
+  // User copy that previously restated a flat "10%" must now describe the tiered
+  // model (fixed in #107):
+  //   src/pages/legal/TermsSection.tsx
+  //   src/components/profile/LegalTab.tsx
+  //   src/pages/helpCenter/helpCenterContent.ts
 
-  it("encodes the advertised 10% poster service fee", () => {
-    expect(CANONICAL_SERVICE_FEE_PERCENT).toBe(10);
+  it("resolves the poster fee from their tier via the shared ladder", () => {
+    expect(posterFeePercentForTier("free")).toBe(12);
+    expect(posterFeePercentForTier("pro")).toBe(10);
+    expect(posterFeePercentForTier("elite")).toBe(8);
+    expect(posterFeePercentForTier("business")).toBe(6);
   });
 
-  it("service fee is distinct from every helper-side tier commission", () => {
-    // The 10% poster fee is a SEPARATE lever from the helper platform fee
-    // (free 12 / pro 10 / elite 8 / business 6). It only coincidentally equals
-    // the pro rate; this asserts the concepts stay independently sourced so a
-    // future change to one tier can't be mistaken for the service fee.
+  it("defaults an unknown/missing tier to the free (never-undercharge) rate", () => {
+    expect(posterFeePercentForTier(null)).toBe(12);
+    expect(posterFeePercentForTier(undefined)).toBe(12);
+    expect(posterFeePercentForTier("nonsense")).toBe(12);
+  });
+
+  it("uses the SAME ladder as the helper-side tier commission", () => {
+    // Poster service fee and helper platform fee now share one 12/10/8/6 ladder
+    // (a Business account pays 6% on both sides). Assert the source ladder so a
+    // future change to one tier is caught here too.
     expect(TIER_PERKS.free.platformFeePercent).toBe(12);
     expect(TIER_PERKS.pro.platformFeePercent).toBe(10);
     expect(TIER_PERKS.elite.platformFeePercent).toBe(8);
     expect(TIER_PERKS.business.platformFeePercent).toBe(6);
+    expect(posterFeePercentForTier("business")).toBe(TIER_PERKS.business.platformFeePercent);
   });
 });
 

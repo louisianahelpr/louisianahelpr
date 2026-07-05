@@ -217,7 +217,9 @@ describe("create-payment edge function", () => {
       scenario.reads.platform_settings = {
         rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 200 }],
       };
-      scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true }] };
+      // Poster fee now derives from the poster's OWN tier, not the global fallback.
+      // Pro tier = 10%, so the $10 service-fee assertion below still holds.
+      scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true, subscription_tier: "pro" }] };
       stripeMock.checkout.sessions.create.mockResolvedValue({
         id: "cs_new",
         url: "https://checkout.stripe.test/cs_new",
@@ -237,7 +239,7 @@ describe("create-payment edge function", () => {
       expect(args.automatic_tax).toEqual({ enabled: true });
       // job budget line item is $100 → 10000 cents
       expect(args.line_items[0].price_data.unit_amount).toBe(10000);
-      // 10% customer fee → a $10 service-fee line item (1000 cents)
+      // Pro-tier 10% customer fee → a $10 service-fee line item (1000 cents)
       const feeItem = args.line_items.find(
         (li: { price_data: { product_data: { name: string } } }) =>
           li.price_data.product_data.name === "Service Fee",

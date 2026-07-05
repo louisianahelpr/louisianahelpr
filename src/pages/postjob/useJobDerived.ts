@@ -72,7 +72,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
   const budgetComplete =
     pricingMode === "accept_bids"
       ? true
-      : !!(budget && parseFloat(budget) >= 5);
+      : !!(budget && parseFloat(budget) >= 10);
 
   // Smart Pricing Guidance — live budget range from real completed jobs
   // in this category (+ parish), with a graceful fallback to the static

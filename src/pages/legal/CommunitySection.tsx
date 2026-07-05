@@ -28,10 +28,10 @@ export const CommunityContent = () => (
     >
       <PolicyRowItem
         icon={DollarSign}
-        title="Job budget limits — $5 minimum, $5,000 maximum"
+        title="Job budget limits — $10 minimum, $5,000 maximum"
         body={
           <>
-            <p><strong className="text-foreground">Minimum: $5.</strong> Jobs below $5 cannot be posted.</p>
+            <p><strong className="text-foreground">Minimum: $10.</strong> Jobs below $10 cannot be posted.</p>
             <p><strong className="text-foreground">Maximum: $5,000.</strong> For projects exceeding $5,000, split into multiple jobs or contact support.</p>
           </>
         }

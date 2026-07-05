@@ -97,7 +97,7 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
             <Icon className="w-3.5 h-3.5" strokeWidth={2.25} />
           </span>
           {/* Two-line clamp so long item labels ("Job budget limits —
-              $5 minimum, $5,000 maximum") read in full instead of
+              $10 minimum, $5,000 maximum") read in full instead of
               truncating to "$5,00…". */}
           <span className="text-ds-13 font-semibold text-foreground line-clamp-2 leading-snug">
             {isSearching ? highlight(title, query) : title}

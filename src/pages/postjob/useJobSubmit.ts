@@ -158,7 +158,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // special_requirements is optional — no validation needed
     // In accept_bids mode, budget is optional — helpers set their own price.
     if (pricingMode !== "accept_bids") {
-      if (!budget || parseFloat(budget) < 5) { toast.error("Minimum budget is $5"); scrollToField("budget"); return; }
+      if (!budget || parseFloat(budget) < 10) { toast.error("Minimum budget is $10"); scrollToField("budget"); return; }
       if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000."); scrollToField("budget"); return; }
     }
     if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent bonus must be at least $5"); scrollToField("custom-urgent-fee"); return; }

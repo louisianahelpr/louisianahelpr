@@ -35,20 +35,22 @@ export async function handleTransferCreated(
     .maybeSingle();
 
   if (paidHelper) {
-    const amountDollars = (transfer.amount / 100).toFixed(2);
-    await supabase.from("notifications").insert({
-      user_id: paidHelper.user_id,
-      title: "💵 Payment sent!",
-      message: `$${amountDollars} has been transferred to your payout account. It should arrive in 1-2 business days.`,
-      type: "payment",
-      link: "/earnings",
-    });
-
     if (transferJobId) {
+      // Flip the job to "released". For scheduled payouts this is a backup
+      // confirmation (process-scheduled-payouts already flipped it); for
+      // admin dispute releases it is the authoritative flip.
       await supabase.from("jobs").update({ payment_status: "released" }).eq("id", transferJobId);
       logStep("Job payment status set to released", { jobId: transferJobId });
     }
 
-    logStep("Helper notified of transfer", { userId: paidHelper.user_id, amount: amountDollars });
+    // Do NOT send a "Payment sent!" notification here. Every transfer-initiating
+    // code path already notifies the helper:
+    //   - process-scheduled-payouts → "💰 Payout sent!"
+    //   - admin_release_dispute      → "Dispute resolved — payment released!"
+    //   - tip checkout               → "💰 You received a tip!" (via checkout.session.completed)
+    //   - void-cancelled-payments   → "Cancellation fee received"
+    // Sending here was causing helpers to receive two notifications for every
+    // payout and every tip/cancellation-fee transfer.
+    logStep("Transfer confirmed for helper", { userId: paidHelper.user_id, amount: (transfer.amount / 100).toFixed(2) });
   }
 }

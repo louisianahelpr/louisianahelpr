@@ -74,7 +74,10 @@ serve(async (req) => {
         job.helper_fee_percent ?? 10,
       );
       const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
-      let helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee);
+      // Urgent fee is collected from the poster ONCE → split across the roster
+      // like the budget, else each of N helpers is paid the full urgent bonus
+      // against a single fee collected and the platform over-pays N×.
+      let helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
 
       // ── Step 1: Get helper's connected Stripe account & onboarding fee status ──
       const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin

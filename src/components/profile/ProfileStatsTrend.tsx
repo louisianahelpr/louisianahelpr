@@ -46,7 +46,8 @@ const helperTakeHome = (j: JobRow): number => {
   const perHelper = j.budget / helpers;
   const commissionPercent = j.helper_fee_percent ?? 10;
   const commission = (perHelper * commissionPercent) / 100;
-  return perHelper - commission + netUrgentFeeDollars(j.urgent_fee);
+  // Urgent fee splits across the roster like the budget (#114).
+  return perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers;
 };
 
 export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {

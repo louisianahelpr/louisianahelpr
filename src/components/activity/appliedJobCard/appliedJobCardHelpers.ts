@@ -31,7 +31,8 @@ export function deriveAppliedJobCardState(
   const perHelper = job.budget / helpers;
   const commissionPercent = job.helper_fee_percent ?? 10;
   const commission = (perHelper * commissionPercent) / 100;
-  const payout = perHelper - commission + netUrgentFeeDollars(job.urgent_fee);
+  // Urgent fee splits across the roster like the budget (#114).
+  const payout = perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers;
 
   const isMinimalCard = isRejected || isCancelled;
 

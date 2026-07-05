@@ -230,4 +230,27 @@ describe("process-scheduled-payouts edge function", () => {
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
   });
+
+  describe("group-job urgent split (#114)", () => {
+    it("splits the urgent fee across the roster like the budget", async () => {
+      // The poster is charged the urgent fee ONCE, bundled into escrow, so a
+      // group job must divide it across helpers — else N helpers each collect
+      // the full urgent bonus and the platform over-pays N×.
+      // budget 300 / 3 helpers = $100 each; 10% commission = $10; urgent $30
+      // nets its own 2.9% bundled Stripe cost ($30 − $0.87 = $29.13) then splits
+      // 3 ways = $9.71. Payout = 100 − 10 + 9.71 = $99.71 → 9971¢.
+      // (Fee already paid so no $2 onboarding deduction clouds the urgent math.)
+      seedPayableJob(scenario, {
+        job: { budget: 300, urgent_fee: 30, is_group_job: true, helpers_needed: 3 },
+        profile: { onboarding_fee_paid: true },
+      });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      expect(res.status).toBe(200);
+      const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
+      expect(transferArg.amount).toBe(9971);
+    });
+  });
 });

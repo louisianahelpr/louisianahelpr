@@ -371,7 +371,10 @@ serve(async (req) => {
         job.helper_fee_percent ?? 10,
       );
       const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
-      const helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee);
+      // Urgent fee is collected from the poster ONCE, so on a group job it is
+      // split across the roster like the budget — else N helpers each get the
+      // full urgent bonus against a single fee collected, over-paying N×.
+      const helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
       if (isPoster && job.helper_id && !helperDone) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
@@ -758,7 +761,10 @@ serve(async (req) => {
       );
       const feeAmt = Math.round(Number(job.budget) * disputeFeePercent) / 100 || (job.platform_fee_amount || 0);
       const dpHelpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-      const helperPayout = (job.budget / dpHelpersCount) - (feeAmt / dpHelpersCount) + netUrgentFeeDollars(job.urgent_fee);
+      // Urgent fee collected from the poster ONCE → split across the roster like
+      // budget and fee, else each of N helpers gets the full urgent bonus and
+      // the platform over-pays N× what it collected.
+      const helperPayout = (job.budget / dpHelpersCount) - (feeAmt / dpHelpersCount) + netUrgentFeeDollars(job.urgent_fee) / dpHelpersCount;
       if (job.helper_id && helperPayout > 0) {
         // Throws on transfer/ledger failure → outer catch returns 500 and the
         // job stays disputed (never silently flipped to released below).

@@ -142,7 +142,8 @@ export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[])
     const perHelper = Number(j.budget || 0) / helpers;
     const commissionPercent = Number(j.helper_fee_percent ?? 10);
     const commission = (perHelper * commissionPercent) / 100;
-    return s + (perHelper - commission + netUrgentFeeDollars(Number(j.urgent_fee ?? 0)));
+    // Urgent fee splits across the roster like the budget (#114).
+    return s + (perHelper - commission + netUrgentFeeDollars(Number(j.urgent_fee ?? 0)) / helpers);
   }, 0);
   const totalTips = tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").reduce((s, t) => s + Number(t.amount), 0);
   const avgJobValue = capturedJobs.length > 0 ? totalRevenue / capturedJobs.length : 0;
@@ -214,7 +215,8 @@ export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[])
     const perHelper = (j.budget || 0) / helpers;
     const commissionPercent = j.helper_fee_percent ?? 10;
     const commission = (perHelper * commissionPercent) / 100;
-    return s + (perHelper - commission + netUrgentFeeDollars(j.urgent_fee));
+    // Urgent fee splits across the roster like the budget (#114).
+    return s + (perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers);
   }, 0);
 
   // Subscription pie data

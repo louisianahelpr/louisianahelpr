@@ -110,7 +110,8 @@ export function EarningHistory({
             const perHelper = job.budget / helpers;
             const commissionPercent = job.helper_fee_percent ?? 10;
             const commission = (perHelper * commissionPercent) / 100;
-            const payout = job.status === "completed" ? perHelper - commission + netUrgentFeeDollars(job.urgent_fee) : null;
+            // Urgent fee splits across the roster like the budget (#114).
+            const payout = job.status === "completed" ? perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers : null;
             const jobTips = tips.filter((t) => t.job_id === job.id);
             const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
             return (

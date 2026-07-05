@@ -98,7 +98,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     const perHelper = j.budget / helpers;
     const commissionPercent = j.helper_fee_percent ?? 10;
     const commission = (perHelper * commissionPercent) / 100;
-    return sum + (perHelper - commission + netUrgentFeeDollars(j.urgent_fee));
+    // The urgent fee is collected from the poster ONCE and split across the
+    // roster like the budget (#114) — so a group helper's share is the netted
+    // urgent divided by the same helper count, keeping shown == transferred.
+    return sum + (perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers);
   }, 0);
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
 
@@ -249,7 +252,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               const perHelper = j.budget / helpers;
               const commissionPercent = j.helper_fee_percent ?? 10;
               const commission = (perHelper * commissionPercent) / 100;
-              const netPayout = perHelper - commission + netUrgentFeeDollars(j.urgent_fee);
+              // Urgent fee splits across the roster like the budget (#114).
+              const netPayout = perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers;
               return {
                 // prefer helper_completed_at so the month bucket matches when
                 // the job was actually done, not when it was posted

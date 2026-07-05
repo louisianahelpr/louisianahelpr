@@ -47,7 +47,8 @@ function helperNet(job: Pick<Job, "budget" | "helpers_needed" | "is_group_job" |
   const perHelper = job.budget / helpers;
   const commissionPercent = job.helper_fee_percent ?? 10;
   const commission = (perHelper * commissionPercent) / 100;
-  return perHelper - commission + netUrgentFeeDollars(job.urgent_fee);
+  // Urgent fee splits across the roster like the budget (#114).
+  return perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers;
 }
 
 /**

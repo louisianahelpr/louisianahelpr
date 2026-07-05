@@ -17,9 +17,10 @@ export function ApplyEarningsBreakdown({
   const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
   const perHelper = confirmApplyJob.budget / helpers;
   const commission = perHelper * platformFee / 100;
-  // Urgent bonus nets its own bundled Stripe processing cost so the "+ urgent
-  // bonus" line and the Take-home total both equal what the edge transfers.
-  const netUrgent = netUrgentFeeDollars(confirmApplyJob.urgent_fee);
+  // Urgent bonus nets its own bundled Stripe processing cost, then splits across
+  // the roster like the budget (#114), so the "+ urgent bonus" line and the
+  // Take-home total both equal what the edge transfers to each helper.
+  const netUrgent = netUrgentFeeDollars(confirmApplyJob.urgent_fee) / helpers;
   const payout = perHelper - commission + netUrgent;
   return (
     <div
@@ -51,7 +52,7 @@ export function ApplyEarningsBreakdown({
         </div>
         {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
           <div className="flex justify-between">
-            <span className="font-serif italic" style={{ color: "hsl(var(--burnt-sienna))" }}>+ urgent bonus</span>
+            <span className="font-serif italic" style={{ color: "hsl(var(--burnt-sienna))" }}>+ urgent bonus{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
             <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>+${netUrgent.toFixed(2)}</span>
           </div>
         )}

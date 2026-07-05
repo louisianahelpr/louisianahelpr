@@ -3,39 +3,33 @@ import type { WebhookContext } from "../context.ts";
 
 export async function handlePaymentIntentSucceeded(
   event: Stripe.Event,
-  { stripe, supabase, logStep }: WebhookContext,
+  { supabase, logStep }: WebhookContext,
 ): Promise<void> {
   const pi = event.data.object as Stripe.PaymentIntent;
   logStep("Payment intent succeeded", { id: pi.id, amount: pi.amount });
 
-  // Record the confirmed sales tax amount on the job
+  // Record the confirmed sales tax amount on the job.
+  // Stripe Tax writes the final collected tax on the PaymentIntent at
+  // amount_details.tax.total_tax_amount (in cents). Charge metadata has no
+  // such field, so the previous charge.retrieve path never populated this
+  // column and sales_tax_amount was always left as 0. The parishtax admin
+  // view and 1099 reconciliation both depend on this being accurate.
   const { data: taxJob } = await supabase
     .from("jobs")
-    .select("id, customer_id, title, sales_tax_amount")
+    .select("id, sales_tax_amount")
     .eq("stripe_payment_intent_id", pi.id)
     .maybeSingle();
 
   if (taxJob) {
-    // Extract actual tax from Stripe if available via latest_charge
-    let confirmedTax = taxJob.sales_tax_amount || 0;
-    try {
-      const chargeId = typeof pi.latest_charge === "string" ? pi.latest_charge : (pi.latest_charge as any)?.id;
-      if (chargeId) {
-        const charge = await stripe.charges.retrieve(chargeId, { expand: ["balance_transaction"] });
-        // If Stripe Tax was used, the tax is embedded in the charge metadata or line items
-        const stripeTax = (charge.metadata as any)?.sales_tax_amount;
-        if (stripeTax) {
-          confirmedTax = parseFloat(stripeTax);
-        }
-      }
-    } catch (e) {
-      logStep("Could not retrieve charge tax details", { error: String(e) });
-    }
+    const taxAmountCents = (pi.amount_details as any)?.tax?.total_tax_amount ?? 0;
+    const confirmedTax = taxAmountCents > 0
+      ? taxAmountCents / 100
+      : (taxJob.sales_tax_amount || 0);
 
     await supabase.from("jobs").update({
       sales_tax_amount: confirmedTax,
     }).eq("id", taxJob.id);
 
-    logStep("Sales tax recorded on job", { jobId: taxJob.id, tax: confirmedTax });
+    logStep("Sales tax recorded on job", { jobId: taxJob.id, tax: confirmedTax, fromStripe: taxAmountCents > 0 });
   }
 }

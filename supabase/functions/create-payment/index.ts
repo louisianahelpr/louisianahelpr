@@ -783,21 +783,105 @@ serve(async (req) => {
         try {
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
           if (pi.status === "succeeded") {
+            // The poster WON the dispute, so they get the budget + service fee
+            // back — but Stripe's 2.9%+$0.30 on the original capture is NOT
+            // returned on a refund, so a full refund would leave the platform
+            // out-of-pocket by that processing cost. Withhold ONLY that
+            // unavoidable Stripe fee (never the service fee — the poster won the
+            // dispute), so the platform never loses money to fees here.
+            const capturedCents = pi.amount_received ?? pi.amount;
+
+            // A disputed job's escrow was always captured, so a non-positive or
+            // NaN captured amount here is bad data — NEVER silently flip the job
+            // to refunded on it. Abort loudly (awaited alert + throw) so the job
+            // stays disputed for manual reconciliation instead of the poster
+            // being marked refunded for $0 with no ledger trace.
+            if (!Number.isFinite(capturedCents) || (capturedCents as number) <= 0) {
+              await postSlackOpsAlert({
+                kind: "custom",
+                severity: "warning",
+                title: "Dispute refund aborted — invalid captured amount",
+                message:
+                  "admin_refund_dispute could not compute a refund: the PaymentIntent's captured amount was missing or non-positive. No refund issued; job left disputed for manual review.",
+                fields: {
+                  job_id: jobId,
+                  payment_intent: paymentIntentId,
+                  captured_cents: String(capturedCents),
+                },
+              });
+              throw new Error(
+                `admin_refund_dispute: invalid captured amount (${capturedCents}) for job ${jobId} — aborting, no refund issued.`,
+              );
+            }
+
+            const nonRefundableCents = stripeProcessingCostCents(capturedCents);
+            const refundAmount = capturedCents - nonRefundableCents;
             // A retried/double-clicked call within Stripe's ~24h key lifetime
             // returns the original refund. After key expiry, a repeat attempt
             // is rejected by Stripe with charge_already_refunded — still loud.
-            const refund = await stripe.refunds.create(
-              { payment_intent: paymentIntentId },
-              { idempotencyKey: `refund-dispute-${jobId}` },
-            );
-            await recordRefund(supabaseAdmin, {
-              refund,
-              jobId,
-              customerId: job.customer_id,
-              paymentIntentId,
-              source: "admin_refund_dispute",
-              initiatedByUserId: user.id,
+            // Skip entirely if withholding consumes the whole capture (Stripe
+            // rejects a $0 refund); the job still flips to refunded below.
+            if (refundAmount > 0) {
+              const refund = await stripe.refunds.create(
+                { payment_intent: paymentIntentId, amount: refundAmount },
+                { idempotencyKey: `refund-dispute-${jobId}` },
+              );
+              await recordRefund(supabaseAdmin, {
+                refund,
+                jobId,
+                customerId: job.customer_id,
+                paymentIntentId,
+                source: "admin_refund_dispute",
+                isPartial: nonRefundableCents > 0,
+                reason: "dispute refund (minus non-refundable Stripe processing fee)",
+                initiatedByUserId: user.id,
+              });
+            } else {
+              // Legitimate tiny capture fully consumed by the flat Stripe fee:
+              // the poster genuinely gets $0 back and the job still flips to
+              // refunded. No ledger row is written, so AWAIT the alert (a
+              // fire-and-forget can be killed when the request returns) — it is
+              // this money-relevant event's only durable trace.
+              console.error(
+                `[create-payment] admin_refund_dispute: refundAmount<=0 for job ${jobId} ` +
+                  `(capturedCents=${capturedCents}, nonRefundableCents=${nonRefundableCents}) ` +
+                  `— poster refunded $0.`,
+              );
+              await postSlackOpsAlert({
+                kind: "custom",
+                severity: "info",
+                title: "Dispute resolved with $0 refund to poster",
+                message:
+                  "A dispute was resolved in the poster's favor but the Stripe processing fee consumed the whole capture, so nothing was returned. Verify this was intended.",
+                fields: {
+                  job_id: jobId,
+                  payment_intent: paymentIntentId,
+                  captured_cents: capturedCents,
+                  non_refundable_cents: nonRefundableCents,
+                  refund_amount: refundAmount,
+                },
+              });
+            }
+          } else {
+            // A disputed job's escrow was captured, so a PaymentIntent that is
+            // not "succeeded" here is an anomaly — don't silently mark the job
+            // refunded (poster would get nothing with no signal). Abort loudly
+            // (awaited alert + throw) and leave it disputed for manual review.
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "warning",
+              title: "Dispute refund aborted — PaymentIntent not succeeded",
+              message:
+                `admin_refund_dispute found the PaymentIntent in status "${pi.status}" (expected "succeeded"). No refund issued; job left disputed for manual review.`,
+              fields: {
+                job_id: jobId,
+                payment_intent: paymentIntentId,
+                pi_status: pi.status,
+              },
             });
+            throw new Error(
+              `admin_refund_dispute: PaymentIntent ${paymentIntentId} status is "${pi.status}", not "succeeded" — aborting, no refund for job ${jobId}.`,
+            );
           }
         } catch (e) {
           console.error("[create-payment] admin_refund_dispute — refund error:", e);

@@ -869,7 +869,7 @@ describe("create-payment edge function", () => {
       );
     });
 
-    it("admin_refund_dispute refunds the captured payment and cancels the job", async () => {
+    it("admin_refund_dispute refunds the poster minus the non-refundable Stripe fee and marks the job refunded", async () => {
       seedAuth(scenario, ADMIN);
       scenario.rpc.has_role = true;
       scenario.reads.jobs = {
@@ -887,8 +887,12 @@ describe("create-payment edge function", () => {
       stripeMock.paymentIntents.retrieve.mockResolvedValue({
         id: "pi_r",
         status: "succeeded",
+        amount: 10000,
+        amount_received: 10000,
       });
-      stripeMock.refunds.create.mockResolvedValue({ id: "re_r" });
+      // Stripe echoes the requested refund amount — mirror that so the ledger
+      // assertion below reflects the real recorded value.
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_r", amount: 9680 });
       const fn = await load();
       const res = await fn.fetch(
         fn.request({
@@ -897,13 +901,193 @@ describe("create-payment edge function", () => {
         }),
       );
       expect(res.status).toBe(200);
-      expect(stripeMock.refunds.create).toHaveBeenCalled();
+      // Poster won → gets budget + service fee back, but Stripe's 2.9%+$0.30 on
+      // the $100 capture (320c) is withheld so the platform never eats the fee.
+      expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+        { payment_intent: "pi_r", amount: 9680 },
+        { idempotencyKey: "refund-dispute-job-1" },
+      );
       const jobUpdate = scenario.writes.find(
         (w) => w.table === "jobs" && w.op === "update",
       );
       expect((jobUpdate?.payload as Record<string, unknown>).payment_status).toBe(
         "refunded",
       );
+    });
+
+    it("admin_refund_dispute falls back to pi.amount when amount_received is absent", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            helper_id: HELPER.id,
+            status: "disputed",
+            title: "Disputed job",
+            stripe_payment_intent_id: "pi_rf",
+          },
+        ],
+      };
+      // amount_received null (e.g. a non-immediate-capture PI) → the code uses
+      // pi.amount, so the withheld-fee math must be identical.
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_rf",
+        status: "succeeded",
+        amount: 10000,
+        amount_received: null,
+      });
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_rf", amount: 9680 });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: { action: "admin_refund_dispute", jobId: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+        { payment_intent: "pi_rf", amount: 9680 },
+        { idempotencyKey: "refund-dispute-job-1" },
+      );
+    });
+
+    it("admin_refund_dispute skips the refund but ALERTS ops when the Stripe fee consumes the whole capture", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            helper_id: HELPER.id,
+            status: "disputed",
+            title: "Tiny disputed job",
+            stripe_payment_intent_id: "pi_r0",
+          },
+        ],
+      };
+      // A 20c capture is fully consumed by the 30c flat Stripe fee → $0 refund.
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_r0",
+        status: "succeeded",
+        amount: 20,
+        amount_received: 20,
+      });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: { action: "admin_refund_dispute", jobId: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(
+        slackAlerts.some(
+          (a) =>
+            (a as { title?: string }).title ===
+            "Dispute resolved with $0 refund to poster",
+        ),
+      ).toBe(true);
+      const jobUpdate = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update",
+      );
+      expect((jobUpdate?.payload as Record<string, unknown>).payment_status).toBe(
+        "refunded",
+      );
+    });
+
+    it("admin_refund_dispute ABORTS (no refund, no status flip) when the captured amount is invalid", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            helper_id: HELPER.id,
+            status: "disputed",
+            title: "Bad-data disputed job",
+            stripe_payment_intent_id: "pi_bad",
+          },
+        ],
+      };
+      // Degenerate/missing captured amount → the platform must NOT silently mark
+      // the job refunded for $0. It aborts loudly and leaves it disputed.
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_bad",
+        status: "succeeded",
+        amount: undefined,
+        amount_received: null,
+      });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: { action: "admin_refund_dispute", jobId: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(500);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      // Never flips the job to refunded on bad data.
+      const jobUpdate = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update",
+      );
+      expect(jobUpdate).toBeUndefined();
+      expect(
+        slackAlerts.some(
+          (a) =>
+            (a as { title?: string }).title ===
+            "Dispute refund aborted — invalid captured amount",
+        ),
+      ).toBe(true);
+    });
+
+    it("admin_refund_dispute ABORTS when the PaymentIntent is not succeeded", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            helper_id: HELPER.id,
+            status: "disputed",
+            title: "Uncaptured disputed job",
+            stripe_payment_intent_id: "pi_np",
+          },
+        ],
+      };
+      // A disputed job whose PI is not succeeded is an anomaly — abort, don't
+      // silently mark refunded.
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_np",
+        status: "requires_capture",
+        amount: 10000,
+        amount_received: 0,
+      });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: { action: "admin_refund_dispute", jobId: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(500);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      const jobUpdate = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update",
+      );
+      expect(jobUpdate).toBeUndefined();
+      expect(
+        slackAlerts.some(
+          (a) =>
+            (a as { title?: string }).title ===
+            "Dispute refund aborted — PaymentIntent not succeeded",
+        ),
+      ).toBe(true);
     });
 
     it("admin_refund_general issues a partial refund and leaves the job state intact", async () => {

@@ -73,7 +73,7 @@ For glyph badges (used in editorial empty states + dialog headers):
 
 Reference implementations: `ReportDialog.tsx`, `SavedSearches.tsx`,
 `PermissionRationaleDialog.tsx`, the empty states in
-`Activity.tsx` / `SavedHelpers.tsx` / `EarningsTab.tsx`.
+`Activity.tsx` / `SavedHelpersTab.tsx` / `EarningsTab.tsx`.
 
 ## Dialog rules
 
@@ -232,7 +232,8 @@ Cross-session protocol when authorizing prod-touching work:
 - `src/components/dashboard/` — Dashboard-only chrome
   (`JobFilters`, `JobDetailDialog`, `JobCard`)
 - `src/components/profile/` — Profile tab components
-  (`SubscriptionTab`, `EarningsTab`, `PaymentTab`)
+  (`SubscriptionTab`, `EarningsTab`, and others); `PaymentTab` is at
+  `src/components/PaymentTab.tsx` (outside the `profile/` subdirectory)
 - `src/lib/` — pure helpers, all should be Vitest-tested
 - `src/hooks/` — React hooks, should also be tested
 - `src/integrations/supabase/` — generated types + client

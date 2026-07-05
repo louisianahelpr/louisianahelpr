@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { formatPrice } from "@/lib/format";
+import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { toast } from "@/hooks/use-toast";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
@@ -97,7 +98,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     const perHelper = j.budget / helpers;
     const commissionPercent = j.helper_fee_percent ?? 10;
     const commission = (perHelper * commissionPercent) / 100;
-    return sum + (perHelper - commission + (j.urgent_fee ?? 0));
+    return sum + (perHelper - commission + netUrgentFeeDollars(j.urgent_fee));
   }, 0);
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
 
@@ -248,7 +249,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               const perHelper = j.budget / helpers;
               const commissionPercent = j.helper_fee_percent ?? 10;
               const commission = (perHelper * commissionPercent) / 100;
-              const netPayout = perHelper - commission + (j.urgent_fee ?? 0);
+              const netPayout = perHelper - commission + netUrgentFeeDollars(j.urgent_fee);
               return {
                 // prefer helper_completed_at so the month bucket matches when
                 // the job was actually done, not when it was posted

@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
+import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -73,7 +74,7 @@ serve(async (req) => {
         job.helper_fee_percent ?? 10,
       );
       const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
-      let helperPayout = perHelperBudget - helperCommission + (job.urgent_fee ?? 0);
+      let helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee);
 
       // ── Step 1: Get helper's connected Stripe account & onboarding fee status ──
       const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin

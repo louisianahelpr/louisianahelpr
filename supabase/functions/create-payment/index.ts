@@ -4,7 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
-import { stripeProcessingCostCents } from "../_shared/stripeFees.ts";
+import { stripeProcessingCostCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -371,7 +371,7 @@ serve(async (req) => {
         job.helper_fee_percent ?? 10,
       );
       const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
-      const helperPayout = perHelperBudget - helperCommission + (job.urgent_fee ?? 0);
+      const helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee);
       if (isPoster && job.helper_id && !helperDone) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
@@ -758,7 +758,7 @@ serve(async (req) => {
       );
       const feeAmt = Math.round(Number(job.budget) * disputeFeePercent) / 100 || (job.platform_fee_amount || 0);
       const dpHelpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-      const helperPayout = (job.budget / dpHelpersCount) - (feeAmt / dpHelpersCount) + (job.urgent_fee ?? 0);
+      const helperPayout = (job.budget / dpHelpersCount) - (feeAmt / dpHelpersCount) + netUrgentFeeDollars(job.urgent_fee);
       if (job.helper_id && helperPayout > 0) {
         // Throws on transfer/ledger failure → outer catch returns 500 and the
         // job stays disputed (never silently flipped to released below).

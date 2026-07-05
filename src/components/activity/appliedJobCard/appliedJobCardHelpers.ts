@@ -1,4 +1,5 @@
 import { deriveEscrowStepFromJob } from "@/components/payment/EscrowProgressBar";
+import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import type { AppliedApp, Job } from "../activityConstants";
 
 /**
@@ -30,7 +31,7 @@ export function deriveAppliedJobCardState(
   const perHelper = job.budget / helpers;
   const commissionPercent = job.helper_fee_percent ?? 10;
   const commission = (perHelper * commissionPercent) / 100;
-  const payout = perHelper - commission + (job.urgent_fee ?? 0);
+  const payout = perHelper - commission + netUrgentFeeDollars(job.urgent_fee);
 
   const isMinimalCard = isRejected || isCancelled;
 

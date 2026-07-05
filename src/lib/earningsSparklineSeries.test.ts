@@ -24,14 +24,15 @@ describe("buildEarningsSparklineSeries", () => {
     const jobs = [
       // ~5 weeks ago (oldest bucket) take-home 90
       { status: "completed", budget: 100, platform_fee_amount: 10, poster_completed_at: ago(35) },
-      // this week (newest bucket) take-home 200 + urgent 20
+      // this week (newest bucket) take-home 200 + net urgent 19.42
+      // ($20 urgent − its own 2.9% bundled Stripe cost = 20 − 0.58).
       { status: "completed", budget: 200, urgent_fee: 20, poster_completed_at: ago(1) },
     ];
     const series = buildEarningsSparklineSeries(jobs, 6);
     expect(series).not.toBeNull();
     expect(series).toHaveLength(6);
     expect(series![0]).toBe(90);
-    expect(series![5]).toBe(220);
+    expect(series![5]).toBeCloseTo(219.42, 2);
   });
 
   it("falls back to updated_at when poster_completed_at is missing", () => {

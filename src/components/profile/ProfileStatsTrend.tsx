@@ -8,6 +8,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -45,7 +46,7 @@ const helperTakeHome = (j: JobRow): number => {
   const perHelper = j.budget / helpers;
   const commissionPercent = j.helper_fee_percent ?? 10;
   const commission = (perHelper * commissionPercent) / 100;
-  return perHelper - commission + (j.urgent_fee ?? 0);
+  return perHelper - commission + netUrgentFeeDollars(j.urgent_fee);
 };
 
 export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {

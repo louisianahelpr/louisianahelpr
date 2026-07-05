@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -399,14 +400,14 @@ const ProfilePage = () => {
     .toUpperCase()
     .slice(0, 2);
   // Mirror the authoritative payout math in the release-payout edge
-  // function: a helper nets budget + urgent_fee − platform_fee. The 10%
-  // sales tax is a customer-side charge on the budget and is never deducted
-  // from the helper, so it must not appear here. (A prior version subtracted
-  // a phantom 8.5%-of-fee "tax" that exists nowhere in the fee model and
-  // under-reported take-home pay.)
+  // function: a helper nets budget + net urgent_fee − platform_fee. The
+  // urgent bonus nets its own bundled Stripe processing cost so what's shown
+  // equals what the edge transfers. The 10% sales tax is a customer-side
+  // charge on the budget and is never deducted from the helper, so it must
+  // not appear here.
   const totalEarnings = earningsJobs.filter((j) => j.status === "completed").reduce((sum, j) => {
     const fee = j.platform_fee_amount || 0;
-    return sum + (j.budget - fee + (j.urgent_fee ?? 0));
+    return sum + (j.budget - fee + netUrgentFeeDollars(j.urgent_fee));
   }, 0);
 
   // Last-6-weeks take-home series for the header sparkline teaser. Returns

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -99,10 +100,14 @@ Deno.serve(async (req) => {
       const avgNewRating = newReviews > 0
         ? (reviewsRes.data!.reduce((s, r) => s + r.rating, 0) / newReviews).toFixed(1)
         : "N/A";
+      // Canonical take-home: budget − platform fee + net urgent bonus. The
+      // 10% sales tax on the commission is paid by the platform, never the
+      // helper, so it must NOT be deducted here (a prior version subtracted a
+      // phantom 8.5%-of-fee "tax" that under-reported pay versus every other
+      // surface and the actual Stripe transfer).
       const weeklyEarnings = (earningsRes.data || []).reduce((sum, j) => {
         const fee = j.platform_fee_amount || 0;
-        const feeTax = fee * 0.085;
-        return sum + (j.budget - fee - feeTax + (j.urgent_fee ?? 0));
+        return sum + (j.budget - fee + netUrgentFeeDollars(j.urgent_fee));
       }, 0);
       const applicationsSubmitted = appsRes.data?.length || 0;
 

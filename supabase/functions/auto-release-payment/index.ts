@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
+import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,7 +126,7 @@ serve(async (req) => {
       // the tier again at payout time. Keep this preview consistent with it.
       const helperFeePercent = await getHelperFeePercent(supabaseAdmin, job.helper_id, 10);
       const helperCommission = job.budget * helperFeePercent / 100;
-      const helperPayout = job.budget - helperCommission + (job.urgent_fee ?? 0);
+      const helperPayout = job.budget - helperCommission + netUrgentFeeDollars(job.urgent_fee);
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,

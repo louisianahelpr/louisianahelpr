@@ -1,4 +1,5 @@
 import type { EnrichedJob } from "@/components/dashboard/types";
+import { netUrgentFeeDollars } from "@/lib/stripeFees";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home card shown at the top of
@@ -16,7 +17,10 @@ export function ApplyEarningsBreakdown({
   const helpers = confirmApplyJob.is_group_job && confirmApplyJob.helpers_needed ? confirmApplyJob.helpers_needed : 1;
   const perHelper = confirmApplyJob.budget / helpers;
   const commission = perHelper * platformFee / 100;
-  const payout = perHelper - commission + (confirmApplyJob.urgent_fee ?? 0);
+  // Urgent bonus nets its own bundled Stripe processing cost so the "+ urgent
+  // bonus" line and the Take-home total both equal what the edge transfers.
+  const netUrgent = netUrgentFeeDollars(confirmApplyJob.urgent_fee);
+  const payout = perHelper - commission + netUrgent;
   return (
     <div
       className="rounded-ds-md p-3"
@@ -48,7 +52,7 @@ export function ApplyEarningsBreakdown({
         {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
           <div className="flex justify-between">
             <span className="font-serif italic" style={{ color: "hsl(var(--burnt-sienna))" }}>+ urgent bonus</span>
-            <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>+${Number(confirmApplyJob.urgent_fee).toFixed(2)}</span>
+            <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>+${netUrgent.toFixed(2)}</span>
           </div>
         )}
         <div

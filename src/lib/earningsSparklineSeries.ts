@@ -1,7 +1,9 @@
 // Derives a small weekly earnings series for the Profile-landing sparkline
 // teaser from the SAME completed-jobs data the Earnings tab already loads —
 // no new query, no charting lib. Take-home per job mirrors the Earnings/
-// Profile math: budget − platform fee + urgent fee.
+// Profile math: budget − platform fee + net urgent fee.
+
+import { netUrgentFeeDollars } from "@/lib/stripeFees";
 
 interface JobLike {
   status: string;
@@ -36,7 +38,7 @@ export function buildEarningsSparklineSeries(
     if (Number.isNaN(t)) continue;
     const ageWeeks = Math.floor((now - t) / WEEK_MS);
     if (ageWeeks < 0 || ageWeeks >= weeks) continue;
-    const takeHome = j.budget - (j.platform_fee_amount || 0) + (j.urgent_fee ?? 0);
+    const takeHome = j.budget - (j.platform_fee_amount || 0) + netUrgentFeeDollars(j.urgent_fee);
     if (takeHome <= 0) continue;
     // Newest bucket sits at the end of the array (index weeks-1).
     buckets[weeks - 1 - ageWeeks] += takeHome;

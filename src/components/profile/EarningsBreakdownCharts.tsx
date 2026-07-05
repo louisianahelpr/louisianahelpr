@@ -16,6 +16,7 @@
 // stays compact for brand-new helpers.
 
 import { useMemo } from "react";
+import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend,
@@ -60,7 +61,7 @@ const helperTakeHome = (job: Job): number => {
   const perHelper = job.budget / helpers;
   const commissionPercent = job.helper_fee_percent ?? 10;
   const commission = (perHelper * commissionPercent) / 100;
-  return perHelper - commission + (job.urgent_fee ?? 0);
+  return perHelper - commission + netUrgentFeeDollars(job.urgent_fee);
 };
 
 // Tail accessor for the per-job timestamp — prefers helper completion

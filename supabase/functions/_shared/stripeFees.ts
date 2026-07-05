@@ -30,3 +30,36 @@ export function stripeProcessingCostCents(amountCents: number): number {
   if (!(amountCents > 0)) return 0;
   return Math.round(amountCents * STRIPE_PCT) + STRIPE_FLAT_CENTS;
 }
+
+/**
+ * Stripe's PERCENTAGE-only cost (2.9%, no flat), in CENTS, for a line item that
+ * rides BUNDLED inside a larger charge rather than as its own standalone charge.
+ * Stripe's $0.30 flat is levied ONCE per transaction and is already borne by the
+ * primary legs (job budget + service fee), so a bundled add-on like the urgent
+ * fee only carries the marginal percentage — charging the flat again would
+ * double-count a cost Stripe never levied. (A standalone charge such as a tip
+ * uses `stripeProcessingCostCents`, which DOES include the flat.) Returns 0 for
+ * a non-positive amount.
+ */
+export function stripePercentCostCents(amountCents: number): number {
+  if (!(amountCents > 0)) return 0;
+  return Math.round(amountCents * STRIPE_PCT);
+}
+
+/**
+ * The urgent fee a helper actually nets after the urgent fee covers its OWN
+ * marginal Stripe processing cost. The urgent fee is charged to the poster
+ * bundled into the escrow checkout and passes through to the helper; this nets
+ * out only the bundled marginal cost (2.9%, NOT the once-per-transaction flat)
+ * so the platform never subsidizes card processing on the urgent fee while the
+ * helper still keeps the fair remainder. Input/output in DOLLARS so it slots
+ * directly into the `budget − commission + urgentFee` take-home formula used
+ * across payout and every earnings display. Returns 0 for a non-positive/absent
+ * fee. This is the ONE definition every payout path and earnings surface must
+ * call, so the amount a helper is SHOWN always equals the amount transferred.
+ */
+export function netUrgentFeeDollars(urgentFeeDollars: number | null | undefined): number {
+  const cents = Math.round((urgentFeeDollars ?? 0) * 100);
+  if (!(cents > 0)) return 0;
+  return (cents - stripePercentCostCents(cents)) / 100;
+}

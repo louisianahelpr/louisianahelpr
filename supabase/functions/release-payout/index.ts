@@ -28,6 +28,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
+import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -249,7 +250,7 @@ serve(async (req) => {
     job.helper_id,
     fallbackFeePercent,
   );
-  const grossDollars = Number(job.budget) + Number(job.urgent_fee ?? 0);
+  const grossDollars = Number(job.budget) + netUrgentFeeDollars(job.urgent_fee);
   const platformFeeDollars =
     Math.round(Number(job.budget) * helperFeePercent) / 100;
   const payoutDollars = grossDollars - platformFeeDollars;

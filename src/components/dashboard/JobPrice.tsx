@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import { DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatPrice } from "@/lib/format";
+import { netUrgentFeeDollars } from "@/lib/stripeFees";
 
 export interface JobPriceProps {
   /** Gross posted budget (the customer's total). */
@@ -52,8 +53,10 @@ export interface JobPriceProps {
  *
  * The net math is the project's canonical formula, identical to JobCard /
  * JobDetailDialog: per-helper share, minus the platform commission, plus
- * the customer-paid urgent bonus. (The 10% sales tax on the commission is
- * paid by the platform, not the helpr — so it is NOT deducted here.)
+ * the urgent bonus AFTER it covers its own bundled Stripe processing cost
+ * (`netUrgentFeeDollars`) — so the "You earn" figure equals what the edge
+ * actually transfers. (The 10% sales tax on the commission is paid by the
+ * platform, not the helpr — so it is NOT deducted here.)
  */
 export function computeNet(
   budget: number,
@@ -64,8 +67,13 @@ export function computeNet(
   const helpers = helpersNeeded > 0 ? helpersNeeded : 1;
   const perHelperBudget = budget / helpers;
   const commission = perHelperBudget * (effectiveFee / 100);
-  const netEarnings = perHelperBudget - commission + urgentFee;
-  return { helpers, perHelperBudget, commission, netEarnings };
+  // The urgent bonus is charged to the poster bundled into escrow, so it
+  // passes to the helper minus only its marginal 2.9% (never the once-per-
+  // transaction 30¢ flat). Netting it here keeps every term of the breakdown
+  // reconciling to the shown take-home.
+  const netUrgent = netUrgentFeeDollars(urgentFee);
+  const netEarnings = perHelperBudget - commission + netUrgent;
+  return { helpers, perHelperBudget, commission, netEarnings, netUrgent };
 }
 
 export function JobPrice({
@@ -83,7 +91,7 @@ export function JobPrice({
   const navigate = useNavigate();
   const panelId = useId();
 
-  const { helpers, netEarnings } = computeNet(
+  const { helpers, netEarnings, netUrgent } = computeNet(
     budget,
     effectiveFee,
     urgentFee,
@@ -193,7 +201,7 @@ export function JobPrice({
           >
             Budget ${budget.toFixed(0)} − {effectiveFee}% fee
             {helpers > 1 ? ` ÷ ${helpers}` : ""}
-            {urgentFee > 0 ? ` + $${urgentFee.toFixed(0)}` : ""}
+            {netUrgent > 0 ? ` + $${formatPrice(netUrgent)}` : ""}
           </span>
         )}
       </button>
@@ -263,7 +271,7 @@ export function JobPrice({
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           ${formatPrice(budget)} budget{helpers > 1 ? ` ÷ ${helpers}` : ""} − {effectiveFee}% fee
-          {urgentFee > 0 ? ` + $${formatPrice(urgentFee)} urgent` : ""}
+          {netUrgent > 0 ? ` + $${formatPrice(netUrgent)} urgent` : ""}
         </p>
       )}
       {/* Only pitch the Pro fee reduction when the fee actually shown is above

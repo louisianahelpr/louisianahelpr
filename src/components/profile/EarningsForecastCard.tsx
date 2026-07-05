@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { Info, Sparkles, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,7 +47,7 @@ function helperNet(job: Pick<Job, "budget" | "helpers_needed" | "is_group_job" |
   const perHelper = job.budget / helpers;
   const commissionPercent = job.helper_fee_percent ?? 10;
   const commission = (perHelper * commissionPercent) / 100;
-  return perHelper - commission + (job.urgent_fee ?? 0);
+  return perHelper - commission + netUrgentFeeDollars(job.urgent_fee);
 }
 
 /**

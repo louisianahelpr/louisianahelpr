@@ -1,4 +1,5 @@
 import { TIER_COLORS } from "../adminAnalyticsConstants";
+import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { SUB_PRICE, type Job, type Profile, type Tip } from "./types";
 
 // Pure metric computation for the admin analytics dashboard. Extracted VERBATIM
@@ -141,7 +142,7 @@ export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[])
     const perHelper = Number(j.budget || 0) / helpers;
     const commissionPercent = Number(j.helper_fee_percent ?? 10);
     const commission = (perHelper * commissionPercent) / 100;
-    return s + (perHelper - commission + Number(j.urgent_fee ?? 0));
+    return s + (perHelper - commission + netUrgentFeeDollars(Number(j.urgent_fee ?? 0)));
   }, 0);
   const totalTips = tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").reduce((s, t) => s + Number(t.amount), 0);
   const avgJobValue = capturedJobs.length > 0 ? totalRevenue / capturedJobs.length : 0;
@@ -213,7 +214,7 @@ export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[])
     const perHelper = (j.budget || 0) / helpers;
     const commissionPercent = j.helper_fee_percent ?? 10;
     const commission = (perHelper * commissionPercent) / 100;
-    return s + (perHelper - commission + (j.urgent_fee ?? 0));
+    return s + (perHelper - commission + netUrgentFeeDollars(j.urgent_fee));
   }, 0);
 
   // Subscription pie data

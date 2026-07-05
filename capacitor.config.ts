@@ -120,7 +120,12 @@ const config: CapacitorConfig = {
       style: 'LIGHT',
       resizeOnFullScreen: true,
     },
-    SocialLogin: { providers: { google: true, apple: true } }
+    // Explicitly disable unused providers so the plugin's configure-dependencies.js
+    // script marks them compileOnly (affects Android Gradle + CocoaPods iOS builds).
+    // The plugin's SPM Package.swift unconditionally includes facebook-ios-sdk —
+    // a separate upstream fix is needed there, but setting false here documents
+    // intent and is correct for the Android and CocoaPods paths.
+    SocialLogin: { providers: { google: true, apple: true, facebook: false, twitter: false } }
   }
 };
 

@@ -178,10 +178,37 @@ export default function PayItForward() {
         const rows = unwrap(
           await supabase
             .from("pif_credits" as never)
-            .select("*, donor:donor_id(full_name)")
+            .select("*")
             .or(orClause)
             .order("created_at", { ascending: false }),
         ) as PifCredit[];
+
+        // Attach the donor's display name for the "from {name}" subline. We can't
+        // embed it via PostgREST — pif_credits.donor_id FKs to auth.users (no
+        // full_name, auth schema isn't embeddable), which 400s the whole request
+        // and silently hides every gift from its recipient. So resolve names in a
+        // separate, non-load-bearing profiles lookup keyed by user_id = donor_id.
+        // A failure here leaves the cosmetic name null (CreditCard shows "A
+        // neighbor") but never drops the gifts themselves.
+        const donorIds = [...new Set(rows.map((r) => r.donor_id).filter(Boolean))];
+        if (donorIds.length > 0) {
+          try {
+            const donors = unwrap(
+              await supabase
+                .from("profiles")
+                .select("user_id, full_name")
+                .in("user_id", donorIds),
+            ) as Array<{ user_id: string; full_name: string | null }>;
+            const nameById = new Map(donors.map((d) => [d.user_id, d.full_name]));
+            return rows.map((r) => ({
+              ...r,
+              donor: { full_name: nameById.get(r.donor_id) ?? null },
+            }));
+          } catch {
+            // Name lookup is cosmetic — never let it hide the gifts.
+            return rows;
+          }
+        }
         return rows;
       } catch (e: unknown) {
         if (e instanceof Error && e.message.includes("PGRST202")) return [];

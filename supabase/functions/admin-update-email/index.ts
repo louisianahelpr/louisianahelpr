@@ -68,6 +68,11 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Capture the current email BEFORE any update so we can notify the old
+    // address and write an accurate audit log entry.
+    const { data: targetUserData } = await supabaseAdmin.auth.admin.getUserById(userId)
+    const oldEmail: string | null = targetUserData?.user?.email ?? null
+
     const buildFreedEmail = (sourceEmail: string, deniedUserId: string) => {
       const [localPart, domainPart] = sourceEmail.split('@')
       const safeLocal = (localPart || 'user').replace(/[^a-zA-Z0-9._%+-]/g, '').slice(0, 32) || 'user'
@@ -220,7 +225,7 @@ Deno.serve(async (req) => {
       console.error('Profile email update failed:', profileErr)
     }
 
-    // Notify the user
+    // Notify the user (in-app)
     await supabaseAdmin.from('notifications').insert({
       user_id: userId,
       title: '📧 Email address updated',
@@ -229,7 +234,48 @@ Deno.serve(async (req) => {
       link: '/profile',
     })
 
-    console.log(`Admin ${adminId} updated email for user ${userId} to ${normalizedEmail}`)
+    // Write admin audit log
+    await supabaseAdmin.from('admin_audit_log').insert({
+      admin_id: adminId,
+      action: 'update_email',
+      target_id: userId,
+      target_type: 'user',
+      details: { old_email: oldEmail, new_email: normalizedEmail },
+    }).catch((e: Error) => console.error('[admin-update-email] audit log failed:', e.message))
+
+    // Notify the OLD address by email so the account owner knows their login
+    // identity changed — they may no longer receive messages at the new address.
+    if (oldEmail && oldEmail !== normalizedEmail) {
+      const resendApiKey = Deno.env.get('RESEND_API_KEY')
+      if (resendApiKey) {
+        const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
+<body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif">
+<div style="padding:32px 28px;max-width:480px">
+  <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
+  <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">Your email address was changed</h1>
+  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">An administrator updated the email address on your Helpr account from <strong>${oldEmail}</strong> to <strong>${normalizedEmail}</strong>.</p>
+  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">Use <strong>${normalizedEmail}</strong> to log in going forward. If you did not authorise this change, contact us immediately at <a href="mailto:admin@louisianahelpr.com" style="color:hsl(158,45%,42%)">admin@louisianahelpr.com</a>.</p>
+  <p style="font-size:13px;color:hsl(160,6%,50%);line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">Questions? Contact us at admin@louisianahelpr.com.</p>
+</div>
+</body></html>`
+        const text = `Your Helpr account email was changed from ${oldEmail} to ${normalizedEmail} by an administrator. Use ${normalizedEmail} to log in going forward. If you did not authorise this change, contact admin@louisianahelpr.com immediately.`
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'Helpr <noreply@louisianahelpr.com>',
+            to: [oldEmail],
+            subject: 'Your Helpr email address was changed',
+            html,
+            text,
+          }),
+        }).then(async (r) => {
+          if (!r.ok) console.error('[admin-update-email] old-address notification failed:', await r.text())
+        }).catch((e: Error) => console.error('[admin-update-email] old-address notification error:', e.message))
+      }
+    }
+
+    console.log(`Admin ${adminId} updated email for user ${userId}: ${oldEmail ?? 'unknown'} → ${normalizedEmail}`)
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

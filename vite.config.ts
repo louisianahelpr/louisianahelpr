@@ -327,14 +327,15 @@ export default defineConfig(({ mode }) => ({
             return "react-vendor";
           }
           if (id.includes("lucide-react")) return "lucide";
-          // NOTE: Do NOT manually chunk recharts/d3. When we did, Rollup
-          // hoisted clsx (a recharts dep that's also used app-wide) into the
-          // "charts" chunk, which then forced the main entry to statically
-          // import 102KB of recharts on EVERY page — including the landing
-          // page where no chart is rendered. Letting recharts ride along
-          // with the dynamically imported AdminAnalytics chunk keeps it off
-          // the critical path entirely.
-          if (id.includes("framer-motion")) return "motion";
+          // NOTE: Do NOT manually chunk recharts/d3 OR framer-motion. The
+          // same Rolldown behaviour that hoisted clsx into "charts" also
+          // hoisted react/jsx-runtime (a CJS interop virtual module) into
+          // the "motion" named chunk, which caused the entry to statically
+          // import 45 kB gzip of framer-motion on every page even though
+          // every importer (PageTransition, ScrollToTop, MobileNav,
+          // DesktopSidebarNav) is already React.lazy'd. Letting
+          // framer-motion ride with those lazy-loaded consumers keeps it
+          // off the critical path entirely — same fix as recharts.
           if (id.includes("@stripe") || id.includes("stripe-js")) return "stripe";
           if (id.includes("@supabase")) return "supabase";
           // react-day-picker is only imported by <Calendar> which is always

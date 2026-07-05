@@ -422,6 +422,41 @@ describe("release-payout edge function", () => {
       expect((await json(res)).error).toMatch(/transfers\.create failed/i);
     });
 
+    it("rolls back the onboarding-fee claim when the transfer fails so the retry re-collects it", async () => {
+      seedPayableJob(scenario, { budget: 100 });
+      scenario.reads.profiles = {
+        rows: [
+          {
+            stripe_account_id: "acct_helper",
+            full_name: "New Helper",
+            onboarding_fee_paid: false,
+          },
+        ],
+      };
+      // The atomic claim UPDATE returns 1 row → this payout owned the deduction.
+      scenario.writeSelectRows.profiles = [{ user_id: "helper-1" }];
+      stripeMock.transfers.create.mockRejectedValue(
+        Object.assign(new Error("insufficient funds"), { type: "StripeError" }),
+      );
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(502);
+      const profileWrites = scenario.writes.filter(
+        (w) => w.table === "profiles" && w.op === "update",
+      );
+      // First write claims the fee (true); the last un-claims it (false) so a
+      // retry sees onboarding_fee_paid=false and deducts the $2 again.
+      expect((profileWrites[0].payload as Record<string, unknown>).onboarding_fee_paid).toBe(true);
+      const last = profileWrites[profileWrites.length - 1].payload as Record<string, unknown>;
+      expect(last.onboarding_fee_paid).toBe(false);
+      expect(last.onboarding_fee_charged_at).toBeNull();
+    });
+
     it("returns 500 when the transfer succeeded but the ledger write failed", async () => {
       seedPayableJob(scenario);
       // Transfer goes through, but the payout_transfers INSERT errors.

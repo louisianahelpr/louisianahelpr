@@ -90,45 +90,17 @@ serve(async (req) => {
         continue;
       }
 
-      // First-payout onboarding fee — race-safe atomic claim BEFORE deducting.
-      // The atomic UPDATE only flips the flag if it was still false at write
-      // time, so two concurrent paths (e.g. checkout webhook + this cron)
-      // can't both think they're collecting the fee. We deduct only if the
-      // claim succeeds; otherwise the helper keeps their full payout.
+      // NOTE: the one-time onboarding-fee claim is deliberately deferred to
+      // just before the transfer (Step 5 below), NOT here. Every viability
+      // check between this point and the transfer (`continue`s for no Connect
+      // account, missing/failed payment intent, ledger read error, an
+      // already-existing transfer) must run BEFORE the flag is flipped —
+      // otherwise a skip-after-claim would orphan `onboarding_fee_paid=true`
+      // with no money moved, and the retry would read it as paid and never
+      // collect the $2. Claiming immediately before the transfer leaves the
+      // transfer-failure catch as the sole post-claim exit, which rolls back.
       let owesOnboardingFee = false;
       let onboardingFeeDollars = 0;
-      if (!helperProfile?.onboarding_fee_paid && onboardingFeeCents > 0) {
-        const { data: claimed, error: claimErr } = await supabaseAdmin
-          .from("profiles")
-          .update({
-            onboarding_fee_paid: true,
-            onboarding_fee_charged_at: new Date().toISOString(),
-          })
-          .eq("user_id", job.helper_id)
-          .eq("onboarding_fee_paid", false)
-          .select("user_id");
-        if (claimErr) {
-          // Fail closed: can't distinguish "lost the race" from "DB error" without
-          // the result, so proceeding would risk silently skipping fee collection
-          // or double-deducting on a retry. Skip this job and retry next cron run.
-          console.error(`[process-scheduled-payouts] onboarding-fee claim failed for ${job.helper_id} (job ${job.id}):`, claimErr);
-          results.push({ job_id: job.id, status: "onboarding_fee_claim_error", error: claimErr.message });
-          continue;
-        }
-
-        if (claimed && claimed.length > 0) {
-          owesOnboardingFee = true;
-          onboardingFeeDollars = onboardingFeeCents / 100;
-          helperPayout = Math.max(0, helperPayout - onboardingFeeDollars);
-        }
-        // Lost the race: another path collected the fee first; do not deduct.
-      }
-
-      if (helperPayout <= 0) {
-        console.error(`Payout for job ${job.id} is $0 after onboarding fee — skipping transfer.`);
-        results.push({ job_id: job.id, status: "zero_after_onboarding_fee" });
-        continue;
-      }
 
       if (!helperProfile?.stripe_account_id) {
         console.error(`Helper ${job.helper_id} has no Stripe Connect for job ${job.id}`);
@@ -225,6 +197,58 @@ serve(async (req) => {
         continue;
       }
       const failedCount = (ledgerRows ?? []).filter((r) => r.status === "failed").length;
+
+      // ── Onboarding-fee claim (deferred to HERE, immediately before the
+      // transfer) ──
+      // Every viability `continue` above (no Connect account, no/failed PI,
+      // verify error, ledger read error, already-transferred) runs BEFORE
+      // this point, so a skip can no longer orphan the claim. Race-safe
+      // atomic claim: the conditional `.eq("onboarding_fee_paid", false)`
+      // guarantees exactly one concurrent path (this cron, release-payout,
+      // or create-payment) wins the $2. From here the ONLY post-claim exits
+      // are the `helperPayout <= 0` guard and the transfer-failure catch —
+      // both roll the claim back.
+      if (!helperProfile.onboarding_fee_paid && onboardingFeeCents > 0) {
+        const { data: claimed, error: claimErr } = await supabaseAdmin
+          .from("profiles")
+          .update({
+            onboarding_fee_paid: true,
+            onboarding_fee_charged_at: new Date().toISOString(),
+          })
+          .eq("user_id", job.helper_id)
+          .eq("onboarding_fee_paid", false)
+          .select("user_id");
+        if (claimErr) {
+          // Fail closed BEFORE the transfer — treating a failed claim as
+          // "lost the race" would silently skip collecting the fee forever.
+          console.error(`[process-scheduled-payouts] onboarding-fee claim failed for ${job.helper_id} (job ${job.id}):`, claimErr);
+          results.push({ job_id: job.id, status: "onboarding_fee_claim_error", error: claimErr.message });
+          continue;
+        }
+        if (claimed && claimed.length > 0) {
+          if (helperPayout * 100 <= onboardingFeeCents) {
+            // Claim succeeded but this payout is too small to cover the fee.
+            // Roll the claim back and skip so the flag doesn't lie, and a
+            // future (larger) payout — or manual reconciliation — collects it.
+            const { error: rollbackErr } = await supabaseAdmin
+              .from("profiles")
+              .update({ onboarding_fee_paid: false, onboarding_fee_charged_at: null })
+              .eq("user_id", job.helper_id);
+            if (rollbackErr) {
+              console.error(
+                `CRITICAL: [process-scheduled-payouts] payout too small AND onboarding-fee rollback failed for ${job.helper_id} (job ${job.id}) — onboarding_fee_paid is incorrectly true but the fee was NOT collected; manual reconciliation needed:`,
+                rollbackErr,
+              );
+            }
+            results.push({ job_id: job.id, status: "payout_below_onboarding_fee", skipped: true });
+            continue;
+          }
+          onboardingFeeDollars = onboardingFeeCents / 100;
+          helperPayout -= onboardingFeeDollars;
+          owesOnboardingFee = true;
+        }
+        // else: lost the race — flag flipped between read and claim. Don't deduct.
+      }
 
       // ── Step 5: Transfer to helper (charge is confirmed captured) ──
       // Re-use the PI object from Step 3 verification above (already retrieved)
@@ -364,6 +388,25 @@ serve(async (req) => {
       } catch (e) {
         console.error(`Payout failed for job ${job.id}:`, e);
         results.push({ job_id: job.id, status: "transfer_failed", error: (e as Error).message });
+
+        // Un-claim the onboarding fee if THIS job claimed it. The atomic claim
+        // above flipped the flag to true BEFORE the transfer; the transfer
+        // failed, so no money moved and the fee was never collected. Leaving
+        // the flag true would make the retry (which re-reads onboarding_fee_paid
+        // as already-paid) skip the deduction, silently losing the fee. The
+        // atomic claim guarantees sole ownership, so this rollback is safe.
+        if (owesOnboardingFee) {
+          const { error: unclaimErr } = await supabaseAdmin
+            .from("profiles")
+            .update({ onboarding_fee_paid: false, onboarding_fee_charged_at: null })
+            .eq("user_id", job.helper_id);
+          if (unclaimErr) {
+            console.error(
+              `CRITICAL: [process-scheduled-payouts] transfer failed AND onboarding-fee un-claim failed for ${job.helper_id} (job ${job.id}) — onboarding_fee_paid is incorrectly true but the fee was NOT collected; manual reconciliation needed:`,
+              unclaimErr,
+            );
+          }
+        }
 
         postSlackOpsAlert({
           kind: "payout_failed",

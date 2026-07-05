@@ -324,6 +324,10 @@ serve(async (req) => {
   }
 
   if (payoutCents <= 0) {
+    // Reachable only with NO active fee claim: a successful claim above already
+    // returned early for payout <= fee (line ~289), then subtracted, leaving
+    // payoutCents > 0. So onboardingFeeDeductedCents is 0 here and there is
+    // nothing to roll back.
     return jsonResponse({ error: "computed payout is non-positive" }, 422);
   }
 
@@ -365,6 +369,25 @@ serve(async (req) => {
       stripe_status: err.statusCode,
       stack: err.stack?.split("\n").slice(0, 5).join("\n"),
     });
+    // Un-claim the onboarding fee if THIS invocation claimed it. The atomic
+    // claim above flipped the flag to true BEFORE the transfer, on the
+    // assumption the transfer would carry the deducted payout. The transfer
+    // failed, so no money moved and the fee was never actually collected —
+    // leaving the flag true would make the retry (which re-reads the flag as
+    // already-paid) skip the deduction forever, silently losing the fee. The
+    // atomic claim guarantees we're the sole owner, so this rollback is safe.
+    if (onboardingFeeDeductedCents > 0) {
+      const { error: unclaimErr } = await supabaseAdmin
+        .from("profiles")
+        .update({ onboarding_fee_paid: false, onboarding_fee_charged_at: null })
+        .eq("user_id", job.helper_id);
+      if (unclaimErr) {
+        console.error(
+          `CRITICAL: [release-payout] transfer failed AND onboarding-fee un-claim failed for ${job.helper_id} — onboarding_fee_paid is incorrectly true but the fee was NOT collected; manual reconciliation needed:`,
+          unclaimErr,
+        );
+      }
+    }
     return jsonResponse({ error: `stripe.transfers.create failed: ${err.message}` }, 502);
   }
 

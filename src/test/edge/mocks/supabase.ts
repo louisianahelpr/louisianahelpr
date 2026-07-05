@@ -102,6 +102,21 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   in() {
     return this;
   }
+  is() {
+    return this;
+  }
+  lte() {
+    return this;
+  }
+  gte() {
+    return this;
+  }
+  lt() {
+    return this;
+  }
+  gt() {
+    return this;
+  }
   limit() {
     return this;
   }

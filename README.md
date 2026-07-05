@@ -14,7 +14,7 @@ A dual-sided gig marketplace exclusively for Louisiana. Connects **Posters** (ho
 - **Job lifecycle tracking** — Offered → Accepted → On the way → Arrived → Working → Complete
 - **Reviews & ratings** — gated to completed jobs only
 - **Push notifications** — web push (PWA) and native (iOS) via Capacitor
-- **Subscriptions** — Basic / Pro / Elite tiers for helprs
+- **Subscriptions** — Free / Helpr Pro / Helpr Elite / Business tiers
 - **Admin dashboard** — moderation, disputes, analytics, broadcasts, ID review queue
 - **Native mobile** — iOS builds via Capacitor with Fastlane CI/CD
 

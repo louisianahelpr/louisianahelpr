@@ -316,15 +316,12 @@ Listed in rough priority order.
   `FormalWarningDialog`. The shared `callAdminAction` coordinator
   + `actionBusy` state are retired from the parent. AdminUsers is
   now mostly the user-list + filter pills + per-card menu —
-  no further dialog extractions needed at this point. Next:
-  `Profile.tsx` (1,299), `PostJob.tsx` (1,163), `Dashboard.tsx` (1,015).
-- [ ] **Stripe webhook 699-line refactor (deferred — opportunistic)**
-  11 cases inside one switch on `event.type`. Each is a discrete
-  handler. Best done incrementally: when a new Stripe event type
-  needs handling, extract THAT case into its own file as the
-  pattern, future ones follow. Big-bang refactoring all 11 at
-  once is high-risk (a botched deploy disrupts real-money flow)
-  for low concrete payoff (the file works fine).
+  no further dialog extractions needed at this point. Profile.tsx (now
+  563 lines) and PostJob.tsx (now 93 lines) were extracted in the
+  2026-05-11 session. Remaining: `Dashboard.tsx` (510 lines).
+- [x] **Stripe webhook refactor** — handlers split into
+  `supabase/functions/stripe-webhook/handlers/` (13 files, ~1 k
+  total lines) with a thin 173-line `index.ts` router. Done.
 - [ ] **Migrate Profile/Dashboard/Messages to `useProfile()` hook**
   Foundation laid in `src/hooks/useProfile.ts`. Each consumer needs
   its own careful migration (read sites identified, but profile-shape

@@ -28,6 +28,13 @@ export interface TableResult {
 export interface SupabaseScenario {
   authUser?: { id: string; email?: string } | null;
   authError?: { message: string } | null;
+  /**
+   * auth.admin.getUserById(id) lookups, keyed by user id. Absent id → returns
+   * a confirmed user (the common prod case) so callers that only care about
+   * email confirmation get the happy path by default; set `email_confirmed_at`
+   * to null to simulate an unconfirmed account.
+   */
+  adminUsers?: Record<string, { email?: string; email_confirmed_at?: string | null } | { error: { message: string } }>;
   /** table name -> read result */
   reads: Record<string, TableResult>;
   /** rpc name -> resolved data */
@@ -172,7 +179,10 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
 
 export interface SupabaseClientMock {
   from: (table: string) => QueryBuilder;
-  auth: { getUser: ReturnType<typeof vi.fn> };
+  auth: {
+    getUser: ReturnType<typeof vi.fn>;
+    admin: { getUserById: ReturnType<typeof vi.fn> };
+  };
   rpc: ReturnType<typeof vi.fn>;
 }
 
@@ -185,6 +195,17 @@ export function createClient(_url: string, _key: string): SupabaseClientMock {
         data: { user: scenario.authUser ?? null },
         error: scenario.authError,
       })),
+      admin: {
+        getUserById: vi.fn(async (id: string) => {
+          const entry = scenario.adminUsers?.[id];
+          if (entry && "error" in entry) {
+            return { data: { user: null }, error: entry.error };
+          }
+          // Default (unconfigured id): a confirmed user — the common prod case.
+          const user = entry ?? { email_confirmed_at: new Date().toISOString() };
+          return { data: { user }, error: null };
+        }),
+      },
     },
     rpc: vi.fn(async (name: string) => ({
       data: scenario.rpc[name],

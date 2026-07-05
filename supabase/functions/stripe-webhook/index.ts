@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { logStep, type WebhookContext } from "./context.ts";
 import { handleCheckoutSessionCompleted } from "./handlers/checkoutSessionCompleted.ts";
+import { handleCheckoutSessionExpired } from "./handlers/checkoutSessionExpired.ts";
 import { handleCustomerSubscriptionUpdated } from "./handlers/customerSubscriptionUpdated.ts";
 import { handleCustomerSubscriptionDeleted } from "./handlers/customerSubscriptionDeleted.ts";
 import { handlePaymentIntentPaymentFailed } from "./handlers/paymentIntentPaymentFailed.ts";
@@ -25,6 +26,7 @@ const EVENT_HANDLERS: Record<
   (event: Stripe.Event, ctx: WebhookContext) => void | Promise<void>
 > = {
   "checkout.session.completed": handleCheckoutSessionCompleted,
+  "checkout.session.expired": handleCheckoutSessionExpired,
   "customer.subscription.updated": handleCustomerSubscriptionUpdated,
   "customer.subscription.deleted": handleCustomerSubscriptionDeleted,
   "payment_intent.payment_failed": handlePaymentIntentPaymentFailed,

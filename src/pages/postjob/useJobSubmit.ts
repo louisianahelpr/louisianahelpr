@@ -80,6 +80,11 @@ export interface UseJobSubmitParams {
   includeMaterials: boolean;
   materialsNote: string;
   saveCardForFuture: boolean;
+  // Pay It Forward — when the poster arrived from a gift redemption, the
+  // credit id rides through checkout so create-payment settles it (fully
+  // covered → funds from prepaid balance, $0 charge; partial → collect the
+  // difference via Stripe). Null for an ordinary post.
+  pifCreditId: string | null;
   // Media upload callbacks
   uploadAndAttachPhotos: (jobId: string) => Promise<void>;
   uploadAndAttachScopeVideo: (jobId: string) => Promise<void>;
@@ -131,6 +136,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     includeMaterials,
     materialsNote,
     saveCardForFuture,
+    pifCreditId,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   } = params;
@@ -412,6 +418,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
           // Optional opt-in: ask Stripe to save the card for off-session
           // future-use. The edge function decides whether to honor it.
           saveCardForFuture,
+          // Pay It Forward redemption: when present, create-payment settles
+          // the gift instead of charging the full escrow (see edge fn).
+          ...(pifCreditId ? { pifCreditId } : {}),
         },
       });
 

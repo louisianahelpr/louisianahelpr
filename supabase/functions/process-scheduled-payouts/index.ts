@@ -118,52 +118,79 @@ serve(async (req) => {
         continue;
       }
 
-      // ── Step 2: Resolve payment intent ID ──
-      let paymentIntentId = job.stripe_payment_intent_id;
-      if (!paymentIntentId && job.stripe_session_id) {
-        try {
-          const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
-          paymentIntentId = typeof session.payment_intent === "string"
-            ? session.payment_intent
-            : session.payment_intent?.id;
-          if (paymentIntentId) {
-            await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
-          }
-        } catch (e) {
-          console.warn("Could not retrieve session:", e);
-        }
-      }
-
-      if (!paymentIntentId) {
-        console.error(`No payment intent for job ${job.id}, cannot process payout`);
-        results.push({ job_id: job.id, status: "no_pi" });
+      // ── Detect Pay It Forward funding ──
+      // A PIF-redeemed job was funded from the prepaid platform balance (the
+      // donor's captured gift), not from a poster charge on THIS job. There is
+      // either no payment intent (gift fully covered the budget) or one that
+      // only covers the shortfall — so the normal "resolve PI → verify captured
+      // → link source_transaction" path doesn't apply. We pay the helper from
+      // the platform balance with a plain transfer instead. Detected by a
+      // redeemed credit pointing at this job (set by redeem_pif_credit or the
+      // difference-payment webhook).
+      const { data: pifRow, error: pifErr } = await supabaseAdmin
+        .from("pif_credits")
+        .select("id")
+        .eq("job_id", job.id)
+        .eq("status", "redeemed")
+        .limit(1)
+        .maybeSingle();
+      if (pifErr) {
+        // Fail closed: if we can't tell whether this is PIF-funded, don't risk
+        // paying out against an unverified charge — defer to the next run.
+        console.error(`[process-scheduled-payouts] pif_credits read failed for job ${job.id}:`, pifErr);
+        results.push({ job_id: job.id, status: "pif_check_error", error: pifErr.message });
         continue;
       }
+      const isPifFunded = !!pifRow;
 
-      // ── Step 3: Verify charge is captured (immediate capture — should be succeeded) ──
-      try {
-        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-        if (pi.status !== "succeeded") {
-          console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — CANNOT transfer funds.`);
-          results.push({ job_id: job.id, status: `pi_not_succeeded_${pi.status}`, skipped: true });
-          const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
-          if (adminRoles) {
-            for (const admin of adminRoles) {
-              await supabaseAdmin.from("notifications").insert({
-                user_id: admin.user_id,
-                title: "⚠️ Payout blocked — charge not captured",
-                message: `Job ${job.id} ("${job.title}") payout cannot proceed. PI status: ${pi.status}.`,
-                type: "warning", link: "/admin",
-              });
+      // ── Step 2: Resolve payment intent ID (skipped for PIF — no poster charge) ──
+      let paymentIntentId = job.stripe_payment_intent_id;
+      if (!isPifFunded) {
+        if (!paymentIntentId && job.stripe_session_id) {
+          try {
+            const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
+            paymentIntentId = typeof session.payment_intent === "string"
+              ? session.payment_intent
+              : session.payment_intent?.id;
+            if (paymentIntentId) {
+              await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
             }
+          } catch (e) {
+            console.warn("Could not retrieve session:", e);
           }
+        }
+
+        if (!paymentIntentId) {
+          console.error(`No payment intent for job ${job.id}, cannot process payout`);
+          results.push({ job_id: job.id, status: "no_pi" });
           continue;
         }
-      } catch (e: any) {
-        console.error(`Failed to verify payment for job ${job.id}:`, e);
-        results.push({ job_id: job.id, status: "verify_error", error: (e as Error).message });
-        continue;
+
+        // ── Step 3: Verify charge is captured (immediate capture — should be succeeded) ──
+        try {
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+          if (pi.status !== "succeeded") {
+            console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — CANNOT transfer funds.`);
+            results.push({ job_id: job.id, status: `pi_not_succeeded_${pi.status}`, skipped: true });
+            const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
+            if (adminRoles) {
+              for (const admin of adminRoles) {
+                await supabaseAdmin.from("notifications").insert({
+                  user_id: admin.user_id,
+                  title: "⚠️ Payout blocked — charge not captured",
+                  message: `Job ${job.id} ("${job.title}") payout cannot proceed. PI status: ${pi.status}.`,
+                  type: "warning", link: "/admin",
+                });
+              }
+            }
+            continue;
+          }
+        } catch (e: any) {
+          console.error(`Failed to verify payment for job ${job.id}:`, e);
+          results.push({ job_id: job.id, status: "verify_error", error: (e as Error).message });
+          continue;
+        }
       }
 
       // ── Step 4: Guard against duplicate transfers ──
@@ -273,16 +300,23 @@ serve(async (req) => {
           },
         };
 
-        // Link to source charge for clean reporting — use PI from Step 3
-        try {
-          const piForCharge = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge"] });
-          if (piForCharge.latest_charge) {
-            transferParams.source_transaction = typeof piForCharge.latest_charge === "string"
-              ? piForCharge.latest_charge
-              : piForCharge.latest_charge.id;
+        // Link to source charge for clean reporting — use PI from Step 3.
+        // Pay It Forward jobs are funded from the platform's prepaid balance
+        // (the donation was captured at donate time), so there is NO per-job
+        // charge to link. Setting source_transaction here would cap the
+        // transfer at that (nonexistent/zero) charge — so skip it for PIF and
+        // let the transfer draw from the platform balance.
+        if (!isPifFunded && paymentIntentId) {
+          try {
+            const piForCharge = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge"] });
+            if (piForCharge.latest_charge) {
+              transferParams.source_transaction = typeof piForCharge.latest_charge === "string"
+                ? piForCharge.latest_charge
+                : piForCharge.latest_charge.id;
+            }
+          } catch (e) {
+            console.warn("Could not link charge:", e);
           }
-        } catch (e) {
-          console.warn("Could not link charge:", e);
         }
 
         // Idempotency key prevents double-pay if the cron fires twice before

@@ -2,19 +2,29 @@
  * Pay It Forward — /pay-it-forward
  *
  * Document-scroll page (PageHeader + min-h-screen).
- * Lets users donate job credits for neighbors and redeem existing credits.
+ *
+ * Directed-gift model: a donor NAMES a recipient by email and pays Stripe up
+ * front; only that person can redeem. There is no public "browse credits near
+ * you" pool — every gift is directed. All mint/claim/redeem flow through
+ * service-role edge functions (the client can no longer write pif_credits), so
+ * this page:
+ *   - launches Stripe Checkout via `create-pif-donation` (never inserts a row),
+ *   - lists gifts sent TO the current user (matched by resolved id OR the named
+ *     email, since an unclaimed gift is visible to its named address via RLS),
+ *   - redeems by navigating to Post-a-Job with the credit id (the actual
+ *     redemption + $0/difference math happens server-side at checkout).
  */
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Gift, Sparkles, CheckCircle2 } from "lucide-react";
+import { Gift, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { unwrap } from "@/lib/supabaseResult";
+import { unwrap, functionErrorMessage } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { hapticSuccess, hapticMedium } from "@/lib/haptics";
+import { hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
 import PageHeader from "@/components/PageHeader";
@@ -22,56 +32,114 @@ import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { PifCredit } from "./payItForward/types";
-import { AMOUNT_PRESETS, CATEGORIES, LOUISIANA_PARISHES, MAX_NOTE_LENGTH } from "./payItForward/constants";
+import { AMOUNT_PRESETS, CATEGORIES, MAX_NOTE_LENGTH } from "./payItForward/constants";
 import { CreditCard } from "./payItForward/CreditCard";
 import { EmptyState } from "./payItForward/EmptyState";
+
+// Client-side shape check only — the edge function is the authority (it also
+// enforces the $10–$500 bounds and the self-gift block server-side).
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_GIFT = 10; // matches MIN_GIFT_CENTS in create-pif-donation
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function PayItForward() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   usePageTitle("Pay It Forward — Helpr");
 
-  const { user, profile } = useCurrentUser();
-  const userParish = profile?.parish ?? "";
+  const { user, isLoading: authLoading } = useCurrentUser();
+  const myEmail = user?.email?.toLowerCase() ?? "";
+  const queryClient = useQueryClient();
 
-  // ── Give credit form state ────────────────────────────────────────────────
+  // ── Claim state (?claim=<token> cold-start from the emailed gift link) ─────
+  const [claiming, setClaiming] = useState(false);
+  // Fire the claim exactly once per token — the effect re-runs as auth settles
+  // and as we strip the param, so a ref (not just the param) gates it.
+  const claimedTokenRef = useRef<string | null>(null);
+
+  // ── Give a gift form state ────────────────────────────────────────────────
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
+  const [recipientEmail, setRecipientEmail] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Any");
-  const [parish, setParish] = useState(userParish);
   const [note, setNote] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  // Sync parish from profile once loaded
-  const resolvedParish = parish || userParish;
 
   const effectiveAmount = selectedAmount ?? (customAmount ? parseFloat(customAmount) : null);
+  const trimmedRecipient = recipientEmail.trim().toLowerCase();
+  const emailValid = EMAIL_RE.test(trimmedRecipient);
+  const isSelfGift = !!myEmail && trimmedRecipient === myEmail;
+
+  // ── Stripe return handling (?gift=success | ?gift=cancelled) ───────────────
+  useEffect(() => {
+    const gift = searchParams.get("gift");
+    if (gift === "success") {
+      toast.success("Gift on its way!", {
+        description: "We've emailed your recipient a link to claim their credit.",
+        icon: "💚",
+      });
+    } else if (gift === "cancelled") {
+      toast("Gift cancelled", { description: "No charge was made." });
+    }
+    if (gift) {
+      searchParams.delete("gift");
+      setSearchParams(searchParams, { replace: true });
+    }
+    // Only react to the param on mount / when it changes.
+  }, [searchParams, setSearchParams]);
+
+  // ── Claim a directed gift (?claim=<token>) ────────────────────────────────
+  // The donor's email carried a claim link. This route is ProtectedRoute-
+  // wrapped, so an unauthenticated visitor is bounced to /login?redirect=…
+  // and returns here signed in — by the time this fires, `user` is the caller
+  // who should own the gift. The edge function is the authority: it enforces
+  // the email-match guard, idempotency, and the race-safe atomic bind; we just
+  // surface its verdict.
+  useEffect(() => {
+    const claimToken = searchParams.get("claim");
+    if (!claimToken) return;
+    // Wait for the session to resolve — on a cold start `user` is briefly null
+    // while ProtectedRoute settles; acting now would misread "not signed in".
+    if (authLoading || !user?.id) return;
+    // Exactly-once per token.
+    if (claimedTokenRef.current === claimToken) return;
+    claimedTokenRef.current = claimToken;
+
+    void (async () => {
+      setClaiming(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("claim-pif-credit", {
+          body: { claim_token: claimToken },
+        });
+        if (error) {
+          throw new Error(await functionErrorMessage(error, "Couldn't claim this gift. Please try again."));
+        }
+        if (data?.error) throw new Error(data.error);
+        if (!data?.ok) throw new Error("Couldn't claim this gift. Please try again.");
+
+        hapticSuccess();
+        toast.success(data.already_claimed ? "This gift is already yours" : "Gift claimed!", {
+          description: data.already_claimed
+            ? "Find it under “Gifts sent to you” below."
+            : "It's ready to put toward your next job.",
+          icon: "💚",
+        });
+        // Surface the freshly-attached credit in the received list.
+        await queryClient.invalidateQueries({ queryKey: ["pif-received"] });
+      } catch (e) {
+        report(e, { tags: { source: "PayItForward.claim" } });
+        errorToast("Couldn't claim gift", {
+          description: e instanceof Error ? e.message : "Please try again.",
+        });
+      } finally {
+        setClaiming(false);
+        // Strip ?claim so a refresh / back-nav doesn't replay it.
+        searchParams.delete("claim");
+        setSearchParams(searchParams, { replace: true });
+      }
+    })();
+  }, [searchParams, setSearchParams, authLoading, user?.id, queryClient]);
 
   // ── Queries ───────────────────────────────────────────────────────────────
-  const { data: availableCredits = [], isLoading: loadingAvailable } = useQuery({
-    queryKey: ["pif-available", resolvedParish],
-    queryFn: async () => {
-      if (!resolvedParish) return [];
-      // PGRST202 fallback: table doesn't exist yet on prod
-      try {
-        const rows = unwrap(
-          await supabase
-            .from("pif_credits" as never)
-            .select("*, donor:donor_id(full_name)")
-            .eq("status", "available")
-            .eq("parish", resolvedParish)
-            .order("created_at", { ascending: false }),
-        ) as PifCredit[];
-        return rows;
-      } catch (e: unknown) {
-        if (e instanceof Error && e.message.includes("PGRST202")) return [];
-        throw e;
-      }
-    },
-    enabled: !!resolvedParish,
-  });
-
   const { data: myDonated = [], isLoading: loadingDonated } = useQuery({
     queryKey: ["pif-donated", user?.id],
     queryFn: async () => {
@@ -93,17 +161,26 @@ export default function PayItForward() {
     enabled: !!user?.id,
   });
 
+  // Gifts sent TO me — matched by resolved recipient_id OR my named email, since
+  // a gift I haven't claimed yet has recipient_id = null but is visible to my
+  // email via RLS. Newest first.
   const { data: myReceived = [], isLoading: loadingReceived } = useQuery({
-    queryKey: ["pif-received", user?.id],
+    queryKey: ["pif-received", user?.id, myEmail],
     queryFn: async () => {
       if (!user?.id) return [];
+      // Quote the email value so a reserved char in the local-part (`,` `.` `(`
+      // `)`) can't break the PostgREST .or() grammar. user.id is a UUID, so it
+      // needs no quoting. RLS still constrains rows regardless.
+      const orClause = myEmail
+        ? `recipient_id.eq.${user.id},recipient_email.eq."${myEmail.replace(/(["\\])/g, "\\$1")}"`
+        : `recipient_id.eq.${user.id}`;
       try {
         const rows = unwrap(
           await supabase
             .from("pif_credits" as never)
             .select("*, donor:donor_id(full_name)")
-            .eq("recipient_id", user.id)
-            .order("redeemed_at", { ascending: false }),
+            .or(orClause)
+            .order("created_at", { ascending: false }),
         ) as PifCredit[];
         return rows;
       } catch (e: unknown) {
@@ -114,79 +191,35 @@ export default function PayItForward() {
     enabled: !!user?.id,
   });
 
-  // ── Donate mutation ───────────────────────────────────────────────────────
+  // ── Donate mutation — launches Stripe Checkout, never writes the row ───────
   const donateMutation = useMutation({
     mutationFn: async () => {
-      if (!user?.id) throw new Error("Not signed in");
+      if (!user?.id) throw new Error("Please sign in to send a gift.");
       const amt = effectiveAmount;
-      if (!amt || isNaN(amt) || amt <= 0) throw new Error("Enter a valid amount");
-      unwrap(
-        await supabase.from("pif_credits" as never).insert({
-          donor_id: user.id,
+      if (!amt || isNaN(amt) || amt < MIN_GIFT) throw new Error(`The smallest gift is $${MIN_GIFT}.`);
+      if (!emailValid) throw new Error("Enter a valid email for the person you're gifting.");
+      if (isSelfGift) throw new Error("You can't send a gift to yourself.");
+
+      const { data, error } = await supabase.functions.invoke("create-pif-donation", {
+        body: {
           amount: amt,
-          category: selectedCategory === "Any" ? null : selectedCategory,
-          parish: resolvedParish || null,
-          message: note.trim() || null,
-        } as never),
-      );
-    },
-    onSuccess: () => {
-      hapticSuccess();
-      setShowSuccess(true);
-      setSelectedAmount(null);
-      setCustomAmount("");
-      setSelectedCategory("Any");
-      setNote("");
-      setTimeout(() => setShowSuccess(false), 5000);
-      queryClient.invalidateQueries({ queryKey: ["pif-available"] });
-      queryClient.invalidateQueries({ queryKey: ["pif-donated", user?.id] });
-      toast.success("Credit donated!", {
-        description: "A neighbor in your parish can now redeem it.",
-        icon: "💚",
+          recipient_email: trimmedRecipient,
+          category: selectedCategory,
+          message: note.trim(),
+        },
       });
+      if (error) {
+        throw new Error(await functionErrorMessage(error, "Couldn't start your gift. Please try again."));
+      }
+      if (data?.error) throw new Error(data.error);
+      if (!data?.url) throw new Error("Couldn't start your gift. Please try again.");
+      window.location.href = data.url;
     },
     onError: (e) => {
       report(e, { tags: { source: "PayItForward.donate" } });
-      errorToast("Couldn't donate credit", { description: e instanceof Error ? e.message : "Please try again." });
-    },
-  });
-
-  // ── Redeem mutation ───────────────────────────────────────────────────────
-  const [redeemingId, setRedeemingId] = useState<string | null>(null);
-  const redeemMutation = useMutation({
-    mutationFn: async (creditId: string) => {
-      if (!user?.id) throw new Error("Not signed in");
-      unwrap(
-        await supabase
-          .from("pif_credits" as never)
-          .update({
-            recipient_id: user.id,
-            status: "redeemed",
-            redeemed_at: new Date().toISOString(),
-          } as never)
-          .eq("id", creditId)
-          .eq("status", "available"),
-      );
-      return creditId;
-    },
-    onMutate: (id) => setRedeemingId(id),
-    onSuccess: (creditId) => {
-      hapticSuccess();
-      setRedeemingId(null);
-      queryClient.invalidateQueries({ queryKey: ["pif-available"] });
-      queryClient.invalidateQueries({ queryKey: ["pif-received", user?.id] });
-      const credit = availableCredits.find((c) => c.id === creditId);
-      const budget = credit?.amount ?? 0;
-      toast.success("Credit redeemed!", {
-        description: `$${budget.toFixed(0)} pre-filled as your job budget.`,
-        icon: "🎉",
+      errorToast("Couldn't send gift", {
+        description: e instanceof Error ? e.message : "Please try again.",
       });
-      navigate(`/post-job?budget=${budget}&pif_credit=${creditId}`);
-    },
-    onError: (e) => {
-      setRedeemingId(null);
-      report(e, { tags: { source: "PayItForward.redeem" } });
-      errorToast("Couldn't redeem credit", { description: e instanceof Error ? e.message : "It may have just been claimed by someone else." });
     },
   });
 
@@ -195,20 +228,25 @@ export default function PayItForward() {
     donateMutation.mutate();
   };
 
-  const handleRedeem = (id: string) => {
+  // Redeem = navigate to Post-a-Job carrying the credit. The redemption itself
+  // (marking it redeemed, the $0/difference math) is settled server-side at
+  // checkout by create-payment — the client can no longer write the row.
+  const handleUseGift = (creditId: string) => {
     hapticMedium();
-    redeemMutation.mutate(id);
+    const credit = myReceived.find((c) => c.id === creditId);
+    const budget = credit?.amount ?? 0;
+    navigate(`/post-job?budget=${budget}&pif_credit=${creditId}`);
   };
 
   const canDonate =
-    !!effectiveAmount && effectiveAmount > 0 && !isNaN(effectiveAmount) && !!resolvedParish;
+    !!effectiveAmount && effectiveAmount >= MIN_GIFT && !isNaN(effectiveAmount) && emailValid && !isSelfGift;
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
         eyebrow="Community giving"
         title="Pay It Forward"
-        meta="Help a neighbor who needs it"
+        meta="Send a neighbor a Helpr credit"
         onBack={() => navigate(-1)}
         showBrand
         rightSlot={<NotificationPanel />}
@@ -216,6 +254,25 @@ export default function PayItForward() {
       />
 
       <div className="max-w-2xl mx-auto px-5 lg:px-8 pt-4 space-y-6">
+        {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
+        {claiming && (
+          <div
+            className="rounded-ds-md p-4 flex items-center gap-3"
+            style={{
+              background: "hsl(var(--pif-tint) / 0.06)",
+              border: "0.5px solid hsl(var(--pif-tint) / 0.18)",
+            }}
+          >
+            <div
+              className="w-4 h-4 shrink-0 rounded-full border-2 border-t-transparent animate-spin"
+              style={{ borderColor: "hsl(var(--pif-green))", borderTopColor: "transparent" }}
+            />
+            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--pif-ink))" }}>
+              Claiming your gift…
+            </p>
+          </div>
+        )}
+
         {/* ── What is this? ───────────────────────────────────────────────── */}
         <div
           className="rounded-ds-md p-4"
@@ -234,12 +291,12 @@ export default function PayItForward() {
             </p>
           </div>
           <p className="font-serif italic text-ds-13 leading-relaxed" style={{ color: "hsl(var(--ink-deep) / 0.75)" }}>
-            Pay for a job someone else needs but can't afford right now. Choose an amount, add a
-            personal note, and a neighbor in your parish redeems it — anonymously if they prefer.
+            Prepay a Helpr credit for someone specific. Enter their email, choose an amount, and
+            we'll send them a link to claim it — they can put it toward any job they need done.
           </p>
         </div>
 
-        {/* ── Give a credit form ──────────────────────────────────────────── */}
+        {/* ── Give a gift form ────────────────────────────────────────────── */}
         <div
           className="rounded-ds-md p-4 space-y-4"
           style={{
@@ -254,8 +311,41 @@ export default function PayItForward() {
             className="font-serif italic uppercase"
             style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
           >
-            Give a credit
+            Send a gift
           </p>
+
+          {/* Recipient email */}
+          <div>
+            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Recipient's email
+            </p>
+            <input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="friend@example.com"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+              aria-label="Recipient's email"
+              className="w-full rounded-ds-sm py-2 px-3 text-ds-13 font-sans"
+              style={{
+                background: "hsl(var(--parchment) / 0.6)",
+                border: `0.5px solid hsl(var(--bark) / ${recipientEmail && !emailValid ? "0.4" : "0.22"})`,
+                color: "hsl(var(--ink-deep))",
+                outline: "none",
+              }}
+            />
+            {recipientEmail.trim() && !emailValid && (
+              <p className="font-serif italic text-ds-11 mt-1.5" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                Enter a valid email address.
+              </p>
+            )}
+            {isSelfGift && (
+              <p className="font-serif italic text-ds-11 mt-1.5" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                You can't send a gift to yourself.
+              </p>
+            )}
+          </div>
 
           {/* Amount chips */}
           <div>
@@ -279,7 +369,7 @@ export default function PayItForward() {
               ))}
               <input
                 type="number"
-                min={1}
+                min={MIN_GIFT}
                 placeholder="Custom"
                 value={customAmount}
                 onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
@@ -293,6 +383,9 @@ export default function PayItForward() {
                 }}
               />
             </div>
+            <p className="font-serif italic text-ds-11 mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              ${MIN_GIFT} minimum. A small processing fee is added at checkout.
+            </p>
           </div>
 
           {/* Category */}
@@ -318,30 +411,6 @@ export default function PayItForward() {
             </div>
           </div>
 
-          {/* Parish */}
-          <div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Parish
-            </p>
-            <select
-              value={resolvedParish}
-              onChange={(e) => setParish(e.target.value)}
-              aria-label="Parish"
-              className="w-full rounded-ds-sm py-2 px-3 text-ds-13 font-sans"
-              style={{
-                background: "hsl(var(--parchment) / 0.6)",
-                border: "0.5px solid hsl(var(--bark) / 0.22)",
-                color: "hsl(var(--ink-deep))",
-                outline: "none",
-              }}
-            >
-              <option value="">Select parish…</option>
-              {LOUISIANA_PARISHES.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Personal note */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -355,7 +424,7 @@ export default function PayItForward() {
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
-              placeholder="Hoping this helps someone near me…"
+              placeholder="Hope this helps — thinking of you!"
               rows={2}
               maxLength={MAX_NOTE_LENGTH}
               className="rounded-ds-sm bg-background/60 border-border/60 font-serif italic text-ds-13 leading-relaxed"
@@ -363,45 +432,30 @@ export default function PayItForward() {
           </div>
 
           {/* Submit */}
-          {showSuccess ? (
-            <div
-              className="flex items-center gap-2 py-3 px-4 rounded-ds-sm"
-              style={{ background: "hsl(var(--pif-tint) / 0.10)", border: "0.5px solid hsl(var(--pif-tint) / 0.22)" }}
-            >
-              <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--pif-green))" }} />
-              <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--pif-ink))" }}>
-                Credit donated — a neighbor will see it soon!
-              </p>
-            </div>
-          ) : (
-            <Button
-              onClick={handleDonate}
-              disabled={!canDonate || donateMutation.isPending}
-              className="w-full rounded-ds-sm font-display italic font-semibold"
-              style={{
-                background: canDonate ? "hsl(var(--pif-green))" : "hsl(var(--bark) / 0.15)",
-                color: canDonate ? "#fff" : "hsl(var(--bark) / 0.5)",
-                border: "none",
-              }}
-            >
-              <Gift className="w-4 h-4 mr-2" />
-              {donateMutation.isPending ? "Donating…" : "Donate this credit"}
-            </Button>
-          )}
+          <Button
+            onClick={handleDonate}
+            disabled={!canDonate || donateMutation.isPending}
+            className="w-full rounded-ds-sm font-display italic font-semibold"
+            style={{
+              background: canDonate ? "hsl(var(--pif-green))" : "hsl(var(--bark) / 0.15)",
+              color: canDonate ? "#fff" : "hsl(var(--bark) / 0.5)",
+              border: "none",
+            }}
+          >
+            <Gift className="w-4 h-4 mr-2" />
+            {donateMutation.isPending ? "Starting checkout…" : "Continue to checkout"}
+          </Button>
         </div>
 
-        {/* ── Available credits near you ──────────────────────────────────── */}
+        {/* ── Gifts sent to you ───────────────────────────────────────────── */}
         <div>
           <p
             className="font-serif italic uppercase mb-3"
             style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
           >
-            Available credits near you
-            {resolvedParish ? ` · ${resolvedParish}` : ""}
+            Gifts sent to you
           </p>
-          {!resolvedParish ? (
-            <EmptyState message="Set your parish above to see available credits." />
-          ) : loadingAvailable ? (
+          {loadingReceived ? (
             <div className="space-y-3">
               {[0, 1].map((i) => (
                 <div
@@ -411,31 +465,29 @@ export default function PayItForward() {
                 />
               ))}
             </div>
-          ) : availableCredits.filter((c) => c.donor_id !== user?.id).length === 0 ? (
-            <EmptyState message="No credits available in your parish yet — be the first to pay it forward!" />
+          ) : myReceived.length === 0 ? (
+            <EmptyState message="When someone sends you a Helpr credit, it'll show up here." />
           ) : (
             <div className="space-y-3">
-              {availableCredits
-                .filter((c) => c.donor_id !== user?.id)
-                .map((credit) => (
-                  <CreditCard
-                    key={credit.id}
-                    credit={credit}
-                    onRedeem={handleRedeem}
-                    redeeming={redeemingId === credit.id && redeemMutation.isPending}
-                  />
-                ))}
+              {myReceived.map((credit) => (
+                <CreditCard
+                  key={credit.id}
+                  credit={credit}
+                  perspective="received"
+                  onRedeem={handleUseGift}
+                />
+              ))}
             </div>
           )}
         </div>
 
-        {/* ── Your giving history ─────────────────────────────────────────── */}
-        <div>
+        {/* ── Gifts you've sent ───────────────────────────────────────────── */}
+        <div className="pb-8">
           <p
             className="font-serif italic uppercase mb-3"
             style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
           >
-            Your giving history
+            Gifts you've sent
           </p>
           {loadingDonated ? (
             <div
@@ -443,35 +495,11 @@ export default function PayItForward() {
               style={{ background: "hsl(var(--olivewood) / 0.07)" }}
             />
           ) : myDonated.length === 0 ? (
-            <EmptyState message="Credits you donate will appear here." />
+            <EmptyState message="Gifts you send will appear here." />
           ) : (
             <div className="space-y-3">
               {myDonated.map((credit) => (
-                <CreditCard key={credit.id} credit={credit} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* ── Your received credits ───────────────────────────────────────── */}
-        <div className="pb-8">
-          <p
-            className="font-serif italic uppercase mb-3"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
-          >
-            Credits you've redeemed
-          </p>
-          {loadingReceived ? (
-            <div
-              className="rounded-ds-md h-16 animate-pulse"
-              style={{ background: "hsl(var(--olivewood) / 0.07)" }}
-            />
-          ) : myReceived.length === 0 ? (
-            <EmptyState message="Credits redeemed for your jobs will appear here." />
-          ) : (
-            <div className="space-y-3">
-              {myReceived.map((credit) => (
-                <CreditCard key={credit.id} credit={credit} />
+                <CreditCard key={credit.id} credit={credit} perspective="sent" />
               ))}
             </div>
           )}

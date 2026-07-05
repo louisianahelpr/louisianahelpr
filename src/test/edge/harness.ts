@@ -80,10 +80,12 @@ function rewriteExternalImports(src: string): string {
   );
 
   // Shared helpers: `_shared/rate-limit.ts`, `_shared/slack-alerts.ts`,
-  // `_shared/cors.ts`, `_shared/appUrl.ts` — at ANY `../` depth (index.ts uses
-  // `../_shared/...`; nested handlers use `../../_shared/...`).
+  // `_shared/cors.ts`, `_shared/appUrl.ts`, `_shared/pifGiftEmail.ts` — at ANY
+  // `../` depth (index.ts uses `../_shared/...`; nested handlers use
+  // `../../_shared/...`). pifGiftEmail does network I/O (Resend), so it's
+  // mocked network-free like slack-alerts rather than pointed at the real file.
   out = out.replace(
-    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(rate-limit|slack-alerts|cors|appUrl)\.ts["'];?/g,
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(rate-limit|slack-alerts|cors|appUrl|pifGiftEmail)\.ts["'];?/g,
     `import {$1} from "${MOCK.shared}";`,
   );
 

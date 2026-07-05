@@ -306,6 +306,7 @@ export function usePostJobForm() {
     includeMaterials,
     materialsNote,
     saveCardForFuture,
+    pifCreditId: searchParams.get("pif_credit"),
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   });

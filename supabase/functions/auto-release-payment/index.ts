@@ -57,44 +57,67 @@ serve(async (req) => {
     const results: any[] = [];
 
     for (const job of (jobs || [])) {
-      // ── Step 1: Resolve payment intent ID ──
+      // ── Step 0: Pay It Forward detection ──
+      // A PIF-funded job has NO Stripe charge — it was funded from the
+      // platform's prepaid balance when a redeemed pif_credit was applied.
+      // Detect it via a redeemed credit pointing at this job so we can skip
+      // the payment-intent resolution + capture verification (which would
+      // otherwise dead-end at skipped_no_pi and strand the helper's money).
+      // Fail closed on a read error: don't release without knowing.
+      const { data: pifRow, error: pifErr } = await supabaseAdmin
+        .from("pif_credits")
+        .select("id")
+        .eq("job_id", job.id)
+        .eq("status", "redeemed")
+        .limit(1)
+        .maybeSingle();
+      if (pifErr) {
+        console.error(`[auto-release-payment] pif_credits check failed for job ${job.id}:`, pifErr);
+        results.push({ job_id: job.id, status: "pif_check_error", error: pifErr.message });
+        continue;
+      }
+      const isPifFunded = !!pifRow;
+
+      // ── Step 1: Resolve payment intent ID (skipped for PIF — no charge) ──
       let paymentIntentId = job.stripe_payment_intent_id;
 
-      if (!paymentIntentId && job.stripe_session_id) {
-        try {
-          const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
-          paymentIntentId = typeof session.payment_intent === "string"
-            ? session.payment_intent
-            : session.payment_intent?.id;
-          if (paymentIntentId) {
-            await supabaseAdmin.from("jobs").update({
-              stripe_payment_intent_id: paymentIntentId,
-            }).eq("id", job.id);
+      if (!isPifFunded) {
+        if (!paymentIntentId && job.stripe_session_id) {
+          try {
+            const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
+            paymentIntentId = typeof session.payment_intent === "string"
+              ? session.payment_intent
+              : session.payment_intent?.id;
+            if (paymentIntentId) {
+              await supabaseAdmin.from("jobs").update({
+                stripe_payment_intent_id: paymentIntentId,
+              }).eq("id", job.id);
+            }
+          } catch (e) {
+            console.error(`Failed to retrieve session for job ${job.id}:`, e);
           }
-        } catch (e) {
-          console.error(`Failed to retrieve session for job ${job.id}:`, e);
         }
-      }
 
-      if (!paymentIntentId) {
-        console.error(`No payment intent for job ${job.id} — cannot auto-release`);
-        results.push({ job_id: job.id, status: "skipped_no_pi" });
-        continue;
-      }
-
-      // ── Step 2: Verify charge is captured (immediate capture — should be succeeded) ──
-      try {
-        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-        if (pi.status !== "succeeded") {
-          console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — cannot auto-release`);
-          results.push({ job_id: job.id, status: `pi_status_${pi.status}`, skipped: true });
+        if (!paymentIntentId) {
+          console.error(`No payment intent for job ${job.id} — cannot auto-release`);
+          results.push({ job_id: job.id, status: "skipped_no_pi" });
           continue;
         }
-      } catch (e: any) {
-        console.error(`Failed to verify payment for job ${job.id}:`, e);
-        results.push({ job_id: job.id, status: "verify_failed", error: (e as Error).message });
-        continue;
+
+        // ── Step 2: Verify charge is captured (immediate capture — should be succeeded) ──
+        try {
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+          if (pi.status !== "succeeded") {
+            console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — cannot auto-release`);
+            results.push({ job_id: job.id, status: `pi_status_${pi.status}`, skipped: true });
+            continue;
+          }
+        } catch (e: any) {
+          console.error(`Failed to verify payment for job ${job.id}:`, e);
+          results.push({ job_id: job.id, status: "verify_failed", error: (e as Error).message });
+          continue;
+        }
       }
 
       // ── Step 3: Schedule the payout ──

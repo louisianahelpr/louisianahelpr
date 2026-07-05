@@ -8,12 +8,23 @@ export function CreditCard({
   credit,
   onRedeem,
   redeeming,
+  perspective = "received",
 }: {
   credit: PifCredit;
   onRedeem?: (id: string) => void;
   redeeming?: boolean;
+  /** "received" shows who it's from; "sent" shows who it went to. */
+  perspective?: "received" | "sent";
 }) {
   const donorFirst = (credit.donor?.full_name ?? "A neighbor").split(" ")[0];
+  const subline =
+    perspective === "sent"
+      ? `to ${credit.recipient_email ?? "your recipient"}`
+      : `from ${donorFirst}`;
+  // Directed gifts are redeemable while in the "sent" (paid, unredeemed) state;
+  // the legacy pool used "available". Accept either so the button surfaces
+  // correctly during the model transition.
+  const redeemable = credit.status === "sent" || credit.status === "available";
   return (
     <div
       className="rounded-ds-md p-4"
@@ -39,8 +50,7 @@ export function CreditCard({
             className="font-serif italic mt-0.5"
             style={{ fontSize: "0.75rem", color: "hsl(var(--pif-green-soft))" }}
           >
-            from {donorFirst}
-            {credit.parish ? ` · ${credit.parish}` : ""}
+            {subline}
           </p>
         </div>
         <StatusPill status={credit.status} />
@@ -64,7 +74,7 @@ export function CreditCard({
         </p>
       )}
 
-      {onRedeem && credit.status === "available" && (
+      {onRedeem && redeemable && (
         <Button
           size="sm"
           disabled={redeeming}
@@ -76,7 +86,7 @@ export function CreditCard({
             border: "none",
           }}
         >
-          {redeeming ? "Redeeming…" : "Redeem this credit"}
+          {redeeming ? "Opening…" : "Use this gift"}
         </Button>
       )}
     </div>

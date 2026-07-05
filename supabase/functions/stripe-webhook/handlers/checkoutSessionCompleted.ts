@@ -2,6 +2,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { sendPifGiftEmail } from "../../_shared/pifGiftEmail.ts";
 
 export async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
@@ -184,6 +185,207 @@ export async function handleCheckoutSessionCompleted(
         link: "/profile",
       });
       logStep("Background check initiated", { userId: bgcUserId });
+    }
+  }
+
+  // Handle a directed Pay-It-Forward gift — the donor's card just captured, so
+  // MINT the prepaid credit now. The webhook (service-role) is the ONLY writer
+  // of pif_credits; the client mint path was removed so a recipient can never
+  // fabricate or inflate a credit. Everything needed to mint rides in the
+  // session metadata set by create-pif-donation.
+  if (kind === "pif_donation") {
+    const donorId = (session.metadata as any)?.donor_id as string | undefined;
+    const donorName = ((session.metadata as any)?.donor_name as string | undefined)?.trim() || "Someone";
+    const recipientEmail = ((session.metadata as any)?.recipient_email as string | undefined)?.trim().toLowerCase();
+    const amountCents = parseInt((session.metadata as any)?.amount_cents || "0", 10);
+    const giftCategory = ((session.metadata as any)?.category as string | undefined) || "Any";
+    const giftMessage = ((session.metadata as any)?.message as string | undefined) || null;
+    const pifPiId = typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : (session.payment_intent as any)?.id;
+
+    if (!donorId || !recipientEmail || !Number.isFinite(amountCents) || amountCents <= 0) {
+      logStep("WARNING: pif_donation checkout missing required metadata", {
+        donorId, recipientEmail, amountCents,
+      });
+      // A captured donation charge that can't be minted (bad/missing metadata)
+      // is money in with no credit out — a real ledger divergence. Alert ops
+      // instead of only logging, or the gift silently vanishes.
+      postSlackOpsAlert({
+        kind: "custom",
+        severity: "error",
+        title: "Pay It Forward donation — unmintable (bad metadata)",
+        message: "A donor's gift charge captured but the session metadata was missing/invalid, so no credit could be minted. Reconcile manually.",
+        fields: {
+          session_id: session.id,
+          donor_id: donorId ?? "(missing)",
+          recipient_email: recipientEmail ?? "(missing)",
+          amount_cents: String(amountCents),
+        },
+      });
+    } else {
+      // Idempotency: a webhook re-delivery must not double-mint. The credit is
+      // keyed to this checkout session, so skip if one already exists. A FAILED
+      // read here must fail closed — falling through to the insert on a transient
+      // DB error would double-mint on the retried delivery (money from nothing).
+      const { data: existing, error: existErr } = await supabase
+        .from("pif_credits")
+        .select("id")
+        .eq("stripe_session_id", session.id)
+        .maybeSingle();
+      if (existErr) {
+        logStep("ERROR checking existing pif credit — aborting mint (fail closed)", { error: existErr.message, sessionId: session.id });
+        postSlackOpsAlert({
+          kind: "custom",
+          severity: "error",
+          title: "Pay It Forward mint — idempotency check failed",
+          message: "Couldn't verify whether this gift was already minted, so the mint was skipped to avoid a double-credit. Stripe will retry; if it keeps failing, reconcile manually.",
+          fields: { session_id: session.id, donor_id: donorId, recipient_email: recipientEmail, db_error: existErr.message },
+        });
+        return;
+      }
+
+      if (existing) {
+        logStep("pif_donation already minted for session — skipping", { sessionId: session.id });
+      } else {
+        // Resolve the recipient's account if the named email already belongs to
+        // a Helpr user. Otherwise recipient_id stays null and the credit is
+        // claimed via the emailed token when they sign up / sign in.
+        //
+        // SECURITY: only auto-bind to an account whose email is CONFIRMED.
+        // profiles.email is trigger-seeded from auth.users.email at signup —
+        // which exists even for an UNCONFIRMED signup — so binding on the
+        // profile match alone lets an attacker who knows the target address
+        // pre-register it (unconfirmed) and have a directed gift auto-attach to
+        // their account, bypassing the claim flow's email-ownership check. By
+        // requiring email_confirmed_at we prove the account owns the address;
+        // an unconfirmed match falls through to recipient_id=null and must go
+        // through claim-pif-credit (which matches the caller's confirmed JWT
+        // email), so nothing is lost — just no instant in-app bind.
+        const { data: recipientProfile, error: profileErr } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("email", recipientEmail)
+          .maybeSingle();
+        if (profileErr) {
+          // Fails safe (no match → unbound → claimable via token), but never
+          // drop the error silently — log it so a transient lookup outage that
+          // suppresses the instant in-app bind is visible.
+          logStep("WARNING: recipient profile lookup failed — leaving unbound (claim required)", { recipientEmail, error: profileErr.message });
+        }
+        const candidateId = (recipientProfile?.user_id as string | undefined) ?? null;
+        let recipientId: string | null = null;
+        if (candidateId) {
+          const { data: authUser, error: authErr } = await supabase.auth.admin.getUserById(candidateId);
+          if (authErr) {
+            // Can't verify ownership → fail closed on the auto-bind (don't risk
+            // binding to an unconfirmed impostor). The gift still mints; the
+            // real recipient claims it via the emailed token.
+            logStep("WARNING: couldn't verify recipient email confirmation — leaving unbound", { candidateId, error: authErr.message });
+          } else if (authUser?.user?.email_confirmed_at) {
+            recipientId = candidateId;
+          } else {
+            logStep("pif_donation: matched profile email is unconfirmed — not auto-binding (claim required)", { recipientEmail });
+          }
+        }
+
+        // 32 bytes of CSPRNG entropy → the claim link's bearer token.
+        const tokenBytes = new Uint8Array(32);
+        crypto.getRandomValues(tokenBytes);
+        const claimToken = Array.from(tokenBytes, (b) => b.toString(16).padStart(2, "0")).join("");
+
+        const { error: mintErr } = await supabase.from("pif_credits").insert({
+          donor_id: donorId,
+          recipient_id: recipientId,
+          recipient_email: recipientEmail,
+          amount: amountCents / 100,
+          status: "sent",
+          payment_status: "paid",
+          category: giftCategory,
+          message: giftMessage,
+          claim_token: claimToken,
+          stripe_session_id: session.id,
+          stripe_payment_intent_id: pifPiId ?? null,
+        });
+
+        if (mintErr) {
+          logStep("ERROR minting pif credit", { error: mintErr.message, sessionId: session.id });
+          // A captured charge with no credit row is a real money↔ledger
+          // divergence — surface to ops rather than swallowing it.
+          postSlackOpsAlert({
+            kind: "custom",
+            severity: "error",
+            title: "Pay It Forward gift mint failed",
+            message: "A donor's gift charge captured but the pif_credits row was not written. Reconcile manually.",
+            fields: {
+              session_id: session.id,
+              donor_id: donorId,
+              recipient_email: recipientEmail,
+              amount_cents: String(amountCents),
+              db_error: mintErr.message,
+            },
+          });
+        } else {
+          logStep("Pay It Forward gift minted", { sessionId: session.id, recipientEmail, amountCents });
+
+          // In-app notify an already-registered recipient right away.
+          if (recipientId) {
+            await supabase.from("notifications").insert({
+              user_id: recipientId,
+              title: "🎁 You received a Helpr credit!",
+              message: `${donorName} sent you a $${(amountCents / 100).toFixed(0)} credit to use toward any job. Tap to redeem it.`,
+              type: "payment",
+              link: "/pay-it-forward",
+            });
+          }
+
+          // ALWAYS email the named address — the claim link both onboards a
+          // brand-new recipient and doubles as a receipt for a registered one.
+          const emailed = await sendPifGiftEmail({
+            recipientEmail,
+            donorName,
+            amountCents,
+            message: giftMessage,
+            claimToken,
+          });
+          if (!emailed) logStep("WARNING: pif gift email not sent", { recipientEmail, sessionId: session.id });
+        }
+      }
+    }
+  }
+
+  // Pay It Forward — partial (difference) payment completed. The recipient's
+  // gift was RESERVED against this job (create-payment's PIF branch); their
+  // card just covered the shortfall, so consume the reservation now. Idempotent:
+  // the UPDATE only matches a still-'reserved' row, so a webhook re-delivery is
+  // a no-op. The generic job block below sets payment_status → "escrow" and
+  // stores the difference PI, which is all the payout path needs (it detects
+  // PIF funding via this redeemed credit and pays the helper from the platform
+  // balance, not from the difference PI).
+  const pifCreditId = (session.metadata as any)?.pif_credit_id as string | undefined;
+  if (pifCreditId) {
+    const { data: consumed, error: consumeErr } = await supabase
+      .from("pif_credits")
+      .update({ status: "redeemed", redeemed_at: new Date().toISOString() })
+      .eq("id", pifCreditId)
+      .eq("status", "reserved")
+      .select("id")
+      .maybeSingle();
+    if (consumeErr) {
+      logStep("ERROR consuming reserved pif credit", { error: consumeErr.message, pifCreditId });
+      // A captured shortfall with no redeemed credit is a money↔ledger
+      // divergence — surface to ops rather than swallowing it.
+      postSlackOpsAlert({
+        kind: "custom",
+        severity: "error",
+        title: "Pay It Forward difference payment — credit not consumed",
+        message: "A recipient paid the shortfall on a reserved gift but pif_credits was not flipped to redeemed. Reconcile manually.",
+        fields: { session_id: session.id, pif_credit_id: pifCreditId, db_error: consumeErr.message },
+      });
+    } else if (!consumed) {
+      logStep("Reserved pif credit already consumed or missing — skipping", { pifCreditId });
+    } else {
+      logStep("Reserved pif credit consumed on difference payment", { pifCreditId, sessionId: session.id });
     }
   }
 

@@ -59,6 +59,8 @@ export function resetSharedMocks() {
   rateLimitState.retryAfter = 60;
   slackAlerts.length = 0;
   postSlackOpsAlert.mockClear();
+  pifGiftEmails.length = 0;
+  sendPifGiftEmail.mockClear();
 }
 
 export async function checkRateLimit(): Promise<{
@@ -102,4 +104,17 @@ export const slackAlerts: unknown[] = [];
 /** Fire-and-forget Slack alert stub — records the input, never throws. */
 export const postSlackOpsAlert = vi.fn(async (input: unknown) => {
   slackAlerts.push(input);
+});
+
+/** Captures every Pay-It-Forward gift email the function tried to send. */
+export const pifGiftEmails: unknown[] = [];
+
+/**
+ * pifGiftEmail.ts re-export — records the send attempt and reports success
+ * so the webhook's `if (!emailed)` warning branch stays quiet in tests. The
+ * real helper does network I/O (Resend), so it's mocked network-free.
+ */
+export const sendPifGiftEmail = vi.fn(async (opts: unknown) => {
+  pifGiftEmails.push(opts);
+  return true;
 });

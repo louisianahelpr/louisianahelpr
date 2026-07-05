@@ -78,7 +78,7 @@ serve(async (req) => {
 
     // ─── ESCROW: Create checkout with manual capture ───
     if (action === "escrow") {
-      const { jobId, saveCardForFuture } = body;
+      const { jobId, saveCardForFuture, pifCreditId } = body;
       if (!jobId) throw new Error("Missing jobId");
 
       const { data: job, error: jobError } = await supabaseAdmin
@@ -89,6 +89,73 @@ serve(async (req) => {
       // Idempotency: if payment is already in progress or paid, don't create another session
       if (job.stripe_session_id && job.payment_status && job.payment_status !== "unpaid") {
         throw new Error("Payment has already been initiated for this job. If you need to retry, please cancel the existing payment first.");
+      }
+
+      // ─── Pay It Forward redemption ───
+      // A recipient redeeming a directed gift funds the job from the
+      // prepaid donation (already captured into the platform balance at
+      // donate time), so the recipient is charged $0 when the gift covers
+      // the budget — and only the shortfall via Stripe when it doesn't.
+      // The atomic RPC validates ownership + funding + expiry and moves
+      // the money server-side; the client is never trusted with any of it.
+      // A PIF job carries NO recipient service fee, so this short-circuits
+      // before the tier/fee/tax pricing below.
+      if (pifCreditId) {
+        const { data: redeem, error: redeemErr } = await supabaseAdmin.rpc("redeem_pif_credit", {
+          p_credit_id: pifCreditId,
+          p_job_id: jobId,
+          p_user_id: user.id,
+        });
+        if (redeemErr) {
+          console.error(`[create-payment] redeem_pif_credit failed for credit ${pifCreditId}, job ${jobId}:`, redeemErr);
+          throw new Error(redeemErr.message || "Could not redeem this gift — please try again");
+        }
+
+        if (redeem?.outcome === "settled") {
+          // Gift fully covered the budget — job is funded, nothing to charge.
+          return new Response(JSON.stringify({ url: `${getAppUrl()}/payment-success?job_id=${jobId}` }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+          });
+        }
+
+        // Partial: the gift is reserved against the job; collect only the
+        // shortfall. No service fee on a PIF job. The difference session's
+        // webhook (metadata.pif_credit_id) consumes the reservation + funds
+        // the job. Retry is safe: the RPC re-entry returns the same
+        // difference and Stripe dedupes on the per-job idempotency key.
+        const differenceCents = Number(redeem?.difference_cents ?? 0);
+        if (!Number.isFinite(differenceCents) || differenceCents <= 0) {
+          throw new Error("Could not determine the remaining balance for this gift — please try again");
+        }
+        const diffSession = await stripe.checkout.sessions.create({
+          customer: customerId,
+          customer_update: { address: "auto" },
+          line_items: [{
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: `Helpr Task: ${job.title}`,
+                description: "Remaining balance after applying your Pay It Forward gift. Funds release once both parties confirm completion.",
+                tax_code: "txcd_00000000",
+              },
+              unit_amount: differenceCents,
+            },
+            quantity: 1,
+          }],
+          mode: "payment",
+          automatic_tax: { enabled: true },
+          payment_intent_data: {
+            metadata: { job_id: jobId, customer_id: user.id, pif_credit_id: pifCreditId },
+          },
+          success_url: `${getAppUrl()}/payment-success?job_id=${jobId}`,
+          cancel_url: `${getAppUrl()}/post-job`,
+          metadata: { job_id: jobId, customer_id: user.id, pif_credit_id: pifCreditId },
+        }, {
+          idempotencyKey: `pif-diff-${jobId}`,
+        });
+        return new Response(JSON.stringify({ url: diffSession.url }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+        });
       }
 
       // Fail LOUD if platform_settings can't be read — a silent default

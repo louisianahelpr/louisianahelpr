@@ -99,6 +99,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/helperFees.ts";`,
   );
 
+  // Stripe processing-cost floor: `_shared/stripeFees.ts` is likewise pure
+  // TypeScript (plain constants + arithmetic, no Deno/remote imports), so the
+  // generated file points at the REAL module — the actual withholding math the
+  // refund paths use stays under test rather than being mocked away.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeFees\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeFees.ts";`,
+  );
+
   return out;
 }
 

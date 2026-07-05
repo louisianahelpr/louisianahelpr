@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { computeCancellationFee } from "../_shared/cancellationFee.ts";
+import { stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 serve(async (req) => {
@@ -120,7 +121,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, cancellation_fee, date_needed, cancelled_at, helper_id, customer_id")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, cancelled_at, helper_id, customer_id")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -231,13 +232,24 @@ serve(async (req) => {
           // the "Cancel · pay $X" button (both derive from the same ladder),
           // while removing the ability for a helper to skim the refund.
           const cancellationFee = computeCancellationFee(job);
-          // Refund the entire captured amount minus the cancellation fee.
+          // Refund the entire captured amount minus the cancellation fee AND the
+          // non-refundable poster service fee.
           // pi.amount_received is what Stripe actually collected, which is
           // larger than job.budget when a customer service fee, sales tax,
           // urgent fee, or one-time onboarding fee was also charged at checkout.
           // Using job.budget alone left those amounts stranded on the platform
           // and never returned to the customer.
-          const refundAmount = (pi.amount_received ?? pi.amount) - Math.round(cancellationFee * 100);
+          const capturedCents = pi.amount_received ?? pi.amount;
+          // Service fee is non-refundable: Stripe already took 2.9%+$0.30 on the
+          // full capture and does NOT return it on a refund, so refunding the
+          // whole (budget + fee) would leave the platform out-of-pocket by that
+          // processing cost on every cancellation. We withhold the poster's
+          // service fee, floored at Stripe's actual processing cost so the
+          // platform never loses money to fees even on a job whose service fee
+          // is tiny (or missing on legacy/accept_bids rows).
+          const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
+          const nonRefundableCents = Math.max(serviceFeeCents, stripeProcessingCostCents(capturedCents));
+          const refundAmount = capturedCents - Math.round(cancellationFee * 100) - nonRefundableCents;
           if (refundAmount > 0) {
             // Idempotency key prevents a double-refund if the cron overlaps or
             // retries before the payment_status flip at the end of this block.
@@ -255,8 +267,8 @@ serve(async (req) => {
               stripe_payment_intent_id: paymentIntentId,
               amount_cents: Math.round(Number(refund.amount ?? refundAmount)),
               currency: refund.currency ?? "usd",
-              is_partial: cancellationFee > 0,
-              reason: "cancellation refund (minus fee)",
+              is_partial: cancellationFee > 0 || nonRefundableCents > 0,
+              reason: "cancellation refund (minus cancellation + service fee)",
               source: "void_cancelled_payments",
               initiated_by_user_id: null,
             }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
@@ -279,6 +291,36 @@ serve(async (req) => {
                 },
               });
             }
+          } else {
+            // The cancellation fee + non-refundable service fee consumed the
+            // whole capture, so the poster gets $0 back while the job still
+            // settles to refunded below. No ledger row is written in this branch,
+            // so — like the cancel_escrow path — this must NEVER pass silently:
+            // it can be legitimate (a big late-cancel fee) or bad data (a
+            // stale/oversized customer_fee_amount, or a degenerate capturedCents).
+            // Alert ops with the inputs so a human can reconcile.
+            console.error(
+              `[void-cancelled-payments] refundAmount<=0 for job ${job.id} ` +
+                `(capturedCents=${capturedCents}, cancellationFeeCents=${Math.round(cancellationFee * 100)}, ` +
+                `nonRefundableCents=${nonRefundableCents}) — poster refunded $0.`,
+            );
+            const suspicious =
+              !Number.isFinite(capturedCents) || capturedCents <= 0;
+            postSlackOpsAlert({
+              kind: "custom",
+              severity: suspicious ? "warning" : "info",
+              title: "Escrow cancellation resolved with $0 refund",
+              message:
+                "A cron settlement returned nothing to the poster after withholding the cancellation + service fee. Verify this was intended.",
+              fields: {
+                job_id: job.id,
+                payment_intent: paymentIntentId,
+                captured_cents: capturedCents,
+                cancellation_fee_cents: Math.round(cancellationFee * 100),
+                non_refundable_cents: nonRefundableCents,
+                refund_amount: refundAmount,
+              },
+            });
           }
 
           // Transfer the agreed fee to the helper (minus platform commission).
@@ -289,7 +331,7 @@ serve(async (req) => {
             cancellation_fee_status: cancellationFee > 0 ? "charged" : null,
           }).eq("id", job.id);
           refunded++;
-          results.push({ job_id: job.id, title: job.title, status: "refunded", amount: refundAmount / 100, cancellation_fee_transferred: cancellationFee > 0 });
+          results.push({ job_id: job.id, title: job.title, status: refundAmount > 0 ? "refunded" : "zero_refund", amount: Math.max(0, refundAmount) / 100, cancellation_fee_transferred: cancellationFee > 0 });
         } else {
           results.push({ job_id: job.id, title: job.title, status: `pi_status_${pi.status}`, skipped: true });
         }

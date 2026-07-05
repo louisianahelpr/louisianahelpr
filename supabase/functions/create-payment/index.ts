@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
+import { stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
@@ -582,21 +583,67 @@ serve(async (req) => {
       if (job.stripe_payment_intent_id) {
         const pi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
         if (pi.status === "succeeded") {
+          // Service fee is non-refundable: Stripe already took 2.9%+$0.30 on the
+          // full capture and does NOT return it on a refund, so a full refund
+          // leaves the platform out-of-pocket by that processing cost on every
+          // free cancellation. Withhold the poster's service fee, floored at
+          // Stripe's actual processing cost so the platform never loses money to
+          // fees even when the service fee is tiny/missing (legacy/accept_bids).
+          const capturedCents = pi.amount_received ?? pi.amount;
+          const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
+          const nonRefundableCents = Math.max(serviceFeeCents, stripeProcessingCostCents(capturedCents));
+          const refundAmount = capturedCents - nonRefundableCents;
           // Idempotency key prevents a double-refund on concurrent cancel
           // requests (double-tap, network retry) from both succeeding before
           // the payment_status flip below makes the second 409 out.
-          const refund = await stripe.refunds.create(
-            { payment_intent: job.stripe_payment_intent_id },
-            { idempotencyKey: `cancel-escrow-${jobId}` },
-          );
-          await recordRefund(supabaseAdmin, {
-            refund,
-            jobId,
-            customerId: job.customer_id,
-            paymentIntentId: job.stripe_payment_intent_id,
-            source: "cancel_escrow",
-            initiatedByUserId: user.id,
-          });
+          // Skip the refund entirely if the withholding consumes the whole
+          // capture (Stripe rejects a $0 refund); the job still flips cancelled.
+          if (refundAmount > 0) {
+            const refund = await stripe.refunds.create(
+              { payment_intent: job.stripe_payment_intent_id, amount: refundAmount },
+              { idempotencyKey: `cancel-escrow-${jobId}` },
+            );
+            await recordRefund(supabaseAdmin, {
+              refund,
+              jobId,
+              customerId: job.customer_id,
+              paymentIntentId: job.stripe_payment_intent_id,
+              source: "cancel_escrow",
+              isPartial: nonRefundableCents > 0,
+              reason: "escrow cancellation refund (minus non-refundable service fee)",
+              initiatedByUserId: user.id,
+            });
+          } else {
+            // The withholding consumed the whole capture, so the poster gets $0
+            // back while the job still flips to cancelled. That can be legitimate
+            // (a tiny capture entirely eaten by the non-refundable fee) but it can
+            // also mean bad data (a stale/oversized customer_fee_amount, or a
+            // degenerate/NaN capturedCents). Either way it must NEVER pass
+            // silently — no ledger row is written in this branch, so ops is the
+            // only trace. Alert with the inputs so a human can reconcile.
+            console.error(
+              `[create-payment] cancel_escrow: refundAmount<=0 for job ${jobId} ` +
+                `(capturedCents=${capturedCents}, serviceFeeCents=${serviceFeeCents}, ` +
+                `nonRefundableCents=${nonRefundableCents}) — poster refunded $0.`,
+            );
+            const suspicious =
+              !Number.isFinite(capturedCents) || (capturedCents as number) <= 0;
+            postSlackOpsAlert({
+              kind: "custom",
+              severity: suspicious ? "warning" : "info",
+              title: "Escrow cancellation resolved with $0 refund",
+              message:
+                "A cancellation flipped the job to cancelled but returned nothing to the poster. Verify this was intended.",
+              fields: {
+                job_id: jobId,
+                payment_intent: job.stripe_payment_intent_id,
+                captured_cents: capturedCents,
+                service_fee_cents: serviceFeeCents,
+                non_refundable_cents: nonRefundableCents,
+                refund_amount: refundAmount,
+              },
+            });
+          }
         }
       }
 

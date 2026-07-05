@@ -21,7 +21,7 @@ import {
   resetSupabaseMock,
   type SupabaseScenario,
 } from "./mocks/supabase";
-import { rateLimitState, resetSharedMocks } from "./mocks/shared";
+import { rateLimitState, resetSharedMocks, slackAlerts } from "./mocks/shared";
 
 const AUTH = { Authorization: "Bearer test-jwt" };
 const POSTER = { id: "poster-1", email: "poster@test.com" };
@@ -691,7 +691,7 @@ describe("create-payment edge function", () => {
   });
 
   describe("action: cancel_escrow", () => {
-    it("refunds a succeeded payment intent and cancels the job", async () => {
+    it("refunds a succeeded payment intent minus the non-refundable service fee and cancels the job", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = {
         rows: [
@@ -699,12 +699,17 @@ describe("create-payment edge function", () => {
             id: "job-1",
             customer_id: POSTER.id,
             stripe_payment_intent_id: "pi_live",
+            budget: 100,
+            customer_fee_amount: 10,
           },
         ],
       };
+      // $110 captured at checkout ($100 budget + $10 service fee).
       stripeMock.paymentIntents.retrieve.mockResolvedValue({
         id: "pi_live",
         status: "succeeded",
+        amount: 11000,
+        amount_received: 11000,
       });
       stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
       // The atomic state claim (`update … in('payment_status', [escrow,
@@ -719,8 +724,11 @@ describe("create-payment edge function", () => {
         }),
       );
       expect(res.status).toBe(200);
+      // Service fee ($10 = 1000¢) is withheld — Stripe never returns its
+      // processing cut on a refund, so the platform keeps the fee to stay whole.
+      // Poster is refunded $110 − $10 = $100 (10000¢).
       expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-        { payment_intent: "pi_live" },
+        { payment_intent: "pi_live", amount: 10000 },
         { idempotencyKey: "cancel-escrow-job-1" },
       );
       // First jobs update is the "cancelling" claim; the final one flips the
@@ -731,6 +739,57 @@ describe("create-payment edge function", () => {
       expect(
         (jobUpdates[0]?.payload as Record<string, unknown>).payment_status,
       ).toBe("cancelling");
+      const cancelUpdate = jobUpdates[jobUpdates.length - 1];
+      expect((cancelUpdate?.payload as Record<string, unknown>).status).toBe(
+        "cancelled",
+      );
+    });
+
+    it("skips the refund but ALERTS ops when withholding consumes the whole capture ($0 refund)", async () => {
+      seedAuth(scenario, POSTER);
+      // A $2 capture whose entire value is a $2 service fee: withholding the
+      // non-refundable fee leaves nothing to refund. The job must still cancel,
+      // but ops must be alerted because no ledger row records the $0 outcome.
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            stripe_payment_intent_id: "pi_live",
+            budget: 0,
+            customer_fee_amount: 2,
+          },
+        ],
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_live",
+        status: "succeeded",
+        amount: 200,
+        amount_received: 200,
+      });
+      scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: { action: "cancel_escrow", jobId: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(200);
+      // No Stripe refund is attempted (Stripe rejects a $0 refund)…
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      // …but the $0 outcome is surfaced to ops, never silent.
+      expect(
+        slackAlerts.some(
+          (a) =>
+            (a as { title?: string }).title ===
+            "Escrow cancellation resolved with $0 refund",
+        ),
+      ).toBe(true);
+      // The job still flips to cancelled.
+      const jobUpdates = scenario.writes.filter(
+        (w) => w.table === "jobs" && w.op === "update",
+      );
       const cancelUpdate = jobUpdates[jobUpdates.length - 1];
       expect((cancelUpdate?.payload as Record<string, unknown>).status).toBe(
         "cancelled",

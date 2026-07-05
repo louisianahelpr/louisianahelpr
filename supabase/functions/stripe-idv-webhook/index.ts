@@ -15,7 +15,16 @@ serve(async (req) => {
   const webhookSecret = Deno.env.get("STRIPE_IDV_WEBHOOK_SECRET");
 
   if (!stripeKey) {
+    // A missing key means EVERY IDV event is silently dropped. Keep the 200 so
+    // Stripe stops retrying, but page ops — a console line alone would let the
+    // whole identity-verification pipeline sit broken unnoticed.
     console.error("[stripe-idv-webhook] STRIPE_SECRET_KEY not set — acknowledging to stop retries");
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "critical",
+      title: "Stripe IDV webhook misconfigured",
+      message: "STRIPE_SECRET_KEY is not set — every identity-verification event is being dropped (200-ACKed) with no processing.",
+    });
     return new Response(JSON.stringify({ received: true, error: "stripe_key_not_configured" }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -24,8 +33,15 @@ serve(async (req) => {
   if (!webhookSecret) {
     // Return 200 so Stripe stops retrying — same pattern as stripe-webhook.
     // A 500 here causes Stripe to retry every IDV event indefinitely, filling
-    // logs and burning the retry budget.
+    // logs and burning the retry budget. But a silent drop of every IDV event is
+    // an outage, so page ops instead of only logging.
     console.error("[stripe-idv-webhook] STRIPE_IDV_WEBHOOK_SECRET not set — acknowledging to stop retries");
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "critical",
+      title: "Stripe IDV webhook misconfigured",
+      message: "STRIPE_IDV_WEBHOOK_SECRET is not set — every identity-verification event is being dropped (200-ACKed) with no processing.",
+    });
     return new Response(JSON.stringify({ received: true, error: "webhook_secret_not_configured" }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -66,6 +82,29 @@ serve(async (req) => {
     });
   }
 
+  // ---- Replay dedupe ----
+  // Stripe delivers at-least-once: a verified session event can arrive again on
+  // a retry or a dashboard replay. The status writes below are idempotent by
+  // value, but re-running still re-sends the account-status email and re-flags
+  // admins — so record the event.id in the shared ledger and skip a repeat.
+  try {
+    const { error: idemErr } = await supabase
+      .from("stripe_webhook_events")
+      .insert({ event_id: event.id, event_type: event.type });
+    if (idemErr) {
+      if ((idemErr as { code?: string }).code === "23505") {
+        console.log("[stripe-idv-webhook] Duplicate event — already processed, skipping:", event.id);
+        return new Response(JSON.stringify({ received: true, duplicate: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Any other DB error: log but continue. Better to risk a duplicate than drop the event.
+      console.error("[stripe-idv-webhook] Idempotency insert failed (non-fatal):", idemErr);
+    }
+  } catch (e) {
+    console.error("[stripe-idv-webhook] Idempotency check threw (non-fatal):", e);
+  }
+
   try {
     if (
       event.type === "identity.verification_session.verified" ||
@@ -82,11 +121,16 @@ serve(async (req) => {
         });
       }
 
-      // Pull settings for threshold
-      const { data: settings } = await supabase
+      // Pull settings for threshold. A read failure falls back to the default
+      // 85, but don't drop the error silently — log it so a misconfigured/locked
+      // platform_settings row is diagnosable rather than an invisible default.
+      const { data: settings, error: settingsErr } = await supabase
         .from("platform_settings")
         .select("idv_auto_approve_threshold")
         .single();
+      if (settingsErr) {
+        console.error("[stripe-idv-webhook] platform_settings read failed — using default threshold 85:", settingsErr);
+      }
       const threshold = Number(settings?.idv_auto_approve_threshold ?? 85);
 
       let updateData: Record<string, unknown> = { idv_session_id: session.id };
@@ -145,13 +189,16 @@ serve(async (req) => {
       const status = updateData.idv_status as string;
       if (status === "verified") {
         // 1) In-app notification (auto-triggers browser push via useRealtimePush)
-        await supabase.from("notifications").insert({
+        const { error: notifErr } = await supabase.from("notifications").insert({
           user_id: userId,
           title: "✅ Verification Successful",
           message: "Your identity has been verified! You're cleared to start using Helpr.",
           type: "success",
           link: "/dashboard",
         });
+        if (notifErr) {
+          console.error("[stripe-idv-webhook] Failed to insert verified notification:", notifErr);
+        }
 
         // 2) Branded "Verification Successful" email (server-to-server with service role)
         try {
@@ -166,14 +213,17 @@ serve(async (req) => {
         }
       } else if (status === "manual_review" || status === "failed") {
         // Flag admins
-        const { data: admins } = await supabase
+        const { data: admins, error: adminsErr } = await supabase
           .from("user_roles")
           .select("user_id")
           .eq("role", "admin");
+        if (adminsErr) {
+          console.error("[stripe-idv-webhook] Failed to load admins for review flag:", adminsErr);
+        }
 
         if (admins?.length) {
           const reason = status === "failed" ? "failed automated verification" : "needs manual review";
-          await supabase.from("notifications").insert(
+          const { error: adminNotifErr } = await supabase.from("notifications").insert(
             admins.map((a: { user_id: string }) => ({
               user_id: a.user_id,
               title: "⚠️ Identity verification needs review",
@@ -182,15 +232,21 @@ serve(async (req) => {
               link: "/admin",
             }))
           );
+          if (adminNotifErr) {
+            console.error("[stripe-idv-webhook] Failed to insert admin review notifications:", adminNotifErr);
+          }
         }
 
-        await supabase.from("notifications").insert({
+        const { error: userNotifErr } = await supabase.from("notifications").insert({
           user_id: userId,
           title: "Verification under review",
           message: "We couldn't auto-verify your ID. Our team will review it within 24 hours.",
           type: "info",
           link: "/account-pending",
         });
+        if (userNotifErr) {
+          console.error("[stripe-idv-webhook] Failed to insert under-review notification:", userNotifErr);
+        }
       }
     }
 

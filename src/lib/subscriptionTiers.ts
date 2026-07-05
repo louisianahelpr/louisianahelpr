@@ -1,22 +1,31 @@
 /**
- * subscriptionTiers.ts — canonical perk definitions for Free / Helper Pro /
- * Helpr Elite / Business subscription tiers.
+ * subscriptionTiers.ts — canonical perk definitions for Free / Helpr Basic /
+ * Helpr Pro / Helpr Elite subscription tiers, plus the Business tier used only
+ * for fee resolution on business-account helpers.
  *
- * The tier IDs ("free", "pro", "elite", "business") align with the
- * subscription_tier column on profiles. The existing DB uses "pro", "elite",
- * "basic" — "business" is new; "free" is the default/null case.
+ * Prices here MUST equal the live Stripe Price objects (verified):
+ *   basic  $5/mo   $50/yr   pro  $10/mo  $100/yr   elite  $15/mo  $150/yr
+ * `annualPrice` is stored as the monthly-equivalent of the annual plan
+ * (yearly ÷ 12) because the /subscription page renders it as "$X/mo annual".
+ *
+ * The tier IDs align with the subscription_tier column on profiles
+ * ("basic", "pro", "elite"). "business" is acquired through the separate
+ * seats flow (`create-business-seat-checkout`), NOT the consumer upgrade page,
+ * so it is intentionally excluded from the purchasable order but retained here
+ * so a business-account helper still resolves a 6% payout fee. "free" is the
+ * default/null case.
  */
 
-export type SubscriptionTier = "free" | "pro" | "elite" | "business";
+export type SubscriptionTier = "free" | "basic" | "pro" | "elite" | "business";
 
 export interface TierPerks {
   name: string;
   price: number | null;         // monthly USD, null = free
-  annualPrice: number | null;   // billed annually (2 months free), null = free
-  platformFeePercent: number;   // % taken from helper payout — descends as price rises (free 12% → pro 10% → elite 8% → business 6%)
+  annualPrice: number | null;   // annual plan's monthly-equivalent (yearly ÷ 12), null = free
+  platformFeePercent: number;   // % taken from helper payout — descends as price rises (free 12% → basic 11% → pro 10% → elite 8% → business 6%)
   priorityPlacement: boolean;   // application floated higher in poster's recommended list
   featuredBadge: boolean;       // gold/crown badge on profile and applicant cards
-  earlyAccess: boolean;         // sees new jobs 10 min before non-subscribers
+  earlyAccess: boolean;         // sees new jobs before non-subscribers (basic 5m / pro 10m / elite 20m)
   advancedAnalytics: boolean;   // earnings trends, category breakdown, best hours
   multiTech: boolean;           // business: manage a team of technicians under one account
   verifiedBusiness: boolean;    // business: verified entity badge surfaced to posters
@@ -41,14 +50,29 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     tagline: "Get started, no commitment",
     ctaLabel: "Current plan",
   },
+  basic: {
+    name: "Helpr Basic",
+    price: 5,
+    annualPrice: 4.17,
+    platformFeePercent: 11,
+    priorityPlacement: true,
+    featuredBadge: true,
+    earlyAccess: true,
+    advancedAnalytics: false,
+    multiTech: false,
+    verifiedBusiness: false,
+    dedicatedSupport: false,
+    tagline: "Great for an occasional weekend job",
+    ctaLabel: "Get Basic",
+  },
   pro: {
     name: "Helpr Pro",
-    price: 9.99,
-    annualPrice: 7.99,
+    price: 10,
+    annualPrice: 8.33,
     platformFeePercent: 10,
     priorityPlacement: true,
     featuredBadge: false,
-    earlyAccess: false,
+    earlyAccess: true,
     advancedAnalytics: true,
     multiTech: false,
     verifiedBusiness: false,
@@ -58,8 +82,8 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
   },
   elite: {
     name: "Helpr Elite",
-    price: 24.99,
-    annualPrice: 19.99,
+    price: 15,
+    annualPrice: 12.5,
     platformFeePercent: 8,
     priorityPlacement: true,
     featuredBadge: true,
@@ -84,7 +108,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     verifiedBusiness: true,
     dedicatedSupport: true,
     tagline: "For companies, contractors, and crews",
-    ctaLabel: "Upgrade to Business",
+    ctaLabel: "Contact sales",
   },
 };
 
@@ -117,7 +141,7 @@ export function getPaysSelfBack(
 
 /** Map a raw subscription_tier string (may be null) to the canonical type. */
 export function toSubscriptionTier(raw: string | null | undefined): SubscriptionTier {
-  if (raw === "pro" || raw === "elite" || raw === "business") return raw;
+  if (raw === "basic" || raw === "pro" || raw === "elite" || raw === "business") return raw;
   return "free";
 }
 
@@ -127,8 +151,8 @@ export function toSubscriptionTier(raw: string | null | undefined): Subscription
  * if the `expire-subscriptions` cron hasn't nulled the column yet — this mirrors
  * the edge payout resolver (`_shared/helperFees.ts` `getHelperFeePercent`) so the
  * commission the UI SHOWS a helper matches the fee their payout is actually
- * charged. The ladder is identical for poster and helper (free 12 / pro 10 /
- * elite 8 / business 6). Case is normalized so "PRO" resolves like "pro".
+ * charged. The ladder is identical for poster and helper (free 12 / basic 11 /
+ * pro 10 / elite 8 / business 6). Case is normalized so "PRO" resolves like "pro".
  */
 export function tierFeePercent(
   rawTier: string | null | undefined,

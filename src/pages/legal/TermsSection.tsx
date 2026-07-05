@@ -85,8 +85,8 @@ export const TermsContent = () => (
         title="Split fee model"
         body={
           <>
-            <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite, {TIER_PERKS.business.platformFeePercent}% Business (minimum covers card processing on small jobs).</p>
-            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.pro.platformFeePercent}% Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% Helpr Elite, {TIER_PERKS.business.platformFeePercent}% Business.</p>
+            <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Basic, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite, {TIER_PERKS.business.platformFeePercent}% Business (minimum covers card processing on small jobs).</p>
+            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Helpr Basic, {TIER_PERKS.pro.platformFeePercent}% Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% Helpr Elite, {TIER_PERKS.business.platformFeePercent}% Business.</p>
             <p><strong className="text-foreground">Total platform take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> $5 for priority placement.</p>
           </>
@@ -130,7 +130,7 @@ export const TermsContent = () => (
     <PolicySection
       icon={Crown}
       title="Subscription tiers"
-      subtitle="Free, Helpr Pro, Helpr Elite, and Business plans"
+      subtitle="Free, Helpr Basic, Helpr Pro, Helpr Elite, and Business plans"
       anchorId="subscription-tiers"
     >
       <PolicyRowItem
@@ -139,6 +139,7 @@ export const TermsContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Free:</strong> standard access at a {TIER_PERKS.free.platformFeePercent}% platform fee.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.basic.name}:</strong> {legalFmtMo(TIER_PERKS.basic.price)} — reduced {TIER_PERKS.basic.platformFeePercent}% platform fee.</p>
             <p><strong className="text-foreground">{TIER_PERKS.pro.name}:</strong> {legalFmtMo(TIER_PERKS.pro.price)} — reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
             <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)} — lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
             <p><strong className="text-foreground">{TIER_PERKS.business.name}:</strong> {legalFmtMo(TIER_PERKS.business.price)} — team tools and a {TIER_PERKS.business.platformFeePercent}% platform fee.</p>

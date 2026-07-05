@@ -127,8 +127,8 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           title="Platform Fees"
           body={
             <>
-              <p><strong className="text-foreground">Poster Service Fee:</strong> added at checkout based on your plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.pro.platformFeePercent}% on Pro, {TIER_PERKS.elite.platformFeePercent}% on Elite, {TIER_PERKS.business.platformFeePercent}% on Business (a minimum applies so small jobs still cover card processing).</p>
-              <p><strong className="text-foreground">Helpr Platform Fee:</strong> deducted from the Helpr's payout based on plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.pro.platformFeePercent}% on Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% on Helpr Elite.</p>
+              <p><strong className="text-foreground">Poster Service Fee:</strong> added at checkout based on your plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.basic.platformFeePercent}% on Basic, {TIER_PERKS.pro.platformFeePercent}% on Pro, {TIER_PERKS.elite.platformFeePercent}% on Elite, {TIER_PERKS.business.platformFeePercent}% on Business (a minimum applies so small jobs still cover card processing).</p>
+              <p><strong className="text-foreground">Helpr Platform Fee:</strong> deducted from the Helpr's payout based on plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.basic.platformFeePercent}% on Helpr Basic, {TIER_PERKS.pro.platformFeePercent}% on Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% on Helpr Elite.</p>
               <p><strong className="text-foreground">Total Platform Take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee above.</p>
               <p><strong className="text-foreground">Urgent Job Fee:</strong> $5 fee for posters who mark a job as urgent.</p>
               <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>

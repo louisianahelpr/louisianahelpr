@@ -13,12 +13,13 @@ import {
   type SubscriptionTier,
 } from "./subscriptionTiers";
 
-const PAID_TIERS: SubscriptionTier[] = ["pro", "elite", "business"];
+const PAID_TIERS: SubscriptionTier[] = ["basic", "pro", "elite", "business"];
 const ALL_TIERS: SubscriptionTier[] = ["free", ...PAID_TIERS];
 
 describe("TIER_PERKS fee model", () => {
-  it("uses the documented platform fee per tier (12 / 10 / 8 / 6)", () => {
+  it("uses the documented platform fee per tier (12 / 11 / 10 / 8 / 6)", () => {
     expect(TIER_PERKS.free.platformFeePercent).toBe(12);
+    expect(TIER_PERKS.basic.platformFeePercent).toBe(11);
     expect(TIER_PERKS.pro.platformFeePercent).toBe(10);
     expect(TIER_PERKS.elite.platformFeePercent).toBe(8);
     expect(TIER_PERKS.business.platformFeePercent).toBe(6);
@@ -34,6 +35,9 @@ describe("TIER_PERKS fee model", () => {
 
   it("descends strictly as the tier rises (higher tier never pays more)", () => {
     expect(TIER_PERKS.free.platformFeePercent).toBeGreaterThan(
+      TIER_PERKS.basic.platformFeePercent,
+    );
+    expect(TIER_PERKS.basic.platformFeePercent).toBeGreaterThan(
       TIER_PERKS.pro.platformFeePercent,
     );
     expect(TIER_PERKS.pro.platformFeePercent).toBeGreaterThan(
@@ -48,6 +52,7 @@ describe("TIER_PERKS fee model", () => {
     // keep% = 100 − fee%. This is the number the Legal page and in-feed
     // preview promise, so guard it directly.
     expect(100 - TIER_PERKS.free.platformFeePercent).toBe(88);
+    expect(100 - TIER_PERKS.basic.platformFeePercent).toBe(89);
     expect(100 - TIER_PERKS.pro.platformFeePercent).toBe(90);
     expect(100 - TIER_PERKS.elite.platformFeePercent).toBe(92);
     expect(100 - TIER_PERKS.business.platformFeePercent).toBe(94);
@@ -62,12 +67,14 @@ describe("TIER_PERKS fee model", () => {
       // than the monthly rate for every paid tier.
       expect(TIER_PERKS[tier].annualPrice!).toBeLessThan(TIER_PERKS[tier].price!);
     }
+    expect(TIER_PERKS.basic.price!).toBeLessThan(TIER_PERKS.pro.price!);
     expect(TIER_PERKS.pro.price!).toBeLessThan(TIER_PERKS.elite.price!);
     expect(TIER_PERKS.elite.price!).toBeLessThan(TIER_PERKS.business.price!);
   });
 
   it("carries the current tier display names (rebrand guard)", () => {
     expect(TIER_PERKS.free.name).toBe("Free");
+    expect(TIER_PERKS.basic.name).toBe("Helpr Basic");
     expect(TIER_PERKS.pro.name).toBe("Helpr Pro");
     expect(TIER_PERKS.elite.name).toBe("Helpr Elite");
     expect(TIER_PERKS.business.name).toBe("Business");
@@ -85,22 +92,22 @@ describe("getPaysSelfBack", () => {
   });
 
   it("says it pays for itself once monthly savings cover the price", () => {
-    // pro: saved/job = (0.12 − 0.10) * 100 = $2; over 10 jobs = $20 ≥ $9.99.
-    // jobsNeeded = ceil(9.99 / 2) = 5.
-    expect(getPaysSelfBack("pro", 100, 10)).toBe(
-      "Pays for itself after just 5 jobs/month",
+    // pro: saved/job = (0.12 − 0.10) * 200 = $4; over 10 jobs = $40 ≥ $10.
+    // jobsNeeded = ceil(10 / 4) = 3.
+    expect(getPaysSelfBack("pro", 200, 10)).toBe(
+      "Pays for itself after just 3 jobs/month",
     );
   });
 
   it("uses the singular 'job' when a single job covers the price", () => {
-    // pro: saved/job = (0.12 − 0.10) * 500 = $10 ≥ $9.99 → jobsNeeded = 1.
-    expect(getPaysSelfBack("pro", 500, 1)).toBe(
+    // pro: saved/job = (0.12 − 0.10) * 600 = $12 ≥ $10 → jobsNeeded = 1.
+    expect(getPaysSelfBack("pro", 600, 1)).toBe(
       "Pays for itself after just 1 job/month",
     );
   });
 
   it("falls back to a monthly-savings message when it doesn't fully pay off", () => {
-    // pro: saved/job = $2; over 3 jobs = $6 < $9.99 → "Save $6/month...".
+    // pro: saved/job = $2; over 3 jobs = $6 < $10 → "Save $6/month...".
     expect(getPaysSelfBack("pro", 100, 3)).toBe(
       "Save $6/month on fees at 3 jobs",
     );
@@ -117,6 +124,7 @@ describe("getPaysSelfBack", () => {
 
 describe("toSubscriptionTier", () => {
   it("passes through the canonical paid tier ids", () => {
+    expect(toSubscriptionTier("basic")).toBe("basic");
     expect(toSubscriptionTier("pro")).toBe("pro");
     expect(toSubscriptionTier("elite")).toBe("elite");
     expect(toSubscriptionTier("business")).toBe("business");
@@ -129,10 +137,9 @@ describe("toSubscriptionTier", () => {
     expect(toSubscriptionTier("free")).toBe("free");
   });
 
-  it("maps unknown / legacy values (e.g. the old 'basic') to free", () => {
-    // The DB historically used "basic"; it must not leak through as-is.
-    expect(toSubscriptionTier("basic")).toBe("free");
+  it("maps unknown / legacy values to free", () => {
     expect(toSubscriptionTier("enterprise")).toBe("free");
+    expect(toSubscriptionTier("premium")).toBe("free");
   });
 
   it("is case-sensitive — only lowercase ids match", () => {

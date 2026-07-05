@@ -3,7 +3,7 @@
  *
  * Document-scroll page (listed in DOCUMENT_SCROLL_ROUTES) with:
  *  1. Current plan card
- *  2. Tier comparison cards (Free / Pro / Elite / Business)
+ *  2. Tier comparison cards (Free / Basic / Pro / Elite)
  *  3. Collapsible full perk comparison table
  *  4. FAQ section
  *
@@ -16,7 +16,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Crown, CheckCircle, Minus, ChevronDown, ChevronUp,
-  Sparkles, Briefcase, Star, Loader2, HelpCircle, ArrowRight,
+  Sparkles, Briefcase, Star, Sprout, Loader2, HelpCircle, ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
@@ -34,7 +34,10 @@ import {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-const TIER_ORDER: SubscriptionTier[] = ["free", "pro", "elite", "business"];
+// Business is acquired through the seats flow (create-business-seat-checkout),
+// not this consumer upgrade page, so it is intentionally omitted here — leaving
+// it in would render a card whose checkout has no Stripe price and 500s.
+const TIER_ORDER: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
 
 // Representative values used for "pays for itself" math on-card.
 const AVG_JOB = 80;
@@ -46,6 +49,8 @@ function tierAccent(tier: SubscriptionTier): { color: string; soft: string } {
       return { color: "hsl(var(--gold-warm))", soft: "hsl(var(--gold-warm) / 0.14)" };
     case "pro":
       return { color: "hsl(var(--burnt-sienna))", soft: "hsl(var(--burnt-sienna) / 0.12)" };
+    case "basic":
+      return { color: "hsl(var(--bark))", soft: "hsl(var(--bark) / 0.12)" };
     case "business":
       return { color: "hsl(var(--bark))", soft: "hsl(var(--bark) / 0.12)" };
     default:
@@ -56,8 +61,9 @@ function tierAccent(tier: SubscriptionTier): { color: string; soft: string } {
 function TierIcon({ tier, className }: { tier: SubscriptionTier; className?: string }) {
   if (tier === "elite") return <Crown className={className} strokeWidth={2.1} />;
   if (tier === "pro") return <Sparkles className={className} strokeWidth={2.1} />;
+  if (tier === "basic") return <Star className={className} strokeWidth={2.1} />;
   if (tier === "business") return <Briefcase className={className} strokeWidth={2.1} />;
-  return <Star className={className} strokeWidth={2.1} />;
+  return <Sprout className={className} strokeWidth={2.1} />;
 }
 
 // Perk rows for the full comparison table.
@@ -65,7 +71,7 @@ const PERK_ROWS: Array<{ label: string; key: keyof typeof TIER_PERKS.free }> = [
   { label: "Platform fee", key: "platformFeePercent" },
   { label: "Priority placement", key: "priorityPlacement" },
   { label: "Featured badge", key: "featuredBadge" },
-  { label: "10-min early access", key: "earlyAccess" },
+  { label: "Early job access", key: "earlyAccess" },
   { label: "Advanced analytics", key: "advancedAnalytics" },
   { label: "Dedicated support", key: "dedicatedSupport" },
   { label: "Multi-tech team", key: "multiTech" },
@@ -295,25 +301,24 @@ export default function SubscriptionPage() {
                         <PerkBullet color={color}>Access to all open jobs</PerkBullet>
                         <PerkBullet color={color}>Basic applicant visibility</PerkBullet>
                       </>
+                    ) : tier === "basic" ? (
+                      <>
+                        <PerkBullet color={color}>{perks.platformFeePercent}% platform fee (save {TIER_PERKS.free.platformFeePercent - perks.platformFeePercent}%)</PerkBullet>
+                        <PerkBullet color={color}>Priority placement + Helpr badge</PerkBullet>
+                        <PerkBullet color={color}>5-minute early job access</PerkBullet>
+                      </>
                     ) : tier === "pro" ? (
                       <>
                         <PerkBullet color={color}>{perks.platformFeePercent}% platform fee (save {TIER_PERKS.free.platformFeePercent - perks.platformFeePercent}%)</PerkBullet>
                         <PerkBullet color={color}>Priority placement in applicant list</PerkBullet>
-                        <PerkBullet color={color}>Advanced earnings analytics</PerkBullet>
-                      </>
-                    ) : tier === "elite" ? (
-                      <>
-                        <PerkBullet color={color}>{perks.platformFeePercent}% platform fee (save {TIER_PERKS.free.platformFeePercent - perks.platformFeePercent}%)</PerkBullet>
-                        <PerkBullet color={color}>Featured crown badge on profile & cards</PerkBullet>
-                        <PerkBullet color={color}>10-minute early job access</PerkBullet>
-                        <PerkBullet color={color}>Priority support response</PerkBullet>
+                        <PerkBullet color={color}>10-minute early access + advanced analytics</PerkBullet>
                       </>
                     ) : (
                       <>
-                        <PerkBullet color={color}>{perks.platformFeePercent}% fee (save {TIER_PERKS.free.platformFeePercent - perks.platformFeePercent}%) + verified business badge</PerkBullet>
-                        <PerkBullet color={color}>Multi-tech team management</PerkBullet>
-                        <PerkBullet color={color}>Featured badge + early access</PerkBullet>
-                        <PerkBullet color={color}>Dedicated support SLA</PerkBullet>
+                        <PerkBullet color={color}>{perks.platformFeePercent}% platform fee (save {TIER_PERKS.free.platformFeePercent - perks.platformFeePercent}%)</PerkBullet>
+                        <PerkBullet color={color}>Featured crown badge on profile & cards</PerkBullet>
+                        <PerkBullet color={color}>20-minute early job access</PerkBullet>
+                        <PerkBullet color={color}>Priority support response</PerkBullet>
                       </>
                     )}
                   </ul>
@@ -347,13 +352,7 @@ export default function SubscriptionPage() {
                           disabled={upgrading}
                           className="mt-1 inline-flex items-center justify-center gap-1 px-3 h-7 rounded-full font-sans font-bold text-[0.7rem] transition active:scale-[0.96] disabled:opacity-60"
                           style={{
-                            background: `linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 48%), ${
-                              isElite
-                                ? "hsl(var(--gold-warm))"
-                                : tier === "pro"
-                                  ? "hsl(var(--bark))"
-                                  : "hsl(var(--olivewood))"
-                            }`,
+                            background: `linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 48%), ${color}`,
                             color: "#fff",
                             boxShadow: `inset 0 1px 0 0 rgba(255,255,255,0.45), 0 3px 8px -2px ${soft}`,
                           }}
@@ -422,7 +421,7 @@ export default function SubscriptionPage() {
                     </th>
                     {TIER_ORDER.map((t) => (
                       <th key={t} className="px-2 py-2 text-center font-sans text-ds-11 font-bold" style={{ color: tierAccent(t).color }}>
-                        {t === "free" ? "Free" : TIER_PERKS[t].name.split(" ")[t === "pro" ? 1 : 0]}
+                        {t === "free" ? "Free" : TIER_PERKS[t].name.replace(/^Helpr\s+/, "")}
                       </th>
                     ))}
                   </tr>

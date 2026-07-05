@@ -618,16 +618,44 @@ describe("create-payment edge function", () => {
   });
 
   describe("action: tip", () => {
-    it("rejects a non-positive tip amount", async () => {
+    it("rejects a non-numeric tip amount", async () => {
       seedAuth(scenario, POSTER);
       const fn = await load();
       const res = await fn.fetch(
         fn.request({
           headers: AUTH,
-          body: { action: "tip", jobId: "job-1", amount: 0 },
+          body: { action: "tip", jobId: "job-1", amount: "abc" },
         }),
       );
       expect((await json(res)).error).toMatch(/invalid tip amount/i);
+    });
+
+    it("rejects a sub-$1 tip below the fee-crossover floor", async () => {
+      seedAuth(scenario, POSTER);
+      const fn = await load();
+      // A $0.25 tip would make the application_fee_amount (≥30¢) exceed the
+      // charge, which Stripe rejects — the floor turns that into a clean error.
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: { action: "tip", jobId: "job-1", amount: 0.25 },
+        }),
+      );
+      expect((await json(res)).error).toMatch(/between \$1 and \$1,000/i);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a tip above the $1,000 ceiling", async () => {
+      seedAuth(scenario, POSTER);
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: { action: "tip", jobId: "job-1", amount: 5000 },
+        }),
+      );
+      expect((await json(res)).error).toMatch(/between \$1 and \$1,000/i);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     });
 
     it("only the customer may tip, and only on a completed job", async () => {
@@ -683,6 +711,10 @@ describe("create-payment edge function", () => {
       expect(args.payment_intent_data.transfer_data.destination).toBe(
         "acct_helper",
       );
+      // The tip covers its own Stripe fee: the platform retains exactly the
+      // processing cost as the application fee (round(1500*0.029)+30 = 74),
+      // so the helper nets tip-minus-fee and the platform never subsidizes it.
+      expect(args.payment_intent_data.application_fee_amount).toBe(74);
       // tips ledger row written
       expect(
         scenario.writes.some((w) => w.table === "tips" && w.op === "insert"),

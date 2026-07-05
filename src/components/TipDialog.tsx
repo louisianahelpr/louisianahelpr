@@ -47,7 +47,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><Gift className="w-3 h-3" /> A little extra</>}
           title={`Send a tip${helperName ? ` to ${helperName}` : ""}.`}
-          subtitle="Pure thanks — goes straight to the Helpr, no platform cut."
+          subtitle="Pure thanks — no platform cut, just the small card-processing fee."
         />
         <div className="space-y-4">
           {/* Suggested amounts — celebratory tier-styled pills first

@@ -463,7 +463,19 @@ serve(async (req) => {
     // ─── TIP ───
     if (action === "tip") {
       const { jobId, amount } = body;
-      if (!jobId || !amount || amount <= 0) throw new Error("Missing jobId or invalid tip amount");
+      if (!jobId) throw new Error("Missing jobId");
+      // `amount` is raw client JSON — validate it as a finite, bounded number
+      // BEFORE any money math. A $1 floor keeps the tip safely above both
+      // Stripe's 50¢ charge minimum AND the fee-crossover (a sub-32¢ tip would
+      // have an application_fee_amount ≥ the charge, which Stripe rejects); the
+      // $1,000 ceiling bounds a fat-finger / abusive charge.
+      if (typeof amount !== "number" || !Number.isFinite(amount)) {
+        throw new Error("Invalid tip amount");
+      }
+      const tipCents = Math.round(amount * 100);
+      if (tipCents < 100 || tipCents > 100_000) {
+        throw new Error("Tips must be between $1 and $1,000");
+      }
 
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
@@ -488,13 +500,21 @@ serve(async (req) => {
         throw new Error("Could not verify the helper's payout account — please try again");
       }
 
+      // The tip covers its OWN Stripe processing fee — the platform never eats
+      // it. On a destination charge the Stripe fee is debited from the platform
+      // balance, so we retain exactly that many cents as the application fee;
+      // the helper's transfer nets tip-minus-fee and the platform breaks even.
+      // (`tipCents` is validated + bounded above; the $1 floor guarantees
+      // tipFeeCents < tipCents so Stripe never rejects the fee.)
+      const tipFeeCents = stripeProcessingCostCents(tipCents);
+
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         line_items: [{
           price_data: {
             currency: "usd",
-            product_data: { name: `Tip — ${job.title}`, description: "Thank you tip. 100% goes to the recipient." },
-            unit_amount: Math.round(amount * 100),
+            product_data: { name: `Tip — ${job.title}`, description: "Thank you tip. The small card-processing fee is deducted so the platform never subsidizes it." },
+            unit_amount: tipCents,
           },
           quantity: 1,
         }],
@@ -503,6 +523,7 @@ serve(async (req) => {
           transfer_data: {
             destination: helperProfile.stripe_account_id,
           },
+          application_fee_amount: tipFeeCents,
         } : undefined,
         success_url: `${getAppUrl()}/my-posts?tip=success`,
         cancel_url: `${getAppUrl()}/my-posts`,
@@ -511,7 +532,7 @@ serve(async (req) => {
         // Dedupe client retries (double-tap, network retry) without blocking a
         // deliberate repeat tip later: same job+tipper+amount collapses to one
         // session (and one pending `tips` row) within a 10-minute bucket.
-        idempotencyKey: `tip-${jobId}-${user.id}-${Math.round(amount * 100)}-${Math.floor(Date.now() / 600_000)}`,
+        idempotencyKey: `tip-${jobId}-${user.id}-${tipCents}-${Math.floor(Date.now() / 600_000)}`,
       });
 
       // Ledger row for the webhook to reconcile against. The idempotency key
@@ -531,7 +552,9 @@ serve(async (req) => {
       if (!existingTip) {
         const { error: tipInsertErr } = await supabaseAdmin.from("tips").insert({
           job_id: jobId, tipper_id: user.id, helper_id: helperId,
-          amount, stripe_session_id: session.id, payment_status: "pending",
+          // Persist the canonical charged value (tipCents/100), NOT the raw
+          // float, so the ledger can never disagree with what Stripe charged.
+          amount: tipCents / 100, stripe_session_id: session.id, payment_status: "pending",
         });
         if (tipInsertErr) {
           console.error(`[create-payment] tip — ledger insert failed for session ${session.id} (job ${jobId}):`, tipInsertErr);

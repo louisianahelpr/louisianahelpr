@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { formatName } from "@/lib/utils";
+import { formatPrice } from "@/lib/format";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil, Play, Plus, Sparkles, Star, X } from "lucide-react";
@@ -410,7 +411,7 @@ export function ApplicantsPanel({
                                       color: "hsl(var(--sage))",
                                     }}
                                   >
-                                    Bid: ${bidApp.proposed_price}
+                                    Bid: ${formatPrice(bidApp.proposed_price ?? 0)}
                                   </span>
                                   {!isCounterShowing && app.status === "pending" && (
                                     <button

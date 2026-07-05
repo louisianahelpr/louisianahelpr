@@ -1,4 +1,4 @@
-import { formatJobDate } from "@/lib/format";
+import { formatJobDate, formatPrice } from "@/lib/format";
 import { payoutStatusLabel } from "@/lib/statusLabels";
 import type { PayoutLedgerRow } from "./types";
 
@@ -19,8 +19,8 @@ export function RecentTransfers({ payoutLedger }: RecentTransfersProps) {
         {payoutLedger.map((t) => {
           const jobTitle = (t.jobs as { title?: string } | null)?.title ?? "Job";
           const date = formatJobDate(t.created_at);
-          const amount = (t.amount_cents / 100).toFixed(2);
-          const fee = (t.platform_fee_cents / 100).toFixed(2);
+          const amount = formatPrice(t.amount_cents / 100);
+          const fee = formatPrice(t.platform_fee_cents / 100);
           const tone =
             t.status === "paid" ? "bg-primary/10 text-primary"
             : t.status === "failed" ? "bg-destructive/10 text-destructive"
@@ -50,7 +50,7 @@ export function RecentTransfers({ payoutLedger }: RecentTransfersProps) {
                   <p className="font-display italic font-bold tabular-nums" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}>
                     ${amount}
                   </p>
-                  {Number(fee) > 0 && (
+                  {t.platform_fee_cents > 0 && (
                     <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
                       fee ${fee}
                     </p>

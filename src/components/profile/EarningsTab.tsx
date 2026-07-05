@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { formatPrice } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
@@ -262,8 +263,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         {!loading && (
           <div className="grid grid-cols-3 gap-2">
             {[
-              { icon: TrendingUp, label: "Total", value: `$${totalEarnings.toFixed(2)}`, sub: `${completedJobs.length} jobs` },
-              { icon: Gift, label: "Tips", value: `$${totalTips.toFixed(2)}`, sub: `${tips.length} tips` },
+              { icon: TrendingUp, label: "Total", value: `$${formatPrice(totalEarnings)}`, sub: `${completedJobs.length} jobs` },
+              { icon: Gift, label: "Tips", value: `$${formatPrice(totalTips)}`, sub: `${tips.length} tips` },
               { icon: Briefcase, label: "Active", value: String(inProgressJobs.length), sub: "in progress" },
             ].map(({ icon: Icon, label, value, sub }) => (
               <div key={label} className="rounded-ds-md liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">

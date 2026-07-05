@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 import { MapPin, TrendingUp } from "lucide-react";
+import { formatPrice } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 
@@ -79,14 +80,14 @@ const AdminParishActivity = () => {
               <div className="flex-1 min-w-0">
                 <p className="text-ds-13 font-medium text-foreground truncate">{r.parish}</p>
                 <p className="text-ds-11 text-muted-foreground">
-                  {r.active_jobs} active · {r.helper_count} Helprs
+                  {r.active_jobs} active · {r.helper_count} Helpr{r.helper_count === 1 ? "" : "s"}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-ds-13 font-bold text-foreground tabular-nums">${r.revenue_30d.toFixed(0)}</p>
+                <p className="text-ds-13 font-bold text-foreground tabular-nums">${formatPrice(r.revenue_30d)}</p>
                 <p className="text-ds-11 text-primary flex items-center gap-0.5 justify-end">
                   <TrendingUp className="w-2.5 h-2.5" />
-                  {r.completed_jobs_30d} jobs
+                  {r.completed_jobs_30d} job{r.completed_jobs_30d === 1 ? "" : "s"}
                 </p>
               </div>
             </div>

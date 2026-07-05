@@ -74,13 +74,13 @@ describe("business seat-tier config (single source of truth)", () => {
     expect(featured[0]?.key).toBe("team");
   });
 
-  it("maps each PAID tier key to the correct existing Stripe Price ID; Free has none", () => {
-    // These are the pre-existing Stripe Price IDs, kept as-is. See the ⚠️ caveat
-    // in _shared/businessSeatTiers.ts: they still charge the OLD amounts until a
-    // human updates the Stripe Price objects in the dashboard.
+  it("maps each PAID tier key to the correct live Stripe Price ID; Free has none", () => {
+    // LIVE recurring Prices charging the canonical amounts. Crew/Team were
+    // re-created 2026-07-05 at $20/$30 (old under-charging IDs retired);
+    // Enterprise's $40 price was already correct and is unchanged.
     expect(BUSINESS_SEAT_TIER_TO_PRICE).toEqual({
-      crew: "price_1TQKGYKp2H4b7tECTmOd0rp7",
-      team: "price_1TQKGZKp2H4b7tECwr664UEh",
+      crew: "price_1TpvLSKp2H4b7tECkJALCpxj",
+      team: "price_1TpvLdKp2H4b7tECODF3U9RJ",
       enterprise: "price_1TQKGaKp2H4b7tECp6ZNxarR",
     });
     // Starter/Free is intentionally absent — it has no checkout.

@@ -14,16 +14,10 @@
 //
 // Plain TS (no Deno imports at module scope) so vitest can import it directly.
 //
-// ─────────────────────────────────────────────────────────────────────────
-// ⚠️  STRIPE PRICE OBJECTS STILL CHARGE THE OLD AMOUNTS. The stripePriceId
-// values below are the pre-existing Stripe Price IDs, which are configured in
-// the Stripe dashboard to charge the OLD amounts ($10 / $20 / $40 at 5 / 10 /
-// 15 seats) — NOT the canonical amounts shown here. This config fixes only the
-// DISPLAYED figures + the tier→price mapping. To make Stripe actually CHARGE
-// the canonical amounts ($20 / $30 / $40 at 2 / 3 / 4+ seats), a human must
-// update (or replace) the Stripe Price objects in the Stripe dashboard. Until
-// then, the number a user sees will not match the amount Stripe bills.
-// ─────────────────────────────────────────────────────────────────────────
+// The stripePriceId values below are LIVE recurring Prices that charge the
+// canonical amounts shown here ($20 Crew / $30 Team / $40 Enterprise, monthly).
+// Stripe Price objects are immutable, so the Crew/Team prices were re-created
+// (2026-07-05) at the correct amounts and the old under-charging IDs retired.
 
 export type BusinessSeatTierKey = "starter" | "crew" | "team" | "enterprise";
 
@@ -38,9 +32,8 @@ export interface BusinessSeatTier {
   priceCents: number;
   featured: boolean;
   /**
-   * Stripe Price ID for the paid tiers, or null for Free (no checkout). See the
-   * caveat above: these IDs still charge the OLD amounts until a human updates
-   * the Stripe Price objects in the dashboard.
+   * Stripe Price ID for the paid tiers, or null for Free (no checkout). These
+   * are LIVE recurring Prices that charge the canonical amount shown above.
    */
   stripePriceId: string | null;
 }
@@ -62,7 +55,7 @@ export const BUSINESS_SEAT_TIERS: readonly BusinessSeatTier[] = [
     priceLabel: "$20",
     priceCents: 2000,
     featured: false,
-    stripePriceId: "price_1TQKGYKp2H4b7tECTmOd0rp7", // ⚠️ still charges $10 at 5 seats — update in Stripe dashboard.
+    stripePriceId: "price_1TpvLSKp2H4b7tECkJALCpxj", // LIVE $20/mo (created 2026-07-05; retired old $10 price_1TQKGY…).
   },
   {
     key: "team",
@@ -71,7 +64,7 @@ export const BUSINESS_SEAT_TIERS: readonly BusinessSeatTier[] = [
     priceLabel: "$30",
     priceCents: 3000,
     featured: true,
-    stripePriceId: "price_1TQKGZKp2H4b7tECwr664UEh", // ⚠️ still charges $20 at 10 seats — update in Stripe dashboard.
+    stripePriceId: "price_1TpvLdKp2H4b7tECODF3U9RJ", // LIVE $30/mo (created 2026-07-05; retired old $20 price_1TQKGZ…).
   },
   {
     key: "enterprise",
@@ -80,7 +73,7 @@ export const BUSINESS_SEAT_TIERS: readonly BusinessSeatTier[] = [
     priceLabel: "$40",
     priceCents: 4000,
     featured: false,
-    stripePriceId: "price_1TQKGaKp2H4b7tECp6ZNxarR", // ⚠️ still charges $40 at 15 seats — update in Stripe dashboard.
+    stripePriceId: "price_1TQKGaKp2H4b7tECp6ZNxarR", // LIVE $40/mo — already at the canonical amount, unchanged.
   },
 ] as const;
 

@@ -405,7 +405,7 @@ export function BudgetSection({
         {isUrgent && (
           <div className="space-y-3">
             <p className="text-ds-11 text-muted-foreground">
-              ⚡ Your job will be highlighted and nearby Helprs notified immediately. The urgent bonus goes directly to the Helpr — no platform fee applied.
+              ⚡ For jobs that need doing right away. Nearby Helprs are notified the moment you post, and your bonus goes straight to the Helpr who takes it — no platform fee applied. (To reach more Helprs over time, Boost the post after publishing instead.)
             </p>
             <Label className="text-ds-11">Urgent bonus ($5 minimum)</Label>
             <div className="flex flex-wrap gap-2">

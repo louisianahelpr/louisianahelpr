@@ -71,7 +71,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             </>
           }
           title="Boost your job."
-          subtitle="Featured placement and a Boosted badge for 24 hours."
+          subtitle="24 hours of featured placement to reach more Helprs."
         />
         <div className="space-y-3">
           {/* Price card — parchment-gold pill recipe (matches Tip + Payout).
@@ -141,7 +141,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             {[
               "Featured placement at the top of the browse feed",
               "Gold \"Boosted\" badge on your post",
-              "More applications, faster",
+              "More applicants to choose from",
             ].map((perk) => (
               <li
                 key={perk}

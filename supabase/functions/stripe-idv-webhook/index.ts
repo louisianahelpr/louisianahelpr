@@ -75,8 +75,17 @@ serve(async (req) => {
   } catch (err) {
     // Return 200 (not 400) to stop Stripe from retrying. A signature failure
     // here means either a wrong secret or a tampered payload — neither is
-    // fixable by retrying. Log loudly so ops can diagnose config issues.
+    // fixable by retrying. Alert ops: a misconfigured STRIPE_IDV_WEBHOOK_SECRET
+    // silently drops every IDV event, breaking the entire identity-verification
+    // pipeline with no visible signal — same alerting pattern as stripe-webhook.
     console.error("[stripe-idv-webhook] Signature verification failed:", err);
+    postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "critical",
+      title: "Stripe IDV webhook signature failed",
+      message: "Stripe IDV webhook signature verification failed — identity verification events are being acknowledged but not processed. Check `STRIPE_IDV_WEBHOOK_SECRET`.",
+      fields: { Error: String(err).slice(0, 200) },
+    });
     return new Response(JSON.stringify({ received: true, error: "signature_verification_failed" }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

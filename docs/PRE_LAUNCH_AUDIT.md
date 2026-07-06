@@ -1,6 +1,6 @@
 # Louisiana Helpr — Pre-Launch Audit
 
-**Date:** 2026-07-06 (follow-on money/webhook pass) · base grading pass 2026-07-05
+**Date:** 2026-07-06 (cohesion sweep: `/evacuation` chrome + contact-email unify · money/webhook follow-on) · base grading pass 2026-07-05
 **Auditor:** Lead Product Engineer pass (static review of shipping tree `src/` + `supabase/`, gate runs, source-existence checks)
 **Build target:** App Store Connect v1.0.x · `appId: com.Helpr`
 **Method:** Static code review + gate runs + parallel read-only source sweep (money, security/RLS, trust/safety/lifecycle, silent-failure/cohesion). The 2026-07-05 pass was grading-only; the 2026-07-06 follow-on **applied fixes** (webhook fail-closed, idempotency-key identity, TOCTOU, fail-closed lifecycle reads) verified by three review agents + the full gate. Supersedes the 2026-07-03/04 report.
@@ -51,13 +51,23 @@ Alongside these two, the follow-on pass also resolved **F-MONEY-03** (idempotenc
 
 No 🔴 blockers were found. The core money, escrow, auth, RLS, and Apple-1.2 UGC-moderation surfaces are fundamentally sound: idempotency keys are stably derived on **every** charge path, payouts fail closed, escrow stays held while disputed, single-winner accept is row-locked, location views are coordinate-masked for anon, no secrets ship in the client bundle, and admin endpoints are server-authorized with an audit log. The app can charge real money safely today.
 
-The conditional part is **four 🟠 High findings** that should be triaged before cutting the App Store build — none blocks the money path, but two are privacy/trust cracks that App Review and real shared-device users will hit:
+The conditional part is **no longer any open High finding** — all four Highs
+that once carried this verdict (F-PRIV-01 push-token privacy, F-TRUST-01/02
+message-moderation integrity, F-MONEY-01/02 price-config drift) are **fixed and
+verified in the shipping tree** (commit `2b4ef513`; re-verified 2026-07-06 —
+`signOutWithPushCleanup` routed through all 14 sign-out sites, the
+`flagged_hidden` read-mirror present in all three `useMessagesData` reads, and
+the Stripe price map extracted to `_shared/proTiers.ts` with a parity test). The
+verdict stays **CONDITIONAL** for one reason only: the remaining gaps are
+*verification*, not code — no full iOS-sim visual pass, no live Stripe test-mode
+charge runs, and Playwright e2e is CI-only. Everything code-side that this audit
+found is resolved.
 
-**Top risks, in priority order:**
-1. **F-PRIV-01 🟠 — Push token never cleared on logout.** `unregisterPushOnSignOut()` is defined (`nativePush.ts:341`) but has **zero call sites** in `src/`. On a shared/handed-off phone, user A logs out and still receives A's push notifications while B is signed in. Privacy leak.
-2. **F-TRUST-02 🟠 — A "hidden" flagged message is still readable by the recipient.** The message thread query (`useMessagesData.ts:118-125`) has no `flagged_hidden=false` filter; "hidden" only suppresses the *notification*, not the row.
-3. **F-TRUST-01 🟠 — The off-platform-contact scanner hides-but-delivers server-side.** `scan_message_content()` sets `flagged_hidden := true` then `RETURN NEW` — the row is still inserted. The actual block is client-only (`sendHandlers.ts`); a direct PostgREST insert bypasses it.
-4. **F-MONEY-01/02 🟠 — Price-config drift.** Stripe price IDs are hardcoded in `create-pro-checkout` and `create-business-seat-checkout`, decoupled from `subscriptionTiers.ts`. A price change in config does not change what Stripe charges until the dashboard is manually updated — the displayed price and the charged price can silently diverge.
+**Historical top risks (all now ✅ resolved), for the record:**
+1. **F-PRIV-01 🟠 — Push token never cleared on logout.** ✅ `signOutWithPushCleanup()` (`authSignOut.ts:17`) clears `push_tokens` before `auth.signOut()`; all sign-out sites route through it; failure is reported, not silent.
+2. **F-TRUST-02 🟠 — A "hidden" flagged message readable by the recipient.** ✅ All three thread reads now carry `.or("sender_id.eq.${userId},flagged_hidden.eq.false")` (`useMessagesData.ts:129/232/270`).
+3. **F-TRUST-01 🟠 — Scanner hides-but-delivers server-side.** ✅ Resolved by product decision (keep store-hide-strike model) + F-TRUST-02's read filter closes the recipient-read path.
+4. **F-MONEY-01/02 🟠 — Price-config drift.** ✅ Price map extracted to `_shared/proTiers.ts` (re-exported to client, drift-guarded by `proTiers.parity.test.ts`); business seats already on `businessSeatTiers.ts`.
 
 Everything else is 🟡 Medium / 🟢 Low hardening.
 
@@ -105,15 +115,15 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 ### 🔴 Blockers
 **None.**
 
-### 🟠 High
+### 🟠 High — all resolved
 
-| ID | file:line | Finding | Fix |
-|---|---|---|---|
-| **F-PRIV-01** | `src/lib/nativePush.ts:341` | `unregisterPushOnSignOut()` defined but **never called** (0 grep hits in `src/`). Logged-out device keeps receiving the prior user's push. Shared-device privacy leak. | Call it in the sign-out path (auth `signOut` handler) with the current `user.id` **before** the session is torn down. |
-| **F-TRUST-02** | `src/pages/messages/useMessagesData.ts:118-125` | Message query selects `*` with only a sender/receiver `OR` filter — **no `flagged_hidden=false`**. A scanner-hidden message is still returned to and rendered for the recipient. "Hidden" only skips the notification. | Add `.eq("flagged_hidden", false)` to the query (and ideally an RLS `SELECT USING (flagged_hidden = false OR sender_id = auth.uid())` so the sender still sees their own). |
-| **F-TRUST-01** | `supabase/migrations/20260618170000_scan_message_spelled_phone_and_warn.sql:48-83` | `scan_message_content()` sets `NEW.flagged_hidden := true` then `RETURN NEW` — the contraband row is still inserted. The real block is client-only (`sendHandlers.ts:170-184`); a direct PostgREST call bypasses it. | For a hard block, `RAISE EXCEPTION` on match in the trigger (server-enforced), or keep hide-semantics but ensure F-TRUST-02's read filter is in place so hidden never reaches the recipient. Decide hide-vs-reject (see pop-up). |
-| **F-MONEY-01** | `supabase/functions/create-pro-checkout/index.ts:8-24` | Membership Stripe price IDs hardcoded in a `PRICE_MAP`, decoupled from `subscriptionTiers.ts`. Displayed price (config) and charged price (Stripe) can diverge silently. Idempotency key `pro:${user.id}:${tier}` verified clean. | Drive the price off a single source: read the Stripe price from config keyed to `subscriptionTiers.ts`, or add a `subscriptionTiers.test.ts` assertion that the map matches config amounts, so drift fails a gate. |
-| **F-MONEY-02** | `supabase/functions/create-business-seat-checkout/index.ts:10-11` | Same class as F-MONEY-01 for business-seat pricing — Stripe charges the OLD amount until the dashboard is manually updated. Key `bizseat:` verified clean. | Same fix as F-MONEY-01; tie seat price to config + guard with a test. |
+| ID | file:line | Finding | Fix | Status |
+|---|---|---|---|---|
+| **F-PRIV-01** | `src/lib/authSignOut.ts:17` (was `nativePush.ts:341` unwired) | `unregisterPushOnSignOut()` defined but **never called**. Logged-out device kept receiving the prior user's push. Shared-device privacy leak. | `signOutWithPushCleanup()` clears the user's `push_tokens` **before** `auth.signOut()` (RLS-scoped delete precedes session teardown); all sign-out sites route through it; the delete error/exception is reported to monitoring, not silent. | ✅ Fixed (`2b4ef513`) |
+| **F-TRUST-02** | `src/pages/messages/useMessagesData.ts:129/232/270` | Message reads selected `*` with only a sender/receiver `OR` filter — **no `flagged_hidden=false`**. A scanner-hidden message was still rendered for the recipient. | All three thread-content reads now carry `.or("sender_id.eq.${userId},flagged_hidden.eq.false")` — an exact client mirror of the server RLS policy; sender still sees their own flagged message; all three surface their Supabase error. | ✅ Fixed (`2b4ef513`) |
+| **F-TRUST-01** | `supabase/migrations/20260618170000_scan_message_spelled_phone_and_warn.sql:48-83` | `scan_message_content()` sets `NEW.flagged_hidden := true` then `RETURN NEW` — contraband row still inserted; the block was client-only. | **Resolved by product decision:** keep store-hide-strike. A `RAISE EXCEPTION` hard-reject would roll back the trigger's own `fraud_flags` INSERT + auto-suspend + notification (losing repeat-offender tracking); the recipient-read path is now closed by F-TRUST-02. | ✅ Resolved (no code change) |
+| **F-MONEY-01** | `supabase/functions/create-pro-checkout/index.ts` | Membership Stripe price IDs hardcoded, decoupled from `subscriptionTiers.ts`. Displayed price (config) and charged price (Stripe) could diverge silently. | Price map extracted to a single source of truth (`_shared/proTiers.ts`), re-exported to client (`src/lib/proTiers.ts`), drift-guarded by `proTiers.parity.test.ts` (ties the cent ledger back to `subscriptionTiers.ts` + locks the Stripe Price IDs). | ✅ Fixed (`2b4ef513`) |
+| **F-MONEY-02** | `supabase/functions/create-business-seat-checkout/index.ts` | Same class for business-seat pricing. | Already on the single-source pattern via `businessSeatTiers.ts`; verified. | ✅ Fixed |
 
 ### 🟡 Medium
 
@@ -166,8 +176,8 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 **Per-surface:**
 | Surface | Score | Note |
 |---|---|---|
-| Auth / session | 4 | Solid; F-PRIV-01 token-on-logout gap |
-| Messaging / trust | **3** | F-TRUST-01/02 hide-but-deliver |
+| Auth / session | **5** | F-PRIV-01 token-on-logout gap resolved (`signOutWithPushCleanup`) |
+| Messaging / trust | **4** | F-TRUST-01/02 resolved (read-mirror + product decision); off-platform scanner store-hide-strike by design |
 | RLS / security | 5 | Mutations revoked from anon, definers pinned |
 | Location privacy | 5 | Masked everywhere for anon |
 | Admin console | 5 | Authorized + logged; F-RT-01/02 unfiltered channels confirmed by-design (admin oversight feeds, nonce'd + documented) |
@@ -178,10 +188,12 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 
 ## Prioritized punch list
 
-**Must-fix before build (App Review + shared-device reality):**
-1. F-PRIV-01 — wire `unregisterPushOnSignOut` into sign-out.
-2. F-TRUST-02 — filter `flagged_hidden=false` in the message read (+ RLS).
-3. F-TRUST-01 — decide hide-vs-reject; if reject, `RAISE EXCEPTION` server-side.
+**Must-fix before build — ✅ ALL CLEARED (2026-07-05, commit `2b4ef513`):**
+1. ✅ F-PRIV-01 — `signOutWithPushCleanup` wired through all 14 sign-out sites; token delete precedes `auth.signOut()`; failure reported.
+2. ✅ F-TRUST-02 — `flagged_hidden=false` read-mirror added to all three `useMessagesData` reads.
+3. ✅ F-TRUST-01 — decided: keep hide-strike (product decision); recipient-read path closed by F-TRUST-02.
+
+No open High or Blocker remains. The must-fix-before-build list is empty.
 
 **Done this pass (2026-07-06, commit `b9da5bfd`):**
 - ✅ F-WEBHOOK-01/02 — both Stripe webhooks fail closed (rollback dedupe + 500) so a transient error can't strand a paid event.
@@ -196,8 +208,16 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 - ✅ F-RT-01/02 — reclassified by-design (admin oversight feeds); intent documented in-code, already nonce'd.
 - ✅ Observability — ops alerts added on tip-flip and BGC-record failures; 7 invalid `severity: "error"` Slack calls normalized to `"critical"`.
 
+**Done this pass (2026-07-06, cohesion sweep — commits `f2baf055`, `f607bd92`):**
+- ✅ **F-CHROME-01** — `/evacuation` (Pet Evacuation Help) was a public web route that dropped the shared marketing nav + footer (rendered a bare `min-h-screen` wrapper). Wrapped in `PublicLayout` so the web surface carries global chrome exactly like its sibling verticals (`/discharge`, `/insurance-claim`); added `/evacuation` to `DOCUMENT_SCROLL_ROUTES` so the `app-shell` 100dvh lock is not double-applied to the now-document-scroll layout. DOM-verified at 1440 (nav→h1→footer stacking, zero overflow) and 375 (`html.app-shell` absent, nav+footer present). Native surface unchanged (`PublicLayout` still renders `AppShell` on `isNativePlatform`).
+- ✅ **F-COHESION-01** — `CancelSurveyDialog` was the lone contact affordance still pointing at `hello@louisianahelpr.com`; unified both occurrences (mailto href + display text) to the canonical `admin@louisianahelpr.com`. This was the only non-`admin@` contact email in `src/`.
+
 **Deferred (hardening / structural):**
 - F-LIFE-01 server transition-ordering guard · F-TRUST-03 server-side export · F-TRUST-04 storage/Stripe purge · F-PRIV-02 per-device token delete · F-TYPE-01 drop `as any`.
+
+**Open recommendations (product/positioning — not defects, no code owed):**
+- **"Task marketplace" vs "job" terminology.** SEO meta + Navbar tagline use "task marketplace" / "Everyday Tasks" (`Navbar.tsx:240`, `Index.tsx:134/137`) while in-app copy standardizes on "job". Recommend **keeping "task marketplace" in SEO/meta** (it's a search keyword users type) but the visible Navbar tagline is a softer call — unify to "job" only if the marketing voice should match in-app. Not a defect; flagged for a deliberate call.
+- **Tier-ladder shorthand.** `subscriptionTiers.ts` ships 5 tiers (Free / Helpr Basic / Helpr Pro / Helpr Elite / Business); some brief prose uses "Free / Pro / Elite" shorthand. Config is the source of truth and the app is consistent with it — the shorthand is a summary, not a contradiction. No change needed.
 
 ---
 
@@ -211,5 +231,6 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 - **Stripe/storage cascade on delete** — confirmed the account-delete guard fails closed, but did not trace that storage objects + Stripe customer are actually removed (F-TRUST-04).
 - **Instant-job-match / group-job per-slot escrow** — not driven; per-slot escrow sum correctness asserted only from reading.
 - **No Stripe test-mode charges run** — prod Stripe is live-keyed; no test-card runs were executed this session.
-- **No iOS-sim / browser visual pass** — this was a code-grading pass; no rendered-screen verification at breakpoints or on WKWebView.
+- **Browser visual pass — partial.** The `/evacuation` chrome fix (F-CHROME-01) was verified in Chrome by **measured DOM geometry** (nav present, footer present, nav→content→footer stacking order, `documentElement.scrollWidth <= clientWidth` zero-overflow assertions) at 1440 and 375, and the `html.app-shell` class absence confirmed at 375. This is geometry-verified, not screenshot-verified: the Playwright screenshot tool hit a hard 5s backend timeout this session (fonts-loaded then stall, identical before/after a CSS animation-freeze injection — a tooling limit, not a page defect), so pixel screenshots weren't captured. Every OTHER route's visual/breakpoint pass remains unrun.
+- **No iOS-sim / WKWebView visual pass** — no rendered-screen verification on the native surface this session. The iOS sim is signed into a real user (view-only constraint), so authed-flow screenshotting was out of scope; a dedicated `npx cap run ios` pass is still owed for full completeness.
 - **Playwright e2e** — not run (CI-only gate).

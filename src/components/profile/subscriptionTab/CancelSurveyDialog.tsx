@@ -79,11 +79,11 @@ export const CancelSurveyDialog = ({
             </span>{" "}
             Email{" "}
             <a
-              href="mailto:hello@louisianahelpr.com?subject=Considering cancelling — can we help?"
+              href="mailto:admin@louisianahelpr.com?subject=Considering cancelling — can we help?"
               className="underline"
               style={{ color: "hsl(var(--bark))" }}
             >
-              hello@louisianahelpr.com
+              admin@louisianahelpr.com
             </a>{" "}
             and we'll see what we can do — including discounted retention rates.
           </p>

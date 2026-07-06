@@ -1,15 +1,50 @@
 # Louisiana Helpr — Pre-Launch Audit
 
-**Date:** 2026-07-05
+**Date:** 2026-07-06 (follow-on money/webhook pass) · base grading pass 2026-07-05
 **Auditor:** Lead Product Engineer pass (static review of shipping tree `src/` + `supabase/`, gate runs, source-existence checks)
 **Build target:** App Store Connect v1.0.x · `appId: com.Helpr`
-**Method:** Static code review + gate runs + parallel read-only source sweep (money, security/RLS, trust/safety/lifecycle, silent-failure/cohesion). This is a **grading** pass — no code was changed. Supersedes the 2026-07-03/04 report.
+**Method:** Static code review + gate runs + parallel read-only source sweep (money, security/RLS, trust/safety/lifecycle, silent-failure/cohesion). The 2026-07-05 pass was grading-only; the 2026-07-06 follow-on **applied fixes** (webhook fail-closed, idempotency-key identity, TOCTOU, fail-closed lifecycle reads) verified by three review agents + the full gate. Supersedes the 2026-07-03/04 report.
+
+---
+
+## 2026-07-06 follow-on — money/webhook hardening (fixes applied, commit `b9da5bfd`)
+
+This pass re-ran the money+silent-failure sweep and found that both Stripe webhooks
+could **permanently strand a paid event** on a transient handler error. All items
+below were fixed, reviewed (code-reviewer, silent-failure-hunter, security-auditor),
+and shipped green.
+
+| ID | file:line | Finding | Fix | Status |
+|----|-----------|---------|-----|--------|
+| **F-WEBHOOK-01** 🟠 | `supabase/functions/stripe-webhook/index.ts:131-206` | Dedupe row was inserted into `stripe_webhook_events` **before** the handler ran; on handler failure the fn returned **HTTP 200**, so Stripe never retried and the dedupe row blocked every future replay. A transient DB/Stripe blip → a paid event (subscription grant, escrow funding, credit mint) lost forever. | On handler failure, **roll back** the just-inserted dedupe row (`rollbackIdempotency()`, no-op when we didn't insert it) and return **500** so Stripe redelivers and re-runs the idempotent handler. Mirrors the proven `verification-webhook` pattern. Ops alert (`postSlackOpsAlert`, severity `critical`) if the rollback delete itself fails — closes the observability gap on the exact strand it eliminates. | ✅ Fixed |
+| **F-WEBHOOK-02** 🟠 | `supabase/functions/stripe-idv-webhook/index.ts` | Same fail-open pattern in the Identity webhook — an IDV status event dropped on a transient error would never re-apply. | Same fail-closed rollback + 500 + rollback-fail ops alert. | ✅ Fixed |
+| **F-MONEY-04** 🟠 | `supabase/functions/create-pro-checkout/index.ts` | Stripe idempotency key was `pro:${user.id}:${tier}` — **omitted `billing_cycle`**. A monthly→annual switch within Stripe's 24h key window could replay the *wrong-priced* session. | Key now `pro:${user.id}:${tier}:${billing_cycle}` — the full operation identity. | ✅ Fixed |
+| **F-MONEY-05** 🟡 | `supabase/functions/expire-subscriptions/index.ts` | TOCTOU: SELECT-expired-then-UPDATE where the UPDATE filtered only by `user_id` — a subscription that **renewed** in the gap would be wrongly downgraded. | Re-assert the predicate on the UPDATE (`.lt("subscription_expires_at", now)`), so only still-expired rows are nulled. | ✅ Fixed |
+| **F-LIFE-02** 🟡 | `src/pages/activity/activityActions/useLifecycleHandlers.ts` | Several money/state gate reads (`job_checkins`, `jobs` proof URLs, prior no-show count) dropped the Supabase `error` — a read failure fell through as falsy, letting a repeat offender escape a ban or a job cancel past a status it couldn't verify. | Capture every `error`, `report()` it, and **fail closed** (toast + return) on the gate reads; ban/warn/reopen writes are report-and-continue. | ✅ Fixed |
+
+### Reviewer-surfaced follow-ups (open, structural — deferred)
+
+| ID | file | Finding | Why deferred | Severity |
+|----|------|---------|--------------|----------|
+| **F-WEBHOOK-03** | `stripe-webhook/handlers/*.ts`, `stripe-idv-webhook` | The fail-closed retry re-runs the handler, so **non-idempotent notification inserts and status emails double-fire** (tip/bgc/PIF notifications; IDV "verified" email). | Multi-file structural change (dedupe notifications by event id / upsert). A duplicate notification is a far lower-severity annoyance than the paid-event loss F-WEBHOOK-01 removed. | 🟡 Medium |
+| **F-LIFE-03** | `useLifecycleHandlers.ts` (`handleNoShow` fallback) | Ban → ban-status → reopen writes are report-and-continue, so a mid-sequence failure can leave a **half-applied ban** (banned flag set, job not reopened, or vice-versa). | Needs a transactional RPC to be atomic; pre-existing structure on the PGRST202 fallback path only. | 🟡 Medium |
 
 ---
 
 ## Executive Summary
 
 ### Readiness verdict: 🟢 **CONDITIONAL GO**
+
+> **Update 2026-07-06:** the follow-on pass fixed the two remaining High money cracks
+> (**F-WEBHOOK-01/02** — webhooks that could permanently strand a paid event) plus two
+> Mediums (idempotency-key identity, expire-subscriptions TOCTOU) and the lifecycle
+> fail-closed reads. **All six 🟠 High findings across both passes are now resolved and
+> shipped green** (`b9da5bfd`). Verdict stays CONDITIONAL — not because a High remains,
+> but because the remaining conditions are *verification* gaps, not code gaps: no iOS-sim
+> visual pass, no Stripe test-mode charge runs, Playwright e2e is CI-only, and prod RLS
+> was asserted from migrations rather than re-introspected. Two Medium structural
+> follow-ups (F-WEBHOOK-03 retry double-notify, F-LIFE-03 ban atomicity) are documented
+> and deferred.
 
 No 🔴 blockers were found. The core money, escrow, auth, RLS, and Apple-1.2 UGC-moderation surfaces are fundamentally sound: idempotency keys are stably derived on **every** charge path, payouts fail closed, escrow stays held while disputed, single-winner accept is row-locked, location views are coordinate-masked for anon, no secrets ship in the client bundle, and admin endpoints are server-authorized with an audit log. The app can charge real money safely today.
 
@@ -41,7 +76,7 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 | Typecheck | `tsc -b --noEmit` | ✅ exit 0, clean |
 | Lint | `eslint .` | ✅ exit 0, 0 warnings |
 | Build | `vite build` | ✅ exit 0, built in ~31s, PWA precache 16 entries |
-| Unit tests | `npx vitest run` | ⚠️ Flaky under load (45 failed / 1235 passed in the contended full run); **green in isolation** (`button.test.tsx` 11/11 in 26s). Failures were the most trivial render tests — signature of resource exhaustion, not logic regressions. vitest is NOT in CI. |
+| Unit tests | `npx vitest run` | ✅ 2026-07-06: **1287/1287 pass** (133 files) after updating the stripe-webhook test to the new fail-closed contract (500 + `received:false` + rollback-delete). vitest is NOT in CI — this local run is the only safety net on a direct-to-main admin push. |
 | Playwright e2e | (CI-required) | Not run this session — required CI gate, runs on PR only; direct-to-main admin push bypasses it. |
 
 **Largest shipped JS chunks (gzip):** jspdf 129.5kB · CartesianChart 85.4kB · sentry 70.9kB · posthog 68.7kB · supabase 52.1kB · html2canvas 46.8kB · leaflet 44.9kB. (jspdf + html2canvas are the PDF-export path; both are heavy and candidates for lazy-loading behind the export action.)
@@ -81,7 +116,7 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 
 | ID | file:line | Finding | Fix |
 |---|---|---|---|
-| **F-MONEY-03** | `supabase/functions/stripe-webhook/index.ts:140-142` | Idempotency-insert error path **continues** rather than aborting; a genuine insert failure could allow re-processing. Signature verification confirmed present (`:100`). | On idempotency-insert failure, distinguish "already processed" (skip, 200) from "insert errored" (return non-2xx so Stripe retries) rather than falling through. |
+| **F-MONEY-03** | `supabase/functions/stripe-webhook/index.ts:136-152` | Idempotency-**insert** error path (non-23505) still **continues** rather than aborting; a genuine insert failure could allow re-processing. Distinct from F-WEBHOOK-01, which fixed the **handler** error path. Signature verification confirmed present (`:100`). Now lower-risk: with F-WEBHOOK-01 in place, the surviving concern is only a rare duplicate-process, no longer a strand. | On idempotency-insert failure, distinguish "already processed" (skip, 200) from "insert errored" (return non-2xx so Stripe retries) rather than falling through. |
 | **F-LIFE-01** | `src/components/JobTracking.tsx:270-279` | No server-side transition-ordering guard. The column whitelist (migration `20260703161000`) limits WHICH columns update, not ORDER — a direct UPDATE can set `helper_arrived_at` while `status` is still `open`. | Add a status-machine guard in the RPC/trigger (`UPDATE ... WHERE status = <expected_prior>`), so "arrive" can't precede "accept". |
 | **F-RT-01** | `src/pages/Admin.tsx:343-345` | `postgres_changes` `event:"*"` with no server-side `filter` — admin-only, but an unfiltered platform-wide firehose. | Scope the channel with a server-side filter; admin-only limits blast radius but the pattern violates the realtime rule. |
 | **F-RT-02** | `src/components/admin/AdminNotificationLogs.tsx:104-105` | INSERT subscription with no filter (admin-only). | Same as F-RT-01. |
@@ -122,8 +157,8 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 | Idempotency | 5 | Stable keys on every path |
 | Escrow integrity | 5 | Held while disputed, fails closed |
 | Payout safety | 5 | Ledger-first, verified, alerted |
-| Price-source-of-truth | **3** | F-MONEY-01/02 hardcoded Stripe IDs |
-| Webhook integrity | 4 | Signed; F-MONEY-03 insert-error fallthrough |
+| Price-source-of-truth | 4 | F-MONEY-01/02 fixed (single source); F-MONEY-04 idempotency-key identity fixed |
+| Webhook integrity | **4** | Signed; F-WEBHOOK-01/02 now fail closed + retry-safe; F-MONEY-03 insert-error fallthrough + F-WEBHOOK-03 retry double-notify remain |
 
 **Per-surface:**
 | Surface | Score | Note |
@@ -145,13 +180,18 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 2. F-TRUST-02 — filter `flagged_hidden=false` in the message read (+ RLS).
 3. F-TRUST-01 — decide hide-vs-reject; if reject, `RAISE EXCEPTION` server-side.
 
-**Quick wins:**
-4. F-MONEY-01/02 — add a config-vs-Stripe price assertion test so drift fails a gate.
-5. F-MONEY-03 — return non-2xx on idempotency-insert error so Stripe retries.
-6. F-RT-01/02 — scope the two admin realtime channels.
+**Done this pass (2026-07-06, commit `b9da5bfd`):**
+- ✅ F-WEBHOOK-01/02 — both Stripe webhooks fail closed (rollback dedupe + 500) so a transient error can't strand a paid event.
+- ✅ F-MONEY-04 — `create-pro-checkout` idempotency key now includes `billing_cycle`.
+- ✅ F-MONEY-05 — `expire-subscriptions` re-asserts the expiry predicate on UPDATE (TOCTOU).
+- ✅ F-LIFE-02 — `useLifecycleHandlers` gate reads fail closed + `report()` the error.
 
-**Deferred (hardening):**
-7. F-LIFE-01 server transition-ordering guard · F-TRUST-03 server-side export · F-TRUST-04 storage/Stripe purge · F-PRIV-02 per-device token delete · F-TYPE-01 drop `as any`.
+**Quick wins (still open):**
+4. F-MONEY-03 — return non-2xx on idempotency-**insert** error so Stripe retries (handler path already fixed; insert path remains).
+5. F-RT-01/02 — scope the two admin realtime channels.
+
+**Deferred (hardening / structural):**
+6. F-WEBHOOK-03 dedupe notification/email inserts on the retry path · F-LIFE-03 make `handleNoShow` ban writes atomic (RPC) · F-LIFE-01 server transition-ordering guard · F-TRUST-03 server-side export · F-TRUST-04 storage/Stripe purge · F-PRIV-02 per-device token delete · F-TYPE-01 drop `as any`.
 
 ---
 

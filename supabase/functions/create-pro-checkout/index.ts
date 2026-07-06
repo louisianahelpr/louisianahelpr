@@ -87,7 +87,11 @@ serve(async (req) => {
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams, {
-      idempotencyKey: `pro:${user.id}:${tier}`,
+      // Include billing_cycle: the same user+tier at a different cycle
+      // (monthly ↔ annual ↔ one_time) is a DIFFERENT priced checkout, so it must
+      // not collide with a prior cycle's cached session inside Stripe's 24h key
+      // window and replay the wrong amount.
+      idempotencyKey: `pro:${user.id}:${tier}:${billing_cycle}`,
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

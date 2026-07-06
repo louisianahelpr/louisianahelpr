@@ -405,8 +405,8 @@ describe("stripe-webhook edge function", () => {
     });
   });
 
-  describe("processing errors stay 200", () => {
-    it("returns 200 + processing_error when an event handler throws", async () => {
+  describe("processing errors fail closed (retry-safe)", () => {
+    it("returns 500 + processing_error and rolls back the dedupe row when a handler throws", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
         id: "evt_boom",
@@ -420,11 +420,21 @@ describe("stripe-webhook edge function", () => {
         },
       });
       // customer.retrieve throwing simulates an unexpected Stripe failure
-      // mid-processing — the webhook must still ack 200 to stop retries.
+      // mid-processing. The webhook must NOT ack 200 (that would tell Stripe the
+      // paid event was handled and stop redelivery), and it must delete the
+      // just-inserted stripe_webhook_events dedupe row so the retry can re-run
+      // the idempotent handler instead of being blocked as a duplicate.
       stripeMock.customers.retrieve.mockRejectedValue(new Error("stripe down"));
       const res = await fn.fetch(webhookRequest(fn, "{}"));
-      expect(res.status).toBe(200);
-      expect((await json(res)).error).toBe("processing_error");
+      expect(res.status).toBe(500);
+      const body = await json(res);
+      expect(body.error).toBe("processing_error");
+      expect(body.received).toBe(false);
+      // The dedupe row inserted before the handler ran must be rolled back.
+      const rollback = scenario.writes.find(
+        (w) => w.table === "stripe_webhook_events" && w.op === "delete",
+      );
+      expect(rollback).toBeDefined();
     });
   });
 });

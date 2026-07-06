@@ -40,7 +40,7 @@ export interface SupabaseScenario {
   /** rpc name -> resolved data */
   rpc: Record<string, unknown>;
   /** Captured writes, in order. */
-  writes: Array<{ table: string; op: "insert" | "update"; payload: unknown }>;
+  writes: Array<{ table: string; op: "insert" | "update" | "delete"; payload: unknown }>;
   /** Optional override: table name -> error to return on write. */
   writeErrors: Record<string, { message: string; code?: string }>;
   /** Optional override: rows returned from a write that ends in .select(). */
@@ -76,7 +76,7 @@ export function resetSupabaseMock() {
  * but they ARE chainable and thenable so the function code runs unchanged.
  */
 class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
-  private op: "select" | "insert" | "update" = "select";
+  private op: "select" | "insert" | "update" | "delete" = "select";
   private payload: unknown;
   private endsWithSelect = false;
 
@@ -98,6 +98,10 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   update(payload: unknown) {
     this.op = "update";
     this.payload = payload;
+    return this;
+  }
+  delete() {
+    this.op = "delete";
     return this;
   }
   eq() {

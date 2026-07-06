@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
+import { report } from "@/lib/errorLogger";
 import { checkProximity } from "@/lib/locationUtils";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
@@ -58,7 +59,17 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
   } = deps;
 
   const tryCancelJob = async (job: Job) => {
-    const { data: tracking } = await supabase.from("job_tracking").select("status").eq("job_id", job.id).order("created_at", { ascending: false }).limit(1);
+    const { data: tracking, error: trackingErr } = await supabase.from("job_tracking").select("status").eq("job_id", job.id).order("created_at", { ascending: false }).limit(1);
+    // Fail CLOSED: if we can't read the tracking status we cannot prove the
+    // Helpr isn't already en route/working, so block the cancel rather than
+    // silently letting a false-negative through (the guard is the only thing
+    // stopping a poster cancelling a job the Helpr has already started).
+    if (trackingErr) {
+      report(trackingErr, { tags: { area: "activity", op: "tryCancelJob.trackingRead" }, context: { jobId: job.id } });
+      hapticError();
+      toast.error("We couldn't check this job's status. Please try again in a moment.", { duration: 5000 });
+      return;
+    }
     const trackingStatus = tracking?.[0]?.status;
     if (trackingStatus && ["on_the_way", "arrived", "working", "done"].includes(trackingStatus)) {
       hapticError();
@@ -79,13 +90,19 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           const proximity = await checkProximity(job.latitude, job.longitude);
           if (!proximity.allowed) {
             // Check if helper has a verified arrival check-in (GPS or photo fallback)
-            const { data: arrivalCheckins } = await supabase
+            const { data: arrivalCheckins, error: arrivalErr } = await supabase
               .from("job_checkins")
               .select("id")
               .eq("job_id", jobId)
               .eq("user_id", user!.id)
               .in("type", ["arrival", "arrival_photo"])
               .limit(1);
+            // Gate fails CLOSED (a read error → no proof of arrival → block),
+            // but never silently: surface it so a transient failure that's
+            // wrongly blocking a legit completion is traceable.
+            if (arrivalErr) {
+              report(arrivalErr, { tags: { area: "activity", op: "completeJob.arrivalRead" }, context: { jobId } });
+            }
 
             if (!arrivalCheckins?.length) {
               const miles = ((proximity.distance || 0) / 5280).toFixed(1);
@@ -100,11 +117,16 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
 
           // Require after-photos for jobs $50+
           if (job.budget >= 50) {
-            const { data: jobData } = await supabase
+            const { data: jobData, error: proofErr } = await supabase
               .from("jobs")
               .select("proof_after_urls")
               .eq("id", jobId)
               .single();
+            // Fails CLOSED (read error → treated as no after-photo → block the
+            // $50+ completion), but report it so the failure isn't invisible.
+            if (proofErr) {
+              report(proofErr, { tags: { area: "activity", op: "completeJob.proofRead" }, context: { jobId } });
+            }
             const afterPhotos = jobData?.proof_after_urls || [];
             if (afterPhotos.length === 0) {
               hapticError();
@@ -325,17 +347,37 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           String(rpcError?.code ?? "") === "PGRST202" ||
           /could not find the function|does not exist|schema cache/i.test(msg);
         if (!rpcMissing) { hapticError(); toast.error("Couldn't report the no-show — please try again."); return; }
-        const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", helperId).eq("violation_type", "no_show");
+        // Fail CLOSED on the prior-count read: if we can't read the helper's
+        // violation history we cannot correctly compute the ban escalation, so
+        // abort rather than defaulting priorCount→0 and letting a repeat
+        // offender who should be permanently banned escape with a warning.
+        const { data: existing, error: existingErr } = await supabase.from("user_violations").select("id").eq("user_id", helperId).eq("violation_type", "no_show");
+        if (existingErr) {
+          report(existingErr, { tags: { area: "activity", op: "handleNoShow.priorCountRead" }, context: { jobId, helperId } });
+          hapticError();
+          toast.error("Couldn't report the no-show — please try again.");
+          return;
+        }
         const priorCount = existing?.length || 0;
         actionTaken = priorCount >= 1 ? "permanent_ban" : "warning";
-        await supabase.from("user_violations").insert({ user_id: helperId, violation_type: "no_show", description: `No-show for job: ${job.title}`, job_id: jobId, reported_by: user.id, action_taken: actionTaken });
-        if (actionTaken === "permanent_ban") {
-          await supabase.from("user_bans").insert({ user_id: helperId, ban_type: "permanent", reason: "Repeated no-show violations", banned_by: user.id });
-          await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", helperId);
-        } else {
-          await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", helperId);
+        const { error: violationErr } = await supabase.from("user_violations").insert({ user_id: helperId, violation_type: "no_show", description: `No-show for job: ${job.title}`, job_id: jobId, reported_by: user.id, action_taken: actionTaken });
+        if (violationErr) {
+          report(violationErr, { tags: { area: "activity", op: "handleNoShow.violationInsert" }, context: { jobId, helperId, actionTaken } });
+          hapticError();
+          toast.error("Couldn't report the no-show — please try again.");
+          return;
         }
-        await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", jobId);
+        if (actionTaken === "permanent_ban") {
+          const { error: banErr } = await supabase.from("user_bans").insert({ user_id: helperId, ban_type: "permanent", reason: "Repeated no-show violations", banned_by: user.id });
+          const { error: banStatusErr } = await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", helperId);
+          if (banErr) report(banErr, { tags: { area: "activity", op: "handleNoShow.banInsert" }, context: { jobId, helperId } });
+          if (banStatusErr) report(banStatusErr, { tags: { area: "activity", op: "handleNoShow.banStatusUpdate" }, context: { jobId, helperId } });
+        } else {
+          const { error: warnErr } = await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", helperId);
+          if (warnErr) report(warnErr, { tags: { area: "activity", op: "handleNoShow.warnStatusUpdate" }, context: { jobId, helperId } });
+        }
+        const { error: reopenErr } = await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", jobId);
+        if (reopenErr) report(reopenErr, { tags: { area: "activity", op: "handleNoShow.reopen" }, context: { jobId } });
       } else {
         actionTaken = (rpcData?.action as string) ?? "warning";
       }

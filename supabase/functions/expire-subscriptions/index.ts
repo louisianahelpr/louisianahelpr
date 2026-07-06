@@ -44,12 +44,16 @@ serve(async (req) => {
 
     console.log(`[EXPIRE-SUBS] Found ${expired.length} expired subscription(s)`);
 
-    // Clear all expired tiers
+    // Clear all expired tiers. Re-assert the expiry predicate on the UPDATE (not
+    // just user_id): if a user RENEWS in the gap between the SELECT above and
+    // this write, their fresh future expiry would otherwise be wrongly nulled.
+    // The .lt guard means we only clear rows that are still expired at write time.
     const userIds = expired.map(p => p.user_id);
     const { error: updateError } = await supabase
       .from("profiles")
       .update({ subscription_tier: null, subscription_expires_at: null })
-      .in("user_id", userIds);
+      .in("user_id", userIds)
+      .lt("subscription_expires_at", now);
 
     if (updateError) {
       console.error("[EXPIRE-SUBS] Error clearing tiers:", updateError.message);

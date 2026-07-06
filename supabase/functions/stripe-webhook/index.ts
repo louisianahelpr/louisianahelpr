@@ -124,6 +124,11 @@ serve(async (req) => {
   // ---- Idempotency guard ----
   // Stripe retries webhooks on any non-2xx or timeout. Without this guard a
   // single checkout could grant a subscription twice or send duplicate emails.
+  // We record whether WE were the one to insert the dedupe row, so that if the
+  // handler later fails we can roll it back (below) and let Stripe's retry
+  // re-process — without the rollback, the retry would hit this same dedupe
+  // wall and 200-skip, permanently stranding a paid event.
+  let idempotencyRecorded = false;
   try {
     const { error: idemErr } = await supabase
       .from("stripe_webhook_events")
@@ -139,10 +144,39 @@ serve(async (req) => {
       }
       // Any other DB error: log but continue. Better to risk a duplicate than drop the event.
       console.error("[STRIPE-WEBHOOK] Idempotency insert failed (non-fatal):", idemErr);
+    } else {
+      idempotencyRecorded = true;
     }
   } catch (e) {
     console.error("[STRIPE-WEBHOOK] Idempotency check threw (non-fatal):", e);
   }
+
+  // Roll back the idempotency row we inserted above so Stripe's retry
+  // re-processes this event instead of hitting the dedupe wall and 200-skipping
+  // (which would strand a paid event — subscription grant, escrow funding,
+  // credit mint — un-applied forever). Mirrors verification-webhook's
+  // rollbackIdempotency(). No-op when we didn't insert the row ourselves.
+  const rollbackIdempotency = async () => {
+    if (!idempotencyRecorded) return;
+    const { error: delErr } = await supabase
+      .from("stripe_webhook_events")
+      .delete()
+      .eq("event_id", event.id);
+    if (delErr) {
+      // If the rollback delete itself fails, the dedupe row survives — so
+      // Stripe's 500-triggered retry will hit the wall and 200-skip, silently
+      // re-stranding the paid event (the exact failure this whole guard exists
+      // to prevent). A console line alone is invisible, so page ops.
+      console.error("[STRIPE-WEBHOOK] Failed to roll back idempotency row:", delErr);
+      postSlackOpsAlert({
+        kind: "stripe_webhook_error",
+        severity: "critical",
+        title: "Stripe webhook idempotency rollback FAILED — event may be stranded",
+        message: `Could not delete stripe_webhook_events row for \`${event?.type || "unknown"}\`; the retry will dedupe-skip and drop this paid event. Manual replay needed.`,
+        fields: { "Event ID": event?.id || "—", Error: String(delErr).slice(0, 200) },
+      });
+    }
+  };
 
   try {
     const ctx: WebhookContext = { stripe, supabase, logStep };
@@ -154,17 +188,20 @@ serve(async (req) => {
     }
   } catch (err) {
     logStep("ERROR processing event", { error: String(err) });
+    // Roll back the dedupe row and return a non-2xx so Stripe REDELIVERS this
+    // event. A transient DB/handler failure must not permanently lose a paid
+    // event — the retry re-runs the (idempotent) handler once the fault clears.
+    await rollbackIdempotency();
     postSlackOpsAlert({
       kind: "stripe_webhook_error",
-      severity: "warning",
+      severity: "critical",
       title: "Stripe webhook processing error",
-      message: `Failed to process Stripe event \`${event?.type || "unknown"}\`.`,
+      message: `Failed to process Stripe event \`${event?.type || "unknown"}\` — asking Stripe to retry.`,
       fields: { "Event ID": event?.id || "—", Error: String(err).slice(0, 200) },
     });
-    // Still return 200 so Stripe doesn't keep retrying — the error is logged for debugging
-    return new Response(JSON.stringify({ received: true, error: "processing_error" }), {
+    return new Response(JSON.stringify({ received: false, error: "processing_error" }), {
       headers: { "Content-Type": "application/json" },
-      status: 200,
+      status: 500,
     });
   }
 

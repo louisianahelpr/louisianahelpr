@@ -96,6 +96,11 @@ serve(async (req) => {
   // a retry or a dashboard replay. The status writes below are idempotent by
   // value, but re-running still re-sends the account-status email and re-flags
   // admins — so record the event.id in the shared ledger and skip a repeat.
+  // Track whether WE inserted the dedupe row, so a later handler failure can
+  // roll it back (below) and let Stripe's retry re-process — otherwise the
+  // retry hits this dedupe wall and 200-skips, permanently stranding the IDV
+  // status transition (approval / manual-review) un-applied.
+  let idempotencyRecorded = false;
   try {
     const { error: idemErr } = await supabase
       .from("stripe_webhook_events")
@@ -109,10 +114,39 @@ serve(async (req) => {
       }
       // Any other DB error: log but continue. Better to risk a duplicate than drop the event.
       console.error("[stripe-idv-webhook] Idempotency insert failed (non-fatal):", idemErr);
+    } else {
+      idempotencyRecorded = true;
     }
   } catch (e) {
     console.error("[stripe-idv-webhook] Idempotency check threw (non-fatal):", e);
   }
+
+  // Roll back the dedupe row we inserted so Stripe's retry re-processes this
+  // event instead of hitting the dedupe wall. Mirrors verification-webhook's
+  // rollbackIdempotency(). No-op when we didn't insert the row ourselves.
+  const rollbackIdempotency = async () => {
+    if (!idempotencyRecorded) return;
+    const { error: delErr } = await supabase
+      .from("stripe_webhook_events")
+      .delete()
+      .eq("event_id", event.id);
+    if (delErr) {
+      // Rollback delete failed → the dedupe row survives → Stripe's retry will
+      // dedupe-skip and silently drop this IDV status transition. Page ops; a
+      // console line is invisible.
+      console.error("[stripe-idv-webhook] Failed to roll back idempotency row:", delErr);
+      postSlackOpsAlert({
+        kind: "stripe_webhook_error",
+        severity: "critical",
+        title: "Stripe IDV webhook idempotency rollback FAILED — event may be stranded",
+        message: `Could not delete stripe_webhook_events row for \`${(event as Stripe.Event | undefined)?.type ?? "unknown"}\`; the retry will dedupe-skip and drop this event. Manual replay needed.`,
+        fields: {
+          "Event ID": (event as Stripe.Event | undefined)?.id ?? "—",
+          Error: String(delErr).slice(0, 200),
+        },
+      });
+    }
+  };
 
   try {
     if (
@@ -263,22 +297,25 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    // Return 200 (not 500) so Stripe stops retrying. Processing errors are
-    // logged for investigation; retrying a DB/logic error won't fix it.
+    // Roll back the dedupe row and return a non-2xx so Stripe REDELIVERS this
+    // event. A transient DB failure (e.g. the profiles UPDATE threw) must not
+    // permanently lose the identity-verification status transition — the retry
+    // re-runs the (idempotent-by-value) handler once the fault clears.
     const message = err instanceof Error ? err.message : String(err);
     console.error("[stripe-idv-webhook] Processing error:", err);
+    await rollbackIdempotency();
     postSlackOpsAlert({
       kind: "stripe_webhook_error",
-      severity: "warning",
+      severity: "critical",
       title: "Stripe IDV webhook processing error",
-      message: `Failed to process IDV event \`${(event as Stripe.Event | undefined)?.type ?? "unknown"}\`: ${message}`,
+      message: `Failed to process IDV event \`${(event as Stripe.Event | undefined)?.type ?? "unknown"}\` — asking Stripe to retry: ${message}`,
       fields: {
         "Event ID": (event as Stripe.Event | undefined)?.id ?? "—",
         Error: message.slice(0, 200),
       },
     });
-    return new Response(JSON.stringify({ received: true, error: "processing_error" }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ received: false, error: "processing_error" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

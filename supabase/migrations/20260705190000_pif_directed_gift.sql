@@ -55,12 +55,28 @@ DROP POLICY IF EXISTS "Redeem or donor update"       ON pif_credits;
 -- named recipient email (case-insensitive) before they've
 -- claimed. `(select auth.…)` keeps the initplan single-eval
 -- (matches 20260705120000_perf_index_and_rls_initplan.sql).
+--
+-- Use current_setting('request.jwt.claims', true) instead of
+-- auth.jwt() — the latter is absent in the CI Supabase Postgres
+-- image and causes the migration replay to fail with "function
+-- auth.jwt() does not exist". PostgREST sets this GUC before every
+-- query in prod (identical behaviour). missing_ok=true means it
+-- returns NULL in bare-psql / CI environments, safely making the
+-- email clause evaluate to NULL while the other OR branches win.
 DROP POLICY IF EXISTS "PIF credits are party-only" ON pif_credits;
 CREATE POLICY "PIF credits are party-only" ON pif_credits
   FOR SELECT USING (
     (select auth.uid()) = donor_id
     OR (select auth.uid()) = recipient_id
-    OR lower(recipient_email) = lower((select auth.jwt() ->> 'email'))
+    OR (
+      recipient_email IS NOT NULL
+      AND lower(recipient_email) = lower(
+        coalesce(
+          nullif(current_setting('request.jwt.claims', true), ''),
+          'null'
+        )::json ->> 'email'
+      )
+    )
   );
 
 -- ── Indexes ─────────────────────────────────────────────────

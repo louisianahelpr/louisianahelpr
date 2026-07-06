@@ -58,7 +58,7 @@ export function ChatHeader({
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-full h-9 w-9 shrink-0 self-center"
+          className="rounded-full h-11 w-11 shrink-0 self-center"
           onClick={onBack}
           aria-label="Back to conversations"
         >
@@ -85,6 +85,7 @@ export function ChatHeader({
             decoding="async"
             src={activeConvo.otherUserAvatarUrl}
             alt=""
+            aria-hidden="true"
             className="w-full h-full object-cover"
           />
         ) : (

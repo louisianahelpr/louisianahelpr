@@ -72,7 +72,7 @@ export function PhotoUpload({
                   whileDrag={{ scale: 1.05, zIndex: 5 }}
                 >
                   {/^blob:/i.test(src) ? (
-                    <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover pointer-events-none" />
+                    <img loading="lazy" decoding="async" src={src} alt="" aria-hidden="true" className="w-full h-full object-cover pointer-events-none" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>
                       <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
@@ -175,7 +175,7 @@ export function PhotoUpload({
                 }}
               >
                 {/^blob:/i.test(src) ? (
-                  <img loading="lazy" decoding="async" src={src} alt="" className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={src} alt="" aria-hidden="true" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(var(--ivory-sand) / 0.6)" }}>
                     <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />

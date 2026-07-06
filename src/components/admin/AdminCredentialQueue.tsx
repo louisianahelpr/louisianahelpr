@@ -118,7 +118,7 @@ const AdminCredentialQueue = () => {
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden text-ds-13 font-bold">
                   {r.avatar_url ? (
-                    <img loading="lazy" decoding="async" src={r.avatar_url} alt={r.full_name || ""} className="w-full h-full object-cover" />
+                    <img loading="lazy" decoding="async" src={r.avatar_url} alt="" aria-hidden="true" className="w-full h-full object-cover" />
                   ) : (
                     (r.full_name || r.email || "?").slice(0, 2).toUpperCase()
                   )}

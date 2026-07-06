@@ -137,6 +137,7 @@ export function IdentityHeader({
                   decoding="async"
                   src={profile!.avatar_url as string}
                   alt=""
+                  aria-hidden="true"
                   className="w-full h-full object-cover"
                   onError={() => setAvatarBroken(true)}
                 />
@@ -574,7 +575,7 @@ export function IdentityHeader({
                               className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform snap-start"
                               aria-label={`Work sample ${i + 1}`}
                             >
-                              <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover" />
+                              <img loading="lazy" decoding="async" src={url} alt="" aria-hidden="true" className="w-full h-full object-cover" />
                             </button>
                           ))}
                         </div>

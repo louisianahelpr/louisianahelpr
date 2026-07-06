@@ -369,6 +369,7 @@ export default function PayItForward() {
               ))}
               <input
                 type="number"
+                aria-label="Custom gift amount in dollars"
                 min={MIN_GIFT}
                 placeholder="Custom"
                 value={customAmount}

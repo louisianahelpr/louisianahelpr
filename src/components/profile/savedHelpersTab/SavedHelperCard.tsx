@@ -57,6 +57,7 @@ export function SavedHelperCard({
             <img loading="lazy" decoding="async"
               src={h.avatar_url}
               alt=""
+              aria-hidden="true"
               className="w-12 h-12 rounded-full object-cover border border-[hsl(var(--border)/0.6)]"
             />
           ) : (

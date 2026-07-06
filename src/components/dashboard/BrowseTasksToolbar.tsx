@@ -313,6 +313,7 @@ export function BrowseTasksToolbar({
               <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="search"
+                aria-label="Search jobs"
                 placeholder="Search jobs…"
                 enterKeyHint="search"
                 inputMode="search"

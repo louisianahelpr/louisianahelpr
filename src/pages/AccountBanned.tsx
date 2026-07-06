@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Ban, Mail, LogOut, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -135,7 +135,7 @@ const AccountBanned = () => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}
+          onClick={async () => { await signOutWithPushCleanup(); navigate("/"); }}
           className="text-muted-foreground"
         >
           <LogOut className="w-4 h-4 mr-1" /> Sign out

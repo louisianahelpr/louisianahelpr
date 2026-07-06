@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import AppShell from "@/components/AppShell";
@@ -327,7 +328,7 @@ const ProfilePage = () => {
   const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
+  const handleLogout = async () => { await signOutWithPushCleanup(); navigate("/"); };
   const handleDeleteAccount = async () => {
     // The dialog asks the user to type "DELETE" (short, thumb-friendly).
     // The delete-own-account edge function still validates against the
@@ -361,7 +362,7 @@ const ProfilePage = () => {
       });
       if (error) throw error;
       toast.success("Account deleted successfully");
-      await supabase.auth.signOut();
+      await signOutWithPushCleanup();
       navigate("/");
     } catch (err: any) {
       toast.error(err.message || "Couldn't delete your account — try again?");

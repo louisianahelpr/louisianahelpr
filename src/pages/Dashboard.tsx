@@ -3,7 +3,7 @@ import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { toast } from "sonner";
 import { DashboardSkeleton, DashboardTitleSkeleton } from "@/components/SkeletonLoaders";
@@ -251,7 +251,7 @@ const Dashboard = () => {
   // but if that ever fails to fire we must not leak the feed to them.
   if (!isAdmin && profile && approvalStatus === "denied") {
     const handleSignOut = async () => {
-      await supabase.auth.signOut();
+      await signOutWithPushCleanup();
       navigate("/login", { replace: true });
     };
     return <DashboardDeniedScreen onSignOut={handleSignOut} />;

@@ -337,9 +337,28 @@ export function useRequestPushPermission() {
   };
 }
 
-/** Remove all device tokens for the current user. Call on sign-out. */
+/**
+ * Remove all device tokens for the current user. Call on sign-out.
+ *
+ * Best-effort — a failure never blocks logout — but it must NOT be silent:
+ * a swallowed delete failure leaves the token behind and re-opens the
+ * handed-off-device privacy leak (F-PRIV-01) with no trace. Surface both a
+ * returned Supabase `error` and any thrown exception to monitoring so a
+ * systematic failure is visible, then let sign-out proceed regardless.
+ */
 export async function unregisterPushOnSignOut(userId: string) {
   try {
-    await supabase.from("push_tokens").delete().eq("user_id", userId);
-  } catch { /* ignore */ }
+    const { error } = await supabase.from("push_tokens").delete().eq("user_id", userId);
+    if (error) {
+      report(error, {
+        severity: "warning",
+        tags: { area: "push", op: "unregisterOnSignOut" },
+      });
+    }
+  } catch (err) {
+    report(err, {
+      severity: "warning",
+      tags: { area: "push", op: "unregisterOnSignOut" },
+    });
+  }
 }

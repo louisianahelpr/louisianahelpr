@@ -13,6 +13,7 @@ import {
 import { Mail, Lock, Monitor, Smartphone, Tablet, LogOut } from "lucide-react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
 import { getPublicResetPasswordUrl, getPublicSiteUrl } from "@/lib/authRedirects";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -128,7 +129,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     // safe-to-ship action from the client is a global sign-out, which
     // revokes every refresh token for the user (incl. this device).
     setSignOutDialogOpen(false);
-    const { error } = await supabase.auth.signOut({ scope: "global" });
+    const { error } = await signOutWithPushCleanup({ scope: "global" });
     if (error) {
       toast.error("Couldn't sign you out everywhere — try again?");
       return;

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, Mail, Lock, Check, Clock, ShieldCheck } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -172,7 +173,7 @@ const Login = () => {
 
     const sessionUser = data.session?.user;
     if (sessionUser && !sessionUser.email_confirmed_at) {
-      await supabase.auth.signOut();
+      await signOutWithPushCleanup();
       setLoading(false);
       hapticError();
       toast.error("Please verify your email before logging in. Check your inbox for a verification link.");
@@ -245,7 +246,7 @@ const Login = () => {
   const cancelMfa = async () => {
     setMfaChallenge(null);
     setMfaCode("");
-    await supabase.auth.signOut();
+    await signOutWithPushCleanup();
   };
 
   return (

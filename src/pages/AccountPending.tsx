@@ -4,6 +4,7 @@ import { LogOut, MailCheck, RefreshCw, ArrowRight, Clock, Check, Loader2 } from 
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -386,7 +387,7 @@ const AccountPending = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}
+              onClick={async () => { await signOutWithPushCleanup(); navigate("/"); }}
               className="text-muted-foreground"
             >
               <LogOut className="w-4 h-4 mr-1" /> Sign out

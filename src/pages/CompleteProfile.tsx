@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
+import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -305,7 +306,7 @@ const CompleteProfile = () => {
             variant="outline"
             size="lg"
             onClick={async () => {
-              await supabase.auth.signOut();
+              await signOutWithPushCleanup();
               navigate("/login", { replace: true });
             }}
             className="mt-5 w-full rounded-ds-md"
@@ -579,7 +580,7 @@ const CompleteProfile = () => {
               variant="outline"
               size="lg"
               onClick={async () => {
-                await supabase.auth.signOut();
+                await signOutWithPushCleanup();
                 navigate("/login", { replace: true });
               }}
               className="w-full rounded-ds-md"

@@ -121,6 +121,12 @@ export function useMessagesData({
         .select("*")
         .eq("job_id", convo.jobId)
         .or(`and(sender_id.eq.${userId},receiver_id.eq.${convo.otherUserId}),and(sender_id.eq.${convo.otherUserId},receiver_id.eq.${userId}),is_system.eq.true`)
+        // Defense-in-depth: mirror the RLS SELECT policy's flagged clause
+        // (visible if I'm the sender OR the row isn't hidden) so a scanner-hidden
+        // message never surfaces to its receiver even if that policy regresses.
+        // This is an exact RLS mirror — the sender still sees their own flagged
+        // message (matching current behavior), so it changes nothing today.
+        .or(`sender_id.eq.${userId},flagged_hidden.eq.false`)
         .order("created_at", { ascending: false })
         .limit(CHAT_PAGE_SIZE),
       supabase
@@ -222,6 +228,8 @@ export function useMessagesData({
       .select("*")
       .eq("job_id", activeConvo.jobId)
       .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConvo.otherUserId}),and(sender_id.eq.${activeConvo.otherUserId},receiver_id.eq.${userId}),is_system.eq.true`)
+      // Defense-in-depth mirror of the RLS flagged clause (see openConvo).
+      .or(`sender_id.eq.${userId},flagged_hidden.eq.false`)
       .order("created_at", { ascending: false })
       .limit(CHAT_PAGE_SIZE);
 
@@ -258,6 +266,8 @@ export function useMessagesData({
       .select("*")
       .eq("job_id", activeConvo.jobId)
       .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConvo.otherUserId}),and(sender_id.eq.${activeConvo.otherUserId},receiver_id.eq.${userId}),is_system.eq.true`)
+      // Defense-in-depth mirror of the RLS flagged clause (see openConvo).
+      .or(`sender_id.eq.${userId},flagged_hidden.eq.false`)
       .lt("created_at", oldestMsg.created_at)
       .order("created_at", { ascending: false })
       .limit(CHAT_PAGE_SIZE);

@@ -3,25 +3,12 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
+import { PRO_PRICE_MAP } from "../_shared/proTiers.ts";
 
-// billing_cycle: "monthly" | "annual" | "one_time"
-const PRICE_MAP: Record<string, Record<string, string>> = {
-  monthly: {
-    basic: "price_1TAZjdKp2H4b7tECG4TDPOxd",
-    pro: "price_1TAZkLKp2H4b7tEC0ACbAX2y",
-    elite: "price_1TAZkSKp2H4b7tEClf0VNiEa",
-  },
-  annual: {
-    basic: "price_1TAZkXKp2H4b7tECRBtNRne5",
-    pro: "price_1TAZkbKp2H4b7tECZ7Qr6CZS",
-    elite: "price_1TAZkcKp2H4b7tECagD42xRa",
-  },
-  one_time: {
-    basic: "price_1TAZkdKp2H4b7tECtvvFRyJf",
-    pro: "price_1TAZkeKp2H4b7tECnfZ7vF0C",
-    elite: "price_1TAZkeKp2H4b7tECmn27C8JM",
-  },
-};
+// billing_cycle: "monthly" | "annual" | "one_time". Price IDs derive from the
+// single source of truth so the checkout can never drift from the displayed
+// subscription tiers (guarded by src/lib/proTiers.parity.test.ts).
+const PRICE_MAP = PRO_PRICE_MAP;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

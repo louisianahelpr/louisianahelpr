@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { XCircle, RefreshCw, Mail, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -100,7 +100,7 @@ const AccountDenied = () => {
             variant="bark"
             className="w-full rounded-ds-md"
             size="lg"
-            onClick={async () => { await supabase.auth.signOut(); navigate("/signup"); }}
+            onClick={async () => { await signOutWithPushCleanup(); navigate("/signup"); }}
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Re-apply now
@@ -140,7 +140,7 @@ const AccountDenied = () => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={async () => { await supabase.auth.signOut(); navigate("/"); }}
+          onClick={async () => { await signOutWithPushCleanup(); navigate("/"); }}
           className="text-muted-foreground"
         >
           <LogOut className="w-4 h-4 mr-1" /> Sign out

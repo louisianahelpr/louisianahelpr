@@ -10,6 +10,7 @@ import {
   Mail, Building2, ClipboardList,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { lazy, Suspense } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -481,7 +482,7 @@ const Admin = () => {
           primaryLabel="Log out"
           primaryTone="bark"
           primaryHaptic="medium"
-          onPrimary={async () => { await supabase.auth.signOut(); navigate("/"); }}
+          onPrimary={async () => { await signOutWithPushCleanup(); navigate("/"); }}
           secondaryLabel="Stay logged in"
         />
       </div>

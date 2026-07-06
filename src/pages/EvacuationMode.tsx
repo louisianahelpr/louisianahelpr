@@ -15,6 +15,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
 import BackButton from "@/components/BackButton";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -113,10 +114,10 @@ const EvacuationMode = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
+    <PublicLayout>
       {/* Emergency header */}
       <div
-        className="px-4 pt-14 pb-5"
+        className="px-4 pt-6 pb-5"
         style={{
           background:
             "linear-gradient(135deg, hsl(var(--burnt-sienna) / 0.15), hsl(var(--bark) / 0.08))",
@@ -425,7 +426,7 @@ const EvacuationMode = () => {
           }}
         />
       )}
-    </div>
+    </PublicLayout>
   );
 };
 

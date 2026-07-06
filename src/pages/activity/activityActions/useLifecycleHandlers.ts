@@ -332,55 +332,24 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       if (!job?.helper_id) return;
       const helperId = job.helper_id;
 
-      // Atomic via the report_helper_no_show RPC (migration
-      // 20260518140000): violation, ban escalation and job reopen run
-      // in one transaction. Falls back to the pre-migration multi-step
-      // path if the RPC isn't deployed to this environment yet.
-      let actionTaken = "warning";
+      // Atomic via the report_helper_no_show RPC (migration 20260518140000):
+      // it locks the job row FOR UPDATE, re-checks the caller is the poster,
+      // records the violation, escalates the 2-strike ban, and reopens the job
+      // in ONE transaction — so the ban can never be left half-applied. There is
+      // deliberately no client-side multi-step fallback: a browser cannot roll
+      // back writes already committed, so the only correct path is the
+      // server-side transaction. On ANY RPC error we fail closed (no partial
+      // side effects) rather than re-implementing the escalation client-side.
       const { data: rpcData, error: rpcError } = await supabase.rpc("report_helper_no_show", {
         p_job_id: jobId,
       });
-
       if (rpcError) {
-        const msg = String(rpcError?.message ?? "");
-        const rpcMissing =
-          String(rpcError?.code ?? "") === "PGRST202" ||
-          /could not find the function|does not exist|schema cache/i.test(msg);
-        if (!rpcMissing) { hapticError(); toast.error("Couldn't report the no-show — please try again."); return; }
-        // Fail CLOSED on the prior-count read: if we can't read the helper's
-        // violation history we cannot correctly compute the ban escalation, so
-        // abort rather than defaulting priorCount→0 and letting a repeat
-        // offender who should be permanently banned escape with a warning.
-        const { data: existing, error: existingErr } = await supabase.from("user_violations").select("id").eq("user_id", helperId).eq("violation_type", "no_show");
-        if (existingErr) {
-          report(existingErr, { tags: { area: "activity", op: "handleNoShow.priorCountRead" }, context: { jobId, helperId } });
-          hapticError();
-          toast.error("Couldn't report the no-show — please try again.");
-          return;
-        }
-        const priorCount = existing?.length || 0;
-        actionTaken = priorCount >= 1 ? "permanent_ban" : "warning";
-        const { error: violationErr } = await supabase.from("user_violations").insert({ user_id: helperId, violation_type: "no_show", description: `No-show for job: ${job.title}`, job_id: jobId, reported_by: user.id, action_taken: actionTaken });
-        if (violationErr) {
-          report(violationErr, { tags: { area: "activity", op: "handleNoShow.violationInsert" }, context: { jobId, helperId, actionTaken } });
-          hapticError();
-          toast.error("Couldn't report the no-show — please try again.");
-          return;
-        }
-        if (actionTaken === "permanent_ban") {
-          const { error: banErr } = await supabase.from("user_bans").insert({ user_id: helperId, ban_type: "permanent", reason: "Repeated no-show violations", banned_by: user.id });
-          const { error: banStatusErr } = await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", helperId);
-          if (banErr) report(banErr, { tags: { area: "activity", op: "handleNoShow.banInsert" }, context: { jobId, helperId } });
-          if (banStatusErr) report(banStatusErr, { tags: { area: "activity", op: "handleNoShow.banStatusUpdate" }, context: { jobId, helperId } });
-        } else {
-          const { error: warnErr } = await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", helperId);
-          if (warnErr) report(warnErr, { tags: { area: "activity", op: "handleNoShow.warnStatusUpdate" }, context: { jobId, helperId } });
-        }
-        const { error: reopenErr } = await supabase.from("jobs").update({ status: "open", helper_id: null }).eq("id", jobId);
-        if (reopenErr) report(reopenErr, { tags: { area: "activity", op: "handleNoShow.reopen" }, context: { jobId } });
-      } else {
-        actionTaken = (rpcData?.action as string) ?? "warning";
+        report(rpcError, { tags: { area: "activity", op: "handleNoShow.rpc" }, context: { jobId, helperId } });
+        hapticError();
+        toast.error("Couldn't report the no-show — please try again.");
+        return;
       }
+      const actionTaken = (rpcData?.action as string) ?? "warning";
 
       // Notifications (best-effort) — shared by both paths.
       const banned = actionTaken === "permanent_ban";

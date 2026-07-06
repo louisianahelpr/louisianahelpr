@@ -100,6 +100,13 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
   });
 
   useEffect(() => {
+    // Deliberately unfiltered (admin-only): unlike user-facing channels — which
+    // MUST carry a user-scoped server-side `filter` per the realtime rule — this
+    // is the admin notification-log viewer, whose whole purpose is to reflect
+    // EVERY notification the platform sends. Scoping it to one user would defeat
+    // the feature. The `channelNonce()` still gives it a unique channel name so
+    // Supabase doesn't dedupe it against another admin channel, and the
+    // `page === 0` guard keeps the invalidation burst sane.
     const ch = supabase
       .channel(`admin-notification-logs-${channelNonce()}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notification_logs" }, () => {

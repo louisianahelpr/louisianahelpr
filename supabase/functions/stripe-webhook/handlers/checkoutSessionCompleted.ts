@@ -88,25 +88,51 @@ export async function handleCheckoutSessionCompleted(
     const tipperId = (session.metadata as any)?.tipper_id;
     const tipHelperId = (session.metadata as any)?.helper_id;
     if (tipJobId && tipperId) {
-      const { error: tipError } = await supabase
+      // Idempotency: the notify must fire once per tip, not once per webhook
+      // delivery. The UPDATE only matches a still-'pending' row, so a
+      // re-delivery flips 0 rows — `.select()` lets us see that and skip the
+      // duplicate notification. Without this gate a retried delivery would
+      // re-notify the helper of a tip they were already told about.
+      const { data: flippedTip, error: tipError } = await supabase
         .from("tips")
         .update({ payment_status: "paid" })
         .eq("job_id", tipJobId)
         .eq("tipper_id", tipperId)
         .eq("stripe_session_id", session.id)
-        .eq("payment_status", "pending");
-      if (tipError) logStep("ERROR updating tip status", { error: tipError.message });
-      else logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId });
-
-      // Notify the helper about the tip
-      if (tipHelperId) {
-        await supabase.from("notifications").insert({
-          user_id: tipHelperId,
-          title: "💰 You received a tip!",
-          message: `Someone tipped you for a completed job. Thanks for the great work!`,
-          type: "payment",
-          link: "/earnings",
+        .eq("payment_status", "pending")
+        .select("id");
+      if (tipError) {
+        logStep("ERROR updating tip status", { error: tipError.message });
+        // A captured tip charge whose row never flips to 'paid' leaves the
+        // helper unpaid AND un-notified — a money↔ledger divergence, not a
+        // benign log line. Surface it to ops like the PIF mint failures below.
+        postSlackOpsAlert({
+          kind: "custom",
+          severity: "critical",
+          title: "Tip payment — status flip failed",
+          message: "A tip checkout captured but the tips row was not marked paid, so the helper wasn't notified. Reconcile manually.",
+          fields: {
+            session_id: session.id,
+            job_id: String(tipJobId),
+            tipper_id: String(tipperId),
+            helper_id: tipHelperId ? String(tipHelperId) : "(missing)",
+            db_error: tipError.message,
+          },
         });
+      } else if (flippedTip && flippedTip.length > 0) {
+        logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId });
+        // Notify the helper — only on the delivery that actually captured the tip.
+        if (tipHelperId) {
+          await supabase.from("notifications").insert({
+            user_id: tipHelperId,
+            title: "💰 You received a tip!",
+            message: `Someone tipped you for a completed job. Thanks for the great work!`,
+            type: "payment",
+            link: "/earnings",
+          });
+        }
+      } else {
+        logStep("Tip already paid (duplicate delivery) — skipping notify", { jobId: tipJobId, tipper: tipperId });
       }
     }
   }
@@ -143,48 +169,91 @@ export async function handleCheckoutSessionCompleted(
     if (!bgcUserId) {
       logStep("WARNING: background_check checkout with no user_id");
     } else {
-      // Mark the public profile flag as pending so the helper (and
-      // viewers) see "in progress" immediately after payment.
-      const { error: pendErr } = await supabase
-        .from("profiles")
-        .update({ background_check_status: "pending" })
-        .eq("user_id", bgcUserId);
-      if (pendErr) logStep("ERROR setting bgc pending", { error: pendErr.message });
-
-      // Record the credential attempt + a check run for the admin queue.
-      const { data: cred, error: credErr } = await supabase
+      // Idempotency: a webhook re-delivery must not create a SECOND credential
+      // row, check run, and "started" notification. A helper can only have one
+      // background check in flight, so an already-'submitted' credential means
+      // this delivery is a duplicate — skip the side-effects. Fail OPEN on a
+      // read error (proceed with the insert): a duplicate credential an admin
+      // can dedupe is far less harmful than silently dropping a paid check that
+      // then never runs.
+      const { data: existingBgc, error: existingBgcErr } = await supabase
         .from("helper_credentials")
-        .insert({
-          user_id: bgcUserId,
-          credential_type: "background_check",
-          status: "submitted",
-        })
         .select("id")
-        .single();
-      if (credErr) {
-        logStep("ERROR creating bgc credential", { error: credErr.message });
-      } else if (cred) {
-        const { error: checkErr } = await supabase
-          .from("verification_checks")
-          .insert({
-            credential_id: cred.id,
-            user_id: bgcUserId,
-            vendor: "manual",
-            check_type: "background",
-            status: "initiated",
-          });
-        if (checkErr) logStep("ERROR creating bgc check", { error: checkErr.message });
+        .eq("user_id", bgcUserId)
+        .eq("credential_type", "background_check")
+        .eq("status", "submitted")
+        .limit(1)
+        .maybeSingle();
+      if (existingBgcErr) {
+        logStep("WARNING: bgc idempotency check failed — proceeding (fail open)", { error: existingBgcErr.message, userId: bgcUserId });
       }
+      if (existingBgc) {
+        logStep("Background check already submitted (duplicate delivery) — skipping", { userId: bgcUserId });
+      } else {
+        // Mark the public profile flag as pending so the helper (and
+        // viewers) see "in progress" immediately after payment.
+        const { error: pendErr } = await supabase
+          .from("profiles")
+          .update({ background_check_status: "pending" })
+          .eq("user_id", bgcUserId);
+        if (pendErr) logStep("ERROR setting bgc pending", { error: pendErr.message });
 
-      await supabase.from("notifications").insert({
-        user_id: bgcUserId,
-        title: "🛡️ Background check started",
-        message:
-          "Thanks — your payment went through and your background check is in progress. We'll add your Background-Checked badge as soon as it clears.",
-        type: "success",
-        link: "/profile",
-      });
-      logStep("Background check initiated", { userId: bgcUserId });
+        // Record the credential attempt + a check run for the admin queue.
+        const { data: cred, error: credErr } = await supabase
+          .from("helper_credentials")
+          .insert({
+            user_id: bgcUserId,
+            credential_type: "background_check",
+            status: "submitted",
+          })
+          .select("id")
+          .single();
+        if (credErr) {
+          logStep("ERROR creating bgc credential", { error: credErr.message });
+          // The helper PAID for a background check but no credential row was
+          // written, so the screening is never queued for the admin/vendor and
+          // the badge never clears — paid service, no delivery. Alert ops.
+          postSlackOpsAlert({
+            kind: "custom",
+            severity: "critical",
+            title: "Background check — credential not recorded",
+            message: "A helper's background-check payment captured but the helper_credentials row failed to write, so the check was never queued. Reconcile manually.",
+            fields: { session_id: session.id, user_id: String(bgcUserId), db_error: credErr.message },
+          });
+        } else if (cred) {
+          const { error: checkErr } = await supabase
+            .from("verification_checks")
+            .insert({
+              credential_id: cred.id,
+              user_id: bgcUserId,
+              vendor: "manual",
+              check_type: "background",
+              status: "initiated",
+            });
+          if (checkErr) {
+            logStep("ERROR creating bgc check", { error: checkErr.message });
+            // Credential row exists but the check run didn't — the admin queue
+            // won't surface it, so the paid screening stalls silently. Alert ops.
+            postSlackOpsAlert({
+              kind: "custom",
+              severity: "critical",
+              title: "Background check — check run not created",
+              message: "A background-check credential was recorded but its verification_checks run failed to write, so it won't appear in the admin queue. Reconcile manually.",
+              fields: { session_id: session.id, user_id: String(bgcUserId), credential_id: String(cred.id), db_error: checkErr.message },
+            });
+          }
+        }
+
+        await supabase.from("notifications").insert({
+          user_id: bgcUserId,
+          title: "🛡️ Background check started",
+          message:
+            "Thanks — your payment went through and your background check is in progress. We'll add your Background-Checked badge as soon as it clears.",
+          type: "success",
+          link: "/profile",
+        });
+        logStep("Background check initiated", { userId: bgcUserId });
+      }
     }
   }
 
@@ -213,7 +282,7 @@ export async function handleCheckoutSessionCompleted(
       // instead of only logging, or the gift silently vanishes.
       postSlackOpsAlert({
         kind: "custom",
-        severity: "error",
+        severity: "critical",
         title: "Pay It Forward donation — unmintable (bad metadata)",
         message: "A donor's gift charge captured but the session metadata was missing/invalid, so no credit could be minted. Reconcile manually.",
         fields: {
@@ -237,7 +306,7 @@ export async function handleCheckoutSessionCompleted(
         logStep("ERROR checking existing pif credit — aborting mint (fail closed)", { error: existErr.message, sessionId: session.id });
         postSlackOpsAlert({
           kind: "custom",
-          severity: "error",
+          severity: "critical",
           title: "Pay It Forward mint — idempotency check failed",
           message: "Couldn't verify whether this gift was already minted, so the mint was skipped to avoid a double-credit. Stripe will retry; if it keeps failing, reconcile manually.",
           fields: { session_id: session.id, donor_id: donorId, recipient_email: recipientEmail, db_error: existErr.message },
@@ -314,7 +383,7 @@ export async function handleCheckoutSessionCompleted(
           // divergence — surface to ops rather than swallowing it.
           postSlackOpsAlert({
             kind: "custom",
-            severity: "error",
+            severity: "critical",
             title: "Pay It Forward gift mint failed",
             message: "A donor's gift charge captured but the pif_credits row was not written. Reconcile manually.",
             fields: {
@@ -377,7 +446,7 @@ export async function handleCheckoutSessionCompleted(
       // divergence — surface to ops rather than swallowing it.
       postSlackOpsAlert({
         kind: "custom",
-        severity: "error",
+        severity: "critical",
         title: "Pay It Forward difference payment — credit not consumed",
         message: "A recipient paid the shortfall on a reserved gift but pif_credits was not flipped to redeemed. Reconcile manually.",
         fields: { session_id: session.id, pif_credit_id: pifCreditId, db_error: consumeErr.message },

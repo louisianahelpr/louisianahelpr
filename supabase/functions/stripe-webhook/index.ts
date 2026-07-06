@@ -142,13 +142,43 @@ serve(async (req) => {
           status: 200,
         });
       }
-      // Any other DB error: log but continue. Better to risk a duplicate than drop the event.
-      console.error("[STRIPE-WEBHOOK] Idempotency insert failed (non-fatal):", idemErr);
+      // Any other DB error (not a duplicate): the dedupe table is unhealthy.
+      // Processing now WITHOUT a dedupe record means a later Stripe retry can't
+      // be recognized as a duplicate and would re-apply the event. Fail closed
+      // instead — 500 so Stripe retries once the DB recovers, at which point the
+      // insert succeeds and we get a real dedupe record. A transient DB blip is
+      // safer to retry than to process un-deduped.
+      console.error("[STRIPE-WEBHOOK] Idempotency insert failed — asking Stripe to retry:", idemErr);
+      postSlackOpsAlert({
+        kind: "stripe_webhook_error",
+        severity: "critical",
+        title: "Stripe webhook idempotency insert failed",
+        message: `Could not record dedupe row for \`${event.type}\` (DB error, not a duplicate) — returning 500 so Stripe retries rather than processing un-deduped.`,
+        fields: { "Event ID": event.id, Error: String((idemErr as any)?.message ?? idemErr).slice(0, 200) },
+      });
+      return new Response(JSON.stringify({ received: false, error: "idempotency_insert_failed" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 500,
+      });
     } else {
       idempotencyRecorded = true;
     }
   } catch (e) {
-    console.error("[STRIPE-WEBHOOK] Idempotency check threw (non-fatal):", e);
+    // The insert threw (network/client error, not a returned DB error). Same
+    // reasoning as above: without a dedupe record we can't safely process, so
+    // fail closed and let Stripe retry.
+    console.error("[STRIPE-WEBHOOK] Idempotency check threw — asking Stripe to retry:", e);
+    postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "critical",
+      title: "Stripe webhook idempotency check threw",
+      message: `Dedupe insert threw for \`${event.type}\` — returning 500 so Stripe retries rather than processing un-deduped.`,
+      fields: { "Event ID": event.id, Error: String(e).slice(0, 200) },
+    });
+    return new Response(JSON.stringify({ received: false, error: "idempotency_check_threw" }), {
+      headers: { "Content-Type": "application/json" },
+      status: 500,
+    });
   }
 
   // Roll back the idempotency row we inserted above so Stripe's retry

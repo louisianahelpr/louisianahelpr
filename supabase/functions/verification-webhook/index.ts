@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -120,8 +121,24 @@ Deno.serve(async (req) => {
           status: 200, headers: { "Content-Type": "application/json" }
         });
       }
-      // Any other DB error: log but continue — better a rare duplicate than a dropped event.
-      console.error("[verification-webhook] Idempotency insert failed (non-fatal):", idemErr);
+      // Any other DB error (not a duplicate): the dedupe table is unhealthy.
+      // Fail CLOSED — processing without a dedupe row means a later retry would
+      // re-apply this verification result (double status flip / double notify).
+      // Return 500 so the vendor retries once the DB recovers, rather than
+      // settling identity state un-deduped.
+      console.error("[verification-webhook] Idempotency insert failed — asking vendor to retry:", idemErr);
+      postSlackOpsAlert({
+        kind: "stripe_webhook_error",
+        severity: "critical",
+        title: "Verification webhook idempotency insert failed",
+        message: `Could not record dedupe row for \`verification.${vendor}\` (DB error, not a duplicate) — returning 500 so the vendor retries rather than processing un-deduped.`,
+        fields: {
+          Vendor: vendor,
+          "Event ID": String(rawEventId),
+          Error: String((idemErr as { message?: string }).message ?? idemErr).slice(0, 200),
+        },
+      });
+      return new Response("Failed to record verification result", { status: 500 });
     }
   }
 

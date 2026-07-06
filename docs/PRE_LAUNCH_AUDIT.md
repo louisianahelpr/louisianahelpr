@@ -22,12 +22,14 @@ and shipped green.
 | **F-MONEY-05** 🟡 | `supabase/functions/expire-subscriptions/index.ts` | TOCTOU: SELECT-expired-then-UPDATE where the UPDATE filtered only by `user_id` — a subscription that **renewed** in the gap would be wrongly downgraded. | Re-assert the predicate on the UPDATE (`.lt("subscription_expires_at", now)`), so only still-expired rows are nulled. | ✅ Fixed |
 | **F-LIFE-02** 🟡 | `src/pages/activity/activityActions/useLifecycleHandlers.ts` | Several money/state gate reads (`job_checkins`, `jobs` proof URLs, prior no-show count) dropped the Supabase `error` — a read failure fell through as falsy, letting a repeat offender escape a ban or a job cancel past a status it couldn't verify. | Capture every `error`, `report()` it, and **fail closed** (toast + return) on the gate reads; ban/warn/reopen writes are report-and-continue. | ✅ Fixed |
 
-### Reviewer-surfaced follow-ups (open, structural — deferred)
+### Reviewer-surfaced follow-ups (resolved 2026-07-06)
 
-| ID | file | Finding | Why deferred | Severity |
-|----|------|---------|--------------|----------|
-| **F-WEBHOOK-03** | `stripe-webhook/handlers/*.ts`, `stripe-idv-webhook` | The fail-closed retry re-runs the handler, so **non-idempotent notification inserts and status emails double-fire** (tip/bgc/PIF notifications; IDV "verified" email). | Multi-file structural change (dedupe notifications by event id / upsert). A duplicate notification is a far lower-severity annoyance than the paid-event loss F-WEBHOOK-01 removed. | 🟡 Medium |
-| **F-LIFE-03** | `useLifecycleHandlers.ts` (`handleNoShow` fallback) | Ban → ban-status → reopen writes are report-and-continue, so a mid-sequence failure can leave a **half-applied ban** (banned flag set, job not reopened, or vice-versa). | Needs a transactional RPC to be atomic; pre-existing structure on the PGRST202 fallback path only. | 🟡 Medium |
+| ID | file | Finding | Resolution | Status |
+|----|------|---------|------------|--------|
+| **F-WEBHOOK-03** | `stripe-webhook/handlers/checkoutSessionCompleted.ts` | The fail-closed retry re-runs the handler, so **non-idempotent notification inserts double-fire** (tip/bgc notifications) on a redelivered event. | Notifications now gate on the state-transition write actually happening, not on the webhook firing. **Tip:** the `payment_status: 'pending' → 'paid'` UPDATE carries `.select("id")`; the helper notify fires only when a row actually flipped (a redelivery flips 0 rows → skip). **BGC:** the whole side-effect cluster (profile flip + credential insert + check insert + "started" notify) is guarded by an existence check on an already-`submitted` `helper_credentials` row (fails **open** so a paid check is never dropped). PIF mint/consume were already idempotent (keyed on `stripe_session_id`, fail-closed). Regression-tested by a new duplicate-delivery test. | ✅ Fixed |
+| **F-LIFE-03** | `useLifecycleHandlers.ts` (`handleNoShow`) | Ban → ban-status → reopen writes were report-and-continue, so a mid-sequence failure could leave a **half-applied ban**. | The atomic `report_helper_no_show(p_job_id)` RPC (migration `20260518140000`, SECURITY DEFINER, `FOR UPDATE` row lock, poster re-check, 2-strike escalation + reopen in ONE transaction) already existed and is deployed in prod. The non-atomic client-side fallback was **deleted** — a browser can't roll back committed writes, so the only correct path is the server transaction; on any RPC error the handler now fails closed (report + toast + return). | ✅ Fixed |
+
+Alongside these two, the follow-on pass also resolved **F-MONEY-03** (idempotency-**insert** error now fails closed across all three webhooks — see finding row below), reclassified **F-RT-01/02** as by-design (see below), and — while in the checkout handler for F-WEBHOOK-03 — added ops-alert observability on the tip-flip and BGC-record failures and normalized 7 invalid `severity: "error"` Slack calls (an unlisted enum value that rendered an `undefined` header icon) to the valid `"critical"`.
 
 ---
 
@@ -42,9 +44,10 @@ and shipped green.
 > shipped green** (`b9da5bfd`). Verdict stays CONDITIONAL — not because a High remains,
 > but because the remaining conditions are *verification* gaps, not code gaps: no iOS-sim
 > visual pass, no Stripe test-mode charge runs, Playwright e2e is CI-only, and prod RLS
-> was asserted from migrations rather than re-introspected. Two Medium structural
-> follow-ups (F-WEBHOOK-03 retry double-notify, F-LIFE-03 ban atomicity) are documented
-> and deferred.
+> was asserted from migrations rather than re-introspected. The two Medium structural
+> follow-ups (F-WEBHOOK-03 retry double-notify, F-LIFE-03 ban atomicity) plus F-MONEY-03
+> (idempotency-insert fail-closed) and F-RT-01/02 (reclassified by-design) are now all
+> **resolved** (see the resolution table above).
 
 No 🔴 blockers were found. The core money, escrow, auth, RLS, and Apple-1.2 UGC-moderation surfaces are fundamentally sound: idempotency keys are stably derived on **every** charge path, payouts fail closed, escrow stays held while disputed, single-winner accept is row-locked, location views are coordinate-masked for anon, no secrets ship in the client bundle, and admin endpoints are server-authorized with an audit log. The app can charge real money safely today.
 
@@ -116,10 +119,10 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 
 | ID | file:line | Finding | Fix |
 |---|---|---|---|
-| **F-MONEY-03** | `supabase/functions/stripe-webhook/index.ts:136-152` | Idempotency-**insert** error path (non-23505) still **continues** rather than aborting; a genuine insert failure could allow re-processing. Distinct from F-WEBHOOK-01, which fixed the **handler** error path. Signature verification confirmed present (`:100`). Now lower-risk: with F-WEBHOOK-01 in place, the surviving concern is only a rare duplicate-process, no longer a strand. | On idempotency-insert failure, distinguish "already processed" (skip, 200) from "insert errored" (return non-2xx so Stripe retries) rather than falling through. |
+| **F-MONEY-03** ✅ Fixed | `stripe-webhook/index.ts`, `stripe-idv-webhook/index.ts`, `verification-webhook/index.ts` | Idempotency-**insert** error path (non-23505) still **continued** rather than aborting; a genuine insert failure could allow re-processing. Distinct from F-WEBHOOK-01, which fixed the **handler** error path. | **Fixed across all three webhooks:** a non-23505 error on the dedupe-row insert now means the dedupe table is unhealthy → **fail closed** (Slack `stripe_webhook_error` critical alert + return 500 in each function's native envelope), so Stripe/the vendor retries once the DB recovers rather than processing the event un-deduped. A 23505 (duplicate) still 200-skips. Signature verification runs BEFORE the insert (security-auditor confirmed). |
 | **F-LIFE-01** | `src/components/JobTracking.tsx:270-279` | No server-side transition-ordering guard. The column whitelist (migration `20260703161000`) limits WHICH columns update, not ORDER — a direct UPDATE can set `helper_arrived_at` while `status` is still `open`. | Add a status-machine guard in the RPC/trigger (`UPDATE ... WHERE status = <expected_prior>`), so "arrive" can't precede "accept". |
-| **F-RT-01** | `src/pages/Admin.tsx:343-345` | `postgres_changes` `event:"*"` with no server-side `filter` — admin-only, but an unfiltered platform-wide firehose. | Scope the channel with a server-side filter; admin-only limits blast radius but the pattern violates the realtime rule. |
-| **F-RT-02** | `src/components/admin/AdminNotificationLogs.tsx:104-105` | INSERT subscription with no filter (admin-only). | Same as F-RT-01. |
+| **F-RT-01** ✅ By-design | `src/pages/Admin.tsx:343-345` | `postgres_changes` `event:"*"` with no server-side `filter`. | **Reclassified as by-design, not a defect.** The realtime rule ("scope every channel to the user") exists to stop a *per-user* screen receiving the whole platform's writes; these are **admin oversight consoles** whose entire purpose is a platform-wide live feed, so a user filter would defeat them. The channels already carry a `channelNonce()` (the dedupe half of the rule), and RLS still gates row visibility server-side. Documented the intent in-code so a future reader doesn't "fix" it into uselessness. |
+| **F-RT-02** ✅ By-design | `src/components/admin/AdminNotificationLogs.tsx:104-105` | INSERT subscription with no filter (admin-only). | Same as F-RT-01 — intentional admin-wide feed, now nonce'd + documented. |
 | **F-TRUST-03** | `src/pages/DataRights.tsx:77-88` | Data export is a client-side JSON dump, not server-authoritative — reflects only what the client can already read, not a complete CCPA export. | Move export to a server function that assembles the full record set from all tables/storage. |
 
 ### 🟢 Low / hardening
@@ -158,7 +161,7 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 | Escrow integrity | 5 | Held while disputed, fails closed |
 | Payout safety | 5 | Ledger-first, verified, alerted |
 | Price-source-of-truth | 4 | F-MONEY-01/02 fixed (single source); F-MONEY-04 idempotency-key identity fixed |
-| Webhook integrity | **4** | Signed; F-WEBHOOK-01/02 now fail closed + retry-safe; F-MONEY-03 insert-error fallthrough + F-WEBHOOK-03 retry double-notify remain |
+| Webhook integrity | **5** | Signed; F-WEBHOOK-01/02/03 + F-MONEY-03 all resolved — every webhook fails closed on a dedupe-insert error and is retry-safe (notifications gate on the real state flip) |
 
 **Per-surface:**
 | Surface | Score | Note |
@@ -167,8 +170,8 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 | Messaging / trust | **3** | F-TRUST-01/02 hide-but-deliver |
 | RLS / security | 5 | Mutations revoked from anon, definers pinned |
 | Location privacy | 5 | Masked everywhere for anon |
-| Admin console | 4 | Authorized + logged; F-RT-01/02 unfiltered channels |
-| Job lifecycle | 4 | F-LIFE-01 no server ordering guard |
+| Admin console | 5 | Authorized + logged; F-RT-01/02 unfiltered channels confirmed by-design (admin oversight feeds, nonce'd + documented) |
+| Job lifecycle | 4 | F-LIFE-03 no-show ban now atomic (RPC-only, fail-closed); F-LIFE-01 server ordering guard still open |
 | Account deletion | 4 | Fails closed; F-TRUST-04 storage/Stripe not purged |
 
 ---
@@ -186,12 +189,15 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 - ✅ F-MONEY-05 — `expire-subscriptions` re-asserts the expiry predicate on UPDATE (TOCTOU).
 - ✅ F-LIFE-02 — `useLifecycleHandlers` gate reads fail closed + `report()` the error.
 
-**Quick wins (still open):**
-4. F-MONEY-03 — return non-2xx on idempotency-**insert** error so Stripe retries (handler path already fixed; insert path remains).
-5. F-RT-01/02 — scope the two admin realtime channels.
+**Done this pass (2026-07-06, follow-on commit):**
+- ✅ F-MONEY-03 — idempotency-**insert** error now fails closed (Slack alert + 500) across all three webhooks so Stripe/vendor retries instead of processing un-deduped.
+- ✅ F-WEBHOOK-03 — tip + BGC notifications gate on the real state transition (`.select()`-checked flip / existence guard); PIF was already idempotent; duplicate-delivery regression test added.
+- ✅ F-LIFE-03 — `handleNoShow` now relies solely on the atomic `report_helper_no_show` RPC and fails closed on error (non-atomic client fallback deleted).
+- ✅ F-RT-01/02 — reclassified by-design (admin oversight feeds); intent documented in-code, already nonce'd.
+- ✅ Observability — ops alerts added on tip-flip and BGC-record failures; 7 invalid `severity: "error"` Slack calls normalized to `"critical"`.
 
 **Deferred (hardening / structural):**
-6. F-WEBHOOK-03 dedupe notification/email inserts on the retry path · F-LIFE-03 make `handleNoShow` ban writes atomic (RPC) · F-LIFE-01 server transition-ordering guard · F-TRUST-03 server-side export · F-TRUST-04 storage/Stripe purge · F-PRIV-02 per-device token delete · F-TYPE-01 drop `as any`.
+- F-LIFE-01 server transition-ordering guard · F-TRUST-03 server-side export · F-TRUST-04 storage/Stripe purge · F-PRIV-02 per-device token delete · F-TYPE-01 drop `as any`.
 
 ---
 

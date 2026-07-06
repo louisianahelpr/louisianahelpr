@@ -180,6 +180,11 @@ describe("stripe-webhook edge function", () => {
 
     it("marks a tip as paid and notifies the helper on a tip checkout", async () => {
       const fn = await loadConfigured();
+      // The tip UPDATE is gated on `payment_status='pending'` and returns the
+      // flipped row via `.select("id")`; the helper is notified ONLY when a row
+      // actually transitioned (so a webhook redelivery of an already-paid tip
+      // does not double-notify). Model the first-delivery case: one row flips.
+      scenario.writeSelectRows.tips = [{ id: "tip-1" }];
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
         id: "evt_tip",
         type: "checkout.session.completed",
@@ -207,6 +212,33 @@ describe("stripe-webhook edge function", () => {
       expect((notif?.payload as Record<string, unknown>).user_id).toBe(
         "helper-1",
       );
+    });
+
+    it("does NOT re-notify the helper when a tip webhook is redelivered (no row flips)", async () => {
+      const fn = await loadConfigured();
+      // Duplicate delivery: the tip was already 'paid', so the conditional
+      // UPDATE matches zero rows and `.select("id")` returns []. The helper
+      // must NOT be notified a second time (F-WEBHOOK-03).
+      scenario.writeSelectRows.tips = [];
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_tip_dup",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            mode: "payment",
+            customer_email: "poster@test.com",
+            metadata: {
+              type: "tip",
+              job_id: "job-1",
+              tipper_id: "poster-1",
+              helper_id: "helper-1",
+            },
+          },
+        },
+      });
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const notif = scenario.writes.find((w) => w.table === "notifications");
+      expect(notif).toBeUndefined();
     });
 
     it("auto-refunds a duplicate $2 onboarding fee when the flag was already set", async () => {

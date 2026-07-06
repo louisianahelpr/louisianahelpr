@@ -363,7 +363,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
                   aria-label={`Photo ${i + 1}`}
                   className={`shrink-0 w-10 h-10 rounded-md overflow-hidden transition-all ${i === lightboxIndex ? "ring-2 ring-white scale-105" : "opacity-60 hover:opacity-100"}`}
                 >
-                  <img loading="lazy" decoding="async" src={url} alt="" className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={url} alt="" aria-hidden="true" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

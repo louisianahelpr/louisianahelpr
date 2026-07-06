@@ -186,6 +186,7 @@ const Legal = () => {
       />
       <input
         type="text"
+        aria-label="Search all policies"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search all policies…"

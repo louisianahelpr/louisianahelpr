@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronUp } from "lucide-react";
 import { useLocation, useNavigationType } from "react-router-dom";
 
-import { prefersReducedMotion } from "@/lib/accessibility";
+import { prefersReducedMotion, useReducedMotion } from "@/lib/accessibility";
 import { hapticLight } from "@/lib/haptics";
 
 // Reveal the affordance only after the user has scrolled well past the fold —
@@ -38,6 +38,7 @@ const ScrollToTop = () => {
   const { pathname, hash, key } = useLocation();
   const navigationType = useNavigationType();
   const [visible, setVisible] = useState(false);
+  const reducedMotion = useReducedMotion();
   // The AppShell scroll container currently being watched.
   const scrollerRef = useRef<HTMLElement | null>(null);
   // Last pathname we reset for. A query-only change (e.g. a URL-driven tab
@@ -133,10 +134,10 @@ const ScrollToTop = () => {
           type="button"
           onClick={scrollToTop}
           aria-label="Scroll to top"
-          initial={{ opacity: 0, scale: 0.8, y: 8 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: 8 }}
-          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 8 }}
+          transition={reducedMotion ? { duration: 0.12 } : { duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           // Sit above the floating MobileNav dock + home indicator, hugging
           // the right edge. z below the nav (which is z-40+) so it never
           // overlaps the dock's controls.

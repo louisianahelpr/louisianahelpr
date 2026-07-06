@@ -115,6 +115,13 @@ serve(async (req) => {
 
     if (recordErr || !record) throw new Error("Failed to create payout record");
 
+    // Track whether the fee transfer completed so the payout catch block can
+    // include the full picture in error_message — without this, a
+    // fee-succeeded + payout-failed scenario overwrites any fee information
+    // with only the payout error, leaving admins unable to tell from the DB
+    // alone whether the helper's Connect account was already debited.
+    let feeTransferSucceeded = false;
+
     try {
       // Transfer the fee to the platform account first.
       // Guard: a flat 3% of a sub-17¢ balance rounds to 0¢, and Stripe rejects a
@@ -142,7 +149,9 @@ serve(async (req) => {
           stripeAccount: profile.stripe_account_id,
           idempotencyKey: `instant-payout-transfer-${record.id}`,
         }
-      ).catch(async (feeErr) => {
+      ).then(() => {
+        feeTransferSucceeded = true;
+      }).catch(async (feeErr) => {
         // The fee transfer can fail on older Connect setups. We deliberately
         // continue and still pay out only netCents — the fee stays in the
         // helper's connected balance rather than the platform account, so the
@@ -219,9 +228,19 @@ serve(async (req) => {
       );
     } catch (payoutErr) {
       const msg = payoutErr instanceof Error ? payoutErr.message : "Payout failed";
+      // Append fee-transfer outcome so admins can determine from the DB record
+      // alone whether the helper's Connect account was already debited before
+      // the payout failed — without this note the record is ambiguous and
+      // requires manual Stripe reconciliation on every failed instant payout.
+      let fullError = msg;
+      if (feeCents > 0) {
+        fullError += feeTransferSucceeded
+          ? ` | IMPORTANT: fee of ${feeCents}¢ was already transferred to platform — reverse transfer to helper's Connect account before closing`
+          : ` | fee transfer also failed (fee not collected)`;
+      }
       await supabaseAdmin
         .from("instant_payouts")
-        .update({ status: "failed", error_message: msg })
+        .update({ status: "failed", error_message: fullError })
         .eq("id", record.id);
       throw payoutErr;
     }

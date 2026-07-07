@@ -15,6 +15,19 @@ import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateL
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { ApplyVars, ApplySnapshot, DashboardContextSlice } from "./dashboardTypes";
 
+// The apply_to_job RPC RAISEs these exact strings for the states a helper can
+// actually hit (see 20260612450000_apply_to_job_rate_limit.sql). Map each to a
+// warm, human toast so the real reason surfaces instead of the generic
+// "Couldn't send your application through" fallback. Keys MUST match the RPC's
+// RAISE text verbatim — a drift here silently falls back to the generic toast.
+const APPLY_RPC_MESSAGES: Record<string, string> = {
+  "A price is required for bid-mode jobs": "Enter your bid amount before submitting.",
+  "Already applied to this job": "You've already applied to this job.",
+  "Cannot apply to your own job": "You can't apply to your own post.",
+  "Job is no longer accepting applications": "This job isn't accepting applications anymore.",
+  "Job not found": "This job is no longer available.",
+};
+
 type UseApplyFlowArgs = {
   user: SupaUser | null;
   allJobs: EnrichedJob[];
@@ -193,6 +206,13 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         // Use the warm, window-specific message from applyRateLimit.
         // No retry — by definition the user has to wait the window out.
         toast.error(err.message);
+      } else if (APPLY_RPC_MESSAGES[(err as { message?: string } | null)?.message ?? ""]) {
+        // The apply_to_job RPC RAISEs a specific human reason (empty bid price,
+        // already applied, own job, job closed, not found). Surface THAT reason
+        // instead of burying it under the generic "something went wrong" toast —
+        // these are actionable states the helper can fix, not transient blips,
+        // so no Retry button (re-running the same invalid submit just re-fails).
+        toast.error(APPLY_RPC_MESSAGES[(err as { message?: string }).message!]);
       } else {
         errorToast("Couldn't send your application through", {
           description: "Tap retry to try again.",

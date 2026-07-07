@@ -52,6 +52,12 @@ export function ApplyConfirmDialog({
   const { online } = useOnlineStatus();
   const charsLeft = MAX_PITCH_LENGTH - applyMessage.length;
   const isBidMode = confirmApplyJob?.pricing_mode === "accept_bids";
+  // In bid mode the price is REQUIRED — apply_to_job raises
+  // "A price is required for bid-mode jobs" on an empty submit. Gate the
+  // action button on a valid positive number so the empty-bid submit can't
+  // happen (it previously fell through to a generic failure toast).
+  const bidValue = parseFloat(bidPrice);
+  const bidPriceValid = !isBidMode || (bidPrice.trim() !== "" && Number.isFinite(bidValue) && bidValue >= 1);
   const isInstantBook = !!(confirmApplyJob as any)?.instant_book;
   const trimmedLen = applyMessage.trim().length;
   const underMin = trimmedLen > 0 && trimmedLen < SOFT_MIN_PITCH_LENGTH;
@@ -483,7 +489,7 @@ export function ApplyConfirmDialog({
           <AlertDialogAction
             type="button"
             onClick={(e) => { if (!online) e.preventDefault(); handleConfirm(); }}
-            disabled={applyLoading}
+            disabled={applyLoading || !bidPriceValid}
             className="rounded-ds-md"
             style={{
               background: "hsl(var(--bark))",

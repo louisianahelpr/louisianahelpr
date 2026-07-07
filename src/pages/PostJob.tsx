@@ -64,10 +64,14 @@ const PostJob = () => {
         meta={header.meta}
         onBack={form.handlePostJobBack}
         topInsetHandled
+        width="5xl"
       />
 
+      {/* Body column width matches PageHeader's "5xl" variant above so the
+          title aligns with the form beneath it — see PageHeader's `width`
+          prop doc. */}
       <div className="container mx-auto px-4 py-6">
-        <div className="max-w-lg lg:max-w-3xl mx-auto space-y-6">
+        <div className="max-w-lg lg:max-w-5xl mx-auto space-y-6">
           {/* STEP 0: ENTRY CHOICE — start fresh / load draft / use template */}
           {form.step === "entry" && <EntryChoice form={form} />}
 

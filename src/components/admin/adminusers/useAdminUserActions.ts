@@ -70,7 +70,7 @@ export const makeAdminUserActions = ({
       toast.success("Approval email resent");
       loadProfiles();
     } catch (err: any) {
-      toast.error("Failed to resend email");
+      toast.error("Couldn't resend that email — try again");
       report(err, { tags: { source: "AdminUsers.resendApprovalEmail" } });
     } finally {
       setResending(null);
@@ -94,7 +94,7 @@ export const makeAdminUserActions = ({
       toast.success("Denial email resent");
       loadProfiles();
     } catch (err: any) {
-      toast.error("Failed to resend email");
+      toast.error("Couldn't resend that email — try again");
       report(err, { tags: { source: "AdminUsers.resendDenialEmail" } });
     } finally {
       setResending(null);
@@ -112,7 +112,7 @@ export const makeAdminUserActions = ({
       toast.success("Verification email resent");
       loadProfiles();
     } catch (err: any) {
-      toast.error(err.message || "Failed to resend verification email");
+      toast.error(err.message || "Couldn't resend the verification email — try again");
       report(err, { tags: { source: "AdminUsers.resendVerificationEmail" } });
     } finally {
       setResending(null);

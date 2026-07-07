@@ -61,7 +61,7 @@ const PetProfiles = () => {
     },
     onError: (err) => {
       report(err, { tags: { area: "pet_profiles.delete" } });
-      toast.error("Couldn't remove pet");
+      toast.error("Couldn't remove that pet — try again?");
       hapticError();
     },
   });

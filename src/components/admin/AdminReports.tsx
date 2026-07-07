@@ -69,7 +69,7 @@ const AdminReports = () => {
 
       const { data, error } = await query;
       if (error) {
-        toast.error("Failed to load reports");
+        toast.error("Couldn't load reports — refresh to retry");
         return [];
       }
 
@@ -188,7 +188,7 @@ const AdminReports = () => {
       setMessageTarget(null);
       setMessageText("");
     } catch {
-      toast.error("Failed to send message");
+      toast.error("Couldn't send that message — try again");
     }
     setSendingMessage(false);
   };

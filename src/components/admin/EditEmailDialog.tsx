@@ -65,7 +65,7 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
       onClose();
     } catch (err: unknown) {
       const e = err as { message?: string; context?: { json?: () => Promise<{ error?: string }> } };
-      let message = e?.message || "Failed to update email";
+      let message = e?.message || "Couldn't update email — try again";
       if (e?.context && typeof e.context.json === "function") {
         try {
           const body = await e.context.json();

@@ -50,7 +50,7 @@ const AdminSupport = () => {
 
       const { data, error } = await query;
       if (error) {
-        toast.error("Failed to load support tickets");
+        toast.error("Couldn't load support tickets — refresh to retry");
         return [];
       }
 

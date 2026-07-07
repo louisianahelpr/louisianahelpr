@@ -157,7 +157,7 @@ const AdminPayoutBatches = () => {
       qc.invalidateQueries({ queryKey });
     } catch (err: unknown) {
       report(err, { tags: { source: "AdminPayoutBatches.triggerPayout" } });
-      toast.error(err instanceof Error ? err.message : "Failed to trigger payout");
+      toast.error(err instanceof Error ? err.message : "Couldn't trigger that payout — try again");
     } finally {
       setPaying(null);
     }

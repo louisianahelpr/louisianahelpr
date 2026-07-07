@@ -83,7 +83,7 @@ const AdminIDVQueue = () => {
       .maybeSingle();
     if (error) {
       console.error("[AdminIDVQueue] loadSettings:", error);
-      toast.error("Failed to load IDV settings");
+      toast.error("Couldn't load IDV settings — refresh to retry");
       return;
     }
     if (data) {
@@ -269,7 +269,7 @@ const AdminIDVQueue = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-foreground text-ds-13 truncate">{formatName(p.full_name, "—")}</p>
                     {tab && (
-                      <Badge className={`text-ds-11 ${tab.color}`}>{p.idv_status}</Badge>
+                      <Badge className={`text-ds-11 ${tab.color}`}>{tab.label}</Badge>
                     )}
                     {p.idv_confidence !== null && (
                       <Badge variant="secondary" className="text-ds-11">

@@ -67,7 +67,7 @@ const AdminDisputes = () => {
 
     if (openRes.error) {
       report(openRes.error, { tags: { source: "AdminDisputes.loadOpen" } });
-      toast.error("Failed to load disputes");
+      toast.error("Couldn't load disputes — refresh to retry");
       setLoading(false);
       return;
     }
@@ -185,7 +185,7 @@ const AdminDisputes = () => {
       }
       loadDisputes();
     } catch (err: any) {
-      toast.error(err.message || "Failed to resolve dispute");
+      toast.error(err.message || "Couldn't resolve that dispute — try again");
     } finally {
       setResolving(null);
     }
@@ -280,7 +280,7 @@ const AdminDisputes = () => {
       setHelperShare(50);
       loadDisputes();
     } catch (err: any) {
-      toast.error(err.message || "Failed to record decision");
+      toast.error(err.message || "Couldn't record that decision — try again");
     } finally {
       setSubmittingDecision(false);
     }

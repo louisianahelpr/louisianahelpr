@@ -67,7 +67,7 @@ const AdminSettings = () => {
       .maybeSingle();
     if (error) {
       console.error("[AdminSettings] loadSettings:", error);
-      toast.error("Failed to load platform settings");
+      toast.error("Couldn't load platform settings — refresh to retry");
     } else if (data) {
       const row = data as typeof data & { min_supported_build?: number | null; feature_flags?: Record<string, boolean> | null };
       setCustomerFee(String(data.customer_fee_percent ?? 10));
@@ -163,7 +163,7 @@ const AdminSettings = () => {
 
     if (rolesError) {
       console.error("[AdminSettings] loadAdmins roles:", rolesError);
-      toast.error("Failed to load admin list");
+      toast.error("Couldn't load admin list — refresh to retry");
       setAdminsLoading(false);
       return;
     }

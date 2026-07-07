@@ -117,7 +117,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
     });
     setSaving(false);
     if (error) {
-      toast.error(error.message || "Failed to save note");
+      toast.error(error.message || "Couldn't save that note — try again");
       return;
     }
     setNewNote("");
@@ -148,7 +148,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       .update({ note: trimmed, category: editingCategory })
       .eq("id", id);
     if (error) {
-      toast.error(error.message || "Failed to update note");
+      toast.error(error.message || "Couldn't update that note — try again");
       return;
     }
     cancelEdit();
@@ -162,7 +162,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
     const { error } = await supabase.from("admin_user_notes").delete().eq("id", deleteNote.id);
     setDeleting(false);
     if (error) {
-      toast.error(error.message || "Failed to delete note");
+      toast.error(error.message || "Couldn't delete that note — try again");
       return;
     }
     setDeleteNote(null);

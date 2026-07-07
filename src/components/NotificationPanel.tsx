@@ -55,7 +55,7 @@ const NotificationPanel = () => {
       // stays silent so a transient hiccup doesn't blow away a list the
       // user is mid-reading.
       setLoadError((prev) => (notifications.length === 0 ? true : prev));
-      toast.error("Couldn't load notifications");
+      toast.error("Couldn't load notifications — try again?");
       return;
     }
     setLoadError(false);

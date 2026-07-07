@@ -148,7 +148,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             type: "warning",
             link: "/profile",
           });
-          toast.warning(`Warning ${warningNum}/2: Cancelling after selecting a Helpr is tracked. A 3rd time = permanent ban.`);
+          toast.warning(`Late cancel ${warningNum} of 2 — one more after a Helpr accepts will result in a permanent ban.`);
         } else if (actionTaken === "permanent_ban") {
           const { error: banInsertErr } = await supabase.from("user_bans").insert({
             user_id: userId,
@@ -186,7 +186,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       onCancelled();
       onClose();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to cancel job";
+      const message = err instanceof Error ? err.message : "Couldn't cancel — please try again";
       hapticError();
       toast.error(message);
     } finally {

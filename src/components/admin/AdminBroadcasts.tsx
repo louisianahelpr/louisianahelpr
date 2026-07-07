@@ -157,7 +157,7 @@ const AdminBroadcasts = () => {
     setDeleting(false);
     if (error) {
       report(error, { tags: { source: "AdminBroadcasts.remove" } });
-      toast.error("Failed to remove broadcast");
+      toast.error("Couldn't remove that broadcast — try again");
       return;
     }
     qc.setQueryData<Broadcast[]>(BROADCASTS_KEY, (prev) =>

@@ -39,7 +39,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
   const disputedStatus: Database["public"]["Enums"]["job_status"] = "disputed";
 
   const getErrorMessage = (error: unknown) =>
-    error instanceof Error ? error.message : "Failed to submit dispute";
+    error instanceof Error ? error.message : "Couldn't file the dispute — try again?";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

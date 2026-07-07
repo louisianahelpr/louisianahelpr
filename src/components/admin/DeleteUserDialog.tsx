@@ -45,7 +45,7 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
       onSuccess?.();
       onClose();
     } catch (err) {
-      toast.error((err as Error).message || "Failed to delete account");
+      toast.error((err as Error).message || "Couldn't delete that account — try again");
     } finally {
       setDeleting(false);
     }

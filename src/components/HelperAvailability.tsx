@@ -21,7 +21,7 @@ type HelperAvailabilityRow = Database["public"]["Tables"]["helper_availability"]
 type HelperAvailabilityInsert = Database["public"]["Tables"]["helper_availability"]["Insert"];
 
 const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "Failed to save";
+  error instanceof Error ? error.message : "Couldn't save that — try again?";
 
 export function HelperAvailability({ userId, compact = false }: { userId: string; compact?: boolean }) {
   const [slots, setSlots] = useState<AvailabilitySlot[]>(

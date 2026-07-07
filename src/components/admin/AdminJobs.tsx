@@ -46,7 +46,7 @@ const AdminJobs = () => {
         .order("created_at", { ascending: false });
       if (error) {
         console.error("[AdminJobs] load:", error);
-        toast.error("Failed to load jobs");
+        toast.error("Couldn't load jobs — refresh to retry");
       } else if (data) {
         setJobs(data);
         const flagMap = new Map<string, string[]>();
@@ -161,7 +161,7 @@ const AdminJobs = () => {
       setDeleteReason("");
       setDetailJob(null);
     } catch (err: any) {
-      toast.error("Failed to remove job: " + err.message);
+      toast.error("Couldn't remove that job: " + err.message);
     } finally {
       setDeleting(false);
     }
@@ -209,7 +209,7 @@ const AdminJobs = () => {
       setRefundAmount("");
       setDetailJob(null);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to issue refund";
+      const msg = err instanceof Error ? err.message : "Couldn't issue that refund — try again";
       toast.error(msg);
     } finally {
       setRefunding(false);
@@ -264,7 +264,7 @@ const AdminJobs = () => {
       setOverrideStatus("open");
       setDetailJob(null);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to override status";
+      const msg = err instanceof Error ? err.message : "Couldn't override status — try again";
       toast.error(msg);
     } finally {
       setOverriding(false);

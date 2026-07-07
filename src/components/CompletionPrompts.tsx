@@ -178,7 +178,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       if (data?.url) window.location.href = data.url;
       else throw new Error("Couldn't start checkout. Please try again.");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create tip";
+      const message = err instanceof Error ? err.message : "Couldn't send that tip — please try again";
       toast.error(message);
     } finally {
       setSaving(false);

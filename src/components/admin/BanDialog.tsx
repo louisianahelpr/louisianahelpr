@@ -223,7 +223,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
       onSuccess?.();
       handleClose();
     } catch (err) {
-      toast.error((err as Error).message || "Failed to take action");
+      toast.error((err as Error).message || "Couldn't apply that action — try again");
     } finally {
       setBanning(false);
     }

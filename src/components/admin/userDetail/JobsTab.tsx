@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
 import { jobStatusColorClasses } from "@/lib/statusColors";
-import { jobStatusLabel } from "@/lib/statusLabels";
+import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
 import { formatJobDate } from "@/lib/format";
 import type { Profile } from "../adminUserHelpers";
 
@@ -119,7 +119,7 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
                     {j.payment_status && (
                       <>
                         <span>·</span>
-                        <span className="capitalize">{j.payment_status}</span>
+                        <span>{paymentStatusLabel(j.payment_status)}</span>
                       </>
                     )}
                   </div>

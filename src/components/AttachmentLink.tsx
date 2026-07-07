@@ -37,7 +37,7 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
     e.stopPropagation();
     const signed = await getAttachmentSignedUrl(url);
     if (!signed) {
-      toast.error("Could not open attachment");
+      toast.error("Couldn't open that — try again?");
       return;
     }
     window.open(signed, "_blank", "noopener,noreferrer");

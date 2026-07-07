@@ -77,8 +77,27 @@ export async function handleCheckoutSessionCompleted(
       .update(updateData)
       .eq("email", customerEmail);
 
-    if (error) logStep("ERROR updating profile", { error: error.message });
-    else logStep("Profile updated with tier", { email: customerEmail, tier, expires: subscriptionEnd });
+    if (error) {
+      logStep("ERROR updating profile", { error: error.message });
+      // A paid subscription whose profile row was never updated is money in with
+      // no entitlement out — the worst kind of silent failure. Alert ops AND
+      // throw so the outer handler rolls back the idempotency row and returns 500,
+      // letting Stripe retry this event once the DB recovers.
+      postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Subscription tier not applied — DB update failed",
+        message: `A paid ${tier} checkout completed but the profiles update failed. The webhook will be retried by Stripe.`,
+        fields: {
+          email: customerEmail ?? "(unknown)",
+          tier: tier ?? "unknown",
+          db_error: error.message.slice(0, 200),
+        },
+      });
+      throw new Error(`Failed to apply subscription tier '${tier}': ${error.message}`);
+    } else {
+      logStep("Profile updated with tier", { email: customerEmail, tier, expires: subscriptionEnd });
+    }
   }
 
   // Handle tip checkout completion

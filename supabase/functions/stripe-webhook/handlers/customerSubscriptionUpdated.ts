@@ -35,7 +35,7 @@ export async function handleCustomerSubscriptionUpdated(
       .eq("email", email);
 
     if (error) logStep("ERROR updating profile", { error: error.message });
-  } else if (["canceled", "unpaid", "past_due"].includes(subscription.status)) {
+  } else if (["canceled", "unpaid", "past_due", "paused"].includes(subscription.status)) {
     logStep("Subscription inactive", { email, status: subscription.status });
 
     const { error } = await supabase

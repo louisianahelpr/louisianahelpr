@@ -187,11 +187,13 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         toast.error(
           msg.includes("job_not_open")
             ? "This job is no longer open — it may already be assigned."
-            : msg.includes("application_not_pending")
-              ? "This applicant can no longer be accepted."
-              : msg.includes("not_authorized")
-                ? "You can only accept applicants on a job you posted."
-                : "Couldn't send the offer — please try again.",
+            : msg.includes("application_not_found")
+              ? "This application no longer exists — the applicant may have withdrawn."
+              : msg.includes("application_not_pending")
+                ? "This applicant can no longer be accepted."
+                : msg.includes("not_authorized")
+                  ? "You can only accept applicants on a job you posted."
+                  : "Couldn't send the offer — please try again.",
         );
         return;
       }

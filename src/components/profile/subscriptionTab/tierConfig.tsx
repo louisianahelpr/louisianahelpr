@@ -14,17 +14,6 @@ export const tierConfig: Array<{
   features: string[];
 }> = [
   {
-    id: "basic",
-    name: "Basic",
-    iconName: "star",
-    forWhom: "Great for an occasional weekend job",
-    monthly: "$5/mo",
-    annual: "$50/yr",
-    oneTime: "$5 one-time",
-    annualSave: "Save 17%",
-    features: ["Helpr Badge", "Instant Payouts", "Search Priority", "5-min Early Access"],
-  },
-  {
     id: "pro",
     name: "Pro",
     iconName: "sparkles",
@@ -33,7 +22,7 @@ export const tierConfig: Array<{
     annual: "$100/yr",
     oneTime: "$10 one-time",
     annualSave: "Save 17%",
-    features: ["Everything in Basic", "Instant Payouts", "Portfolio Showcase", "10-min Early Access"],
+    features: ["Helpr Badge", "Instant Payouts", "Portfolio Showcase", "10-min Early Access"],
   },
   {
     id: "elite",

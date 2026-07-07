@@ -37,7 +37,7 @@ serve(async (req) => {
     const cycle = PRICE_MAP[billing_cycle];
     if (!cycle) throw new Error("Invalid billing_cycle. Use: monthly, annual, or one_time");
     const priceId = cycle[tier];
-    if (!priceId) throw new Error("Invalid tier. Use: basic, pro, or elite");
+    if (!priceId) throw new Error("Invalid tier. Use: pro or elite");
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",

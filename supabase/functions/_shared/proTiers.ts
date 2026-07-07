@@ -9,7 +9,7 @@
 // scope) so vitest can import it directly, with a thin client re-export at
 // src/lib/proTiers.ts.
 
-export type ProTierKey = "basic" | "pro" | "elite";
+export type ProTierKey = "pro" | "elite";
 export type ProBillingCycle = "monthly" | "annual" | "one_time";
 
 /**
@@ -19,17 +19,14 @@ export type ProBillingCycle = "monthly" | "annual" | "one_time";
  */
 export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
-    basic: "price_1TAZjdKp2H4b7tECG4TDPOxd",
     pro: "price_1TAZkLKp2H4b7tEC0ACbAX2y",
     elite: "price_1TAZkSKp2H4b7tEClf0VNiEa",
   },
   annual: {
-    basic: "price_1TAZkXKp2H4b7tECRBtNRne5",
     pro: "price_1TAZkbKp2H4b7tECZ7Qr6CZS",
     elite: "price_1TAZkcKp2H4b7tECagD42xRa",
   },
   one_time: {
-    basic: "price_1TAZkdKp2H4b7tECtvvFRyJf",
     pro: "price_1TAZkeKp2H4b7tECnfZ7vF0C",
     elite: "price_1TAZkeKp2H4b7tECmn27C8JM",
   },
@@ -39,9 +36,9 @@ export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> 
  * The canonical whole-cent amount each RECURRING Stripe Price must charge —
  * the ledger the drift-guard test asserts against. Derived from the displayed
  * tier prices in src/lib/subscriptionTiers.ts:
- *   monthly = TIER_PERKS[tier].price × 100        (basic $5 / pro $10 / elite $15)
+ *   monthly = TIER_PERKS[tier].price × 100        (pro $10 / elite $15)
  *   annual  = monthly × 10 (a full year at "2 months free")
- *                                                 (basic $50 / pro $100 / elite $150)
+ *                                                 (pro $100 / elite $150)
  * Bumping a price in subscriptionTiers.ts without re-pointing the Stripe Price
  * here makes this ledger disagree with TIER_PERKS and fails the gate.
  *
@@ -50,6 +47,6 @@ export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> 
  * would itself be an un-guarded guess.
  */
 export const PRO_RECURRING_AMOUNT_CENTS: Record<"monthly" | "annual", Record<ProTierKey, number>> = {
-  monthly: { basic: 500, pro: 1000, elite: 1500 },
-  annual: { basic: 5000, pro: 10000, elite: 15000 },
+  monthly: { pro: 1000, elite: 1500 },
+  annual: { pro: 10000, elite: 15000 },
 };

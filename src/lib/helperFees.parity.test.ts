@@ -10,7 +10,7 @@ import {
 } from "../../supabase/functions/_shared/helperFees";
 
 describe("helper-fee tier ladder parity (UI ↔ edge)", () => {
-  const tiers: SubscriptionTier[] = ["free", "basic", "pro", "elite", "business"];
+  const tiers: SubscriptionTier[] = ["free", "pro", "elite", "business"];
 
   it("edge TIER_FEE_PERCENT matches UI TIER_PERKS.platformFeePercent for every tier", () => {
     for (const tier of tiers) {
@@ -22,8 +22,8 @@ describe("helper-fee tier ladder parity (UI ↔ edge)", () => {
     expect(Object.keys(TIER_FEE_PERCENT).sort()).toEqual([...tiers].sort());
   });
 
-  it("encodes the agreed 12 / 11 / 10 / 8 / 6 ladder", () => {
-    expect(TIER_FEE_PERCENT).toEqual({ free: 12, basic: 11, pro: 10, elite: 8, business: 6 });
+  it("encodes the agreed 12 / 10 / 8 / 6 ladder", () => {
+    expect(TIER_FEE_PERCENT).toEqual({ free: 12, pro: 10, elite: 8, business: 6 });
   });
 
   it("normalizes case and falls back to the free rate for unknown tiers", () => {
@@ -35,7 +35,7 @@ describe("helper-fee tier ladder parity (UI ↔ edge)", () => {
 });
 
 describe("tierFeePercent (client dashboard resolver) mirrors the edge payout resolver", () => {
-  const tiers: SubscriptionTier[] = ["free", "basic", "pro", "elite", "business"];
+  const tiers: SubscriptionTier[] = ["free", "pro", "elite", "business"];
 
   it("resolves the same percent as edge feePercentForTier for every active tier", () => {
     for (const tier of tiers) {
@@ -44,9 +44,8 @@ describe("tierFeePercent (client dashboard resolver) mirrors the edge payout res
     }
   });
 
-  it("encodes the agreed 12 / 11 / 10 / 8 / 6 ladder", () => {
+  it("encodes the agreed 12 / 10 / 8 / 6 ladder", () => {
     expect(tierFeePercent("free")).toBe(12);
-    expect(tierFeePercent("basic")).toBe(11);
     expect(tierFeePercent("pro")).toBe(10);
     expect(tierFeePercent("elite")).toBe(8);
     expect(tierFeePercent("business")).toBe(6);

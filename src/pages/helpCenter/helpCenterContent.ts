@@ -148,7 +148,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "What fees does Helpr charge?",
-        a: `Free-account Helprs keep ${100 - TIER_PERKS.free.platformFeePercent}% (${TIER_PERKS.free.platformFeePercent}% platform fee). Basic keeps ${100 - TIER_PERKS.basic.platformFeePercent}%, Pro keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, Elite ${100 - TIER_PERKS.elite.platformFeePercent}%, and Business ${100 - TIER_PERKS.business.platformFeePercent}% (${TIER_PERKS.business.platformFeePercent}% fee) — the platform fee drops as your plan tier rises. Posters pay a plan-based service fee at checkout too (${TIER_PERKS.free.platformFeePercent}% Free, ${TIER_PERKS.basic.platformFeePercent}% Basic, ${TIER_PERKS.pro.platformFeePercent}% Pro, ${TIER_PERKS.elite.platformFeePercent}% Elite, ${TIER_PERKS.business.platformFeePercent}% Business), with a small minimum so tiny jobs still cover card processing.`,
+        a: `Free-account Helprs keep ${100 - TIER_PERKS.free.platformFeePercent}% (${TIER_PERKS.free.platformFeePercent}% platform fee). Pro keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, Elite ${100 - TIER_PERKS.elite.platformFeePercent}%, and Business ${100 - TIER_PERKS.business.platformFeePercent}% (${TIER_PERKS.business.platformFeePercent}% fee) — the platform fee drops as your plan tier rises. Posters pay a plan-based service fee at checkout too (${TIER_PERKS.free.platformFeePercent}% Free, ${TIER_PERKS.pro.platformFeePercent}% Pro, ${TIER_PERKS.elite.platformFeePercent}% Elite, ${TIER_PERKS.business.platformFeePercent}% Business), with a small minimum so tiny jobs still cover card processing.`,
       },
       {
         q: "What if there's a dispute?",

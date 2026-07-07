@@ -16,7 +16,7 @@ import {
   PRO_RECURRING_AMOUNT_CENTS as EDGE_PRO_RECURRING_AMOUNT_CENTS,
 } from "../../supabase/functions/_shared/proTiers";
 
-const PAID_TIERS: ProTierKey[] = ["basic", "pro", "elite"];
+const PAID_TIERS: ProTierKey[] = ["pro", "elite"];
 const CYCLES: ProBillingCycle[] = ["monthly", "annual", "one_time"];
 
 describe("consumer subscription checkout price config (F-MONEY-01 drift guard)", () => {
@@ -25,9 +25,9 @@ describe("consumer subscription checkout price config (F-MONEY-01 drift guard)",
     expect(PRO_RECURRING_AMOUNT_CENTS).toEqual(EDGE_PRO_RECURRING_AMOUNT_CENTS);
   });
 
-  it("maps exactly the three paid tiers for every billing cycle", () => {
+  it("maps exactly the two paid tiers for every billing cycle", () => {
     for (const cycle of CYCLES) {
-      expect(Object.keys(PRO_PRICE_MAP[cycle]).sort()).toEqual(["basic", "elite", "pro"]);
+      expect(Object.keys(PRO_PRICE_MAP[cycle]).sort()).toEqual(["elite", "pro"]);
     }
   });
 
@@ -71,17 +71,14 @@ describe("consumer subscription checkout price config (F-MONEY-01 drift guard)",
     // never an accidental drift.
     expect(PRO_PRICE_MAP).toEqual({
       monthly: {
-        basic: "price_1TAZjdKp2H4b7tECG4TDPOxd",
         pro: "price_1TAZkLKp2H4b7tEC0ACbAX2y",
         elite: "price_1TAZkSKp2H4b7tEClf0VNiEa",
       },
       annual: {
-        basic: "price_1TAZkXKp2H4b7tECRBtNRne5",
         pro: "price_1TAZkbKp2H4b7tECZ7Qr6CZS",
         elite: "price_1TAZkcKp2H4b7tECagD42xRa",
       },
       one_time: {
-        basic: "price_1TAZkdKp2H4b7tECtvvFRyJf",
         pro: "price_1TAZkeKp2H4b7tECnfZ7vF0C",
         elite: "price_1TAZkeKp2H4b7tECmn27C8JM",
       },

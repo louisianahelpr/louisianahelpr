@@ -149,10 +149,18 @@ serve(async (req) => {
           await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
           abandonedCount++;
         }
-      } catch (_e) {
-        // Session not found — mark as abandoned
-        await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
-        abandonedCount++;
+      } catch (e: any) {
+        // Only treat a confirmed 404 / resource_missing as "session is gone —
+        // mark abandoned". A transient network error, a rate-limit 429, or any
+        // other Stripe API error must NOT silently flip a live checkout to
+        // "abandoned" — that would make an active session un-payable with no
+        // recovery path.
+        if (e?.statusCode === 404 || e?.code === "resource_missing") {
+          await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
+          abandonedCount++;
+        } else {
+          console.error(`[void-cancelled-payments] unexpected error retrieving session ${job.stripe_session_id} for job ${job.id}:`, e);
+        }
       }
     }
 

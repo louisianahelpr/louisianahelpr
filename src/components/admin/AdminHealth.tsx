@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { FILL_DAYS_OPTIONS } from "./adminHealth/types";
 import { formatDelay } from "./adminHealth/adminHealthHelpers";
 import { useHealthData } from "./adminHealth/useHealthData";
+import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { useFillRate } from "./adminHealth/useFillRate";
 
 const AdminHealth = () => {
@@ -64,9 +65,9 @@ const AdminHealth = () => {
   const { emailStats, pushStats, fraudCount, adminPushTokenCount, recentJobs, healthStatus, parishStats, medianTimeToFirstAppMin, jobsAwaitingApps } = data;
 
   const statusBadge = {
-    ok: <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">Healthy</Badge>,
-    degraded: <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">Degraded</Badge>,
-    unknown: <Badge className="bg-muted text-muted-foreground">Checking…</Badge>,
+    ok: <Badge className={toneBadgeClasses.success}>Healthy</Badge>,
+    degraded: <Badge className={toneBadgeClasses.danger}>Degraded</Badge>,
+    unknown: <Badge className={toneBadgeClasses.neutral}>Checking…</Badge>,
   };
 
   return (
@@ -119,9 +120,9 @@ const AdminHealth = () => {
             <Mail className="w-4 h-4" /> Emails (24h)
           </span>
           <div className="flex gap-3 text-ds-13">
-            <span className="text-green-600 font-semibold">{emailStats.sent} sent</span>
-            <span className="text-red-600 font-semibold">{emailStats.failed} failed</span>
-            <span className="text-yellow-600 font-semibold">{emailStats.suppressed} suppressed</span>
+            <span className={cn("font-semibold", toneTextClasses.success)}>{emailStats.sent} sent</span>
+            <span className={cn("font-semibold", toneTextClasses.danger)}>{emailStats.failed} failed</span>
+            <span className={cn("font-semibold", toneTextClasses.notice)}>{emailStats.suppressed} suppressed</span>
           </div>
         </div>
 
@@ -186,15 +187,15 @@ const AdminHealth = () => {
             <p className="text-ds-11 text-muted-foreground">New Jobs</p>
           </div>
           <div className="text-center">
-            <p className="text-ds-24 font-bold text-green-600">{recentJobs.completed}</p>
+            <p className={cn("text-ds-24 font-bold", toneTextClasses.success)}>{recentJobs.completed}</p>
             <p className="text-ds-11 text-muted-foreground">Completed</p>
           </div>
           <div className="text-center">
-            <p className="text-ds-24 font-bold text-red-600">{recentJobs.disputed}</p>
+            <p className={cn("text-ds-24 font-bold", toneTextClasses.danger)}>{recentJobs.disputed}</p>
             <p className="text-ds-11 text-muted-foreground">Disputed</p>
           </div>
           <div className="text-center">
-            <p className="text-ds-24 font-bold text-yellow-600">{recentJobs.cancelled}</p>
+            <p className={cn("text-ds-24 font-bold", toneTextClasses.notice)}>{recentJobs.cancelled}</p>
             <p className="text-ds-11 text-muted-foreground">Cancelled</p>
           </div>
         </div>

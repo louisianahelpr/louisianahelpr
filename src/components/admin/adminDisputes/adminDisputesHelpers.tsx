@@ -1,4 +1,6 @@
 import { Clock, AlertTriangle, Flame } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toneTextClasses } from "@/components/admin/tones";
 
 // SLA badge — green/amber/red based on time since the dispute was filed.
 // Past 5 days the customer can chargeback through their card issuer
@@ -15,14 +17,14 @@ export const slaBadge = (disputedAt: string | null) => {
   }
   if (hours > 48) {
     return (
-      <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold uppercase tracking-wide">
+      <span className={cn("inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-warning/15 font-semibold uppercase tracking-wide", toneTextClasses.warning)}>
         <AlertTriangle className="w-3 h-3" /> Stale · {Math.floor(hours / 24)}d
       </span>
     );
   }
   if (hours > 24) {
     return (
-      <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 font-medium uppercase tracking-wide">
+      <span className={cn("inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-warning/10 font-medium uppercase tracking-wide", toneTextClasses.warning)}>
         <Clock className="w-3 h-3" /> {Math.floor(hours)}h
       </span>
     );

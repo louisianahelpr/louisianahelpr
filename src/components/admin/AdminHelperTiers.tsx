@@ -23,6 +23,12 @@ interface HelperTier {
   tier: "Elite" | "Verified" | "Rising Star" | "Active" | "New";
 }
 
+// Tier chips are a decorative BRAND palette, not a severity signal — the
+// 4 non-"New" tiers need 4 distinct hues to visually differentiate a
+// helper's standing at a glance, and the semantic tone map (danger /
+// warning / notice / success / info / neutral) only has 6 buckets that
+// would collapse Elite + Verified onto the same "info" hue. Kept as
+// intentional palette utilities; see AdminHelperTiers header comment.
 const TIER_COLOR: Record<string, string> = {
   Elite: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300 border-rose-200",
   Verified: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200",
@@ -118,6 +124,7 @@ const AdminHelperTiers = () => {
                   </div>
                   <div className="flex gap-3 text-ds-11 text-muted-foreground">
                     <span className="flex items-center gap-0.5">
+                      {/* intentional: gold star (rating icon), not a status tone */}
                       <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                       {Number(helper.avg_rating).toFixed(2)} avg ({helper.total_reviews} reviews)
                     </span>

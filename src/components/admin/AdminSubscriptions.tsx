@@ -73,6 +73,8 @@ const AdminSubscriptions = () => {
 
   const tierColor = (tier: string | null) => {
     switch (tier) {
+      // intentional: Elite tier is a brand/premium gold chip, not a
+      // semantic status tone — see AdminHelperTiers for the same rule.
       case "elite": return "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400";
       case "pro": return "bg-primary/10 text-primary";
       case "basic": return "bg-secondary text-secondary-foreground";

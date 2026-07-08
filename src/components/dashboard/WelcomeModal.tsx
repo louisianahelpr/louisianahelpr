@@ -2,8 +2,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
-  DialogTitle,
-  DialogDescription,
+  DialogHero,
 } from "@/components/ui/dialog";
 
 interface Props {
@@ -45,7 +44,10 @@ export function WelcomeModal({ open, onDismiss }: Props) {
           border: "0.5px solid hsl(var(--bark) / 0.22)",
         }}
       >
-        {/* Header band */}
+        {/* Header band — uses the canonical DialogHero for eyebrow/title/
+            subtitle so this popup reads as a sibling of every other in the
+            app. The radial gradient + border-bottom stay on the wrapping
+            div; DialogHero renders inside it with the standard tokens. */}
         <div
           className="px-5 pt-6 pb-4"
           style={{
@@ -54,31 +56,11 @@ export function WelcomeModal({ open, onDismiss }: Props) {
             borderBottom: "0.5px solid hsl(var(--bark) / 0.12)",
           }}
         >
-          {/* Eyebrow */}
-          <span
-            className="font-serif italic uppercase text-[0.6rem] tracking-[0.18em] block mb-1"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
-          >
-            Louisiana's neighbor-to-neighbor marketplace
-          </span>
-
-          <DialogTitle
-            className="font-display italic font-bold leading-tight"
-            style={{
-              fontSize: "clamp(1.35rem, 4vw + 0.5rem, 1.65rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.028em",
-            }}
-          >
-            Welcome to Helpr
-          </DialogTitle>
-
-          <DialogDescription
-            className="font-serif italic mt-1.5 text-[0.88rem] leading-snug"
-            style={{ color: "hsl(var(--olivewood) / 0.80)" }}
-          >
-            Post a job <em>or</em> earn helping — no setup needed.
-          </DialogDescription>
+          <DialogHero
+            eyebrow="Louisiana's neighbor-to-neighbor marketplace"
+            title="Welcome to Helpr"
+            subtitle={<>Post a job <em>or</em> earn helping — no setup needed.</>}
+          />
         </div>
 
         {/* Two-card grid */}

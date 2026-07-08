@@ -93,8 +93,17 @@ export function JobQuickActionSheet({
   return (
     <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
       <SheetContent side="bottom" className="rounded-t-2xl border-t-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
-        <SheetHeader className="px-1 pb-2">
-          <SheetTitle className="text-left font-display italic font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+        {/* Mirrors DialogHero's eyebrow → title stack for cohesion with every
+            other popup header in the app (see MessageActionSheet for the
+            same pattern — Sheets can't use DialogHero directly). */}
+        <SheetHeader className="px-1 pb-2 space-y-0 text-left">
+          <span
+            className="font-serif italic uppercase block text-[0.62rem] tracking-[0.18em]"
+            style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+          >
+            Job actions
+          </span>
+          <SheetTitle className="text-left font-display italic font-bold text-ds-15 mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
             {job.title}
           </SheetTitle>
         </SheetHeader>

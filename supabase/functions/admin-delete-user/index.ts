@@ -1,10 +1,18 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const rl = await checkRateLimit(req, {
+    windowMs: 300_000,
+    maxRequests: 5,
+    keyPrefix: "admin-delete-user",
+  });
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 300, corsHeaders);
 
   try {
     const supabaseAdmin = createClient(
@@ -74,6 +82,35 @@ Deno.serve(async (req) => {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Refuse to delete a user who is party to an in-flight job or holds money
+    // in escrow — same guard as the user-initiated delete-own-account path.
+    // An admin delete has no such check today, so deleting mid-job strands
+    // the counterparty and orphans the escrowed funds with no party left to
+    // release or refund them.
+    const { data: activeJobs, error: activeErr } = await supabaseAdmin
+      .from("jobs")
+      .select("id")
+      .or(`customer_id.eq.${userId},helper_id.eq.${userId}`)
+      .or("status.in.(accepted,arrived,in_progress,awaiting),payment_status.eq.escrow")
+      .limit(1);
+
+    if (activeErr) {
+      // Fail closed — if we can't verify the account is safe to delete, don't.
+      return new Response(
+        JSON.stringify({ error: "Couldn't verify account state. Please try again." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (activeJobs && activeJobs.length > 0) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "This user has an active job or funds held in escrow. Resolve or cancel it and let any payment settle before deleting the account.",
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // Write audit log BEFORE deletion so the record survives cascade deletes

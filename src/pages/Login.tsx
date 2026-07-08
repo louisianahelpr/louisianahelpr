@@ -184,9 +184,11 @@ const Login = () => {
     // sign-in only reaches AAL1. Hold the user on a 6-digit challenge until
     // the session is elevated to AAL2 before letting them into the app.
     try {
-      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const { data: aal, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalError) throw aalError;
       if (aal?.nextLevel === "aal2" && aal.currentLevel === "aal1") {
-        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+        if (factorsError) throw factorsError;
         const factor = factors?.totp.find((f) => f.status === "verified");
         if (factor) {
           setLoading(false);
@@ -195,7 +197,16 @@ const Login = () => {
           return;
         }
       }
-    } catch { /* AAL probe failed — fall through and complete sign-in */ }
+    } catch {
+      // Fail closed: a dropped error here must never look identical to "no
+      // MFA configured" — that would let an AAL1 session straight into the
+      // app for a user who has 2FA enabled. Sign back out and make them retry.
+      await signOutWithPushCleanup();
+      setLoading(false);
+      hapticError();
+      toast.error("Couldn't verify your account's security settings. Please try again.");
+      return;
+    }
 
     await finishLogin();
   };

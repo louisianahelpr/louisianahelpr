@@ -16,6 +16,7 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
+import { toneTextClasses } from "@/components/admin/tones";
 
 interface LogRow {
   id: string;
@@ -43,9 +44,9 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 const STATUS_VARIANT: Record<string, string> = {
-  sent: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+  sent: cn("bg-success/15 border-success/30", toneTextClasses.success),
   failed: "bg-destructive/15 text-destructive border-destructive/30",
-  suppressed: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
+  suppressed: cn("bg-warning/15 border-warning/30", toneTextClasses.warning),
   skipped: "bg-muted text-muted-foreground border-border",
 };
 

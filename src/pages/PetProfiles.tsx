@@ -117,7 +117,7 @@ const PetProfiles = () => {
             title="No pets yet"
             body="Add your pets' profiles so helpers know their needs."
             action={
-              <Button variant="outline" onClick={openAdd}>
+              <Button onClick={openAdd}>
                 <Plus className="w-4 h-4 mr-1" /> Add a pet
               </Button>
             }
@@ -144,7 +144,6 @@ const PetProfiles = () => {
         {!!pets?.length && (
           <Button
             className="w-full"
-            variant="outline"
             size="lg"
             onClick={openAdd}
           >

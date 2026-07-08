@@ -238,7 +238,6 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
         /* No goal set yet */
         <Button
           size="sm"
-          variant="outline"
           className="w-full text-ds-12"
           onClick={() => {
             setDraft("");

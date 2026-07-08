@@ -206,7 +206,6 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
             </p>
             <Button
               size="sm"
-              variant="outline"
               className="mt-2 h-8 text-ds-11 gap-1.5"
               onClick={() => navigate("/dashboard")}
             >

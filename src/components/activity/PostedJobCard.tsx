@@ -358,7 +358,6 @@ function PostedJobCardInner({
               <div className="px-4 pb-3 pt-1">
                 <Button
                   size="sm"
-                  variant="outline"
                   className="w-full rounded-ds-md"
                   onClick={(e) => { e.stopPropagation(); navigate(job.helper_id ? `/post-job?rebook=${job.id}&offerTo=${job.helper_id}` : `/post-job?rebook=${job.id}`); }}
                 >

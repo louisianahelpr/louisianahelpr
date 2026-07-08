@@ -216,7 +216,6 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
             </p>
             <Button
               size="sm"
-              variant="outline"
               className="mt-2 h-8 text-ds-11"
               onClick={() => navigate("/dashboard")}
             >

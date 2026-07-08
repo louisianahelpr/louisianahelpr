@@ -137,14 +137,8 @@ const DataRights = () => {
           <Button
             onClick={handleExport}
             disabled={exporting || !userId}
-            variant="outline"
             className="w-full sm:w-auto"
             size="lg"
-            style={{
-              background: "hsl(var(--bark) / 0.10)",
-              border: "1px solid hsl(var(--bark) / 0.30)",
-              color: "hsl(var(--bark))",
-            }}
           >
             {exporting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Preparing…</> : "Download my data"}
           </Button>

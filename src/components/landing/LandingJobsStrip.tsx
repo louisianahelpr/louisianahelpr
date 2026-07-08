@@ -148,7 +148,10 @@ const LandingJobsStrip = () => {
           <div>
             <p
               className="text-ds-11 tracking-[0.18em] uppercase font-serif italic"
-              style={{ color: "hsl(var(--burnt-sienna) / 0.8)" }}
+              /* WCAG AA: full burnt-sienna on parchment measures ~5:1;
+                 the previous / 0.8 alpha dropped it to 4.0:1 which fails
+                 AA at 11px. Alpha removed per Cowork 2026-07-08. */
+              style={{ color: "hsl(var(--burnt-sienna))" }}
             >
               Fresh today · pulled live
             </p>

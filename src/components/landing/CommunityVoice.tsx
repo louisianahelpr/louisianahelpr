@@ -50,11 +50,17 @@ const faqs = [
   },
 ];
 
+// Per-avatar text color chosen to hit WCAG AA (4.5:1) against its bg
+// — sage / olive are too light for cream text (measured 2.88:1 and
+// 1.63:1 respectively, Cowork audit 2026-07-08), so they get ink-deep
+// (dark). Burnt-sienna and bark stay dark enough for parchment text.
+// Even though the row is aria-hidden decorative, sighted-user readability
+// is still a UX concern.
 const avatars = [
-  { initials: "CR", bg: "hsl(var(--sage))" },
-  { initials: "MB", bg: "hsl(var(--burnt-sienna))" },
-  { initials: "TM", bg: "hsl(var(--olive))" },
-  { initials: "JD", bg: "hsl(var(--bark))" },
+  { initials: "CR", bg: "hsl(var(--sage))", fg: "hsl(var(--ink-deep))" },
+  { initials: "MB", bg: "hsl(var(--burnt-sienna))", fg: "hsl(var(--parchment))" },
+  { initials: "TM", bg: "hsl(var(--olive))", fg: "hsl(var(--ink-deep))" },
+  { initials: "JD", bg: "hsl(var(--bark))", fg: "hsl(var(--parchment))" },
 ];
 
 const CommunityVoice = () => {
@@ -124,7 +130,7 @@ const CommunityVoice = () => {
                   className="w-9 h-9 rounded-full flex items-center justify-center text-ds-11 font-sans font-semibold"
                   style={{
                     backgroundColor: avatar.bg,
-                    color: "hsl(var(--parchment))",
+                    color: avatar.fg,
                     border: "2px solid hsl(var(--parchment))",
                   }}
                   aria-hidden

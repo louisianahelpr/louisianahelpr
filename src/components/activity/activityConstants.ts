@@ -50,11 +50,15 @@ export const categoryColors: Record<string, { badge: string; title: string; dot:
   handyman:   { badge: "bg-[hsl(22_50%_93%)] text-[hsl(18_44%_41%)] border-[hsl(20_42%_80%)] dark:bg-[hsl(18_42%_18%)] dark:text-[hsl(22_50%_77%)] dark:border-[hsl(20_38%_32%)]",     title: "text-[hsl(18_44%_41%)] dark:text-[hsl(22_50%_77%)]",  dot: "bg-[hsl(19_46%_49%)]" },
   painting:   { badge: "bg-[hsl(330_44%_94%)] text-[hsl(330_38%_47%)] border-[hsl(330_34%_84%)] dark:bg-[hsl(330_34%_19%)] dark:text-[hsl(330_44%_78%)] dark:border-[hsl(330_30%_33%)]",  title: "text-[hsl(330_38%_47%)] dark:text-[hsl(330_44%_78%)]", dot: "bg-[hsl(330_40%_56%)]" },
   delivery:   { badge: "bg-[hsl(214_34%_94%)] text-[hsl(214_28%_42%)] border-[hsl(214_26%_82%)] dark:bg-[hsl(214_30%_18%)] dark:text-[hsl(214_36%_78%)] dark:border-[hsl(214_26%_32%)]",  title: "text-[hsl(214_28%_42%)] dark:text-[hsl(214_36%_78%)]", dot: "bg-[hsl(214_30%_51%)]" },
-  pet_care:   { badge: "bg-[hsl(278_26%_94%)] text-[hsl(278_22%_48%)] border-[hsl(278_22%_84%)] dark:bg-[hsl(278_24%_19%)] dark:text-[hsl(278_30%_79%)] dark:border-[hsl(278_22%_33%)]",  title: "text-[hsl(278_22%_48%)] dark:text-[hsl(278_30%_79%)]", dot: "bg-[hsl(278_24%_57%)]" },
+  // pet_care light-mode text darkened 48% → 42% L: was 4.49:1 vs WCAG
+  // AA 4.5 (a 0.01 fail), now clears with headroom (Cowork 2026-07-08).
+  pet_care:   { badge: "bg-[hsl(278_26%_94%)] text-[hsl(278_24%_42%)] border-[hsl(278_22%_84%)] dark:bg-[hsl(278_24%_19%)] dark:text-[hsl(278_30%_79%)] dark:border-[hsl(278_22%_33%)]",  title: "text-[hsl(278_24%_42%)] dark:text-[hsl(278_30%_79%)]", dot: "bg-[hsl(278_24%_57%)]" },
   assembly:   { badge: "bg-[hsl(6_44%_94%)] text-[hsl(6_40%_46%)] border-[hsl(6_36%_84%)] dark:bg-[hsl(6_38%_19%)] dark:text-[hsl(6_46%_78%)] dark:border-[hsl(6_34%_33%)]",        title: "text-[hsl(6_40%_46%)] dark:text-[hsl(6_46%_78%)]",   dot: "bg-[hsl(6_42%_53%)]" },
   // storm_prep → steel blue (storm / weather — distinct from delivery's slate)
   storm_prep: { badge: "bg-[hsl(210_30%_92%)] text-[hsl(210_28%_38%)] border-[hsl(210_24%_78%)] dark:bg-[hsl(210_28%_18%)] dark:text-[hsl(210_32%_77%)] dark:border-[hsl(210_24%_32%)]", title: "text-[hsl(210_28%_38%)] dark:text-[hsl(210_32%_77%)]", dot: "bg-[hsl(210_30%_47%)]" },
-  events:     { badge: "bg-[hsl(45_48%_93%)] text-[hsl(42_44%_36%)] border-[hsl(44_40%_78%)] dark:bg-[hsl(42_40%_17%)] dark:text-[hsl(45_50%_76%)] dark:border-[hsl(44_36%_31%)]",     title: "text-[hsl(42_44%_36%)] dark:text-[hsl(45_50%_76%)]",  dot: "bg-[hsl(43_46%_46%)]" },
+  // events light-mode text darkened 36% → 32% L: was 4.46:1 vs WCAG AA
+  // 4.5 (a 0.04 fail on the badge), now clears (Cowork 2026-07-08).
+  events:     { badge: "bg-[hsl(45_48%_93%)] text-[hsl(42_44%_32%)] border-[hsl(44_40%_78%)] dark:bg-[hsl(42_40%_17%)] dark:text-[hsl(45_50%_76%)] dark:border-[hsl(44_36%_31%)]",     title: "text-[hsl(42_44%_32%)] dark:text-[hsl(45_50%_76%)]",  dot: "bg-[hsl(43_46%_46%)]" },
   other:      { badge: "bg-[hsl(40_14%_92%)] text-[hsl(40_9%_42%)] border-[hsl(40_12%_80%)] dark:bg-[hsl(40_10%_19%)] dark:text-[hsl(40_14%_75%)] dark:border-[hsl(40_10%_33%)]",      title: "text-[hsl(40_9%_42%)] dark:text-[hsl(40_14%_75%)]",   dot: "bg-[hsl(40_10%_55%)]" },
 };
 

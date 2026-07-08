@@ -202,14 +202,21 @@ export default function SubscriptionPage() {
             the marketplace commission on the real-world jobs a helper
             completes (Apple Guideline 3.1.5(a) — physical/real-world
             services), and are billed through Stripe, the same processor that
-            handles job payments. */}
+            handles job payments.
+
+            The "% platform fee" quoted per tier applies to BOTH sides — the
+            commission deducted from a helper's earnings AND the service fee
+            added to a poster's checkout total. Called out explicitly here
+            (Cowork audit 2026-07-08 flagged the poster's +12% as under-
+            disclosed — it only surfaced at checkout). */}
         <p
           className="font-serif italic text-center px-2 max-w-2xl mx-auto"
           style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)", lineHeight: 1.5 }}
         >
           A membership lowers the commission Helpr takes on the real-world jobs
-          you complete and adds visibility perks. Billed securely through
-          Stripe — manage or cancel anytime.
+          you complete <em>and</em> the service fee added when you post a job —
+          the same % applies to both sides. Billed securely through Stripe —
+          manage or cancel anytime.
         </p>
 
         {/* ── Tier cards ────────────────────────────────────────────────── */}

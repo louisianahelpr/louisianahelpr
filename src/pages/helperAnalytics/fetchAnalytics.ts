@@ -55,6 +55,13 @@ export async function fetchAnalytics(userId: string) {
   ]);
 
   if (profileRes.error) throw profileRes.error;
+  // completedJobs is the PRIMARY data source for the /analytics page — a
+  // silent fallback-to-empty would misreport "0 completed jobs" on a
+  // transient fetch failure. Throw so the page shows its error state.
+  if (completedJobsRes.error) throw completedJobsRes.error;
+  // Applications feed the success-rate card — same treatment: throw so a
+  // dropped fetch doesn't show "0% success rate" that isn't real.
+  if (allAppsRes.error) throw allAppsRes.error;
 
   const tier = (profileRes.data?.subscription_tier ?? "free") as string;
   const completedJobs = completedJobsRes.data ?? [];

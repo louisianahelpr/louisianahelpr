@@ -98,6 +98,15 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
       supabase.from("applications").select("job_id").in("job_id", jobIds),
       supabase.from("job_checkins").select("job_id").in("job_id", jobIds).eq("type", "start_request"),
     ]);
+    // Enrichments — not fatal, but a silent drop means the poster sees 0
+    // applicants and no start-request badge on jobs that actually have
+    // them. Warn-report so we notice, then still degrade gracefully.
+    if (allAppsRes.error) {
+      report(allAppsRes.error, { severity: "warning", tags: { source: "useActivityData.applicantCounts" } });
+    }
+    if (startCheckinsRes.error) {
+      report(startCheckinsRes.error, { severity: "warning", tags: { source: "useActivityData.startCheckins" } });
+    }
     allAppsRes.data?.forEach((a) => {
       applicantCounts[a.job_id] = (applicantCounts[a.job_id] || 0) + 1;
     });
@@ -121,6 +130,15 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
         supabase.from("tips").select("job_id").in("job_id", completedIds).eq("tipper_id", userId),
         supabase.from("reviews").select("job_id").in("job_id", completedIds).eq("reviewer_id", userId),
       ]);
+      // Post-completion badges (tipped / reviewed) — a silent drop makes an
+      // already-tipped job re-prompt the poster to tip. Warn-report and
+      // degrade to the default (unchecked) state so the UI still renders.
+      if (tipsRes.error) {
+        report(tipsRes.error, { severity: "warning", tags: { source: "useActivityData.tipsBadge" } });
+      }
+      if (reviewsRes.error) {
+        report(reviewsRes.error, { severity: "warning", tags: { source: "useActivityData.reviewsBadge" } });
+      }
       completedIds.forEach((id) => {
         completedJobMeta[id] = { tipped: false, reviewed: false };
       });
@@ -149,6 +167,19 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
     // a failed jobs fetch would leave every app with `job: null` and render
     // a blank tab. Surface it as a query error, like the primary fetches.
     if (jobsRes.error) throw jobsRes.error;
+    // Enrichments — a dropped violations fetch would show declined jobs as
+    // normal-pending, a dropped checkins fetch would hide start-request
+    // badges, and a dropped reviews fetch would re-prompt for a review the
+    // helper already left. Warn-report + degrade rather than crash.
+    if (violationsRes.error) {
+      report(violationsRes.error, { severity: "warning", tags: { source: "useActivityData.helperDeclinedJobs" } });
+    }
+    if (helperStartCheckins.error) {
+      report(helperStartCheckins.error, { severity: "warning", tags: { source: "useActivityData.helperStartCheckins" } });
+    }
+    if (helperReviewsRes.error) {
+      report(helperReviewsRes.error, { severity: "warning", tags: { source: "useActivityData.helperReviews" } });
+    }
     (helperStartCheckins.data || []).forEach((c) => startRequestedJobIds.add(c.job_id));
     helperReviewedJobIds = new Set((helperReviewsRes.data || []).map((r) => r.job_id));
     const jobs = jobsRes.data;

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
+import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -221,12 +222,22 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       const stripeCheck = await checkHelperStripeConnect();
       if (!stripeCheck.ok) { hapticError(); toast.error(stripeCheck.reason); return; }
 
-      // Identity verification gate — required before first accept
-      const { data: prof } = await supabase
+      // Identity verification gate — required before first accept. On a
+      // transient fetch failure, `prof` is undefined and reads as
+      // "not verified" — which used to look identical to a truly
+      // unverified user and trapped an already-verified helper in the
+      // IDV dialog. Surface the error explicitly instead.
+      const { data: prof, error: profErr } = await supabase
         .from("profiles")
         .select("idv_status, idv_failure_reason")
         .eq("user_id", user.id)
         .single();
+      if (profErr) {
+        report(profErr, { tags: { source: "useOfferHandlers.idvGate" } });
+        hapticError();
+        toast.error("Couldn't check your verification status — please try again.");
+        return;
+      }
       const profIdvStatus = (prof as { idv_status?: string })?.idv_status;
       if (profIdvStatus !== "verified") {
         setPendingAcceptApp(app);
@@ -291,8 +302,15 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           setW9Context({ jobId: app.job_id, businessId: jobMeta.business_id ?? null });
           setW9DialogOpen(true);
         }
-      } catch {
-        // requires_w9 column missing → migration not yet applied. Skip.
+      } catch (err) {
+        // requires_w9 column missing on pre-migration prod → skip is the
+        // intended graceful degrade. Any other unexpected error still gets
+        // reported so we can see it in monitoring rather than dropping it
+        // into the same silent bucket.
+        const code = (err as { code?: string })?.code;
+        if (code !== "PGRST204" && code !== "42703") {
+          report(err, { tags: { source: "useOfferHandlers.w9Fetch" }, context: { job_id: app.job_id } });
+        }
       }
 
       hapticSuccess();
@@ -350,7 +368,17 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           );
           return;
         }
-        const { data: existing } = await supabase.from("user_violations").select("id").eq("user_id", user.id).eq("violation_type", "job_denial");
+        // Prior violation count drives the graduated-ban ladder — a dropped
+        // error here would reset priorCount to 0 and let a repeat offender
+        // evade escalation to a warning or ban. Fail closed: abort the
+        // decline attempt so they retry rather than silently getting off.
+        const { data: existing, error: violErr } = await supabase.from("user_violations").select("id").eq("user_id", user.id).eq("violation_type", "job_denial");
+        if (violErr) {
+          report(violErr, { tags: { source: "useOfferHandlers.priorViolationCount" } });
+          hapticError();
+          toast.error("Couldn't record your response right now — please try again.");
+          return;
+        }
         priorCount = existing?.length || 0;
         // Softened: 5 strikes with graduated warnings before ban
         actionTaken = priorCount >= 4 ? "permanent_ban" : priorCount >= 2 ? "warning" : "none";

@@ -163,7 +163,13 @@ function EnrollDialog({
   const { data, isLoading, error } = useQuery({
     queryKey: ["security", "mfa-enroll"],
     queryFn: async () => {
+      // Surface a listFactors() failure so an unrelated auth error can't
+      // masquerade as "no stale factors, proceed with enrollment" — that
+      // masked the real problem and produced hard-to-debug enrollment
+      // failures downstream. Throw so the queryFn's error state kicks in
+      // and the UI shows a proper error, not a spinning enroll dialog.
       const list = await supabase.auth.mfa.listFactors();
+      if (list.error) throw list.error;
       const stale = list.data?.totp.filter((f) => f.status !== "verified") ?? [];
       await Promise.all(
         stale.map((f) => supabase.auth.mfa.unenroll({ factorId: f.id })),

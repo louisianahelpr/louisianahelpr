@@ -41,18 +41,17 @@ Deno.serve(async (req) => {
     }
 
     const admin = createClient(supabaseUrl, serviceKey)
-    // profiles.role was dropped in the unified-user-model migration —
-    // admin checks now go through user_roles instead. The old code
-    // (.from('profiles').select('role')) returned an object without
-    // a role property → admin !== 'admin' → all admins were blocked.
-    const { data: roleRow } = await admin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userRes.user.id)
-      .eq('role', 'admin')
-      .maybeSingle()
+    // Consolidated to the shared `has_role` RPC that admin-delete-user,
+    // admin-update-email, and admin-user-actions all use. Previously this
+    // function hand-rolled a `.from('user_roles').select('role').eq(...)`
+    // check, which drifted when the role model changed. Reading through
+    // has_role() means a future role-schema migration is one place, not four.
+    const { data: isAdmin } = await admin.rpc('has_role', {
+      _user_id: userRes.user.id,
+      _role: 'admin',
+    })
 
-    if (!roleRow) {
+    if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

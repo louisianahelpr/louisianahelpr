@@ -265,7 +265,7 @@ const HeroSection = () => {
               >
                 <Link to="/signup" onClick={goToPostJob}>
                   <Sparkles className="mr-2 w-5 h-5" strokeWidth={1.25} />
-                  Post a Request
+                  Post a job
                   <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
                 </Link>
               </Button>

@@ -205,7 +205,7 @@ export const DashboardScreen = ({ scale = 1 }: { scale?: number }) => {
             className="font-sans font-semibold tracking-tight"
             style={{ fontSize: `${0.55 * scale}rem` }}
           >
-            Post a Request
+            Post a job
           </span>
         </div>
       </div>

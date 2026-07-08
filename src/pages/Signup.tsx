@@ -73,6 +73,11 @@ const Signup = () => {
   // user posts or completes their first job.
   const [referralCode] = useState(searchParams.get("ref") || "");
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
+  // Marketing / promotional email opt-in — UNCHECKED by default so a user
+  // who doesn't tick it never gets marketing mail. Persists to
+  // profiles.marketing_consent via complete-signup below; the marketing
+  // sender filters on it.
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   // Step 2 fields
@@ -192,6 +197,10 @@ const Signup = () => {
         bio,
         location,
         dateOfBirth: dateOfBirth || null,
+        // Explicit marketing-email consent captured at signup. Defaults to
+        // false server-side; passing it here lets a user who ticked the box
+        // opt in at account-creation time.
+        marketingConsent,
       },
     });
 
@@ -428,6 +437,8 @@ const Signup = () => {
             setShowPassword={setShowPassword}
             acceptedPolicies={acceptedPolicies}
             setAcceptedPolicies={setAcceptedPolicies}
+            marketingConsent={marketingConsent}
+            setMarketingConsent={setMarketingConsent}
             inputCls={inputCls}
             labelCls={labelCls}
             isBusinessSignup={isBusinessSignup}

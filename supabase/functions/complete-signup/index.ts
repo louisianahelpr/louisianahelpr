@@ -61,6 +61,7 @@ serve(async (req) => {
       emergencyContactPhone,
       jobRadius,
       extraComments,
+      marketingConsent,
     } = body;
 
     let userId: string | null = null;
@@ -392,6 +393,10 @@ serve(async (req) => {
       }
     }
     if (portfolioUrls.length > 0) updateData.portfolio_urls = portfolioUrls;
+    // Explicit marketing-email consent captured at signup. Only apply when
+    // the client sent the field (undefined → leave server default false in
+    // place, don't accidentally reset an already-consented row to false).
+    if (typeof marketingConsent === "boolean") updateData.marketing_consent = marketingConsent;
     if (availability) updateData.availability = availability;
     if (transportation) updateData.transportation = transportation;
     if (hearAboutUs) updateData.hear_about_us = hearAboutUs;

@@ -73,12 +73,18 @@ Deno.serve(async (req) => {
       //   by_parish = profile's parish field
       // Same user can be in both helpers and posters segments — that's
       // intentional under the unified user model.
+      // Honor explicit marketing-email consent captured at signup. Anyone
+      // who didn't tick the marketing opt-in box (or was created before the
+      // column existed and has the DB default of `false`) is never sent
+      // promotional mail. Transactional mail (auth, receipts, disputes)
+      // uses different send paths and is not gated by this column.
       let q = supabase
         .from("profiles")
         .select("user_id, email, full_name, parish")
         .not("email", "is", null)
         .eq("email_verified", true)
-        .eq("approval_status", "approved");
+        .eq("approval_status", "approved")
+        .eq("marketing_consent", true);
 
       if (body.segment === "helpers") {
         const { data: applicants } = await supabase

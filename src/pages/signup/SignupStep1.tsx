@@ -26,6 +26,9 @@ export interface SignupStep1Props {
   setShowPassword: (v: boolean) => void;
   acceptedPolicies: boolean;
   setAcceptedPolicies: (v: boolean) => void;
+  /** Marketing / promotional email opt-in — UNCHECKED by default, persisted to profiles.marketing_consent. */
+  marketingConsent: boolean;
+  setMarketingConsent: (v: boolean) => void;
   inputCls: string;
   labelCls: string;
   /** True when the URL carries ?type=business — drives the account-type banner. */
@@ -43,6 +46,8 @@ export function SignupStep1({
   setShowPassword,
   acceptedPolicies,
   setAcceptedPolicies,
+  marketingConsent,
+  setMarketingConsent,
   inputCls,
   labelCls,
   isBusinessSignup,
@@ -264,6 +269,29 @@ export function SignupStep1({
           <Link to="/terms" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Terms</Link>,{" "}
           <Link to="/rules" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Platform Rules</Link>, and{" "}
           <Link to="/privacy" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Privacy Policy</Link>.
+        </span>
+      </label>
+
+      {/* Marketing email opt-in — SEPARATE checkbox, UNCHECKED by default.
+          Legal + agreements bundle above is a hard requirement to sign up;
+          this second box is optional and persists to profiles.marketing_consent
+          so send-marketing-blast can filter recipients honestly. Transactional
+          mail (auth, receipts, disputes) is exempt and always sends. */}
+      <label
+        htmlFor="marketing-consent"
+        className="flex items-start gap-3 px-1.5 py-2 min-h-[44px] rounded-ds-md cursor-pointer"
+      >
+        <Checkbox
+          id="marketing-consent"
+          checked={marketingConsent}
+          onCheckedChange={(checked) => setMarketingConsent(checked === true)}
+          className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
+        />
+        <span
+          className="text-ds-11 leading-relaxed font-sans"
+          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+        >
+          It's OK to email me occasional Helpr news, tips, and special offers. I can unsubscribe any time.
         </span>
       </label>
 

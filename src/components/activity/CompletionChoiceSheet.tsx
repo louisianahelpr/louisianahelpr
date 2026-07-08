@@ -263,17 +263,30 @@ export function CompletionChoiceSheet({
         ) : (
           <>
             <SheetHeader className="space-y-0 text-left pr-12 mb-4">
-              <div className="flex items-center justify-between">
-                <SheetTitle
-                  className="font-display italic font-bold leading-tight"
-                  style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-                >
-                  What needs to be fixed?
-                </SheetTitle>
+              <div className="flex items-start justify-between gap-3">
+                {/* Eyebrow → title → subtitle stack matches SheetHero (used
+                    in the "choice" mode above) so this nested mode reads
+                    as its sibling. The back-to-choices button sits to the
+                    right of the title stack rather than as a separate
+                    header row. */}
+                <div className="flex-1 min-w-0">
+                  <span
+                    className="font-serif italic uppercase block"
+                    style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                  >
+                    Request revision
+                  </span>
+                  <SheetTitle
+                    className="font-display italic font-bold leading-tight mt-0.5"
+                    style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+                  >
+                    What needs to be fixed?
+                  </SheetTitle>
+                </div>
                 <button
                   type="button"
                   onClick={() => setMode("choice")}
-                  className="h-9 w-9 inline-flex items-center justify-center rounded-full active:opacity-70"
+                  className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-full active:opacity-70"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   aria-label="Back to choices"
                 >

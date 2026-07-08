@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Crown, Check, type LucideIcon } from "lucide-react";
 
@@ -56,7 +56,12 @@ export function ProUpgradeSheet({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="!gap-4">
         <DialogHeader className="!text-left space-y-0">
-          {/* Tier chip header */}
+          {/* Tier chip + DialogHero eyebrow/title/subtitle stack. The chip
+              is a Pro/Elite-tier decoration (accent-tinted rounded square
+              with the tier's Lucide icon) — sits BESIDE the shared header
+              text so this dialog reads as a sibling of every other
+              DialogHero popup. Eyebrow is a React node so the tier icon
+              still renders inline before the eyebrow text. */}
           <div className="flex items-center gap-3 mb-2">
             <div
               className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
@@ -69,31 +74,19 @@ export function ProUpgradeSheet({
             >
               <Icon className="w-5 h-5" strokeWidth={1.75} />
             </div>
-            <div className="min-w-0">
-              <span
-                className="font-serif italic uppercase inline-flex items-center gap-1.5"
-                style={{ fontSize: "0.62rem", color: accent, letterSpacing: "0.18em" }}
-              >
-                <TierIcon className="w-3 h-3" /> {eyebrow}
-              </span>
-              <DialogTitle
-                className="font-display italic font-bold leading-tight mt-0.5"
-                style={{
-                  fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.025em",
-                }}
-              >
-                {title}
-              </DialogTitle>
-            </div>
+            <DialogHero
+              className="flex-1 min-w-0"
+              eyebrow={
+                <span className="inline-flex items-center gap-1.5">
+                  <TierIcon className="w-3 h-3" /> {eyebrow}
+                </span>
+              }
+              eyebrowStyle={{ color: accent }}
+              title={title}
+              titleStyle={{ fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)" }}
+              subtitle={body}
+            />
           </div>
-          <p
-            className="font-serif italic leading-relaxed"
-            style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.80)" }}
-          >
-            {body}
-          </p>
         </DialogHeader>
 
         {/* What you unlock — parchment-gold card, matches the JobDetailDialog

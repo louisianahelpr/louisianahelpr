@@ -382,6 +382,18 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
               {currentStep.icon}
             </div>
             <div className="space-y-2">
+              {/* Eyebrow → title → description stack mirrors DialogHero
+                  (this popup uses DialogPrimitive directly, so it can't
+                  consume the shared component — the tokens are matched
+                  by hand). The eyebrow doubles as a step counter so a
+                  user in the middle of the tour always knows where they
+                  are without hunting for the progress bar. */}
+              <span
+                className="font-serif italic uppercase block"
+                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              >
+                Step {state.currentStep + 1} of {steps.length}
+              </span>
               {/* `asChild` so Radix's accessibility wiring (aria-labelledby
                   on Content, screen-reader title announcement) lands on
                   our existing visual heading instead of injecting an

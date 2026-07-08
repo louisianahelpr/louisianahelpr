@@ -99,6 +99,31 @@ const BusinessContracts = () => {
     if (!businessId || !name.trim() || !cronExpression) return;
     setSubmitting(true);
     try {
+      // Business verification gate — a recurring template spawns real jobs
+      // on a cron, so it must be gated on the same admin-verified status as
+      // ad-hoc posting. Fresh fetch + fail closed to mirror the useJobSubmit
+      // pattern; the RLS check on jobs.INSERT still fires per spawned row,
+      // but we block here so the template itself never lands.
+      const { data: bizRow, error: bizErr } = await supabase
+        .from("businesses")
+        .select("verification_status")
+        .eq("id", businessId)
+        .single();
+      if (bizErr) throw bizErr;
+      const bizStatus = (bizRow as { verification_status?: string })?.verification_status;
+      if (bizStatus !== "verified") {
+        hapticError();
+        const label =
+          bizStatus === "pending" ? "still being reviewed by our team"
+            : bizStatus === "rejected" ? "was rejected — see the reason on your Business page"
+              : "not yet verified";
+        toast.error(
+          `Your business is ${label}. Businesses must be verified (insurance + license) before scheduling recurring jobs.`,
+        );
+        setSubmitting(false);
+        return;
+      }
+
       const payload = {
         title: name.trim(),
         description: description.trim(),
@@ -167,6 +192,7 @@ const BusinessContracts = () => {
       eyebrow="Recurring jobs"
       title="Contracts"
       meta="Schedule jobs that auto-post on a cron. Your team accepts as they come in."
+      requiresVerification
     >
       <Card className="p-5 mb-5">
         <h2 className="font-semibold flex items-center gap-2 mb-3">

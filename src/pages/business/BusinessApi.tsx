@@ -254,6 +254,7 @@ const BusinessApi = () => {
       eyebrow="Developer"
       title="API & Webhooks"
       meta="Read-only API keys and outbound event delivery."
+      requiresVerification
     >
       <Card className="p-5 mb-5">
         <h2 className="font-semibold flex items-center gap-2 mb-1">

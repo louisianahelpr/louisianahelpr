@@ -1,4 +1,4 @@
-import { useLocation, NavLink } from "react-router-dom";
+import { useLocation, NavLink, Link } from "react-router-dom";
 import {
   Users,
   CreditCard,
@@ -8,6 +8,7 @@ import {
   KeyRound,
   Sparkles,
   Rocket,
+  ShieldAlert,
 } from "lucide-react";
 import { type ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,17 @@ interface Props {
   title: string;
   /** Optional sub-line below the title. */
   meta?: ReactNode;
+  /**
+   * When true, render a banner above `children` if the current business's
+   * `verification_status !== "verified"`. Opt-in on posting/spending pages
+   * (Billing, Contracts, API) so an unverified business sees the required
+   * next step without being locked out of the surface they need to reach
+   * (Team hosts the BusinessVerificationCard). The real gate is enforced
+   * server-side on jobs.INSERT via RLS + at each client submit path — this
+   * banner is UX. Non-money screens (Team, Onboarding, Exports, Reports)
+   * omit the prop.
+   */
+  requiresVerification?: boolean;
   children: ReactNode;
 }
 
@@ -58,9 +70,33 @@ interface Props {
  * route is already in DOCUMENT_SCROLL_ROUTES via the `/business` prefix
  * (see useAppShellViewport.ts). Do NOT introduce AppShell here.
  */
-const BusinessLayout = ({ eyebrow, title, meta, children }: Props) => {
+const BusinessLayout = ({ eyebrow, title, meta, requiresVerification, children }: Props) => {
   const location = useLocation();
   const { business } = useMyBusiness();
+
+  const showVerificationBanner =
+    !!requiresVerification && !!business && business.verification_status !== "verified";
+  const verificationCopy = (() => {
+    if (!business) return null;
+    switch (business.verification_status) {
+      case "pending":
+        return {
+          title: "Verification in review",
+          body: "Your license & insurance documents are with our team. Posting and billing unlock once they're approved.",
+        };
+      case "rejected":
+        return {
+          title: "Verification was rejected",
+          body: "See the rejection reason on the Team page and re-upload corrected documents to unlock posting and billing.",
+        };
+      case "none":
+      default:
+        return {
+          title: "Verify your business to start posting",
+          body: "Businesses must be verified (license + insurance) before posting jobs or being charged. Complete verification on the Team page.",
+        };
+    }
+  })();
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
@@ -134,7 +170,45 @@ const BusinessLayout = ({ eyebrow, title, meta, children }: Props) => {
             </div>
           </nav>
 
-          <div className="min-w-0">{children}</div>
+          <div className="min-w-0">
+            {showVerificationBanner && verificationCopy && (
+              <div
+                role="status"
+                className="rounded-ds-md liquid-glass p-4 mb-5 flex items-start gap-3 border"
+                style={{ borderColor: "hsl(var(--burnt-sienna) / 0.35)" }}
+              >
+                <ShieldAlert
+                  className="w-5 h-5 shrink-0 mt-0.5"
+                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                  aria-hidden
+                />
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="font-semibold text-ds-13"
+                    style={{ color: "hsl(var(--foreground))" }}
+                  >
+                    {verificationCopy.title}
+                  </p>
+                  <p
+                    className="text-ds-12 mt-0.5"
+                    style={{ color: "hsl(var(--muted-foreground))" }}
+                  >
+                    {verificationCopy.body}
+                  </p>
+                  {location.pathname !== "/business/team" && (
+                    <Link
+                      to="/business/team"
+                      className="inline-block mt-2 text-ds-12 font-semibold underline-offset-2 hover:underline"
+                      style={{ color: "hsl(var(--burnt-sienna))" }}
+                    >
+                      Complete verification →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+            {children}
+          </div>
         </div>
       </div>
     </div>

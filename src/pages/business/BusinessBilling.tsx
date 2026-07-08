@@ -137,6 +137,7 @@ const BusinessBilling = () => {
       eyebrow="Your business"
       title="Billing"
       meta="Invoice-based payment with net-30 terms or card-on-file."
+      requiresVerification
     >
       <Card className="p-5 mb-5">
         <div className="flex items-start justify-between gap-4">

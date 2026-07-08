@@ -14,6 +14,16 @@ export type SeatTier = "starter" | "crew" | "team" | "enterprise";
  */
 export type ExtendedRole = "viewer" | "poster" | "approver" | "admin" | "owner";
 
+/**
+ * Admin-set business verification state. A business must be `verified`
+ * (insurance + license reviewed by an admin) before it can post jobs; the
+ * gate is enforced in `useJobSubmit.runPreSubmitChecks` and in
+ * `BusinessContracts.submit`, and mirrored server-side by an RLS check on
+ * `jobs.INSERT` when `business_id` is set. Column ships in migration
+ * 20260425235407 with CHECK IN ('none','pending','verified','rejected').
+ */
+export type BusinessVerificationStatus = "none" | "pending" | "verified" | "rejected";
+
 export interface BusinessMembership {
   business_id: string;
   business_name: string;
@@ -30,6 +40,7 @@ export interface BusinessMembership {
   default_payment_method_id: string | null;
   monthly_budget: number | null;
   monthly_budget_alert_at: number | null;
+  verification_status: BusinessVerificationStatus;
 }
 
 const SEAT_LIMITS: Record<SeatTier, number> = {
@@ -47,7 +58,7 @@ const fetchMyBusiness = async (userId: string): Promise<BusinessMembership | nul
   const wide = await supabase
     .from("business_members")
     .select(
-      "business_id, role, extended_role, businesses!inner(id, name, owner_id, seat_tier, require_approval_above, require_2fa, default_payment_method_id, monthly_budget, monthly_budget_alert_at)" as any,
+      "business_id, role, extended_role, businesses!inner(id, name, owner_id, seat_tier, require_approval_above, require_2fa, default_payment_method_id, monthly_budget, monthly_budget_alert_at, verification_status)" as any,
     )
     .eq("user_id", userId)
     .eq("status", "active")
@@ -63,9 +74,13 @@ const fetchMyBusiness = async (userId: string): Promise<BusinessMembership | nul
     if (!isMissingColumn(wide.error)) return null;
     // Fallback to the pre-migration shape (PGRST/Postgres rejected the
     // wide select because one of the new columns doesn't exist yet).
+    // verification_status ships in migration 20260425235407, which predates
+    // the migration that introduced this wide/narrow split — so the column
+    // is present on any prod that hit this fallback path and it's safe to
+    // include in the narrow select too.
     const narrow = await supabase
       .from("business_members")
-      .select("business_id, role, businesses!inner(id, name, owner_id, seat_tier)")
+      .select("business_id, role, businesses!inner(id, name, owner_id, seat_tier, verification_status)")
       .eq("user_id", userId)
       .eq("status", "active")
       .maybeSingle();
@@ -93,6 +108,10 @@ const fetchMyBusiness = async (userId: string): Promise<BusinessMembership | nul
     default_payment_method_id: biz.default_payment_method_id ?? null,
     monthly_budget: biz.monthly_budget ?? null,
     monthly_budget_alert_at: biz.monthly_budget_alert_at ?? null,
+    // Default to 'none' on an unexpectedly-null value so the gate fails
+    // closed (unverified). The column is NOT NULL DEFAULT 'none' so this
+    // fallback only matters if a future migration relaxes that.
+    verification_status: (biz.verification_status ?? "none") as BusinessVerificationStatus,
   };
 };
 

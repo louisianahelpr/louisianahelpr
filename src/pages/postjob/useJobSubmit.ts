@@ -239,6 +239,41 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       }
     }
 
+    // Business verification gate — when this post is being attributed to a
+    // business (`business_id` will land on the row), the business must be
+    // admin-verified (insurance + license reviewed). Mirrors the IDV gate:
+    // fresh fetch, fail closed on error, block if not 'verified'. Also
+    // enforced server-side by an RLS check on jobs.INSERT so a client-only
+    // bypass can't slip past this — this gate is UX so the poster sees the
+    // right toast instead of a raw RLS violation.
+    if (business?.business_id) {
+      const { data: bizRow, error: bizErr } = await supabase
+        .from("businesses")
+        .select("verification_status")
+        .eq("id", business.business_id)
+        .single();
+      if (bizErr) {
+        report(bizErr, { tags: { source: "usePostJobForm.businessVerificationGate" } });
+        toast.error("Couldn't check your business verification status — please try again.");
+        setSaving(false);
+        submittingRef.current = false;
+        return null;
+      }
+      const bizStatus = (bizRow as { verification_status?: string })?.verification_status;
+      if (bizStatus !== "verified") {
+        const label =
+          bizStatus === "pending" ? "still being reviewed by our team"
+            : bizStatus === "rejected" ? "was rejected — see the reason on your Business page"
+              : "not yet verified";
+        toast.error(
+          `Your business is ${label}. Businesses must be verified (insurance + license) before posting jobs.`,
+        );
+        setSaving(false);
+        submittingRef.current = false;
+        return null;
+      }
+    }
+
     // Check open job limit (server enforces too, but show friendly message)
     const { count: openCount, error: openCountErr } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", user.id).eq("status", "open");
     if (openCountErr) {

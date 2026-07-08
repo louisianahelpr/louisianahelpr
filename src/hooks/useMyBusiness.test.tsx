@@ -92,6 +92,9 @@ describe("useMyBusiness", () => {
       default_payment_method_id: null,
       monthly_budget: null,
       monthly_budget_alert_at: null,
+      // verification_status defaults to 'none' when the mocked businesses
+      // row omits it (fresh-signup + pre-migration parity).
+      verification_status: "none",
     });
   });
 

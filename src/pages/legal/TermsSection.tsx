@@ -5,8 +5,15 @@ import {
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import {
+  URGENT_FEE_FLOOR_DOLLARS,
+  ONBOARDING_FEE_CENTS,
+  formatDollarsWhole,
+} from "@/lib/moneyLimits";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
 import { legalFmtMo, LAST_UPDATED } from "./legalSections";
+
+const ONBOARDING_FEE_DOLLARS = ONBOARDING_FEE_CENTS / 100;
 
 /* ─────────────────────────────  TERMS  ───────────────────────────── */
 export const TermsContent = () => (
@@ -15,7 +22,7 @@ export const TermsContent = () => (
       items={[
         "You must be 18+. All accounts are reviewed before approval.",
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
-        `Posters pay a plan-based service fee on top (${TIER_PERKS.free.platformFeePercent}% free down to ${TIER_PERKS.business.platformFeePercent}% Business). Helprs keep 88–94% of the agreed price — the platform fee (${TIER_PERKS.business.platformFeePercent}–${TIER_PERKS.free.platformFeePercent}%) also drops as their plan tier rises.`,
+        `Both sides pay a plan-based platform fee: the poster pays a service fee added at checkout (${TIER_PERKS.free.platformFeePercent}% on Free down to ${TIER_PERKS.business.platformFeePercent}% on Business), and the Helpr's platform fee (${TIER_PERKS.business.platformFeePercent}–${TIER_PERKS.free.platformFeePercent}%, on the same ladder) is deducted from their payout. Each side's own plan determines their own %.`,
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
         "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
@@ -88,7 +95,7 @@ export const TermsContent = () => (
             <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite, {TIER_PERKS.business.platformFeePercent}% Business (minimum covers card processing on small jobs).</p>
             <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.pro.platformFeePercent}% Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% Helpr Elite, {TIER_PERKS.business.platformFeePercent}% Business.</p>
             <p><strong className="text-foreground">Total platform take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee.</p>
-            <p><strong className="text-foreground">Urgent job fee:</strong> $5 for priority placement.</p>
+            <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus that goes to the Helpr, added by the poster for priority placement.</p>
           </>
         }
       />
@@ -104,12 +111,12 @@ export const TermsContent = () => (
       />
       <PolicyRowItem
         icon={Receipt}
-        title="One-time $2 onboarding fee"
+        title={`One-time $${ONBOARDING_FEE_DOLLARS.toFixed(0)} onboarding fee`}
         body={
           <>
-            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first — your first job post or your first payout — is when the $2 onboarding fee is collected.</p>
-            <p><strong className="text-foreground">If you post first:</strong> the $2 is added as a line item at checkout the first time you post.</p>
-            <p><strong className="text-foreground">If you only earn:</strong> the $2 is deducted from your first payout, automatically.</p>
+            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first — your first job post or your first payout — is when the {formatDollarsWhole(ONBOARDING_FEE_DOLLARS)} onboarding fee is collected.</p>
+            <p><strong className="text-foreground">If you post first:</strong> the {formatDollarsWhole(ONBOARDING_FEE_DOLLARS)} is added as a line item at checkout the first time you post.</p>
+            <p><strong className="text-foreground">If you only earn:</strong> the {formatDollarsWhole(ONBOARDING_FEE_DOLLARS)} is deducted from your first payout, automatically.</p>
             <p>You'll never be charged twice. Once paid, your account is set.</p>
           </>
         }

@@ -115,11 +115,32 @@ serve(async (req) => {
     // fall through to the full BOOST_FEE_CENTS price.
     const BOOST_DISCOUNT_PCT = 20;
     const isBoostDiscountTier = subActive && (subTier === "basic" || subTier === "pro");
+    // MIN_UNIT_AMOUNT_CENTS: an absolute floor covering Stripe's per-charge
+    // cost (~30¢ fixed + 2.9% variable) plus a thin platform margin, so a
+    // future BOOST_FEE_CENTS drop can't silently invert unit economics on
+    // discounted subscribers (Cowork audit 2026-07-08 fee-floor guard). At
+    // the current $3 gross the discounted $2.40 nets ~$2.03 to platform;
+    // 100¢ is a defensive floor well below that, only relevant if the base
+    // fee is ever cut below ~$1.25.
+    const MIN_UNIT_AMOUNT_CENTS = 100;
+    const rawDiscounted = Math.round(BOOST_FEE_CENTS * (100 - BOOST_DISCOUNT_PCT) / 100);
     const unitAmount = isBoostDiscountTier
-      ? Math.round(BOOST_FEE_CENTS * (100 - BOOST_DISCOUNT_PCT) / 100)
+      ? Math.max(rawDiscounted, MIN_UNIT_AMOUNT_CENTS)
       : BOOST_FEE_CENTS;
+    // If the floor kicked in, the "20% off" copy would be misleading — a
+    // future price change that trips this branch should either bump the
+    // floor or drop the discount, not silently charge more than advertised.
+    const flooredBelowDiscount = isBoostDiscountTier && unitAmount > rawDiscounted;
+    if (flooredBelowDiscount) {
+      console.warn(
+        `[create-boost-payment] discount floor engaged: BOOST_FEE_CENTS=${BOOST_FEE_CENTS} ` +
+        `discounted=${rawDiscounted}¢ floor=${MIN_UNIT_AMOUNT_CENTS}¢ — review BOOST_FEE_CENTS or BOOST_DISCOUNT_PCT`,
+      );
+    }
     const productName = isBoostDiscountTier
-      ? `Job Boost — 24-hour featured placement (${BOOST_DISCOUNT_PCT}% off with ${subTier === "basic" ? "Helpr Basic" : "Helpr Pro"})`
+      ? (flooredBelowDiscount
+          ? "Job Boost — 24-hour featured placement"
+          : `Job Boost — 24-hour featured placement (${BOOST_DISCOUNT_PCT}% off with ${subTier === "basic" ? "Helpr Basic" : "Helpr Pro"})`)
       : "Job Boost — 24-hour featured placement";
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {

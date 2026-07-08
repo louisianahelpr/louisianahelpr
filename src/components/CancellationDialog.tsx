@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, Clock, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
+import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 
 type CancellationDialogProps = {
   jobId: string;
@@ -52,7 +53,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
     ? "Less than 24 hours before job"
     : "24+ hours before job";
   const cancellationFee = Math.round(jobBudget * cancellationFeePercent) / 100;
-  const commissionPercent = helperFeePercent ?? 10;
+  const commissionPercent = helperFeePercent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
   const platformCut = Math.round(cancellationFee * commissionPercent) / 100;
   const helperPayout = Math.max(0, Math.round((cancellationFee - platformCut) * 100) / 100);
 
@@ -100,7 +101,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       // actual transfer (void-cancelled-payments) resolves the helper's live
       // tier, which can differ (e.g. Elite 8% vs frozen 10%).
       if (serverHasHelper && jobData.helper_id && serverFee > 0) {
-        const commissionPercent = jobData.helper_fee_percent ?? 10;
+        const commissionPercent = jobData.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
         const platformCut = Math.round(serverFee * (commissionPercent / 100) * 100) / 100;
         const helperPayout = Math.max(0, serverFee - platformCut);
 

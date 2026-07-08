@@ -6,6 +6,7 @@ import { TabsContent } from "@/components/ui/tabs";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
 import { formatJobDate } from "@/lib/format";
+import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { Profile } from "../adminUserHelpers";
 
 interface JobsTabProps {
@@ -24,7 +25,7 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
     const isCustomer = j.customer_id === viewProfile.user_id;
     const budget = Number(j.budget) || 0;
     if (isHelper) {
-      const fee = (Number(j.helper_fee_percent) || 10) / 100;
+      const fee = (Number(j.helper_fee_percent) || HELPER_FEE_LEGACY_FALLBACK_PERCENT) / 100;
       return budget * (1 - fee); // net payout to helper
     }
     if (isCustomer) {

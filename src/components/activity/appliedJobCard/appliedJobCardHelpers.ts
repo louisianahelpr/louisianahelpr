@@ -1,5 +1,6 @@
 import { deriveEscrowStepFromJob } from "@/components/payment/EscrowProgressBar";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { AppliedApp, Job } from "../activityConstants";
 
 /**
@@ -29,7 +30,7 @@ export function deriveAppliedJobCardState(
   // Payout calc
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const perHelper = job.budget / helpers;
-  const commissionPercent = job.helper_fee_percent ?? 10;
+  const commissionPercent = job.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
   const commission = (perHelper * commissionPercent) / 100;
   // Urgent fee splits across the roster like the budget (#114).
   const payout = perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers;

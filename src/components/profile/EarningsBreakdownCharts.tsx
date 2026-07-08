@@ -21,6 +21,7 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend,
 } from "recharts";
+import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -59,7 +60,7 @@ const bucketFor = (skills: string | null | undefined): string => {
 const helperTakeHome = (job: Job): number => {
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const perHelper = job.budget / helpers;
-  const commissionPercent = job.helper_fee_percent ?? 10;
+  const commissionPercent = job.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
   const commission = (perHelper * commissionPercent) / 100;
   // Urgent fee splits across the roster like the budget (#114).
   return perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers;

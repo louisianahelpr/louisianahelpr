@@ -5,6 +5,7 @@ import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { formatPrice, formatShortDate } from "@/lib/format";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { Job } from "./types";
 
 interface EarningHistoryProps {
@@ -108,7 +109,7 @@ export function EarningHistory({
           {earningsJobs.slice(0, historyVisible).map((job) => {
             const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
             const perHelper = job.budget / helpers;
-            const commissionPercent = job.helper_fee_percent ?? 10;
+            const commissionPercent = job.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
             const commission = (perHelper * commissionPercent) / 100;
             // Urgent fee splits across the roster like the budget (#114).
             const payout = job.status === "completed" ? perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers : null;

@@ -4,6 +4,7 @@ import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { formatPrice } from "@/lib/format";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { toast } from "@/hooks/use-toast";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
@@ -96,7 +97,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const totalEarnings = completedJobs.reduce((sum, j) => {
     const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
     const perHelper = j.budget / helpers;
-    const commissionPercent = j.helper_fee_percent ?? 10;
+    const commissionPercent = j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
     const commission = (perHelper * commissionPercent) / 100;
     // The urgent fee is collected from the poster ONCE and split across the
     // roster like the budget (#114) — so a group helper's share is the netted
@@ -250,7 +251,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             completedJobs={completedJobs.map((j) => {
               const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
               const perHelper = j.budget / helpers;
-              const commissionPercent = j.helper_fee_percent ?? 10;
+              const commissionPercent = j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
               const commission = (perHelper * commissionPercent) / 100;
               // Urgent fee splits across the roster like the budget (#114).
               const netPayout = perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers;

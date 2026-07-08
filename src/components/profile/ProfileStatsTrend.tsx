@@ -9,6 +9,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -44,7 +45,7 @@ const WINDOW_LABEL: Record<Window, string> = {
 const helperTakeHome = (j: JobRow): number => {
   const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
   const perHelper = j.budget / helpers;
-  const commissionPercent = j.helper_fee_percent ?? 10;
+  const commissionPercent = j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
   const commission = (perHelper * commissionPercent) / 100;
   // Urgent fee splits across the roster like the budget (#114).
   return perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers;

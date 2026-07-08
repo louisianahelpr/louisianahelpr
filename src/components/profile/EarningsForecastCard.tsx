@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { Info, Sparkles, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,7 +46,7 @@ const COMPLETED_STATUS = "completed";
 function helperNet(job: Pick<Job, "budget" | "helpers_needed" | "is_group_job" | "helper_fee_percent" | "urgent_fee">): number {
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const perHelper = job.budget / helpers;
-  const commissionPercent = job.helper_fee_percent ?? 10;
+  const commissionPercent = job.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
   const commission = (perHelper * commissionPercent) / 100;
   // Urgent fee splits across the roster like the budget (#114).
   return perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers;

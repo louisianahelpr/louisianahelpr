@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { report } from "@/lib/errorLogger";
 import { posterFeePercentForTier } from "@/lib/posterFees";
+import { CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { validateResult } from "@/lib/validateResult";
 import { jobRowSchema } from "@/lib/schemas";
 import type { JobRow } from "./postJobFormTypes";
@@ -146,7 +147,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
       const row = Array.isArray(data) ? data[0] : null;
       if (row) {
         // Use customer_fee_percent as the poster-facing fee (service fee at checkout)
-        const custFee = row.customer_fee_percent ?? 10;
+        const custFee = row.customer_fee_percent ?? CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT;
         setPlatformFee(custFee);
         setCustomerFee(custFee);
         const setupCents = (row as { onboarding_fee_cents?: number }).onboarding_fee_cents;

@@ -1,5 +1,6 @@
 import { TIER_COLORS } from "../adminAnalyticsConstants";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { SUB_PRICE, type Job, type Profile, type Tip } from "./types";
 
 // Pure metric computation for the admin analytics dashboard. Extracted VERBATIM
@@ -134,13 +135,13 @@ export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[])
   // Late cancellation revenue the platform retains (cancellation fee commission)
   const lateCancelRevenue = lateCancelledPaidJobs.reduce((s, j) => {
     const cancFee = Number(j.cancellation_fee || 0);
-    const commissionPercent = Number(j.helper_fee_percent ?? 10);
+    const commissionPercent = Number(j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT);
     return s + (cancFee * commissionPercent / 100) + Number(j.customer_fee_amount || 0);
   }, 0);
   const totalHelperPayouts = completedJobs.reduce((s, j) => {
     const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
     const perHelper = Number(j.budget || 0) / helpers;
-    const commissionPercent = Number(j.helper_fee_percent ?? 10);
+    const commissionPercent = Number(j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT);
     const commission = (perHelper * commissionPercent) / 100;
     // Urgent fee splits across the roster like the budget (#114).
     return s + (perHelper - commission + netUrgentFeeDollars(Number(j.urgent_fee ?? 0)) / helpers);
@@ -213,7 +214,7 @@ export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[])
   const pendingPayoutTotal = pendingPayouts.reduce((s, j) => {
     const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
     const perHelper = (j.budget || 0) / helpers;
-    const commissionPercent = j.helper_fee_percent ?? 10;
+    const commissionPercent = j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
     const commission = (perHelper * commissionPercent) / 100;
     // Urgent fee splits across the roster like the budget (#114).
     return s + (perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers);

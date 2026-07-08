@@ -77,13 +77,40 @@ export const BUSINESS_SEAT_TIERS: readonly BusinessSeatTier[] = [
   },
 ] as const;
 
+// STRIPE MODE ENV OVERRIDE: the hardcoded IDs above are LIVE Prices. In test
+// mode those IDs don't exist and create-business-seat-checkout fails. Each
+// paid tier can be overridden by a `STRIPE_PRICE_SEAT_<TIER>` env var, read
+// lazily at call time so vitest (no Deno.env) still gets the live IDs and
+// edge runtime with the env set gets the test IDs. Mirrors proTiers.ts.
+const readEnv = (key: string): string | undefined => {
+  const d = (globalThis as { Deno?: { env?: { get?: (k: string) => string | undefined } } }).Deno;
+  return d?.env?.get?.(key);
+};
+
+const SEAT_ENV_KEY: Record<string, string> = {
+  crew: "STRIPE_PRICE_SEAT_CREW",
+  team: "STRIPE_PRICE_SEAT_TEAM",
+  enterprise: "STRIPE_PRICE_SEAT_ENTERPRISE",
+};
+
 /**
  * tier key → Stripe Price ID, for the PAID tiers only (Starter/Free is
  * omitted — it has no checkout). Built from the canonical array so the edge
- * checkout function can never drift from the displayed tiers.
+ * checkout function can never drift from the displayed tiers. Each value is a
+ * getter that reads the matching STRIPE_PRICE_SEAT_* env var lazily and falls
+ * back to the hardcoded LIVE ID if the env is unset.
  */
-export const BUSINESS_SEAT_TIER_TO_PRICE: Record<string, string> = Object.fromEntries(
-  BUSINESS_SEAT_TIERS.filter(
+export const BUSINESS_SEAT_TIER_TO_PRICE: Record<string, string> = (() => {
+  const paid = BUSINESS_SEAT_TIERS.filter(
     (t): t is BusinessSeatTier & { stripePriceId: string } => t.stripePriceId !== null,
-  ).map((t) => [t.key, t.stripePriceId]),
-);
+  );
+  const result = {} as Record<string, string>;
+  for (const t of paid) {
+    const envKey = SEAT_ENV_KEY[t.key];
+    Object.defineProperty(result, t.key, {
+      enumerable: true,
+      get() { return (envKey ? readEnv(envKey) : undefined) ?? t.stripePriceId; },
+    });
+  }
+  return result;
+})();

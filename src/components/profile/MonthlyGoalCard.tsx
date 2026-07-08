@@ -237,6 +237,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
       ) : (
         /* No goal set yet */
         <Button
+          variant="bark"
           size="sm"
           className="w-full text-ds-12"
           onClick={() => {

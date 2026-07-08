@@ -357,6 +357,7 @@ function PostedJobCardInner({
             {job.status === "completed" && isFullyCompleted && !isExpanded && (
               <div className="px-4 pb-3 pt-1">
                 <Button
+                  variant="bark"
                   size="sm"
                   className="w-full rounded-ds-md"
                   onClick={(e) => { e.stopPropagation(); navigate(job.helper_id ? `/post-job?rebook=${job.id}&offerTo=${job.helper_id}` : `/post-job?rebook=${job.id}`); }}

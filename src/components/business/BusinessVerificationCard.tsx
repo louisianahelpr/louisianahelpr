@@ -211,6 +211,7 @@ export default function BusinessVerificationCard() {
             />
             <Button
               type="button"
+              variant="bark"
               className="w-full"
               disabled={uploading}
               onClick={() => fileRef.current?.click()}

@@ -215,6 +215,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
               Go browse — accepted jobs will land on this strip.
             </p>
             <Button
+              variant="bark"
               size="sm"
               className="mt-2 h-8 text-ds-11"
               onClick={() => navigate("/dashboard")}

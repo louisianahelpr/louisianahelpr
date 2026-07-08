@@ -206,6 +206,7 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
               Pick up a job before Sunday and we'll project your earnings here.
             </p>
             <Button
+              variant="bark"
               size="sm"
               className="mt-2 h-8 text-ds-11 gap-1.5"
               onClick={() => navigate("/dashboard")}

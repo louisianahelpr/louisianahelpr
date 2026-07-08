@@ -117,7 +117,7 @@ const PetProfiles = () => {
             title="No pets yet"
             body="Add your pets' profiles so helpers know their needs."
             action={
-              <Button onClick={openAdd}>
+              <Button variant="bark" onClick={openAdd}>
                 <Plus className="w-4 h-4 mr-1" /> Add a pet
               </Button>
             }
@@ -143,6 +143,7 @@ const PetProfiles = () => {
             standalone one too would surface two identical CTAs at once. */}
         {!!pets?.length && (
           <Button
+            variant="bark"
             className="w-full"
             size="lg"
             onClick={openAdd}

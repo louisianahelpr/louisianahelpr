@@ -9,6 +9,7 @@ import {
 import PageHeader from "@/components/PageHeader";
 import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface BenefitItem {
   name: string;
@@ -91,6 +92,7 @@ const COMING_SOON: string[] = [
 ];
 
 export default function BenefitsPage() {
+  usePageTitle("Benefits & Perks — Helpr");
   const navigate = useNavigate();
 
   const open = (url: string) =>
@@ -100,13 +102,16 @@ export default function BenefitsPage() {
     <div className="min-h-screen pb-safe-nav" style={{ background: "hsl(var(--parchment))" }}>
       <PageHeader title="Benefits & Perks" showBrand rightSlot={<NotificationPanel />} />
 
-      <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
-        {/* Hero */}
+      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 lg:px-8 pt-4 space-y-6">
+        {/* Hero — text-white swapped for the parchment token used by every
+            other gradient hero in the app, so the color reads from the
+            design-system source instead of a raw utility. */}
         <div
-          className="rounded-2xl p-6 text-white shadow-md"
+          className="rounded-2xl p-6 shadow-md"
           style={{
             background:
               "linear-gradient(135deg, hsl(var(--burnt-sienna)) 0%, hsl(var(--bark)) 100%)",
+            color: "hsl(var(--parchment))",
           }}
         >
           <p className="font-semibold text-lg mb-1">Built for Helprs, by Helprs.</p>

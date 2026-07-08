@@ -5,6 +5,15 @@ import { Home, ArrowLeft } from "lucide-react";
 import { report } from "@/lib/errorLogger";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
+/**
+ * NotFound — deliberately does NOT wrap in PublicLayout. A 404 is a
+ * dead-end state; the goal is to route the user back to somewhere real
+ * with the two big CTAs below, not to hand them another set of nav links
+ * to click deeper into invalid space. The audit surfaced this as a
+ * "bespoke chrome" outlier — the choice is intentional. If a future
+ * change re-adds the marketing nav here, verify it doesn't turn a
+ * recovery moment into a wander-off.
+ */
 const NotFound = () => {
   // The SPA serves unknown paths with a 200 status, so the 404 page must
   // be explicitly non-indexable to keep junk URLs out of search results.

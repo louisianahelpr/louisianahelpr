@@ -106,15 +106,36 @@ const DataRights = () => {
     toast.success(next ? "Opted out of data sharing" : "Opted in to data sharing");
   };
 
+  // PageHeader renders an in-app top bar with brand + back + right slot; on
+  // web that stacks BELOW PublicLayout's marketing nav (double chrome), so
+  // it's native-only. On web the marketing PublicLayout already carries the
+  // top nav and footer, and the hero title is rendered inline below.
+  const header = isNativePlatform ? (
+    <PageHeader
+      eyebrow="Privacy controls"
+      title="Your Data Rights"
+      meta="Export, correct, or delete your information at any time"
+      showBrand
+      rightSlot={<NotificationPanel />}
+    />
+  ) : (
+    <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-8">
+      <span
+        className="font-serif italic uppercase"
+        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+      >
+        Privacy controls
+      </span>
+      <h1 className="text-page-title leading-tight mt-1">Your Data Rights</h1>
+      <p className="font-serif italic mt-1 text-[0.82rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        Export, correct, or delete your information at any time
+      </p>
+    </div>
+  );
+
   const inner = (
     <>
-      <PageHeader
-        eyebrow="Privacy controls"
-        title="Your Data Rights"
-        meta="Export, correct, or delete your information at any time"
-        showBrand
-        rightSlot={<NotificationPanel />}
-      />
+      {header}
       <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pb-10 space-y-5 mt-2">
         <p className="text-ds-11 text-muted-foreground max-w-2xl">
           Under the EU GDPR and California CCPA, you have specific rights about how Helpr handles your personal data.

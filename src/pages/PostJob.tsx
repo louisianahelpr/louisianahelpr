@@ -69,18 +69,26 @@ const PostJob = () => {
 
       {/* Body column width matches PageHeader's "5xl" variant above so the
           title aligns with the form beneath it — see PageHeader's `width`
-          prop doc. */}
+          prop doc. The ENTRY step is sparse (4 short cards) so it uses a
+          narrower max-w-2xl AND is centered in the remaining vertical
+          space (min-h-[60vh] flex) rather than left-anchored at the top,
+          otherwise a 1080p monitor showed a ~425px dead band below the
+          cards. Form + checkout keep the wide 5xl column since they're
+          dense. */}
       <div className="container mx-auto px-4 py-6">
-        <div className="max-w-lg lg:max-w-5xl mx-auto space-y-6">
-          {/* STEP 0: ENTRY CHOICE — start fresh / load draft / use template */}
-          {form.step === "entry" && <EntryChoice form={form} />}
+        {form.step === "entry" ? (
+          <div className="max-w-2xl mx-auto min-h-[60vh] flex flex-col justify-center space-y-6">
+            <EntryChoice form={form} />
+          </div>
+        ) : (
+          <div className="max-w-lg lg:max-w-5xl mx-auto space-y-6">
+            {/* STEP 1: FORM */}
+            {form.step === "form" && <FormStep form={form} />}
 
-          {/* STEP 1: FORM */}
-          {form.step === "form" && <FormStep form={form} />}
-
-          {/* STEP 2: ORDER SUMMARY / CHECKOUT */}
-          {form.step === "checkout" && <CheckoutStepView form={form} />}
-        </div>
+            {/* STEP 2: ORDER SUMMARY / CHECKOUT */}
+            {form.step === "checkout" && <CheckoutStepView form={form} />}
+          </div>
+        )}
       </div>
 
       <IDVPromptDialog

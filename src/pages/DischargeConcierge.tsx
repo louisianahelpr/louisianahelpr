@@ -73,7 +73,7 @@ const DischargeConcierge = () => {
         title="Discharge Concierge"
       />
 
-      <div className="mx-auto max-w-2xl px-5 lg:px-8 pb-12 space-y-8">
+      <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 lg:px-8 pb-12 space-y-8">
 
         {/* ── Hero ── */}
         <div

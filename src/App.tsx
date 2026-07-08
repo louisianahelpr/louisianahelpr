@@ -247,8 +247,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/local-guide" element={<Navigate to="/help" replace />} />
       <Route path="/parishes" element={<Navigate to="/jobs" replace />} />
       <Route path="/parish/:slug" element={<Navigate to="/jobs" replace />} />
-      {/* Helpr Wrapped — auth-gated, HelprWrapped handles the redirect */}
-      <Route path="/wrapped" element={<RouteErrorBoundary>{routeEl(<HelprWrapped />)}</RouteErrorBoundary>} />
+      {/* Helpr Wrapped — auth-gated at the route level so a logged-out
+          visitor never sees a flash of authed chrome (HelprWrapped's own
+          useEffect redirect used to fire only after the first paint). */}
+      <Route path="/wrapped" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelprWrapped /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Benefits marketplace — partner perks for helpers */}
       <Route path="/benefits" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BenefitsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Pet care — manage pet profiles, vet notes, and evacuation mode */}

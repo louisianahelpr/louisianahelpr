@@ -20,6 +20,7 @@ import { isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
+import AuthShell from "@/components/auth/AuthShell";
 import { ChecklistCard } from "./completeProfile/ChecklistCard";
 import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
 import type { ProfileCompletionUpdates } from "./completeProfile/types";
@@ -326,10 +327,15 @@ const CompleteProfile = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
+  // Migrated from a bespoke wrapper to the shared AuthShell so this screen
+  // reads as a sibling of Login / Signup / ForgotPassword / ResetPassword
+  // (same wordmark, eyebrow, parchment surface, spacing rhythm). Back is
+  // hidden because CompleteProfile is a required post-signup gate — the
+  // way out is either Finish or the "Sign out" link at the bottom of the
+  // form, not a browser-back that would strand a half-provisioned account.
   return (
-    <div className="min-h-screen bg-premium-page relative">
-      <div className="relative z-10 flex items-start justify-center px-5 py-8 sm:py-12 pt-[calc(env(safe-area-inset-top)+24px)]">
-        <div className="w-full max-w-md pb-12">
+    <AuthShell hideBack maxWidth="md">
+      <div className="pb-12">
           <div className="text-center mb-7">
             <span className="text-display-eyebrow">Welcome aboard</span>
             <h1
@@ -588,9 +594,8 @@ const CompleteProfile = () => {
               <X className="w-4 h-4 mr-2" /> Sign out
             </Button>
           </form>
-        </div>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 

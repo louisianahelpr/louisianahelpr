@@ -43,6 +43,7 @@ export function ReviewsTab({ profileReviews, profileReviewsLeft }: ReviewsTabPro
                   </div>
                   <div className="flex items-center gap-0.5 flex-shrink-0">
                     {Array.from({ length: 5 }).map((_, idx) => (
+                      /* intentional: gold star (rating icon), not a status tone */
                       <Star key={idx} className={`w-3.5 h-3.5 ${idx < r.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
                     ))}
                   </div>
@@ -73,6 +74,7 @@ export function ReviewsTab({ profileReviews, profileReviewsLeft }: ReviewsTabPro
                   </div>
                   <div className="flex items-center gap-0.5 flex-shrink-0">
                     {Array.from({ length: 5 }).map((_, idx) => (
+                      /* intentional: gold star (rating icon), not a status tone */
                       <Star key={idx} className={`w-3.5 h-3.5 ${idx < r.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
                     ))}
                   </div>

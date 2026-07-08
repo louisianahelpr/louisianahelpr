@@ -10,9 +10,10 @@ import UserVerificationHistory from "../UserVerificationHistory";
 import { UserAuditLog } from "./UserAuditLog";
 import type { Profile } from "../adminUserHelpers";
 import { useImpersonation } from "@/hooks/useImpersonation";
-import { formatName } from "@/lib/utils";
+import { cn, formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toast } from "sonner";
+import { toneTextClasses } from "@/components/admin/tones";
 
 type EmailEvent = { event_type: string; email_type: string; created_at: string };
 
@@ -144,7 +145,7 @@ export function ActionsTab({
             onClick={beginImpersonation}
             title="Open the customer-facing app as this user — read-only, all mutations blocked"
           >
-            <Eye className="w-4 h-4 mr-1.5 text-amber-600" /> Impersonate (RO)
+            <Eye className={cn("w-4 h-4 mr-1.5", toneTextClasses.warning)} /> Impersonate (RO)
           </Button>
           {!["permanently_banned", "temp_banned"].includes(viewBanStatus) ? (
             <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-2 sm:col-span-1" onClick={() => setBanProfile(viewProfile)}>

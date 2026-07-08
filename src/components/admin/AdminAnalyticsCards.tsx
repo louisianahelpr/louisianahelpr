@@ -7,6 +7,8 @@
  * card. None fetch data or hold state of their own.
  */
 
+import { toneTextClasses } from "@/components/admin/tones";
+
 export const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onClick }: {
   label: string; value: string | number; sub: string; icon: any; accent?: boolean; warning?: boolean; onClick?: () => void;
 }) => (
@@ -15,11 +17,11 @@ export const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onC
     disabled={!onClick}
     className={`rounded-ds-md border bg-card p-5 text-left transition-all group ${
       onClick ? "hover:bg-secondary/30 hover:border-primary/30 cursor-pointer" : ""
-    } ${warning ? "border-amber-500/30" : "border-border"}`}
+    } ${warning ? "border-warning/30" : "border-border"}`}
   >
     <div className="flex items-center justify-between mb-3">
       <span className="text-ds-11 text-muted-foreground">{label}</span>
-      <Icon className={`w-5 h-5 ${accent ? "text-primary" : warning ? "text-amber-500" : "text-primary"} group-hover:scale-110 transition-transform`} />
+      <Icon className={`w-5 h-5 ${accent ? "text-primary" : warning ? toneTextClasses.warning : "text-primary"} group-hover:scale-110 transition-transform`} />
     </div>
     <p className={`text-ds-24 font-bold ${accent ? "text-primary" : "text-foreground"}`}>{value}</p>
     <p className="text-ds-11 text-muted-foreground mt-1">{sub}</p>
@@ -73,7 +75,7 @@ export const CohortRetentionCard = ({
         const tone = isEmpty
           ? "bg-muted/40"
           : pct >= 50 ? "bg-primary/70"
-          : pct >= 20 ? "bg-amber-500/70"
+          : pct >= 20 ? "bg-warning/70"
           : "bg-destructive/70";
         return (
           <div key={c.date.toISOString()} className="grid grid-cols-12 gap-2 items-center text-ds-11">
@@ -124,7 +126,7 @@ export const FunnelCard = ({
                 <span className="font-mono tabular-nums text-foreground">
                   {s.count}
                   {convPct !== null && (
-                    <span className={`ml-2 ${convPct >= 50 ? "text-primary" : convPct >= 20 ? "text-amber-500" : "text-destructive"}`}>
+                    <span className={`ml-2 ${convPct >= 50 ? "text-primary" : convPct >= 20 ? toneTextClasses.warning : "text-destructive"}`}>
                       {convPct}%
                     </span>
                   )}

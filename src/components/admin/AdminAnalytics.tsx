@@ -13,6 +13,8 @@ import { UsersDrillDown, SubscriptionsDrillDown, CategoriesDrillDown, PayoutsDri
 import { PIE_COLORS } from "./adminAnalyticsConstants";
 import { SUB_PRICE, type Profile, type Job, type Tip, type DrillDown } from "./adminAnalytics/types";
 import { computeMetrics } from "./adminAnalytics/adminAnalyticsHelpers";
+import { toneTextClasses } from "@/components/admin/tones";
+import { cn } from "@/lib/utils";
 
 // Lazy-load charts so recharts (~250 KB pre-gzip) lands in its own chunk
 // instead of inflating the AdminAnalytics initial bundle. Funnel cards +
@@ -378,7 +380,7 @@ const AdminAnalytics = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <div className={cn("w-2 h-2 rounded-full bg-current", toneTextClasses.warning)} />
                 <span className="text-ds-11 text-muted-foreground">In Escrow</span>
               </div>
               <div className="text-right">
@@ -388,7 +390,7 @@ const AdminAnalytics = () => {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <div className={cn("w-2 h-2 rounded-full bg-current", toneTextClasses.info)} />
                 <span className="text-ds-11 text-muted-foreground">Payout Pending</span>
               </div>
               <div className="text-right">
@@ -398,7 +400,7 @@ const AdminAnalytics = () => {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <div className={cn("w-2 h-2 rounded-full bg-current", toneTextClasses.success)} />
                 <span className="text-ds-11 text-muted-foreground">Released</span>
               </div>
               <div className="text-right">
@@ -433,7 +435,7 @@ const AdminAnalytics = () => {
           <h3 className="text-ds-13 font-semibold text-foreground mb-3">User Status</h3>
           <div className="space-y-2">
             <StatusRow icon={CheckCircle} label="Approved" count={approvedUsers} color="text-primary" />
-            <StatusRow icon={Clock} label="Pending Approval" count={pendingUsers} color="text-amber-500" />
+            <StatusRow icon={Clock} label="Pending Approval" count={pendingUsers} color={toneTextClasses.warning} />
             <StatusRow icon={XCircle} label="Denied" count={deniedUsers} color="text-destructive" />
           </div>
         </div>
@@ -443,9 +445,9 @@ const AdminAnalytics = () => {
           <div className="space-y-2">
             <StatusRow icon={Briefcase} label="Posted" count={allJobs.length} color="text-muted-foreground" />
             <StatusRow icon={Activity} label="In Progress" count={activeJobs.length} color="text-primary" />
-            <StatusRow icon={CheckCircle} label="Completed" count={completedJobs.length} color="text-emerald-500" />
+            <StatusRow icon={CheckCircle} label="Completed" count={completedJobs.length} color={toneTextClasses.success} />
             <StatusRow icon={XCircle} label="Cancelled" count={cancelledJobs.length} color="text-destructive" />
-            <StatusRow icon={AlertTriangle} label="Disputed" count={disputedJobs.length} color="text-amber-500" />
+            <StatusRow icon={AlertTriangle} label="Disputed" count={disputedJobs.length} color={toneTextClasses.warning} />
           </div>
         </div>
 

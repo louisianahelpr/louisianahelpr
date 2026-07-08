@@ -2,12 +2,13 @@ import { lazy, Suspense, useState } from "react";
 import { MapPin } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Badge } from "@/components/ui/badge";
-import { formatName } from "@/lib/utils";
+import { cn, formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { formatCategory } from "@/lib/format";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
+import { toneTextClasses, type Tone } from "@/components/admin/tones";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -165,12 +166,14 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
     cancelled: "Cancelled",
   };
 
-  const statusDot: Record<string, string> = {
-    escrow: "bg-amber-500",
-    payout_pending: "bg-blue-500",
-    released: "bg-emerald-500",
-    refunded: "bg-red-500",
+  const statusTone: Record<string, Tone> = {
+    escrow: "warning",
+    payout_pending: "info",
+    released: "success",
+    refunded: "danger",
   };
+  const statusDot = (status: string) =>
+    cn("bg-current", toneTextClasses[statusTone[status] ?? "neutral"]);
 
   return (
     <div className="space-y-3">
@@ -199,7 +202,7 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
                 <p className="text-ds-11 text-muted-foreground mt-0.5">{j.location} · {new Date(j.date_needed).toLocaleDateString()}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <div className={`w-2 h-2 rounded-full ${statusDot[j.payment_status || ""] || "bg-muted"}`} />
+                <div className={cn("w-2 h-2 rounded-full", statusDot(j.payment_status || ""))} />
                 <span className="text-ds-11 text-muted-foreground capitalize">{statusLabel[j.payment_status || ""] || j.payment_status}</span>
               </div>
             </div>

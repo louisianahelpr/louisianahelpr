@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui
 import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
+import { cn } from "@/lib/utils";
 
 type Report = {
   id: string;
@@ -267,12 +269,12 @@ const AdminReports = () => {
                   )}
                   {(report.status === "pending" || report.status === "new" || report.status === "investigating") && (() => {
                     const sla = slaInfo(report.created_at);
-                    const slaClass =
-                      sla.tone === "red" ? "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-400" :
-                      sla.tone === "yellow" ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400" :
-                      "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+                    const slaTone: Tone =
+                      sla.tone === "red" ? "danger" :
+                      sla.tone === "yellow" ? "notice" :
+                      "success";
                     return (
-                      <span className={`text-ds-10 font-medium px-2 py-0.5 rounded-full border ${slaClass}`}>
+                      <span className={cn("text-ds-10 font-medium px-2 py-0.5 rounded-full", toneBadgeClasses[slaTone])}>
                         {sla.label}
                       </span>
                     );

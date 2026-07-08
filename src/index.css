@@ -22,6 +22,20 @@
        100vw includes the scrollbar width. */
     overflow-x: hidden;
   }
+
+  /* iOS Safari / WKWebView auto-zooms the viewport on any input focused with
+     computed font-size < 16px. That zoom shifts the layout, breaks fixed
+     positioning, and doesn't zoom back — a per-focus UX defect. Enforce a
+     minimum 16px on touch devices (pointer:coarse covers iOS Safari, mobile
+     Chrome, native WKWebView, Android WebView). Desktop typography is
+     unaffected. Cowork audit 2026-07-08. */
+  @media (pointer: coarse) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+    textarea,
+    select {
+      font-size: max(16px, 1em);
+    }
+  }
 }
 
 /* Light Mode (default) — Louisiana Helpr 2026 brand palette

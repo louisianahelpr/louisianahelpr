@@ -94,10 +94,19 @@ const JobStripCard = ({ job }: { job: StripJob }) => {
       </div>
 
       <div className="mt-auto flex items-center justify-between pt-1">
-        <span className="font-display font-bold" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
+        <span className="font-display font-bold flex items-baseline gap-1.5" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
           {job.budget != null ? `$${formatPrice(job.budget)}` : "Open"}
+          {job.budget != null && !isBids && (
+            /* Explicit "posted" label distinguishes this GROSS budget from
+               the /jobs board's NET "You earn" figure (budget × 0.88 at
+               the Free-tier fee). Cowork audit 2026-07-08 flagged that
+               the same job read at two unlabeled prices across surfaces. */
+            <span className="text-[0.6rem] font-sans font-semibold uppercase tracking-wider" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              posted
+            </span>
+          )}
           {isBids && (
-            <span className="ml-1 text-[0.62rem] font-semibold uppercase tracking-wide" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+            <span className="text-[0.62rem] font-semibold uppercase tracking-wide" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
               · bids
             </span>
           )}

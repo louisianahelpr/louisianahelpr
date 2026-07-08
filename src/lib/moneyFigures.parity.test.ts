@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { TIER_PERKS } from "./subscriptionTiers";
 import { posterFeePercentForTier } from "./posterFees";
+import {
+  URGENT_FEE_FLOOR_DOLLARS,
+  URGENT_FEE_PRESETS,
+  DEFAULT_URGENT_FEE_DOLLARS,
+} from "./moneyLimits";
 
 // moneyFigures.parity — guards the user-facing money figures that are NOT yet
 // consolidated into a single importable config: the poster "service fee" %, and
@@ -69,18 +74,18 @@ describe("urgent-job bonus — floor & presets", () => {
   //   src/components/postjob/BudgetSection.tsx:447  → <input min="5">
   //   src/pages/postjob/usePostJobForm.ts:84        → default urgentFee "5"
   //
-  // TODO(config): promote the floor + presets to a shared const so the inline
-  // warning, the input `min`, the presets, and the default all derive from one
-  // value instead of four literals that can silently drift apart.
-  const URGENT_FEE_FLOOR = 5;
-  const URGENT_FEE_PRESETS = [5, 10, 15, 20] as const;
+  // These now import from the single source `moneyLimits.ts` — a change to
+  // the floor/presets there flows through every consumer (BudgetSection,
+  // useJobSubmit, LegalTab) automatically. This test still asserts the
+  // CURRENT values so a policy change is a deliberate two-place edit
+  // (moneyLimits.ts + this test), not a silent drift.
 
   it("enforces a $5 urgent-bonus floor", () => {
-    expect(URGENT_FEE_FLOOR).toBe(5);
+    expect(URGENT_FEE_FLOOR_DOLLARS).toBe(5);
   });
 
   it("presets start at the floor and ascend", () => {
-    expect(URGENT_FEE_PRESETS[0]).toBe(URGENT_FEE_FLOOR);
+    expect(URGENT_FEE_PRESETS[0]).toBe(URGENT_FEE_FLOOR_DOLLARS);
     expect([...URGENT_FEE_PRESETS]).toEqual([5, 10, 15, 20]);
     // presets are strictly increasing so the quick-tap row reads sensibly
     for (let i = 1; i < URGENT_FEE_PRESETS.length; i++) {
@@ -89,7 +94,6 @@ describe("urgent-job bonus — floor & presets", () => {
   });
 
   it("default urgent bonus is at (not below) the floor", () => {
-    const DEFAULT_URGENT_FEE = 5; // usePostJobForm.ts:84 `useState("5")`
-    expect(DEFAULT_URGENT_FEE).toBeGreaterThanOrEqual(URGENT_FEE_FLOOR);
+    expect(DEFAULT_URGENT_FEE_DOLLARS).toBeGreaterThanOrEqual(URGENT_FEE_FLOOR_DOLLARS);
   });
 });

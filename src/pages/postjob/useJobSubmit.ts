@@ -16,6 +16,12 @@ import type { PricingMode } from "@/components/postjob/BudgetSection";
 import type { BusinessMembership } from "@/hooks/useMyBusiness";
 import type { Step } from "./postJobFormTypes";
 import { composeSpecialRequirements, scrollToField } from "./postJobFormHelpers";
+import {
+  MIN_JOB_BUDGET_DOLLARS,
+  MAX_JOB_BUDGET_DOLLARS,
+  URGENT_FEE_FLOOR_DOLLARS,
+  formatDollarsWhole,
+} from "@/lib/moneyLimits";
 
 /**
  * useJobSubmit — owns the review-gate, pre-submit checks, and the full
@@ -164,10 +170,10 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // special_requirements is optional — no validation needed
     // In accept_bids mode, budget is optional — helpers set their own price.
     if (pricingMode !== "accept_bids") {
-      if (!budget || parseFloat(budget) < 10) { toast.error("Minimum budget is $10"); scrollToField("budget"); return; }
-      if (parseFloat(budget) > 5000) { toast.error("Maximum budget is $5,000."); scrollToField("budget"); return; }
+      if (!budget || parseFloat(budget) < MIN_JOB_BUDGET_DOLLARS) { toast.error(`Minimum budget is ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}`); scrollToField("budget"); return; }
+      if (parseFloat(budget) > MAX_JOB_BUDGET_DOLLARS) { toast.error(`Maximum budget is ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}.`); scrollToField("budget"); return; }
     }
-    if (isUrgent && (parseFloat(urgentFee) < 5 || isNaN(parseFloat(urgentFee)))) { toast.error("Urgent bonus must be at least $5"); scrollToField("custom-urgent-fee"); return; }
+    if (isUrgent && (parseFloat(urgentFee) < URGENT_FEE_FLOOR_DOLLARS || isNaN(parseFloat(urgentFee)))) { toast.error(`Urgent bonus must be at least ${formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)}`); scrollToField("custom-urgent-fee"); return; }
     setConfirmed(false);
     setStep("checkout");
   };

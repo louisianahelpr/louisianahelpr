@@ -25,6 +25,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { shareNative } from "@/lib/nativeShare";
 import HelprMark from "@/components/HelprMark";
 import type { Database } from "@/integrations/supabase/types";
+import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -36,11 +37,25 @@ interface WorkRecordData {
     created_at: string;
   };
   completedJobs: Job[];
+  /** Helper's platform fee % derived from their subscription tier at fetch time. */
+  feePercent: number;
   totalEarnings: number;
   avgRating: number | null;
   reviewCount: number;
   topCategories: string[];
   dateRange: { first: string; last: string } | null;
+}
+
+/**
+ * Resolve the helper's platform fee % from their subscription tier. Uses the
+ * canonical `TIER_PERKS.platformFeePercent` so /profile?tab=earnings,
+ * /analytics, and this page all use the SAME fee ladder (12/10/8/6). An
+ * unknown tier defaults to free (12%). Do NOT hardcode a fee here — the
+ * ladder is set in one place and this reads it.
+ */
+function helperFeePercent(tier: string | null | undefined): number {
+  const key = (tier ?? "free") as SubscriptionTier;
+  return (TIER_PERKS[key] ?? TIER_PERKS.free).platformFeePercent;
 }
 
 function formatMonthYear(dateStr: string): string {
@@ -50,8 +65,6 @@ function formatMonthYear(dateStr: string): string {
 function formatCurrency(amount: number): string {
   return amount.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 }
-
-const HELPER_FEE_PERCENT = 10; // platform default — matches DB's platform_settings default
 
 const WorkRecord = () => {
   usePageTitle("Work Record — Helpr");
@@ -67,18 +80,28 @@ const WorkRecord = () => {
     queryFn: async (): Promise<WorkRecordData> => {
       if (!userId) throw new Error("Not authenticated");
 
-      // Fetch profile
+      // Fetch profile + the helper's subscription_tier so total earnings
+      // uses the RIGHT fee % (12/10/8/6). Previously hardcoded to 10% — a
+      // Free helper saw their earnings computed under Pro's fee.
       const profileRes = await supabase
         .from("profiles")
-        .select("full_name, approval_status, idv_status, created_at")
+        .select("full_name, approval_status, idv_status, created_at, subscription_tier")
         .eq("user_id", userId)
         .single();
-      const profile = unwrap(profileRes) as {
+      const profileRow = unwrap(profileRes) as {
         full_name: string | null;
         approval_status: string;
         idv_status: string | null;
         created_at: string;
+        subscription_tier: string | null;
       };
+      const profile = {
+        full_name: profileRow.full_name,
+        approval_status: profileRow.approval_status,
+        idv_status: profileRow.idv_status,
+        created_at: profileRow.created_at,
+      };
+      const feePercent = helperFeePercent(profileRow.subscription_tier);
 
       // Fetch completed jobs where this user was the helper
       const jobsRes = await supabase
@@ -102,10 +125,11 @@ const WorkRecord = () => {
           ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviewCount) * 10) / 10
           : null;
 
-      // Calculate total earnings (budget * (1 - helperFeePercent/100))
+      // Calculate total earnings (budget × (1 − feePercent/100)); feePercent
+      // derives from the helper's actual subscription tier above.
       const totalEarnings = completedJobs.reduce((sum, j) => {
         const budget = j.budget ?? 0;
-        return sum + budget * (1 - HELPER_FEE_PERCENT / 100);
+        return sum + budget * (1 - feePercent / 100);
       }, 0);
 
       // Top categories by frequency
@@ -134,6 +158,7 @@ const WorkRecord = () => {
       return {
         profile,
         completedJobs,
+        feePercent,
         totalEarnings,
         avgRating,
         reviewCount,
@@ -365,7 +390,7 @@ const WorkRecord = () => {
                       <span className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground text-right">Date</span>
                     </div>
                     {recentJobs.map((job, idx) => {
-                      const earned = (job.budget ?? 0) * (1 - HELPER_FEE_PERCENT / 100);
+                      const earned = (job.budget ?? 0) * (1 - (data?.feePercent ?? 12) / 100);
                       const label = categoryLabels[job.category ?? "other"] ?? "Other";
                       return (
                         <div

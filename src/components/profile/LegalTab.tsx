@@ -7,6 +7,15 @@ import {
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import {
+  MIN_JOB_BUDGET_DOLLARS,
+  MAX_JOB_BUDGET_DOLLARS,
+  URGENT_FEE_FLOOR_DOLLARS,
+  LATE_CANCEL_PERCENT,
+  VERY_LATE_CANCEL_PERCENT,
+  NEW_HELPER_EARNINGS_CAP_DOLLARS,
+  formatDollarsWhole,
+} from "@/lib/moneyLimits";
 
 // Pull tier pricing/fees from the single source of truth so the Legal copy
 // can never drift from the Subscription page or the in-feed fee math (LH-30).
@@ -130,7 +139,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
               <p><strong className="text-foreground">Poster Service Fee:</strong> added at checkout based on your plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.pro.platformFeePercent}% on Pro, {TIER_PERKS.elite.platformFeePercent}% on Elite, {TIER_PERKS.business.platformFeePercent}% on Business (a minimum applies so small jobs still cover card processing).</p>
               <p><strong className="text-foreground">Helpr Platform Fee:</strong> deducted from the Helpr's payout based on plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.pro.platformFeePercent}% on Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% on Helpr Elite, {TIER_PERKS.business.platformFeePercent}% on Business.</p>
               <p><strong className="text-foreground">Total Platform Take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee above.</p>
-              <p><strong className="text-foreground">Urgent Job Fee:</strong> $5 fee for posters who mark a job as urgent.</p>
+              <p><strong className="text-foreground">Urgent Job Fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} fee for posters who mark a job as urgent.</p>
               <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>
               <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the Helpr — no platform fee on tips.</p>
               <p><strong className="text-foreground">Sales Tax:</strong> Louisiana state and parish sales tax is collected on platform fees where applicable.</p>
@@ -142,8 +151,8 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           title="Job Budget Limits"
           body={
             <>
-              <p><strong className="text-foreground">Minimum:</strong> $5 per job.</p>
-              <p><strong className="text-foreground">Maximum:</strong> $5,000 per job.</p>
+              <p><strong className="text-foreground">Minimum:</strong> {formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)} per job.</p>
+              <p><strong className="text-foreground">Maximum:</strong> {formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)} per job.</p>
             </>
           }
         />
@@ -177,8 +186,8 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           body={
             <>
               <p><strong className="text-foreground">Free Cancellation:</strong> Cancel 24+ hours before the job at no charge.</p>
-              <p><strong className="text-foreground">Late Cancellation (&lt;24h):</strong> 25% cancellation fee applied.</p>
-              <p><strong className="text-foreground">Very Late Cancellation (&lt;2h):</strong> 50% cancellation fee applied.</p>
+              <p><strong className="text-foreground">Late Cancellation (&lt;24h):</strong> {LATE_CANCEL_PERCENT}% cancellation fee applied.</p>
+              <p><strong className="text-foreground">Very Late Cancellation (&lt;2h):</strong> {VERY_LATE_CANCEL_PERCENT}% cancellation fee applied.</p>
             </>
           }
         />
@@ -296,7 +305,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           body={
             <>
               <p><strong className="text-foreground">Job Limit:</strong> New Helprs are limited to 3 active jobs at a time until they build a track record.</p>
-              <p><strong className="text-foreground">Earnings Cap:</strong> Total earnings capped at $100 until 3 verified completions with a 4+ star rating.</p>
+              <p><strong className="text-foreground">Earnings Cap:</strong> Total earnings capped at {formatDollarsWhole(NEW_HELPER_EARNINGS_CAP_DOLLARS)} until 3 verified completions with a 4+ star rating.</p>
               <p><strong className="text-foreground">Response Deadlines:</strong> Helprs must respond to job offers within 1–48 hours (set by the poster).</p>
             </>
           }

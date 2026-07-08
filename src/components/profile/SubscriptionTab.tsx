@@ -132,7 +132,14 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
 
   // Currently-subscribed users get a hero "Your plan" card on top — the
   // tier cards below reframe as "change to" rather than the main pitch.
+  //
+  // Business is deliberately NOT in tierConfig (it's the business product,
+  // not a consumer tier), so a Business subscriber falls through the
+  // .find() to `null` and instead gets the isBusinessMember note below —
+  // which routes them to /for-business where their real "Manage" surface
+  // lives. Previously this branch just left the hero blank.
   const activeTierConfig = currentTier && !isExpired ? tierConfig.find((t) => t.id === currentTier.toLowerCase()) : null;
+  const isBusinessMember = currentTier?.toLowerCase() === "business" && !isExpired;
   return (
     <div className="flex flex-col min-h-full gap-4 pb-4">
       <ProfileTabHeader
@@ -141,6 +148,47 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         meta={currentTier && !isExpired ? `${currentTier[0].toUpperCase()}${currentTier.slice(1)} plan${expiresAt ? ` · renews ${expiresAt.toLocaleDateString([], { month: "short", day: "numeric" })}` : ""}` : isExpired ? "Plan expired — pick one to renew" : "Free plan · upgrade to unlock more"}
         onBack={onBack}
       />
+
+      {/* Business subscribers land here from /profile?tab=subscription but
+          their real management surface lives on /for-business (seat plans,
+          verification, invoicing). Show a purposeful redirect card instead
+          of a blank hero — this is the "Your plan" state for Business. */}
+      {isBusinessMember && (
+        <div
+          className="rounded-2xl p-5"
+          style={{
+            background: "hsl(var(--parchment) / 0.92)",
+            border: "0.5px solid hsl(var(--bark) / 0.22)",
+          }}
+        >
+          <span
+            className="font-serif italic uppercase"
+            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          >
+            Your plan
+          </span>
+          <h2
+            className="font-display italic font-bold leading-tight mt-0.5 text-headline-hero"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+          >
+            Business.
+          </h2>
+          <p className="text-ds-13 mt-2" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            Team seats, billing, and license & insurance verification are
+            managed on your Business workspace.
+          </p>
+          <div className="mt-3">
+            <Button
+              onClick={() => { window.location.href = "/business/billing"; }}
+              variant="outline"
+              className="rounded-ds-md"
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Manage Business
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Current plan hero — only renders when the user is actively
           subscribed. Bigger, warmer surface that confirms what they're

@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { formatCategory } from "@/lib/format";
 import { shortMonth, DOW_LABELS } from "./analyticsUtils";
+import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 
 export async function fetchAnalytics(userId: string) {
   const sixMonthsAgo = new Date();
@@ -120,8 +121,14 @@ export async function fetchAnalytics(userId: string) {
     : (benchRow.avg_application_success_rate ?? 32);
 
   // ── Platform fee estimate ─────────────────────────────────────────────────
-  const PLATFORM_FEE_PERCENT = 0.10;
-  const platformFee = Math.round(totalEarnings * PLATFORM_FEE_PERCENT);
+  // Derived from the helper's actual subscription tier (fetched above at line
+  // 58) so a Free helper sees 12%, Pro 10%, Elite 8%, Business 6%. Previously
+  // hardcoded to 0.10 → Free helpers saw net earnings computed under Pro's
+  // fee. TIER_PERKS is the single source of truth for the fee ladder.
+  const tierKey = tier as SubscriptionTier;
+  const platformFeePercent =
+    (TIER_PERKS[tierKey] ?? TIER_PERKS.free).platformFeePercent / 100;
+  const platformFee = Math.round(totalEarnings * platformFeePercent);
   const netEarnings = totalEarnings - platformFee;
 
   // ── On-time arrival rate ─────────────────────────────────────────────────

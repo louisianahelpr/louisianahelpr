@@ -669,17 +669,32 @@ html.web-desktop {
      native app + phone-width browsers keep their identical single column.
      Used by both the sectioned view (ActivitySectionedView) and the flat
      per-status view (PostedJobsTab / AppliedJobsTab render here instead of
-     the window-virtualized list when useIsWebDesktop() is true). A single
-     column keeps each card full and scannable; the max-width stops cards
-     from stretching unreadably wide on large monitors. `!important` (below)
-     cancels the base `space-y-3` vertical margins so the grid gap is the
-     only spacing. */
+     the window-virtualized list when useIsWebDesktop() is true). `!important`
+     (below) cancels the base `space-y-3` vertical margins so the grid gap
+     is the only spacing.
+
+     Cowork audit 2026-07-08 flagged the old 640px single-column as
+     stranding ~40% of a 1440 monitor. Widened to a responsive 2-column
+     grid at lg+ (1024px) and 3 at xl+ (1280px), with a 1400px cap so
+     cards don't stretch unreadably wide on 2xl monitors. Cards themselves
+     stay their natural width; the grid fills the space rather than
+     centering a narrow column. */
   html.web-desktop .ds-activity-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 0.75rem;
     align-items: start;
-    max-width: 640px;
+    max-width: 1400px;
+  }
+  @media (min-width: 1024px) {
+    html.web-desktop .ds-activity-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1440px) {
+    html.web-desktop .ds-activity-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
   }
   html.web-desktop .ds-activity-grid > * {
     margin-top: 0 !important;

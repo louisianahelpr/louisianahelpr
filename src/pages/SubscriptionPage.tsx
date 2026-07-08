@@ -227,6 +227,12 @@ export default function SubscriptionPage() {
           const isActive = tier === currentTier;
           const isFree = tier === "free";
           const isElite = tier === "elite";
+          // "Most popular" chip lives on Pro (the middle-of-the-ladder
+          // consumer tier) — matches the in-app SubscriptionTab chip so
+          // the marketing page and the upgrade tab agree on which tier
+          // is recommended. Was on Elite pre-Basic; now that Basic exists
+          // Pro is the genuine middle tier. Cowork audit 2026-07-08.
+          const isMostPopular = tier === "pro";
           const paysSelf =
             !isFree ? getPaysSelfBack(tier, AVG_JOB, JOBS_PER_MONTH) : "";
 
@@ -248,8 +254,8 @@ export default function SubscriptionPage() {
                   : "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 4px 12px -4px hsl(var(--bark) / 0.10)",
               }}
             >
-              {/* Most popular chip on Elite */}
-              {isElite && (
+              {/* Most popular chip on Pro (see isMostPopular derivation above) */}
+              {isMostPopular && (
                 <span
                   className="absolute -top-2.5 left-4 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full shadow-sm"
                   style={{

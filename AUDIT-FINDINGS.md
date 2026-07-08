@@ -315,6 +315,28 @@ Confirmed formula (`src/pages/postjob/useJobDerived.ts:71-73`):
 - 🟢 POLISH: SignupPending "start over" discards entered data; password-strength meter duplicated across Signup/ResetPassword; CompleteProfile avatar preview only shows blob: URLs not persisted ones.
 - ✅ CLEAN: single-column auth layout (no two-column split in a narrow/modal context) ✓; **route guards correct** (`ProtectedRoute.tsx` — unauth→`/login?redirect=`, banned→banned, denied→denied, pending→pending, incomplete→complete-profile, approved not re-trapped); **18+ age gate server-enforced** (`complete-signup:306-331`, 403 regardless of client); guest surfaces route every action to `/signup` + bounce authed users to `/dashboard`; FamilyAccept scoped to invited recipient; forms (disabled/loading, autocomplete, inputMode, new/current-password) correct; anti-bruteforce 5-attempts/5-min lockout persisted.
 
+---
+
+## Follow-up A — Money-path integrity (verified safely; live cards NOT run)
+⚠️ **Environment is LIVE Stripe.** Prod `jobs.stripe_session_id` values are `cs_live_` (Supabase read-only). The dev server (`localhost:8080`) → **production** Supabase (`fncmgoasalhdgfwzhsqa`) + **live** Stripe. So I did NOT enter any card or drive live checkout (real charge; test cards wouldn't work). Verified from source + tests.
+- 🟠 **Operational finding:** local dev is wired to production data + live payments — a dev testing checkout locally creates real charges/jobs/payouts. Recommend a staging Supabase + Stripe test keys for local/audit work (this is what blocks safe end-to-end money-flow driving).
+- ✅ **Idempotency on every charge/transfer/refund** (HIGH — MET): `create-payment` escrow `escrow-${jobId}` (:326), tip (:630), cancel-escrow (:722), refund-dispute (:948), dispute-release (:1278); `void-cancelled-payments` cancel-fee/refund (:92/:258); `release-payout` (:356); boost/bgc/pro/seat/pif/instant-payout/cash-out/stripe-connect/scheduled-payouts all keyed → retry/replay/double-tap = ONE charge.
+- ✅ **Webhook signature verification** (HIGH — MET): `stripe-webhook:100`, `stripe-idv-webhook:74`, `verification-webhook:61` all `constructEventAsync(body, sig, secret)`; forged/unsigned events not processed; handler idempotent on session id.
+- ✅ **Lifecycle unit tests present & correct** (`src/test/edge/*.test.ts`): idempotent second-checkout block · both-parties-confirm→payout · "refuses payout unless PI succeeded" · "rejects release while under dispute" · "refunds succeeded PI minus non-refundable service fee" · tip floor/ceiling · $2 onboarding line · LA sales-tax code. Couldn't EXECUTE here (mounted `node_modules` are macOS-native — rolldown binding fails in Linux sandbox); run `npx vitest run src/test/edge` on the Mac to confirm green.
+
+## Follow-up B — iOS / native (Capacitor) readiness
+Real shipped app (App Store Connect `com.Helpr` v1.0.4 build 19); config is mature & battle-tested (comments cite real device builds). Booted an iPhone 17 Pro / iOS 26.4 Simulator to drive live, but the app isn't installed there and installing needs `npx cap run ios` (can't build from Linux sandbox / can't type into Terminal) — so this is a SOURCE-readiness pass; a live on-device drive is the one open item.
+- ✅ Safe-area insets via `env(safe-area-inset-*)` (`index.css:43,499-515`) + `contentInset:'never'` (the ~100px WKWebView double-count band above doc-scroll pages was already found & fixed).
+- ✅ StatusBar plugin (anti-flicker, per-screen); keyboard `resize:'body'` + `interactive-widget=resizes-content`; tint-matched splash→FCP handoff; `-webkit-overflow-scrolling:touch`; tap-highlight transparent; `viewport-fit=cover`; pinch-zoom NOT disabled (a11y-correct); portrait lock; `helpr://` deep links; strict CSP; Apple+Google social login.
+- 🟡 Verify on-device: no global `input{font-size:16px}` rule found → `text-sm`/`text-xs` inputs could trigger iOS focus-zoom. Add a ≥16px input rule or confirm.
+- 🟡 Verify on-device: heavy `liquid-glass`/`backdrop-blur` → possible WKWebView scroll-jank on older iPhones; lazy-route blank-during-load likely shows here too.
+- To finish live: `npx cap run ios` → I'll drive the booted app for the two items above + safe-area rendering + deep-link cold start.
+
+## Remaining follow-up (needs env/inputs I can't self-provide)
+1. Live end-to-end money/lifecycle driving with Stripe **test** cards → needs a staging Supabase + Stripe test keys (current env is live prod).
+2. Live iOS on-device drive → needs `npx cap run ios`.
+3. True 375px web → Chrome window floors at 500px (mobile-web layout is otherwise identical below the 1024 breakpoint; verified no overflow at 500).
+
 ### 💵 Money source-of-truth captured (for cross-checks)
 - Membership (`src/lib/subscriptionTiers.ts`): Free $0 (12% platform fee) · Pro $10/mo (10%) · Elite $15/mo (8%) · Business $50/mo, $40 annual (6%). Helper keeps 100−fee (88/90/92/94%).
 - Business **seat** pricing on `/for-business` (Starter 1·Free · Crew 2·$20 · Team 3·$30 · Enterprise 4+·$40) is a SEPARATE construct from membership — locate & verify its source in Run 3.

@@ -67,6 +67,50 @@ and in what order to fix it*. Same checks, two axes, not a duplicate list.
 
 ### §1 — How to run it (method & process)
 
+**The five non-negotiables — every audit obeys these BEFORE it starts, and any
+one violated is a defect in the audit itself, not a shortcut.** These exist
+because the standard has repeatedly been implemented as spot-checks that miss
+things a peer-quality audit (e.g. Cowork's 18-page reports) catches. All five
+apply concurrently — none substitutes for another:
+1. **Spider the whole surface.** Enumerate every route + view + `?tab=` +
+   `?view=` + modal + sub-flow in scope BEFORE grading any of them. Never
+   spot-check a single named screen and call it an audit — the ones adjacent to
+   the one that caught the user's eye are exactly what you'll miss.
+2. **Never trust code over pixel — always render and LOOK.** Reading a source
+   file and concluding "the primitive is correct so the render is fine" is a
+   process defect that ships bugs (the "PageScaffold reads clean so the layout
+   is clean" trap). Every dimension whose defect can only be seen visually MUST
+   be seen visually — Chrome + iOS sim, screenshot in hand, at every breakpoint.
+   If tokens get tight and you catch yourself reasoning from source instead of
+   rendering, STOP and screenshot — that instinct is the bug.
+3. **Force every state — loading, empty, error, offline, over-quota, RTL, long
+   names, big numbers, mid-network-flap, permission-denied, stale-data race.**
+   The happy path is what the developer already tested; the audit's job is
+   whatever they didn't. If a component has 6 states and you only saw 1, you
+   audited ~17% of it. Drive the failure, don't just watch the success.
+4. **Fan out parallel graders — never serial per-page.** Every audit dispatches
+   multiple read-only agents on non-conflicting scopes at once (source-vs-config
+   sweep, canonical-sibling parity sweep, per-screen dimension pass, plus the
+   §6 review agents: `code-reviewer`, `silent-failure-hunter`, `pr-test-analyzer`,
+   `security-auditor`). Cost is not the constraint; missing findings is. A
+   sequential one-page-at-a-time pass is itself a method defect — it re-litigates
+   the same defect classes screen-by-screen and misses the cross-page pattern.
+5. **Report ALL findings FIRST, then fix — never silent-patch as you go.**
+   Enumerate every finding into ONE severity-ranked worklist BEFORE applying any
+   code edit; only after the worklist is complete does the batch-fix phase
+   begin. Silently patching nits as you notice them hides the pattern (how bad
+   is the baseline? which defect classes recur?) from the user, prevents
+   severity-ranked triage, and makes coverage un-provable. When in doubt: write
+   it down, keep going, fix in a batch. The user is welcome to redirect scope
+   after seeing the worklist — that is the point.
+
+If a defect you eventually ship was catchable by one of the five above, the
+audit missed it because of a process defect, not because the finding was
+obscure. This is the mandate the rest of §1 serves — the "Three methods" block
+below is HOW you execute (1) and (2); the phased "sweep → batch-fix → verify"
+loop is HOW you execute (4) and (5); §3's dimension checklist is HOW you cover
+(3). If a rule below appears to conflict with one of the five, the five win.
+
 **Three methods, all mandatory — nothing gets missed.** This is the definition
 of the method; everything in §1 serves it. Every audit uses ALL three:
 1. **Code review** — read the actual source line-by-line (not grep alone) and

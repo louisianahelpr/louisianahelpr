@@ -252,17 +252,15 @@ const Signup = () => {
       });
 
       if (authError && (authError.message.includes("already registered") || authError.message.includes("already been registered"))) {
-        // Deliberate product choice: we tell the user their email is
-        // already registered and route to /login rather than silently
-        // showing a fake "check your email" state that never fires. This
-        // does leave an enumeration oracle open (an attacker can probe
-        // whether an email is registered) — the same oracle exists on
-        // most consumer apps and the UX win of "please log in instead"
-        // has been judged worth it for this marketplace. ForgotPassword
-        // takes the opposite call (privacy-first, generic success),
-        // because there the potential value of enumeration is higher
-        // (targeted phishing) and the UX cost is lower.
-        toast.info("You already have an account with this email — please log in.");
+        // Privacy-first: never confess whether an email is registered.
+        // Cowork audit 2026-07-08 flagged the old "please log in" branch
+        // as an enumeration oracle inconsistent with ForgotPassword's
+        // generic-success pattern. Both flows now respond identically —
+        // an attacker probing signup vs reset can't tell either way
+        // whether the address exists. A real logged-out user who
+        // stumbles into this path is redirected to /login with the
+        // same generic message they'd see on ForgotPassword.
+        toast.info("If that email is available, we've sent a verification link. Check your inbox — or sign in if you already have an account.");
         navigate("/login");
         return;
       }

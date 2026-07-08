@@ -7,6 +7,21 @@ import { hydratePromise, keychainStorageAdapter } from './keychainStorageAdapter
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+// Warn loudly when a local dev build points at the prod Supabase project
+// (`fncmgoasalhdgfwzhsqa`) — an artifact of us not maintaining a separate
+// staging project. Flagged by Cowork audit 2026-07-08. This does NOT block
+// (removing prod access mid-flight would break the app), but it makes the
+// footgun visible in DevTools so it stops feeling normal. Ignored in
+// production builds and on the native app (where import.meta.env.PROD is
+// true and the intended target IS prod).
+if (import.meta.env.DEV && SUPABASE_URL?.includes("fncmgoasalhdgfwzhsqa")) {
+  console.warn(
+    "[supabase] Local dev is pointed at PRODUCTION Supabase (fncmgoasalhdgfwzhsqa). " +
+    "Every write goes to the live DB. Use a staging project or MCP execute_sql " +
+    "with a clearly-marked test account only.",
+  );
+}
+
 // Hydrate native NSUserDefaults into cache before constructing the
 // supabase client. Top-level await — Vite handles this on iOS WebKit.
 if (Capacitor.isNativePlatform()) {

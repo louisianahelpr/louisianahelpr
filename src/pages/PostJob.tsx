@@ -69,15 +69,17 @@ const PostJob = () => {
 
       {/* Body column width matches PageHeader's "5xl" variant above so the
           title aligns with the form beneath it — see PageHeader's `width`
-          prop doc. The ENTRY step is sparse (4 short cards) so it uses a
-          narrower max-w-2xl AND is centered in the remaining vertical
-          space (min-h-[60vh] flex) rather than left-anchored at the top,
-          otherwise a 1080p monitor showed a ~425px dead band below the
-          cards. Form + checkout keep the wide 5xl column since they're
-          dense. */}
+          prop doc. The ENTRY step now shares that 5xl column (was
+          max-w-2xl, which stranded a ~245px dead band per side on desktop —
+          flagged by Cowork 2026-07-08); EntryChoice itself lays its
+          top-level cards into a lg:grid-cols-2 grid at that width so the
+          space is consumed, not gutter'd. min-h-[60vh] flex still
+          vertically centers to avoid the below-the-fold dead band the
+          earlier fix addressed. Form + checkout keep the same 5xl column
+          since they're dense. */}
       <div className="container mx-auto px-4 py-6">
         {form.step === "entry" ? (
-          <div className="max-w-2xl mx-auto min-h-[60vh] flex flex-col justify-center space-y-6">
+          <div className="max-w-lg lg:max-w-5xl mx-auto min-h-[60vh] flex flex-col justify-center space-y-6">
             <EntryChoice form={form} />
           </div>
         ) : (

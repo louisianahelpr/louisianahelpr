@@ -144,7 +144,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     const { error } = await supabase.rpc("accept_application", {
       p_application_id: deadlineDialogApp.id,
       p_deadline: deadline,
-      p_offer_message: initialMessage ?? null,
+      p_offer_message: initialMessage ?? undefined,
     });
 
     if (error) {
@@ -404,8 +404,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id).then(logIfErr("rejectApp"));
         await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null }).eq("id", app.job_id).then(logIfErr("reopenJob"));
       } else {
-        actionTaken = (rpcData?.action as string) ?? "none";
-        priorCount = (rpcData?.prior_count as number) ?? 0;
+        // RPC returns a Json blob (type is `Json` per generated types), so
+        // narrow it to the record shape we know it emits before reading.
+        const rpcResult = (rpcData ?? {}) as { action?: string; prior_count?: number };
+        actionTaken = rpcResult.action ?? "none";
+        priorCount = rpcResult.prior_count ?? 0;
       }
 
       // Notifications (best-effort) + toasts — shared by both paths.

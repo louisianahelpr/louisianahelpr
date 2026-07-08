@@ -294,12 +294,17 @@ export function deriveEscrowStepFromJob(job: {
     | "completed"
     | "cancelled"
     | "revision_requested"
-    | "disputed";
+    | "disputed"
+    | "pending_approval";
   stripe_payment_intent_id?: string | null;
   payment_status?: string | null;
 }): EscrowStep | null {
+  // `pending_approval` is an org-approval-gate state — escrow has not been
+  // held yet, so it collapses to the same "no escrow yet" shape as `open`
+  // for the progress bar (nothing to render). Rest pass through unchanged.
+  const escrowStatus = job.status === "pending_approval" ? "open" : job.status;
   return deriveEscrowStep({
-    status: job.status,
+    status: escrowStatus,
     hasPaymentIntent: !!job.stripe_payment_intent_id,
     payoutPaid: job.payment_status === "released",
   });

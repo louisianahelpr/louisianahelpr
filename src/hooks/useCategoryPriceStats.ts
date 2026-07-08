@@ -81,7 +81,7 @@ export function useCategoryPriceStats(
       try {
         const { data, error } = await supabase.rpc("get_category_price_stats", {
           p_category: category,
-          p_parish: parish ?? null,
+          p_parish: parish ?? undefined,
         });
         if (cancelled) return;
 

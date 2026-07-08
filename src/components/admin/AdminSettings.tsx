@@ -77,7 +77,14 @@ const AdminSettings = () => {
       // Defensive defaults — columns are nullable + migration may not
       // be deployed yet, so always normalise to safe values.
       setMinBuild(String(row.min_supported_build ?? 0));
-      setFeatureFlags({ ...(row.feature_flags ?? {}) });
+      // `feature_flags` is a Postgres jsonb column typed as `Json` in the
+      // generated types (which includes primitives). We know rows only ever
+      // hold {[flag]: boolean} shape — narrow before spreading.
+      const flags = row.feature_flags;
+      const flagsObj = flags && typeof flags === "object" && !Array.isArray(flags)
+        ? (flags as Record<string, boolean>)
+        : ({} as Record<string, boolean>);
+      setFeatureFlags({ ...flagsObj });
     }
     setLoading(false);
   };

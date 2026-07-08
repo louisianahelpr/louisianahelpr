@@ -349,7 +349,9 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         toast.error("Couldn't report the no-show — please try again.");
         return;
       }
-      const actionTaken = (rpcData?.action as string) ?? "warning";
+      // RPC returns a Json blob (typed as `Json` in the generated types);
+      // narrow to the shape the RPC emits before reading fields.
+      const actionTaken = ((rpcData ?? {}) as { action?: string }).action ?? "warning";
 
       // Notifications (best-effort) — shared by both paths.
       const banned = actionTaken === "permanent_ban";

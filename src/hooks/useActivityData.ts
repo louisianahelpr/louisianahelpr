@@ -212,6 +212,10 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
       offer_message: null,
       attachment_urls: null,
       proposed_rate: null,
+      proposed_price: null,
+      counter_price: null,
+      negotiation_status: "none",
+      poster_viewed_at: null,
       // Columns still exist on the applications row (feature removed from UI,
       // DB columns retained as harmless nullable) — set to satisfy the row shape.
       stake_amount: null,

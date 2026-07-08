@@ -76,6 +76,10 @@ export const JOB_STATUS_COLORS: Record<JobStatus, StatusColor> = {
   revision_requested: { bg: "hsl(var(--gold-warm) / 0.14)", text: "hsl(var(--gold-warm))" },
   // Serious but warm, NOT red-alarm — kept in the brand sienna family.
   disputed:           { bg: "hsl(var(--burnt-sienna) / 0.18)", text: "hsl(var(--burnt-sienna))" },
+  // Awaiting business-poster approval on a member-created posting that
+  // exceeds the org's threshold. Gentle attention — same gold-warm as
+  // revision_requested since it's "waiting on a person" not "in flight."
+  pending_approval:   { bg: "hsl(var(--gold-warm) / 0.14)", text: "hsl(var(--gold-warm))" },
 };
 
 /**
@@ -119,6 +123,7 @@ const STATUS_COLOR_CLASSES: Record<JobStatus, string> = {
   cancelled:          "bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.8)]",
   revision_requested: "bg-[hsl(var(--gold-warm)/0.14)] text-[hsl(var(--gold-warm))]",
   disputed:           "bg-[hsl(var(--burnt-sienna)/0.18)] text-[hsl(var(--burnt-sienna))]",
+  pending_approval:   "bg-[hsl(var(--gold-warm)/0.14)] text-[hsl(var(--gold-warm))]",
 };
 
 const FALLBACK_STATUS_COLOR_CLASSES =

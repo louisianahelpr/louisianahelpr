@@ -44,6 +44,7 @@ export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   cancelled: "Cancelled",
   revision_requested: "Revision requested",
   disputed: "Disputed",
+  pending_approval: "Awaiting approval",
 };
 
 /**

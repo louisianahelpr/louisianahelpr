@@ -44,6 +44,11 @@ supabase/.temp/
 !.claude/hooks/
 !.claude/settings.json
 !.claude/commands/
+# Project-scoped skills that CLAUDE.md references (see the lh-audit skill
+# pointer at the bottom of CLAUDE.md — the skill body has to ship with the
+# repo or the pointer is a dead link for CI, other developers, and the
+# cloud routines).
+!.claude/skills/
 
 # Environment variables (never commit secrets)
 .env

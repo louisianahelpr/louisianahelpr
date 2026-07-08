@@ -172,13 +172,27 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       { email: trimmed },
       { emailRedirectTo: getPublicSiteUrl() }
     );
-    setSubmitting(false);
     if (error) {
+      setSubmitting(false);
       toast.error(error.message);
-    } else {
-      toast.success("Confirmation sent to your new email!");
-      setEmailDialogOpen(false);
+      return;
     }
+    // Notify the OLD address so the account owner hears about the change
+    // even if a hostile session initiated it. Best-effort — a failure here
+    // must NOT block the email change flow itself (Supabase already
+    // accepted the request and mailed the new address), so a rejected
+    // invoke just gets logged. Matches the notification the admin path
+    // (admin-update-email) already sends.
+    try {
+      await supabase.functions.invoke("notify-email-change", {
+        body: { newEmail: trimmed },
+      });
+    } catch (notifyErr) {
+      console.warn("[SecurityTab] old-address notification failed", notifyErr);
+    }
+    setSubmitting(false);
+    toast.success("Confirmation sent to your new email!");
+    setEmailDialogOpen(false);
   };
 
   return (

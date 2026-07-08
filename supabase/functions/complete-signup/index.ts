@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { LEGAL_TERMS_VERSION, LEGAL_PRIVACY_VERSION } from "../_shared/legalVersions.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -423,8 +424,8 @@ serve(async (req) => {
     // consent write is logged loudly but must not strand a finished signup.
     const { error: legalErr } = await supabase.from("legal_acceptances").insert({
       user_id: userId,
-      terms_version: "Jun 2026",
-      privacy_version: "Jun 2026",
+      terms_version: LEGAL_TERMS_VERSION,
+      privacy_version: LEGAL_PRIVACY_VERSION,
       ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
       user_agent: req.headers.get("user-agent") ?? null,
     });

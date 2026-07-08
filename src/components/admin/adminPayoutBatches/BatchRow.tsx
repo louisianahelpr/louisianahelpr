@@ -4,6 +4,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Send, Clock, AlertTriangle, Pause, Play } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { PayoutBatch } from "./types";
+import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
+import { cn } from "@/lib/utils";
 
 interface BatchRowProps {
   batch: PayoutBatch;
@@ -55,12 +57,12 @@ export const BatchRow = ({
             </Badge>
           )}
           {isStale && (
-            <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-ds-10">
+            <Badge className={cn(toneBadgeClasses.warning, "text-ds-10")}>
               <Clock className="w-3 h-3 mr-0.5" /> {ageDays}d old
             </Badge>
           )}
           {isHeld && (
-            <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-ds-10">
+            <Badge className={cn(toneBadgeClasses.warning, "text-ds-10")}>
               <Pause className="w-3 h-3 mr-0.5" /> On hold
             </Badge>
           )}
@@ -70,7 +72,7 @@ export const BatchRow = ({
           Oldest job: {formatDistanceToNow(new Date(batch.oldest_completed_at), { addSuffix: true })}
         </p>
         {isHeld && hold.reason && (
-          <p className="text-ds-11 text-amber-700 dark:text-amber-300 italic mt-1">
+          <p className={cn("text-ds-11 italic mt-1", toneTextClasses.warning)}>
             Hold reason: {hold.reason}
           </p>
         )}

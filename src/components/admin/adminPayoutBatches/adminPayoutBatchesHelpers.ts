@@ -1,10 +1,21 @@
 import { safeStorage } from "@/lib/safeStorage";
+import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
+
+// Map ledger-row status → semantic tone; look up via toneBadgeClasses at
+// the render site. `failed` stays on the destructive design token
+// (already semantic); `reversed` stays neutral (voided / not-a-status).
+export const LEDGER_STATUS_TONE: Record<string, Tone> = {
+  paid: "success",
+  pending: "warning",
+  failed: "danger",
+  reversed: "neutral",
+};
 
 export const LEDGER_TONE: Record<string, string> = {
-  paid: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
-  pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  paid: toneBadgeClasses.success,
+  pending: toneBadgeClasses.warning,
   failed: "bg-destructive/10 text-destructive",
-  reversed: "bg-muted text-muted-foreground",
+  reversed: toneBadgeClasses.neutral,
 };
 
 // Hold-for-review queue is stored client-side under a stable key so

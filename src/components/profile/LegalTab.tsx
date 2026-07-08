@@ -7,6 +7,7 @@ import {
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { BUSINESS_SEAT_TIERS, formatSeatPriceMonthly } from "@/lib/businessSeatTiers";
 import {
   MIN_JOB_BUDGET_DOLLARS,
   MAX_JOB_BUDGET_DOLLARS,
@@ -164,7 +165,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
               <p><strong className="text-foreground">Free ⭐:</strong> Standard access with a {TIER_PERKS.free.platformFeePercent}% platform fee on earnings.</p>
               <p><strong className="text-foreground">{TIER_PERKS.pro.name} 🔥 ({fmtMo(TIER_PERKS.pro.price)}):</strong> Priority placement, advanced analytics, and a reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
               <p><strong className="text-foreground">{TIER_PERKS.elite.name} 💎 ({fmtMo(TIER_PERKS.elite.price)}):</strong> Everything in Pro plus a featured badge, early job access, dedicated support, and the lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
-              <p><strong className="text-foreground">{TIER_PERKS.business.name} 🏢 ({fmtMo(TIER_PERKS.business.price)}):</strong> Team management, a verified business badge, and priority support.</p>
+              <p><strong className="text-foreground">{TIER_PERKS.business.name} 🏢:</strong> Team management with per-seat pricing ({BUSINESS_SEAT_TIERS.map((t) => `${t.name} ${formatSeatPriceMonthly(t.priceLabel)}`).join(" · ")}), a verified business badge, priority support, and a {TIER_PERKS.business.platformFeePercent}% platform fee across all seat plans.</p>
               <p><strong className="text-foreground">Annual Plans:</strong> Billed yearly at a discount (about 2 months free).</p>
               <p><strong className="text-foreground">Billing:</strong> One-time, monthly, or annual. Stripe handles billing dates automatically.</p>
             </>

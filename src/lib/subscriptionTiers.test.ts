@@ -13,8 +13,14 @@ import {
   type SubscriptionTier,
 } from "./subscriptionTiers";
 
-const PAID_TIERS: SubscriptionTier[] = ["pro", "elite", "business"];
-const ALL_TIERS: SubscriptionTier[] = ["free", ...PAID_TIERS];
+// Consumer-subscribable paid tiers only. Business is deliberately excluded
+// — it isn't a consumer subscription; Business accounts are billed per-seat
+// on the seat plans in businessSeatTiers.ts, so TIER_PERKS.business.price
+// is intentionally null and the "paid tier has a price" invariant doesn't
+// apply. TIER_PERKS.business.platformFeePercent is still the real 6% fee
+// used by the ladder / commission math and IS covered by the fee tests.
+const PAID_CONSUMER_TIERS: SubscriptionTier[] = ["pro", "elite"];
+const ALL_TIERS: SubscriptionTier[] = ["free", "pro", "elite", "business"];
 
 describe("TIER_PERKS fee model", () => {
   it("uses the documented platform fee per tier (12 / 10 / 8 / 6)", () => {
@@ -53,17 +59,27 @@ describe("TIER_PERKS fee model", () => {
     expect(100 - TIER_PERKS.business.platformFeePercent).toBe(94);
   });
 
-  it("only the free tier is priceless; paid tiers cost more as they rise", () => {
+  it("Free is priceless; every PAID CONSUMER tier costs more as it rises", () => {
     expect(TIER_PERKS.free.price).toBeNull();
     expect(TIER_PERKS.free.annualPrice).toBeNull();
-    for (const tier of PAID_TIERS) {
+    for (const tier of PAID_CONSUMER_TIERS) {
       expect(TIER_PERKS[tier].price).not.toBeNull();
       // Annual is billed at a discount (2 months free), so it must be lower
       // than the monthly rate for every paid tier.
       expect(TIER_PERKS[tier].annualPrice!).toBeLessThan(TIER_PERKS[tier].price!);
     }
     expect(TIER_PERKS.pro.price!).toBeLessThan(TIER_PERKS.elite.price!);
-    expect(TIER_PERKS.elite.price!).toBeLessThan(TIER_PERKS.business.price!);
+  });
+
+  it("Business is intentionally price:null — per-seat via businessSeatTiers", () => {
+    // Business isn't a consumer subscription; the seat plans in
+    // businessSeatTiers.ts carry the real prices. Guarding that this stays
+    // null so a future edit doesn't accidentally re-introduce a fictional
+    // consumer-side Business price without also removing this test.
+    expect(TIER_PERKS.business.price).toBeNull();
+    expect(TIER_PERKS.business.annualPrice).toBeNull();
+    // The fee ladder still descends into Business at 6%, unchanged.
+    expect(TIER_PERKS.business.platformFeePercent).toBe(6);
   });
 
   it("carries the current tier display names (rebrand guard)", () => {
@@ -106,12 +122,13 @@ describe("getPaysSelfBack", () => {
     );
   });
 
-  it("applies the larger business-tier discount (6% vs 12%)", () => {
-    // business: saved/job = (0.12 − 0.06) * 200 = $12; over 5 jobs = $60 ≥ $50.
-    // jobsNeeded = ceil(50 / 12) = 5.
-    expect(getPaysSelfBack("business", 200, 5)).toBe(
-      "Pays for itself after just 5 jobs/month",
-    );
+  it("returns empty for Business — no consumer price to pay back", () => {
+    // Business isn't a consumer subscription (see the TIER_PERKS test above);
+    // its price is null, so getPaysSelfBack short-circuits at `!perks.price`.
+    // The per-seat "pays for itself" story belongs on the Business surface,
+    // not the consumer paysback calc.
+    expect(getPaysSelfBack("business", 200, 5)).toBe("");
+    expect(getPaysSelfBack("business", 1000, 20)).toBe("");
   });
 });
 

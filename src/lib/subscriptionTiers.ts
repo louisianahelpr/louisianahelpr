@@ -1,17 +1,27 @@
 /**
- * subscriptionTiers.ts — canonical perk definitions for Free / Helpr Pro /
- * Helpr Elite subscription tiers, plus the Business tier for company accounts.
+ * subscriptionTiers.ts — canonical perk definitions for the CONSUMER
+ * membership tiers (Free / Helpr Pro / Helpr Elite) plus a Business row
+ * that exists here ONLY as the fee-percent reference for business accounts.
  *
- * Prices here MUST equal the live Stripe Price objects (verified):
- *   pro  $10/mo  $100/yr   elite  $15/mo  $150/yr   business  $50/mo  $480/yr
+ * Consumer prices MUST equal the live Stripe Price objects (verified):
+ *   pro  $10/mo  $100/yr   elite  $15/mo  $150/yr
  * `annualPrice` is stored as the monthly-equivalent of the annual plan
  * (yearly ÷ 12) because the /subscription page renders it as "$X/mo annual".
  *
+ * BUSINESS IS NOT A SUBSCRIBABLE CONSUMER TIER. Business accounts are
+ * billed per-seat on the FOUR seat-plan tiers defined in
+ * `businessSeatTiers.ts` (Starter free · Crew $20/mo · Team $30/mo ·
+ * Enterprise $40/mo). The `business` entry below carries `price: null` and
+ * `annualPrice: null` on purpose so any code that reads them can never
+ * accidentally render a fictional "$50/mo Business" price — the real
+ * pricing surface is /for-business, and SubscriptionTab redirects Business
+ * subscribers there.
+ *
  * The tier IDs align with the subscription_tier column on profiles
- * ("pro", "elite", "business"). Business is self-serve upgradable but gated
- * behind license + insurance verification (a company must prove it is a real,
- * insured business before it can claim the verified-business badge). "free" is
- * the default/null case. The commission ladder is a clean four rungs:
+ * ("pro", "elite", "business"). Business is self-serve upgradable via the
+ * seat plans, then gated behind license + insurance verification before
+ * the verified-business badge unlocks. "free" is the default/null case.
+ * The commission ladder is a clean four rungs:
  * free 12% → pro 10% → elite 8% → business 6%.
  */
 
@@ -81,8 +91,14 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
   },
   business: {
     name: "Business",
-    price: 50,
-    annualPrice: 40,
+    // NOT a consumer subscription price. Business is billed per-seat
+    // (Starter free · Crew $20/mo · Team $30/mo · Enterprise $40/mo) —
+    // see supabase/functions/_shared/businessSeatTiers.ts. These stay
+    // null so no surface can accidentally render a fictional consumer
+    // "$50/mo Business" tier. platformFeePercent below is the real
+    // shared rate across all seat plans.
+    price: null,
+    annualPrice: null,
     platformFeePercent: 6,
     priorityPlacement: true,
     featuredBadge: true,
@@ -92,7 +108,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     verifiedBusiness: true,
     dedicatedSupport: true,
     tagline: "For companies, contractors, and crews",
-    ctaLabel: "Upgrade to Business",
+    ctaLabel: "See seat plans",
   },
 };
 

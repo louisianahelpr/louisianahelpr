@@ -15,6 +15,8 @@ import { Megaphone, Plus, Trash2, Loader2, X } from "lucide-react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { toneTextClasses } from "@/components/admin/tones";
+import { cn } from "@/lib/utils";
 
 interface Broadcast {
   id: string;
@@ -185,12 +187,12 @@ const AdminBroadcasts = () => {
           pending_push_fan_out_at is set and push_fanned_out_at is not.
           Survives tab close: pg_cron runs the fan-out regardless. */}
       {pending && (
-        <div className="rounded-ds-md border border-amber-500/40 bg-amber-500/10 p-4 flex items-center justify-between gap-3">
+        <div className={cn("rounded-ds-md border border-warning/40 bg-warning/10 p-4 flex items-center justify-between gap-3", toneTextClasses.warning)}>
           <div>
-            <p className="text-ds-13 font-semibold text-amber-900 dark:text-amber-200">
+            <p className="text-ds-13 font-semibold">
               Push fires in ~{secondsLeft}s
             </p>
-            <p className="text-ds-11 text-amber-800/80 dark:text-amber-300/80">
+            <p className="text-ds-11 opacity-80">
               Banner is already visible to users. Cancel within the window
               to retract the broadcast and skip the push.
             </p>
@@ -199,7 +201,7 @@ const AdminBroadcasts = () => {
             variant="outline"
             size="sm"
             onClick={cancelPending}
-            className="border-amber-500/60 text-amber-900 hover:bg-amber-500/20 dark:text-amber-200 shrink-0"
+            className={cn("border-warning/60 hover:bg-warning/20 shrink-0", toneTextClasses.warning)}
           >
             <X className="w-3.5 h-3.5 mr-1.5" /> Cancel
           </Button>
@@ -301,7 +303,7 @@ const AdminBroadcasts = () => {
                     {b.type}
                   </span>
                   {b.pending_push_fan_out_at && !b.push_fanned_out_at ? (
-                    <Badge variant="outline" className="text-ds-10 border-amber-500/60 text-amber-700">Pending push</Badge>
+                    <Badge variant="outline" className={cn("text-ds-10 border-warning/60", toneTextClasses.warning)}>Pending push</Badge>
                   ) : b.push_fanned_out_at ? (
                     <Badge variant="outline" className="text-ds-10 border-primary/30 text-primary">Sent</Badge>
                   ) : null}

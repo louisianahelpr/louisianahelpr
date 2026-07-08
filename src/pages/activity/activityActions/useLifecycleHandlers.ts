@@ -354,7 +354,13 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       // Notifications (best-effort) — shared by both paths.
       const banned = actionTaken === "permanent_ban";
       await createNotification({ user_id: helperId, title: banned ? "⛔ Account banned for no-show" : "⚠️ No-show warning", message: banned ? "Your account has been permanently banned for repeated no-shows." : `You received a no-show warning for "${job.title}".`, type: "warning", link: "/profile" });
-      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      // Admin fan-out — a silent drop here means no admin gets the
+      // no-show alert. Warn-report but continue (the poster's toast still
+      // fires and the DB state is already correct).
+      const { data: adminRoles, error: adminRolesErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      if (adminRolesErr) {
+        report(adminRolesErr, { severity: "warning", tags: { source: "useLifecycleHandlers.noShowAdminFanout" } });
+      }
       for (const admin of adminRoles ?? []) {
         await createNotification({ user_id: admin.user_id, title: "🚫 No-show reported", message: `Helpr no-show for "${job.title}". ${banned ? "Auto-banned." : "Warning issued."}`, type: "warning", link: "/admin" });
       }

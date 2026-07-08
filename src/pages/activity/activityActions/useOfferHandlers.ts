@@ -406,7 +406,13 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         toast.error("Your account has been permanently banned due to repeated job offer declines.");
       }
       if (actionTaken !== "none") {
-        const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+        // Admin fan-out — a silent drop here means no admin sees the
+        // decline notification. Warn-report but continue (the DB action
+        // already committed, the user's toast still fires).
+        const { data: adminRoles, error: adminRolesErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+        if (adminRolesErr) {
+          report(adminRolesErr, { severity: "warning", tags: { source: "useOfferHandlers.declineAdminFanout" } });
+        }
         for (const admin of adminRoles ?? []) {
           await createNotification({ user_id: admin.user_id, title: "⚠️ Helpr declined job offer", message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`, type: "warning", link: "/admin" });
         }

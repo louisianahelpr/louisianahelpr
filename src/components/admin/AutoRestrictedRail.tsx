@@ -18,6 +18,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ShieldAlert, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { toneTextClasses } from "@/components/admin/tones";
+import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -118,10 +120,10 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
   if (users.length === 0) return null;
 
   return (
-    <div className="rounded-ds-md border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+    <div className={cn("rounded-ds-md border border-warning/40 bg-warning/10 p-3 space-y-2", toneTextClasses.warning)}>
       <div className="flex items-center gap-2">
-        <ShieldAlert className="w-4 h-4 text-amber-700 dark:text-amber-300" />
-        <p className="text-ds-11 font-semibold text-amber-900 dark:text-amber-200">
+        <ShieldAlert className="w-4 h-4" />
+        <p className="text-ds-11 font-semibold">
           Auto-restricted ({users.length}) — review and reverse if mistaken
         </p>
       </div>
@@ -137,7 +139,7 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
           return (
             <div
               key={u.user_id}
-              className="shrink-0 min-w-[220px] rounded-ds-sm bg-background border border-amber-500/30 p-2.5 space-y-1.5"
+              className="shrink-0 min-w-[220px] rounded-ds-sm bg-background border border-warning/30 p-2.5 space-y-1.5 text-foreground"
             >
               <p className="text-ds-11 font-semibold truncate">
                 {formatName(u.full_name, u.email || "User")}
@@ -158,7 +160,7 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
                   size="sm"
                   variant="outline"
                   disabled={reversing === u.user_id}
-                  className="h-7 text-ds-11 px-2 flex-1 border-amber-500/40 hover:bg-amber-500/10"
+                  className={cn("h-7 text-ds-11 px-2 flex-1 border-warning/40 hover:bg-warning/10", toneTextClasses.warning)}
                   onClick={() => reverse(u.user_id)}
                 >
                   {reversing === u.user_id ? "..." : "Reverse"}

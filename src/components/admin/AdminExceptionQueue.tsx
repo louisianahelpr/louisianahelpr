@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import SectionBoundary from "@/components/SectionBoundary";
+import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
+import { cn } from "@/lib/utils";
 
 // Maps DB exception_type values to human-readable labels
 const EXCEPTION_TYPE_LABELS: Record<string, string> = {
@@ -121,7 +123,7 @@ const ExceptionQueueInner = () => {
           Verification cases flagged for manual review — adverse actions, name mismatches, boards with no API.
         </p>
         {rows.length > 0 && (
-          <span className="inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-ds-10 font-bold px-2 py-0.5 min-w-[1.4rem]">
+          <span className={cn("inline-flex items-center justify-center rounded-full text-ds-10 font-bold px-2 py-0.5 min-w-[1.4rem]", toneBadgeClasses.warning)}>
             {rows.length}
           </span>
         )}
@@ -136,7 +138,7 @@ const ExceptionQueueInner = () => {
           {rows.map((r) => (
             <div key={r.id} className="rounded-2xl liquid-glass p-4 space-y-3">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 shrink-0 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center text-ds-13 font-bold">
+                <div className={cn("w-10 h-10 shrink-0 rounded-full bg-warning/10 flex items-center justify-center text-ds-13 font-bold", toneTextClasses.warning)}>
                   <AlertTriangle className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -144,7 +146,7 @@ const ExceptionQueueInner = () => {
                     <p className="font-semibold text-ds-13 text-foreground truncate">
                       {r.full_name || "Unnamed user"}
                     </p>
-                    <span className="inline-flex items-center rounded-full border border-amber-400/40 bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30 text-ds-10 font-semibold px-2 py-0.5">
+                    <span className={cn("inline-flex items-center rounded-full text-ds-10 font-semibold px-2 py-0.5", toneBadgeClasses.warning)}>
                       {EXCEPTION_TYPE_LABELS[r.exception_type] ?? r.exception_type}
                     </span>
                     {r.credential_type && (

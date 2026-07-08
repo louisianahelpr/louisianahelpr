@@ -15,6 +15,8 @@ import { report } from "@/lib/errorLogger";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { toneTextClasses } from "@/components/admin/tones";
+import { cn } from "@/lib/utils";
 
 interface IDVProfile {
   user_id: string;
@@ -32,9 +34,9 @@ interface IDVProfile {
 
 const STATUS_TABS = [
   { key: "manual_review", label: "Manual Review", icon: ShieldAlert, color: "bg-destructive/10 text-destructive" },
-  { key: "failed", label: "Failed", icon: XCircle, color: "bg-amber-500/10 text-amber-600" },
-  { key: "pending", label: "Pending/Processing", icon: Loader2, color: "bg-blue-500/10 text-blue-600" },
-  { key: "verified", label: "Verified", icon: CheckCircle2, color: "bg-emerald-500/10 text-emerald-600" },
+  { key: "failed", label: "Failed", icon: XCircle, color: cn("bg-warning/10", toneTextClasses.warning) },
+  { key: "pending", label: "Pending/Processing", icon: Loader2, color: cn("bg-info/10", toneTextClasses.info) },
+  { key: "verified", label: "Verified", icon: CheckCircle2, color: cn("bg-success/10", toneTextClasses.success) },
 ];
 
 const AdminIDVQueue = () => {

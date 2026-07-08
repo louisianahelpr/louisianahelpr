@@ -11,6 +11,7 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import type { Json } from "@/integrations/supabase/types";
+import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 
 interface AuditEntry {
   id: string;
@@ -63,16 +64,16 @@ const AdminAuditLog = () => {
     URL.revokeObjectURL(url);
   };
 
-  const actionColor: Record<string, string> = {
-    approve_user: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-    deny_user: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-    ban_user: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-    resolve_fraud_flag: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-    update_settings: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
-    resolve_dispute: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
-    job_status_override: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-    job_admin_refund: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
-    job_admin_refund_partial: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  const actionTone: Record<string, Tone> = {
+    approve_user: "success",
+    deny_user: "danger",
+    ban_user: "danger",
+    resolve_fraud_flag: "info",
+    update_settings: "notice",
+    resolve_dispute: "danger",
+    job_status_override: "warning",
+    job_admin_refund: "danger",
+    job_admin_refund_partial: "warning",
   };
 
   // Pull the most useful fields from details for inline display so admins
@@ -161,7 +162,7 @@ const AdminAuditLog = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-ds-13 text-foreground">{entry.admin_name}</span>
-                    <Badge className={actionColor[entry.action] || "bg-muted text-muted-foreground"}>
+                    <Badge className={toneBadgeClasses[actionTone[entry.action] ?? "neutral"]}>
                       {formatCategory(entry.action)}
                     </Badge>
                     {entry.target_type && (

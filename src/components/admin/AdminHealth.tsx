@@ -236,7 +236,7 @@ const AdminHealth = () => {
               const noCoverage = p.openJobs > 0 && p.activeHelpers === 0;
               const undersupplied = p.openJobs > 0 && p.ratio !== null && p.ratio < 1;
               const ratioCls = noCoverage ? "text-destructive font-semibold"
-                : undersupplied ? "text-amber-600 font-semibold"
+                : undersupplied ? cn("font-semibold", toneTextClasses.warning)
                 : "text-foreground";
               return (
                 <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-ds-sm liquid-glass p-2 text-ds-13">
@@ -335,8 +335,8 @@ const AdminHealth = () => {
               {sortedParishes.map((p) => {
                 const pct = p.fill_rate_pct;
                 const pctCls = pct === null ? "text-muted-foreground"
-                  : pct >= 70 ? "text-green-600 font-semibold"
-                  : pct >= 40 ? "text-amber-600 font-semibold"
+                  : pct >= 70 ? cn("font-semibold", toneTextClasses.success)
+                  : pct >= 40 ? cn("font-semibold", toneTextClasses.warning)
                   : "text-destructive font-semibold";
                 return (
                   <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-ds-sm liquid-glass p-2 text-ds-13">

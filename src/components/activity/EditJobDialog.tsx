@@ -50,6 +50,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const [specialReq, setSpecialReq] = useState("");
   const [saving, setSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showDiscard, setShowDiscard] = useState(false);
 
   // Reset all fields when job changes (prepopulate)
   useEffect(() => {
@@ -83,6 +84,36 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
 
   const handleSaveClick = () => setShowConfirm(true);
 
+  // Dirty check — did the user actually edit anything? Compares current
+  // form state against the job's persisted values. Used to gate the
+  // Discard-changes prompt on close so a user who opened the dialog and
+  // typed nothing exits with one tap (no confirm), while a user with
+  // unsaved edits sees "Discard changes?" instead of losing them silently.
+  const isDirty = !!job && (
+    title !== (job.title || "") ||
+    description !== (job.description || "") ||
+    category !== (job.category || "other") ||
+    location !== (job.location || "") ||
+    dateNeeded !== (job.date_needed || "") ||
+    startTime !== (job.start_time || "") ||
+    estimatedHours !== (job.estimated_hours?.toString() || "") ||
+    specialReq !== (job.special_requirements || "")
+  );
+
+  const handleClose = (nextOpen: boolean) => {
+    if (nextOpen) return; // Radix passes true on programmatic open — no-op
+    if (isDirty) {
+      setShowDiscard(true);
+      return;
+    }
+    onClose();
+  };
+
+  const confirmDiscard = () => {
+    setShowDiscard(false);
+    onClose();
+  };
+
   if (!job) return null;
 
   const hasHelper = !!job.helper_id;
@@ -93,7 +124,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
 
   return (
     <>
-    <Dialog open={!!job} onOpenChange={onClose}>
+    <Dialog open={!!job} onOpenChange={handleClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto !gap-3">
         <DialogHero eyebrow="Editing your job" title={title ? `"${title}"` : "Edit job"} />
         <div className="space-y-5">
@@ -185,7 +216,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <DialogFooter className="!gap-2">
           <Button
             variant="ghost"
-            onClick={onClose}
+            onClick={() => handleClose(false)}
             className="rounded-ds-md bg-transparent border-transparent shadow-none text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
           >
             Cancel
@@ -221,6 +252,24 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={save}>Save Changes</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Discard-changes confirm — only rendered when the user has actually
+        edited something and then tries to close (X, backdrop, Esc, or
+        Cancel). A clean-slate close skips this and exits directly, so it
+        never becomes a nag on a "peek and leave" open. */}
+    <AlertDialog open={showDiscard} onOpenChange={setShowDiscard}>
+      <AlertDialogContent>
+        <AlertDialogHero
+          eyebrow="Editing your job"
+          title="Discard your changes?"
+          subtitle="Your edits won't be saved to the job listing."
+        />
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep editing</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDiscard}>Discard changes</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

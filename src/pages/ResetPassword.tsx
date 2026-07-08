@@ -19,6 +19,10 @@ const ResetPassword = () => {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  // When a link is invalid/expired/used, Supabase forwards `error=`,
+  // `error_description=` in the URL hash and we surface the specific
+  // case below. Null = no explicit error → treat as "no token / bare visit".
+  const [linkError, setLinkError] = useState<"expired" | "used" | null>(null);
   // Holds the id of the post-success redirect timer so we can cancel it if
   // the user navigates away within the 1.5 s window — prevents a "navigate
   // on unmounted component" warning and a phantom navigation to /dashboard.
@@ -47,6 +51,27 @@ const ResetPassword = () => {
 
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     if (hashParams.get("type") === "recovery") setReady(true);
+
+    // Distinguish the three "not ready" cases when possible so the user
+    // sees a specific message instead of the generic "please use the
+    // link from your email" that reads the same for an expired link, an
+    // already-used link, and a bare visit with no token at all.
+    //   * Supabase appends `error=access_denied` +
+    //     `error_description=Email link is invalid or has expired` on an
+    //     expired/used link — we surface those directly.
+    //   * A truly empty hash means the user hit /reset-password without
+    //     following a link at all → the "please use your email" copy.
+    const err = hashParams.get("error");
+    const errDesc = hashParams.get("error_description") ?? "";
+    if (err === "access_denied") {
+      if (/expired/i.test(errDesc)) {
+        setLinkError("expired");
+      } else if (/invalid|used/i.test(errDesc)) {
+        setLinkError("used");
+      } else {
+        setLinkError("expired"); // safe default when Supabase widens the copy
+      }
+    }
 
     return () => subscription.unsubscribe();
   }, []);
@@ -103,10 +128,16 @@ const ResetPassword = () => {
         {!ready ? (
           <div className="text-center space-y-4">
             <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              This page is used to reset your password. Please use the link from your email.
+              {linkError === "expired"
+                ? "This password-reset link has expired. Reset links are single-use and time-limited — request a fresh one below."
+                : linkError === "used"
+                  ? "This password-reset link has already been used. Request a new one if you still need to change your password."
+                  : "This page is used to reset your password. Please use the link from your email."}
             </p>
             <Link to="/forgot-password">
-              <Button variant="outline" className="w-full rounded-ds-md">Request a new reset link</Button>
+              <Button variant="outline" className="w-full rounded-ds-md">
+                {linkError ? "Request a new reset link" : "Go to forgot password"}
+              </Button>
             </Link>
           </div>
         ) : (

@@ -252,9 +252,16 @@ const Signup = () => {
       });
 
       if (authError && (authError.message.includes("already registered") || authError.message.includes("already been registered"))) {
-        // An account already exists for this email — route to login instead
-        // of showing a fake "success" toast and a /signup-pending page the
-        // user never actually receives a verification email for.
+        // Deliberate product choice: we tell the user their email is
+        // already registered and route to /login rather than silently
+        // showing a fake "check your email" state that never fires. This
+        // does leave an enumeration oracle open (an attacker can probe
+        // whether an email is registered) — the same oracle exists on
+        // most consumer apps and the UX win of "please log in instead"
+        // has been judged worth it for this marketplace. ForgotPassword
+        // takes the opposite call (privacy-first, generic success),
+        // because there the potential value of enumeration is higher
+        // (targeted phishing) and the UX cost is lower.
         toast.info("You already have an account with this email — please log in.");
         navigate("/login");
         return;

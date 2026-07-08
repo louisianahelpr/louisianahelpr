@@ -194,7 +194,7 @@ const TierRow = ({ tier }: { tier: (typeof SEAT_TIERS)[number] }) => {
                 color: "hsl(var(--parchment))",
               }}
             >
-              Popular
+              Most popular
             </span>
           )}
         </span>

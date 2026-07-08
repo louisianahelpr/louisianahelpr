@@ -382,15 +382,27 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         priorCount = existing?.length || 0;
         // Softened: 5 strikes with graduated warnings before ban
         actionTaken = priorCount >= 4 ? "permanent_ban" : priorCount >= 2 ? "warning" : "none";
-        await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${declineTitle}"`, job_id: app.job_id, action_taken: actionTaken });
+        // Fallback path (RPC missing) — every write below was previously
+        // fire-and-forget. That's a moderation silent-failure surface: a
+        // failed insert/update leaves the offender uncounted, unbanned, or
+        // the job un-reopened without any signal. Cowork audit 2026-07-08.
+        // Best-effort with logging — this branch only runs when the RPC
+        // isn't deployed, so we log rather than abort (aborting mid-way
+        // through leaves partial state, which is worse than a logged nudge).
+        const logIfErr = (label: string) => (result: { error: unknown }) => {
+          if (result?.error) {
+            report(result.error, { tags: { source: `useOfferHandlers.declineFallback.${label}` } });
+          }
+        };
+        await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${declineTitle}"`, job_id: app.job_id, action_taken: actionTaken }).then(logIfErr("insertViolation"));
         if (actionTaken === "warning") {
-          await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", user.id);
+          await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", user.id).then(logIfErr("warnUpdate"));
         } else if (actionTaken === "permanent_ban") {
-          await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 5 job offers after being selected", banned_by: user.id });
-          await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", user.id);
+          await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 5 job offers after being selected", banned_by: user.id }).then(logIfErr("banInsert"));
+          await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", user.id).then(logIfErr("banUpdate"));
         }
-        await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id);
-        await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null }).eq("id", app.job_id);
+        await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id).then(logIfErr("rejectApp"));
+        await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null }).eq("id", app.job_id).then(logIfErr("reopenJob"));
       } else {
         actionTaken = (rpcData?.action as string) ?? "none";
         priorCount = (rpcData?.prior_count as number) ?? 0;

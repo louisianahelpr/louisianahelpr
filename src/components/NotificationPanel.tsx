@@ -203,12 +203,21 @@ const NotificationPanel = () => {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <SheetHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0 text-left sm:text-left space-y-3">
-          {/* Title sits alone on the top line with pr-12 reserving room
-              for the safe-area-aware close button (40px frosted circle,
-              top-right via the Sheet primitive). */}
-          <SheetTitle className="text-page-title text-left pr-12">
-            Notifications
-          </SheetTitle>
+          {/* Mirrors DialogHero's eyebrow → title stack (Sheets can't use
+              DialogHero directly). The pr-12 lane on the title reserves
+              room for the safe-area-aware close button (40px frosted
+              circle, top-right via the Sheet primitive). */}
+          <div className="space-y-0 pr-12">
+            <span
+              className="font-serif italic uppercase block text-[0.62rem] tracking-[0.18em]"
+              style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+            >
+              Your inbox
+            </span>
+            <SheetTitle className="text-page-title text-left mt-0.5">
+              Notifications
+            </SheetTitle>
+          </div>
           {/* One controls row: filter pills on the left, the
               Mark-all-read / Enable-push actions on the right. Keeping
               them on a single justified line (rather than a standalone

@@ -1,6 +1,6 @@
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { hapticLight } from "@/lib/haptics";
 import { type EnrichedApplication } from "../activityConstants";
@@ -50,21 +50,24 @@ export function DeclineApplicantSheet({
           const targetName = formatName(declineTarget.profiles?.full_name, "this applicant");
           return (
             <div className="px-1 pt-1 pb-1 space-y-3.5">
-              {/* Header */}
-              <div>
-                <p
-                  className="font-serif italic uppercase"
+              {/* Header — mirrors DialogHero's eyebrow → title stack using
+                  SheetTitle so Radix's aria-labelledby wires up correctly.
+                  Previously used bare <p> + <h2> which left screen readers
+                  without a named region. */}
+              <SheetHeader className="space-y-0 text-left">
+                <span
+                  className="font-serif italic uppercase block"
                   style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
                 >
                   Decline applicant
-                </p>
-                <h2
+                </span>
+                <SheetTitle
                   className="font-display italic font-bold leading-tight mt-1.5"
                   style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
                 >
                   Decline {targetName}?
-                </h2>
-              </div>
+                </SheetTitle>
+              </SheetHeader>
 
               {/* Quick-tap reason chips */}
               <div role="group" aria-label="Decline reason">

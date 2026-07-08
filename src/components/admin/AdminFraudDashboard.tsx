@@ -12,6 +12,7 @@ import { formatDistanceToNow } from "date-fns";
 import { logAdminAction } from "@/lib/adminAudit";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { unwrap } from "@/lib/supabaseResult";
+import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 
 interface FraudFlag {
   id: string;
@@ -88,19 +89,28 @@ const AdminFraudDashboard = () => {
     setResolving(null);
   };
 
-  const flagColor: Record<string, string> = {
-    off_platform_contact: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-    fast_completion: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
-    high_dispute_rate: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-    referral_abuse: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
-    application_spam: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-    review_manipulation: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
-    message_flooding: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
-    scope_creep: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-    burst_job_posting: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
-    multi_reporter_flag: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-    rapid_cancellation_pattern: "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
-    duplicate_content_posting: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  // Fraud flag types collapse to 3 severity tones — DANGER (money /
+  // reputation risk), WARNING (behavior anomaly), INFO (informational
+  // signal). Previously each flag hand-picked its own color from a
+  // rainbow palette, producing 12 different shades for 12 flag types.
+  // The audit's cohesion note was that "high_dispute_rate" (red-100
+  // text-red-800) and "multi_reporter_flag" (also red-100 text-red-800)
+  // were correctly the same color while "referral_abuse" (rose-100)
+  // and "burst_job_posting" (rose-100) shared a fourth. Collapsed to
+  // the shared tone map so all admin severity chips read the same.
+  const flagTone: Record<string, Tone> = {
+    off_platform_contact: "warning",
+    fast_completion: "notice",
+    high_dispute_rate: "danger",
+    referral_abuse: "danger",
+    application_spam: "info",
+    review_manipulation: "danger",
+    message_flooding: "warning",
+    scope_creep: "warning",
+    burst_job_posting: "warning",
+    multi_reporter_flag: "danger",
+    rapid_cancellation_pattern: "danger",
+    duplicate_content_posting: "warning",
   };
 
   return (
@@ -133,7 +143,7 @@ const AdminFraudDashboard = () => {
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-ds-13 text-foreground">{flag.user_name}</span>
-                  <Badge className={flagColor[flag.flag_type] || "bg-muted text-muted-foreground"}>
+                  <Badge className={toneBadgeClasses[flagTone[flag.flag_type] ?? "neutral"]}>
                     {formatCategory(flag.flag_type)}
                   </Badge>
                 </div>

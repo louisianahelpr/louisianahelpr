@@ -44,7 +44,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   // sign-up even if the link is stripped by a messaging app.
   const buildShareBody = (code: string) => {
     const url = `${window.location.origin}/signup?ref=${encodeURIComponent(code)}`;
-    const text = `Join me on Louisiana Helpr — local task marketplace. Use code ${code} and we both earn $5 on your first job.`;
+    const text = `Join me on Louisiana Helpr — local job marketplace. Use code ${code} and we both earn $5 on your first job.`;
     return { url, text, combined: `${text}\n${url}` };
   };
 

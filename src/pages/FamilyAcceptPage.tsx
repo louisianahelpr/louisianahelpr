@@ -78,6 +78,19 @@ export default function FamilyAcceptPage() {
           return;
         }
 
+        // Reject expired tokens up front so a leaked link (chat log, email
+        // archive) can't be redeemed weeks after the fact. The 14-day
+        // window is set by the DB default; if the column is NULL on a
+        // pre-migration row we treat it as "unknown → expired" to fail
+        // closed — the caregiver can re-issue a fresh invite either way.
+        const expiresAtRaw = (relRes.data as { invite_token_expires_at?: string | null }).invite_token_expires_at;
+        const expiresAtMs = expiresAtRaw ? new Date(expiresAtRaw).getTime() : null;
+        if (expiresAtMs == null || Number.isNaN(expiresAtMs) || expiresAtMs < Date.now()) {
+          setError("This invite link has expired. Ask them to send you a new one.");
+          setLoading(false);
+          return;
+        }
+
         // Fetch caregiver's name
         const profRes = await supabase
           .from("profiles")

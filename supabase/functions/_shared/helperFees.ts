@@ -4,7 +4,7 @@
 // The helper's subscription tier sets the percentage the platform keeps from
 // each completed-job payout:
 //
-//     free → 12%   pro → 10%   elite → 8%   business → 6%
+//     free → 12%   basic → 11%   pro → 10%   elite → 8%   business → 6%
 //
 // This MUST stay in lock-step with `src/lib/subscriptionTiers.ts` TIER_PERKS
 // (the React/TS source the UI renders from). The edge runtime is Deno and
@@ -18,10 +18,9 @@
 // live profile at payout time.
 
 /** Tier id (lowercased `profiles.subscription_tier`) → platform fee percent. */
-// A legacy "basic" row (retired tier, no paid subscribers) is absent here, so
-// feePercentForTier degrades it to the free rate — matching toSubscriptionTier.
 export const TIER_FEE_PERCENT: Record<string, number> = {
   free: 12,
+  basic: 11,
   pro: 10,
   elite: 8,
   business: 6,

@@ -18,14 +18,20 @@
  * subscribers there.
  *
  * The tier IDs align with the subscription_tier column on profiles
- * ("pro", "elite", "business"). Business is self-serve upgradable via the
- * seat plans, then gated behind license + insurance verification before
- * the verified-business badge unlocks. "free" is the default/null case.
- * The commission ladder is a clean four rungs:
- * free 12% → pro 10% → elite 8% → business 6%.
+ * ("basic", "pro", "elite", "business"). Business is self-serve upgradable
+ * via the seat plans, then gated behind license + insurance verification
+ * before the verified-business badge unlocks. "free" is the default/null
+ * case. The commission ladder is a clean five rungs:
+ * free 12% → basic 11% → pro 10% → elite 8% → business 6%.
+ *
+ * BASIC positioning: entry paid tier ($5/mo) for helpers testing the
+ * marketplace who want the utility perks (Instant Payouts, 5-min Early
+ * Access, Helpr Badge, 20% off boosts) without the full Pro spend.
+ * Everything Pro has, Basic has too PLUS Pro adds priority placement,
+ * portfolio showcase, and 10-min early access (vs Basic's 5-min).
  */
 
-export type SubscriptionTier = "free" | "pro" | "elite" | "business";
+export type SubscriptionTier = "free" | "basic" | "pro" | "elite" | "business";
 
 export interface TierPerks {
   name: string;
@@ -58,6 +64,26 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     dedicatedSupport: false,
     tagline: "Get started, no commitment",
     ctaLabel: "Current plan",
+  },
+  basic: {
+    name: "Helpr Basic",
+    price: 5,
+    // Annual = $50/yr → monthly-equivalent 4.17 (2 months free vs $60/yr
+    // at monthly). Matches the "2 months free" pattern used by Pro/Elite.
+    annualPrice: 4.17,
+    platformFeePercent: 11,
+    priorityPlacement: false,
+    featuredBadge: false,
+    // 5-min early access (see earlyAccess.ts). Boolean here just signals
+    // "gets some tier of early access"; the concrete minute count lives
+    // in earlyAccess.ts's tier switch.
+    earlyAccess: true,
+    advancedAnalytics: false,
+    multiTech: false,
+    verifiedBusiness: false,
+    dedicatedSupport: false,
+    tagline: "Get paid faster, save on boosts",
+    ctaLabel: "Get Basic",
   },
   pro: {
     name: "Helpr Pro",
@@ -140,10 +166,10 @@ export function getPaysSelfBack(
 }
 
 /** Map a raw subscription_tier string (may be null) to the canonical type.
- * A legacy "basic" value (the retired tier) degrades to "free" — there are no
- * paid Basic subscribers, so this only guards stale rows. */
+ * Unknown / null / empty → "free" (the safe default that never charges a
+ * user for perks they didn't opt into). */
 export function toSubscriptionTier(raw: string | null | undefined): SubscriptionTier {
-  if (raw === "pro" || raw === "elite" || raw === "business") return raw;
+  if (raw === "basic" || raw === "pro" || raw === "elite" || raw === "business") return raw;
   return "free";
 }
 
@@ -153,8 +179,9 @@ export function toSubscriptionTier(raw: string | null | undefined): Subscription
  * if the `expire-subscriptions` cron hasn't nulled the column yet — this mirrors
  * the edge payout resolver (`_shared/helperFees.ts` `getHelperFeePercent`) so the
  * commission the UI SHOWS a helper matches the fee their payout is actually
- * charged. The ladder is identical for poster and helper (free 12 / pro 10 /
- * elite 8 / business 6). Case is normalized so "PRO" resolves like "pro".
+ * charged. The ladder is identical for poster and helper (free 12 / basic
+ * 11 / pro 10 / elite 8 / business 6). Case is normalized so "PRO"
+ * resolves like "pro".
  */
 export function tierFeePercent(
   rawTier: string | null | undefined,

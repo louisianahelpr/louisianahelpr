@@ -108,6 +108,20 @@ serve(async (req) => {
       );
     }
 
+    // Basic / Pro perk: 20% off boosts. Same Stripe Checkout flow as the
+    // full-price case below, but the unit_amount is discounted and the
+    // product description names the subscriber discount so the receipt is
+    // legible. Elite is already returned above (free), and Free/Business
+    // fall through to the full BOOST_FEE_CENTS price.
+    const BOOST_DISCOUNT_PCT = 20;
+    const isBoostDiscountTier = subActive && (subTier === "basic" || subTier === "pro");
+    const unitAmount = isBoostDiscountTier
+      ? Math.round(BOOST_FEE_CENTS * (100 - BOOST_DISCOUNT_PCT) / 100)
+      : BOOST_FEE_CENTS;
+    const productName = isBoostDiscountTier
+      ? `Job Boost — 24-hour featured placement (${BOOST_DISCOUNT_PCT}% off with ${subTier === "basic" ? "Helpr Basic" : "Helpr Pro"})`
+      : "Job Boost — 24-hour featured placement";
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
@@ -122,13 +136,13 @@ serve(async (req) => {
         price_data: {
           currency: "usd",
           product_data: {
-            name: "Job Boost — 24-hour featured placement",
+            name: productName,
             description: `Boosts "${job.title}" to the top of Browse Tasks for 24 hours.`,
             // Promotional / advertising service — not subject to LA sales tax.
             // (LA does not currently tax advertising services for state purposes.)
             tax_code: "txcd_00000000",
           },
-          unit_amount: BOOST_FEE_CENTS,
+          unit_amount: unitAmount,
         },
         quantity: 1,
       }],

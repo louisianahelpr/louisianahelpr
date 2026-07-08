@@ -20,7 +20,7 @@
 // runtime that provides the env sees the test IDs. Set the six vars via
 // `supabase secrets set` when swapping keys.
 
-export type ProTierKey = "pro" | "elite";
+export type ProTierKey = "basic" | "pro" | "elite";
 export type ProBillingCycle = "monthly" | "annual" | "one_time";
 
 // Read a Deno.env var safely — returns undefined outside a Deno runtime
@@ -32,23 +32,42 @@ const readEnv = (key: string): string | undefined => {
 
 const LIVE_PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
+    // Basic live IDs are placeholders until the Live Basic Stripe Prices
+    // are created. Test-mode uses the env-var overrides below and works
+    // today; a future live-mode rollout MUST create matching live Prices
+    // and paste those IDs here.
+    basic: "price_TODO_LIVE_BASIC_MONTHLY",
     pro: "price_1TAZkLKp2H4b7tEC0ACbAX2y",
     elite: "price_1TAZkSKp2H4b7tEClf0VNiEa",
   },
   annual: {
+    basic: "price_TODO_LIVE_BASIC_ANNUAL",
     pro: "price_1TAZkbKp2H4b7tECZ7Qr6CZS",
     elite: "price_1TAZkcKp2H4b7tECagD42xRa",
   },
   one_time: {
+    basic: "price_TODO_LIVE_BASIC_ONETIME",
     pro: "price_1TAZkeKp2H4b7tECnfZ7vF0C",
     elite: "price_1TAZkeKp2H4b7tECmn27C8JM",
   },
 };
 
 const ENV_KEY: Record<ProBillingCycle, Record<ProTierKey, string>> = {
-  monthly: { pro: "STRIPE_PRICE_PRO_MONTHLY", elite: "STRIPE_PRICE_ELITE_MONTHLY" },
-  annual: { pro: "STRIPE_PRICE_PRO_ANNUAL", elite: "STRIPE_PRICE_ELITE_ANNUAL" },
-  one_time: { pro: "STRIPE_PRICE_PRO_ONETIME", elite: "STRIPE_PRICE_ELITE_ONETIME" },
+  monthly: {
+    basic: "STRIPE_PRICE_BASIC_MONTHLY",
+    pro: "STRIPE_PRICE_PRO_MONTHLY",
+    elite: "STRIPE_PRICE_ELITE_MONTHLY",
+  },
+  annual: {
+    basic: "STRIPE_PRICE_BASIC_ANNUAL",
+    pro: "STRIPE_PRICE_PRO_ANNUAL",
+    elite: "STRIPE_PRICE_ELITE_ANNUAL",
+  },
+  one_time: {
+    basic: "STRIPE_PRICE_BASIC_ONETIME",
+    pro: "STRIPE_PRICE_PRO_ONETIME",
+    elite: "STRIPE_PRICE_ELITE_ONETIME",
+  },
 };
 
 /**
@@ -61,14 +80,17 @@ const ENV_KEY: Record<ProBillingCycle, Record<ProTierKey, string>> = {
  */
 export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
+    get basic() { return readEnv(ENV_KEY.monthly.basic) ?? LIVE_PRO_PRICE_MAP.monthly.basic; },
     get pro() { return readEnv(ENV_KEY.monthly.pro) ?? LIVE_PRO_PRICE_MAP.monthly.pro; },
     get elite() { return readEnv(ENV_KEY.monthly.elite) ?? LIVE_PRO_PRICE_MAP.monthly.elite; },
   } as Record<ProTierKey, string>,
   annual: {
+    get basic() { return readEnv(ENV_KEY.annual.basic) ?? LIVE_PRO_PRICE_MAP.annual.basic; },
     get pro() { return readEnv(ENV_KEY.annual.pro) ?? LIVE_PRO_PRICE_MAP.annual.pro; },
     get elite() { return readEnv(ENV_KEY.annual.elite) ?? LIVE_PRO_PRICE_MAP.annual.elite; },
   } as Record<ProTierKey, string>,
   one_time: {
+    get basic() { return readEnv(ENV_KEY.one_time.basic) ?? LIVE_PRO_PRICE_MAP.one_time.basic; },
     get pro() { return readEnv(ENV_KEY.one_time.pro) ?? LIVE_PRO_PRICE_MAP.one_time.pro; },
     get elite() { return readEnv(ENV_KEY.one_time.elite) ?? LIVE_PRO_PRICE_MAP.one_time.elite; },
   } as Record<ProTierKey, string>,
@@ -89,6 +111,6 @@ export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> 
  * would itself be an un-guarded guess.
  */
 export const PRO_RECURRING_AMOUNT_CENTS: Record<"monthly" | "annual", Record<ProTierKey, number>> = {
-  monthly: { pro: 1000, elite: 1500 },
-  annual: { pro: 10000, elite: 15000 },
+  monthly: { basic: 500, pro: 1000, elite: 1500 },
+  annual: { basic: 5000, pro: 10000, elite: 15000 },
 };

@@ -37,7 +37,7 @@ import {
 // Business is acquired through the seats flow (create-business-seat-checkout),
 // not this consumer upgrade page, so it is intentionally omitted here — leaving
 // it in would render a card whose checkout has no Stripe price and 500s.
-const TIER_ORDER: SubscriptionTier[] = ["free", "pro", "elite"];
+const TIER_ORDER: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
 
 // Representative values used for "pays for itself" math on-card.
 const AVG_JOB = 80;
@@ -49,6 +49,11 @@ function tierAccent(tier: SubscriptionTier): { color: string; soft: string } {
       return { color: "hsl(var(--gold-warm))", soft: "hsl(var(--gold-warm) / 0.14)" };
     case "pro":
       return { color: "hsl(var(--burnt-sienna))", soft: "hsl(var(--burnt-sienna) / 0.12)" };
+    case "basic":
+      // Softer olivewood accent — entry paid tier reads warmer than free
+      // (which uses the same base) but doesn't compete visually with Pro's
+      // burnt sienna or Elite's gold.
+      return { color: "hsl(var(--olivewood))", soft: "hsl(var(--olivewood) / 0.16)" };
     case "business":
       return { color: "hsl(var(--bark))", soft: "hsl(var(--bark) / 0.12)" };
     default:
@@ -59,6 +64,7 @@ function tierAccent(tier: SubscriptionTier): { color: string; soft: string } {
 function TierIcon({ tier, className }: { tier: SubscriptionTier; className?: string }) {
   if (tier === "elite") return <Crown className={className} strokeWidth={2.1} />;
   if (tier === "pro") return <Sparkles className={className} strokeWidth={2.1} />;
+  if (tier === "basic") return <Sprout className={className} strokeWidth={2.1} />;
   if (tier === "business") return <Briefcase className={className} strokeWidth={2.1} />;
   return <Sprout className={className} strokeWidth={2.1} />;
 }

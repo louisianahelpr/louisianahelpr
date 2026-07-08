@@ -22,7 +22,7 @@ interface TierDisplay {
  * tab, /subscription, /for-business, checkout, Legal) follows. Previously
  * each string was hardcoded here and drifted on any change.
  */
-function formatTierPrices(tierId: "pro" | "elite") {
+function formatTierPrices(tierId: "basic" | "pro" | "elite") {
   const perk = TIER_PERKS[tierId];
   // TIER_PERKS.pro/elite always have prices — TS narrows via non-null assertion
   // rather than falling back to a hardcoded default, so a config change to
@@ -42,19 +42,27 @@ function formatTierPrices(tierId: "pro" | "elite") {
   };
 }
 
-// Consumer tiers only. The Business tier lives on /for-business (seat plans
-// + membership) and is deliberately NOT surfaced here as a fourth consumer
-// choice — showing it here previously caused the "Your plan" hero card to
-// blank for a Business subscriber, which SubscriptionTab now handles with an
-// explicit redirect note instead.
+// Consumer tiers only. Business lives on /for-business (per-seat plans) and
+// is deliberately NOT surfaced here as a consumer choice — showing it here
+// previously caused the "Your plan" hero card to blank for a Business
+// subscriber, which SubscriptionTab now handles with an explicit redirect
+// note instead.
 export const tierConfig: TierDisplay[] = [
+  {
+    id: "basic",
+    name: "Basic",
+    iconName: "star",
+    forWhom: "For Helprs testing the marketplace.",
+    ...formatTierPrices("basic"),
+    features: ["Helpr Badge", "Instant Payouts", "5-min Early Access", "20% off Job Boosts"],
+  },
   {
     id: "pro",
     name: "Pro",
     iconName: "sparkles",
     forWhom: "For Helprs picking up regular work",
     ...formatTierPrices("pro"),
-    features: ["Helpr Badge", "Instant Payouts", "Portfolio Showcase", "10-min Early Access"],
+    features: ["Everything in Basic", "Portfolio Showcase", "Priority Placement", "10-min Early Access"],
   },
   {
     id: "elite",

@@ -19,12 +19,13 @@ import {
 // is intentionally null and the "paid tier has a price" invariant doesn't
 // apply. TIER_PERKS.business.platformFeePercent is still the real 6% fee
 // used by the ladder / commission math and IS covered by the fee tests.
-const PAID_CONSUMER_TIERS: SubscriptionTier[] = ["pro", "elite"];
-const ALL_TIERS: SubscriptionTier[] = ["free", "pro", "elite", "business"];
+const PAID_CONSUMER_TIERS: SubscriptionTier[] = ["basic", "pro", "elite"];
+const ALL_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite", "business"];
 
 describe("TIER_PERKS fee model", () => {
-  it("uses the documented platform fee per tier (12 / 10 / 8 / 6)", () => {
+  it("uses the documented platform fee per tier (12 / 11 / 10 / 8 / 6)", () => {
     expect(TIER_PERKS.free.platformFeePercent).toBe(12);
+    expect(TIER_PERKS.basic.platformFeePercent).toBe(11);
     expect(TIER_PERKS.pro.platformFeePercent).toBe(10);
     expect(TIER_PERKS.elite.platformFeePercent).toBe(8);
     expect(TIER_PERKS.business.platformFeePercent).toBe(6);
@@ -40,6 +41,9 @@ describe("TIER_PERKS fee model", () => {
 
   it("descends strictly as the tier rises (higher tier never pays more)", () => {
     expect(TIER_PERKS.free.platformFeePercent).toBeGreaterThan(
+      TIER_PERKS.basic.platformFeePercent,
+    );
+    expect(TIER_PERKS.basic.platformFeePercent).toBeGreaterThan(
       TIER_PERKS.pro.platformFeePercent,
     );
     expect(TIER_PERKS.pro.platformFeePercent).toBeGreaterThan(
@@ -54,6 +58,7 @@ describe("TIER_PERKS fee model", () => {
     // keep% = 100 − fee%. This is the number the Legal page and in-feed
     // preview promise, so guard it directly.
     expect(100 - TIER_PERKS.free.platformFeePercent).toBe(88);
+    expect(100 - TIER_PERKS.basic.platformFeePercent).toBe(89);
     expect(100 - TIER_PERKS.pro.platformFeePercent).toBe(90);
     expect(100 - TIER_PERKS.elite.platformFeePercent).toBe(92);
     expect(100 - TIER_PERKS.business.platformFeePercent).toBe(94);
@@ -68,6 +73,7 @@ describe("TIER_PERKS fee model", () => {
       // than the monthly rate for every paid tier.
       expect(TIER_PERKS[tier].annualPrice!).toBeLessThan(TIER_PERKS[tier].price!);
     }
+    expect(TIER_PERKS.basic.price!).toBeLessThan(TIER_PERKS.pro.price!);
     expect(TIER_PERKS.pro.price!).toBeLessThan(TIER_PERKS.elite.price!);
   });
 
@@ -84,6 +90,7 @@ describe("TIER_PERKS fee model", () => {
 
   it("carries the current tier display names (rebrand guard)", () => {
     expect(TIER_PERKS.free.name).toBe("Free");
+    expect(TIER_PERKS.basic.name).toBe("Helpr Basic");
     expect(TIER_PERKS.pro.name).toBe("Helpr Pro");
     expect(TIER_PERKS.elite.name).toBe("Helpr Elite");
     expect(TIER_PERKS.business.name).toBe("Business");
@@ -146,11 +153,14 @@ describe("toSubscriptionTier", () => {
     expect(toSubscriptionTier("free")).toBe("free");
   });
 
-  it("maps unknown / legacy values to free", () => {
-    // "basic" is the retired tier — no paid subscribers, degrades to free.
-    expect(toSubscriptionTier("basic")).toBe("free");
+  it("recognizes basic (entry paid consumer tier)", () => {
+    expect(toSubscriptionTier("basic")).toBe("basic");
+  });
+
+  it("maps unknown / legacy values to free (safe default)", () => {
     expect(toSubscriptionTier("enterprise")).toBe("free");
     expect(toSubscriptionTier("premium")).toBe("free");
+    expect(toSubscriptionTier("starter")).toBe("free");
   });
 
   it("is case-sensitive — only lowercase ids match", () => {

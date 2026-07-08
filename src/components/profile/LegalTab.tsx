@@ -137,8 +137,8 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           title="Platform Fees"
           body={
             <>
-              <p><strong className="text-foreground">Poster Service Fee:</strong> added at checkout based on your plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.pro.platformFeePercent}% on Pro, {TIER_PERKS.elite.platformFeePercent}% on Elite, {TIER_PERKS.business.platformFeePercent}% on Business (a minimum applies so small jobs still cover card processing).</p>
-              <p><strong className="text-foreground">Helpr Platform Fee:</strong> deducted from the Helpr's payout based on plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.pro.platformFeePercent}% on Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% on Helpr Elite, {TIER_PERKS.business.platformFeePercent}% on Business.</p>
+              <p><strong className="text-foreground">Poster Service Fee:</strong> added at checkout based on your plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.basic.platformFeePercent}% on Basic, {TIER_PERKS.pro.platformFeePercent}% on Pro, {TIER_PERKS.elite.platformFeePercent}% on Elite, {TIER_PERKS.business.platformFeePercent}% on Business (a minimum applies so small jobs still cover card processing).</p>
+              <p><strong className="text-foreground">Helpr Platform Fee:</strong> deducted from the Helpr's payout based on plan — {TIER_PERKS.free.platformFeePercent}% on Free, {TIER_PERKS.basic.platformFeePercent}% on Helpr Basic, {TIER_PERKS.pro.platformFeePercent}% on Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% on Helpr Elite, {TIER_PERKS.business.platformFeePercent}% on Business.</p>
               <p><strong className="text-foreground">Total Platform Take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee above.</p>
               <p><strong className="text-foreground">Urgent Job Fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} fee for posters who mark a job as urgent.</p>
               <p><strong className="text-foreground">Job Boost:</strong> Optional paid boost to increase visibility of your listing.</p>
@@ -163,7 +163,8 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           body={
             <>
               <p><strong className="text-foreground">Free ⭐:</strong> Standard access with a {TIER_PERKS.free.platformFeePercent}% platform fee on earnings.</p>
-              <p><strong className="text-foreground">{TIER_PERKS.pro.name} 🔥 ({fmtMo(TIER_PERKS.pro.price)}):</strong> Priority placement, advanced analytics, and a reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
+              <p><strong className="text-foreground">{TIER_PERKS.basic.name} 🌱 ({fmtMo(TIER_PERKS.basic.price)}):</strong> Instant payouts, 5-min early job access, 20% off job boosts, and a reduced {TIER_PERKS.basic.platformFeePercent}% platform fee.</p>
+              <p><strong className="text-foreground">{TIER_PERKS.pro.name} 🔥 ({fmtMo(TIER_PERKS.pro.price)}):</strong> Everything in Basic plus priority placement, portfolio showcase, 10-min early access, and a reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
               <p><strong className="text-foreground">{TIER_PERKS.elite.name} 💎 ({fmtMo(TIER_PERKS.elite.price)}):</strong> Everything in Pro plus a featured badge, early job access, dedicated support, and the lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
               <p><strong className="text-foreground">{TIER_PERKS.business.name} 🏢:</strong> Team management with per-seat pricing ({BUSINESS_SEAT_TIERS.map((t) => `${t.name} ${formatSeatPriceMonthly(t.priceLabel)}`).join(" · ")}), a verified business badge, priority support, and a {TIER_PERKS.business.platformFeePercent}% platform fee across all seat plans.</p>
               <p><strong className="text-foreground">Annual Plans:</strong> Billed yearly at a discount (about 2 months free).</p>

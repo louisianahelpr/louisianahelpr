@@ -131,7 +131,14 @@ const SwipeableJobCard = ({
             "linear-gradient(to right, transparent 0%, hsl(var(--burnt-sienna) / 0.04) 40%, hsl(var(--burnt-sienna) / 0.16) 100%)",
         }}
       />
+      {/* Swipe-reveal underlay. Purely decorative for the mobile
+          swipe-to-dismiss gesture — announced by screen readers as
+          "NOT INTERESTED" between every job card (Chrome-drove
+          /dashboard 2026-07-08 → real defect), and desktop users
+          can never trigger the gesture at all. `aria-hidden` so the
+          a11y tree stays focused on the JobCard's real action set. */}
       <motion.div
+        aria-hidden="true"
         className="absolute inset-y-0 right-0 flex items-center justify-end pr-5 rounded-2xl"
         style={{ opacity: backgroundOpacity }}
       >

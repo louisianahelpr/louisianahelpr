@@ -100,3 +100,4 @@ scripts/seed_test_data.sql
 
 # Sim sweep scratch screenshot (audit captures, not source)
 sim-sweep.png
+.claude-scratch/

@@ -48,11 +48,16 @@ export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[])
   const customersWithRepeat = new Set(
     [...customerJobsByUser.entries()].filter(([, count]) => count >= 2).map(([uid]) => uid),
   );
+  // Denominator = the correct SEMANTIC prior for each row (not literally the
+  // row above). A repeat poster is a subset of "Posted first job", NOT of
+  // "Got first accept" — the previous denominator was firstAccepted (4)
+  // while repeat-poster count is 9, rendering as 225%. Chrome-drove
+  // /admin?view=analytics 2026-07-08 with 9 repeats and 4 accepts.
   const customerFunnel = [
     { label: "Signed up", count: customers.length, of: customers.length },
     { label: "Posted first job", count: customersWithFirstPost.size, of: customers.length },
     { label: "Got first accept", count: customersWithFirstAccepted.size, of: customersWithFirstPost.size || 1 },
-    { label: "Repeat poster (2+)", count: customersWithRepeat.size, of: customersWithFirstAccepted.size || 1 },
+    { label: "Repeat poster (2+)", count: customersWithRepeat.size, of: customersWithFirstPost.size || 1 },
   ];
 
   const helperJobsByUser = new Map<string, number>();
@@ -66,11 +71,15 @@ export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[])
   const helpersWithFirstJob = new Set(
     allJobs.filter(j => j.helper_id && j.status === "completed").map(j => j.helper_id).filter((x): x is string => !!x),
   );
+  // Same fix as customerFunnel — a helper can complete a job without ever
+  // having a stripe_account_id (legacy data, admin-elevated test accounts).
+  // Denominate "Completed first job" against Approved (the actual can-work
+  // milestone), not Connect onboarded. Was rendering 4/0 → 400%.
   const helperFunnel = [
     { label: "Signed up", count: helpers.length, of: helpers.length },
     { label: "Approved", count: helpersApproved.length, of: helpers.length },
     { label: "Connect onboarded", count: helpersConnectOnboarded.length, of: helpersApproved.length || 1 },
-    { label: "Completed first job", count: helpersWithFirstJob.size, of: helpersConnectOnboarded.length || 1 },
+    { label: "Completed first job", count: helpersWithFirstJob.size, of: helpersApproved.length || 1 },
   ];
 
   // ─── Monthly signup cohorts × current activity ───

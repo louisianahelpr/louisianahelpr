@@ -309,13 +309,25 @@ export default function SubscriptionPage() {
                     {perks.tagline}
                   </p>
 
-                  {/* Key perks bullets */}
+                  {/* Key perks bullets — one branch per tier. The old
+                      "isFree | pro | else" fall-through routed Basic into
+                      Elite's feature list (crown badge, 20-min early
+                      access, priority support), advertising perks Basic
+                      subscribers don't actually get. Chrome-drove
+                      /subscription 2026-07-08 → caught + fixed. */}
                   <ul className="mt-2 space-y-0.5">
                     {isFree ? (
                       <>
                         <PerkBullet color={color}>{perks.platformFeePercent}% platform fee (standard)</PerkBullet>
                         <PerkBullet color={color}>Access to all open jobs</PerkBullet>
                         <PerkBullet color={color}>Basic applicant visibility</PerkBullet>
+                      </>
+                    ) : tier === "basic" ? (
+                      <>
+                        <PerkBullet color={color}>{perks.platformFeePercent}% platform fee (save {TIER_PERKS.free.platformFeePercent - perks.platformFeePercent}%)</PerkBullet>
+                        <PerkBullet color={color}>Helpr Badge</PerkBullet>
+                        <PerkBullet color={color}>Instant Payouts</PerkBullet>
+                        <PerkBullet color={color}>5-min early job access + 20% off Boosts</PerkBullet>
                       </>
                     ) : tier === "pro" ? (
                       <>

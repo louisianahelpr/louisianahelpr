@@ -151,7 +151,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
       <div>
         <p
           className="font-serif italic uppercase"
-          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
         >
           Breakdown
         </p>
@@ -167,7 +167,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
         <div className="rounded-2xl liquid-glass p-4">
           <p
             className="font-serif italic uppercase mb-1"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             By category
           </p>
@@ -212,7 +212,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
           <div className="flex items-baseline justify-between gap-2 mb-1 flex-wrap">
             <p
               className="font-serif italic uppercase"
-              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               {ytdYear} vs {priorYtdYear}
             </p>

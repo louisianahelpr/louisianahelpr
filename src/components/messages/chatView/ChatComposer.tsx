@@ -57,7 +57,7 @@ export function ChatComposer({
             border: "0.5px solid hsl(var(--gold-warm) / 0.30)",
           }}
         >
-          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna) / 0.8)" }} strokeWidth={2} aria-hidden="true" />
+          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} aria-hidden="true" />
           <p className="font-serif italic text-[0.84rem] leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
             Your application's in. The poster will reach out here if they're interested — you'll be able to reply as soon as they do.
           </p>

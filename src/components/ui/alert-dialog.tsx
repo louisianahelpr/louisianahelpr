@@ -102,7 +102,7 @@ const AlertDialogHero = ({
     {eyebrow && (
       <span
         className={cn("font-serif italic uppercase block", eyebrowClassName)}
-        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em", ...eyebrowStyle }}
+        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em", ...eyebrowStyle }}
       >
         {eyebrow}
       </span>

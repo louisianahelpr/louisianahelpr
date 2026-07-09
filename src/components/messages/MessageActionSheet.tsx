@@ -80,7 +80,7 @@ export function MessageActionSheet({
         <SheetHeader className="px-1 pb-2 space-y-0 text-left">
           <span
             className="font-serif italic uppercase block text-[0.62rem] tracking-[0.18em]"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+            style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             Message actions
           </span>

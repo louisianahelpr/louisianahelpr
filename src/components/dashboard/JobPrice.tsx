@@ -237,7 +237,7 @@ export function JobPrice({
     >
       <p
         className="text-[0.6rem] font-serif italic uppercase tracking-[0.18em] flex items-center gap-1"
-        style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+        style={{ color: "hsl(var(--burnt-sienna))" }}
       >
         <DollarSign className="w-3 h-3" /> {isBidMode ? "Open to bids" : showBudget ? "Budget" : "You earn"}
       </p>

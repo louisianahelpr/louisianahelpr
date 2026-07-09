@@ -207,7 +207,7 @@ const EvacuationMode = () => {
           <section>
             <h2
               className="font-serif italic uppercase text-ds-9 mb-3"
-              style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               My pets registered for transport
             </h2>
@@ -285,7 +285,7 @@ const EvacuationMode = () => {
         <section id="needs-transport-list">
           <h2
             className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             Pets needing transport
           </h2>

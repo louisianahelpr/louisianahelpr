@@ -210,7 +210,7 @@ const NotificationPanel = () => {
           <div className="space-y-0 pr-12">
             <span
               className="font-serif italic uppercase block text-[0.62rem] tracking-[0.18em]"
-              style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+              style={{ color: "hsl(var(--burnt-sienna))" }}
             >
               Your inbox
             </span>
@@ -381,7 +381,7 @@ const NotificationPanel = () => {
                   <div
                     className="sticky top-0 z-10 px-4 py-1.5 flex items-center justify-between font-serif italic uppercase tracking-[0.18em] text-[0.62rem]"
                     style={{
-                      color: "hsl(var(--burnt-sienna) / 0.78)",
+                      color: "hsl(var(--burnt-sienna))",
                       background:
                         "linear-gradient(to bottom, hsl(var(--surface-band) / 0.92), hsl(var(--surface-band) / 0.78))",
                       backdropFilter: "blur(8px) saturate(140%)",

@@ -196,7 +196,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
               className="font-serif italic uppercase"
               style={{
                 fontSize: "0.6rem",
-                color: "hsl(var(--burnt-sienna) / 0.78)",
+                color: "hsl(var(--burnt-sienna))",
                 letterSpacing: "0.18em",
               }}
             >
@@ -244,7 +244,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
             className="font-serif italic uppercase"
             style={{
               fontSize: "0.6rem",
-              color: "hsl(var(--burnt-sienna) / 0.78)",
+              color: "hsl(var(--burnt-sienna))",
               letterSpacing: "0.18em",
             }}
           >

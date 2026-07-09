@@ -50,7 +50,7 @@ export function YourHelpersRow() {
       <div className="flex items-center justify-between mb-1.5">
         <span
           className="font-serif italic uppercase tracking-[0.18em]"
-          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)" }}
+          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))" }}
         >
           Your Helprs
         </span>

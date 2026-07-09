@@ -184,7 +184,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
         />
         <div className="space-y-3.5">
           <div className="space-y-1.5">
-            <Label className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            <Label className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               Reason
             </Label>
             <Select value={reason} onValueChange={setReason}>
@@ -200,7 +200,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
           </div>
 
           <div className="space-y-1.5">
-            <Label className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            <Label className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               What happened?
             </Label>
             <Textarea
@@ -214,7 +214,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
           </div>
 
           <div className="space-y-1.5">
-            <Label className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            <Label className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               Photo evidence — up to 5
             </Label>
             <div className="flex flex-wrap gap-1.5">

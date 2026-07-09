@@ -223,7 +223,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             <Label
               htmlFor="new-email-input"
               className="font-serif italic uppercase"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               New email address
             </Label>
@@ -301,7 +301,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             <Mail className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            <p className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               Login email
             </p>
             <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
@@ -333,7 +333,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             <Lock className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            <p className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               Sign-in
             </p>
             <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
@@ -383,7 +383,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             <Monitor className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            <p className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               Devices
             </p>
             <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>

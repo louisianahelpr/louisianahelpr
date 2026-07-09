@@ -126,7 +126,7 @@ export function GroupJobHelpers({
       <div>
         <span
           className="font-serif italic uppercase inline-flex items-center gap-1.5"
-          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
         >
           <Users className="w-3 h-3" /> Crew
         </span>

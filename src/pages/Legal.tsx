@@ -114,7 +114,7 @@ const Legal = () => {
         <span
           className="font-serif italic uppercase text-[0.62rem]"
           style={{
-            color: "hsl(var(--burnt-sienna) / 0.78)",
+            color: "hsl(var(--burnt-sienna))",
             letterSpacing: "0.18em",
           }}
         >

@@ -25,7 +25,7 @@ export function RecentWorkSection({
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+        <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
           Recent work
         </p>
         <span className="text-ds-11 text-muted-foreground">{portfolioUrls.length}/{MAX_PORTFOLIO}</span>

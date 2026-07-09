@@ -162,7 +162,7 @@ export function ProfileEditForm({
             follows it. */}
         <div className="rounded-2xl liquid-glass p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               Profile completion
             </p>
             <span
@@ -204,7 +204,7 @@ export function ProfileEditForm({
 
         {/* Contact section */}
         <div className="rounded-2xl liquid-glass p-5 space-y-4">
-          <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+          <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
             Contact
           </p>
           <div className="space-y-3">
@@ -256,7 +256,7 @@ export function ProfileEditForm({
         {/* Bio section */}
         <div className="rounded-2xl liquid-glass p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               About you
             </p>
             {/* "20" is a MINIMUM, not a cap — showing "108/20" once the
@@ -291,7 +291,7 @@ export function ProfileEditForm({
             different design). Status badge sits on the right. */}
         <div className="rounded-2xl liquid-glass p-5 space-y-4">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               ID verification
             </p>
             <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium not-italic ${idBadge.cls}`}>{idBadge.label}</span>

@@ -62,7 +62,7 @@ export const DashboardHome = ({
       >
         <span
           className="font-serif italic uppercase text-[0.62rem] block"
-          style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
         >
           Operations
         </span>

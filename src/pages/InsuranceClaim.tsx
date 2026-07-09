@@ -101,7 +101,7 @@ const InsuranceClaim = () => {
           />
           <span
             className="font-serif italic uppercase text-[0.62rem] tracking-widest"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+            style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             Storm damage?
           </span>

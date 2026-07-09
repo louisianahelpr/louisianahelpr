@@ -232,13 +232,13 @@ const NotificationPreferences = () => {
         <div className="flex items-center gap-6">
           <div
             className="flex items-center justify-center gap-1 w-[51px] font-serif italic uppercase"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.12em" }}
+            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.12em" }}
           >
             <Smartphone className="w-3 h-3 shrink-0" /> App
           </div>
           <div
             className="flex items-center justify-center gap-1 w-[51px] font-serif italic uppercase"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.12em" }}
+            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.12em" }}
           >
             <Mail className="w-3 h-3 shrink-0" /> Email
           </div>

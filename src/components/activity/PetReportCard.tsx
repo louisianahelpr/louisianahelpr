@@ -167,7 +167,7 @@ export function SendReportCard({
         <section>
           <h3
             className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             Which pet?
           </h3>
@@ -211,7 +211,7 @@ export function SendReportCard({
         <section>
           <h3
             className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             Ate their food?
           </h3>
@@ -253,7 +253,7 @@ export function SendReportCard({
         <section>
           <h3
             className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             Mood today
           </h3>
@@ -285,7 +285,7 @@ export function SendReportCard({
         <section>
           <h3
             className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             Activity stats
           </h3>
@@ -339,7 +339,7 @@ export function SendReportCard({
         <section>
           <h3
             className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             Notes for the owner
           </h3>

@@ -83,7 +83,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                   <div className={`w-14 h-14 rounded-full bg-card mx-auto flex items-center justify-center`}>
                     <Icon className={`w-7 h-7 ${palette.icon}`} />
                   </div>
-                  <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                  <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                     {eyebrow}
                   </p>
                   <h2 className="font-display italic font-bold leading-tight text-headline-hero" style={{ color: palette.title, letterSpacing: "-0.02em" }}>
@@ -111,7 +111,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
               card; we skip the whole History block in that case. */}
           {violations.length > 0 && (
             <div className="space-y-2 pt-2">
-              <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                 History
               </p>
               {violations.map((v) => (

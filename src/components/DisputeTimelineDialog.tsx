@@ -194,7 +194,7 @@ export const DisputeTimelineDialog = ({
 
   const eyebrowStyle: React.CSSProperties = {
     fontSize: "0.62rem",
-    color: "hsl(var(--burnt-sienna) / 0.78)",
+    color: "hsl(var(--burnt-sienna))",
     letterSpacing: "0.18em",
   };
 

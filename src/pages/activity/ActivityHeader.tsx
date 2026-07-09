@@ -53,7 +53,7 @@ export function ActivityHeader({
             <div className="flex flex-col leading-none min-w-0">
               <span
                 className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
-                style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+                style={{ color: "hsl(var(--burnt-sienna))" }}
               >
                 {tab === "posted" ? "Posted jobs" : "Applied jobs"}
               </span>

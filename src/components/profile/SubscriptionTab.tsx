@@ -163,7 +163,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         >
           <span
             className="font-serif italic uppercase"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             Your plan
           </span>
@@ -232,7 +232,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             <div className="flex-1 min-w-0">
               <span
                 className="font-serif italic uppercase"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
                 Your plan
               </span>
@@ -439,7 +439,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     return (
                       <p
                         className="font-serif italic mt-1 leading-none"
-                        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.04em" }}
+                        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.04em" }}
                       >
                         + {inclusive}
                       </p>

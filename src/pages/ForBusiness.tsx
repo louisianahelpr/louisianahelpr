@@ -466,7 +466,7 @@ const ForBusiness = () => {
                   </div>
                   <span
                     className="font-serif italic uppercase text-[0.6rem] tracking-widest"
-                    style={{ color: "hsl(var(--burnt-sienna) / 0.8)" }}
+                    style={{ color: "hsl(var(--burnt-sienna))" }}
                   >
                     {tag}
                   </span>

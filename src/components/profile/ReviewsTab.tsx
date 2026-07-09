@@ -190,7 +190,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
             { label: "Communication", v: communicationAvg },
           ].map((cat) => (
             <div key={cat.label} className="text-center">
-              <p className="font-serif italic uppercase mb-1.5" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              <p className="font-serif italic uppercase mb-1.5" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                 {cat.label}
               </p>
               <div className="flex justify-center mb-1"><MiniStars value={cat.v} /></div>
@@ -289,7 +289,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
               triage when the feed has volume (e.g. responding to the
               worst recent review). */}
           <div className="flex items-center justify-between gap-2 px-1">
-            <span className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+            <span className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               All reviews · {reviews.length}
             </span>
             <Popover>
@@ -359,19 +359,19 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                 <div className="grid grid-cols-3 gap-2 pt-1">
                   {review.punctuality && (
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>Punctuality</span>
+                      <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>Punctuality</span>
                       <MiniStars value={review.punctuality} size="xs" />
                     </div>
                   )}
                   {review.quality && (
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>Quality</span>
+                      <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>Quality</span>
                       <MiniStars value={review.quality} size="xs" />
                     </div>
                   )}
                   {review.communication && (
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>Comms</span>
+                      <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>Comms</span>
                       <MiniStars value={review.communication} size="xs" />
                     </div>
                   )}

@@ -117,7 +117,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
           and read as cluttered. The tab header ("Payment settings")
           is the one real title now. */}
       <section className="space-y-2">
-        <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+        <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
           Payout account
         </p>
         <div className="rounded-2xl liquid-glass p-5">
@@ -142,7 +142,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
           <section className="space-y-2">
             <p
               className="font-serif italic uppercase px-1"
-              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               Recent activity
             </p>
@@ -189,7 +189,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
       })()}
 
       <section className="space-y-2">
-        <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+        <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
           Payment summary
         </p>
         <div className="rounded-2xl liquid-glass p-5">
@@ -262,7 +262,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              <p className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                 Total spent
               </p>
               <AnimatedCounter
@@ -276,7 +276,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
               </p>
             </div>
             <div className="border-l border-border/40 pl-4">
-              <p className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+              <p className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                 Total earned
               </p>
               <AnimatedCounter

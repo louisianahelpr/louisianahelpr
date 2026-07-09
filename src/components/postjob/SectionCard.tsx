@@ -63,7 +63,7 @@ export function SectionCard({
             <p
               className="font-serif italic uppercase text-ds-9"
               style={{
-                color: "hsl(var(--burnt-sienna) / 0.78)",
+                color: "hsl(var(--burnt-sienna))",
                 letterSpacing: "0.18em",
               }}
             >

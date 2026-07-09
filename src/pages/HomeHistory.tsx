@@ -163,7 +163,7 @@ const HomeHistory = () => {
             <div className="flex items-center gap-3 mb-3">
               <span
                 className="font-serif italic uppercase text-ds-9"
-                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
                 {year}
               </span>

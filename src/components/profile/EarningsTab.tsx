@@ -276,7 +276,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               <div key={label} className="rounded-ds-md liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">
                 <div className="flex items-center gap-1 mb-1">
                   <Icon className="w-3 h-3 text-primary" />
-                  <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                  <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                     {label}
                   </span>
                 </div>

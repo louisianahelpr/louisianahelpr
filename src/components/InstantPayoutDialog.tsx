@@ -121,7 +121,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             >
               <p
                 className="font-serif italic uppercase mb-1"
-                style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
                 Breakdown
               </p>

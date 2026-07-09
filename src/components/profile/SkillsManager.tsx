@@ -111,7 +111,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
       <div className="flex items-center justify-between mb-2">
         <p
           className="font-serif italic uppercase text-ds-9"
-          style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
         >
           Your skills
         </p>

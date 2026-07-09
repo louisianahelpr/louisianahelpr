@@ -177,7 +177,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
             </div>
             <div className="grid grid-cols-7 gap-1 mb-1">
               {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                <div key={d} className="text-center font-serif italic uppercase py-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                <div key={d} className="text-center font-serif italic uppercase py-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                   {d}
                 </div>
               ))}
@@ -281,7 +281,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
           {selectedDate && (
             <div className="space-y-3">
               <div>
-                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                   Selected day
                 </p>
                 <h3 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
@@ -318,7 +318,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
           {!selectedDate && (
             <div className="space-y-3">
               <div>
-                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                   Coming up
                 </p>
                 <h3 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>

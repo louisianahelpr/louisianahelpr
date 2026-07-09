@@ -135,7 +135,12 @@ const DialogHero = ({
     {eyebrow && (
       <span
         className={cn("font-serif italic uppercase block", eyebrowClassName)}
-        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em", ...eyebrowStyle }}
+        /* WCAG AA: full burnt-sienna on parchment measures 5.88:1;
+           the previous / 0.78 alpha dropped it to 3.84:1 which fails
+           AA at 9.92px. Alpha removed globally so every DialogHero
+           eyebrow across the app clears AA in one edit. Chrome-drove
+           the NotificationPanel 2026-07-08. */
+        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em", ...eyebrowStyle }}
       >
         {eyebrow}
       </span>

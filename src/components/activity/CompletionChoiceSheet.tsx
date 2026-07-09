@@ -272,7 +272,7 @@ export function CompletionChoiceSheet({
                 <div className="flex-1 min-w-0">
                   <span
                     className="font-serif italic uppercase block"
-                    style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                    style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                   >
                     Request revision
                   </span>

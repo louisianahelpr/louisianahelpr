@@ -57,7 +57,7 @@ export function DeclineApplicantSheet({
               <SheetHeader className="space-y-0 text-left">
                 <span
                   className="font-serif italic uppercase block"
-                  style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                  style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                 >
                   Decline applicant
                 </span>
@@ -112,7 +112,7 @@ export function DeclineApplicantSheet({
                 <label
                   htmlFor="decline-note"
                   className="font-serif italic uppercase block"
-                  style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                  style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                 >
                   Add a note (optional)
                 </label>

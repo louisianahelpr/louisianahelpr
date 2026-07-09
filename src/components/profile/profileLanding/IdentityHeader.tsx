@@ -372,7 +372,7 @@ export function IdentityHeader({
             <div className="min-w-0">
               <p
                 className="font-serif italic uppercase text-ds-9"
-                style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
                 Earnings · last 6 weeks
               </p>
@@ -544,7 +544,7 @@ export function IdentityHeader({
                   aria-expanded={showcaseOpen}
                   className="w-full flex items-center justify-between gap-2 active:opacity-70 transition-opacity"
                 >
-                  <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                  <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                     Work &amp; reviews
                   </span>
                   <span className="inline-flex items-center gap-1 text-ds-11 font-semibold" style={{ color: "hsl(var(--bark))" }}>
@@ -557,7 +557,7 @@ export function IdentityHeader({
                   <div className="mt-3 space-y-3">
                     {portfolioUrls.length > 0 && (
                       <div>
-                        <p className="font-serif italic uppercase text-ds-9 mb-2" style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+                        <p className="font-serif italic uppercase text-ds-9 mb-2" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                           Recent work
                         </p>
                         {/* Horizontal scroll with scroll-snap so each

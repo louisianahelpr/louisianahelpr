@@ -37,7 +37,7 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
       <div className="flex-1 min-w-0">
         <p
           className="font-serif italic uppercase"
-          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
         >
           Tax season prep
         </p>

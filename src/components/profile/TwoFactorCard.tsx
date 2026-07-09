@@ -50,7 +50,7 @@ export function TwoFactorCard() {
         <div className="min-w-0 flex-1">
           <p
             className="font-serif italic uppercase text-[0.62rem]"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             Sign-in
           </p>
@@ -266,7 +266,7 @@ function EnrollDialog({
               <Label
                 htmlFor="mfa-code-input"
                 className="font-serif italic uppercase"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
                 6-digit code
               </Label>
@@ -359,7 +359,7 @@ function DisableDialog({
           <Label
             htmlFor="mfa-disable-input"
             className="font-serif italic uppercase"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             6-digit code
           </Label>

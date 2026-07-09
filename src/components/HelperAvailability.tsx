@@ -225,7 +225,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
         <span
           className="shrink-0 font-serif italic uppercase text-[0.62rem]"
-          style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+          style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
         >
           Quick set:
         </span>

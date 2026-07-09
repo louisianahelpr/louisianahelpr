@@ -160,7 +160,7 @@ export function BrowseTasksToolbar({
         <div className="flex flex-col leading-none">
           <span
             className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.78)" }}
+            style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             {filters.hasFilters
               ? `Filtered · ${filters.activeFilterCount} active`

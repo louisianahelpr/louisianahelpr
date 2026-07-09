@@ -303,7 +303,7 @@ const WorkRecord = () => {
               >
                 <p
                   className="font-serif italic uppercase text-ds-9 mb-3"
-                  style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                 >
                   Work Summary
                 </p>
@@ -378,7 +378,7 @@ const WorkRecord = () => {
                 <div className="px-5 py-4" style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.10)" }}>
                   <p
                     className="font-serif italic uppercase text-ds-9 mb-3"
-                    style={{ color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}
+                    style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                   >
                     Recent Jobs
                   </p>

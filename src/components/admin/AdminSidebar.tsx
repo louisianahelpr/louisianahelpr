@@ -145,7 +145,7 @@ const AdminSidebar = ({
                 className="font-serif italic uppercase leading-tight"
                 style={{
                   fontSize: "0.58rem",
-                  color: "hsl(var(--burnt-sienna) / 0.78)",
+                  color: "hsl(var(--burnt-sienna))",
                   letterSpacing: "0.18em",
                   marginTop: "1px",
                 }}

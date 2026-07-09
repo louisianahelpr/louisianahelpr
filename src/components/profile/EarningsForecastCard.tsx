@@ -187,7 +187,7 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
               className="font-serif italic uppercase"
               style={{
                 fontSize: "0.6rem",
-                color: "hsl(var(--burnt-sienna) / 0.78)",
+                color: "hsl(var(--burnt-sienna))",
                 letterSpacing: "0.18em",
               }}
             >
@@ -230,7 +230,7 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
           className="font-serif italic uppercase flex items-center gap-1.5"
           style={{
             fontSize: "0.6rem",
-            color: "hsl(var(--burnt-sienna) / 0.78)",
+            color: "hsl(var(--burnt-sienna))",
             letterSpacing: "0.18em",
           }}
         >

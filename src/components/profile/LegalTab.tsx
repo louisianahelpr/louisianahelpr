@@ -48,7 +48,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
 
       {/* Anchor docs — dedicated full-text pages */}
       <div>
-        <p className="font-serif italic uppercase mb-2.5" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+        <p className="font-serif italic uppercase mb-2.5" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
           The full text
         </p>
         <div className="space-y-2">
@@ -88,7 +88,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           policies. Uses the shared PolicySection / PolicyRowItem so
           this tab is visually identical to the /legal page. */}
       <div className="space-y-2.5">
-        <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna) / 0.78)", letterSpacing: "0.18em" }}>
+        <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
           Quick reference
         </p>
 

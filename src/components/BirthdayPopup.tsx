@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
+import { Dialog, DialogPortal, DialogOverlay, DialogHero } from "@/components/ui/dialog";
 import { X, Cake } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
 import { useReducedMotion } from "@/lib/accessibility";
@@ -105,28 +105,18 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                 >
                   <Cake className="w-7 h-7" strokeWidth={1.75} />
                 </div>
-                <span
-                  className="font-serif italic uppercase block"
-                  style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-                >
-                  From the Helpr family
-                </span>
-                <DialogPrimitive.Title asChild>
-                  <h2
-                    className="font-display italic font-bold leading-tight mt-2"
-                    style={{ fontSize: "clamp(1.5rem, 2.5vw + 0.4rem, 1.85rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-                  >
-                    Happy birthday, {firstName}.
-                  </h2>
-                </DialogPrimitive.Title>
-                <DialogPrimitive.Description asChild>
-                  <p
-                    className="font-serif italic leading-relaxed mt-2 max-w-[280px] mx-auto"
-                    style={{ fontSize: "0.88rem", color: "hsl(var(--olivewood) / 0.8)" }}
-                  >
-                    Wishing you a great one. Thanks for being part of the Louisiana Helpr community.
-                  </p>
-                </DialogPrimitive.Description>
+                {/* Canonical DialogHero for eyebrow → title → subtitle
+                    stack (Cowork 2026-07-08 required the shared component,
+                    not the hand-rolled version). Centered + a slightly
+                    larger title reflect the celebratory layout — those
+                    are per-instance overrides, not a bespoke header. */}
+                <DialogHero
+                  className="text-center space-y-0"
+                  eyebrow="From the Helpr family"
+                  title={`Happy birthday, ${firstName}.`}
+                  subtitle="Wishing you a great one. Thanks for being part of the Louisiana Helpr community."
+                  titleStyle={{ fontSize: "clamp(1.5rem, 2.5vw + 0.4rem, 1.85rem)", letterSpacing: "-0.025em" }}
+                />
                 <button
                   type="button"
                   onClick={dismiss}

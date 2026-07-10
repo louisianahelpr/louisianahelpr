@@ -111,7 +111,7 @@ export default function FamilyDashboard() {
   return (
     <>
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Family & care" onBack={() => navigate(-1)} showBrand rightSlot={<NotificationPanel />} />
+      <PageHeader title="Family & care" onBack={() => navigate(-1)} width="lg" showBrand rightSlot={<NotificationPanel />} />
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
 

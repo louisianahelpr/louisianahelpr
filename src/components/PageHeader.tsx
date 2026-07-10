@@ -23,10 +23,13 @@ interface PageHeaderProps {
    * above a page body that is a narrower, centered column. Without this the
    * header spans the wide app container and the title floats far to the left
    * of centered content. Pass the SAME max-width the page body uses
-   * (`max-w-2xl` → "2xl", `max-w-5xl` → "5xl") so the title reads as the
-   * page's main heading, aligned with the content beneath it.
+   * (`max-w-lg` → "lg", `max-w-2xl` → "2xl", `max-w-5xl` → "5xl") so the title
+   * reads as the page's main heading, aligned with the content beneath it.
+   * "lg" is the canonical single-column card-list width (Dashboard, Activity,
+   * Analytics, Profile, STR Settings, Family) — use it whenever the body is
+   * `max-w-lg mx-auto`.
    */
-  width?: "default" | "2xl" | "5xl";
+  width?: "default" | "lg" | "2xl" | "5xl";
   /**
    * Set when a sibling header (e.g. DashboardHeader) already sits ABOVE this
    * PageHeader and has already cleared the notch/status-bar safe-area inset.
@@ -39,6 +42,7 @@ interface PageHeaderProps {
 
 const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, string> = {
   default: "max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 lg:px-8 xl:px-12",
+  lg: "max-w-lg px-5 lg:px-8",
   "2xl": "max-w-2xl px-5 lg:px-8",
   "5xl": "max-w-5xl px-5 lg:px-8",
 };

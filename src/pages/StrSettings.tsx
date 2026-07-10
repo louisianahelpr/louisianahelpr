@@ -170,6 +170,7 @@ export default function StrSettings() {
       <PageHeader
         title="Host Automation"
         meta="Auto-post cleaning jobs on guest checkout"
+        width="lg"
         showBrand
         rightSlot={<NotificationPanel />}
       />

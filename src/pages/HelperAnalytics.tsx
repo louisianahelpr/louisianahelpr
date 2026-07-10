@@ -88,6 +88,7 @@ const HelperAnalytics = () => {
         eyebrow="Helper dashboard"
         title="Earnings & Analytics"
         meta="Your last 6 months"
+        width="lg"
         showBrand
         rightSlot={<NotificationPanel />}
       />

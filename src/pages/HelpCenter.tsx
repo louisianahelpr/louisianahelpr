@@ -83,8 +83,6 @@ const HelpCenter = () => {
             }}
           />
 
-          <span className="text-display-eyebrow">Support</span>
-
           <h2
             className="font-display italic font-bold leading-[1.05] text-balance"
             style={{

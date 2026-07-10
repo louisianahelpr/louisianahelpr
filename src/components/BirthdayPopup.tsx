@@ -70,12 +70,22 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                 which would clash with the bespoke celebratory layout. */}
             <DialogPrimitive.Content asChild forceMount>
               <motion.div
+                // Centering MUST NOT share the CSS `transform` property with the
+                // scale spring. framer writes `transform` inline every frame, so
+                // ANY transform-based centering (Tailwind `-translate-*` classes
+                // OR framer `x/y:"-50%"`) gets clobbered mid-animation — dropping
+                // the card's top-left corner onto screen-center (off-canvas right
+                // + down, worst on iOS/WebKit). Fix: park the -50%/-50% offset on
+                // the standalone CSS `translate` property (independent of
+                // `transform`); framer then only animates scale/opacity and can
+                // never overwrite the centering.
                 initial={reducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
                 animate={reducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
                 exit={reducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
                 transition={reducedMotion ? { duration: 0.15 } : { type: "spring", damping: 20, stiffness: 300 }}
-                className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl liquid-glass shadow-2xl px-7 py-8 max-w-sm w-[calc(100%-2rem)] text-center focus:outline-none"
+                className="fixed left-1/2 top-1/2 z-50 rounded-2xl liquid-glass shadow-2xl px-7 py-8 max-w-sm w-[calc(100%-2rem)] text-center focus:outline-none"
                 style={{
+                  translate: "-50% -50%",
                   backgroundImage:
                     "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.12) 0%, transparent 55%), " +
                     "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.14) 0%, transparent 60%)",

@@ -57,13 +57,18 @@ const ExceptionQueueInner = () => {
     key: queryKey,
     fallback: [],
     fetcher: async () => {
-      // PGRST202 fallback: if table doesn't exist yet, return empty
+      // NOTE: `user_id` has NO foreign key to profiles (only check_id and
+      // credential_id are FKs — see types.ts verification_exceptions
+      // Relationships), so a `profiles:user_id(...)` embed errors with PGRST200
+      // and — because the guard below only caught PGRST202 — silently blanked
+      // the whole compliance queue to "No open exceptions". Fetch flat and
+      // hydrate the poster names in a second query. The credential_id embed is
+      // a real FK, so it stays.
       const { data, error } = await supabase
         .from("verification_exceptions")
         .select(`
           id, check_id, credential_id, user_id, exception_type,
           notes, assigned_to, status, resolution, created_at, resolved_at,
-          profiles:user_id ( full_name, email ),
           helper_credentials:credential_id ( credential_type )
         `)
         .eq("status", "open")
@@ -78,10 +83,26 @@ const ExceptionQueueInner = () => {
         return [];
       }
 
-      return ((data ?? []) as any[]).map((r) => ({
+      const baseRows = (data ?? []) as any[];
+
+      // Hydrate poster names/emails via an explicit profiles lookup keyed on
+      // user_id, since there's no FK to piggyback an embed on.
+      const userIds = [...new Set(baseRows.map((r) => r.user_id).filter(Boolean))];
+      const nameById = new Map<string, { full_name: string | null; email: string | null }>();
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, email")
+          .in("user_id", userIds);
+        (profs ?? []).forEach((p: any) =>
+          nameById.set(p.user_id, { full_name: p.full_name ?? null, email: p.email ?? null }),
+        );
+      }
+
+      return baseRows.map((r) => ({
         ...r,
-        full_name: r.profiles?.full_name ?? null,
-        email: r.profiles?.email ?? null,
+        full_name: nameById.get(r.user_id)?.full_name ?? null,
+        email: nameById.get(r.user_id)?.email ?? null,
         credential_type: r.helper_credentials?.credential_type ?? null,
       }));
     },

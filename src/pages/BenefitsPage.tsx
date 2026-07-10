@@ -99,7 +99,7 @@ export default function BenefitsPage() {
     window.open(url, "_blank", "noopener noreferrer");
 
   return (
-    <div className="min-h-screen pb-safe-nav" style={{ background: "hsl(var(--parchment))" }}>
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader title="Benefits & Perks" showBrand rightSlot={<NotificationPanel />} />
 
       <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 lg:px-8 pt-4 space-y-6">

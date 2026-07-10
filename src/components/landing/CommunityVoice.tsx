@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ONBOARDING_FEE_CENTS, formatDollarsWhole } from "@/lib/moneyLimits";
 
 /**
  * CommunityVoice — combines the testimonial pull quote (left column) with
@@ -42,7 +43,7 @@ const faqs = [
   },
   {
     q: "How much does Helpr cost?",
-    a: "Posting is free — you only pay when you hire someone. At checkout you'll see the agreed price plus a small service fee, itemized in full before you pay — no subscriptions, no hidden charges. The very first job on a new account also includes a one-time $2 account-setup fee (shown as its own line item); after that it never appears again. Your Helpr keeps the large majority of what you pay (88–92%, depending on their plan), so the person doing the work is paid fairly.",
+    a: `Posting is free — you only pay when you hire someone. At checkout you'll see the agreed price plus a small service fee, itemized in full before you pay — no subscriptions, no hidden charges. The very first job on a new account also includes a one-time ${formatDollarsWhole(ONBOARDING_FEE_CENTS / 100)} account-setup fee (shown as its own line item); after that it never appears again. Your Helpr keeps the large majority of what you pay (88–94%, depending on their plan), so the person doing the work is paid fairly.`,
   },
   {
     q: "How fast will someone respond?",

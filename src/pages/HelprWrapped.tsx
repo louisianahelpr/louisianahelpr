@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Gift, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
+import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -277,7 +278,12 @@ const HelprWrapped = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader eyebrow="Louisiana Helpr" title={`Your ${SEASON.title}`} />
+      <PageHeader
+        eyebrow="Louisiana Helpr"
+        title={`Your ${SEASON.title}`}
+        showBrand
+        rightSlot={<NotificationPanel />}
+      />
 
       <div className="px-5 py-6 flex flex-col items-center">
         <div

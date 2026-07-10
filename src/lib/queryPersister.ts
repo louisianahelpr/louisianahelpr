@@ -51,27 +51,41 @@ const idbAsyncStorage = {
  * to an error boundary after a cold start rehydrated the persisted cache.
  */
 const SET_MARKER = "__rq_set__";
+/**
+ * Sibling of SET_MARKER for `Map`. Same failure mode: `JSON.stringify(map)`
+ * yields `{}`, so a persisted query whose data holds a Map (ScheduleTab's
+ * blockedDates, useApplicantSignals' signal map) rehydrates as a plain object
+ * and throws "X.has is not a function" on first use after a cold start.
+ * Stored as its entry array so nested Sets/Maps in values round-trip too.
+ */
+const MAP_MARKER = "__rq_map__";
 
-const serializeReplacer = (_key: string, value: unknown) =>
-  value instanceof Set ? { [SET_MARKER]: Array.from(value) } : value;
+const serializeReplacer = (_key: string, value: unknown) => {
+  if (value instanceof Set) return { [SET_MARKER]: Array.from(value) };
+  if (value instanceof Map) return { [MAP_MARKER]: Array.from(value.entries()) };
+  return value;
+};
 
 const deserializeReviver = (_key: string, value: unknown) => {
-  if (
-    value &&
-    typeof value === "object" &&
-    Array.isArray((value as Record<string, unknown>)[SET_MARKER])
-  ) {
-    return new Set((value as Record<string, unknown[]>)[SET_MARKER]);
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    if (Array.isArray(obj[SET_MARKER])) {
+      return new Set(obj[SET_MARKER] as unknown[]);
+    }
+    if (Array.isArray(obj[MAP_MARKER])) {
+      return new Map(obj[MAP_MARKER] as [unknown, unknown][]);
+    }
   }
   return value;
 };
 
 /**
- * Bumped to `-s2` when the Set-aware serializer landed: pre-existing
- * IndexedDB payloads still hold the broken `{}`-shaped Sets, so the buster
- * string must change to evict them exactly once on the next load.
+ * Bumped to `-s2` when the Set-aware serializer landed, `-s3` when the
+ * Map-aware serializer landed: pre-existing IndexedDB payloads still hold the
+ * broken `{}`-shaped Sets/Maps, so the buster string must change to evict them
+ * exactly once on the next load.
  */
-const SERIALIZATION_VERSION = "s2";
+const SERIALIZATION_VERSION = "s3";
 
 /**
  * Cache buster — bump (or rely on VITE_APP_VERSION bumping) any time the

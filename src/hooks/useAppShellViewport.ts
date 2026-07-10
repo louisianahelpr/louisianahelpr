@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 /**
  * Routes that use document-scroll (long-form content, SEO landing pages).
@@ -131,6 +132,7 @@ const WEB_DESKTOP_QUERY = "(min-width: 1024px)";
  */
 export const useAppShellViewport = () => {
   const { pathname } = useLocation();
+  const { user } = useAuthReady();
 
   useEffect(() => {
     const html = document.documentElement;
@@ -140,15 +142,19 @@ export const useAppShellViewport = () => {
       html.classList.add("app-shell");
     }
     // Mirror the DesktopSidebarNav's own visibility gate onto <html> so the
-    // CSS that insets document-scroll pages from the fixed left rail turns
-    // on/off with the rail itself. app-shell pages inset via .app-shell-frame
-    // instead, so the inset rule excludes them — but the class is still set
-    // here (route-only; the `web-desktop` half of the gate lives in CSS).
-    html.classList.toggle("desktop-rail", isDesktopRailRoute(pathname));
+    // CSS that insets pages from the fixed left rail turns on/off with the
+    // rail itself. The gate MUST include `!!user`, exactly like the rail's
+    // render gate (DesktopSidebarNav) and the marketing Navbar's step-aside
+    // gate — otherwise a guest-reachable rail route (e.g. /browse, which
+    // bounces authed users away, so its visitor is ALWAYS logged out) insets
+    // the shell 248px for a rail that never renders, leaving a dead gutter.
+    // app-shell pages inset via .app-shell-frame; document-scroll pages via
+    // the #root rule — both keyed off this class, so both stay in lockstep.
+    html.classList.toggle("desktop-rail", isDesktopRailRoute(pathname) && !!user);
     return () => {
       // Don't strip on unmount — the next route effect will set it correctly.
     };
-  }, [pathname]);
+  }, [pathname, user]);
 
   // Web-desktop detection. Independent of route (the chrome/layout applies on
   // every signed-in fixed-shell page), so it lives in its own effect that runs

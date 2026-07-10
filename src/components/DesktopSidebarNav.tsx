@@ -130,6 +130,13 @@ const DesktopSidebarNav = () => {
   // insets the shell turn on/off together.
   if (!isWebDesktop) return null;
   if (!isDesktopRailRoute(location.pathname)) return null;
+  // The rail is authed app chrome — its destinations are ProtectedRoutes. On a
+  // guest-reachable rail route (e.g. /browse, which redirects authed users to
+  // /dashboard, so its visitor is ALWAYS logged out) rendering the rail would
+  // stack a second nav over the marketing Navbar and offer links that bounce to
+  // /login. Gate on `!!user`, matching Navbar's `railOwnsNav` and the
+  // `desktop-rail` inset gate in useAppShellViewport so all three move together.
+  if (!user) return null;
 
   const badgeFor = (key?: "messages" | "posts" | "jobs") => {
     if (key === "messages") return unreadCount;

@@ -47,6 +47,13 @@ export interface TierPerks {
   dedicatedSupport: boolean;    // priority support response SLA
   tagline: string;
   ctaLabel: string;
+  // Marketing perk bullets shown on BOTH the public /subscription page and the
+  // in-app membership tab. Single source of truth for the copy so the two
+  // surfaces can never drift into advertising different (or unshipped) perks
+  // for the same tier. Every bullet MUST map to a real, shipping feature — the
+  // fee % is rendered separately (prominently) on both surfaces, so it is
+  // deliberately NOT duplicated here.
+  featureBullets: string[];
 }
 
 export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
@@ -64,6 +71,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     dedicatedSupport: false,
     tagline: "Get started, no commitment",
     ctaLabel: "Current plan",
+    featureBullets: ["Access to all open jobs", "Basic applicant visibility"],
   },
   basic: {
     name: "Helpr Basic",
@@ -84,6 +92,12 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     dedicatedSupport: false,
     tagline: "Get paid faster, save on boosts",
     ctaLabel: "Get Basic",
+    featureBullets: [
+      "Helpr Badge",
+      "Instant Payouts",
+      "5-min early access",
+      "20% off Job Boosts",
+    ],
   },
   pro: {
     name: "Helpr Pro",
@@ -99,6 +113,12 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     dedicatedSupport: false,
     tagline: "For helpers serious about earning",
     ctaLabel: "Upgrade to Pro",
+    featureBullets: [
+      "Priority Placement",
+      "Portfolio Showcase",
+      "10-min early access",
+      "Advanced Analytics",
+    ],
   },
   elite: {
     name: "Helpr Elite",
@@ -114,6 +134,11 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     dedicatedSupport: true,
     tagline: "Top helpers. Maximum visibility.",
     ctaLabel: "Go Elite",
+    featureBullets: [
+      "Featured Crown Badge",
+      "20-min early access",
+      "Priority Support",
+    ],
   },
   business: {
     name: "Business",
@@ -135,6 +160,13 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     dedicatedSupport: true,
     tagline: "For companies, contractors, and crews",
     ctaLabel: "See seat plans",
+    featureBullets: [
+      "Manage a team of technicians",
+      "Verified Business badge",
+      "Priority Placement",
+      "Advanced Analytics",
+      "Priority Support",
+    ],
   },
 };
 

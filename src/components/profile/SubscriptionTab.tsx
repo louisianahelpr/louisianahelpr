@@ -475,6 +475,16 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                   >
                     {getPrice(tier)}
                   </p>
+                  {/* Fee % — the core "lower commission" value prop, shown
+                      here so the in-app upgrade path matches the public
+                      /subscription page instead of hiding the economic
+                      benefit behind perk bullets alone. */}
+                  <span
+                    className="font-sans font-semibold tabular-nums leading-none"
+                    style={{ fontSize: "0.6rem", color: accent, letterSpacing: "0.02em" }}
+                  >
+                    {tier.feePercent}% fee
+                  </span>
                   {saveBadge && (
                     <span
                       className="text-[8.5px] px-1 py-px rounded-full font-bold"

@@ -12,6 +12,15 @@ interface TierDisplay {
   annual: string;
   oneTime: string;
   annualSave: string;
+  // Platform-fee % for this tier — surfaced on the card so the in-app upgrade
+  // path shows the same "lower commission" value prop the public page leads
+  // with. Sourced from TIER_PERKS so it can never disagree with the fee the
+  // payout actually charges.
+  feePercent: number;
+  // First entry may be an "Everything in <lower tier>" inclusive cue that
+  // SubscriptionTab renders as a small eyebrow; the rest are the canonical
+  // per-tier perk bullets from TIER_PERKS.featureBullets (single source of
+  // truth shared with the public /subscription page).
   features: string[];
 }
 
@@ -54,7 +63,8 @@ export const tierConfig: TierDisplay[] = [
     iconName: "star",
     forWhom: "For Helprs testing the marketplace.",
     ...formatTierPrices("basic"),
-    features: ["Helpr Badge", "Instant Payouts", "5-min Early Access", "20% off Job Boosts"],
+    feePercent: TIER_PERKS.basic.platformFeePercent,
+    features: [...TIER_PERKS.basic.featureBullets],
   },
   {
     id: "pro",
@@ -62,7 +72,8 @@ export const tierConfig: TierDisplay[] = [
     iconName: "sparkles",
     forWhom: "For Helprs picking up regular work",
     ...formatTierPrices("pro"),
-    features: ["Everything in Basic", "Portfolio Showcase", "Priority Placement", "10-min Early Access"],
+    feePercent: TIER_PERKS.pro.platformFeePercent,
+    features: ["Everything in Basic", ...TIER_PERKS.pro.featureBullets],
   },
   {
     id: "elite",
@@ -70,7 +81,8 @@ export const tierConfig: TierDisplay[] = [
     iconName: "crown",
     forWhom: "For Helprs running this as their main income.",
     ...formatTierPrices("elite"),
-    features: ["Everything in Pro", "Free Job Boosts", "Landing Spotlight", "Auto-Match", "20-min Early Access"],
+    feePercent: TIER_PERKS.elite.platformFeePercent,
+    features: ["Everything in Pro", ...TIER_PERKS.elite.featureBullets],
   },
 ];
 

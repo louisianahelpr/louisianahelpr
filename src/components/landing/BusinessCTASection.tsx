@@ -20,12 +20,13 @@ const BusinessCTASection = () => (
             "inset 0 1px 1px 0 rgba(255,255,255,0.4), 0 12px 32px -12px hsl(var(--bark) / 0.18)",
         }}
       >
-        {/* Single stacked column — words first, then the two CTAs directly
-            under them. Previously the copy sat on the left and the action
-            panel floated at the far right edge of the wide band, leaving an
-            odd blank gap through the middle on desktop. Stacking closes that
-            gap and keeps the band tight. */}
-        <div className="max-w-2xl space-y-2.5">
+        {/* Centered stacked column. A left-hugging max-w-2xl block left the
+            right ~45% of this wide band empty (a lopsided dead gutter);
+            centering a slightly wider measure fills the band symmetrically so
+            the CTA reads as one intentional focal block, not a half-used band.
+            Words first, then the two CTAs directly under them — never a
+            far-right action panel (that reintroduced a mid-band gap). */}
+        <div className="max-w-3xl mx-auto space-y-2.5 text-center">
           <span
             className="inline-flex items-center gap-2 font-serif italic uppercase text-[0.66rem] tracking-[0.18em]"
             style={{ color: "hsl(var(--burnt-sienna))" }}
@@ -45,7 +46,7 @@ const BusinessCTASection = () => (
             the skilled trades, recurring or on-demand. Whatever your industry needs,
             we cover it.
           </p>
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap justify-center gap-2 mt-4">
             {[
               { Icon: Home, label: "Property & rentals" },
               { Icon: Wrench, label: "Skilled trades" },
@@ -68,7 +69,7 @@ const BusinessCTASection = () => (
           </div>
           {/* Two CTAs sit inline under the words (stack on mobile) — surfaces
               both sides of the marketplace: the Business hub AND browsing work. */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-5">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-5">
             <Button
               asChild
               size="lg"

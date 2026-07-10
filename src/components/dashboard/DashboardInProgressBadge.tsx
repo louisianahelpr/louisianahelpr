@@ -39,34 +39,45 @@ const DashboardInProgressBadge = ({ job, onView }: DashboardInProgressBadgeProps
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
+        {/* The visible pill is an inner span so the <button> can keep the
+            global 44px min tap target (HIG) WITHOUT the tinted pill itself
+            ballooning to 44px tall. The global `button { min-height:44px }`
+            rule out-specifies any min-h-0 utility, so we don't fight it —
+            the button stays a transparent 44px hit area and the span renders
+            the thin ~22px chip. `-my-*` isn't needed: the header row already
+            reserves 44px for the bell, so the tall hit area adds no height. */}
         <button
           type="button"
           aria-label={`${label}: ${job.title}. Tap for details.`}
-          className="btn-press inline-flex h-6 items-center gap-1 rounded-full pl-1.5 pr-2 transition-transform active:scale-[0.97]"
-          style={{
-            background: "hsl(var(--live-pill-tint) / 0.22)",
-            border: "1px solid hsl(var(--live-pill-tint) / 0.6)",
-          }}
+          className="btn-press inline-flex items-center bg-transparent border-0 p-0 transition-transform active:scale-[0.97]"
         >
-          {/* Pulsing "live" dot — the ping ring only animates for an
-              actively-in-progress job so the pulse genuinely signals live. */}
-          <span className="relative flex h-1.5 w-1.5 shrink-0">
-            {live && (
+          <span
+            className="inline-flex h-[1.375rem] items-center gap-1 rounded-full pl-1.5 pr-2"
+            style={{
+              background: "hsl(var(--live-pill-tint) / 0.22)",
+              border: "1px solid hsl(var(--live-pill-tint) / 0.6)",
+            }}
+          >
+            {/* Pulsing "live" dot — the ping ring only animates for an
+                actively-in-progress job so the pulse genuinely signals live. */}
+            <span className="relative flex h-1.5 w-1.5 shrink-0">
+              {live && (
+                <span
+                  className="absolute inline-flex h-full w-full rounded-full opacity-75 motion-safe:animate-ping"
+                  style={{ background: "hsl(var(--live-pill-tint))" }}
+                />
+              )}
               <span
-                className="absolute inline-flex h-full w-full rounded-full opacity-75 motion-safe:animate-ping"
+                className="relative inline-flex h-1.5 w-1.5 rounded-full"
                 style={{ background: "hsl(var(--live-pill-tint))" }}
               />
-            )}
+            </span>
             <span
-              className="relative inline-flex h-1.5 w-1.5 rounded-full"
-              style={{ background: "hsl(var(--live-pill-tint))" }}
-            />
-          </span>
-          <span
-            className="font-serif italic uppercase tracking-[0.1em] text-ds-9"
-            style={{ color: "hsl(var(--live-pill-ink))" }}
-          >
-            {label}
+              className="font-serif italic uppercase tracking-[0.1em] text-ds-9"
+              style={{ color: "hsl(var(--live-pill-ink))" }}
+            >
+              {label}
+            </span>
           </span>
         </button>
       </PopoverTrigger>

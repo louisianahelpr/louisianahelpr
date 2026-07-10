@@ -148,22 +148,30 @@ const CommunityVoice = () => {
             </span>
           </div>
 
-          {/* Dot indicators */}
-          <div className="mt-6 flex items-center justify-center md:justify-start gap-2">
+          {/* Dot indicators — the visible dot is an inner span so the button
+              can keep the global 44px min tap target (a11y) WITHOUT the dot
+              itself ballooning to 44px. Negative margins collapse the extra
+              hit-area padding so the dots read as a tight 8px row. */}
+          <div className="mt-6 flex items-center justify-center md:justify-start gap-1 -mx-2">
             {testimonials.map((_, i) => (
               <button
                 key={i}
                 type="button"
                 aria-label={`Go to testimonial ${i + 1}`}
+                aria-current={i === activeIndex}
                 onClick={() => setActiveIndex(i)}
-                className="w-2 h-2 rounded-full transition-colors duration-300"
-                style={{
-                  backgroundColor:
-                    i === activeIndex
-                      ? "hsl(var(--burnt-sienna))"
-                      : "hsl(var(--burnt-sienna) / 0.25)",
-                }}
-              />
+                className="grid place-items-center transition-colors duration-300"
+              >
+                <span
+                  className="w-2 h-2 rounded-full transition-colors duration-300"
+                  style={{
+                    backgroundColor:
+                      i === activeIndex
+                        ? "hsl(var(--burnt-sienna))"
+                        : "hsl(var(--burnt-sienna) / 0.25)",
+                  }}
+                />
+              </button>
             ))}
           </div>
         </div>

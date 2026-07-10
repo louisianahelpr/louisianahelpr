@@ -9,7 +9,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
-import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -21,6 +20,9 @@ type Window = "30d" | "90d" | "12mo";
 
 interface ProfileStatsTrendProps {
   helperId: string;
+  // Fee % to apply when a job row predates the per-job helper_fee_percent
+  // column. Tier-derived by the caller so every earnings surface agrees.
+  feeFallbackPercent: number;
 }
 
 interface JobRow {
@@ -42,16 +44,16 @@ const WINDOW_LABEL: Record<Window, string> = {
   "12mo": "12 months",
 };
 
-const helperTakeHome = (j: JobRow): number => {
+const helperTakeHome = (j: JobRow, feeFallbackPercent: number): number => {
   const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
   const perHelper = j.budget / helpers;
-  const commissionPercent = j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
+  const commissionPercent = j.helper_fee_percent ?? feeFallbackPercent;
   const commission = (perHelper * commissionPercent) / 100;
   // Urgent fee splits across the roster like the budget (#114).
   return perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers;
 };
 
-export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
+export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStatsTrendProps) {
   const [open, setOpen] = useState(false);
   const [win, setWin] = useState<Window>("30d");
 
@@ -119,7 +121,7 @@ export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
       if (idx === -1 && t >= buckets[buckets.length - 1].bucketStart) idx = buckets.length - 1;
       if (idx === -1) return;
       buckets[idx].jobs += 1;
-      buckets[idx].earned += helperTakeHome(j);
+      buckets[idx].earned += helperTakeHome(j, feeFallbackPercent);
     });
 
     return buckets.map((b) => ({
@@ -127,7 +129,7 @@ export function ProfileStatsTrend({ helperId }: ProfileStatsTrendProps) {
       jobs: b.jobs,
       earned: Math.round(b.earned * 100) / 100,
     }));
-  }, [jobs, win]);
+  }, [jobs, win, feeFallbackPercent]);
 
   return (
     <div

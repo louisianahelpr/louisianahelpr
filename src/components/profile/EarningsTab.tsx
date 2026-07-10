@@ -4,7 +4,7 @@ import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { formatPrice } from "@/lib/format";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
-import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { toast } from "@/hooks/use-toast";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
@@ -38,6 +38,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const subTier = (profile?.subscription_tier ?? "free") as string;
   const subExp = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
   const subActive = subExp ? subExp > new Date() : false;
+  // Fee % to apply when a job row's helper_fee_percent is null (legacy row
+  // pre-dating the column). Derive it from the helper's own subscription
+  // tier — same ladder /analytics and /work-record use — so a Free helper's
+  // net renders at 12%, NOT the historical flat-10 fallback that made this
+  // tab disagree with every other earnings surface. A populated per-job
+  // column still wins (it's the fee actually charged on that payout).
+  const helperFeeFallbackPct = tierFeePercent(subTier, profile?.subscription_expires_at ?? null);
   const canUseInstantPayout = subActive && (subTier === "pro" || subTier === "elite" || subTier === "basic");
   // Pagination for the earnings-history list. Power helpers with 100+
   // completed jobs were rendering them all; this caps the initial render
@@ -97,7 +104,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const totalEarnings = completedJobs.reduce((sum, j) => {
     const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
     const perHelper = j.budget / helpers;
-    const commissionPercent = j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
+    const commissionPercent = j.helper_fee_percent ?? helperFeeFallbackPct;
     const commission = (perHelper * commissionPercent) / 100;
     // The urgent fee is collected from the poster ONCE and split across the
     // roster like the budget (#114) — so a group helper's share is the netted
@@ -203,6 +210,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       <EarningsForecastCard
         helperId={helperId}
         enabled={profile?.approval_status === "approved"}
+        feeFallbackPercent={helperFeeFallbackPct}
       />
 
       {/* "Next 7 days" upcoming-jobs strip — pairs with the dollar
@@ -251,7 +259,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             completedJobs={completedJobs.map((j) => {
               const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
               const perHelper = j.budget / helpers;
-              const commissionPercent = j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
+              const commissionPercent = j.helper_fee_percent ?? helperFeeFallbackPct;
               const commission = (perHelper * commissionPercent) / 100;
               // Urgent fee splits across the roster like the budget (#114).
               const netPayout = perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers;
@@ -307,7 +315,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           payout history (the receipts) and the per-transfer ledger so
           the helper sees their high-level breakdown before drilling
           into individual transfers. */}
-      <EarningsBreakdownCharts earningsJobs={earningsJobs} />
+      <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
 
       {/* ─── ACTUAL PAYOUTS (from payout_transfers ledger) ─── */}
       {payoutLedger.length > 0 && (

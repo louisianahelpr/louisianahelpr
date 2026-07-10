@@ -10,6 +10,8 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareNative } from "@/lib/nativeShare";
 import { report } from "@/lib/errorLogger";
 import { formatCategory, wrappedSeasonLabel } from "@/lib/format";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
+import { netUrgentFeeDollars } from "@/lib/stripeFees";
 
 const YEAR = new Date().getFullYear();
 // "Wrapped" in December, "so far" the rest of the year (see LH-39).
@@ -35,7 +37,7 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
   const yearStart = `${YEAR}-01-01T00:00:00.000Z`;
   const yearEnd = `${YEAR}-12-31T23:59:59.999Z`;
 
-  const [postedRes, completedRes, reviewsGivenRes, reviewsReceivedRes] = await Promise.all([
+  const [postedRes, completedRes, reviewsGivenRes, reviewsReceivedRes, profileRes] = await Promise.all([
     supabase
       .from("jobs")
       .select("id, budget, category, helper_id")
@@ -44,7 +46,7 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
       .lte("created_at", yearEnd),
     supabase
       .from("jobs")
-      .select("id, budget, category, customer_id")
+      .select("id, budget, category, customer_id, helper_fee_percent, platform_fee_amount, urgent_fee, helpers_needed, is_group_job")
       .eq("helper_id", userId)
       .eq("status", "completed")
       .gte("created_at", yearStart)
@@ -61,6 +63,11 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
       .eq("reviewee_id", userId)
       .gte("created_at", yearStart)
       .lte("created_at", yearEnd),
+    supabase
+      .from("profiles")
+      .select("subscription_tier, subscription_expires_at")
+      .eq("user_id", userId)
+      .maybeSingle(),
   ]);
 
   for (const [label, res] of [
@@ -68,6 +75,7 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
     ["completed", completedRes],
     ["reviews_given", reviewsGivenRes],
     ["reviews_received", reviewsReceivedRes],
+    ["profile", profileRes],
   ] as const) {
     if (res.error) {
       report(res.error, {
@@ -85,8 +93,21 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
 
   // Total spent = sum of budgets on posted jobs (proxy)
   const totalSpent = posted.reduce((acc, j) => acc + (j.budget ?? 0), 0);
-  // Total earned = sum of budgets on completed helper jobs (pre-fee proxy)
-  const totalEarned = completed.reduce((acc, j) => acc + (j.budget ?? 0), 0);
+  // Total earned = helper take-home (net of the platform fee), so the same
+  // $75 job reads the same here as on analytics/work-record/Earnings. Prefer
+  // the stamped platform_fee_amount; for legacy/seed rows without one, derive
+  // the fee from the helper's tier (matching every other earnings surface).
+  const feeFallbackPct = tierFeePercent(
+    profileRes.data?.subscription_tier ?? null,
+    profileRes.data?.subscription_expires_at ?? null,
+  );
+  const totalEarned = completed.reduce((acc, j) => {
+    const budget = j.budget ?? 0;
+    // Nullish, not `||`: a genuinely-stamped $0 fee (a comped/promo job) must
+    // be trusted verbatim, not mistaken for an unstamped legacy row.
+    const fee = j.platform_fee_amount ?? (budget * (j.helper_fee_percent ?? feeFallbackPct)) / 100;
+    return acc + (budget - fee + netUrgentFeeDollars(j.urgent_fee));
+  }, 0);
 
   // Unique people worked with — union of helper_ids from posted jobs (who accepted)
   // and customer_ids from completed helper jobs

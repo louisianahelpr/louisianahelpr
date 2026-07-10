@@ -53,7 +53,7 @@ describe("EarningsForecastCard", () => {
     const { wrapper: Wrapper } = makeWrapper();
     const { container } = render(
       <Wrapper>
-        <EarningsForecastCard helperId="helper-1" enabled={false} />
+        <EarningsForecastCard helperId="helper-1" enabled={false} feeFallbackPercent={10} />
       </Wrapper>,
     );
     // Card is fully unmounted — no skeleton, no heading.
@@ -64,7 +64,7 @@ describe("EarningsForecastCard", () => {
     const { wrapper: Wrapper } = makeWrapper();
     render(
       <Wrapper>
-        <EarningsForecastCard helperId="helper-1" enabled={true} />
+        <EarningsForecastCard helperId="helper-1" enabled={true} feeFallbackPercent={10} />
       </Wrapper>,
     );
     // Synchronously rendered before the promise resolves.
@@ -76,7 +76,7 @@ describe("EarningsForecastCard", () => {
     const { wrapper: Wrapper } = makeWrapper();
     render(
       <Wrapper>
-        <EarningsForecastCard helperId="helper-1" enabled={true} />
+        <EarningsForecastCard helperId="helper-1" enabled={true} feeFallbackPercent={10} />
       </Wrapper>,
     );
     await waitFor(() => {
@@ -111,7 +111,7 @@ describe("EarningsForecastCard", () => {
     const { wrapper: Wrapper } = makeWrapper();
     render(
       <Wrapper>
-        <EarningsForecastCard helperId="helper-1" enabled={true} />
+        <EarningsForecastCard helperId="helper-1" enabled={true} feeFallbackPercent={10} />
       </Wrapper>,
     );
     await waitFor(() => {
@@ -149,7 +149,7 @@ describe("EarningsForecastCard", () => {
     const { wrapper: Wrapper } = makeWrapper();
     render(
       <Wrapper>
-        <EarningsForecastCard helperId="helper-1" enabled={true} />
+        <EarningsForecastCard helperId="helper-1" enabled={true} feeFallbackPercent={10} />
       </Wrapper>,
     );
     await waitFor(() => {

@@ -21,13 +21,16 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend,
 } from "recharts";
-import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
 interface EarningsBreakdownChartsProps {
   earningsJobs: Job[];
+  // Fee % to apply when a job row predates the per-job helper_fee_percent
+  // column. Tier-derived by the caller so every earnings surface agrees
+  // (analytics/work-record already resolve from the tier).
+  feeFallbackPercent: number;
 }
 
 // Palette — five brand-ish hues sequenced for max contrast around the
@@ -57,10 +60,10 @@ const bucketFor = (skills: string | null | undefined): string => {
 
 // Helper take-home math, mirroring the EarningsTab logic. Centralized
 // here so the pie + monthly-trend agree on what counts as "earned".
-const helperTakeHome = (job: Job): number => {
+const helperTakeHome = (job: Job, feeFallbackPercent: number): number => {
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const perHelper = job.budget / helpers;
-  const commissionPercent = job.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
+  const commissionPercent = job.helper_fee_percent ?? feeFallbackPercent;
   const commission = (perHelper * commissionPercent) / 100;
   // Urgent fee splits across the roster like the budget (#114).
   return perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers;
@@ -74,7 +77,7 @@ const completionTime = (job: Job): number => {
   return new Date(job.created_at).getTime();
 };
 
-export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChartsProps) {
+export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: EarningsBreakdownChartsProps) {
   const completed = earningsJobs.filter((j) => j.status === "completed");
   const now = new Date();
   const ytdYear = now.getFullYear();
@@ -85,14 +88,14 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
     const totals = new Map<string, number>();
     completed.forEach((j) => {
       const key = bucketFor((j as unknown as { skills?: string | null }).skills);
-      totals.set(key, (totals.get(key) ?? 0) + helperTakeHome(j));
+      totals.set(key, (totals.get(key) ?? 0) + helperTakeHome(j, feeFallbackPercent));
     });
     return Array.from(totals.entries())
       .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
       .filter((d) => d.value > 0)
       .sort((a, b) => b.value - a.value)
       .slice(0, 6);
-  }, [completed]);
+  }, [completed, feeFallbackPercent]);
 
   // ── YTD vs prior YTD — cumulative dollars by month index ────────
   // 12-element arrays; entry [i] is the cumulative running total
@@ -105,7 +108,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
         const t = completionTime(j);
         const d = new Date(t);
         if (d.getFullYear() !== year) return;
-        monthly[d.getMonth()] += helperTakeHome(j);
+        monthly[d.getMonth()] += helperTakeHome(j, feeFallbackPercent);
       });
       const result: number[] = [];
       let running = 0;
@@ -128,7 +131,7 @@ export function EarningsBreakdownCharts({ earningsJobs }: EarningsBreakdownChart
       ytd: i <= currentMonth ? ytd[i] : null,
       prior: prior[i],
     }));
-  }, [completed, ytdYear, priorYtdYear, now]);
+  }, [completed, ytdYear, priorYtdYear, now, feeFallbackPercent]);
 
   const ytdTotal = trendData[now.getMonth()]?.ytd ?? 0;
   const priorAtSameMonth = trendData[now.getMonth()]?.prior ?? 0;

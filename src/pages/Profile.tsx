@@ -12,6 +12,7 @@ import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -406,8 +407,20 @@ const ProfilePage = () => {
   // equals what the edge transfers. The 10% sales tax is a customer-side
   // charge on the budget and is never deducted from the helper, so it must
   // not appear here.
+  // For a real completed payout the edge function has stamped the exact
+  // platform_fee_amount, so we use it verbatim. Legacy/seed rows that never
+  // ran through payout have no stamped fee — falling those back to $0 would
+  // show gross budget as "earned" (the Cowork live-spider bug: a $75 job read
+  // $75 here but $66 on analytics/work-record). Mirror the other earnings
+  // surfaces by deriving the missing fee from the helper's tier.
+  const helperFeeFallbackPct = tierFeePercent(
+    profile?.subscription_tier ?? null,
+    profile?.subscription_expires_at ?? null,
+  );
   const totalEarnings = earningsJobs.filter((j) => j.status === "completed").reduce((sum, j) => {
-    const fee = j.platform_fee_amount || 0;
+    // Nullish, not `||`: a genuinely-stamped $0 fee (a comped/promo job) must
+    // be trusted verbatim, not mistaken for an unstamped legacy row.
+    const fee = j.platform_fee_amount ?? (j.budget * (j.helper_fee_percent ?? helperFeeFallbackPct)) / 100;
     return sum + (j.budget - fee + netUrgentFeeDollars(j.urgent_fee));
   }, 0);
 

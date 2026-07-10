@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
-import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { Info, Sparkles, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,10 +42,10 @@ const COMPLETED_STATUS = "completed";
  * already used by EarningsTab (kept inline for parity — see line ~640 in
  * `EarningsTab.tsx`). If that formula ever changes, this MUST follow.
  */
-function helperNet(job: Pick<Job, "budget" | "helpers_needed" | "is_group_job" | "helper_fee_percent" | "urgent_fee">): number {
+function helperNet(job: Pick<Job, "budget" | "helpers_needed" | "is_group_job" | "helper_fee_percent" | "urgent_fee">, feeFallbackPercent: number): number {
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const perHelper = job.budget / helpers;
-  const commissionPercent = job.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
+  const commissionPercent = job.helper_fee_percent ?? feeFallbackPercent;
   const commission = (perHelper * commissionPercent) / 100;
   // Urgent fee splits across the roster like the budget (#114).
   return perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers;
@@ -104,15 +103,18 @@ interface EarningsForecastCardProps {
    * just noise).
    */
   enabled: boolean;
+  // Fee % to apply when a job row predates the per-job helper_fee_percent
+  // column. Tier-derived by the caller so every earnings surface agrees.
+  feeFallbackPercent: number;
 }
 
-export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCardProps) {
+export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: EarningsForecastCardProps) {
   const navigate = useNavigate();
 
   const { startISO, endISO, end } = useMemo(() => currentWeekRange(), []);
 
   const { data, isLoading } = useQuery<ForecastData>({
-    queryKey: queryKeys.earningsForecast.forWindow(helperId, startISO, endISO),
+    queryKey: queryKeys.earningsForecast.forWindow(helperId, startISO, endISO, feeFallbackPercent),
     queryFn: async () => {
       // Filter at the DB level — never fetch the entire helper history
       // just to slice client-side. RLS already restricts SELECT on
@@ -133,7 +135,7 @@ export function EarningsForecastCard({ helperId, enabled }: EarningsForecastCard
       let inProgressCount = 0;
 
       for (const row of safeRows) {
-        const net = helperNet(row);
+        const net = helperNet(row, feeFallbackPercent);
         if (row.status === COMPLETED_STATUS) {
           earnedSoFar += net;
           // Completed jobs also count toward the projected total — the

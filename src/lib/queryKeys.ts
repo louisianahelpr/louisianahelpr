@@ -159,7 +159,8 @@ export const queryKeys = {
       helperId: string | undefined | null,
       startISO: string,
       endISO: string,
-    ) => ["earnings-forecast", helperId, startISO, endISO] as const,
+      feeFallbackPercent: number,
+    ) => ["earnings-forecast", helperId, startISO, endISO, feeFallbackPercent] as const,
   },
   /** Public review wall rendered on /user/:userId. */
   publicReviewWall: {

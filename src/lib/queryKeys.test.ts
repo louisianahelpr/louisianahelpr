@@ -199,10 +199,10 @@ describe("queryKeys", () => {
   });
 
   describe("earningsForecast", () => {
-    it("forWindow key shape includes start + end ISO bounds", () => {
+    it("forWindow key shape includes start + end ISO bounds + fee fallback", () => {
       expect(
-        queryKeys.earningsForecast.forWindow("helper-1", "2026-05-01", "2026-05-07"),
-      ).toEqual(["earnings-forecast", "helper-1", "2026-05-01", "2026-05-07"]);
+        queryKeys.earningsForecast.forWindow("helper-1", "2026-05-01", "2026-05-07", 12),
+      ).toEqual(["earnings-forecast", "helper-1", "2026-05-01", "2026-05-07", 12]);
     });
   });
 

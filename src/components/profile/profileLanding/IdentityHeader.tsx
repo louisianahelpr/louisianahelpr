@@ -9,6 +9,7 @@ import { avatarGradientFor } from "@/lib/avatarGradient";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { ProfileStatsTrend } from "@/components/profile/ProfileStatsTrend";
 import { SkillsManager } from "@/components/profile/SkillsManager";
 import { EarningsSparkline } from "@/components/profile/EarningsSparkline";
@@ -74,6 +75,10 @@ export function IdentityHeader({
   const [showcaseOpen, setShowcaseOpen] = useState(false);
   // Intro-video state — tracks the fullscreen preview open state.
   const [videoOpen, setVideoOpen] = useState(false);
+  // Fee % for legacy job rows without a per-job helper_fee_percent —
+  // tier-derived so the trend chart's "earned" agrees with the other
+  // earnings surfaces (analytics/work-record/Earnings tab).
+  const feeFallbackPercent = tierFeePercent(tier, profile?.subscription_expires_at ?? null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -397,7 +402,7 @@ export function IdentityHeader({
             chart queries jobs.helper_id which maps to auth.user_id —
             *not* the profiles.id PK, so we pass user_id. */}
         {profile?.user_id && (
-          <ProfileStatsTrend helperId={profile.user_id} />
+          <ProfileStatsTrend helperId={profile.user_id} feeFallbackPercent={feeFallbackPercent} />
         )}
 
         {/* Bio excerpt — surfaces the user's pitch on the landing page,

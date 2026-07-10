@@ -80,7 +80,7 @@ describe("useSessionTimeout", () => {
     expect(toastInfoMock).not.toHaveBeenCalled();
   });
 
-  it("user activity resets the timer (a click at 29min postpones logout)", async () => {
+  it("user activity resets the timer (a keypress at 29min postpones logout)", async () => {
     getSessionMock.mockResolvedValue({ data: { session: { user: { id: "u1" } } } });
     renderHook(() => useSessionTimeout());
 
@@ -88,9 +88,9 @@ describe("useSessionTimeout", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(29 * 60 * 1000);
     });
-    // User clicks
+    // User presses a key
     act(() => {
-      window.dispatchEvent(new Event("mousedown"));
+      window.dispatchEvent(new Event("keydown"));
     });
     // Another 29 min — should still NOT sign out (timer reset)
     await act(async () => {
@@ -98,22 +98,57 @@ describe("useSessionTimeout", () => {
     });
     expect(signOutMock).not.toHaveBeenCalled();
 
-    // But after another 1 min (= 30 since the click), should fire
+    // But after another 1 min (= 30 since the keypress), should fire
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
     });
     expect(signOutMock).toHaveBeenCalledOnce();
   });
 
-  it("listens to all 4 activity event types (mousedown, keydown, scroll, touchstart)", () => {
+  // Regression guard for the mid-session-logout bug: on AppShell pages the
+  // scroll happens inside an internal overflow container, and `scroll` does
+  // not bubble. A bubble-phase window listener never saw it, so actively
+  // scrolling users were logged out. The hook now listens in the CAPTURE
+  // phase, which reaches the window for non-bubbling inner-container scrolls.
+  it("resets the timer on a non-bubbling scroll from an inner container", async () => {
+    getSessionMock.mockResolvedValue({ data: { session: { user: { id: "u1" } } } });
+    renderHook(() => useSessionTimeout());
+
+    const inner = document.createElement("div");
+    document.body.appendChild(inner);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(29 * 60 * 1000);
+    });
+    // A scroll dispatched on the inner element does NOT bubble to window; only
+    // a capture-phase listener catches it.
+    act(() => {
+      inner.dispatchEvent(new Event("scroll"));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(29 * 60 * 1000);
+    });
+    expect(signOutMock).not.toHaveBeenCalled();
+
+    document.body.removeChild(inner);
+  });
+
+  it("listens to the activity event types (pointerdown, pointermove, keydown, wheel, scroll, touchstart)", () => {
     const addSpy = vi.spyOn(window, "addEventListener");
     renderHook(() => useSessionTimeout());
 
     const registeredEvents = addSpy.mock.calls.map((c) => c[0]);
-    expect(registeredEvents).toContain("mousedown");
+    expect(registeredEvents).toContain("pointerdown");
+    expect(registeredEvents).toContain("pointermove");
     expect(registeredEvents).toContain("keydown");
+    expect(registeredEvents).toContain("wheel");
     expect(registeredEvents).toContain("scroll");
     expect(registeredEvents).toContain("touchstart");
+
+    // scroll must be registered in the capture phase, or inner-container
+    // scrolls never reach the window (the mid-session-logout bug).
+    const scrollCall = addSpy.mock.calls.find((c) => c[0] === "scroll");
+    expect(scrollCall?.[2]).toMatchObject({ capture: true });
 
     addSpy.mockRestore();
   });
@@ -125,7 +160,7 @@ describe("useSessionTimeout", () => {
     unmount();
 
     const removedEvents = removeSpy.mock.calls.map((c) => c[0]);
-    expect(removedEvents).toContain("mousedown");
+    expect(removedEvents).toContain("pointerdown");
     expect(removedEvents).toContain("keydown");
     expect(removedEvents).toContain("scroll");
     expect(removedEvents).toContain("touchstart");

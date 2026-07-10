@@ -56,6 +56,12 @@ const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const PermissionRationaleDialog = lazy(() =>
   import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
 );
+// Fires when the authed user's terms_version_accepted is older than
+// LATEST_TERMS_VERSION. Lazy — the dialog chunk is only fetched when a
+// version bump actually needs it (which is rare and out of the hot path).
+const TermsReconsentDialog = lazy(() =>
+  import("@/components/TermsReconsentDialog").then((m) => ({ default: m.TermsReconsentDialog }))
+);
 
 // Lazy load all pages including landing
 const Index = lazy(() => import("./pages/Index"));
@@ -454,6 +460,7 @@ const App = () => (
             <MobileNav />
             <DesktopSidebarNav />
             <PermissionRationaleDialog />
+            <TermsReconsentDialog />
           </Suspense>
           <SpeedInsightsRouted />
         </OfflineBannerLayoutProvider>

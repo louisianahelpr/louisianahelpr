@@ -397,6 +397,12 @@ serve(async (req) => {
     // the client sent the field (undefined → leave server default false in
     // place, don't accidentally reset an already-consented row to false).
     if (typeof marketingConsent === "boolean") updateData.marketing_consent = marketingConsent;
+    // Version-pin the accepted Terms so a future material change to the
+    // policy triggers the re-consent modal (see TermsReconsentDialog). The
+    // policies checkbox in SignupStep1 is a hard requirement to reach this
+    // path, so recording it here IS the affirmative acceptance.
+    updateData.terms_version_accepted = LEGAL_TERMS_VERSION;
+    updateData.terms_accepted_at = new Date().toISOString();
     if (availability) updateData.availability = availability;
     if (transportation) updateData.transportation = transportation;
     if (hearAboutUs) updateData.hear_about_us = hearAboutUs;

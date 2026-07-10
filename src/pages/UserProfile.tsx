@@ -43,8 +43,6 @@ import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUserLocation } from "@/hooks/useUserLocation";
-import PublicLayout from "@/components/marketing/PublicLayout";
-import { isNativePlatform } from "@/lib/nativeInit";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -155,16 +153,15 @@ const UserProfile = () => {
     </div>
   ) : null;
 
-  // Web carries the shared marketing chrome (Navbar/Footer via PublicLayout);
-  // native supplies its own nav, so it stays bare with just the page bg. Every
-  // rendered state (loading/error/not-found/loaded) routes through this so the
-  // chrome is consistent across them on web.
-  const wrap = (inner: ReactNode) =>
-    isNativePlatform ? (
-      <div className="min-h-screen bg-premium-page pb-safe-nav">{inner}</div>
-    ) : (
-      <PublicLayout showCtaBand={false}>{inner}</PublicLayout>
-    );
+  // Authed-only route (ProtectedRoute): the persistent app chrome —
+  // DesktopSidebarNav rail on web, MobileNav on phones — is supplied globally
+  // in App.tsx, and the desktop rail inset comes from the global #root rule.
+  // So this page is a plain document-scroll surface; it must NOT pull in the
+  // marketing PublicLayout, whose Navbar/Footer would double-stack on top of
+  // the app shell. Every rendered state routes through this wrapper.
+  const wrap = (inner: ReactNode) => (
+    <div className="min-h-screen bg-premium-page pb-safe-nav">{inner}</div>
+  );
 
   if (loading) {
     return wrap(

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { MapPin, Clock, CheckCircle, Phone, ClipboardList, ShieldCheck, Users, Timer, RotateCcw } from "lucide-react";
 import { HelperBadges, type HelperBadge } from "@/components/HelperBadges";
 import CredentialBadge from "@/components/CredentialBadge";
@@ -71,6 +72,10 @@ export const ProfileHeaderCard = ({
   jobsNearbyCount,
   nearbyRadiusMi,
 }: Props) => {
+  // A truthy-but-broken avatar_url (stale storage path, 404) would otherwise
+  // pass the null/empty guard below, fail to load, and paint the alt text.
+  // Treat a load error as "no photo" so we fall through to the initials block.
+  const [avatarFailed, setAvatarFailed] = useState(false);
   return (
     <div
       className="rounded-2xl liquid-glass p-5 text-center space-y-3 relative overflow-hidden"
@@ -107,12 +112,13 @@ export const ProfileHeaderCard = ({
         </div>
       )}
       <div className="relative inline-block">
-        {profile.avatar_url ? (
+        {profile.avatar_url && !avatarFailed ? (
           <img
             loading="lazy"
             decoding="async"
             src={profile.avatar_url}
             alt={`${displayName} profile picture`}
+            onError={() => setAvatarFailed(true)}
             className="w-24 h-24 rounded-ds-pill squircle mx-auto object-cover"
             style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
           />

@@ -23,11 +23,6 @@ import {
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
 
-// TEMP: forced on for sim testing so every step is tappable in a production
-// (non-DEV) build. Set back to false before commit — the jumper then shows
-// only in real dev builds via `import.meta.env.DEV` below.
-const FORCE_STEP_JUMPER = false;
-
 const Signup = () => {
   const navigate = useNavigate();
   usePageMeta({
@@ -370,8 +365,7 @@ const Signup = () => {
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}
           <div className="liquid-glass px-6 sm:px-8 py-5 space-y-4">
             {/* Dev-only step jumper — visible in dev builds so you can click through every signup screen without making an account. Hidden in production. */}
-            {/* TEMP: FORCE_STEP_JUMPER forces this on for sim testing — set it to false before commit */}
-            {(import.meta.env.DEV || FORCE_STEP_JUMPER) && (
+            {import.meta.env.DEV && (
               <div className="rounded-ds-sm border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-ds-11">
                 <span className="text-primary font-semibold uppercase tracking-wider">Preview</span>
                 <span className="text-muted-foreground">Jump to step:</span>

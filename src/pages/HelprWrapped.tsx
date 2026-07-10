@@ -17,7 +17,7 @@ const YEAR = new Date().getFullYear();
 // "Wrapped" in December, "so far" the rest of the year (see LH-39).
 const SEASON = wrappedSeasonLabel();
 
-// $15/hr proxy for converting budget → approximate hours
+// $15/hr proxy for converting earnings → approximate hours worked
 const HOURLY_PROXY = 15;
 
 interface WrappedStats {
@@ -128,8 +128,11 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
   const receivedRatings = reviewsReceived.map((r) => r.rating).filter((r): r is number => typeof r === "number");
   const bestRating = receivedRatings.length > 0 ? Math.max(...receivedRatings) : null;
 
-  // Approximate hours — derived from total budget activity ÷ $15/hr
-  const approxHours = Math.round((totalSpent + totalEarned) / HOURLY_PROXY);
+  // Approximate hours WORKED — derived from earnings only ÷ $15/hr. This
+  // sublabel sits on the "earned" card, so it must reflect the helper's own
+  // labor; folding in `totalSpent` (money they paid OTHERS to do jobs) inflated
+  // the figure into implausible territory (Cowork audit: "~194 hrs").
+  const approxHours = Math.round(totalEarned / HOURLY_PROXY);
 
   return {
     jobsPosted: posted.length,

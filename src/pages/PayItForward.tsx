@@ -25,6 +25,7 @@ import { unwrap, functionErrorMessage } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { hapticMedium, hapticSuccess } from "@/lib/haptics";
+import { STRIPE_PCT, STRIPE_FLAT_CENTS } from "@/lib/stripeFees";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
 import PageHeader from "@/components/PageHeader";
@@ -412,7 +413,7 @@ export default function PayItForward() {
               />
             </div>
             <p className="font-serif italic text-ds-11 mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-              ${MIN_GIFT} minimum. A small processing fee is added at checkout.
+              ${MIN_GIFT} minimum. A card-processing fee ({(STRIPE_PCT * 100).toFixed(1)}% + {STRIPE_FLAT_CENTS}¢) is added at checkout.
             </p>
           </div>
 

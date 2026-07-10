@@ -372,3 +372,42 @@ Real shipped app (App Store Connect `com.Helpr` v1.0.4 build 19); config is matu
 ### 💵 Money source-of-truth captured (for cross-checks)
 - Membership (`src/lib/subscriptionTiers.ts`): Free $0 (12% platform fee) · Pro $10/mo (10%) · Elite $15/mo (8%) · Business $50/mo, $40 annual (6%). Helper keeps 100−fee (88/90/92/94%).
 - Business **seat** pricing on `/for-business` (Starter 1·Free · Crew 2·$20 · Team 3·$30 · Enterprise 4+·$40) is a SEPARATE construct from membership — locate & verify its source in Run 3.
+
+---
+
+## ★ ADDENDUM — 100%-driven pass (2026-07-10): every admin view + business + profile tab live-operated
+
+Signed into the real account (admin) at localhost:8080 @1440. **All 27 admin `?view=` sub-views, `/payment-success`, all 7 `/business/*` sub-pages, all 17 `/profile?tab=` panels, and live job search were personally driven** (navigate → overflow-measure `scrollWidth<=clientWidth` → error-scan → screenshot). **Zero horizontal overflow on every screen.** Three **new, root-caused 🟠 High bugs** surfaced that the earlier source-sweep missed — each a real runtime/data failure, each caught live.
+
+### 🟠 NEW-1 — Admin ▸ Exception Queue silently swallows its data (compliance queue goes blind) `[driven]`
+- **Where:** `src/components/admin/AdminExceptionQueue.tsx:66` (view `?view=exceptions`).
+- **Symptom (driven):** first load flashes a red toast *"Could not find a relationship between 'verification_exceptions' and 'user_id' in the schema cache"*, then renders "No open exceptions."
+- **Root cause:** the `.select()` requests PostgREST embed `profiles:user_id ( full_name, email )`, but `verification_exceptions` has **no FK on `user_id`** — its only relationships are `check_id→verification_checks` and `credential_id→helper_credentials` (`types.ts:4422-4437`). Unresolvable embed → **PGRST200**. The error guard (`:74`) only swallows `PGRST202` / "does not exist", so PGRST200 falls through to `toast.error()` + `return []`.
+- **Impact:** the query fails on **every** load regardless of row count → the queue **always** returns `[]`. The moment a real exception exists (adverse action, name mismatch, board-with-no-API), **admins never see it** — the screen says "No open exceptions" while the fetch actually errored. Silent failure on a compliance surface.
+- **Fix:** drop the `profiles:user_id(...)` embed; fetch rows flat, collect `user_id`s, hydrate names via a second `supabase.from("profiles").select("user_id,full_name,email").in("user_id", ids)` and merge client-side (the `credential_id` embed uses a real FK, keep it). Alt: add FK `verification_exceptions.user_id → profiles.user_id` in a migration. Also stop `toast.error`-ing a schema-shape error every load.
+
+### 🟠 NEW-2 — Admin ▸ Business Accounts can't load (RPC return-type drift, Postgres 42804) `[driven]`
+- **Where:** RPC `admin_list_business_accounts` — `supabase/migrations/20260609180000_business_features.sql:298-352`; called `AdminBusinessAccounts.tsx:59` (view `?view=business_accounts`).
+- **Symptom (driven):** graceful error card *"Couldn't load business accounts — structure of query does not match function result type."*
+- **Root cause:** `RETURNS TABLE(... owner_email text ...)` (`:304`) but the body selects **`u.email` raw** from `auth.users` (`:328`), and `auth.users.email` is **`varchar(255)`**, not `text`. plpgsql `RETURN QUERY` demands exact structural type match → **42804**. Every other column genuinely matches (`businesses.name/seat_tier/billing_mode/verification_status` all `text`; ids `uuid`; timestamps `timestamptz`). Sibling `admin_list_business_members` avoids it by wrapping email in `COALESCE(u.email, bm.invited_email)` (`:381`), which resolves to `text`.
+- **Impact:** Business Accounts admin view is **non-functional** — never loads. (Fails visibly, unlike NEW-1.)
+- **Fix:** ship a NEW migration that `CREATE OR REPLACE`s the function with `u.email::text` at `:328` (do **not** edit the deployed migration — replay-safety + auto-deploy). One cast fixes it.
+
+### 🟠 NEW-3 — Profile ▸ Schedule tab crashes on cold start (`Map` not persisted); latent on Applicants panel `[driven]`
+- **Where:** `src/components/profile/ScheduleTab.tsx:65` (data), `:199` & `:250` (`blockedDates.has(...)`); persister `src/lib/queryPersister.ts:55-67`.
+- **Symptom (driven, reproducible):** `?tab=schedule` throws `TypeError: blockedDates.has is not a function` (console EXCEPTION), caught by `SectionErrorBoundary` → *"Couldn't load the schedule section. …Try again."* The tab is unusable — a helper can never view/edit their schedule/blocked dates.
+- **Root cause:** `blockedDates` is a **`Map`** used as React Query `data`. The app persists the RQ cache to IndexedDB (`queryPersister.ts`), whose `serializeReplacer`/`deserializeReviver` round-trip **`Set` only** (via `SET_MARKER`) — **no `Map` branch**. `JSON.stringify(new Map(...))` → `"{}"`, so on cold-start rehydration `blockedDates` becomes a truthy plain `{}` (the `= new Map()` default is skipped) → `.has()` undefined → crash. The persister's own comment (`:43-52`) warns about *exactly this* for Sets — the fix was never generalized to Map.
+- **Blast radius:** same latent crash wherever a `Map` is query `data`: `useApplicantSignals.ts:68,97` return `Promise<Map<string,number>>` (feeds the poster's Applicants-comparison panel — `completedCountsMap`, etc.). A Set-only or ScheduleTab-only patch leaves these exposed. (Other `new Map(...)` hits are local transform vars, not query data — safe.)
+- **Fix (systemic, recommended):** extend the persister to round-trip `Map` like `Set` — add `MAP_MARKER`, `value instanceof Map ? {[MAP_MARKER]:[...value.entries()]}` in the replacer, `new Map(v[MAP_MARKER])` in the reviver, bump `SERIALIZATION_VERSION`→`"s3"` to evict stale `{}`-shaped Maps once. Targeted alt: ScheduleTab's queryFn returns `string[]`, rebuild `new Set(...)` in-render.
+
+### 🟢 Minor (this pass)
+- **Admin ▸ Reports** shows SLA overshoot as raw hours ("452h overdue" ≈ 19d) — roll to days past ~48h.
+- **Admin ▸ Subscriptions** labels the entry tier "Basic" vs the app canon Free/Pro/Elite/Business (`subscriptionTiers.ts`); also "Active Subs" counts the free/Basic user as an active subscription — reconcile label + count semantics.
+- **`/business` (bare)** has no index route → 404 catch-all. They redirect `/enterprise` & `/become-a-partner`→`/for-business`; add `/business`→`/business/team` for parity.
+- **`/business/contracts`** document `<title>` is "Recurring Jobs — Helpr Business" while the on-page H1 is "Contracts" — reconcile.
+- **Admin ▸ Health** correctly warns "No admin has registered a push token" (expected in this env; noted so it isn't mistaken for a bug).
+
+### ✅ Strong (this pass)
+`/payment-success` (escrow-hold reassurance + lifecycle + 48h auto-complete note) · Admin Health (Sentry smoke-test, email/fraud counters, push-token warning) · Parish Tax no-code rate editor (state+local→computed total) · unified "No business account" gate across all 7 business sub-pages with correct active-tab highlight · **live job search works** ("storm"→1 result, filtered header + clear) · zero horizontal overflow on all 52 screens driven.
+
+**Coverage now: admin 27/27 · business 7/7 · profile 17/17 · payment-success · live search — all `[driven]`.** Still needs env I can't self-provide: committable money/lifecycle with Stripe **test** keys (env is live prod) and on-device iOS (`npx cap run ios`).

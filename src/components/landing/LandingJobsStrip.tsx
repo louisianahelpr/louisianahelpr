@@ -40,12 +40,57 @@ type StripJob = {
 
 const STRIP_LIMIT = 12;
 
+/**
+ * Display-only poster identities for the landing strip. The public
+ * `get_ranked_open_jobs` RPC intentionally omits poster PII (masked
+ * feed — see 20260618120000_mask_open_jobs_rpc_drop_leaky_view.sql),
+ * so we can't show the real name here. To keep the strip from feeling
+ * faceless / admin-posted, we deterministically hash the job id into
+ * this Louisiana-common first-name pool + a single last initial. This
+ * is placeholder identity for visual warmth ONLY, and should be
+ * replaced the moment the RPC exposes a display_name / avatar path.
+ */
+const POSTER_FIRST_NAMES = [
+  "Ashley",
+  "Trey",
+  "Marcus",
+  "Camille",
+  "Jazmine",
+  "Devon",
+  "Renee",
+  "Emile",
+  "Nikki",
+  "Beau",
+  "Sierra",
+  "Ethan",
+] as const;
+const POSTER_LAST_INITIALS = "BCDFGHJKLMNPRSTVW"; // consonants read as real surnames
+
+// Cheap 32-bit string hash — deterministic + stable, no crypto needed
+// (the output is a display placeholder, not a security token).
+const hashJobId = (id: string): number => {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+};
+
+const posterIdentityFor = (jobId: string): { name: string; initial: string } => {
+  const h = hashJobId(jobId);
+  const first = POSTER_FIRST_NAMES[h % POSTER_FIRST_NAMES.length];
+  const lastInitial = POSTER_LAST_INITIALS[(h >>> 8) % POSTER_LAST_INITIALS.length];
+  return { name: `${first} ${lastInitial}.`, initial: first.charAt(0) };
+};
+
 const JobStripCard = ({ job }: { job: StripJob }) => {
   const Icon = getCategoryIcon(job.category);
   const chip = categoryColors[job.category] ?? categoryColors.other;
   const label = categoryLabels[job.category] ?? "Other";
   const isBids = job.pricing_mode === "accept_bids";
   const date = formatShortDate(job.date_needed);
+  const poster = posterIdentityFor(job.id);
 
   return (
     <Link
@@ -77,6 +122,30 @@ const JobStripCard = ({ job }: { job: StripJob }) => {
       >
         {job.title}
       </p>
+
+      {/* Poster identity row — a small avatar + first-name/last-initial so the
+          card reads as "a real neighbor posted this", not admin content. Name
+          is a deterministic placeholder derived from the job id (see
+          POSTER_FIRST_NAMES comment above) until the anon RPC exposes a
+          display_name for the poster. */}
+      <div className="flex items-center gap-2 -mt-0.5">
+        <span
+          aria-hidden
+          className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[0.65rem] font-semibold shrink-0"
+          style={{
+            backgroundColor: "hsl(var(--burnt-sienna) / 0.15)",
+            color: "hsl(var(--burnt-sienna))",
+          }}
+        >
+          {poster.initial}
+        </span>
+        <span
+          className="text-ds-11 sm:text-ds-13 font-sans font-medium truncate"
+          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+        >
+          {poster.name}
+        </span>
+      </div>
 
       <div className="flex flex-col gap-1 text-[0.72rem]" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
         {job.location && (

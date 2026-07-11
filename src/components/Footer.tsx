@@ -28,7 +28,7 @@ const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
  */
 const Footer = () => (
   <footer
-    className="px-5 sm:px-8 lg:px-12 relative"
+    className="px-5 sm:px-8 lg:px-12 relative border-t border-[hsl(var(--olivewood))]/15"
     style={{
       /* Floating-glass footer — minimal tint, blur-only, NO horizontal line.
          The page's mesh gradient flows continuously into the footer area

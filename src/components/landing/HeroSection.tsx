@@ -113,7 +113,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative flex flex-col px-5 sm:px-8 lg:px-12 pt-14 sm:pt-20 lg:pt-24 pb-16 sm:pb-24 lg:pb-32">
+    <section className="relative flex flex-col px-5 sm:px-8 lg:px-12 pt-4 sm:pt-8 lg:pt-12 pb-16 sm:pb-24 lg:pb-32">
       {/* Fleur-de-lis watermark — a subtle Louisiana signature in the top-
           right corner of the hero. `opacity: 0.06` + Burnt-Sienna makes it
           read as a mark on the parchment, not a graphic that competes with
@@ -173,16 +173,16 @@ const HeroSection = () => {
             className="font-display font-black leading-[1.02] text-balance break-words mt-6 sm:mt-8 text-[2.5rem] sm:text-6xl lg:text-7xl xl:text-[5rem] max-w-4xl"
             style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
           >
-            Louisiana neighbors.{" "}
+            Louisiana&rsquo;s Local{" "}
             <span className="sm:block">
-              Louisiana{" "}
+              Job{" "}
               <em
                 style={{
                   fontStyle: "italic",
                   color: "hsl(var(--burnt-sienna))",
                 }}
               >
-                jobs.
+                Partner.
               </em>
             </span>
           </h1>

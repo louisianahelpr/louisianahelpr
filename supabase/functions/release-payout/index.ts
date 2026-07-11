@@ -99,7 +99,7 @@ serve(async (req) => {
   const { data: job, error: jobErr } = await supabaseAdmin
     .from("jobs")
     .select(
-      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, dispute_status, disputed_at",
+      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, dispute_status, disputed_at, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id",
     )
     .eq("id", body.job_id)
     .single();
@@ -228,6 +228,70 @@ serve(async (req) => {
     );
   }
 
+  // ── Verify the escrow charge actually captured before moving platform funds ──
+  // Gating only on payment_status='payout_pending' (a Postgres column) trusts the
+  // DB as ground truth for real money movement. A bug, a manual DB edit, or a
+  // webhook race that set payout_pending WITHOUT a captured charge would pay the
+  // helper out of the platform's own balance. Mirror process-scheduled-payouts:
+  // re-verify the PaymentIntent succeeded — EXCEPT for Pay-It-Forward jobs, which
+  // are funded from the prepaid platform balance and legitimately have no poster
+  // charge on this job (auto-release-payment Phase 2 hands us PIF jobs too).
+  const { data: pifRow, error: pifErr } = await supabaseAdmin
+    .from("pif_credits")
+    .select("id")
+    .eq("job_id", job.id)
+    .eq("status", "redeemed")
+    .limit(1)
+    .maybeSingle();
+  if (pifErr) {
+    // Fail closed: if we can't tell whether this is PIF-funded, don't risk paying
+    // out against an unverified charge — defer so a retry can re-check.
+    console.error(`[release-payout] pif_credits read failed for job ${job.id}:`, pifErr);
+    return jsonResponse({ error: "funding-source check failed — retry" }, 500);
+  }
+  if (!pifRow) {
+    let paymentIntentId = job.stripe_payment_intent_id;
+    if (!paymentIntentId && job.stripe_session_id) {
+      try {
+        const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
+        paymentIntentId = typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id;
+        if (paymentIntentId) {
+          await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
+        }
+      } catch (e) {
+        console.warn(`[release-payout] could not retrieve session for job ${job.id}:`, e);
+      }
+    }
+    if (!paymentIntentId) {
+      console.error(`[release-payout] no payment intent for job ${job.id} — cannot verify escrow capture, refusing transfer.`);
+      return jsonResponse({ error: "no payment intent on file — cannot verify escrow capture" }, 409);
+    }
+    let pi: Stripe.PaymentIntent;
+    try {
+      pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+    } catch (e) {
+      console.error(`[release-payout] paymentIntents.retrieve failed for ${paymentIntentId} (job ${job.id}):`, e);
+      return jsonResponse({ error: "could not verify escrow charge — retry" }, 502);
+    }
+    if (pi.status !== "succeeded") {
+      // The charge was never captured — transferring now would drain the platform
+      // balance for money that was never collected. Refuse and alert admins.
+      console.error(`[release-payout] PI ${paymentIntentId} for job ${job.id} status "${pi.status}" — refusing transfer.`);
+      const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
+      for (const admin of adminRoles ?? []) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: admin.user_id,
+          title: "⚠️ Payout blocked — charge not captured",
+          message: `Job ${job.id} ("${job.title}") payout blocked. PaymentIntent status: ${pi.status}.`,
+          type: "warning", link: "/admin",
+        });
+      }
+      return jsonResponse({ error: `escrow charge not captured (PI status: ${pi.status}) — payout refused`, pi_status: pi.status }, 409);
+    }
+  }
+
   // Compute payout: budget - platform cut + any urgent fee, in cents.
   // The platform cut is the helper's tiered commission (free 12 / pro 10 /
   // elite 8 / business 6), resolved from their live subscription tier at
@@ -250,9 +314,16 @@ serve(async (req) => {
     job.helper_id,
     fallbackFeePercent,
   );
-  const grossDollars = Number(job.budget) + netUrgentFeeDollars(job.urgent_fee);
+  // Group jobs charge the poster the budget ONCE but the roster is N helpers, so
+  // each helper is paid budget/N (and their share of the urgent fee), exactly as
+  // process-scheduled-payouts:67-80 and JobPrice.computeNet do. Paying a single
+  // helper off the FULL budget over-pays N× and shorts the platform balance for
+  // the rest of the roster.
+  const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+  const perHelperBudget = Number(job.budget) / helpersCount;
+  const grossDollars = perHelperBudget + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
   const platformFeeDollars =
-    Math.round(Number(job.budget) * helperFeePercent) / 100;
+    Math.round(perHelperBudget * helperFeePercent) / 100;
   const payoutDollars = grossDollars - platformFeeDollars;
   let payoutCents = Math.round(payoutDollars * 100);
   const platformFeeCents = Math.round(platformFeeDollars * 100);

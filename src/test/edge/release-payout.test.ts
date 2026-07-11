@@ -65,10 +65,20 @@ function seedPayableJob(s: SupabaseScenario, overrides: Record<string, unknown> 
         urgent_fee: 0,
         dispute_status: null,
         disputed_at: null,
+        is_group_job: false,
+        helpers_needed: null,
+        stripe_payment_intent_id: "pi_1",
+        stripe_session_id: null,
         ...overrides,
       },
     ],
   };
+  // Not a Pay-It-Forward job by default, and the escrow charge captured.
+  s.reads.pif_credits = { rows: [] };
+  stripeMock.paymentIntents.retrieve.mockResolvedValue({
+    id: "pi_1",
+    status: "succeeded",
+  });
   s.reads.profiles = {
     rows: [
       {
@@ -456,6 +466,86 @@ describe("release-payout edge function", () => {
       const last = profileWrites[profileWrites.length - 1].payload as Record<string, unknown>;
       expect(last.onboarding_fee_paid).toBe(false);
       expect(last.onboarding_fee_charged_at).toBeNull();
+    });
+
+    it("splits the budget per-helper on a group job instead of paying one helper the full budget", async () => {
+      // 3-helper $300 group job: poster charged the budget ONCE, so each helper
+      // is paid 300/3 = $100 → minus 12% free-tier fee = $88 → 8800 cents.
+      // The pre-fix bug paid the FULL $300 (26400 cents) to a single helper.
+      seedPayableJob(scenario, {
+        budget: 300,
+        is_group_job: true,
+        helpers_needed: 3,
+      });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      const out = await json(res);
+      expect(res.status).toBe(200);
+      expect(out.amount_cents).toBe(8800);
+      expect(out.platform_fee_cents).toBe(1200);
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(8800);
+    });
+
+    it("refuses to transfer and returns 409 when the escrow charge did not capture", async () => {
+      seedPayableJob(scenario);
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1",
+        status: "requires_payment_method",
+      });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toMatch(/not captured/i);
+      // No money moves against an uncaptured charge.
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("returns 409 when there is no payment intent to verify (non-PIF job)", async () => {
+      seedPayableJob(scenario, {
+        stripe_payment_intent_id: null,
+        stripe_session_id: null,
+      });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toMatch(/cannot verify escrow capture/i);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("pays a Pay-It-Forward job from platform balance WITHOUT requiring a captured charge", async () => {
+      // PIF jobs are funded from the prepaid platform balance and have no poster
+      // charge on this job, so the PI-capture gate must be skipped for them.
+      seedPayableJob(scenario, {
+        stripe_payment_intent_id: null,
+        stripe_session_id: null,
+      });
+      scenario.reads.pif_credits = { rows: [{ id: "pif-1" }] };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect((await json(res)).success).toBe(true);
+      // Never touched Stripe to verify a (nonexistent) charge.
+      expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
     });
 
     it("returns 500 when the transfer succeeded but the ledger write failed", async () => {

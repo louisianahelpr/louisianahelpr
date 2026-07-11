@@ -126,32 +126,38 @@ const HeroSection = () => {
 
   return (
     <section className="relative flex flex-col justify-center items-center min-h-[100svh] px-5 sm:px-8 lg:px-12 pt-20 sm:pt-24 lg:pt-28 pb-14 sm:pb-20 lg:pb-24">
-      {/* Hero — one 2-column grid. Eyebrow and H1 sit in the LEFT column,
-          anchored to the top-left; subhead + stacked CTAs sit in the right
-          column, centered vertically so they align with the bulk of the H1. */}
-      <div className="w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid lg:grid-cols-[1.6fr_1fr] items-center gap-10 lg:gap-16 text-center lg:text-left">
-        <div className="flex flex-col items-center lg:items-start">
-          <span className="text-display-eyebrow">Made in Louisiana</span>
-          <h1
-            ref={headlineRef}
-            className="mt-4 sm:mt-6 font-display font-black leading-[1.02] text-balance break-words text-[2.75rem] sm:text-6xl lg:text-[5.5rem] xl:text-[7rem]"
-            style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
-          >
-            Louisiana&rsquo;s Local Job{" "}
-            <em
-              style={{
-                fontStyle: "italic",
-                color: "hsl(var(--burnt-sienna))",
-              }}
-            >
-              Partner.
-            </em>
-          </h1>
-        </div>
+      {/* Eyebrow — pulled OUT of the grid so it doesn't count toward the
+          left column's height. That way the right column (subhead + CTAs)
+          vertically centers against the H1 alone, not against H1 + eyebrow.
+          Sits absolute at the top of the section container. On mobile it
+          stays inline above the H1 via the `lg:absolute` override. */}
+      <span className="text-display-eyebrow mb-6 lg:mb-0 lg:absolute lg:top-24 lg:left-12">
+        Made in Louisiana
+      </span>
 
-        <div className="flex flex-col gap-8 lg:gap-10 items-center lg:items-start">
+      <div className="w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid lg:grid-cols-[1.6fr_1fr] items-center gap-10 lg:gap-16 text-center lg:text-left">
+        <h1
+          ref={headlineRef}
+          className="font-display font-black leading-[1.02] text-balance break-words text-[2.75rem] sm:text-6xl lg:text-[5.5rem] xl:text-[7rem]"
+          style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
+        >
+          Louisiana&rsquo;s Local Job{" "}
+          <em
+            style={{
+              fontStyle: "italic",
+              color: "hsl(var(--burnt-sienna))",
+            }}
+          >
+            Partner.
+          </em>
+        </h1>
+
+        {/* Right column — always horizontally centered (subhead above the
+            two stacked buttons). Vertically centered with the H1 row via
+            the grid's items-center. */}
+        <div className="flex flex-col gap-8 lg:gap-10 items-center">
           <p
-            className="max-w-2xl mx-auto lg:mx-0 text-ds-17 sm:text-ds-20 lg:text-ds-24 leading-relaxed text-balance"
+            className="max-w-md mx-auto text-ds-17 sm:text-ds-20 lg:text-ds-24 leading-relaxed text-balance"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 400,

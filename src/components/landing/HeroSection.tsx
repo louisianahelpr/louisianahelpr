@@ -113,14 +113,14 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-[100svh] flex flex-col justify-center px-5 sm:px-8 lg:px-12 pt-20 sm:pt-20 lg:pt-24 pb-5">
-      {/* Hero content — copy + category rail are ONE group, vertically
-          centered in the section (justify-center on the section, natural
-          height here). The rail is no longer pinned to the section bottom via
-          flex-1, so it rides right under the CTAs and can't be pushed below
-          the fold by the offline banner's added top chrome. No
-          absolutely-positioned art means the composition can never overflow
-          or clip at half-screen widths. */}
+    <section className="relative flex flex-col px-5 sm:px-8 lg:px-12 pt-6 sm:pt-10 lg:pt-14 pb-8 sm:pb-12">
+      {/* Hero content — the category rail now lives ABOVE the hero (in
+          Index.tsx, under the fixed nav), so this section no longer needs
+          `min-h-[100svh]` + `justify-center`: on mobile that combo left a
+          huge blank gap between the category strip and the H1 while the
+          section stretched the copy to the vertical center of the viewport.
+          Flowing naturally means the H1 sits directly under the categories
+          with the CTAs immediately below — no dead space. */}
       <div className="flex flex-col items-center text-center">
         <div className="mx-auto w-full max-w-3xl flex flex-col items-center">
 
@@ -169,7 +169,7 @@ const HeroSection = () => {
             <Button
               asChild
               size="xl"
-              className="btn-grad-primary group h-14 sm:h-[3.75rem] lg:h-16 px-8 rounded-2xl tracking-tight w-full sm:w-auto sm:min-w-[13.5rem] transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
+              className="btn-grad-primary group h-14 sm:h-[3.75rem] lg:h-16 px-8 rounded-full tracking-tight w-full sm:w-auto sm:min-w-[13.5rem] transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
               style={{
                 fontFamily: "Montserrat, system-ui, sans-serif",
                 fontWeight: 600,
@@ -192,7 +192,7 @@ const HeroSection = () => {
               asChild
               size="xl"
               variant="outline"
-              className="group h-14 sm:h-[3.75rem] lg:h-16 px-8 rounded-2xl tracking-tight w-full sm:w-auto sm:min-w-[13.5rem] transition-all duration-200 hover:-translate-y-0.5"
+              className="group h-14 sm:h-[3.75rem] lg:h-16 px-8 rounded-full tracking-tight w-full sm:w-auto sm:min-w-[13.5rem] transition-all duration-200 hover:-translate-y-0.5"
               style={{
                 fontFamily: "Montserrat, system-ui, sans-serif",
                 fontWeight: 600,

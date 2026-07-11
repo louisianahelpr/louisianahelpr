@@ -52,7 +52,7 @@ const CategoryBento = ({ onSelect }: CategoryBentoProps) => {
   const loop = [...categories, ...categories];
 
   const pillClassName =
-    "liquid-glass inline-flex items-center gap-2.5 px-5 py-3 rounded-full text-ds-13 sm:text-ds-15 font-sans font-medium tracking-tight whitespace-nowrap shrink-0 transition-transform duration-200 hover:-translate-y-0.5";
+    "liquid-glass inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-ds-12 sm:text-ds-13 font-sans font-medium tracking-tight whitespace-nowrap shrink-0 transition-transform duration-200 hover:-translate-y-0.5";
 
   return (
     // Single outer button wraps the whole marquee surface. The visible
@@ -84,13 +84,13 @@ const CategoryBento = ({ onSelect }: CategoryBentoProps) => {
                 style={{ color: "hsl(var(--olivewood))" }}
               >
                 <Icon
-                  className="w-4 h-4 shrink-0"
+                  className="w-3.5 h-3.5 shrink-0"
                   style={{ color: "hsl(var(--bark))" }}
                   strokeWidth={1.5}
                 />
                 {c.label}
                 <span
-                  className="text-ds-11 sm:text-[13px] font-normal"
+                  className="text-[0.68rem] sm:text-ds-11 font-normal"
                   style={{ color: "hsl(var(--stormy-sky))" }}
                 >
                   · {c.nearby} nearby

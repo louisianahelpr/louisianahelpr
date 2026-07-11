@@ -123,7 +123,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               href="https://apps.apple.com/us/app/helpr/id6754470134"
               target="_blank"
               rel="noopener noreferrer"
-              className="liquid-glass mr-3 inline-flex items-center gap-1.5 h-8 px-3 rounded-ds-md transition-transform duration-200 hover:-translate-y-0.5"
+              className="liquid-glass mr-3 inline-flex items-center gap-1.5 h-8 px-3 rounded-full transition-transform duration-200 hover:-translate-y-0.5"
               style={{ color: "hsl(var(--ink-deep))" }}
               aria-label="Download Helpr on the App Store"
             >
@@ -138,7 +138,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               <Button
                 asChild
                 size="sm"
-                className="rounded-ds-md btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                className="rounded-full btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                 style={{ color: "hsl(var(--parchment))" }}
               >
                 <Link
@@ -157,7 +157,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                   asChild
                   variant="ghost"
                   size="sm"
-                  className="rounded-ds-md btn-press transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                  className="rounded-full btn-press transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
                 >
                   <Link
                     to="/login"
@@ -177,7 +177,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                 <Button
                   asChild
                   size="sm"
-                  className="rounded-ds-md btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                  className="rounded-full btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                   style={{ color: "hsl(var(--parchment))" }}
                 >
                   <Link
@@ -199,7 +199,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
-                className="btn-press rounded-ds-md h-8 px-3 gap-1.5 font-sans font-semibold text-ds-13"
+                className="btn-press rounded-full h-8 px-3 gap-1.5 font-sans font-semibold text-ds-13"
                 style={{
                   background: "hsl(var(--bark) / 0.08)",
                   border: "1px solid hsl(var(--bark) / 0.22)",

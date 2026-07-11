@@ -34,12 +34,26 @@ export function useScrollFadeUp() {
       { rootMargin: "0px 0px -8% 0px", threshold: 0.1 },
     );
 
+    // Element is already in the viewport at observe-time when its rect
+    // vertically overlaps the visible area. If it is, skip the
+    // hide-then-fade dance entirely — otherwise a scroll-triggered fade
+    // would flash a blank box above the fold on first paint.
+    const isInViewport = (el: Element) => {
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      return rect.top < vh && rect.bottom > 0;
+    };
+
     const observe = (el: Element) => {
       if (observed.has(el)) return;
       observed.add(el);
-      if (reduceMotion) {
+      if (reduceMotion || isInViewport(el)) {
         el.classList.add("is-visible");
       } else {
+        // Only hide when we KNOW we'll animate the element in — that way
+        // if the observer never fires (JS error, scroll never happens)
+        // the base state is visible, not blank.
+        el.classList.add("js-fade-hidden");
         intersectionObs.observe(el);
       }
     };

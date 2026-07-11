@@ -70,7 +70,7 @@ const BusinessCTASection = () => (
             <Button
               asChild
               size="lg"
-              className="btn-grad-primary group rounded-2xl font-sans font-semibold transition-[transform,filter] duration-200 hover:brightness-110 active:scale-[0.98] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+              className="btn-grad-primary group rounded-full font-sans font-semibold transition-[transform,filter] duration-200 hover:brightness-110 active:scale-[0.98] !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
               style={{
                 color: "hsl(var(--parchment))",
                 border: "1px solid hsl(66 25% 19%)",

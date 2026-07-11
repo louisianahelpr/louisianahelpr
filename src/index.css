@@ -1700,13 +1700,22 @@ button,
 /* Scroll-stagger fade-up — elements enter the viewport with a soft upward
    shift + opacity rise. Toggled by the `is-visible` class which the
    useScrollFadeUp hook adds via IntersectionObserver. Per-element stagger
-   is set inline via `style={{ transitionDelay: '${i * 60}ms' }}`. */
+   is set inline via `style={{ transitionDelay: '${i * 60}ms' }}`.
+
+   IMPORTANT: the invisibility is JS-added via `.js-fade-hidden` (not baked
+   into `.observe-fade-up` itself). If the observer never runs — no JS, hook
+   errors, mount delay — elements render fully visible instead of stuck as
+   blank white boxes. The hook only adds `.js-fade-hidden` to elements that
+   are NOT yet in the viewport, so content above the fold paints instantly. */
 .observe-fade-up {
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.observe-fade-up.js-fade-hidden {
   opacity: 0;
   transform: translateY(14px);
-  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-              transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: opacity, transform;
 }
 
 .observe-fade-up.is-visible {
@@ -1715,7 +1724,8 @@ button,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .observe-fade-up {
+  .observe-fade-up,
+  .observe-fade-up.js-fade-hidden {
     opacity: 1;
     transform: none;
     transition: none;

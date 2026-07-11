@@ -197,18 +197,16 @@ const Index = () => {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      {/* Category rail — moved OUT of the hero to sit directly under the
-          fixed top nav as a browse-affordance strip. Custom top padding
-          clears the navbar (h-12 + safe-area) since the landing opts out of
-          the PublicLayout nav spacer (noNavSpacer). */}
-      <div
-        className="px-5 sm:px-8 lg:px-12 pb-3 sm:pb-4"
-        style={{ paddingTop: "calc(max(env(safe-area-inset-top), 1.5rem) + 3rem + 0.5rem)" }}
-      >
+      <HeroSection />
+
+      {/* Category rail — sits directly BELOW the hero (not above): an
+          external layout audit flagged that putting it above the hero
+          confused document order vs. visual order and left an awkward
+          gap on some breakpoints. Hero → category browse affordance
+          reads as the intended tell-then-show flow. */}
+      <div className="px-5 sm:px-8 lg:px-12 pb-3 sm:pb-4">
         <CategoryBento onSelect={handleCategorySelect} />
       </div>
-
-      <HeroSection />
 
       {/* Live payout ticker (#87) — single-line social-proof strip
           between the hero CTAs and the city strip, telling prospective

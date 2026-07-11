@@ -85,13 +85,14 @@ const HowItWorksSection = () => {
           </p>
         </div>
 
-        {/* Poster / Helpr toggle — a segmented pill. Same interaction language
-            as the rest of the app: glossy active segment, calm inactive. */}
-        <div className="mb-5 sm:mb-6 px-2 sm:px-4">
+        {/* Poster / Helpr toggle — a full-width segmented pill so its edges
+            line up with the liquid-glass step panel below. Two equal halves
+            (flex-1 on each button) so neither label crowds the other. */}
+        <div className="mb-5 sm:mb-6">
           <div
             role="tablist"
             aria-label="See how it works for posters or Helprs"
-            className="inline-flex items-center gap-1 rounded-full p-1"
+            className="flex w-full items-center gap-1 rounded-full p-1"
             style={{
               background: "hsl(var(--olivewood) / 0.08)",
               border: "1px solid hsl(var(--olivewood) / 0.14)",
@@ -107,7 +108,7 @@ const HowItWorksSection = () => {
                   aria-selected={active}
                   aria-controls="how-it-works-steps"
                   onClick={() => setMode(key)}
-                  className="whitespace-nowrap rounded-full px-4 sm:px-5 py-2 text-ds-13 sm:text-ds-15 font-sans font-semibold transition-all duration-300"
+                  className="flex-1 whitespace-nowrap rounded-full px-4 sm:px-5 py-2.5 text-ds-13 sm:text-ds-15 font-sans font-semibold transition-all duration-300"
                   style={
                     active
                       ? {
@@ -139,7 +140,6 @@ const HowItWorksSection = () => {
             className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5"
           >
             {steps.map((step, i) => {
-              const Icon = step.icon;
               return (
                 <article
                   key={step.title}
@@ -149,9 +149,11 @@ const HowItWorksSection = () => {
                     border: "1px solid rgba(255, 255, 255, 0.18)",
                   }}
                 >
-                  <div className="flex items-start justify-between">
-                    {/* Step number badge — sits on the LEFT so a first-time
-                        reader lands on "01" before the visual affordance. */}
+                  <div className="flex items-start">
+                    {/* Step number badge — the affordance icon lived to the
+                        right of the number but competed with it and made the
+                        card top-row read as two badges; the number alone is
+                        a cleaner lead-in to the step title. */}
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center font-mono font-bold text-ds-13"
                       style={{
@@ -160,9 +162,6 @@ const HowItWorksSection = () => {
                       }}
                     >
                       {String(i + 1).padStart(2, "0")}
-                    </div>
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "hsl(var(--bark) / 0.1)" }}>
-                      <Icon className="w-6 h-6" strokeWidth={1.25} style={{ color: "hsl(var(--bark))" }} />
                     </div>
                   </div>
                   <div className="space-y-2">

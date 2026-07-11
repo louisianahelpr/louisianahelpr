@@ -61,6 +61,21 @@ export function useScrollFadeUp() {
     // Initial pass — pick up everything already in the DOM.
     document.querySelectorAll(".observe-fade-up").forEach(observe);
 
+    // Belt-and-suspenders reveal-all fallback: after 2 s, force every
+    // observed element to `.is-visible` regardless of viewport state. This
+    // guarantees content is never stuck as a blank box if the user scrolls
+    // faster than the observer fires, if the observer never gets a callback
+    // (some headless/full-page-screenshot renderers), or if any other
+    // reveal signal is lost. Two seconds is well past the typical
+    // intersection callback latency (single-digit ms) but short enough
+    // that a user who briefly opens the page and stays put never sees a
+    // "still fading in" state.
+    const revealAllTimer = window.setTimeout(() => {
+      document
+        .querySelectorAll(".observe-fade-up:not(.is-visible)")
+        .forEach((el) => el.classList.add("is-visible"));
+    }, 2000);
+
     // Watch for elements added by lazy-loaded sections.
     const mutationObs = new MutationObserver((mutations) => {
       for (const m of mutations) {
@@ -78,6 +93,7 @@ export function useScrollFadeUp() {
     return () => {
       intersectionObs.disconnect();
       mutationObs.disconnect();
+      window.clearTimeout(revealAllTimer);
     };
   }, []);
 }

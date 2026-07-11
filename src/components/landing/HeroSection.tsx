@@ -127,9 +127,7 @@ const HeroSection = () => {
   return (
     <section className="relative flex flex-col justify-center items-center min-h-[85svh] px-5 sm:px-8 lg:px-12 pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-14 lg:pb-16">
       {/* Unified hero — single centered column at every viewport size:
-          eyebrow → H1 → subhead → stacked CTAs. Previously the layout split
-          into 2 columns at lg+; user asked for the same composition across
-          all sizes so mobile / tablet / desktop read as one hero. */}
+          eyebrow → H1 → subhead → stacked CTAs. */}
       <span className="text-display-eyebrow mb-6">Made in Louisiana</span>
 
       <div className="w-full mx-auto max-w-4xl flex flex-col items-center gap-10 text-center">

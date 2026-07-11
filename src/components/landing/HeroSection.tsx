@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, ArrowRight, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
 
 /**
- * Hero — Louisiana Helpr 2026 brand system.
+ * Hero — Louisiana Helpr 2026 brand system, top-marketplace visual language.
  *
- * Single centered editorial composition: eyebrow + Bodoni Moda H1 +
- * EB Garamond italic subhead + two action buttons, all stacked in one flow
- * column that is centered in the section and fits every viewport (no
- * absolutely-positioned art to overflow at half-screen). The category rail
- * anchors the bottom of the hero.
+ * Modern marketplace pattern (TaskRabbit / Handy / Thumbtack / Airtasker / Angi):
+ *   1. Bold modern-sans H1 (Montserrat 900, tight tracking) — not editorial serif.
+ *   2. One-line sans subhead — not multi-line italic serif.
+ *   3. A prominent SEARCH-STYLE INPUT as the primary CTA — not two side-by-side
+ *      buttons. Below it, a compact strip of popular categories as quick-start
+ *      taps.
+ *
+ * Both the input submit and the category taps route through the same
+ * auth-aware handler that the previous Post-a-job button used: authed users
+ * land on /post-job, anonymous users get /signup.
  */
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -18,7 +22,8 @@ const HeroSection = () => {
   const headlineRef = useRef<HTMLHeadingElement>(null);
 
   // Variable kerning on scroll — the H1 letter-spacing tightens slightly as
-  // the user scrolls past the hero. Restrained: clamps at -0.06 em max.
+  // the user scrolls past the hero. Restrained: clamps at -0.065 em max
+  // (starts at -0.03 em to match the modern-marketplace baseline).
   // Skipped for users who prefer reduced motion.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -33,7 +38,7 @@ const HeroSection = () => {
       if (!el) return;
       const scroll = Math.min(window.scrollY, 600);
       const tighten = (scroll / 600) * 0.035; // 0 -> 0.035 em over 600 px
-      el.style.letterSpacing = `${-0.025 - tighten}em`;
+      el.style.letterSpacing = `${-0.03 - tighten}em`;
     };
     const onScroll = () => {
       cancelAnimationFrame(raf);
@@ -79,11 +84,10 @@ const HeroSection = () => {
     };
   }, []);
 
-  // CTAs render as real <Link>s (crawlable href = the anonymous-visitor
-  // destination). The onClick intercepts client-side so logged-in users get
-  // auth-aware routing instead, while crawlers/JS-disabled visitors still
-  // follow the static href.
-  const goToPostJob = async (e?: React.MouseEvent) => {
+  // Auth-aware routing for the search-input submit and every quick-start
+  // category link. Authed users go to /post-job (posting flow), anonymous
+  // visitors get /signup (so they can enter the marketplace before posting).
+  const goToPostJob = async (e?: React.SyntheticEvent) => {
     e?.preventDefault();
     if (loggedIn) {
       navigate("/post-job");
@@ -96,58 +100,35 @@ const HeroSection = () => {
     navigate(session?.user ? "/post-job" : "/signup");
   };
 
-  // Anonymous visitors get the public job feed (/browse) so they can taste
-  // the marketplace before signing up. Logged-in users go to their
-  // dashboard, where the same feed lives but with personalized rails.
-  const goToJoinCommunity = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (loggedIn) {
-      navigate("/dashboard");
-      return;
-    }
-    const { supabase } = await import("@/integrations/supabase/client");
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    navigate(session?.user ? "/dashboard" : "/browse");
-  };
+  // Popular categories — mirrors what top marketplace heroes surface below
+  // their search input. Kept short (5) so the row never wraps on mobile.
+  const popularCategories = [
+    "Yard work",
+    "Cleaning",
+    "Moving",
+    "Errands",
+    "Handyman",
+  ];
 
   return (
     <section className="relative flex flex-col px-5 sm:px-8 lg:px-12 pt-4 sm:pt-8 lg:pt-12 pb-16 sm:pb-24 lg:pb-32">
-      {/* Hero content — the category rail now lives ABOVE the hero (in
-          Index.tsx, under the fixed nav), so this section no longer needs
-          `min-h-[100svh]` + `justify-center`: on mobile that combo left a
-          huge blank gap between the category strip and the H1 while the
-          section stretched the copy to the vertical center of the viewport.
-          Flowing naturally means the H1 sits directly under the categories
-          with the CTAs immediately below — no dead space. */}
       <div className="relative flex flex-col items-center text-center">
         <div className="mx-auto w-full max-w-3xl flex flex-col items-center">
 
-          {/* The live-count proof lives once, in the trust strip below — the
-              old "Live now" pill duplicated it and read as awkward on load
-              (it flashed the generic "Live now" fallback before the count
-              resolved), so the eyebrow now leads the hero. */}
+          {/* Eyebrow — kept unchanged. Anchors the composition and reads as
+              a modern marketplace's "local promise" tag. */}
           <span className="text-display-eyebrow">Made in Louisiana</span>
 
-          {/* H1 — Bodoni Moda 900, italic Burnt-Sienna emphasis on the
-              second line's noun. Letter-spacing animates on scroll.
-              `text-balance` keeps the two lines even; `break-words` guards
-              the unbreakable word "Louisiana" from bursting a ~320 px
-              viewport. The second line flips to `sm:block` so at tablet+
-              "Louisiana jobs." always claims its own second line — an
-              intentional 2-line composition instead of an orphaned "jobs."
-              dangling by itself. Mobile keeps the natural inline flow.
-
-              Copy: "Louisiana neighbors. Louisiana jobs." — chosen over the
-              descriptive prior H1 because it names WHO does the work
-              (neighbors, not gig-workers), then WHAT (jobs) as the payoff.
-              The parallel structure lets the italic Burnt-Sienna land on
-              "jobs" so the accent color hits the noun the visitor came for. */}
+          {/* H1 — Montserrat 900 (font-sans font-black), tight -0.03em
+              tracking. This is the top-marketplace visual pattern: bold
+              modern-sans headline, not editorial serif. The italic
+              burnt-sienna emphasis stays on the noun ("Partner.") for
+              accent-color anchoring, but rendered in italic Montserrat
+              instead of italic serif. */}
           <h1
             ref={headlineRef}
-            className="font-display font-black leading-[1.02] text-balance break-words mt-6 sm:mt-8 text-[2.5rem] sm:text-6xl lg:text-7xl xl:text-[5rem] max-w-4xl"
-            style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
+            className="font-sans font-black leading-[1.02] text-balance break-words mt-6 sm:mt-8 text-[2.5rem] sm:text-6xl lg:text-7xl xl:text-[5rem] max-w-4xl"
+            style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.03em" }}
           >
             Louisiana&rsquo;s Local{" "}
             <span className="sm:block">
@@ -163,73 +144,90 @@ const HeroSection = () => {
             </span>
           </h1>
 
-          {/* Subhead — three-beat cadence (post / done / paid) that mirrors
-              the actual arc of using the app. Shorter and warmer than the
-              prior explanatory paragraph; the marketplace mechanics live in
-              the sections below, so the hero leads with rhythm and promise. */}
+          {/* Subhead — one line, modern sans medium. Tighter and less
+              editorial than the prior three-line italic serif, which is the
+              visual language every top marketplace hero uses. */}
           <p
-            className="font-serif italic mt-8 sm:mt-10 max-w-2xl text-ds-17 sm:text-ds-20 lg:text-ds-24 leading-relaxed text-balance"
-            style={{
-              color: "hsl(var(--stormy-sky))",
-              fontWeight: 600,
-              textShadow: "0 1px 1px rgba(46, 47, 34, 0.06)",
-            }}
+            className="font-sans font-medium mt-6 sm:mt-8 max-w-2xl text-ds-15 sm:text-ds-17 leading-relaxed"
+            style={{ color: "hsl(var(--olivewood))" }}
           >
-            Hire a Helpr or find local work. Whether you need a hand or
-            you&rsquo;re ready to lend one, we&rsquo;re your trusted local
-            partner for everyday jobs.
+            Louisiana neighbors, ready to help — hire in minutes.
           </p>
 
-          {/* CTAs — side by side on desktop, stacked full-width on mobile. */}
-          <div className="mt-12 sm:mt-14 flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full max-w-sm sm:max-w-none">
-            <Button
-              asChild
-              size="xl"
-              className="btn-grad-primary group h-14 sm:h-[3.75rem] lg:h-16 px-8 rounded-full tracking-tight w-full sm:w-auto sm:min-w-[13.5rem] transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
+          {/* Search-style CTA — the modern marketplace pattern. Full-width
+              pill, embedded submit button on the right. Wired to the same
+              auth-aware handler the prior Post-a-job button used. */}
+          <form
+            onSubmit={goToPostJob}
+            className="mt-10 sm:mt-12 w-full max-w-xl"
+            role="search"
+            aria-label="What do you need done?"
+          >
+            <div
+              className="relative flex items-center h-14 sm:h-16 rounded-full bg-white pl-5 pr-1.5 sm:pl-6 sm:pr-2"
               style={{
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                fontSize: "1rem",
-                lineHeight: 1,
-                letterSpacing: "-0.005em",
-                color: "hsl(var(--parchment))",
-                border: "1px solid hsl(66 25% 19%)",
+                border: "1px solid hsl(var(--bark) / 0.18)",
                 boxShadow:
-                  "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 12px 32px -8px hsl(var(--bark) / 0.35)",
+                  "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -12px hsl(var(--bark) / 0.22)",
               }}
             >
-              <Link to="/signup" onClick={goToPostJob}>
-                <Sparkles className="mr-2 w-5 h-5" strokeWidth={1.25} />
-                Post a job
-                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              size="xl"
-              variant="outline"
-              className="group h-14 sm:h-[3.75rem] lg:h-16 px-8 rounded-full tracking-tight w-full sm:w-auto sm:min-w-[13.5rem] transition-all duration-200 hover:-translate-y-0.5"
-              style={{
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                fontSize: "1rem",
-                lineHeight: 1,
-                letterSpacing: "-0.005em",
-                color: "hsl(var(--bark))",
-                background: "rgba(255, 255, 255, 0.45)",
-                backgroundImage: "none",
-                backdropFilter: "blur(20px) saturate(180%)",
-                WebkitBackdropFilter: "blur(20px) saturate(180%)",
-                border: "1.5px solid hsl(var(--bark) / 0.4)",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
-              }}
-            >
-              <Link to="/browse" onClick={goToJoinCommunity}>
-                <Search className="mr-2 w-5 h-5" strokeWidth={1.25} />
-                Browse Local Jobs
-                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
-              </Link>
-            </Button>
+              <Search
+                className="w-5 h-5 shrink-0"
+                strokeWidth={1.75}
+                style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                aria-hidden="true"
+              />
+              <input
+                type="text"
+                readOnly
+                onFocus={goToPostJob}
+                onClick={goToPostJob}
+                placeholder="What do you need done?"
+                aria-label="What do you need done?"
+                className="flex-1 min-w-0 bg-transparent outline-none border-0 ml-3 sm:ml-4 text-ds-15 sm:text-ds-17 font-sans font-medium placeholder:font-medium placeholder:text-[hsl(var(--olivewood)/0.55)]"
+                style={{
+                  color: "hsl(var(--olivewood))",
+                  cursor: "pointer",
+                }}
+              />
+              <button
+                type="submit"
+                className="shrink-0 h-11 sm:h-12 px-5 sm:px-7 rounded-full font-sans font-semibold text-ds-14 sm:text-ds-15 transition-[transform,filter] duration-200 hover:brightness-110 active:scale-[0.98]"
+                style={{
+                  background: "hsl(var(--bark))",
+                  color: "hsl(var(--parchment))",
+                  letterSpacing: "-0.005em",
+                  boxShadow:
+                    "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06)",
+                }}
+              >
+                Search
+              </button>
+            </div>
+          </form>
+
+          {/* Quick-start category strip — the "Popular: X · Y · Z" row that
+              lives below the search input on every top marketplace hero.
+              Each category taps into the same auth-aware post-job handler. */}
+          <div
+            className="mt-4 sm:mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-ds-11 sm:text-ds-13 font-sans"
+            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+          >
+            <span className="font-medium">Popular:</span>
+            {popularCategories.map((cat, i) => (
+              <span key={cat} className="flex items-center gap-x-2">
+                <button
+                  type="button"
+                  onClick={goToPostJob}
+                  className="font-medium underline-offset-4 hover:underline hover:text-[hsl(var(--burnt-sienna))] transition-colors"
+                >
+                  {cat}
+                </button>
+                {i < popularCategories.length - 1 && (
+                  <span aria-hidden="true">·</span>
+                )}
+              </span>
+            ))}
           </div>
         </div>
       </div>

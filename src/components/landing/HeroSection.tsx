@@ -126,14 +126,19 @@ const HeroSection = () => {
 
   return (
     <section className="relative flex flex-col justify-center items-center min-h-[85svh] px-5 sm:px-8 lg:px-12 pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-14 lg:pb-16">
-      {/* Unified hero — single centered column at every viewport size:
-          eyebrow → H1 → subhead → stacked CTAs. */}
-      <span className="text-display-eyebrow mb-6">Made in Louisiana</span>
+      {/* Eyebrow — pulled OUT of the grid so it doesn't count toward the
+          left column's height. That way the right column (subhead + CTAs)
+          vertically centers against the H1 alone, not against H1 + eyebrow.
+          Sits absolute at the top of the section container. On mobile it
+          stays inline above the H1 via the `lg:absolute` override. */}
+      <span className="text-display-eyebrow mb-6 lg:mb-0 lg:absolute lg:top-24 lg:left-12">
+        Made in Louisiana
+      </span>
 
-      <div className="w-full mx-auto max-w-4xl flex flex-col items-center gap-10 text-center">
+      <div className="w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid lg:grid-cols-[1.6fr_1fr] items-center gap-10 lg:gap-16 text-center lg:text-left">
         <h1
           ref={headlineRef}
-          className="font-display font-black leading-[1.02] text-balance break-words text-[2.75rem] sm:text-6xl lg:text-7xl xl:text-[5.5rem]"
+          className="font-display font-black leading-[1.02] text-balance break-words text-[2.75rem] sm:text-6xl lg:text-[5.5rem] xl:text-[7rem]"
           style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
         >
           Louisiana&rsquo;s Local Job{" "}
@@ -147,8 +152,10 @@ const HeroSection = () => {
           </em>
         </h1>
 
-        {/* Subhead + stacked CTAs — always horizontally centered. */}
-        <div className="flex flex-col gap-8 items-center">
+        {/* Right column — always horizontally centered (subhead above the
+            two stacked buttons). Vertically centered with the H1 row via
+            the grid's items-center. */}
+        <div className="flex flex-col gap-8 lg:gap-10 items-center">
           <p
             className="max-w-md mx-auto text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed text-balance"
             style={{

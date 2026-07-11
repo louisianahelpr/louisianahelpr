@@ -136,7 +136,7 @@ const HeroSection = () => {
             the grid's items-center. */}
         <div className="flex flex-col gap-8 lg:gap-10 items-center">
           <p
-            className="max-w-md mx-auto text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed text-balance"
+            className="max-w-sm mx-auto text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed text-balance"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 400,

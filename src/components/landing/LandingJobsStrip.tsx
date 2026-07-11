@@ -34,10 +34,26 @@ type StripJob = {
   location: string | null;
   budget: number | null;
   date_needed: string | null;
-  time_needed: string | null;
+  /** RPC field is `start_time` (Postgres `time`) — raw string, formatted
+   *  for display via `formatTimeShort` below. */
+  start_time: string | null;
   is_urgent: boolean | null;
   pricing_mode: string | null;
 };
+
+// Format "14:30:00" → "2:30 PM" for the card meta row.
+function formatTimeShort(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const parts = raw.split(":");
+  if (parts.length < 2) return null;
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  const mm = m.toString().padStart(2, "0");
+  return `${h12}:${mm} ${period}`;
+}
 
 // Take-home fraction — helper receives the gross budget minus the standard
 // Free-tier platform fee (12%). Kept as a local constant here for the strip
@@ -162,10 +178,10 @@ const JobStripCard = ({ job }: { job: StripJob }) => {
             <span className="truncate">{job.location.replace(/,\s*LA\s*$/i, "")}</span>
           </span>
         )}
-        {(date || job.time_needed) && (
+        {(date || job.start_time) && (
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays className="w-3 h-3 shrink-0" strokeWidth={1.75} />
-            {[date, job.time_needed].filter(Boolean).join(" · ")}
+            {[date, formatTimeShort(job.start_time)].filter(Boolean).join(" · ")}
           </span>
         )}
       </div>

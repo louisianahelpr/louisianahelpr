@@ -8,6 +8,7 @@
  */
 
 import { toneTextClasses } from "@/components/admin/tones";
+import { formatPrice } from "@/lib/format";
 
 export const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onClick }: {
   label: string; value: string | number; sub: string; icon: any; accent?: boolean; warning?: boolean; onClick?: () => void;
@@ -42,7 +43,7 @@ export const StatusRow = ({ icon: Icon, label, count, color }: { icon: any; labe
 export const MRRRow = ({ tier, count, amount }: { tier: string; count: number; amount: number }) => (
   <div className="flex items-center justify-between text-ds-13">
     <span className="text-muted-foreground">{tier} × {count}</span>
-    <span className="font-semibold text-foreground">${amount.toFixed(2)}</span>
+    <span className="font-semibold text-foreground">${formatPrice(amount)}</span>
   </div>
 );
 

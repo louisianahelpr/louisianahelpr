@@ -103,7 +103,7 @@ export function ApplyConfirmDialog({
   // already loaded something, we leave it untouched.
   useEffect(() => {
     if (!open) return;
-    const template = localStorage.getItem(TEMPLATE_KEY);
+    const template = safeStorage.getItem(TEMPLATE_KEY);
     if (template && !applyMessage) {
       setApplyMessage(template);
     }
@@ -164,7 +164,7 @@ export function ApplyConfirmDialog({
     }
     safeStorage.removeItem(draftKey);
     if (saveAsTemplate && applyMessage.trim()) {
-      localStorage.setItem(TEMPLATE_KEY, applyMessage.trim());
+      safeStorage.setItem(TEMPLATE_KEY, applyMessage.trim());
     }
     setSaveAsTemplate(false);
     handleApplyConfirm();
@@ -275,7 +275,7 @@ export function ApplyConfirmDialog({
             {/* "Use saved pitch" chip — shown when a template is saved but the
                 current message differs, so the helpr can one-tap restore it. */}
             {(() => {
-              const template = localStorage.getItem(TEMPLATE_KEY);
+              const template = safeStorage.getItem(TEMPLATE_KEY);
               if (!template || applyMessage === template) return null;
               return (
                 <button

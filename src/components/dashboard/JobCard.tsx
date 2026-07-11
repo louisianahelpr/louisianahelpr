@@ -17,7 +17,7 @@ import { getParishCentroid, getCentroidFromLocation } from "@/lib/parishCentroid
 import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
 import { prefetchJobDialog } from "./prefetchJobDialog";
-import { JobPrice } from "./JobPrice";
+import { JobPrice, computeNet } from "./JobPrice";
 import type { EnrichedJob } from "./types";
 
 interface JobCardProps {
@@ -117,6 +117,16 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // math itself now lives in JobPrice (the single money component), so the
   // card and detail view can never disagree.
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+  // Announce the SAME figure the visible JobPrice chip shows: net take-home by
+  // default, gross budget only on guest/poster surfaces, "open to bids" for bid
+  // jobs. Reusing computeNet keeps the screen-reader label from drifting to the
+  // gross budget while sighted users see the lower net number.
+  const priceAria =
+    job.pricing_mode === "accept_bids"
+      ? "open to bids"
+      : showBudget
+        ? `$${formatPrice(job.budget)}`
+        : `$${formatPrice(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount).netEarnings)}`;
   const catStyle = categoryColors[job.category] || categoryColors.other;
 
   // Freshness signal: a job posted within the last 30 minutes gets a "New"
@@ -223,7 +233,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           },
           role: "button" as const,
           tabIndex: 0,
-          "aria-label": `View ${job.title} — ${job.pricing_mode === "accept_bids" ? "open to bids" : `$${formatPrice(job.budget)}`}`,
+          "aria-label": `View ${job.title} — ${priceAria}`,
           onKeyDown: (e: KeyboardEvent) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
@@ -236,7 +246,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           onClick: handleTap,
           role: "button" as const,
           tabIndex: 0,
-          "aria-label": `View ${job.title} — ${job.pricing_mode === "accept_bids" ? "open to bids" : `$${formatPrice(job.budget)}`}`,
+          "aria-label": `View ${job.title} — ${priceAria}`,
           onKeyDown: (e: KeyboardEvent) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();

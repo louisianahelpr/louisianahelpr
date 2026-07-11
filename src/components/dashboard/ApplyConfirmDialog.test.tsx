@@ -47,9 +47,9 @@ describe("ApplyConfirmDialog", () => {
     // budget 100, 10% fee, solo job -> $100 budget, $90 take-home.
     render(<ApplyConfirmDialog {...makeProps()} />);
     expect(screen.getByText(/Fix the fence/)).toBeInTheDocument();
-    expect(screen.getByText("$100.00")).toBeInTheDocument();
+    expect(screen.getByText("$100")).toBeInTheDocument();
     expect(screen.getByText("Take-home")).toBeInTheDocument();
-    expect(screen.getByText("$90.00")).toBeInTheDocument();
+    expect(screen.getByText("$90")).toBeInTheDocument();
   });
 
   it("divides the budget across helpers for a group job", () => {
@@ -61,8 +61,8 @@ describe("ApplyConfirmDialog", () => {
         })}
       />,
     );
-    expect(screen.getByText("$50.00")).toBeInTheDocument();
-    expect(screen.getByText("$45.00")).toBeInTheDocument();
+    expect(screen.getByText("$50")).toBeInTheDocument();
+    expect(screen.getByText("$45")).toBeInTheDocument();
   });
 
   it("adds the net urgent bonus into take-home", () => {

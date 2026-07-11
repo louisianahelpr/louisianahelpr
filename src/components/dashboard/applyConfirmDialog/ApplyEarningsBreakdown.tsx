@@ -1,6 +1,7 @@
 import { ShieldCheck } from "lucide-react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { formatPrice } from "@/lib/format";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home card shown at the top of
@@ -45,16 +46,16 @@ export function ApplyEarningsBreakdown({
       <div className="space-y-1 text-[0.78rem]">
         <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           <span className="font-serif italic">Budget{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
-          <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${perHelper.toFixed(2)}</span>
+          <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${formatPrice(perHelper)}</span>
         </div>
         <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           <span className="font-serif italic">− {platformFee}% platform fee</span>
-          <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${commission.toFixed(2)}</span>
+          <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(commission)}</span>
         </div>
         {(confirmApplyJob.urgent_fee ?? 0) > 0 && (
           <div className="flex justify-between">
             <span className="font-serif italic" style={{ color: "hsl(var(--burnt-sienna))" }}>+ urgent bonus{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
-            <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>+${netUrgent.toFixed(2)}</span>
+            <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>+${formatPrice(netUrgent)}</span>
           </div>
         )}
         <div
@@ -66,7 +67,7 @@ export function ApplyEarningsBreakdown({
             className="font-display italic font-bold tabular-nums"
             style={{ fontSize: "1.15rem", color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
           >
-            ${payout.toFixed(2)}
+            ${formatPrice(payout)}
           </span>
         </div>
       </div>

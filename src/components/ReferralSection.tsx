@@ -12,6 +12,7 @@ import { ReferralExtras } from "@/components/profile/ReferralExtras";
 import { requireBiometric } from "@/lib/biometricGate";
 import { shareNative } from "@/lib/nativeShare";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
+import { formatPrice } from "@/lib/format";
 
 /**
  * Single-screen referral dashboard. Backed by React Query (60s staleTime)
@@ -97,7 +98,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       if (result?.error) {
         toast.error(result.error);
       } else {
-        toast.success(`$${result.amount.toFixed(2)} sent to your connected Stripe account!`);
+        toast.success(`$${formatPrice(result.amount)} sent to your connected Stripe account!`);
         await queryClient.invalidateQueries({ queryKey: queryKeys.referral.byUser(userId) });
       }
     } catch (err: any) {

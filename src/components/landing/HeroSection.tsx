@@ -129,60 +129,59 @@ const HeroSection = () => {
         <path d="M12 12 L74 12 L74 30 L88 30 L88 68 L76 68 L74 78 L62 82 L58 74 L46 78 L42 70 L34 74 L28 66 L20 70 L14 60 L18 46 L14 40 L20 32 L12 24 Z" />
       </svg>
 
-      <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-center gap-10 md:gap-12 lg:gap-16 text-center">
-        <div>
-          {/* (1) Italic-serif tagline above the H1 — provenance, no weight */}
+      {/* Narrower max-width + tighter gap so the H1 (left) + right column
+          feel like ONE centered composition rather than two blocks spread
+          to the viewport edges. */}
+      <div className="relative z-10 w-full mx-auto max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl grid md:grid-cols-[1.4fr_1fr] items-center gap-8 md:gap-10 lg:gap-14 text-center">
+        {/* (2) H1: "Partner." is italic + burnt-sienna (restored) with a
+            hairline gold-warm underline (6) and a soft radial glow (5)
+            behind it for anchoring. */}
+        <h1
+          ref={headlineRef}
+          className="font-display font-black leading-[1.02] text-balance break-words text-[3.25rem] sm:text-6xl md:text-[4rem] lg:text-[6rem] xl:text-[8rem] hero-h1-settle"
+          style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
+        >
+          Louisiana&rsquo;s Local Job{" "}
+          <span className="relative inline-block">
+            {/* (5) Soft radial glow behind "Partner." — anchors the eye */}
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 -m-8 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(closest-side, hsl(var(--burnt-sienna) / 0.14), transparent 70%)",
+              }}
+            />
+            <em
+              className="relative"
+              style={{
+                fontStyle: "italic",
+                color: "hsl(var(--burnt-sienna))",
+              }}
+            >
+              Partner.
+              {/* (6) Hairline underline in gold-warm at 0.3 opacity */}
+              <span
+                aria-hidden="true"
+                className="absolute left-0 right-0 h-[2px] pointer-events-none"
+                style={{
+                  bottom: "-0.08em",
+                  background: "hsl(var(--gold-warm) / 0.3)",
+                }}
+              />
+            </em>
+          </span>
+        </h1>
+
+        {/* Right column — tagline → subhead → CTAs → proof strip. */}
+        <div className="flex flex-col gap-6 lg:gap-8 items-center text-center">
+          {/* (1) Italic-serif tagline moved ABOVE the subhead per user pref */}
           <p
-            className="font-serif italic mb-3 sm:mb-4 text-ds-11 sm:text-ds-13 tracking-wide"
+            className="font-serif italic text-ds-11 sm:text-ds-13 tracking-wide"
             style={{ color: "hsl(var(--olivewood) / 0.55)" }}
           >
             Made in Louisiana
           </p>
-          {/* (2) H1: kept italic on "Partner." but DROPPED the burnt-sienna
-              color so the italic alone carries the emphasis. Anchoring done
-              via a soft glow (5) + a hairline underline (6) below. */}
-          <h1
-            ref={headlineRef}
-            className="font-display font-black leading-[1.02] text-balance break-words text-[3.25rem] sm:text-6xl md:text-[4rem] lg:text-[6rem] xl:text-[8rem] hero-h1-settle"
-            style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
-          >
-            Louisiana&rsquo;s Local Job{" "}
-            <span className="relative inline-block">
-              {/* (5) Soft radial glow behind "Partner." — anchors the eye */}
-              <span
-                aria-hidden="true"
-                className="absolute inset-0 -m-8 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(closest-side, hsl(var(--burnt-sienna) / 0.10), transparent 70%)",
-                }}
-              />
-              <em
-                className="relative"
-                style={{
-                  fontStyle: "italic",
-                  color: "hsl(var(--olivewood))",
-                }}
-              >
-                Partner.
-                {/* (6) Hairline underline in gold-warm at 0.3 opacity */}
-                <span
-                  aria-hidden="true"
-                  className="absolute left-0 right-0 h-[2px] pointer-events-none"
-                  style={{
-                    bottom: "-0.08em",
-                    background: "hsl(var(--gold-warm) / 0.3)",
-                  }}
-                />
-              </em>
-            </span>
-          </h1>
-        </div>
-
-        {/* Right column — subhead centered above the two stacked buttons.
-            Explicit text-center overrides the parent grid's lg:text-left
-            so the paragraph reads on the same axis as the button stack. */}
-        <div className="flex flex-col gap-6 lg:gap-8 items-center text-center">
           <p
             className="max-w-sm mx-auto text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed text-balance"
             style={{

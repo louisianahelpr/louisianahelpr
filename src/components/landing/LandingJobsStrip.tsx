@@ -219,7 +219,7 @@ const LandingJobsStrip = () => {
     <section
       id="jobs"
       aria-label="Live jobs in Louisiana"
-      className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-10 sm:pt-12 lg:pt-16 pb-6 sm:pb-8 scroll-mt-20"
+      className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-10 sm:pt-12 lg:pt-16 pb-2 sm:pb-3 scroll-mt-20"
     >
       <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
         {/* Section header — eyebrow + H2 centered on the page spine. The
@@ -255,7 +255,7 @@ const LandingJobsStrip = () => {
         {/* "See all jobs" link — moved below the rail and right-aligned
             per user preference. Was previously an absolute-positioned
             header link + trailing end-cap card. */}
-        <div className="mt-6 sm:mt-8 flex justify-end">
+        <div className="mt-3 sm:mt-4 flex justify-end">
           <Link
             to="/jobs"
             className="inline-flex items-center gap-1.5 text-ds-13 font-semibold hover:underline"

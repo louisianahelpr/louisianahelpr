@@ -265,7 +265,16 @@ export function JobTracking({
 
     // Auto-transition job status
     if (newStatus === "done") {
-      await supabase.from("jobs").update({ helper_completed_at: now }).eq("id", jobId);
+      // This stamp is what enters the job into the payout pipeline — if it
+      // silently fails the helper never gets paid, so surface it and stop.
+      const { error: doneErr } = await supabase.from("jobs").update({ helper_completed_at: now }).eq("id", jobId);
+      if (doneErr) {
+        report(doneErr, { tags: { source: "JobTracking.helperCompleted" } });
+        toast.error("Couldn't mark the job complete — try again?");
+        setUpdating(false);
+        loadTracking();
+        return;
+      }
     } else if (["on_the_way", "arrived", "working"].includes(newStatus)) {
       const { data: job, error: statusErr } = await supabase.from("jobs").select("status").eq("id", jobId).single();
       if (statusErr) report(statusErr, { tags: { source: "JobTracking.autoTransition" } });

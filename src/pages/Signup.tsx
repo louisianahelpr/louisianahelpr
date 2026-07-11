@@ -264,24 +264,29 @@ const Signup = () => {
       // Complete profile with uploads (no ID — Stripe handles identity)
       await completeProfile(userId);
 
-      // Process referral code if provided
+      // Process referral code if provided. supabase-js resolves errors into
+      // `{ error }` rather than throwing, so a try/catch never sees them —
+      // read the error explicitly (referral credit is best-effort, log only).
       if (referralCode.trim()) {
-        try {
-          await supabase.rpc("process_referral", {
-            p_referral_code: referralCode.trim().toUpperCase(),
-            p_new_user_id: userId,
-          });
-        } catch (e) { report(e, { tags: { source: "Signup.referral" } }); }
+        const { error: referralErr } = await supabase.rpc("process_referral", {
+          p_referral_code: referralCode.trim().toUpperCase(),
+          p_new_user_id: userId,
+        });
+        if (referralErr) report(referralErr, { tags: { source: "Signup.referral" } });
       }
 
-      // Business signup: create business
+      // Business signup: create business. Same resolved-error caveat — a failed
+      // insert would leave a business-tier account with no business to manage,
+      // so surface it to the user instead of swallowing it.
       if (isBusinessSignup && companyName.trim()) {
-        try {
-          await supabase.from("businesses").insert({
-            owner_id: userId,
-            name: companyName.trim(),
-          });
-        } catch (e) { report(e, { tags: { source: "Signup.businessCreation" } }); }
+        const { error: businessErr } = await supabase.from("businesses").insert({
+          owner_id: userId,
+          name: companyName.trim(),
+        });
+        if (businessErr) {
+          report(businessErr, { tags: { source: "Signup.businessCreation" } });
+          toast.error("We couldn't finish setting up your business — contact support.");
+        }
       }
 
       // Auto-accept any pending invite for this email

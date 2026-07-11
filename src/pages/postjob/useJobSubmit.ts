@@ -173,6 +173,14 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       if (!budget || parseFloat(budget) < MIN_JOB_BUDGET_DOLLARS) { toast.error(`Minimum budget is ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}`); scrollToField("budget"); return; }
       if (parseFloat(budget) > MAX_JOB_BUDGET_DOLLARS) { toast.error(`Maximum budget is ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}.`); scrollToField("budget"); return; }
     }
+    // Bid ceiling is optional in accept_bids mode, but when set it must fall
+    // within the same [MIN, MAX] budget bounds — otherwise a poster could set a
+    // $0 or $999,999 auto-accept ceiling that the set-price branch would reject.
+    if (pricingMode === "accept_bids" && bidCeiling.trim()) {
+      const ceiling = parseFloat(bidCeiling);
+      if (isNaN(ceiling) || ceiling < MIN_JOB_BUDGET_DOLLARS) { toast.error(`Bid ceiling must be at least ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}`); scrollToField("bid-ceiling"); return; }
+      if (ceiling > MAX_JOB_BUDGET_DOLLARS) { toast.error(`Bid ceiling cannot exceed ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}.`); scrollToField("bid-ceiling"); return; }
+    }
     if (isUrgent && (parseFloat(urgentFee) < URGENT_FEE_FLOOR_DOLLARS || isNaN(parseFloat(urgentFee)))) { toast.error(`Urgent bonus must be at least ${formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)}`); scrollToField("custom-urgent-fee"); return; }
     setConfirmed(false);
     setStep("checkout");

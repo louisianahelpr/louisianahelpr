@@ -24,6 +24,7 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { verifyCronSecret } from '../_shared/cron-auth.ts';
+import { postSlackOpsAlert } from '../_shared/slack-alerts.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -94,11 +95,19 @@ serve(async (req) => {
       continue;
     }
 
-    // How many children have we already spawned?
-    const { count: childCount } = await supabase
+    // How many children have we already spawned? This count is the idempotency
+    // guard — it advances nextDueDate past the horizon on re-runs. If the read
+    // fails we must NOT fall back to 0, or we'd recompute the first slot and
+    // spawn a duplicate/wrong-dated child. Skip this parent this run instead.
+    const { count: childCount, error: countErr } = await supabase
       .from('jobs')
       .select('id', { count: 'exact', head: true })
       .eq('parent_job_id', parent.id);
+    if (countErr) {
+      console.error(`Failed to count children for parent ${parent.id}`, countErr);
+      errors++;
+      continue;
+    }
 
     // Next-due date = parent.date_needed + interval × (count + 1).
     // Indexes children sequentially so missed runs catch up correctly:
@@ -154,6 +163,19 @@ serve(async (req) => {
       continue;
     }
     spawned++;
+  }
+
+  // Per-job failures otherwise return 200 and vanish — match the money-cron
+  // siblings and page ops so a stuck recurring parent doesn't go unnoticed.
+  if (errors > 0) {
+    await postSlackOpsAlert({
+      kind: "custom",
+      severity: "warning",
+      title: "Recurring-job spawn had failures",
+      message:
+        "spawn-recurring-jobs finished with per-parent errors — some recurring jobs may not have been created this run.",
+      fields: { processed: parents?.length ?? 0, spawned, errors },
+    });
   }
 
   return new Response(

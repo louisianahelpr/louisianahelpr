@@ -360,7 +360,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             return (
               <span
                 className={`urgent-pulse ${corner}`}
-                aria-label={bonus > 0 ? `Urgent — $${bonus.toFixed(0)} bonus` : "Urgent"}
+                aria-label={bonus > 0 ? `Urgent — $${formatPrice(bonus)} bonus` : "Urgent"}
                 style={{
                   color: "hsl(var(--accent))",
                   background: "hsl(var(--accent) / 0.15)",
@@ -369,7 +369,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 }}
               >
                 <Zap className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--accent))", fill: "hsl(var(--accent))" }} />
-                {bonus > 0 ? `+$${bonus.toFixed(0)} Urgent` : "Urgent"}
+                {bonus > 0 ? `+$${formatPrice(bonus)} Urgent` : "Urgent"}
               </span>
             );
           }

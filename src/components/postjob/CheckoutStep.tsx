@@ -19,6 +19,7 @@ import type { HelprActivity } from "@/hooks/useHelprActivity";
 import { EscrowExplainer } from "@/components/payment/EscrowExplainer";
 import { EscrowFlowExplainer } from "@/components/payment/EscrowFlowExplainer";
 import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
+import { formatPrice } from "@/lib/format";
 
 const isSafeBlobPreviewUrl = (value: string): boolean => {
   if (!value) return false;
@@ -179,12 +180,12 @@ export function CheckoutStep({
               <DollarSign className="w-3 h-3" />Budget
             </span>
             <div className="text-right">
-              <p className="text-ds-13 font-bold text-foreground">${budgetNum.toFixed(2)}</p>
+              <p className="text-ds-13 font-bold text-foreground">${formatPrice(budgetNum)}</p>
               {budgetNum > 0 && (
                 <p className="text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   You pay{" "}
                   <span className="font-semibold text-foreground">
-                    ${(budgetNum + customerFeeAmount + urgentFeeNum + onboardingFeeAmount).toFixed(2)}
+                    ${formatPrice(budgetNum + customerFeeAmount + urgentFeeNum + onboardingFeeAmount)}
                   </span>
                 </p>
               )}
@@ -305,22 +306,22 @@ export function CheckoutStep({
           <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>
           <div className="flex justify-between text-ds-13">
             <span className="text-muted-foreground">Job budget</span>
-            <span className="font-medium text-foreground">${budgetNum.toFixed(2)}</span>
+            <span className="font-medium text-foreground">${formatPrice(budgetNum)}</span>
           </div>
           <div className="flex justify-between text-ds-13">
             <span className="text-muted-foreground">Service fee ({customerFee ?? 12}%)</span>
-            <span className="font-medium text-foreground">${customerFeeAmount.toFixed(2)}</span>
+            <span className="font-medium text-foreground">${formatPrice(customerFeeAmount)}</span>
           </div>
           {isUrgent && urgentFeeNum > 0 && (
             <div className="flex justify-between text-ds-13">
               <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent bonus (goes to Helpr)</span>
-              <span className="font-medium text-foreground">${urgentFeeNum.toFixed(2)}</span>
+              <span className="font-medium text-foreground">${formatPrice(urgentFeeNum)}</span>
             </div>
           )}
           {onboardingFeeAmount > 0 && (
             <div className="flex justify-between text-ds-13">
               <span className="text-muted-foreground">One-time account setup <span className="text-ds-11 italic">(first job only)</span></span>
-              <span className="font-medium text-foreground">${onboardingFeeAmount.toFixed(2)}</span>
+              <span className="font-medium text-foreground">${formatPrice(onboardingFeeAmount)}</span>
             </div>
           )}
           <div className="flex justify-between text-ds-13">
@@ -330,7 +331,7 @@ export function CheckoutStep({
           <div className="h-px bg-border" />
           <div className="flex justify-between">
             <span className="font-semibold text-foreground">Estimated total (excl. tax)</span>
-            <span className="text-ds-20 font-bold text-foreground">${totalCharge.toFixed(2)}</span>
+            <span className="text-ds-20 font-bold text-foreground">${formatPrice(totalCharge)}</span>
           </div>
           {/* First-time escrow reassurance — inline pill + info popover.
               The pill stays for everyone (passive reassurance); the

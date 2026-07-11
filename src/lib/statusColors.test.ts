@@ -33,10 +33,10 @@ describe("JOB_STATUS_COLORS", () => {
 
   it("uses the warm brand palette tokens — never raw Tailwind color names", () => {
     // All seven canonical colors should be expressed via the brand CSS
-    // vars (`--olivewood`, `--bark`, `--burnt-sienna`, `--gold-warm`). If
-    // a future edit reaches for `bg-red-500` or `text-blue-700`, this
-    // catches it.
-    const allowedTokens = ["--olivewood", "--bark", "--burnt-sienna", "--gold-warm"];
+    // vars (`--olivewood`, `--bark`, `--burnt-sienna`, plus the amber
+    // pending/revision pair). If a future edit reaches for `bg-red-500` or
+    // `text-blue-700`, this catches it.
+    const allowedTokens = ["--olivewood", "--bark", "--burnt-sienna", "--amber-tint", "--amber-ink"];
     for (const [value, color] of Object.entries(JOB_STATUS_COLORS)) {
       const blob = `${color.bg} ${color.text}`;
       const ok = allowedTokens.some((t) => blob.includes(t));
@@ -49,7 +49,7 @@ describe("jobStatusColor()", () => {
   it("returns the canonical color for known statuses", () => {
     expect(jobStatusColor("in_progress").text).toBe("hsl(var(--burnt-sienna))");
     expect(jobStatusColor("completed").text).toBe("hsl(var(--bark))");
-    expect(jobStatusColor("revision_requested").text).toBe("hsl(var(--gold-warm))");
+    expect(jobStatusColor("revision_requested").text).toBe("hsl(var(--amber-ink))");
   });
 
   it("falls back gracefully for unknown / null / undefined / empty", () => {
@@ -65,7 +65,7 @@ describe("jobStatusColor()", () => {
 describe("jobStatusColorClasses()", () => {
   it("returns a className string keyed off the brand CSS vars", () => {
     expect(jobStatusColorClasses("in_progress")).toContain("--burnt-sienna");
-    expect(jobStatusColorClasses("revision_requested")).toContain("--gold-warm");
+    expect(jobStatusColorClasses("revision_requested")).toContain("--amber-ink");
     expect(jobStatusColorClasses("open")).toContain("--olivewood");
   });
 

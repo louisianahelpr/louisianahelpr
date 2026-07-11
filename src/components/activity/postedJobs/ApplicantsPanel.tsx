@@ -365,7 +365,7 @@ export function ApplicantsPanel({
                                       color: "hsl(var(--heritage-gold) / 0.85)",
                                     }}
                                   >
-                                    Countered: ${counterPrice}
+                                    Countered: ${formatPrice(counterPrice ?? 0)}
                                   </span>
                                 );
                               }
@@ -380,7 +380,7 @@ export function ApplicantsPanel({
                                       color: "hsl(var(--sage))",
                                     }}
                                   >
-                                    Accepted at ${counterPrice}
+                                    Accepted at ${formatPrice(counterPrice ?? 0)}
                                   </span>
                                 );
                               }

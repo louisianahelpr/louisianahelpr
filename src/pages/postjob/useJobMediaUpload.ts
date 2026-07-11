@@ -184,7 +184,11 @@ export function useJobMediaUpload() {
     setUploading(true);
     const photoUrls = hasPhotos ? await uploadImages(jobId) : [];
     if (photoUrls.length > 0) {
-      await supabase.from("jobs").update({ photos: photoUrls }).eq("id", jobId);
+      const { error: photoErr } = await supabase.from("jobs").update({ photos: photoUrls }).eq("id", jobId);
+      if (photoErr) {
+        report(photoErr, { tags: { source: "useJobMediaUpload.attachPhotos" } });
+        toast.error("Your job posted, but the photos didn't attach — you can add them from the job page.");
+      }
     }
     // Upload scope video — PGRST204/42703 safe (column may not exist on prod yet)
     if (hasVideo && scopeVideoFile) {

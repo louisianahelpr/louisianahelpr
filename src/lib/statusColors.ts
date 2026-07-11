@@ -72,14 +72,16 @@ export const JOB_STATUS_COLORS: Record<JobStatus, StatusColor> = {
   completed:          { bg: "hsl(var(--bark) / 0.18)",      text: "hsl(var(--bark))" },
   // Muted, no judgment — terminal but quiet.
   cancelled:          { bg: "hsl(var(--olivewood) / 0.10)", text: "hsl(var(--olivewood) / 0.8)" },
-  // Gentle attention — the poster asked for a change.
-  revision_requested: { bg: "hsl(var(--gold-warm) / 0.14)", text: "hsl(var(--gold-warm))" },
+  // Gentle attention — the poster asked for a change. Uses the amber
+  // pending/revision pair (amber-ink is 4.5:1+ on the tint); plain gold-warm
+  // text was only 2.53:1 and failed WCAG AA.
+  revision_requested: { bg: "hsl(var(--amber-tint) / 0.14)", text: "hsl(var(--amber-ink))" },
   // Serious but warm, NOT red-alarm — kept in the brand sienna family.
   disputed:           { bg: "hsl(var(--burnt-sienna) / 0.18)", text: "hsl(var(--burnt-sienna))" },
   // Awaiting business-poster approval on a member-created posting that
   // exceeds the org's threshold. Gentle attention — same gold-warm as
   // revision_requested since it's "waiting on a person" not "in flight."
-  pending_approval:   { bg: "hsl(var(--gold-warm) / 0.14)", text: "hsl(var(--gold-warm))" },
+  pending_approval:   { bg: "hsl(var(--amber-tint) / 0.14)", text: "hsl(var(--amber-ink))" },
 };
 
 /**
@@ -121,9 +123,9 @@ const STATUS_COLOR_CLASSES: Record<JobStatus, string> = {
   in_progress:        "bg-[hsl(var(--burnt-sienna)/0.12)] text-[hsl(var(--burnt-sienna))]",
   completed:          "bg-[hsl(var(--bark)/0.18)] text-[hsl(var(--bark))]",
   cancelled:          "bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.8)]",
-  revision_requested: "bg-[hsl(var(--gold-warm)/0.14)] text-[hsl(var(--gold-warm))]",
+  revision_requested: "bg-[hsl(var(--amber-tint)/0.14)] text-[hsl(var(--amber-ink))]",
   disputed:           "bg-[hsl(var(--burnt-sienna)/0.18)] text-[hsl(var(--burnt-sienna))]",
-  pending_approval:   "bg-[hsl(var(--gold-warm)/0.14)] text-[hsl(var(--gold-warm))]",
+  pending_approval:   "bg-[hsl(var(--amber-tint)/0.14)] text-[hsl(var(--amber-ink))]",
 };
 
 const FALLBACK_STATUS_COLOR_CLASSES =

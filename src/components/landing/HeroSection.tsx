@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, ArrowRight, Search, ShieldCheck, Lock } from "lucide-react";
+import { Sparkles, ArrowRight, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -214,36 +214,6 @@ const HeroSection = () => {
                 <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
               </Link>
             </Button>
-          </div>
-
-          {/* Proof pod — a single-row row-of-three trust signals sized like
-              a footnote (roughly the visual weight of the eyebrow above the
-              H1). Wraps on very narrow viewports; separator dots hidden
-              below sm so wrapping stays clean. */}
-          <div
-            className="mt-6 sm:mt-7 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 font-sans font-medium text-ds-11 sm:text-ds-12"
-            style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5" strokeWidth={1.75} />
-              ID-verified helprs
-            </span>
-            <span
-              aria-hidden="true"
-              className="hidden sm:inline-block w-1 h-1 rounded-full bg-[hsl(var(--burnt-sienna)/0.5)]"
-            />
-            <span className="inline-flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5" strokeWidth={1.75} />
-              Held in escrow
-            </span>
-            <span
-              aria-hidden="true"
-              className="hidden sm:inline-block w-1 h-1 rounded-full bg-[hsl(var(--burnt-sienna)/0.5)]"
-            />
-            <span className="inline-flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" strokeWidth={1.75} />
-              Free to post
-            </span>
           </div>
         </div>
       </div>

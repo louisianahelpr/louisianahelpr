@@ -39,7 +39,7 @@ const Footer = () => (
       color: "hsl(var(--olivewood))",
     }}
   >
-    <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] py-7 md:py-9">
+    <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] pt-7 md:pt-9 pb-3 md:pb-4">
       <div className="grid gap-8 md:gap-10 md:grid-cols-12">
         {/* Brand */}
         <div className="md:col-span-4 space-y-3">

@@ -34,9 +34,15 @@ type StripJob = {
   location: string | null;
   budget: number | null;
   date_needed: string | null;
+  time_needed: string | null;
   is_urgent: boolean | null;
   pricing_mode: string | null;
 };
+
+// Take-home fraction — helper receives the gross budget minus the standard
+// Free-tier platform fee (12%). Kept as a local constant here for the strip
+// card display; the real fee math lives in `computeNet` on the /jobs board.
+const HELPER_TAKE_HOME_FRACTION = 0.88;
 
 const STRIP_LIMIT = 12;
 
@@ -151,33 +157,33 @@ const JobStripCard = ({ job }: { job: StripJob }) => {
         {job.location && (
           <span className="inline-flex items-center gap-1.5 truncate">
             <MapPin className="w-3 h-3 shrink-0" strokeWidth={1.75} />
-            <span className="truncate">{job.location}</span>
+            {/* All jobs are in Louisiana — strip the trailing ", LA" so the
+                card reads with just the city. */}
+            <span className="truncate">{job.location.replace(/,\s*LA\s*$/i, "")}</span>
           </span>
         )}
-        {date && (
+        {(date || job.time_needed) && (
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays className="w-3 h-3 shrink-0" strokeWidth={1.75} />
-            {date}
+            {[date, job.time_needed].filter(Boolean).join(" · ")}
           </span>
         )}
       </div>
 
       <div className="mt-auto flex items-center justify-between pt-1">
         <span className="font-display font-bold flex items-baseline gap-1.5" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
-          {job.budget != null ? `$${formatPrice(job.budget)}` : "Open"}
-          {job.budget != null && !isBids && (
-            /* Explicit "posted" label distinguishes this GROSS budget from
-               the /jobs board's NET "You earn" figure (budget × 0.88 at
-               the Free-tier fee). Cowork audit 2026-07-08 flagged that
-               the same job read at two unlabeled prices across surfaces. */
-            <span className="text-[0.6rem] font-sans font-semibold uppercase tracking-wider" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-              posted
-            </span>
-          )}
-          {isBids && (
-            <span className="text-[0.62rem] font-semibold uppercase tracking-wide" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-              · bids
-            </span>
+          {isBids ? (
+            /* Open-to-bids jobs deliberately hide the dollar amount so the
+                marketing strip doesn't pre-anchor a price on jobs whose
+                cost is set through bidding. */
+            <span className="text-[0.85rem] uppercase tracking-wide">Open to bids</span>
+          ) : job.budget != null ? (
+            /* Show the helper's TAKE-HOME (budget × 0.88 at the Free tier)
+                so a helper skimming the strip sees what they'd actually
+                pocket, not the gross budget. */
+            `$${formatPrice(Math.round(job.budget * HELPER_TAKE_HOME_FRACTION))}`
+          ) : (
+            "Open"
           )}
         </span>
         <ArrowRight
@@ -219,37 +225,27 @@ const LandingJobsStrip = () => {
     <section
       id="jobs"
       aria-label="Live jobs in Louisiana"
-      className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-2 sm:pt-3 pb-2 sm:pb-3 scroll-mt-20"
+      className="observe-fade-up pt-2 sm:pt-3 pb-2 sm:pb-3 scroll-mt-20"
     >
-      <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-        {/* Header removed per user request — jobs now flow directly as a
-            continuation of the hero (no "Fresh today · pulled live" eyebrow
-            + "Jobs happening near you" H2 above the rail). */}
-
-        {/* Horizontal scroll rail. `snap-x` gives a gentle card-to-card
-            settle on touch; the negative margin + padding lets the first/
-            last card breathe to the section edge without clipping shadows.
-            The right-edge mask fades the last visible card into the canvas
-            (instead of a hard clip) so the rail reads as "more to scroll"
-            rather than an abrupt cut-off. A mask (not an overlay) is used so
-            the fade works over the mesh-gradient background. */}
-        {/* Auto-scrolling marquee — jobs drift left continuously. Pauses on
-            hover so users can click into a specific card. Duplicated array
-            makes the 0 → -50% translate loop seamless. */}
-        <div className="jobs-strip-marquee-container overflow-hidden" role="list">
-          <div className="jobs-strip-marquee gap-5 sm:gap-6">
-            {[...jobs, ...jobs].map((job, i) => (
-              <div role="listitem" key={`${job.id}-${i}`} className="contents">
-                <JobStripCard job={job} />
-              </div>
-            ))}
-          </div>
+      {/* Auto-scrolling marquee — jobs drift left continuously. Pauses on
+          hover so users can click into a specific card. Duplicated array
+          makes the 0 → -50% translate loop seamless. Marquee is a DIRECT
+          child of the section (no max-w container around it) so the rail
+          runs edge-to-edge of the viewport. */}
+      <div className="jobs-strip-marquee-container overflow-hidden" role="list">
+        <div className="jobs-strip-marquee gap-5 sm:gap-6 px-5 sm:px-8 lg:px-12">
+          {[...jobs, ...jobs].map((job, i) => (
+            <div role="listitem" key={`${job.id}-${i}`} className="contents">
+              <JobStripCard job={job} />
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* "See all jobs" link — moved below the rail and right-aligned
-            per user preference. Was previously an absolute-positioned
-            header link + trailing end-cap card. */}
-        <div className="mt-3 sm:mt-4 flex justify-end">
+      {/* "See all jobs" link — right-aligned inside the standard content
+          container so it lines up with the page-spine of other sections. */}
+      <div className="px-5 sm:px-8 lg:px-12 mt-3 sm:mt-4">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex justify-end">
           <Link
             to="/jobs"
             className="inline-flex items-center gap-1.5 text-ds-13 font-semibold hover:underline"

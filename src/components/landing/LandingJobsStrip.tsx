@@ -189,9 +189,12 @@ const LandingJobsStrip = () => {
           the loop boundary so the animation visibly jumps at reset. Cards
           run edge-to-edge; the fade-mask on the container handles the
           visual edges. */}
+      {/* Track content is TRIPLED (not just doubled) — the seamless loop
+          then only resets every 2× as long, so any residual pixel-level
+          mismatch at the reset boundary is far less visible. */}
       <div className="jobs-strip-marquee-container overflow-hidden" role="list">
         <div className="jobs-strip-marquee gap-5 sm:gap-6">
-          {[...jobs, ...jobs].map((job, i) => (
+          {[...jobs, ...jobs, ...jobs].map((job, i) => (
             <div role="listitem" key={`${job.id}-${i}`} className="contents">
               <JobStripCard job={job} />
             </div>

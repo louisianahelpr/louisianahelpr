@@ -113,7 +113,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative flex flex-col justify-center items-center min-h-[75svh] px-5 sm:px-8 lg:px-12 pt-20 sm:pt-24 lg:pt-28 pb-8 sm:pb-10 lg:pb-12">
+    <section className="relative flex flex-col justify-center items-center min-h-[60svh] lg:min-h-[75svh] px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-28 pb-6 sm:pb-8 lg:pb-12">
       <div className="w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid lg:grid-cols-[1.6fr_1fr] items-center gap-10 lg:gap-16 text-center lg:text-left">
         <h1
           ref={headlineRef}

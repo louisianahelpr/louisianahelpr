@@ -1692,9 +1692,9 @@ button,
   /* sm:gap-6 (24px) at ≥640px → half-gap is 12px */
   .jobs-strip-marquee { --jobs-strip-half-gap: 12px; }
 }
-.jobs-strip-marquee-container:hover .jobs-strip-marquee {
-  animation-play-state: paused;
-}
+/* Hover-pause intentionally removed — user asked for a continuous loop
+   that never stops. The cards are still tappable while moving; a slow
+   scroll speed keeps them readable. */
 @media (prefers-reduced-motion: reduce) {
   .jobs-strip-marquee { animation: none; }
 }

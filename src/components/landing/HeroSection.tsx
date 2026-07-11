@@ -113,11 +113,11 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative flex flex-col justify-center items-center min-h-[60svh] lg:min-h-[75svh] px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-28 pb-6 sm:pb-8 lg:pb-12">
+    <section className="relative flex flex-col justify-center items-center min-h-[75svh] lg:min-h-[88svh] px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-28 pb-6 sm:pb-8 lg:pb-12">
       <div className="w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-center gap-10 md:gap-12 lg:gap-16 text-center">
         <h1
           ref={headlineRef}
-          className="font-display font-black leading-[1.02] text-balance break-words text-[2.75rem] sm:text-5xl md:text-[3.5rem] lg:text-[5.5rem] xl:text-[7rem]"
+          className="font-display font-black leading-[1.02] text-balance break-words text-[3.25rem] sm:text-6xl md:text-[4rem] lg:text-[6rem] xl:text-[8rem]"
           style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
         >
           Louisiana&rsquo;s Local Job{" "}

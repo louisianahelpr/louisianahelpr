@@ -6,9 +6,6 @@ import {
   UserPlus,
   Search,
   Banknote,
-  Lock,
-  Shield,
-  Check,
   ArrowRight,
 } from "lucide-react";
 
@@ -63,12 +60,6 @@ const MODES = {
 } as const;
 
 type Mode = keyof typeof MODES;
-
-const trustFacts = [
-  { icon: Lock, label: "Payment held until work is done" },
-  { icon: Shield, label: "ID-verified Helprs" },
-  { icon: Check, label: "Free to post" },
-];
 
 const HowItWorksSection = () => {
   const [mode, setMode] = useState<Mode>("poster");
@@ -194,50 +185,6 @@ const HowItWorksSection = () => {
                 </article>
               );
             })}
-          </div>
-
-          {/* Trust strip — sits below the step cards. We're inside a glass
-              container now, so we use a hairline rule + transparent row
-              instead of a nested glass-in-glass which read as visually noisy. */}
-          <div
-            className="mt-8 sm:mt-10 pt-6 sm:pt-7"
-            style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.1)" }}
-          >
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-              {trustFacts.map((fact, i) => {
-                const Icon = fact.icon;
-                return (
-                  <div
-                    key={fact.label}
-                    className="flex items-center gap-3 observe-fade-up"
-                    style={{ transitionDelay: `${i * 100}ms` }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Icon
-                        className="w-4 h-4 shrink-0"
-                        style={{ color: "hsl(var(--sage))" }}
-                        strokeWidth={1.5}
-                      />
-                      <span
-                        className="text-ds-11 sm:text-ds-13 font-sans font-medium tracking-tight"
-                        style={{ color: "hsl(var(--olivewood))" }}
-                      >
-                        {fact.label}
-                      </span>
-                    </div>
-                    {i < trustFacts.length - 1 && (
-                      <span
-                        className="hidden sm:block w-1 h-1 rounded-full"
-                        style={{
-                          backgroundColor: "hsl(var(--burnt-sienna) / 0.5)",
-                        }}
-                        aria-hidden
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
           </div>
         </div>
       </div>

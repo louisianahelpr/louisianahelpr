@@ -248,8 +248,14 @@ const LandingJobsStrip = () => {
           makes the 0 → -50% translate loop seamless. Marquee is a DIRECT
           child of the section (no max-w container around it) so the rail
           runs edge-to-edge of the viewport. */}
+      {/* No padding on the marquee track — the 0 → -50% seamless loop
+          requires the second copy to be perfectly aligned to where the
+          first copy was, and horizontal padding on the flex track shifts
+          the loop boundary so the animation visibly jumps at reset. Cards
+          run edge-to-edge; the fade-mask on the container handles the
+          visual edges. */}
       <div className="jobs-strip-marquee-container overflow-hidden" role="list">
-        <div className="jobs-strip-marquee gap-5 sm:gap-6 px-5 sm:px-8 lg:px-12">
+        <div className="jobs-strip-marquee gap-5 sm:gap-6">
           {[...jobs, ...jobs].map((job, i) => (
             <div role="listitem" key={`${job.id}-${i}`} className="contents">
               <JobStripCard job={job} />

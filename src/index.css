@@ -1671,14 +1671,26 @@ button,
    a slower pace since job cards carry more visual info than pills. Cards
    drift left, pause on hover so users can click into a specific job, and
    respect prefers-reduced-motion. */
+/* The seamless loop requires the second copy of cards to sit exactly where
+   the first copy started when the animation resets. With `translateX(-50%)`
+   we're one-half-a-gap off (the gap between the last card of copy A and the
+   first card of copy B ISN'T half of the total track), which is what makes
+   the reset visibly jump. Compensate by shifting an extra half-gap-width
+   left so the second copy lands precisely at the origin. */
 @keyframes jobs-strip-scroll {
   from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  to { transform: translateX(calc(-50% - var(--jobs-strip-half-gap, 10px))); }
 }
 .jobs-strip-marquee {
   display: flex;
   width: max-content;
+  /* gap-5 (20px) on mobile → half-gap is 10px */
+  --jobs-strip-half-gap: 10px;
   animation: jobs-strip-scroll 60s linear infinite;
+}
+@media (min-width: 640px) {
+  /* sm:gap-6 (24px) at ≥640px → half-gap is 12px */
+  .jobs-strip-marquee { --jobs-strip-half-gap: 12px; }
 }
 .jobs-strip-marquee-container:hover .jobs-strip-marquee {
   animation-play-state: paused;

@@ -3,15 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 
 /**
- * Hero — Louisiana Helpr 2026 brand system, top-marketplace visual language.
+ * Hero — Louisiana Helpr 2026 brand system.
  *
- * Modern marketplace pattern (TaskRabbit / Handy / Thumbtack / Airtasker / Angi):
- *   1. Bold modern-sans H1 (Montserrat 900, tight tracking) — not editorial serif.
- *   2. One-line sans subhead — not multi-line italic serif.
- *   3. A prominent SEARCH-STYLE INPUT as the primary CTA — not two side-by-side
- *      buttons. Below it, a compact strip of popular categories as quick-start
- *      taps.
+ * Single centered editorial composition: eyebrow + Bodoni Moda H1 +
+ * EB Garamond italic subhead + a search-input-style primary CTA, all
+ * stacked in one flow column that is centered in the section and fits
+ * every viewport (no absolutely-positioned art to overflow at half-screen).
  *
+ * Typography and color are unchanged from the prior editorial hero — only
+ * the CTA row swapped from two side-by-side buttons to a single
+ * search-input-style field with a "Popular:" quick-start row beneath it.
  * Both the input submit and the category taps route through the same
  * auth-aware handler that the previous Post-a-job button used: authed users
  * land on /post-job, anonymous users get /signup.
@@ -22,8 +23,7 @@ const HeroSection = () => {
   const headlineRef = useRef<HTMLHeadingElement>(null);
 
   // Variable kerning on scroll — the H1 letter-spacing tightens slightly as
-  // the user scrolls past the hero. Restrained: clamps at -0.065 em max
-  // (starts at -0.03 em to match the modern-marketplace baseline).
+  // the user scrolls past the hero. Restrained: clamps at -0.06 em max.
   // Skipped for users who prefer reduced motion.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -38,7 +38,7 @@ const HeroSection = () => {
       if (!el) return;
       const scroll = Math.min(window.scrollY, 600);
       const tighten = (scroll / 600) * 0.035; // 0 -> 0.035 em over 600 px
-      el.style.letterSpacing = `${-0.03 - tighten}em`;
+      el.style.letterSpacing = `${-0.025 - tighten}em`;
     };
     const onScroll = () => {
       cancelAnimationFrame(raf);
@@ -112,23 +112,34 @@ const HeroSection = () => {
 
   return (
     <section className="relative flex flex-col px-5 sm:px-8 lg:px-12 pt-4 sm:pt-8 lg:pt-12 pb-16 sm:pb-24 lg:pb-32">
+      {/* Hero content — the category rail now lives ABOVE the hero (in
+          Index.tsx, under the fixed nav), so this section no longer needs
+          `min-h-[100svh]` + `justify-center`: on mobile that combo left a
+          huge blank gap between the category strip and the H1 while the
+          section stretched the copy to the vertical center of the viewport.
+          Flowing naturally means the H1 sits directly under the categories
+          with the CTAs immediately below — no dead space. */}
       <div className="relative flex flex-col items-center text-center">
         <div className="mx-auto w-full max-w-3xl flex flex-col items-center">
 
-          {/* Eyebrow — kept unchanged. Anchors the composition and reads as
-              a modern marketplace's "local promise" tag. */}
+          {/* The live-count proof lives once, in the trust strip below — the
+              old "Live now" pill duplicated it and read as awkward on load
+              (it flashed the generic "Live now" fallback before the count
+              resolved), so the eyebrow now leads the hero. */}
           <span className="text-display-eyebrow">Made in Louisiana</span>
 
-          {/* H1 — Montserrat 900 (font-sans font-black), tight -0.03em
-              tracking. This is the top-marketplace visual pattern: bold
-              modern-sans headline, not editorial serif. The italic
-              burnt-sienna emphasis stays on the noun ("Partner.") for
-              accent-color anchoring, but rendered in italic Montserrat
-              instead of italic serif. */}
+          {/* H1 — Bodoni Moda 900, italic Burnt-Sienna emphasis on the
+              second line's noun. Letter-spacing animates on scroll.
+              `text-balance` keeps the two lines even; `break-words` guards
+              the unbreakable word "Louisiana" from bursting a ~320 px
+              viewport. The second line flips to `sm:block` so at tablet+
+              "Louisiana jobs." always claims its own second line — an
+              intentional 2-line composition instead of an orphaned "jobs."
+              dangling by itself. Mobile keeps the natural inline flow. */}
           <h1
             ref={headlineRef}
-            className="font-sans font-black leading-[1.02] text-balance break-words mt-6 sm:mt-8 text-[2.5rem] sm:text-6xl lg:text-7xl xl:text-[5rem] max-w-4xl"
-            style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.03em" }}
+            className="font-display font-black leading-[1.02] text-balance break-words mt-6 sm:mt-8 text-[2.5rem] sm:text-6xl lg:text-7xl xl:text-[5rem] max-w-4xl"
+            style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
           >
             Louisiana&rsquo;s Local{" "}
             <span className="sm:block">
@@ -144,14 +155,22 @@ const HeroSection = () => {
             </span>
           </h1>
 
-          {/* Subhead — one line, modern sans medium. Tighter and less
-              editorial than the prior three-line italic serif, which is the
-              visual language every top marketplace hero uses. */}
+          {/* Subhead — EB Garamond italic, three-beat cadence that mirrors
+              the actual arc of using the app. The marketplace mechanics
+              live in the sections below, so the hero leads with rhythm and
+              promise. Typography intentionally unchanged from the prior
+              editorial hero. */}
           <p
-            className="font-sans font-medium mt-6 sm:mt-8 max-w-2xl text-ds-15 sm:text-ds-17 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood))" }}
+            className="font-serif italic mt-8 sm:mt-10 max-w-2xl text-ds-17 sm:text-ds-20 lg:text-ds-24 leading-relaxed text-balance"
+            style={{
+              color: "hsl(var(--stormy-sky))",
+              fontWeight: 600,
+              textShadow: "0 1px 1px rgba(46, 47, 34, 0.06)",
+            }}
           >
-            Louisiana neighbors, ready to help — hire in minutes.
+            Hire a Helpr or find local work. Whether you need a hand or
+            you&rsquo;re ready to lend one, we&rsquo;re your trusted local
+            partner for everyday jobs.
           </p>
 
           {/* Search-style CTA — the modern marketplace pattern. Full-width

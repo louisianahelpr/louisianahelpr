@@ -1,16 +1,9 @@
 import { Star } from "lucide-react";
-import { ONBOARDING_FEE_CENTS, formatDollarsWhole } from "@/lib/moneyLimits";
 
 /**
- * CommunityVoice — proof section combining a 3-testimonial rich-card rail
- * with the FAQ accordion. The testimonial column replaced the previous
- * single-quote carousel (auto-advancing pull quote) with three static
- * side-by-side cards on desktop that stack on mobile — three names on the
- * page at once carries more social weight than a rotating solo quote, and
- * removes the auto-cycle attention tax.
- *
- * FAQ column below (unchanged behavior) closes the block with an inline
- * CTA that gives engaged scrollers a landing point.
+ * CommunityVoice — proof section: 3-testimonial rich-card rail. FAQ was
+ * moved off the landing page as part of the "simple modern reset" pass.
+ * Users looking for FAQ content can find it in the Help Center.
  */
 
 type Testimonial = {
@@ -44,25 +37,6 @@ const testimonials: Testimonial[] = [
   },
 ];
 
-const faqs = [
-  {
-    q: "How do I know my Helpr is trustworthy?",
-    a: "Every Helpr verifies their identity through Stripe Identity — a government-ID and photo match — before they can take their first job. You also see their ratings, reviews, and how many jobs they've completed for other Louisiana neighbors — all before you choose.",
-  },
-  {
-    q: "What if the job isn't done right?",
-    a: "Payment stays in escrow until you confirm the work, so nothing is released until you're satisfied. If something's off, message your Helpr directly and work it out — most things get sorted with a quick conversation. If you genuinely can't reach a resolution on your own, open a dispute and our team will step in to help.",
-  },
-  {
-    q: "How much does Helpr cost?",
-    a: `Posting is free — you only pay when you hire someone. At checkout you'll see the agreed price plus a small service fee, itemized in full before you pay — no subscriptions, no hidden charges. The very first job on a new account also includes a one-time ${formatDollarsWhole(ONBOARDING_FEE_CENTS / 100)} account-setup fee (shown as its own line item); after that it never appears again. Your Helpr keeps the large majority of what you pay (88–94%, depending on their plan), so the person doing the work is paid fairly.`,
-  },
-  {
-    q: "How fast will someone respond?",
-    a: "Most jobs get applications within the first hour. Helprs in your parish are notified the moment your job goes live, so you can compare applicants and pick someone the same day.",
-  },
-];
-
 const CommunityVoice = () => {
   return (
     <section className="px-5 sm:px-8 lg:px-12 pt-8 sm:pt-12 lg:pt-16 pb-16 sm:pb-24 lg:pb-32">
@@ -88,7 +62,7 @@ const CommunityVoice = () => {
             <article
               key={t.name}
               role="listitem"
-              className="liquid-glass p-6 sm:p-8 flex flex-col observe-fade-up"
+              className="p-6 sm:p-8 flex flex-col observe-fade-up border border-[hsl(var(--olivewood)/0.12)] rounded-2xl bg-white"
               style={{ transitionDelay: `${100 + i * 80}ms` }}
             >
               {/* Avatar + attribution header */}
@@ -166,56 +140,6 @@ const CommunityVoice = () => {
           </span>
         </div>
 
-        {/* FAQ — kept unchanged. Sits below the testimonial rail as its own
-            full-width block instead of the previous side-by-side layout,
-            because the rail now fills the horizontal space that the FAQ
-            previously shared. */}
-        <div
-          className="mt-16 sm:mt-24 lg:mt-28 observe-fade-up"
-          style={{ transitionDelay: "150ms" }}
-        >
-          <div className="mb-8 sm:mb-10 lg:mb-12 text-center">
-            <span className="text-display-eyebrow">Common questions</span>
-            <h2
-              className="font-display font-bold italic mt-3 sm:mt-4 text-balance text-ds-20 sm:text-ds-24 lg:text-[1.625rem] tracking-[-0.02em]"
-              style={{ color: "hsl(var(--ink-deep))" }}
-            >
-              Honest answers, no fine print.
-            </h2>
-          </div>
-
-          <ul className="liquid-glass faq-list px-7 sm:px-10 py-5 sm:py-6 max-w-3xl mx-auto">
-            {faqs.map((faq, i) => (
-              <li
-                key={faq.q}
-                className="observe-fade-up"
-                style={{ transitionDelay: `${250 + i * 60}ms` }}
-              >
-                <details className="faq-item">
-                  <summary>
-                    <span
-                      className="font-display font-semibold text-ds-15 sm:text-ds-17 tracking-tight"
-                      style={{ color: "hsl(var(--olivewood))" }}
-                    >
-                      {faq.q}
-                    </span>
-                  </summary>
-                  <div className="faq-answer">
-                    <p
-                      className="font-sans text-ds-13 leading-relaxed max-w-2xl"
-                      style={{
-                        color: "hsl(var(--olivewood))",
-                        opacity: 0.85,
-                      }}
-                    >
-                      {faq.a}
-                    </p>
-                  </div>
-                </details>
-              </li>
-            ))}
-          </ul>
-        </div>
       </div>
     </section>
   );

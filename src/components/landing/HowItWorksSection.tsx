@@ -127,10 +127,11 @@ const HowItWorksSection = () => {
           </div>
         </div>
 
-        {/* Liquid-glass container — gives the steps a defined surface that
-            reads as one continuous "this is how it works" panel rather than
-            three orphaned cards floating on the champagne canvas. */}
-        <div className="liquid-glass px-6 sm:px-10 lg:px-12 py-10 sm:py-14 lg:py-16">
+        {/* Plain container — the liquid-glass frosted panel was stripped
+            as part of the "simple modern reset" pass so every mid-page
+            section shares one flat parchment grammar. Step cards carry
+            their own faint border and hold the composition on their own. */}
+        <div className="px-2 sm:px-4 lg:px-6 py-4 sm:py-6">
           {/* Three transparent step cards — faint white hairline + content,
               mesh gradient bleeds through. `key={mode}` re-triggers the
               observe-fade-up reveal when the perspective switches. */}

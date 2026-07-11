@@ -11,15 +11,7 @@ import { Button } from "@/components/ui/button";
 const BusinessCTASection = () => (
   <section className="px-5 sm:px-8 lg:px-12 pt-16 sm:pt-24 lg:pt-32 pb-8 sm:pb-12 lg:pb-16">
     <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-      <div
-        className="observe-fade-up relative overflow-hidden rounded-[2rem] px-8 py-12 sm:px-14 sm:py-16 lg:px-20 lg:py-20"
-        style={{
-          background: "hsl(var(--bark) / 0.07)",
-          border: "1px solid hsl(var(--bark) / 0.20)",
-          boxShadow:
-            "inset 0 1px 1px 0 rgba(255,255,255,0.4), 0 12px 32px -12px hsl(var(--bark) / 0.18)",
-        }}
-      >
+      <div className="observe-fade-up relative px-4 py-6 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
         {/* Centered stacked column. A left-hugging max-w-2xl block left the
             right ~45% of this wide band empty (a lopsided dead gutter);
             centering a slightly wider measure fills the band symmetrically so

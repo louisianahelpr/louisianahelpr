@@ -28,11 +28,6 @@ import CategoryBento from "@/components/landing/CategoryBento";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import CommunityVoice from "@/components/landing/CommunityVoice";
 import BusinessCTASection from "@/components/landing/BusinessCTASection";
-// PayoutTicker is below the fold (it lives between the hero and the
-// city strip) so it's safe to lazy-load — keeps the supabase chunk
-// out of the LCP path. The ticker hides itself on empty / errored
-// data, so a render-failure of the chunk degrades cleanly to nothing.
-const PayoutTicker = lazy(() => import("@/components/landing/PayoutTicker"));
 // LandingJobsStrip self-fetches open jobs (pulls in Supabase), so it MUST stay
 // lazy to keep the supabase chunk out of the Index entry / LCP path. Like the
 // ticker it hides itself on empty / errored / not-yet-deployed (PGRST202) data,
@@ -209,21 +204,6 @@ const Index = () => {
       </div>
 
       <HeroSection />
-
-      {/* Live payout ticker (#87) — single-line social-proof strip
-          between the hero CTAs and the city strip, telling prospective
-          helpers "real people are getting paid here right now."
-          Self-hides when there's no recent payout data OR when the
-          public RPC hasn't been pushed yet (PGRST202 fallback), so a
-          fresh / quiet platform doesn't show an empty placeholder. */}
-      <div className="px-5 sm:px-8 lg:px-12 pt-3 sm:pt-4">
-        <Suspense fallback={null}>
-          <PayoutTicker />
-        </Suspense>
-      </div>
-
-      {/* City strip now lives inside the hero-footer band (HeroSection),
-          grouped with the App Store download + category marquee. */}
 
       <HowItWorksSection />
 

@@ -31,7 +31,7 @@ const HowItWorksSection = () => (
     className="px-5 sm:px-8 lg:px-12 pt-6 sm:pt-8 lg:pt-10 pb-16 sm:pb-24 lg:pb-28 scroll-mt-24"
   >
     <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-      <div className="text-center mb-12 sm:mb-16">
+      <div className="text-center mb-8 sm:mb-10">
         <span className="text-display-eyebrow">How it works</span>
         <h2 className="text-display-xl mt-3 text-balance">
           Three steps. Zero surprises.

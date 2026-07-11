@@ -129,7 +129,7 @@ const HeroSection = () => {
       {/* Hero — one 2-column grid. Eyebrow and H1 sit in the LEFT column,
           anchored to the top-left; subhead + stacked CTAs sit in the right
           column, centered vertically so they align with the bulk of the H1. */}
-      <div className="w-full max-w-6xl mx-auto grid lg:grid-cols-[1.6fr_1fr] items-start lg:items-center gap-10 lg:gap-16 text-center lg:text-left">
+      <div className="w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid lg:grid-cols-[1.6fr_1fr] items-center gap-10 lg:gap-16 text-center lg:text-left">
         <div className="flex flex-col items-center lg:items-start">
           <span className="text-display-eyebrow">Made in Louisiana</span>
           <h1

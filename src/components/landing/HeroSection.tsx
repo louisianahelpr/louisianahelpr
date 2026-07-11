@@ -114,6 +114,30 @@ const HeroSection = () => {
 
   return (
     <section className="relative flex flex-col px-5 sm:px-8 lg:px-12 pt-14 sm:pt-20 lg:pt-24 pb-16 sm:pb-24 lg:pb-32">
+      {/* Fleur-de-lis watermark — a subtle Louisiana signature in the top-
+          right corner of the hero. `opacity: 0.06` + Burnt-Sienna makes it
+          read as a mark on the parchment, not a graphic that competes with
+          the H1. Pointer-events disabled so it never intercepts clicks on
+          the CTAs. `aria-hidden` because it's decorative — nothing for
+          screen readers to announce. Hidden on the smallest viewports where
+          it would crowd the copy. */}
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 100 140"
+        className="pointer-events-none absolute right-4 sm:right-8 lg:right-14 top-6 sm:top-10 lg:top-14 hidden sm:block h-40 sm:h-56 lg:h-72 w-auto"
+        style={{ color: "hsl(var(--burnt-sienna))", opacity: 0.06 }}
+        fill="currentColor"
+      >
+        {/* Three-lobe fleur-de-lis: center flame, two side lobes, banded
+            waistband at the base. Path is intentionally simple so it reads
+            crisply even at very low opacity. */}
+        <path d="M50 4 C46 18 40 30 40 42 C40 52 44 60 50 66 C56 60 60 52 60 42 C60 30 54 18 50 4 Z" />
+        <path d="M50 66 C34 62 22 68 18 82 C15 92 20 104 32 108 C28 100 30 92 38 88 C42 86 46 84 50 82 C54 84 58 86 62 88 C70 92 72 100 68 108 C80 104 85 92 82 82 C78 68 66 62 50 66 Z" />
+        <path d="M32 92 L68 92 L72 102 L28 102 Z" />
+        <path d="M50 82 L50 136" strokeWidth="4" stroke="currentColor" />
+        <path d="M38 118 C42 122 46 124 50 124 C54 124 58 122 62 118 L62 128 L38 128 Z" />
+      </svg>
+
       {/* Hero content — the category rail now lives ABOVE the hero (in
           Index.tsx, under the fixed nav), so this section no longer needs
           `min-h-[100svh]` + `justify-center`: on mobile that combo left a
@@ -121,7 +145,7 @@ const HeroSection = () => {
           section stretched the copy to the vertical center of the viewport.
           Flowing naturally means the H1 sits directly under the categories
           with the CTAs immediately below — no dead space. */}
-      <div className="flex flex-col items-center text-center">
+      <div className="relative flex flex-col items-center text-center">
         <div className="mx-auto w-full max-w-3xl flex flex-col items-center">
 
           {/* The live-count proof lives once, in the trust strip below — the
@@ -130,34 +154,43 @@ const HeroSection = () => {
               resolved), so the eyebrow now leads the hero. */}
           <span className="text-display-eyebrow">Made in Louisiana</span>
 
-          {/* H1 — Bodoni Moda 900, italic Burnt-Sienna emphasis on "Partner."
-              Letter-spacing animates on scroll. `text-balance` keeps the two
-              lines even; `break-words` guards the long unbreakable word
-              "Louisiana's" from bursting a ~320px viewport. The inner span
-              flips to `sm:block` so at tablet+ "Job Partner." always claims
-              its own second line — an intentional 2-line composition instead
-              of an orphaned "Partner." dangling by itself. Mobile keeps the
-              natural inline flow (font-size scaling already wraps cleanly). */}
+          {/* H1 — Bodoni Moda 900, italic Burnt-Sienna emphasis on the
+              second line's noun. Letter-spacing animates on scroll.
+              `text-balance` keeps the two lines even; `break-words` guards
+              the unbreakable word "Louisiana" from bursting a ~320 px
+              viewport. The second line flips to `sm:block` so at tablet+
+              "Louisiana jobs." always claims its own second line — an
+              intentional 2-line composition instead of an orphaned "jobs."
+              dangling by itself. Mobile keeps the natural inline flow.
+
+              Copy: "Louisiana neighbors. Louisiana jobs." — chosen over the
+              descriptive prior H1 because it names WHO does the work
+              (neighbors, not gig-workers), then WHAT (jobs) as the payoff.
+              The parallel structure lets the italic Burnt-Sienna land on
+              "jobs" so the accent color hits the noun the visitor came for. */}
           <h1
             ref={headlineRef}
             className="font-display font-black leading-[1.02] text-balance break-words mt-6 sm:mt-8 text-[2.5rem] sm:text-6xl lg:text-7xl xl:text-[5rem] max-w-4xl"
             style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
           >
-            Louisiana&rsquo;s Local{" "}
+            Louisiana neighbors.{" "}
             <span className="sm:block">
-              Job{" "}
+              Louisiana{" "}
               <em
                 style={{
                   fontStyle: "italic",
                   color: "hsl(var(--burnt-sienna))",
                 }}
               >
-                Partner.
+                jobs.
               </em>
             </span>
           </h1>
 
-          {/* Subhead — open-air leading, both-sides marketplace explanation */}
+          {/* Subhead — three-beat cadence (post / done / paid) that mirrors
+              the actual arc of using the app. Shorter and warmer than the
+              prior explanatory paragraph; the marketplace mechanics live in
+              the sections below, so the hero leads with rhythm and promise. */}
           <p
             className="font-serif italic mt-8 sm:mt-10 max-w-2xl text-ds-17 sm:text-ds-20 lg:text-ds-24 leading-relaxed text-balance"
             style={{
@@ -166,9 +199,7 @@ const HeroSection = () => {
               textShadow: "0 1px 1px rgba(46, 47, 34, 0.06)",
             }}
           >
-            Hire a Helpr or find local work. Whether you need a hand or
-            you&rsquo;re ready to lend one, we&rsquo;re your trusted local
-            partner for everyday jobs.
+            Post it Monday. Done by Tuesday. Paid same day.
           </p>
 
           {/* CTAs — side by side on desktop, stacked full-width on mobile. */}

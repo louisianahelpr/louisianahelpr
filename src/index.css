@@ -1697,6 +1697,48 @@ button,
   }
 }
 
+/* City-strip marquee — same seamless 0 → -50% loop pattern as the category
+   marquee, but MUCH slower (~120 s / lap) because the strip is decorative
+   ambient signage, not a call-to-action. The visible list of Louisiana
+   cities should drift so slowly it reads as still on first glance and only
+   reveals its motion on a return look. Reduced-motion disables it entirely. */
+@keyframes city-strip-marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.city-strip-marquee {
+  width: max-content;
+  animation: city-strip-marquee-scroll 120s linear infinite;
+}
+
+.city-strip-marquee-container {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 4%,
+    black 96%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 4%,
+    black 96%,
+    transparent 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .city-strip-marquee {
+    animation: none;
+  }
+}
+
 /* Scroll-stagger fade-up — elements enter the viewport with a soft upward
    shift + opacity rise. Toggled by the `is-visible` class which the
    useScrollFadeUp hook adds via IntersectionObserver. Per-element stagger

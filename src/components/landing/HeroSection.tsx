@@ -222,9 +222,13 @@ const HeroSection = () => {
       {/* ── Category bar ──────────────────────────────────────────────
           Anchored below the hero copy as a full-bleed browse-affordance
           rail (negative margins cancel the section padding so it spans
-          edge-to-edge). No divider — it reads as one continuous flow from
-          the CTAs into the category rail. */}
+          edge-to-edge). A small centered "Browse by category" eyebrow
+          bridges the CTAs into the rail — it gives the marquee a stated
+          purpose instead of appearing as a decorative afterthought. */}
       <div className="-mx-5 sm:-mx-8 lg:-mx-12 px-5 sm:px-8 lg:px-12 mt-12 sm:mt-16">
+        <div className="text-center mb-4 sm:mb-5">
+          <span className="text-display-eyebrow">Browse by category</span>
+        </div>
         <CategoryBento onSelect={goToPostJob} />
       </div>
     </section>

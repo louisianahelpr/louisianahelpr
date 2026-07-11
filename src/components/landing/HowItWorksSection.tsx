@@ -116,7 +116,7 @@ const HowItWorksSection = () => {
                   aria-selected={active}
                   aria-controls="how-it-works-steps"
                   onClick={() => setMode(key)}
-                  className="rounded-full px-4 sm:px-5 py-2 text-ds-13 sm:text-ds-15 font-sans font-semibold transition-all duration-300"
+                  className="whitespace-nowrap rounded-full px-4 sm:px-5 py-2 text-ds-13 sm:text-ds-15 font-sans font-semibold transition-all duration-300"
                   style={
                     active
                       ? {

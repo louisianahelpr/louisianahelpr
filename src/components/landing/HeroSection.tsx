@@ -1,30 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, ArrowRight, Search, ShieldCheck, MapPin } from "lucide-react";
+import { Sparkles, ArrowRight, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CategoryBento from "@/components/landing/CategoryBento";
-import { useCountUp } from "@/hooks/useCountUp";
 
 /**
  * Hero — Louisiana Helpr 2026 brand system.
  *
  * Single centered editorial composition: eyebrow + Bodoni Moda H1 +
- * EB Garamond italic subhead + two action buttons + a trust/local-proof
- * strip, all stacked in one flow column that is centered in the section
- * and fits every viewport (no absolutely-positioned art to overflow at
- * half-screen). The category rail anchors the bottom of the hero.
+ * EB Garamond italic subhead + two action buttons, all stacked in one flow
+ * column that is centered in the section and fits every viewport (no
+ * absolutely-positioned art to overflow at half-screen). The category rail
+ * anchors the bottom of the hero.
  */
 const HeroSection = () => {
   const navigate = useNavigate();
   const [loggedIn, setLoggedIn] = useState(false);
-  // Real "active now" count of open jobs from the last 7 days. Pulled
-  // via the public get_marketplace_activity_count RPC. Null until the
-  // first call returns; stays null on error so the proof line falls back
-  // to honest copy without flashing a fake "0" or zero state.
-  const [activeCount, setActiveCount] = useState<number | null>(null);
-  // Tween between successive counts so the number animates instead of
-  // snapping. Respects prefers-reduced-motion (snaps instantly there).
-  const animatedCount = useCountUp(activeCount, { durationMs: 1200 });
   const headlineRef = useRef<HTMLHeadingElement>(null);
 
   // Variable kerning on scroll — the H1 letter-spacing tightens slightly as
@@ -54,28 +45,6 @@ const HeroSection = () => {
     return () => {
       window.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  // Fetch the real "active now" count after first interaction so the
-  // initial paint stays static and the supabase chunk doesn't block LCP.
-  // Failures stay quiet — proof line falls back to "Live in Louisiana".
-  useEffect(() => {
-    let cancelled = false;
-    const kick = async () => {
-      try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const { data, error } = await supabase.rpc("get_marketplace_activity_count");
-        if (cancelled || error) return;
-        if (typeof data === "number" && data > 0) setActiveCount(data);
-      } catch {
-        /* keep activeCount null → proof line stays generic */
-      }
-    };
-    const timer = window.setTimeout(kick, 1500);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
     };
   }, []);
 
@@ -145,46 +114,22 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-[100svh] flex flex-col px-5 sm:px-8 lg:px-12 pt-20 sm:pt-20 lg:pt-24 pb-5">
-      {/* Hero content — a single flow column centered in the section. No
+    <section className="relative min-h-[100svh] flex flex-col justify-center px-5 sm:px-8 lg:px-12 pt-20 sm:pt-20 lg:pt-24 pb-5">
+      {/* Hero content — copy + category rail are ONE group, vertically
+          centered in the section (justify-center on the section, natural
+          height here). The rail is no longer pinned to the section bottom via
+          flex-1, so it rides right under the CTAs and can't be pushed below
+          the fold by the offline banner's added top chrome. No
           absolutely-positioned art means the composition can never overflow
           or clip at half-screen widths. */}
-      <div className="flex-1 flex flex-col justify-center items-center text-center">
+      <div className="flex flex-col items-center text-center">
         <div className="mx-auto w-full max-w-3xl flex flex-col items-center">
 
-          {/* Live status pill — real count of currently-open jobs (last 7
-              days) when activity exists, "Live now" otherwise so we never
-              flash a deflating "0 jobs". Kept Louisiana-free on purpose: the
-              eyebrow ("Made in Louisiana") and H1 ("Louisiana's") already
-              carry the place, so repeating it in the pill read as redundant.
-              Leads the hero as the first proof-of-life signal. */}
-          <span
-            className="status-pill-glow inline-flex items-center gap-2 px-3.5 py-2 rounded-full font-mono font-medium"
-            style={{
-              backgroundColor: "rgba(255, 255, 255, 0.5)",
-              color: "hsl(var(--ink-deep))",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              backdropFilter: "blur(12px) saturate(170%)",
-              WebkitBackdropFilter: "blur(12px) saturate(170%)",
-              fontSize: "0.65rem",
-              letterSpacing: "0.01em",
-            }}
-          >
-            {/* Burnt-sienna (not the green --live token) so the dot + glow
-                match the brand's "Live" heartbeat, not a clashing green. */}
-            <span
-              className="w-1.5 h-1.5 rounded-full motion-safe:animate-pulse"
-              style={{
-                backgroundColor: "hsl(var(--burnt-sienna))",
-                boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.6)",
-              }}
-            />
-            {animatedCount !== null
-              ? `${animatedCount} ${animatedCount === 1 ? "job" : "jobs"} open now`
-              : "Live now"}
-          </span>
-
-          <span className="text-display-eyebrow mt-6">Made in Louisiana</span>
+          {/* The live-count proof lives once, in the trust strip below — the
+              old "Live now" pill duplicated it and read as awkward on load
+              (it flashed the generic "Live now" fallback before the count
+              resolved), so the eyebrow now leads the hero. */}
+          <span className="text-display-eyebrow">Made in Louisiana</span>
 
           {/* H1 — Bodoni Moda 900, italic Burnt-Sienna emphasis on "Partner."
               Letter-spacing animates on scroll. `text-balance` keeps the two
@@ -271,47 +216,15 @@ const HeroSection = () => {
               </Link>
             </Button>
           </div>
-
-          {/* Trust + local-proof strip — the three signals that make it safe
-              to hire (and worth showing up to work): real local activity,
-              ID-verified people, statewide coverage. Honest: the count line
-              mirrors the live pill; the other two are standing platform
-              facts. */}
-          <div
-            className="mt-8 sm:mt-9 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-ds-12 sm:text-ds-13"
-            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-          >
-            <span className="inline-flex items-center gap-1.5">
-              <span
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: "hsl(var(--burnt-sienna))" }}
-              />
-              {animatedCount !== null
-                ? `${animatedCount} job${animatedCount === 1 ? "" : "s"} open right now`
-                : "Real jobs posted daily"}
-            </span>
-            <span aria-hidden style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>
-            <span className="inline-flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5" strokeWidth={1.75} style={{ color: "hsl(var(--sage))" }} />
-              ID-verified neighbors
-            </span>
-            <span aria-hidden style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
-              Serving all of Louisiana
-            </span>
-          </div>
         </div>
       </div>
 
       {/* ── Category bar ──────────────────────────────────────────────
           Anchored below the hero copy as a full-bleed browse-affordance
           rail (negative margins cancel the section padding so it spans
-          edge-to-edge). A hairline top divider separates it from the hero. */}
-      <div
-        className="-mx-5 sm:-mx-8 lg:-mx-12 px-5 sm:px-8 lg:px-12 pt-6 sm:pt-8 mt-8 sm:mt-10"
-        style={{ borderTop: "1px solid hsl(46 20% 30% / 0.08)" }}
-      >
+          edge-to-edge). No divider — it reads as one continuous flow from
+          the CTAs into the category rail. */}
+      <div className="-mx-5 sm:-mx-8 lg:-mx-12 px-5 sm:px-8 lg:px-12 mt-12 sm:mt-16">
         <CategoryBento onSelect={goToPostJob} />
       </div>
     </section>

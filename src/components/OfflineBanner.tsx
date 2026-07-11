@@ -73,12 +73,12 @@ const OfflineBanner = () => {
     <div
       role="status"
       aria-live="polite"
-      className="fixed top-0 left-0 right-0 z-[60] bg-[hsl(var(--burnt-sienna)/0.95)] text-[hsl(var(--parchment))] shadow-md"
+      className="fixed top-0 left-0 right-0 z-[60] bg-[hsl(var(--burnt-sienna)/0.80)] text-[hsl(var(--parchment))] shadow-md"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <div
         ref={contentRef}
-        className="text-ds-11 font-medium py-2 px-4 flex items-center justify-center gap-2"
+        className="text-ds-11 font-normal py-2 px-4 flex items-center justify-center gap-2"
       >
         <WifiOff className="w-3.5 h-3.5" />
         You're offline. Showing the last data we have.

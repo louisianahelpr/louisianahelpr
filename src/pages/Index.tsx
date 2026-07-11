@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -18,6 +18,7 @@ const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 // past 3s. Below-the-fold sections stay lazy so they don't compete for
 // bandwidth with the hero image during initial paint.
 import HeroSection from "@/components/landing/HeroSection";
+import CategoryBento from "@/components/landing/CategoryBento";
 // HowItWorks / CommunityVoice / BusinessCTA are eager-loaded. They're pure
 // presentational sections (lucide icons + router + Button, no Supabase), so
 // they add negligible JS to the entry chunk — but lazy-loading them caused
@@ -120,6 +121,18 @@ const faqSchema = {
 const Index = () => {
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Category rail lives ABOVE the hero (right under the fixed nav) as a
+  // browse-affordance strip — same auth-aware routing the hero CTAs use:
+  // logged-in visitor → /post-job; anonymous visitor → /signup.
+  const handleCategorySelect = async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    navigate(session?.user ? "/post-job" : "/signup");
+  };
 
   // Stagger fade-up on every `.observe-fade-up` element as it scrolls into
   // view. Honors prefers-reduced-motion. Picks up newly-mounted lazy
@@ -184,6 +197,17 @@ const Index = () => {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
+      {/* Category rail — moved OUT of the hero to sit directly under the
+          fixed top nav as a browse-affordance strip. Custom top padding
+          clears the navbar (h-12 + safe-area) since the landing opts out of
+          the PublicLayout nav spacer (noNavSpacer). */}
+      <div
+        className="px-5 sm:px-8 lg:px-12 pb-3 sm:pb-4"
+        style={{ paddingTop: "calc(max(env(safe-area-inset-top), 1.5rem) + 3rem + 0.5rem)" }}
+      >
+        <CategoryBento onSelect={handleCategorySelect} />
+      </div>
+
       <HeroSection />
 
       {/* Live payout ticker (#87) — single-line social-proof strip

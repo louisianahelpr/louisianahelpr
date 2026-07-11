@@ -1636,7 +1636,7 @@ button,
 .category-marquee {
   display: flex;
   width: max-content;
-  animation: category-marquee-scroll 40s linear infinite;
+  animation: category-marquee-scroll 75s linear infinite;
 }
 
 /* Subtle vertical float on the wrapper — composes cleanly with the

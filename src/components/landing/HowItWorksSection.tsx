@@ -143,17 +143,15 @@ const HowItWorksSection = () => {
               return (
                 <article
                   key={step.title}
-                  className="observe-fade-up relative p-6 sm:p-7 flex flex-col justify-between gap-5 min-h-[14rem] sm:min-h-[16rem] rounded-[2rem]"
+                  className="observe-fade-up relative p-6 sm:p-7 flex flex-col justify-between gap-5 min-h-[10rem] sm:min-h-[16rem] rounded-[2rem]"
                   style={{
                     transitionDelay: `${i * 100}ms`,
                     border: "1px solid rgba(255, 255, 255, 0.18)",
                   }}
                 >
                   <div className="flex items-start justify-between">
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "hsl(var(--bark) / 0.1)" }}>
-                      <Icon className="w-6 h-6" strokeWidth={1.25} style={{ color: "hsl(var(--bark))" }} />
-                    </div>
-                    {/* Step number badge — monospaced, prominent pill */}
+                    {/* Step number badge — sits on the LEFT so a first-time
+                        reader lands on "01" before the visual affordance. */}
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center font-mono font-bold text-ds-13"
                       style={{
@@ -162,6 +160,9 @@ const HowItWorksSection = () => {
                       }}
                     >
                       {String(i + 1).padStart(2, "0")}
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "hsl(var(--bark) / 0.1)" }}>
+                      <Icon className="w-6 h-6" strokeWidth={1.25} style={{ color: "hsl(var(--bark))" }} />
                     </div>
                   </div>
                   <div className="space-y-2">

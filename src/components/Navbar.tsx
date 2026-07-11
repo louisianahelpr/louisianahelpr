@@ -233,12 +233,6 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                 {/* HelprMark again — to=null since we're inside a Sheet
                     and a Link would close the menu via navigation. */}
                 <HelprMark to={null} size="md" />
-                <span
-                  className="font-serif italic uppercase text-[0.62rem]"
-                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-                >
-                  Louisiana&rsquo;s task marketplace
-                </span>
               </div>
               <Link
                 to="/#how-it-works"
@@ -303,25 +297,9 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                   </Button>
                 ) : (
                   <>
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="lg"
-                      className="liquid-glass w-full rounded-2xl font-sans font-semibold"
-                      style={{
-                        color: "hsl(var(--olivewood))",
-                        border: "1px solid hsla(0,0%,100%,0.6)",
-                      }}
-                    >
-                      <Link to="/login" onClick={() => setMobileOpen(false)}>
-                        Log in
-                      </Link>
-                    </Button>
-                    {/* Mobile sign-up CTA — same explicit light-cream pin as
-                        the desktop "Get started". The descendant `[&_*]` rule
-                        guarantees the <Link> text stays parchment even though
-                        asChild renders an <a> that can otherwise inherit a
-                        darker color from the sheet's `color: --olivewood`. */}
+                    {/* Get started = primary CTA (bark fill). Log in = quiet
+                        secondary text link underneath so the two actions have
+                        clearly different weight, not two competing pills. */}
                     <Button
                       asChild
                       size="lg"
@@ -340,6 +318,14 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                         <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
                       </Link>
                     </Button>
+                    <Link
+                      to="/login"
+                      onClick={() => setMobileOpen(false)}
+                      className="text-center font-sans font-medium text-ds-13 mt-1 underline underline-offset-4 decoration-[hsl(var(--olivewood)/0.3)] hover:decoration-[hsl(var(--olivewood)/0.7)] transition-colors"
+                      style={{ color: "hsl(var(--olivewood))" }}
+                    >
+                      Already have an account? Log in
+                    </Link>
                   </>
                 )}
               </div>

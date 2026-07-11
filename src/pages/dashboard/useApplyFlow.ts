@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useMutation, useQueryClient, type Query } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -43,7 +43,36 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
   // Proposed bid price — only populated for accept_bids jobs.
   const [bidPrice, setBidPrice] = useState("");
-  const confirmApplyJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
+  // A deep-linked apply (?quickApply=<id>) can target a job that isn't in the
+  // dashboard feed — filtered out, in another area, or the feed simply hasn't
+  // loaded it. The confirm dialog needs the job object (title, budget,
+  // pricing_mode, instant_book, is_urgent, date_needed, category) to render its
+  // earnings breakdown and tips, so when the id is absent from `allJobs` we
+  // fetch the single row (RLS still applies) and use it as the fallback source.
+  const [fetchedJob, setFetchedJob] = useState<EnrichedJob | null>(null);
+  const feedJob = allJobs.find((j) => j.id === confirmApplyJobId) || null;
+  const confirmApplyJob =
+    feedJob || (fetchedJob?.id === confirmApplyJobId ? fetchedJob : null);
+
+  useEffect(() => {
+    // No pending confirm, or the feed already has the job → nothing to fetch.
+    if (!confirmApplyJobId || feedJob) return;
+    // Already fetched this exact id → don't refetch on every render.
+    if (fetchedJob?.id === confirmApplyJobId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("id", confirmApplyJobId)
+        .maybeSingle();
+      // Best-effort: a miss/RLS-denial just leaves confirmApplyJob null and the
+      // dialog falls back to its generic copy — the apply mutation itself only
+      // needs the jobId, so a failed fetch never blocks applying.
+      if (!cancelled && !error && data) setFetchedJob(data as EnrichedJob);
+    })();
+    return () => { cancelled = true; };
+  }, [confirmApplyJobId, feedJob, fetchedJob]);
 
   const handleApplyRequest = useCallback(async (jobId: string) => {
     if (!requireOnline()) return;

@@ -113,21 +113,13 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative flex flex-col justify-center min-h-[100svh] px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-24 pb-12 sm:pb-16 lg:pb-20">
-      {/* Hero content — the category rail now lives ABOVE the hero (in
-          Index.tsx, under the fixed nav), so this section no longer needs
-          `min-h-[100svh]` + `justify-center`: on mobile that combo left a
-          huge blank gap between the category strip and the H1 while the
-          section stretched the copy to the vertical center of the viewport.
-          Flowing naturally means the H1 sits directly under the categories
-          with the CTAs immediately below — no dead space. */}
-      <div className="relative flex flex-col items-center text-center">
-        <div className="mx-auto w-full max-w-3xl flex flex-col items-center">
-
-          {/* The live-count proof lives once, in the trust strip below — the
-              old "Live now" pill duplicated it and read as awkward on load
-              (it flashed the generic "Live now" fallback before the count
-              resolved), so the eyebrow now leads the hero. */}
+    <section className="relative flex flex-col justify-between items-center text-center min-h-[100svh] px-5 sm:px-8 lg:px-12 pt-20 sm:pt-24 lg:pt-28 pb-14 sm:pb-20 lg:pb-24">
+      {/* Hero content — the section itself is a 3-part vertical layout
+          (eyebrow → copy → CTAs) that fills the full viewport height. The
+          `justify-between` spreads the three chunks apart so the composition
+          breathes across the screen instead of clumping in the middle. */}
+      <div className="mx-auto w-full max-w-3xl flex flex-col items-center">
+          {/* Eyebrow leads the hero — anchors the top of the composition. */}
           <span className="text-display-eyebrow">Made in Louisiana</span>
 
           {/* H1 — Bodoni Moda 900, italic Burnt-Sienna emphasis on the
@@ -231,7 +223,6 @@ const HeroSection = () => {
               </Link>
             </Button>
           </div>
-        </div>
       </div>
 
     </section>

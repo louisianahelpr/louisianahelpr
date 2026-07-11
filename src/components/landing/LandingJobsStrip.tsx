@@ -254,14 +254,8 @@ const LandingJobsStrip = () => {
             rather than an abrupt cut-off. A mask (not an overlay) is used so
             the fade works over the mesh-gradient background. */}
         <div
-          className="flex gap-5 sm:gap-6 overflow-x-auto snap-x snap-mandatory pb-3 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex gap-5 sm:gap-6 overflow-x-auto snap-x snap-mandatory -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="list"
-          style={{
-            maskImage:
-              "linear-gradient(to right, black calc(100% - 2.5rem), transparent)",
-            WebkitMaskImage:
-              "linear-gradient(to right, black calc(100% - 2.5rem), transparent)",
-          }}
         >
           {jobs.map((job) => (
             <div role="listitem" key={job.id} className="contents">

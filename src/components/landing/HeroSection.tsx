@@ -199,7 +199,9 @@ const HeroSection = () => {
               textShadow: "0 1px 1px rgba(46, 47, 34, 0.06)",
             }}
           >
-            Post it Monday. Done by Tuesday. Paid same day.
+            Hire a Helpr or find local work. Whether you need a hand or
+            you&rsquo;re ready to lend one, we&rsquo;re your trusted local
+            partner for everyday jobs.
           </p>
 
           {/* CTAs — side by side on desktop, stacked full-width on mobile. */}

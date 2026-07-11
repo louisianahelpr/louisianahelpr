@@ -219,18 +219,12 @@ const LandingJobsStrip = () => {
     <section
       id="jobs"
       aria-label="Live jobs in Louisiana"
-      className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-10 sm:pt-12 lg:pt-16 pb-2 sm:pb-3 scroll-mt-20"
+      className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-2 sm:pt-3 pb-2 sm:pb-3 scroll-mt-20"
     >
       <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-        {/* Section header — eyebrow + H2 centered on the page spine. The
-            "See all jobs" link now lives BELOW the rail, right-aligned, so
-            it doesn't pull this centered column off-axis. */}
-        <div className="mb-8 sm:mb-10 text-center">
-          <p className="text-display-eyebrow">Fresh today · pulled live</p>
-          <h2 className="text-display-xl text-balance">
-            Jobs happening near you
-          </h2>
-        </div>
+        {/* Header removed per user request — jobs now flow directly as a
+            continuation of the hero (no "Fresh today · pulled live" eyebrow
+            + "Jobs happening near you" H2 above the rail). */}
 
         {/* Horizontal scroll rail. `snap-x` gives a gentle card-to-card
             settle on touch; the negative margin + padding lets the first/

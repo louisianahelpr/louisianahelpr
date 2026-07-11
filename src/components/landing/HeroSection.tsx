@@ -113,28 +113,76 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative flex flex-col justify-center items-center min-h-[calc(100svh-22rem)] px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-24 pb-6 sm:pb-8 lg:pb-10">
-      <div className="w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-center gap-10 md:gap-12 lg:gap-16 text-center">
-        <h1
-          ref={headlineRef}
-          className="font-display font-black leading-[1.02] text-balance break-words text-[3.25rem] sm:text-6xl md:text-[4rem] lg:text-[6rem] xl:text-[8rem]"
-          style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
-        >
-          Louisiana&rsquo;s Local Job{" "}
-          <em
-            style={{
-              fontStyle: "italic",
-              color: "hsl(var(--burnt-sienna))",
-            }}
+    <section className="relative overflow-hidden hero-mesh-bg flex flex-col justify-center items-center min-h-[calc(100svh-22rem)] px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-24 pb-6 sm:pb-8 lg:pb-10">
+      {/* (7) Louisiana state outline — absolute, bottom-right, 8% opacity.
+          A rough boot-shaped path silhouette, in olivewood. Decorative,
+          aria-hidden. */}
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute right-2 sm:right-6 bottom-2 sm:bottom-6 hidden md:block w-40 lg:w-56 h-40 lg:h-56"
+        style={{ color: "hsl(var(--olivewood))", opacity: 0.08 }}
+        fill="currentColor"
+      >
+        {/* Simplified Louisiana silhouette — flat top, coastal bottom */}
+        <path d="M12 12 L74 12 L74 30 L88 30 L88 68 L76 68 L74 78 L62 82 L58 74 L46 78 L42 70 L34 74 L28 66 L20 70 L14 60 L18 46 L14 40 L20 32 L12 24 Z" />
+      </svg>
+
+      <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-center gap-10 md:gap-12 lg:gap-16 text-center">
+        <div>
+          {/* (1) Italic-serif tagline above the H1 — provenance, no weight */}
+          <p
+            className="font-serif italic mb-3 sm:mb-4 text-ds-11 sm:text-ds-13 tracking-wide"
+            style={{ color: "hsl(var(--olivewood) / 0.55)" }}
           >
-            Partner.
-          </em>
-        </h1>
+            Made in Louisiana
+          </p>
+          {/* (2) H1: kept italic on "Partner." but DROPPED the burnt-sienna
+              color so the italic alone carries the emphasis. Anchoring done
+              via a soft glow (5) + a hairline underline (6) below. */}
+          <h1
+            ref={headlineRef}
+            className="font-display font-black leading-[1.02] text-balance break-words text-[3.25rem] sm:text-6xl md:text-[4rem] lg:text-[6rem] xl:text-[8rem] hero-h1-settle"
+            style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
+          >
+            Louisiana&rsquo;s Local Job{" "}
+            <span className="relative inline-block">
+              {/* (5) Soft radial glow behind "Partner." — anchors the eye */}
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 -m-8 pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(closest-side, hsl(var(--burnt-sienna) / 0.10), transparent 70%)",
+                }}
+              />
+              <em
+                className="relative"
+                style={{
+                  fontStyle: "italic",
+                  color: "hsl(var(--olivewood))",
+                }}
+              >
+                Partner.
+                {/* (6) Hairline underline in gold-warm at 0.3 opacity */}
+                <span
+                  aria-hidden="true"
+                  className="absolute left-0 right-0 h-[2px] pointer-events-none"
+                  style={{
+                    bottom: "-0.08em",
+                    background: "hsl(var(--gold-warm) / 0.3)",
+                  }}
+                />
+              </em>
+            </span>
+          </h1>
+        </div>
 
         {/* Right column — subhead centered above the two stacked buttons.
             Explicit text-center overrides the parent grid's lg:text-left
             so the paragraph reads on the same axis as the button stack. */}
-        <div className="flex flex-col gap-8 lg:gap-10 items-center text-center">
+        <div className="flex flex-col gap-6 lg:gap-8 items-center text-center">
           <p
             className="max-w-sm mx-auto text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed text-balance"
             style={{
@@ -147,6 +195,18 @@ const HeroSection = () => {
             Hire a Helpr or find local work. Whether you need a hand or
             you&rsquo;re ready to lend one, we&rsquo;re your trusted local
             partner for everyday jobs.
+          </p>
+
+          {/* (8) Slim proof strip — ONE line, muted. Adds legitimacy
+              without the visual weight of a full trust-badge row. */}
+          <p
+            className="text-ds-11 font-sans"
+            style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+          >
+            <span style={{ color: "hsl(var(--gold-warm))" }} aria-hidden>
+              ★
+            </span>{" "}
+            4.9 · 340 jobs done this week · Held in escrow
           </p>
 
           {/* Stacked CTAs — always vertical, sit right under the subhead */}

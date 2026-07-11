@@ -1667,6 +1667,40 @@ button,
   }
 }
 
+/* (3) Hero mesh background — two overlapping radial gradients that drift
+   over 30 s so the parchment gets a hint of depth without any visible
+   motion noise. 3 % opacity max; imperceptible on first glance, felt on
+   sustained view. */
+.hero-mesh-bg {
+  position: relative;
+  background-image:
+    radial-gradient(60% 40% at 20% 20%, hsl(var(--burnt-sienna) / 0.03), transparent),
+    radial-gradient(50% 40% at 80% 30%, hsl(var(--gold-warm) / 0.03), transparent),
+    radial-gradient(40% 30% at 50% 80%, hsl(var(--sage) / 0.03), transparent);
+  background-size: 200% 200%;
+  animation: hero-mesh-drift 30s ease-in-out infinite alternate;
+}
+@keyframes hero-mesh-drift {
+  from { background-position: 0% 0%, 100% 0%, 50% 100%; }
+  to   { background-position: 100% 100%, 0% 100%, 100% 0%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-mesh-bg { animation: none; }
+}
+
+/* (4) H1 letter-spacing settle — starts tight, relaxes 0.02em over 400 ms
+   on mount. One-time, non-looping. Feels like the H1 is "arriving." */
+@keyframes hero-h1-settle-in {
+  from { letter-spacing: -0.045em; }
+  to   { letter-spacing: -0.025em; }
+}
+.hero-h1-settle {
+  animation: hero-h1-settle-in 400ms cubic-bezier(0.22, 1, 0.36, 1) 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-h1-settle { animation: none; }
+}
+
 /* Jobs strip auto-scroll — mirrors the category marquee pattern but at
    a slower pace since job cards carry more visual info than pills. Cards
    drift left, pause on hover so users can click into a specific job, and

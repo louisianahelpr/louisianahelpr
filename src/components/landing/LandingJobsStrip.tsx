@@ -153,8 +153,12 @@ const LandingJobsStrip = () => {
       className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-20 pb-14 sm:pb-20 scroll-mt-20"
     >
       <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-        <div className="flex items-end justify-between gap-4 mb-8 sm:mb-10">
-          <div>
+        {/* Section header — eyebrow + H2 centered on the page spine so this
+            row lines up with the centered "How it works" block above (and the
+            "See all jobs" link floats right absolutely so it doesn't pull the
+            centered column off-axis). */}
+        <div className="relative mb-8 sm:mb-10">
+          <div className="text-center">
             <p className="text-display-eyebrow">Fresh today · pulled live</p>
             <h2
               className="font-display italic font-bold tracking-[-0.025em]"
@@ -165,7 +169,7 @@ const LandingJobsStrip = () => {
           </div>
           <Link
             to="/jobs"
-            className="hidden sm:inline-flex items-center gap-1.5 text-ds-13 font-semibold shrink-0 hover:underline"
+            className="hidden sm:inline-flex items-center gap-1.5 text-ds-13 font-semibold shrink-0 hover:underline absolute right-0 bottom-0"
             style={{ color: "hsl(var(--bark))" }}
           >
             See all jobs

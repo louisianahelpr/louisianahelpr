@@ -1667,6 +1667,26 @@ button,
   }
 }
 
+/* Jobs strip auto-scroll — mirrors the category marquee pattern but at
+   a slower pace since job cards carry more visual info than pills. Cards
+   drift left, pause on hover so users can click into a specific job, and
+   respect prefers-reduced-motion. */
+@keyframes jobs-strip-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.jobs-strip-marquee {
+  display: flex;
+  width: max-content;
+  animation: jobs-strip-scroll 60s linear infinite;
+}
+.jobs-strip-marquee-container:hover .jobs-strip-marquee {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .jobs-strip-marquee { animation: none; }
+}
+
 .category-marquee-container:hover .category-marquee {
   animation-play-state: paused;
 }

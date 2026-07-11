@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, ArrowRight, Search } from "lucide-react";
+import { Sparkles, ArrowRight, Search, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -15,7 +15,19 @@ import { Button } from "@/components/ui/button";
 const HeroSection = () => {
   const navigate = useNavigate();
   const [loggedIn, setLoggedIn] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const headlineRef = useRef<HTMLHeadingElement>(null);
+
+  // Hide the scroll hint once the user has scrolled a bit — it's a
+  // decoration inviting the visitor DOWN, not a persistent widget.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onScroll = () => {
+      if (window.scrollY > 20) setScrolled(true);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // Variable kerning on scroll — the H1 letter-spacing tightens slightly as
   // the user scrolls past the hero. Restrained: clamps at -0.06 em max.
@@ -113,100 +125,113 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative flex flex-col justify-between items-center text-center min-h-[100svh] px-5 sm:px-8 lg:px-12 pt-20 sm:pt-24 lg:pt-28 pb-14 sm:pb-20 lg:pb-24">
-      {/* Hero — 4 DIRECT flex children of the section so justify-between
-          spreads them evenly across 100svh: eyebrow → H1 → subhead → CTAs.
-          The subhead is its OWN flex child (not nested under the H1) so it
-          floats vertically between the title and the CTAs instead of
-          hugging the H1. */}
+    <section className="relative flex flex-col justify-center items-center min-h-[100svh] px-5 sm:px-8 lg:px-12 pt-20 sm:pt-24 lg:pt-28 pb-14 sm:pb-20 lg:pb-24">
+      {/* Hero — one 2-column grid. Eyebrow and H1 sit in the LEFT column,
+          anchored to the top-left; subhead + stacked CTAs sit in the right
+          column, centered vertically so they align with the bulk of the H1. */}
+      <div className="w-full max-w-6xl mx-auto grid lg:grid-cols-[1.6fr_1fr] items-start lg:items-center gap-10 lg:gap-16 text-center lg:text-left">
+        <div className="flex flex-col items-center lg:items-start">
+          <span className="text-display-eyebrow">Made in Louisiana</span>
+          <h1
+            ref={headlineRef}
+            className="mt-4 sm:mt-6 font-display font-black leading-[1.02] text-balance break-words text-[2.75rem] sm:text-6xl lg:text-[5.5rem] xl:text-[7rem]"
+            style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
+          >
+            Louisiana&rsquo;s Local Job{" "}
+            <em
+              style={{
+                fontStyle: "italic",
+                color: "hsl(var(--burnt-sienna))",
+              }}
+            >
+              Partner.
+            </em>
+          </h1>
+        </div>
 
-      {/* Top: eyebrow */}
-      <span className="text-display-eyebrow">Made in Louisiana</span>
-
-      {/* Upper-middle: H1 */}
-      <h1
-        ref={headlineRef}
-        className="font-display font-black leading-[1.02] text-balance break-words text-[3.25rem] sm:text-7xl lg:text-[5rem] xl:text-[6rem] max-w-4xl"
-        style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
-      >
-        Louisiana&rsquo;s Local{" "}
-        <span className="sm:block">
-          Job{" "}
-          <em
+        <div className="flex flex-col gap-8 lg:gap-10 items-center lg:items-start">
+          <p
+            className="max-w-2xl mx-auto lg:mx-0 text-ds-17 sm:text-ds-20 lg:text-ds-24 leading-relaxed text-balance"
             style={{
-              fontStyle: "italic",
-              color: "hsl(var(--burnt-sienna))",
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 400,
+              letterSpacing: "-0.005em",
+              color: "hsl(var(--stormy-sky))",
             }}
           >
-            Partner.
-          </em>
-        </span>
-      </h1>
+            Hire a Helpr or find local work. Whether you need a hand or
+            you&rsquo;re ready to lend one, we&rsquo;re your trusted local
+            partner for everyday jobs.
+          </p>
 
-      {/* Mid-lower: subhead centered between H1 and CTAs */}
-      <p
-        className="font-serif italic max-w-2xl text-ds-20 sm:text-ds-24 lg:text-[1.75rem] leading-relaxed text-balance"
-        style={{
-          color: "hsl(var(--stormy-sky))",
-          fontWeight: 600,
-          textShadow: "0 1px 1px rgba(46, 47, 34, 0.06)",
-        }}
+          {/* Stacked CTAs — always vertical, sit right under the subhead */}
+          <div className="flex flex-col gap-3 w-full max-w-sm">
+            <Button
+              asChild
+              size="xl"
+              className="btn-grad-primary group h-14 sm:h-[3.75rem] lg:h-16 px-8 rounded-full tracking-tight w-full transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
+              style={{
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+                fontSize: "1rem",
+                lineHeight: 1,
+                letterSpacing: "-0.005em",
+                color: "hsl(var(--parchment))",
+                border: "1px solid hsl(66 25% 19%)",
+                boxShadow:
+                  "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 12px 32px -8px hsl(var(--bark) / 0.35)",
+              }}
+            >
+              <Link to="/signup" onClick={goToPostJob}>
+                <Sparkles className="mr-2 w-5 h-5" strokeWidth={1.25} />
+                Post a job
+                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="xl"
+              variant="outline"
+              className="group h-14 sm:h-[3.75rem] lg:h-16 px-8 rounded-full tracking-tight w-full transition-all duration-200 hover:-translate-y-0.5"
+              style={{
+                fontFamily: "Montserrat, system-ui, sans-serif",
+                fontWeight: 600,
+                fontSize: "1rem",
+                lineHeight: 1,
+                letterSpacing: "-0.005em",
+                color: "hsl(var(--bark))",
+                background: "rgba(255, 255, 255, 0.45)",
+                backgroundImage: "none",
+                backdropFilter: "blur(20px) saturate(180%)",
+                WebkitBackdropFilter: "blur(20px) saturate(180%)",
+                border: "1.5px solid hsl(var(--bark) / 0.4)",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
+              }}
+            >
+              <Link to="/browse" onClick={goToJoinCommunity}>
+                <Search className="mr-2 w-5 h-5" strokeWidth={1.25} />
+                Browse Jobs
+                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Scroll hint — absolute-positioned at the bottom of the hero, only
+          visible until the user has actually scrolled a bit. Fades out
+          gracefully after the first scroll event. Decorative, aria-hidden. */}
+      <div
+        aria-hidden="true"
+        className={`absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 motion-safe:animate-bounce transition-opacity duration-300 ${
+          scrolled ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
+        style={{ color: "hsl(var(--olivewood) / 0.5)" }}
       >
-        Hire a Helpr or find local work. Whether you need a hand or
-        you&rsquo;re ready to lend one, we&rsquo;re your trusted local
-        partner for everyday jobs.
-      </p>
-
-      {/* Bottom: CTAs — side by side on desktop, stacked full-width on mobile. */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full max-w-sm sm:max-w-none">
-        <Button
-          asChild
-          size="xl"
-          className="btn-grad-primary group h-14 sm:h-[3.75rem] lg:h-16 px-8 rounded-full tracking-tight w-full sm:w-auto sm:min-w-[13.5rem] transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
-          style={{
-            fontFamily: "Montserrat, system-ui, sans-serif",
-            fontWeight: 600,
-            fontSize: "1rem",
-            lineHeight: 1,
-            letterSpacing: "-0.005em",
-            color: "hsl(var(--parchment))",
-            border: "1px solid hsl(66 25% 19%)",
-            boxShadow:
-              "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 12px 32px -8px hsl(var(--bark) / 0.35)",
-          }}
-        >
-          <Link to="/signup" onClick={goToPostJob}>
-            <Sparkles className="mr-2 w-5 h-5" strokeWidth={1.25} />
-            Post a job
-            <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
-          </Link>
-        </Button>
-        <Button
-          asChild
-          size="xl"
-          variant="outline"
-          className="group h-14 sm:h-[3.75rem] lg:h-16 px-8 rounded-full tracking-tight w-full sm:w-auto sm:min-w-[13.5rem] transition-all duration-200 hover:-translate-y-0.5"
-          style={{
-            fontFamily: "Montserrat, system-ui, sans-serif",
-            fontWeight: 600,
-            fontSize: "1rem",
-            lineHeight: 1,
-            letterSpacing: "-0.005em",
-            color: "hsl(var(--bark))",
-            background: "rgba(255, 255, 255, 0.45)",
-            backgroundImage: "none",
-            backdropFilter: "blur(20px) saturate(180%)",
-            WebkitBackdropFilter: "blur(20px) saturate(180%)",
-            border: "1.5px solid hsl(var(--bark) / 0.4)",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
-          }}
-        >
-          <Link to="/browse" onClick={goToJoinCommunity}>
-            <Search className="mr-2 w-5 h-5" strokeWidth={1.25} />
-            Browse Jobs
-            <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
-          </Link>
-        </Button>
+        <span className="text-[0.6rem] font-mono font-semibold tracking-[0.18em] uppercase">
+          Scroll
+        </span>
+        <ChevronDown className="w-4 h-4" strokeWidth={2} />
       </div>
 
     </section>

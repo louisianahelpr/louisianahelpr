@@ -95,7 +95,7 @@ const JobStripCard = ({ job }: { job: StripJob }) => {
   return (
     <Link
       to="/jobs"
-      className="group liquid-glass snap-start shrink-0 w-[15.5rem] rounded-2xl px-5 py-5 flex flex-col gap-3.5 transition-all duration-300 ease-out hover:-translate-y-0.5"
+      className="group snap-start shrink-0 w-[15.5rem] rounded-2xl px-5 py-5 flex flex-col gap-3.5 transition-all duration-300 ease-out hover:-translate-y-0.5 bg-white border border-[hsl(var(--olivewood)/0.14)]"
       aria-label={`${label} job: ${job.title}. View on the jobs board.`}
     >
       <div className="flex items-center justify-between gap-2">
@@ -219,31 +219,17 @@ const LandingJobsStrip = () => {
     <section
       id="jobs"
       aria-label="Live jobs in Louisiana"
-      className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-20 pb-14 sm:pb-20 scroll-mt-20"
+      className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-10 sm:pt-12 lg:pt-16 pb-6 sm:pb-8 scroll-mt-20"
     >
       <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-        {/* Section header — eyebrow + H2 centered on the page spine so this
-            row lines up with the centered "How it works" block above (and the
-            "See all jobs" link floats right absolutely so it doesn't pull the
-            centered column off-axis). */}
-        <div className="relative mb-8 sm:mb-10">
-          <div className="text-center">
-            <p className="text-display-eyebrow">Fresh today · pulled live</p>
-            <h2
-              className="font-display italic font-bold tracking-[-0.025em]"
-              style={{ fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2.25rem)", color: "hsl(var(--ink-deep))" }}
-            >
-              Jobs happening near you
-            </h2>
-          </div>
-          <Link
-            to="/jobs"
-            className="hidden sm:inline-flex items-center gap-1.5 text-ds-13 font-semibold shrink-0 hover:underline absolute right-0 bottom-0"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            See all jobs
-            <ArrowRight className="w-4 h-4" strokeWidth={2} />
-          </Link>
+        {/* Section header — eyebrow + H2 centered on the page spine. The
+            "See all jobs" link now lives BELOW the rail, right-aligned, so
+            it doesn't pull this centered column off-axis. */}
+        <div className="mb-8 sm:mb-10 text-center">
+          <p className="text-display-eyebrow">Fresh today · pulled live</p>
+          <h2 className="text-display-xl text-balance">
+            Jobs happening near you
+          </h2>
         </div>
 
         {/* Horizontal scroll rail. `snap-x` gives a gentle card-to-card
@@ -263,19 +249,19 @@ const LandingJobsStrip = () => {
             </div>
           ))}
 
-          {/* Trailing "see all" card — a natural end-cap to the rail and the
-              mobile equivalent of the header link (which is hidden on <sm). */}
+        </div>
+
+        {/* "See all jobs" link — moved below the rail and right-aligned
+            per user preference. Was previously an absolute-positioned
+            header link + trailing end-cap card. */}
+        <div className="mt-6 sm:mt-8 flex justify-end">
           <Link
             to="/jobs"
-            className="snap-start shrink-0 w-[11rem] rounded-2xl flex flex-col items-center justify-center gap-3 text-center px-5 py-8 transition-all duration-300 hover:-translate-y-0.5"
-            style={{
-              background: "hsl(var(--bark) / 0.06)",
-              border: "1.5px dashed hsl(var(--bark) / 0.35)",
-              color: "hsl(var(--bark))",
-            }}
+            className="inline-flex items-center gap-1.5 text-ds-13 font-semibold hover:underline"
+            style={{ color: "hsl(var(--bark))" }}
           >
-            <ArrowRight className="w-5 h-5" strokeWidth={2} />
-            <span className="font-semibold text-ds-13">See all open jobs</span>
+            See all jobs
+            <ArrowRight className="w-4 h-4" strokeWidth={2} />
           </Link>
         </div>
       </div>

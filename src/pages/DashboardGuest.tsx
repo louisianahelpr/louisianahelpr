@@ -12,12 +12,6 @@ import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
-// Live payout ticker (#87) — sits above the Browse Tasks header so
-// guests see proof of real recent payouts before they start scanning
-// the job feed. Lazy-loaded so guests on slow networks aren't blocked
-// on the supabase chunk for the ticker before they see jobs.
-const PayoutTicker = lazy(() => import("@/components/landing/PayoutTicker"));
-
 // Lazy-load the map so the ~45KB leaflet bundle only ships when guests
 // actually toggle to map view. List view stays cheap by default.
 const BrowseMap = lazy(() =>
@@ -252,17 +246,6 @@ const DashboardGuest = () => {
       </header>
       }
     >
-            {/* Payout ticker (#87) — thin social-proof strip above the
-                Browse Tasks header. Hides itself silently when there's
-                no recent payout data or the public RPC isn't deployed
-                yet, so a quiet platform shows zero visual weight here
-                instead of an empty placeholder strip. */}
-            <div className="shrink-0 px-4 pt-1 empty:pt-0">
-              <Suspense fallback={null}>
-                <PayoutTicker />
-              </Suspense>
-            </div>
-
             {/* Shared Browse toolbar — identical to the authenticated
                 dashboard (title row, list/map toggle, expandable search with
                 recent/popular suggestions, the unified FilterSheet, category

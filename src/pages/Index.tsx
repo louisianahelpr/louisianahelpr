@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -12,27 +12,12 @@ import { useScrollFadeUp } from "@/hooks/useScrollFadeUp";
 // Supabase before paint.
 const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 
-// HeroSection is eager-loaded — it's above the fold on every visit and
-// the LCP element. Lazy-loading it added a network round-trip (entry chunk →
-// Index chunk → HeroSection chunk → image) that pushed LCP / Speed Index
-// past 3s. Below-the-fold sections stay lazy so they don't compete for
-// bandwidth with the hero image during initial paint.
+// Minimal landing — Hero → Live jobs → How it works → Footer.
 import HeroSection from "@/components/landing/HeroSection";
-import CategoryBento from "@/components/landing/CategoryBento";
-// HowItWorks / CommunityVoice / BusinessCTA are eager-loaded. They're pure
-// presentational sections (lucide icons + router + Button, no Supabase), so
-// they add negligible JS to the entry chunk — but lazy-loading them caused
-// visible layout shift (the Suspense height reservations never matched the
-// real rendered height, so the page lurched as each chunk streamed in).
-// Rendering them synchronously reserves their true height up front → no CLS.
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
-import CommunityVoice from "@/components/landing/CommunityVoice";
-import BusinessCTASection from "@/components/landing/BusinessCTASection";
-// LandingJobsStrip self-fetches open jobs (pulls in Supabase), so it MUST stay
-// lazy to keep the supabase chunk out of the Index entry / LCP path. Like the
-// ticker it hides itself on empty / errored / not-yet-deployed (PGRST202) data,
-// so a render failure degrades cleanly to nothing. Its `id="jobs"` is the
-// scroll target for the nav's "Jobs" link.
+// LandingJobsStrip self-fetches open jobs from Supabase, so it stays lazy
+// to keep the supabase chunk out of the Index entry / LCP path. Self-hides
+// silently on empty / errored / not-yet-deployed (PGRST202) data.
 const LandingJobsStrip = lazy(() => import("@/components/landing/LandingJobsStrip"));
 
 const SITE_URL = "https://www.louisianahelpr.com";
@@ -116,18 +101,6 @@ const faqSchema = {
 const Index = () => {
   const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
   const location = useLocation();
-  const navigate = useNavigate();
-
-  // Category rail lives ABOVE the hero (right under the fixed nav) as a
-  // browse-affordance strip — same auth-aware routing the hero CTAs use:
-  // logged-in visitor → /post-job; anonymous visitor → /signup.
-  const handleCategorySelect = async () => {
-    const { supabase } = await import("@/integrations/supabase/client");
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    navigate(session?.user ? "/post-job" : "/signup");
-  };
 
   // Stagger fade-up on every `.observe-fade-up` element as it scrolls into
   // view. Honors prefers-reduced-motion. Picks up newly-mounted lazy
@@ -192,38 +165,18 @@ const Index = () => {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      {/* Category rail — moved back ABOVE the hero (under the fixed nav)
-          at user request. Custom top padding clears the h-12 navbar +
-          safe-area since PublicLayout is `noNavSpacer` on the landing.
-          Hero below is compressed so the H1 still fits above the fold. */}
-      <div
-        className="px-5 sm:px-8 lg:px-12"
-        style={{ paddingTop: "calc(max(env(safe-area-inset-top), 0.5rem) + 3rem)" }}
-      >
-        <CategoryBento onSelect={handleCategorySelect} />
-      </div>
-
+      {/* Minimal landing — Hero → Live jobs → How it works → Footer.
+          Hero fills 100svh so the first paint is only the hero, then the
+          user scrolls to reveal the rest. Live-jobs strip sits above How
+          it works so a visitor sees real work happening before we explain
+          the flow. */}
       <HeroSection />
 
-      <HowItWorksSection />
-
-      {/* Live open-jobs strip (#62) — sits right after "how it works" so a
-          visitor who just learned the flow immediately sees real work
-          happening. Lazy + self-hiding, so it never blocks paint and never
-          shows an empty rail on a quiet platform. */}
       <Suspense fallback={null}>
         <LandingJobsStrip />
       </Suspense>
 
-      {/* Business band sits directly under the live-jobs strip, then the
-          reviews + FAQ (CommunityVoice) close the page — so the scroll reads
-          how-it-works → real jobs → business offering → social proof/answers. */}
-      <BusinessCTASection />
-      <CommunityVoice />
-
-      {/* 120px breathing room before the footer so the FAQ accordion
-          doesn't crash into the footer surface. */}
-      <div aria-hidden style={{ height: "120px" }} />
+      <HowItWorksSection />
     </PublicLayout>
   );
 };

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
  * in the landing scroll.
  */
 const BusinessCTASection = () => (
-  <section className="px-5 sm:px-8 lg:px-12 py-16 sm:py-24 lg:py-32">
+  <section className="px-5 sm:px-8 lg:px-12 pt-16 sm:pt-24 lg:pt-32 pb-8 sm:pb-12 lg:pb-16">
     <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
       <div
         className="observe-fade-up relative overflow-hidden rounded-[2rem] px-8 py-12 sm:px-14 sm:py-16 lg:px-20 lg:py-20"

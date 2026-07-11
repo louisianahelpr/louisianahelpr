@@ -68,13 +68,13 @@ const HowItWorksSection = () => {
   return (
     <section
       id="how-it-works"
-      className="pt-2 pb-10 sm:pt-4 sm:pb-14 lg:pt-6 lg:pb-20 px-5 sm:px-8 lg:px-12 scroll-mt-24"
+      className="pt-14 pb-20 sm:pt-20 sm:pb-28 lg:pt-24 lg:pb-32 px-5 sm:px-8 lg:px-12 scroll-mt-24"
     >
       <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
         {/* Eyebrow + headline live OUTSIDE the glass — same pattern as the FAQ,
             so the title acts as a section ribbon and the box below is
             read as the answer. */}
-        <div className="max-w-2xl mb-6 sm:mb-8 px-2 sm:px-4">
+        <div className="max-w-2xl mb-10 sm:mb-12 px-2 sm:px-4">
           <span className="text-display-eyebrow mb-4">How it works</span>
           <h2 className="text-display-xl mt-4 text-balance">
             Three steps. Zero surprises.
@@ -88,7 +88,7 @@ const HowItWorksSection = () => {
         {/* Poster / Helpr toggle — a full-width segmented pill so its edges
             line up with the liquid-glass step panel below. Two equal halves
             (flex-1 on each button) so neither label crowds the other. */}
-        <div className="mb-5 sm:mb-6">
+        <div className="mb-8 sm:mb-10">
           <div
             role="tablist"
             aria-label="See how it works for posters or Helprs"
@@ -130,20 +130,20 @@ const HowItWorksSection = () => {
         {/* Liquid-glass container — gives the steps a defined surface that
             reads as one continuous "this is how it works" panel rather than
             three orphaned cards floating on the champagne canvas. */}
-        <div className="liquid-glass px-5 sm:px-8 lg:px-10 py-7 sm:py-9 lg:py-10">
+        <div className="liquid-glass px-6 sm:px-10 lg:px-12 py-10 sm:py-14 lg:py-16">
           {/* Three transparent step cards — faint white hairline + content,
               mesh gradient bleeds through. `key={mode}` re-triggers the
               observe-fade-up reveal when the perspective switches. */}
           <div
             id="how-it-works-steps"
             key={mode}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5"
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8"
           >
             {steps.map((step, i) => {
               return (
                 <article
                   key={step.title}
-                  className="observe-fade-up relative p-6 sm:p-7 flex flex-col justify-between gap-5 min-h-[10rem] sm:min-h-[16rem] rounded-[2rem]"
+                  className="observe-fade-up relative p-7 sm:p-8 flex flex-col justify-between gap-7 min-h-[13rem] sm:min-h-[18rem] rounded-[2rem]"
                   style={{
                     transitionDelay: `${i * 100}ms`,
                     border: "1px solid rgba(255, 255, 255, 0.18)",
@@ -164,7 +164,7 @@ const HowItWorksSection = () => {
                       {String(i + 1).padStart(2, "0")}
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <h3 className="text-ds-20 sm:text-ds-24 font-display font-semibold text-foreground tracking-tight leading-tight">
                       {step.title}
                     </h3>

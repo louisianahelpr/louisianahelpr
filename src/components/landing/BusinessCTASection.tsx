@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button";
  * in the landing scroll.
  */
 const BusinessCTASection = () => (
-  <section className="px-5 sm:px-8 lg:px-12 py-10 sm:py-14 lg:py-20">
+  <section className="px-5 sm:px-8 lg:px-12 py-16 sm:py-24 lg:py-32">
     <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
       <div
-        className="observe-fade-up relative overflow-hidden rounded-[2rem] px-6 py-8 sm:px-10 sm:py-10"
+        className="observe-fade-up relative overflow-hidden rounded-[2rem] px-8 py-12 sm:px-14 sm:py-16 lg:px-20 lg:py-20"
         style={{
           background: "hsl(var(--bark) / 0.07)",
           border: "1px solid hsl(var(--bark) / 0.20)",
@@ -26,7 +26,7 @@ const BusinessCTASection = () => (
             the CTA reads as one intentional focal block, not a half-used band.
             Words first, then the two CTAs directly under them — never a
             far-right action panel (that reintroduced a mid-band gap). */}
-        <div className="max-w-3xl mx-auto space-y-2.5 text-center">
+        <div className="max-w-3xl mx-auto space-y-4 sm:space-y-5 text-center">
           <span className="text-display-eyebrow !inline-flex items-center justify-center gap-2 whitespace-nowrap">
             <Building2 className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
             For business
@@ -42,7 +42,7 @@ const BusinessCTASection = () => (
             skilled trades &mdash; recurring or on-demand, whatever your business
             runs on.
           </p>
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
+          <div className="flex flex-wrap justify-center gap-2 mt-6 sm:mt-8">
             {[
               { Icon: Home, label: "Property & rentals" },
               { Icon: Wrench, label: "Skilled trades" },
@@ -66,7 +66,7 @@ const BusinessCTASection = () => (
           {/* Single primary CTA — audience here is a business hiring; the old
               secondary "Browse open jobs" routed to the helpr-side feed, which
               is the wrong action for this band. One clear focal action. */}
-          <div className="flex justify-center pt-5">
+          <div className="flex justify-center pt-8 sm:pt-10">
             <Button
               asChild
               size="lg"

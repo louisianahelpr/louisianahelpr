@@ -1,34 +1,46 @@
-import { useState, useEffect } from "react";
+import { Star } from "lucide-react";
 import { ONBOARDING_FEE_CENTS, formatDollarsWhole } from "@/lib/moneyLimits";
 
 /**
- * CommunityVoice — combines the testimonial pull quote (left column) with
- * the FAQ accordion (right column) into one cohesive horizontal section,
- * replacing the previous two stacked sections. On mobile they stack
- * vertically as expected.
+ * CommunityVoice — proof section combining a 3-testimonial rich-card rail
+ * with the FAQ accordion. The testimonial column replaced the previous
+ * single-quote carousel (auto-advancing pull quote) with three static
+ * side-by-side cards on desktop that stack on mobile — three names on the
+ * page at once carries more social weight than a rotating solo quote, and
+ * removes the auto-cycle attention tax.
  *
- * Closes with an inline CTA below the FAQ — gives engaged scrollers a
- * landing point without competing with the hero.
+ * FAQ column below (unchanged behavior) closes the block with an inline
+ * CTA that gives engaged scrollers a landing point.
  */
 
-const testimonials = [
+type Testimonial = {
+  quote: string;
+  name: string;
+  location: string;
+  initials: string;
+};
+
+const testimonials: Testimonial[] = [
   {
-    quote: "I typed in what I needed. Three Helprs applied within the hour, and I picked one. That was it.",
+    quote:
+      "Made $340 last weekend helping with moves. Easy money — I set my own schedule and Helpr handles the rest.",
+    name: "Darius J.",
+    location: "Baton Rouge, LA",
+    initials: "DJ",
+  },
+  {
+    quote:
+      "I typed in what I needed. Three Helprs applied within the hour, and I picked one. That was it.",
     name: "Camille R.",
-    location: "Mid-City",
-    avatarLabel: "+ 127 happy customers",
+    location: "New Orleans (Mid-City), LA",
+    initials: "CR",
   },
   {
-    quote: "Made $340 last weekend helping with moves. Easy money — I set my own schedule and Helpr handles the rest.",
-    name: "Darius T.",
-    location: "Baton Rouge",
-    avatarLabel: "+ 84 active Helprs",
-  },
-  {
-    quote: "Our rental turnovers used to take days to schedule. Now I post, pick a Helpr same morning, and it's done.",
-    name: "Sandra M.",
-    location: "Lafayette",
-    avatarLabel: "+ 127 happy customers",
+    quote:
+      "I've been on this app since day one. Escrow means I never have to chase a payment — funds hit my account before I get home.",
+    name: "Marcus T.",
+    location: "Lafayette, LA",
+    initials: "MT",
   },
 ];
 
@@ -51,145 +63,118 @@ const faqs = [
   },
 ];
 
-// Per-avatar text color chosen to hit WCAG AA (4.5:1) against its bg
-// — sage / olive are too light for cream text (measured 2.88:1 and
-// 1.63:1 respectively, Cowork audit 2026-07-08), so they get ink-deep
-// (dark). Burnt-sienna and bark stay dark enough for parchment text.
-// Even though the row is aria-hidden decorative, sighted-user readability
-// is still a UX concern.
-const avatars = [
-  { initials: "CR", bg: "hsl(var(--sage))", fg: "hsl(var(--ink-deep))" },
-  { initials: "MB", bg: "hsl(var(--burnt-sienna))", fg: "hsl(var(--parchment))" },
-  { initials: "TM", bg: "hsl(var(--olive))", fg: "hsl(var(--ink-deep))" },
-  { initials: "JD", bg: "hsl(var(--bark))", fg: "hsl(var(--parchment))" },
-];
-
 const CommunityVoice = () => {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  // Auto-advance testimonials every 5 seconds
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const active = testimonials[activeIndex];
-
   return (
-  <section className="px-5 sm:px-8 lg:px-12 pt-8 sm:pt-12 lg:pt-16 pb-16 sm:pb-24 lg:pb-32">
-    <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-      {/* Proof-anchor — gives the testimonial + FAQ block a claimed identity
-          ("this is our proof section") so the pull quote doesn't read as a
-          floating lone-column moment against a big blank right rail. */}
-      <div className="text-center mb-10 sm:mb-14 observe-fade-up">
-        <span className="text-display-eyebrow">Loved by neighbors</span>
-        <h2 className="text-display-xl mt-4 text-balance">
-          Louisiana&rsquo;s trusted for a reason.
-        </h2>
-      </div>
-      <div className="grid md:grid-cols-12 gap-14 md:gap-16 lg:gap-20 xl:gap-24 items-center">
-        {/* LEFT — testimonial. Pull quote + signature + social-proof avatars.
-            Sits in a 5-col track, kept at a readable measure (long editorial
-            lines hurt at full width) and centered within its track. */}
-        <div className="md:col-span-5 observe-fade-up md:max-w-md md:mx-auto">
-          {/* Three-dot ornament */}
-          <div className="flex justify-center md:justify-start gap-1.5 mb-8 sm:mb-10">
-            <span
-              className="w-1 h-1 rounded-full"
-              style={{ backgroundColor: "hsl(var(--burnt-sienna) / 0.5)" }}
-            />
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: "hsl(var(--burnt-sienna) / 0.7)" }}
-            />
-            <span
-              className="w-1 h-1 rounded-full"
-              style={{ backgroundColor: "hsl(var(--burnt-sienna) / 0.5)" }}
-            />
-          </div>
+    <section className="px-5 sm:px-8 lg:px-12 pt-8 sm:pt-12 lg:pt-16 pb-16 sm:pb-24 lg:pb-32">
+      <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+        {/* Proof-anchor — gives the testimonial + FAQ block a claimed identity
+            ("this is our proof section") so the pull quote doesn't read as a
+            floating lone-column moment against a big blank right rail. */}
+        <div className="text-center mb-10 sm:mb-14 observe-fade-up">
+          <span className="text-display-eyebrow">Loved by neighbors</span>
+          <h2 className="text-display-xl mt-4 text-balance">
+            Louisiana&rsquo;s trusted for a reason.
+          </h2>
+        </div>
 
-          <blockquote className="editorial-quote text-center md:text-left">
-            &ldquo;{active.quote}&rdquo;
-          </blockquote>
-
-          {/* Attribution */}
-          <div className="mt-10 sm:mt-12 flex flex-col items-center md:items-start gap-3">
-            <span
-              className="signature"
-              style={{
-                color: "hsl(var(--bark))",
-                fontSize: "1.75rem",
-                lineHeight: 1,
-              }}
+        {/* 3-testimonial rich-card rail. On mobile stacks vertically; on md+
+            it's a 3-col grid. Each card is a self-contained proof unit:
+            avatar + 5-star rating + italic serif quote + attribution. */}
+        <div
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 observe-fade-up"
+          role="list"
+        >
+          {testimonials.map((t, i) => (
+            <article
+              key={t.name}
+              role="listitem"
+              className="liquid-glass p-6 sm:p-8 flex flex-col observe-fade-up"
+              style={{ transitionDelay: `${100 + i * 80}ms` }}
             >
-              {active.name}
-            </span>
-            <span className="text-display-eyebrow" style={{ fontSize: "0.65rem" }}>
-              {active.location}
-            </span>
-          </div>
-
-          {/* Social-proof avatar row */}
-          <div className="mt-10 sm:mt-12 flex items-center justify-center md:justify-start gap-3">
-            <div className="flex -space-x-2">
-              {avatars.map((avatar) => (
+              {/* Avatar + attribution header */}
+              <div className="flex items-center gap-3">
                 <div
-                  key={avatar.initials}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-ds-11 font-sans font-semibold"
+                  className="w-11 h-11 rounded-full flex items-center justify-center font-sans font-semibold text-ds-15 shrink-0"
                   style={{
-                    backgroundColor: avatar.bg,
-                    color: avatar.fg,
-                    border: "2px solid hsl(var(--parchment))",
+                    backgroundColor: "hsl(var(--burnt-sienna) / 0.15)",
+                    color: "hsl(var(--burnt-sienna))",
                   }}
                   aria-hidden
                 >
-                  {avatar.initials}
+                  {t.initials}
                 </div>
-              ))}
-            </div>
-            <span
-              className="font-serif italic text-ds-13 sm:text-ds-15"
-              style={{ color: "hsl(var(--stormy-sky))" }}
-            >
-              {active.avatarLabel}
-            </span>
-          </div>
+                <div className="min-w-0">
+                  <div
+                    className="font-display font-bold italic text-ds-15 sm:text-ds-17 leading-tight"
+                    style={{ color: "hsl(var(--ink-deep))" }}
+                  >
+                    {t.name}
+                  </div>
+                  <div
+                    className="font-sans text-ds-11 sm:text-ds-13 mt-0.5 truncate"
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                  >
+                    — {t.location}
+                  </div>
+                </div>
+              </div>
 
-          {/* Dot indicators — the visible dot is an inner span so the button
-              can keep the global 44px min tap target (a11y) WITHOUT the dot
-              itself ballooning to 44px. Negative margins collapse the extra
-              hit-area padding so the dots read as a tight 8px row. */}
-          <div className="mt-8 sm:mt-10 flex items-center justify-center md:justify-start gap-1 -mx-2">
-            {testimonials.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`Go to testimonial ${i + 1}`}
-                aria-current={i === activeIndex}
-                onClick={() => setActiveIndex(i)}
-                className="grid place-items-center transition-colors duration-300"
+              {/* 5-star rating row */}
+              <div
+                className="flex items-center gap-0.5 mt-4"
+                aria-label="5 out of 5 stars"
               >
-                <span
-                  className="w-2 h-2 rounded-full transition-colors duration-300"
-                  style={{
-                    backgroundColor:
-                      i === activeIndex
-                        ? "hsl(var(--burnt-sienna))"
-                        : "hsl(var(--burnt-sienna) / 0.25)",
-                  }}
-                />
-              </button>
-            ))}
-          </div>
+                {[0, 1, 2, 3, 4].map((s) => (
+                  <Star
+                    key={s}
+                    className="w-4 h-4"
+                    style={{ color: "hsl(var(--gold-warm))" }}
+                    fill="currentColor"
+                    strokeWidth={0}
+                    aria-hidden
+                  />
+                ))}
+              </div>
+
+              {/* Quote — italic serif, generous line-height, flex-1 so cards
+                  align at the bottom regardless of quote length. */}
+              <blockquote
+                className="mt-4 font-serif italic text-ds-15 sm:text-ds-17 leading-relaxed flex-1"
+                style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
+              >
+                &ldquo;{t.quote}&rdquo;
+              </blockquote>
+            </article>
+          ))}
         </div>
 
-        {/* RIGHT — FAQ accordion. Given the wider 7-col track and allowed to
-            fill it, so the answers use the horizontal space instead of
-            clustering in a narrow column against a big empty margin. */}
-        <div className="md:col-span-7 observe-fade-up w-full" style={{ transitionDelay: "150ms" }}>
-          <div className="mb-8 sm:mb-10 lg:mb-12">
+        {/* Stat strip — thin proof line under the cards. Uses the same
+            eyebrow-treatment as the anchor above so it reads as a caption
+            to the trio, not a competing headline. */}
+        <div
+          className="mt-8 sm:mt-10 text-center observe-fade-up"
+          style={{ transitionDelay: "340ms" }}
+        >
+          <span
+            className="font-serif italic text-ds-13 sm:text-ds-15"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            <span style={{ color: "hsl(var(--gold-warm))" }} aria-hidden>
+              ★
+            </span>{" "}
+            4.9 average · 340+ jobs completed · Serving 12+ Louisiana cities
+          </span>
+        </div>
+
+        {/* FAQ — kept unchanged. Sits below the testimonial rail as its own
+            full-width block instead of the previous side-by-side layout,
+            because the rail now fills the horizontal space that the FAQ
+            previously shared. */}
+        <div
+          className="mt-16 sm:mt-24 lg:mt-28 observe-fade-up"
+          style={{ transitionDelay: "150ms" }}
+        >
+          <div className="mb-8 sm:mb-10 lg:mb-12 text-center">
             <span className="text-display-eyebrow">Common questions</span>
             <h2
               className="font-display font-bold italic mt-3 sm:mt-4 text-balance text-ds-20 sm:text-ds-24 lg:text-[1.625rem] tracking-[-0.02em]"
@@ -199,7 +184,7 @@ const CommunityVoice = () => {
             </h2>
           </div>
 
-          <ul className="liquid-glass faq-list px-7 sm:px-10 py-5 sm:py-6">
+          <ul className="liquid-glass faq-list px-7 sm:px-10 py-5 sm:py-6 max-w-3xl mx-auto">
             {faqs.map((faq, i) => (
               <li
                 key={faq.q}
@@ -230,11 +215,9 @@ const CommunityVoice = () => {
               </li>
             ))}
           </ul>
-
         </div>
       </div>
-    </div>
-  </section>
+    </section>
   );
 };
 

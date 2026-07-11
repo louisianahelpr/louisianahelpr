@@ -204,7 +204,7 @@ const Index = () => {
           confused document order vs. visual order and left an awkward
           gap on some breakpoints. Hero → category browse affordance
           reads as the intended tell-then-show flow. */}
-      <div className="px-5 sm:px-8 lg:px-12 pb-3 sm:pb-4">
+      <div className="px-5 sm:px-8 lg:px-12 pt-2 sm:pt-4 pb-10 sm:pb-14">
         <CategoryBento onSelect={handleCategorySelect} />
       </div>
 

@@ -113,7 +113,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative flex flex-col px-5 sm:px-8 lg:px-12 pt-6 sm:pt-10 lg:pt-14 pb-8 sm:pb-12">
+    <section className="relative flex flex-col px-5 sm:px-8 lg:px-12 pt-14 sm:pt-20 lg:pt-24 pb-16 sm:pb-24 lg:pb-32">
       {/* Hero content — the category rail now lives ABOVE the hero (in
           Index.tsx, under the fixed nav), so this section no longer needs
           `min-h-[100svh]` + `justify-center`: on mobile that combo left a
@@ -136,7 +136,7 @@ const HeroSection = () => {
               "Louisiana's" from bursting a ~320px viewport. */}
           <h1
             ref={headlineRef}
-            className="font-display font-black leading-[1.02] text-balance break-words mt-4 text-[2.5rem] sm:text-6xl lg:text-7xl xl:text-[5rem] max-w-4xl"
+            className="font-display font-black leading-[1.02] text-balance break-words mt-6 sm:mt-8 text-[2.5rem] sm:text-6xl lg:text-7xl xl:text-[5rem] max-w-4xl"
             style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
           >
             Louisiana&rsquo;s Local Job{" "}
@@ -152,7 +152,7 @@ const HeroSection = () => {
 
           {/* Subhead — open-air leading, both-sides marketplace explanation */}
           <p
-            className="font-serif italic mt-6 sm:mt-7 max-w-2xl text-ds-17 sm:text-ds-20 lg:text-ds-24 leading-relaxed text-balance"
+            className="font-serif italic mt-8 sm:mt-10 max-w-2xl text-ds-17 sm:text-ds-20 lg:text-ds-24 leading-relaxed text-balance"
             style={{
               color: "hsl(var(--stormy-sky))",
               fontWeight: 600,
@@ -165,7 +165,7 @@ const HeroSection = () => {
           </p>
 
           {/* CTAs — side by side on desktop, stacked full-width on mobile. */}
-          <div className="mt-9 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full max-w-sm sm:max-w-none">
+          <div className="mt-12 sm:mt-14 flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full max-w-sm sm:max-w-none">
             <Button
               asChild
               size="xl"

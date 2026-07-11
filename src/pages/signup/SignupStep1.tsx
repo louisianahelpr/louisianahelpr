@@ -248,6 +248,7 @@ export function SignupStep1({
         </div>
       </section>
 
+      <div className="space-y-1 mt-1">
       <label
         key={nudgeKey}
         htmlFor="policies"
@@ -329,6 +330,7 @@ export function SignupStep1({
           It's OK to email me occasional Helpr news, tips, and special offers. I can unsubscribe any time.
         </span>
       </label>
+      </div>
 
       <Button
         variant="bark"

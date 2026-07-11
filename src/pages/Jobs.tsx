@@ -260,16 +260,10 @@ const Jobs = () => {
               </h1>
               <span className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <span className="font-semibold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>{filtered.length}</span>{" "}
-                {filtered.length === 1 ? "job" : "jobs"}{" "}
-                <span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}
-                Live now
+                {filtered.length === 1 ? "job" : "jobs"} open
               </span>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full squircle bg-primary/10 text-primary text-ds-11 font-bold tracking-wider uppercase border border-primary/15">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                Live
-              </span>
               <Button
                 variant="ghost"
                 size="icon"

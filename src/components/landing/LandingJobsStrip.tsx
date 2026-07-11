@@ -242,20 +242,9 @@ const LandingJobsStrip = () => {
         </div>
       </div>
 
-      {/* "See all jobs" link — right-aligned inside the standard content
-          container so it lines up with the page-spine of other sections. */}
-      <div className="px-5 sm:px-8 lg:px-12 mt-3 sm:mt-4">
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex justify-end">
-          <Link
-            to="/jobs"
-            className="inline-flex items-center gap-1.5 text-ds-13 font-semibold hover:underline"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            See all jobs
-            <ArrowRight className="w-4 h-4" strokeWidth={2} />
-          </Link>
-        </div>
-      </div>
+      {/* "See all jobs" link removed — every marquee card is already a
+          clickable Link to /jobs, so a standalone affordance was redundant
+          marketing chrome. Card taps carry the same intent. */}
     </section>
   );
 };

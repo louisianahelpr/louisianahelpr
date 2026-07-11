@@ -176,6 +176,33 @@ const Index = () => {
         <LandingJobsStrip />
       </Suspense>
 
+      {/* Scroll hint — sits between the jobs strip and how-it-works so it
+          invites the visitor to keep scrolling AFTER seeing the marquee.
+          Decorative, aria-hidden. Uses the same bouncing chevron pattern
+          the hero used to have. */}
+      <div
+        aria-hidden="true"
+        className="flex flex-col items-center gap-1 py-4 sm:py-6 motion-safe:animate-bounce"
+        style={{ color: "hsl(var(--olivewood) / 0.5)" }}
+      >
+        <span className="text-[0.6rem] font-mono font-semibold tracking-[0.18em] uppercase">
+          Scroll
+        </span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-4 h-4"
+          aria-hidden="true"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </div>
+
       <HowItWorksSection />
     </PublicLayout>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, ArrowRight, Search, ChevronDown } from "lucide-react";
+import { Sparkles, ArrowRight, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -15,19 +15,7 @@ import { Button } from "@/components/ui/button";
 const HeroSection = () => {
   const navigate = useNavigate();
   const [loggedIn, setLoggedIn] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const headlineRef = useRef<HTMLHeadingElement>(null);
-
-  // Hide the scroll hint once the user has scrolled a bit — it's a
-  // decoration inviting the visitor DOWN, not a persistent widget.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const onScroll = () => {
-      if (window.scrollY > 20) setScrolled(true);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   // Variable kerning on scroll — the H1 letter-spacing tightens slightly as
   // the user scrolls past the hero. Restrained: clamps at -0.06 em max.
@@ -224,21 +212,9 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* Scroll hint — absolute-positioned at the bottom of the hero, only
-          visible until the user has actually scrolled a bit. Fades out
-          gracefully after the first scroll event. Decorative, aria-hidden. */}
-      <div
-        aria-hidden="true"
-        className={`absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 motion-safe:animate-bounce transition-opacity duration-300 ${
-          scrolled ? "opacity-0 pointer-events-none" : "opacity-100"
-        }`}
-        style={{ color: "hsl(var(--olivewood) / 0.5)" }}
-      >
-        <span className="text-[0.6rem] font-mono font-semibold tracking-[0.18em] uppercase">
-          Scroll
-        </span>
-        <ChevronDown className="w-4 h-4" strokeWidth={2} />
-      </div>
+      {/* Scroll hint was moved OUT of the hero and placed below the jobs
+          strip in Index.tsx per user preference (chevron should sit under
+          the marquee, not on top of it). */}
 
     </section>
   );

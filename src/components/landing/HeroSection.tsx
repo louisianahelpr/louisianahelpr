@@ -133,21 +133,28 @@ const HeroSection = () => {
           {/* H1 — Bodoni Moda 900, italic Burnt-Sienna emphasis on "Partner."
               Letter-spacing animates on scroll. `text-balance` keeps the two
               lines even; `break-words` guards the long unbreakable word
-              "Louisiana's" from bursting a ~320px viewport. */}
+              "Louisiana's" from bursting a ~320px viewport. The inner span
+              flips to `sm:block` so at tablet+ "Job Partner." always claims
+              its own second line — an intentional 2-line composition instead
+              of an orphaned "Partner." dangling by itself. Mobile keeps the
+              natural inline flow (font-size scaling already wraps cleanly). */}
           <h1
             ref={headlineRef}
             className="font-display font-black leading-[1.02] text-balance break-words mt-6 sm:mt-8 text-[2.5rem] sm:text-6xl lg:text-7xl xl:text-[5rem] max-w-4xl"
             style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
           >
-            Louisiana&rsquo;s Local Job{" "}
-            <em
-              style={{
-                fontStyle: "italic",
-                color: "hsl(var(--burnt-sienna))",
-              }}
-            >
-              Partner.
-            </em>
+            Louisiana&rsquo;s Local{" "}
+            <span className="sm:block">
+              Job{" "}
+              <em
+                style={{
+                  fontStyle: "italic",
+                  color: "hsl(var(--burnt-sienna))",
+                }}
+              >
+                Partner.
+              </em>
+            </span>
           </h1>
 
           {/* Subhead — open-air leading, both-sides marketplace explanation */}

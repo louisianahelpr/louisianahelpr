@@ -78,8 +78,17 @@ const CommunityVoice = () => {
   const active = testimonials[activeIndex];
 
   return (
-  <section className="px-5 sm:px-8 lg:px-12 py-16 sm:py-24 lg:py-32">
+  <section className="px-5 sm:px-8 lg:px-12 pt-8 sm:pt-12 lg:pt-16 pb-16 sm:pb-24 lg:pb-32">
     <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+      {/* Proof-anchor — gives the testimonial + FAQ block a claimed identity
+          ("this is our proof section") so the pull quote doesn't read as a
+          floating lone-column moment against a big blank right rail. */}
+      <div className="text-center mb-10 sm:mb-14 observe-fade-up">
+        <span className="text-display-eyebrow">Loved by neighbors</span>
+        <h2 className="text-display-xl mt-4 text-balance">
+          Louisiana&rsquo;s trusted for a reason.
+        </h2>
+      </div>
       <div className="grid md:grid-cols-12 gap-14 md:gap-16 lg:gap-20 xl:gap-24 items-center">
         {/* LEFT — testimonial. Pull quote + signature + social-proof avatars.
             Sits in a 5-col track, kept at a readable measure (long editorial

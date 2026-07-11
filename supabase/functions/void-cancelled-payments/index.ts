@@ -164,10 +164,19 @@ serve(async (req) => {
           await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
           abandonedCount++;
         }
-      } catch (_e) {
-        // Session not found — mark as abandoned
-        await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
-        abandonedCount++;
+      } catch (e) {
+        // Only a genuinely-missing session (404 / resource_missing) proves the
+        // checkout is gone and is safe to abandon. A transient Stripe error
+        // (5xx, network, rate-limit) must NOT abandon a still-unpaid job —
+        // otherwise a blip silently kills a live checkout. Log and leave it
+        // for the next run, mirroring the void loop below.
+        const missing = (e as any)?.statusCode === 404 || (e as any)?.code === "resource_missing";
+        if (missing) {
+          await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
+          abandonedCount++;
+        } else {
+          console.error(`[void-cancelled-payments] abandoned-check Stripe error for job ${job.id}:`, (e as Error).message);
+        }
       }
     }
 

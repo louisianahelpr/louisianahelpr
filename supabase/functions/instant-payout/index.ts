@@ -41,12 +41,18 @@ serve(async (req) => {
     const action = body?.action || "quote"; // "quote" | "execute"
 
     // Look up helper's Stripe Connect account
-    const { data: profile } = await supabaseAdmin
+    const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
       .select("stripe_account_id, full_name")
       .eq("user_id", user.id)
       .single();
 
+    // Distinguish a transient read failure from a genuine no-account state —
+    // otherwise a blip throws "set up your payout account" and misleads a
+    // helper who already onboarded into re-doing Connect onboarding.
+    if (profileErr) {
+      throw new Error("Could not load your payout account right now. Please try again in a moment.");
+    }
     if (!profile?.stripe_account_id) {
       throw new Error("No payout account connected. Set up your payout account first.");
     }

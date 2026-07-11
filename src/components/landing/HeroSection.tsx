@@ -129,10 +129,7 @@ const HeroSection = () => {
         <path d="M12 12 L74 12 L74 30 L88 30 L88 68 L76 68 L74 78 L62 82 L58 74 L46 78 L42 70 L34 74 L28 66 L20 70 L14 60 L18 46 L14 40 L20 32 L12 24 Z" />
       </svg>
 
-      {/* Narrower max-width + tighter gap so the H1 (left) + right column
-          feel like ONE centered composition rather than two blocks spread
-          to the viewport edges. */}
-      <div className="relative z-10 w-full mx-auto max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl grid md:grid-cols-[1.4fr_1fr] items-center gap-8 md:gap-10 lg:gap-14 text-center">
+      <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-center gap-10 md:gap-12 lg:gap-16 text-center">
         {/* (2) H1: "Partner." is italic + burnt-sienna (restored) with a
             hairline gold-warm underline (6) and a soft radial glow (5)
             behind it for anchoring. */}

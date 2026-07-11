@@ -30,15 +30,20 @@ export const logViolation = async (
   const priorCount = existing?.length || 0;
 
   if (priorCount >= 1) {
-    await supabase.from("user_bans").insert({
+    // A silently-failed ban write leaves a repeat offender unbanned while we
+    // tell them they're banned — surface both writes so a stuck ban is visible.
+    const { error: banInsertError } = await supabase.from("user_bans").insert({
       user_id: userId, ban_type: "permanent",
       reason: "Repeated off-platform activity: " + violationDescription, banned_by: userId,
     });
-    await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", userId);
-    await supabase.from("user_violations").insert({
+    if (banInsertError) report(banInsertError, { severity: "error", tags: { source: "Messages.logViolation.banInsert" } });
+    const { error: banStatusError } = await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", userId);
+    if (banStatusError) report(banStatusError, { severity: "error", tags: { source: "Messages.logViolation.banStatus" } });
+    const { error: banViolationError } = await supabase.from("user_violations").insert({
       user_id: userId, violation_type: "off_platform",
       description: `${violationDescription} | Message: "${blockedContent}"`, action_taken: "permanent_ban",
     });
+    if (banViolationError) report(banViolationError, { severity: "warning", tags: { source: "Messages.logViolation.banViolationRecord" } });
     const { data: adminRoles, error: adminRolesError } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
     if (adminRolesError) report(adminRolesError, { severity: "warning", tags: { source: "Messages.logViolation.adminNotify" } });
     if (adminRoles?.length) {
@@ -55,11 +60,15 @@ export const logViolation = async (
     }
     toast.error("Your account is banned. Contact admin@louisianahelpr.com if you think this was a mistake.");
   } else {
-    await supabase.from("user_violations").insert({
+    // This violation row is what makes the NEXT offence escalate to a ban —
+    // a silent failure here means the offender never accrues a prior count.
+    const { error: warnViolationError } = await supabase.from("user_violations").insert({
       user_id: userId, violation_type: "off_platform",
       description: `${violationDescription} | Message: "${blockedContent}"`, action_taken: "warning",
     });
-    await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", userId);
+    if (warnViolationError) report(warnViolationError, { severity: "warning", tags: { source: "Messages.logViolation.warnViolationRecord" } });
+    const { error: warnStatusError } = await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", userId);
+    if (warnStatusError) report(warnStatusError, { severity: "warning", tags: { source: "Messages.logViolation.warnStatus" } });
     const { data: adminRoles, error: adminRolesError } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
     if (adminRolesError) report(adminRolesError, { severity: "warning", tags: { source: "Messages.logViolation.adminNotify" } });
     if (adminRoles?.length) {

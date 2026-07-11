@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -189,12 +190,25 @@ serve(async (req) => {
 
     if (autoPayoutEnabled) {
       const supabaseFnBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
-      const { data: dueJobs } = await supabaseAdmin
+      const { data: dueJobs, error: dueJobsErr } = await supabaseAdmin
         .from("jobs")
         .select("id, title, helper_id, payout_scheduled_at")
         .eq("status", "completed")
         .eq("payment_status", "payout_pending")
         .lte("payout_scheduled_at", new Date().toISOString());
+
+      // A dropped read here silently returns paid=0 with no signal, leaving
+      // matured payouts stranded until someone notices the money never moved.
+      if (dueJobsErr) {
+        console.error("[auto-release-payment] due-payouts query failed:", dueJobsErr);
+        await postSlackOpsAlert({
+          kind: "payout_failed",
+          severity: "critical",
+          title: "Auto-payout sweep could not read due jobs",
+          message: "The scheduled auto-release run failed to query jobs due for payout. Matured payouts may be stranded until this is investigated.",
+          fields: { db_error: dueJobsErr.message },
+        });
+      }
 
       for (const job of dueJobs ?? []) {
         try {

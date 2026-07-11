@@ -1643,7 +1643,9 @@ button,
    horizontal scroll on the inner track because they're on separate
    elements. Both pause on hover via the parent container. */
 .category-marquee-float {
-  animation: category-marquee-float 6s ease-in-out infinite alternate;
+  /* Vertical bob disabled — the ambient bounce read as unnecessary motion
+     and made the surrounding area look shadowy. Static keeps the marquee
+     feeling calm. */
 }
 
 @keyframes category-marquee-float {
@@ -1674,7 +1676,7 @@ button,
    Wider fade zone (12 % / 88 %) hides any clipping of pill drop shadows
    at the container edges. Vertical padding gives shadows room. */
 .category-marquee-container {
-  padding-block: 1rem;
+  padding-block: 0.25rem;
   mask-image: linear-gradient(
     to right,
     transparent 0%,

@@ -52,7 +52,7 @@ const CategoryBento = ({ onSelect }: CategoryBentoProps) => {
   const loop = [...categories, ...categories];
 
   const pillClassName =
-    "liquid-glass inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-ds-13 sm:text-ds-15 font-sans font-medium tracking-tight whitespace-nowrap shrink-0 transition-transform duration-200 hover:-translate-y-0.5";
+    "inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-ds-13 sm:text-ds-15 font-sans font-medium tracking-tight whitespace-nowrap shrink-0 transition-transform duration-200 hover:-translate-y-0.5 bg-[hsl(var(--olivewood)/0.06)] border border-[hsl(var(--olivewood)/0.14)]";
 
   return (
     // Single outer button wraps the whole marquee surface. The visible

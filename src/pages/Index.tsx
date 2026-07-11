@@ -202,8 +202,8 @@ const Index = () => {
           safe-area since PublicLayout is `noNavSpacer` on the landing.
           Hero below is compressed so the H1 still fits above the fold. */}
       <div
-        className="px-5 sm:px-8 lg:px-12 pb-3 sm:pb-4"
-        style={{ paddingTop: "calc(max(env(safe-area-inset-top), 1rem) + 3rem + 0.5rem)" }}
+        className="px-5 sm:px-8 lg:px-12"
+        style={{ paddingTop: "calc(max(env(safe-area-inset-top), 0.5rem) + 3rem)" }}
       >
         <CategoryBento onSelect={handleCategorySelect} />
       </div>

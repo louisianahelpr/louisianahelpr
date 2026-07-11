@@ -114,30 +114,6 @@ const HeroSection = () => {
 
   return (
     <section className="relative flex flex-col px-5 sm:px-8 lg:px-12 pt-4 sm:pt-8 lg:pt-12 pb-16 sm:pb-24 lg:pb-32">
-      {/* Fleur-de-lis watermark — a subtle Louisiana signature in the top-
-          right corner of the hero. `opacity: 0.06` + Burnt-Sienna makes it
-          read as a mark on the parchment, not a graphic that competes with
-          the H1. Pointer-events disabled so it never intercepts clicks on
-          the CTAs. `aria-hidden` because it's decorative — nothing for
-          screen readers to announce. Hidden on the smallest viewports where
-          it would crowd the copy. */}
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 100 140"
-        className="pointer-events-none absolute right-4 sm:right-8 lg:right-14 top-6 sm:top-10 lg:top-14 hidden sm:block h-40 sm:h-56 lg:h-72 w-auto"
-        style={{ color: "hsl(var(--burnt-sienna))", opacity: 0.06 }}
-        fill="currentColor"
-      >
-        {/* Three-lobe fleur-de-lis: center flame, two side lobes, banded
-            waistband at the base. Path is intentionally simple so it reads
-            crisply even at very low opacity. */}
-        <path d="M50 4 C46 18 40 30 40 42 C40 52 44 60 50 66 C56 60 60 52 60 42 C60 30 54 18 50 4 Z" />
-        <path d="M50 66 C34 62 22 68 18 82 C15 92 20 104 32 108 C28 100 30 92 38 88 C42 86 46 84 50 82 C54 84 58 86 62 88 C70 92 72 100 68 108 C80 104 85 92 82 82 C78 68 66 62 50 66 Z" />
-        <path d="M32 92 L68 92 L72 102 L28 102 Z" />
-        <path d="M50 82 L50 136" strokeWidth="4" stroke="currentColor" />
-        <path d="M38 118 C42 122 46 124 50 124 C54 124 58 122 62 118 L62 128 L38 128 Z" />
-      </svg>
-
       {/* Hero content — the category rail now lives ABOVE the hero (in
           Index.tsx, under the fixed nav), so this section no longer needs
           `min-h-[100svh]` + `justify-center`: on mobile that combo left a

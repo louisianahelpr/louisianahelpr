@@ -16,21 +16,18 @@ const POSTER_STEPS = [
   {
     icon: ClipboardList,
     title: "Post the job",
-    metric: "1 min",
     description:
       "Tell us what you need, set your budget, and pick a date. Takes about a minute — no wizard, no friction.",
   },
   {
     icon: Users,
     title: "Pick your Helpr",
-    metric: "Same hour",
     description:
       "Local applicants come to you. Compare profiles, ratings, and reviews — choose with confidence.",
   },
   {
     icon: CheckCircle,
     title: "Pay when it's done",
-    metric: "Escrow-safe",
     description:
       "Funds sit in escrow until you confirm the work. No upfront risk, no awkward cash handoffs.",
   },
@@ -40,21 +37,18 @@ const HELPR_STEPS = [
   {
     icon: UserPlus,
     title: "Build your profile",
-    metric: "2 min",
     description:
       "Add your skills and service area — takes two minutes. A quick ID check on your first application keeps the platform safe.",
   },
   {
     icon: Search,
     title: "Apply to jobs nearby",
-    metric: "One tap",
     description:
       "Browse open jobs in your parish and apply in a tap. Most posters review applicants within the first hour.",
   },
   {
     icon: Banknote,
     title: "Get paid same day",
-    metric: "Same day",
     description:
       "Payment releases when the poster confirms you're done, and funds hit your account the same day.",
   },
@@ -155,11 +149,7 @@ const HowItWorksSection = () => {
                     border: "1px solid rgba(255, 255, 255, 0.18)",
                   }}
                 >
-                  <div className="flex items-start justify-between">
-                    {/* Step number badge — the affordance icon lived to the
-                        right of the number but competed with it and made the
-                        card top-row read as two badges; the number alone is
-                        a cleaner lead-in to the step title. */}
+                  <div className="flex items-start">
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center font-mono font-bold text-ds-13"
                       style={{
@@ -169,16 +159,6 @@ const HowItWorksSection = () => {
                     >
                       {String(i + 1).padStart(2, "0")}
                     </div>
-                    {/* Metric mini-label — closes the top row that felt
-                        top-heavy after the affordance icon came out, reading
-                        as a metadata footnote paired with the step number
-                        ("01 · 1 min") rather than a second badge. */}
-                    <span
-                      className="text-ds-11 font-mono font-medium tracking-wide uppercase"
-                      style={{ color: "hsl(var(--olivewood) / 0.55)" }}
-                    >
-                      {step.metric}
-                    </span>
                   </div>
                   <div className="space-y-3">
                     <h3 className="text-ds-20 sm:text-ds-24 font-display font-semibold text-foreground tracking-tight leading-tight">

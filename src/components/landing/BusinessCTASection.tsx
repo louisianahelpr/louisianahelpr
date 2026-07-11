@@ -27,21 +27,20 @@ const BusinessCTASection = () => (
             Words first, then the two CTAs directly under them — never a
             far-right action panel (that reintroduced a mid-band gap). */}
         <div className="max-w-3xl mx-auto space-y-2.5 text-center">
-          <span className="text-display-eyebrow inline-flex items-center gap-2">
-            <Building2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+          <span className="text-display-eyebrow !inline-flex items-center justify-center gap-2 whitespace-nowrap">
+            <Building2 className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
             For business
           </span>
           <h2
-            className="font-display font-bold leading-tight text-ds-24 sm:text-ds-32"
+            className="font-display font-bold leading-tight text-ds-24 sm:text-ds-32 text-balance"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
           >
             One trusted crew for everything your business runs on.
           </h2>
-          <p className="text-ds-13 sm:text-ds-15 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-            Post jobs or find work — Helpr connects businesses with ID-verified local
-            pros across every industry. Cleanings, turnovers, hauling, repairs, and
-            the skilled trades, recurring or on-demand. Whatever your industry needs,
-            we cover it.
+          <p className="text-ds-13 sm:text-ds-15 leading-relaxed text-balance" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            ID-verified local pros for cleanings, turnovers, hauling, repairs, and
+            skilled trades &mdash; recurring or on-demand, whatever your business
+            runs on.
           </p>
           <div className="flex flex-wrap justify-center gap-2 mt-4">
             {[
@@ -64,9 +63,10 @@ const BusinessCTASection = () => (
               </span>
             ))}
           </div>
-          {/* Two CTAs sit inline under the words (stack on mobile) — surfaces
-              both sides of the marketplace: the Business hub AND browsing work. */}
-          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-5">
+          {/* Single primary CTA — audience here is a business hiring; the old
+              secondary "Browse open jobs" routed to the helpr-side feed, which
+              is the wrong action for this band. One clear focal action. */}
+          <div className="flex justify-center pt-5">
             <Button
               asChild
               size="lg"
@@ -80,21 +80,6 @@ const BusinessCTASection = () => (
             >
               <Link to="/for-business">
                 Helpr for Business
-                <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="group rounded-2xl font-sans font-semibold"
-              style={{
-                color: "hsl(var(--bark))",
-                borderColor: "hsl(var(--bark) / 0.25)",
-              }}
-            >
-              <Link to="/jobs">
-                Browse open jobs
                 <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
               </Link>
             </Button>

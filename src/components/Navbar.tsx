@@ -199,7 +199,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
-                className="btn-press rounded-ds-md h-10 px-3 gap-1.5 font-sans font-semibold text-ds-13"
+                className="btn-press rounded-ds-md h-8 px-3 gap-1.5 font-sans font-semibold text-ds-13"
                 style={{
                   background: "hsl(var(--bark) / 0.08)",
                   border: "1px solid hsl(var(--bark) / 0.22)",
@@ -207,7 +207,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                 }}
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
               >
-                {mobileOpen ? <X className="w-5 h-5" strokeWidth={2.25} /> : <Menu className="w-5 h-5" strokeWidth={2.25} />}
+                {mobileOpen ? <X className="w-4 h-4" strokeWidth={2.25} /> : <Menu className="w-4 h-4" strokeWidth={2.25} />}
                 Menu
               </Button>
             </SheetTrigger>

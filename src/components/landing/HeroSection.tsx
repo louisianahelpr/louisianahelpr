@@ -125,7 +125,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative flex flex-col justify-center items-center min-h-[100svh] px-5 sm:px-8 lg:px-12 pt-20 sm:pt-24 lg:pt-28 pb-14 sm:pb-20 lg:pb-24">
+    <section className="relative flex flex-col justify-center items-center min-h-[85svh] px-5 sm:px-8 lg:px-12 pt-20 sm:pt-24 lg:pt-28 pb-10 sm:pb-14 lg:pb-16">
       {/* Eyebrow — pulled OUT of the grid so it doesn't count toward the
           left column's height. That way the right column (subhead + CTAs)
           vertically centers against the H1 alone, not against H1 + eyebrow.
@@ -157,7 +157,7 @@ const HeroSection = () => {
             the grid's items-center. */}
         <div className="flex flex-col gap-8 lg:gap-10 items-center">
           <p
-            className="max-w-md mx-auto text-ds-17 sm:text-ds-20 lg:text-ds-24 leading-relaxed text-balance"
+            className="max-w-md mx-auto text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed text-balance"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 400,

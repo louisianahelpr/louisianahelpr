@@ -239,16 +239,17 @@ const LandingJobsStrip = () => {
             (instead of a hard clip) so the rail reads as "more to scroll"
             rather than an abrupt cut-off. A mask (not an overlay) is used so
             the fade works over the mesh-gradient background. */}
-        <div
-          className="flex gap-5 sm:gap-6 overflow-x-auto snap-x snap-mandatory -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          role="list"
-        >
-          {jobs.map((job) => (
-            <div role="listitem" key={job.id} className="contents">
-              <JobStripCard job={job} />
-            </div>
-          ))}
-
+        {/* Auto-scrolling marquee — jobs drift left continuously. Pauses on
+            hover so users can click into a specific card. Duplicated array
+            makes the 0 → -50% translate loop seamless. */}
+        <div className="jobs-strip-marquee-container overflow-hidden" role="list">
+          <div className="jobs-strip-marquee gap-5 sm:gap-6">
+            {[...jobs, ...jobs].map((job, i) => (
+              <div role="listitem" key={`${job.id}-${i}`} className="contents">
+                <JobStripCard job={job} />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* "See all jobs" link — moved below the rail and right-aligned

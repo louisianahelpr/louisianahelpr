@@ -68,6 +68,10 @@ const Signup = () => {
   // user posts or completes their first job.
   const [referralCode] = useState(searchParams.get("ref") || "");
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
+  // Explicit 18+ attestation — a legal requirement on a real-money platform.
+  // DOB is deferred to first post/apply, so this checkbox is what satisfies the
+  // age gate at account creation (server enforces it too via ageAttested).
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   // Marketing / promotional email opt-in — UNCHECKED by default so a user
   // who doesn't tick it never gets marketing mail. Persists to
   // profiles.marketing_consent via complete-signup below; the marketing
@@ -169,6 +173,7 @@ const Signup = () => {
     if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return false; }
     if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return false; }
     if (!acceptedPolicies) { toast.error("You must agree to the terms, platform rules, and privacy policy"); return false; }
+    if (!ageConfirmed) { toast.error("You must confirm you are at least 18 years old to sign up"); return false; }
     return true;
   };
 
@@ -194,6 +199,9 @@ const Signup = () => {
         // false server-side; passing it here lets a user who ticked the box
         // opt in at account-creation time.
         marketingConsent,
+        // 18+ attestation. DOB is deferred, so this is what satisfies the
+        // server's legal age gate on the initial completion path.
+        ageAttested: ageConfirmed,
       },
     });
 
@@ -439,6 +447,8 @@ const Signup = () => {
             setShowPassword={setShowPassword}
             acceptedPolicies={acceptedPolicies}
             setAcceptedPolicies={setAcceptedPolicies}
+            ageConfirmed={ageConfirmed}
+            setAgeConfirmed={setAgeConfirmed}
             marketingConsent={marketingConsent}
             setMarketingConsent={setMarketingConsent}
             inputCls={inputCls}

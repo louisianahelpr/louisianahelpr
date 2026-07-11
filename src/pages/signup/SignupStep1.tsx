@@ -26,6 +26,9 @@ export interface SignupStep1Props {
   setShowPassword: (v: boolean) => void;
   acceptedPolicies: boolean;
   setAcceptedPolicies: (v: boolean) => void;
+  /** 18+ attestation — a hard requirement (legal age gate), UNCHECKED by default. */
+  ageConfirmed: boolean;
+  setAgeConfirmed: (v: boolean) => void;
   /** Marketing / promotional email opt-in — UNCHECKED by default, persisted to profiles.marketing_consent. */
   marketingConsent: boolean;
   setMarketingConsent: (v: boolean) => void;
@@ -46,6 +49,8 @@ export function SignupStep1({
   setShowPassword,
   acceptedPolicies,
   setAcceptedPolicies,
+  ageConfirmed,
+  setAgeConfirmed,
   marketingConsent,
   setMarketingConsent,
   inputCls,
@@ -86,10 +91,11 @@ export function SignupStep1({
       passwordRef.current?.focus();
       return;
     }
-    // Continue stays active even when unchecked — tapping it here shakes +
-    // highlights the agreement box instead of being a dead grey button.
-    // `nudgeKey` re-mounts the label so repeated taps replay the shake.
-    if (!acceptedPolicies) {
+    // Continue stays active even when a required box is unchecked — tapping it
+    // here shakes + highlights the offending box(es) instead of being a dead
+    // grey button. `nudgeKey` re-mounts the labels so repeated taps replay the
+    // shake. Both the policies agreement and the 18+ attestation are hard gates.
+    if (!acceptedPolicies || !ageConfirmed) {
       setNudgeKey((k) => k + 1);
       return;
     }
@@ -269,6 +275,35 @@ export function SignupStep1({
           <Link to="/terms" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Terms</Link>,{" "}
           <Link to="/rules" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Platform Rules</Link>, and{" "}
           <Link to="/privacy" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Privacy Policy</Link>.
+        </span>
+      </label>
+
+      {/* 18+ attestation — a HARD requirement (legal age gate), UNCHECKED by
+          default. DOB is deferred to first post/apply, so this checkbox is what
+          confirms age at account creation. Mirrors the policies box, including
+          the shake nudge on a Continue tap while unchecked. */}
+      <label
+        key={`age-${nudgeKey}`}
+        htmlFor="age-confirm"
+        className={`flex items-start gap-3 px-1.5 py-2 min-h-[44px] rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !ageConfirmed ? "animate-attention-nudge" : ""}`}
+        style={{
+          border:
+            nudgeKey > 0 && !ageConfirmed
+              ? "1px solid hsl(var(--burnt-sienna) / 0.55)"
+              : "1px solid transparent",
+        }}
+      >
+        <Checkbox
+          id="age-confirm"
+          checked={ageConfirmed}
+          onCheckedChange={(checked) => setAgeConfirmed(checked === true)}
+          className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
+        />
+        <span
+          className="text-ds-11 leading-relaxed font-sans"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+        >
+          I confirm I am 18 years of age or older.
         </span>
       </label>
 

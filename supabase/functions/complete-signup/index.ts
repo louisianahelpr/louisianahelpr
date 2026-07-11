@@ -62,6 +62,10 @@ serve(async (req) => {
       jobRadius,
       extraComments,
       marketingConsent,
+      // Explicit "I am 18 or older" attestation from the signup form. DOB is
+      // deferred at signup, so this checkbox is what satisfies the legal age
+      // gate on the initial path (see the 18+ gate below).
+      ageAttested,
     } = body;
 
     let userId: string | null = null;
@@ -305,46 +309,49 @@ serve(async (req) => {
 
     const isResubmission = currentProfile?.approval_status === "denied";
 
-    // 4b. Server-side 18+ gate. The signup UI validates this too, but a
-    // direct API call could otherwise skip it and land on "approved" with
-    // no (or an underage) date of birth — this is a legal requirement on a
-    // real-money platform, so it must be enforced here, not just client-side.
+    // 4b. Server-side 18+ gate — a legal requirement on a real-money platform,
+    // so it must be enforced here, not just client-side.
+    //
+    // DOB is DEFERRED at signup (collected later on first post/apply), so an
+    // initial completion legitimately arrives with NO date_of_birth. In that
+    // case the gate is satisfied by the explicit 18+ attestation checkbox the
+    // signup form now forces (ageAttested). When a DOB *is* present (a
+    // resubmission, or a user who filled it in), we still hard-validate that
+    // it's a real date and ≥18. A direct API call that skips the form — no DOB
+    // AND no attestation — is refused, so we never auto-approve an account with
+    // no proof of age.
     const effectiveDob: string | null = dateOfBirth || currentProfile?.date_of_birth || null;
-    if (!effectiveDob) {
+    if (effectiveDob) {
+      const dob = new Date(effectiveDob);
+      if (isNaN(dob.getTime())) {
+        return new Response(
+          JSON.stringify({ error: "Invalid date of birth." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const cutoff = new Date();
+      cutoff.setFullYear(cutoff.getFullYear() - 18);
+      if (dob > cutoff) {
+        return new Response(
+          JSON.stringify({ error: "You must be at least 18 years old to use Helpr." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else if (ageAttested !== true) {
       return new Response(
-        JSON.stringify({ error: "Date of birth is required. You must be at least 18 to use Helpr." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    const dob = new Date(effectiveDob);
-    if (isNaN(dob.getTime())) {
-      return new Response(
-        JSON.stringify({ error: "Invalid date of birth." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    const cutoff = new Date();
-    cutoff.setFullYear(cutoff.getFullYear() - 18);
-    if (dob > cutoff) {
-      return new Response(
-        JSON.stringify({ error: "You must be at least 18 years old to use Helpr." }),
+        JSON.stringify({ error: "You must confirm you are at least 18 years old to use Helpr." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Require the essential profile fields on EVERY path, not just
-    // resubmissions. This function auto-approves, so a direct API call that
-    // skipped the signup UI could otherwise land on "approved" with a blank
-    // profile. avatar/bio/phone/location are collected by the initial signup
-    // flow (Signup.tsx validateAboutYouStep), so requiring them here matches
-    // what a real signup already sends. The ID document is resubmission-only —
-    // initial signup collects no ID (Stripe IDV handles identity later), so it
-    // must not be required on the initial path or it would reject real signups.
+    // The ID document is resubmission-only — initial signup collects no ID
+    // (Stripe IDV handles identity later), so it must NOT be required on the
+    // initial path or it would reject real signups. avatar/bio/phone/location
+    // are DEFERRED at signup (soft-prompted later on first post/apply), so they
+    // are intentionally NOT required here either: the client never sends them
+    // on the initial completion, and hard-requiring them rejected every real
+    // signup — leaving an orphaned auth row with no completable profile.
     const missing: string[] = [];
-    if (!avatarUrl) missing.push("profile picture");
-    if (!bio) missing.push("bio");
-    if (!phone) missing.push("phone number");
-    if (!location) missing.push("location");
     if (isResubmission && !idDocumentUrl) missing.push("ID document");
 
     if (missing.length > 0) {

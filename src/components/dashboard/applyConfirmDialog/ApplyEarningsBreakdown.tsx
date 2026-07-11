@@ -1,3 +1,4 @@
+import { ShieldCheck } from "lucide-react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 
@@ -68,6 +69,18 @@ export function ApplyEarningsBreakdown({
             ${payout.toFixed(2)}
           </span>
         </div>
+      </div>
+      {/* Escrow reassurance at the conversion moment — a helper deciding
+          whether to apply needs to know the money is already secured, not
+          contingent on the poster paying up after the work is done. */}
+      <div
+        className="flex items-center gap-1.5 mt-2.5 pt-2"
+        style={{ borderTop: "0.5px dashed hsl(var(--bark) / 0.22)" }}
+      >
+        <ShieldCheck className="w-3.5 h-3.5 shrink-0" strokeWidth={2} style={{ color: "hsl(var(--bark))" }} />
+        <span className="text-[0.7rem] leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+          Funds are held safe in escrow and released to you when the job is marked complete.
+        </span>
       </div>
     </div>
   );

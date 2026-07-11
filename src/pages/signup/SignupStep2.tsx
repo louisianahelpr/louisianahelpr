@@ -272,7 +272,7 @@ export function SignupStep2(props: SignupStep2Props) {
             />
           </label>
           <p className="text-ds-11 text-muted-foreground text-center max-w-[260px] leading-relaxed">
-            <span className="font-semibold text-[hsl(var(--ink-deep))]">A profile photo is required.</span> A clear photo of your face helps neighbors trust who they're working with. JPG or PNG, up to 5MB.
+            <span className="font-semibold text-[hsl(var(--ink-deep))]">Add a profile photo</span> <span className="text-[hsl(var(--olivewood)/0.8)]">(optional)</span> — a clear photo of your face helps neighbors trust who they're working with. You can add it later. JPG or PNG, up to 5MB.
           </p>
           <FieldError id="avatar-error" message={fieldErrors.avatar} />
         </div>
@@ -307,7 +307,7 @@ export function SignupStep2(props: SignupStep2Props) {
         </div>
         <div className="space-y-2">
           <div className="flex items-center gap-1.5">
-            <Label htmlFor="phone" className={labelCls}>Phone number</Label>
+            <Label htmlFor="phone" className={labelCls}>Phone number <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.8)]">(optional)</span></Label>
             <PhoneWhyTooltip />
           </div>
           <div className="relative">
@@ -329,8 +329,6 @@ export function SignupStep2(props: SignupStep2Props) {
               placeholder="(555) 123-4567"
               value={phone}
               onChange={(e) => { setPhone(formatPhone(e.target.value)); clearFieldError?.("phone"); }}
-              required
-              aria-required="true"
               autoComplete="tel"
               maxLength={14}
               aria-invalid={!!fieldErrors.phone}
@@ -344,7 +342,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <FieldError id="phone-error" message={fieldErrors.phone} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="dob" className={labelCls}>Date of birth</Label>
+          <Label htmlFor="dob" className={labelCls}>Date of birth <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.8)]">(optional)</span></Label>
           {/* Single native date field — on iOS this opens the system wheel
               picker (one tap), and `max` (today − 18y) keeps the wheel near a
               plausible birth year and blocks under-18 dates at the UI layer;
@@ -367,9 +365,9 @@ export function SignupStep2(props: SignupStep2Props) {
           }
         </div>
         <div className="space-y-2">
-          <Label htmlFor="location" className={labelCls}>City</Label>
+          <Label htmlFor="location" className={labelCls}>City <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.8)]">(optional)</span></Label>
           <div className="relative">
-            <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} required aria-required="true" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`} />
+            <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`} />
             {locationValid && !fieldErrors.location && (
               <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
             )}

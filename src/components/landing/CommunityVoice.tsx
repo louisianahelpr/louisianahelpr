@@ -78,7 +78,7 @@ const CommunityVoice = () => {
   const active = testimonials[activeIndex];
 
   return (
-  <section className="px-5 sm:px-8 lg:px-12 py-16 sm:py-20 lg:py-24">
+  <section className="px-5 sm:px-8 lg:px-12 py-10 sm:py-14 lg:py-20">
     <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
       <div className="grid md:grid-cols-12 gap-10 md:gap-12 lg:gap-16 xl:gap-20 items-center">
         {/* LEFT — testimonial. Pull quote + signature + social-proof avatars.

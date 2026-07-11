@@ -83,17 +83,21 @@ const BusinessCTASection = () => (
                 <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
               </Link>
             </Button>
-            <Link
-              to="/jobs"
-              className="group inline-flex items-center justify-center gap-1.5 rounded-2xl px-5 py-2.5 text-ds-13 font-sans font-semibold transition-colors hover:bg-[hsl(var(--bark)/0.08)]"
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="group rounded-2xl font-sans font-semibold"
               style={{
                 color: "hsl(var(--bark))",
-                border: "1px solid hsl(var(--bark) / 0.25)",
+                borderColor: "hsl(var(--bark) / 0.25)",
               }}
             >
-              Browse open jobs
-              <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
-            </Link>
+              <Link to="/jobs">
+                Browse open jobs
+                <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
+              </Link>
+            </Button>
           </div>
         </div>
       </div>

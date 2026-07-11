@@ -100,20 +100,18 @@ const Signup = () => {
     const errors: Record<string, string> = {};
 
     if (isBusinessSignup && !companyName.trim()) errors.companyName = "Company name is required";
-    if (!avatarFile) errors.avatar = "Profile picture is required";
     if (!firstName.trim()) errors.firstName = "First name is required";
     if (!lastName.trim()) errors.lastName = "Last name is required";
-    if (!phone.trim()) {
-      errors.phone = "Phone number is required";
-    } else if (phone.replace(/\D/g, "").length < 10) {
+    // Avatar, phone, DOB, and city are DEFERRED — not required to create the
+    // account (keeps signup "under a minute"). They're soft-prompted later on
+    // first post/apply. Each is still validated *when the user provides it*, so
+    // a supplied value can't be malformed or under-age.
+    if (phone.trim() && phone.replace(/\D/g, "").length < 10) {
       errors.phone = "Enter a valid 10-digit phone number";
     }
-    if (!dateOfBirth) {
-      errors.dateOfBirth = "Date of birth is required";
-    } else if (ageFromDob(dateOfBirth) < 18) {
+    if (dateOfBirth && ageFromDob(dateOfBirth) < 18) {
       errors.dateOfBirth = "You must be at least 18 years old to sign up";
     }
-    if (!location.trim()) errors.location = "City is required";
     // Bio is optional — but if the user starts one, keep the 20-char floor so
     // a half-typed sentence doesn't ship as their whole profile.
     if (bio.trim().length > 0 && bio.trim().length < 20) errors.bio = "Add at least 20 characters, or leave it blank for now";

@@ -481,8 +481,21 @@ export async function handleCheckoutSessionCompleted(
     }
 
     const { error: jobError } = await supabase.from("jobs").update(updateData).eq("id", jobId);
-    if (jobError) logStep("ERROR storing PI on job", { error: jobError.message });
-    else logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId, repay: isRepay });
+    if (jobError) {
+      logStep("ERROR storing PI on job", { error: jobError.message });
+      // The payment is CAPTURED but the job never got marked funded/escrow —
+      // a money↔state divergence (funds held, job looks unpaid). Surface to
+      // ops rather than swallowing it, mirroring the other money paths here.
+      postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Escrow funding — job not marked funded after capture",
+        message: "A checkout was captured but the jobs UPDATE (payment_status→escrow/payout_pending) failed. The payment is held with no funded job. Reconcile manually.",
+        fields: { session_id: session.id, job_id: jobId, payment_intent: piId, repay: String(isRepay), db_error: jobError.message },
+      });
+    } else {
+      logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId, repay: isRepay });
+    }
 
     // Mark poster's onboarding fee paid if it was charged on this session.
     //

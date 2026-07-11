@@ -130,9 +130,9 @@ const SignupPending = () => {
           <div className="flex items-start gap-3">
             {stepIcon(LogIn)}
             <div>
-              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Sign in</p>
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>We'll sign you in</p>
               <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Come back and log in with the email and password you just set.
+                Keep this page open — the moment you confirm, we take you straight in. No need to log back in.
               </p>
             </div>
           </div>

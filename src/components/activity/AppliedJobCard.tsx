@@ -172,9 +172,21 @@ function AppliedJobCardInner({
               </p>
             )}
             {isMinimalCard && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <p className="text-ds-11 text-muted-foreground italic">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
                 {isCancelled && <CancellationFeePill job={job} />}
+                {/* Rejection is the most deflating moment on the helper side —
+                    never leave it a dead end. Offer the obvious next step. */}
+                {!isCancelled && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-ds-md"
+                    onClick={(e) => { e.stopPropagation(); navigate("/dashboard"); }}
+                  >
+                    <Eye className="w-3.5 h-3.5 mr-1.5" /> Browse open jobs
+                  </Button>
+                )}
               </div>
             )}
           </div>

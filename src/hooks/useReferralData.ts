@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 
 export interface ReferralCredit {
   id: string;
@@ -45,11 +46,15 @@ export async function fetchReferralData(userId: string): Promise<ReferralData> {
   let referralCode: string | null = codeRow?.code ?? null;
   if (!referralCode) {
     const newCode = generateCode();
-    const { data: inserted } = await supabase
+    // A failed insert must not vanish: the user would see a missing
+    // referral code with no telemetry. Report it (non-fatal — the page
+    // still renders without a code) instead of dropping the error.
+    const { data: inserted, error: insertErr } = await supabase
       .from("referral_codes")
       .insert({ user_id: userId, code: newCode })
       .select("code")
       .single();
+    if (insertErr) report(insertErr, { context: { where: "referral_codes.insert", userId } });
     referralCode = inserted?.code ?? null;
   }
 

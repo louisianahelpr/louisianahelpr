@@ -92,10 +92,7 @@ const DischargeConcierge = () => {
                 "radial-gradient(ellipse 80% 60% at 90% 10%, hsl(var(--burnt-sienna) / 0.07) 0%, transparent 70%)",
             }}
           />
-          <span
-            className="font-serif italic uppercase text-[0.62rem] tracking-widest"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
+          <span className="text-display-eyebrow">
             Coming home from the hospital?
           </span>
           <h2

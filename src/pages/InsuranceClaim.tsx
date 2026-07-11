@@ -99,10 +99,7 @@ const InsuranceClaim = () => {
                 "radial-gradient(ellipse 70% 50% at 95% 0%, hsl(var(--stormy-sky) / 0.18) 0%, transparent 70%)",
             }}
           />
-          <span
-            className="font-serif italic uppercase text-[0.62rem] tracking-widest"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
+          <span className="text-display-eyebrow">
             Storm damage?
           </span>
           <h2

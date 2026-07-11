@@ -159,8 +159,8 @@ const HowItWorksSection = () => {
                   }}
                 >
                   <div className="flex items-start justify-between">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                      <Icon className="w-6 h-6 text-primary" strokeWidth={1.25} />
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "hsl(var(--bark) / 0.1)" }}>
+                      <Icon className="w-6 h-6" strokeWidth={1.25} style={{ color: "hsl(var(--bark))" }} />
                     </div>
                     {/* Step number badge — monospaced, prominent pill */}
                     <div

@@ -26,7 +26,10 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
     const budget = Number(j.budget) || 0;
     if (isHelper) {
       const fee = (Number(j.helper_fee_percent) || HELPER_FEE_LEGACY_FALLBACK_PERCENT) / 100;
-      return budget * (1 - fee); // net payout to helper
+      // Group jobs split the budget across the roster (mirrors computeNet):
+      // this helper's net is on their per-helper share, not the whole budget.
+      const helpers = Number(j.helpers_needed) > 0 ? Number(j.helpers_needed) : 1;
+      return (budget / helpers) * (1 - fee); // net payout to this helper
     }
     if (isCustomer) {
       // total paid by poster

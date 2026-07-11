@@ -50,7 +50,7 @@ const JobStripCard = ({ job }: { job: StripJob }) => {
   return (
     <Link
       to="/jobs"
-      className="group liquid-glass snap-start shrink-0 w-[15.5rem] rounded-2xl px-4 py-4 flex flex-col gap-2.5 transition-all duration-300 ease-out hover:-translate-y-0.5"
+      className="group liquid-glass snap-start shrink-0 w-[15.5rem] rounded-2xl px-5 py-5 flex flex-col gap-3.5 transition-all duration-300 ease-out hover:-translate-y-0.5"
       aria-label={`${label} job: ${job.title}. View on the jobs board.`}
     >
       <div className="flex items-center justify-between gap-2">
@@ -150,10 +150,10 @@ const LandingJobsStrip = () => {
     <section
       id="jobs"
       aria-label="Live jobs in Louisiana"
-      className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-6 pb-8 scroll-mt-20"
+      className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-20 pb-14 sm:pb-20 scroll-mt-20"
     >
       <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-        <div className="flex items-end justify-between gap-4 mb-4">
+        <div className="flex items-end justify-between gap-4 mb-8 sm:mb-10">
           <div>
             <p className="text-display-eyebrow">Fresh today · pulled live</p>
             <h2
@@ -181,7 +181,7 @@ const LandingJobsStrip = () => {
             rather than an abrupt cut-off. A mask (not an overlay) is used so
             the fade works over the mesh-gradient background. */}
         <div
-          className="flex gap-3.5 overflow-x-auto snap-x snap-mandatory pb-3 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex gap-5 sm:gap-6 overflow-x-auto snap-x snap-mandatory pb-3 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="list"
           style={{
             maskImage:
@@ -200,7 +200,7 @@ const LandingJobsStrip = () => {
               mobile equivalent of the header link (which is hidden on <sm). */}
           <Link
             to="/jobs"
-            className="snap-start shrink-0 w-[11rem] rounded-2xl flex flex-col items-center justify-center gap-2 text-center px-4 py-6 transition-all duration-300 hover:-translate-y-0.5"
+            className="snap-start shrink-0 w-[11rem] rounded-2xl flex flex-col items-center justify-center gap-3 text-center px-5 py-8 transition-all duration-300 hover:-translate-y-0.5"
             style={{
               background: "hsl(var(--bark) / 0.06)",
               border: "1.5px dashed hsl(var(--bark) / 0.35)",

@@ -157,7 +157,7 @@ const PayoutTicker = () => {
 
   return (
     <div
-      className="w-full flex justify-center px-4"
+      className="w-full flex justify-center px-4 py-6 sm:py-8"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -168,7 +168,7 @@ const PayoutTicker = () => {
           conveys the same social-proof signal once, non-disruptively. */}
       <div
         aria-hidden="true"
-        className="liquid-glass inline-flex items-center gap-2 max-w-full px-3.5 py-1.5 rounded-full"
+        className="liquid-glass inline-flex items-center gap-2.5 max-w-full px-5 py-2.5 rounded-full"
         style={{
           color: "hsl(var(--ink-deep))",
           fontFamily: "Montserrat, system-ui, sans-serif",

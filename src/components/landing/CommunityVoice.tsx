@@ -78,15 +78,15 @@ const CommunityVoice = () => {
   const active = testimonials[activeIndex];
 
   return (
-  <section className="px-5 sm:px-8 lg:px-12 py-10 sm:py-14 lg:py-20">
+  <section className="px-5 sm:px-8 lg:px-12 py-16 sm:py-24 lg:py-32">
     <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-      <div className="grid md:grid-cols-12 gap-10 md:gap-12 lg:gap-16 xl:gap-20 items-center">
+      <div className="grid md:grid-cols-12 gap-14 md:gap-16 lg:gap-20 xl:gap-24 items-center">
         {/* LEFT — testimonial. Pull quote + signature + social-proof avatars.
             Sits in a 5-col track, kept at a readable measure (long editorial
             lines hurt at full width) and centered within its track. */}
         <div className="md:col-span-5 observe-fade-up md:max-w-md md:mx-auto">
           {/* Three-dot ornament */}
-          <div className="flex justify-center md:justify-start gap-1.5 mb-6">
+          <div className="flex justify-center md:justify-start gap-1.5 mb-8 sm:mb-10">
             <span
               className="w-1 h-1 rounded-full"
               style={{ backgroundColor: "hsl(var(--burnt-sienna) / 0.5)" }}
@@ -106,7 +106,7 @@ const CommunityVoice = () => {
           </blockquote>
 
           {/* Attribution */}
-          <div className="mt-8 flex flex-col items-center md:items-start gap-2">
+          <div className="mt-10 sm:mt-12 flex flex-col items-center md:items-start gap-3">
             <span
               className="signature"
               style={{
@@ -123,7 +123,7 @@ const CommunityVoice = () => {
           </div>
 
           {/* Social-proof avatar row */}
-          <div className="mt-8 flex items-center justify-center md:justify-start gap-3">
+          <div className="mt-10 sm:mt-12 flex items-center justify-center md:justify-start gap-3">
             <div className="flex -space-x-2">
               {avatars.map((avatar) => (
                 <div
@@ -152,7 +152,7 @@ const CommunityVoice = () => {
               can keep the global 44px min tap target (a11y) WITHOUT the dot
               itself ballooning to 44px. Negative margins collapse the extra
               hit-area padding so the dots read as a tight 8px row. */}
-          <div className="mt-6 flex items-center justify-center md:justify-start gap-1 -mx-2">
+          <div className="mt-8 sm:mt-10 flex items-center justify-center md:justify-start gap-1 -mx-2">
             {testimonials.map((_, i) => (
               <button
                 key={i}
@@ -180,17 +180,17 @@ const CommunityVoice = () => {
             fill it, so the answers use the horizontal space instead of
             clustering in a narrow column against a big empty margin. */}
         <div className="md:col-span-7 observe-fade-up w-full" style={{ transitionDelay: "150ms" }}>
-          <div className="mb-6 lg:mb-8">
+          <div className="mb-8 sm:mb-10 lg:mb-12">
             <span className="text-display-eyebrow">Common questions</span>
             <h2
-              className="font-display font-bold italic mt-2 text-balance text-ds-20 sm:text-ds-24 lg:text-[1.625rem] tracking-[-0.02em]"
+              className="font-display font-bold italic mt-3 sm:mt-4 text-balance text-ds-20 sm:text-ds-24 lg:text-[1.625rem] tracking-[-0.02em]"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               Honest answers, no fine print.
             </h2>
           </div>
 
-          <ul className="liquid-glass faq-list px-6 sm:px-8 py-3">
+          <ul className="liquid-glass faq-list px-7 sm:px-10 py-5 sm:py-6">
             {faqs.map((faq, i) => (
               <li
                 key={faq.q}

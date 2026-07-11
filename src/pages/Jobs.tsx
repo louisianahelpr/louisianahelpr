@@ -492,20 +492,35 @@ const Jobs = () => {
 
           {/* CTA */}
           <div className="text-center mt-12 space-y-4">
-            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-8 max-w-lg mx-auto space-y-4">
-              <Lock className="w-8 h-8 text-primary mx-auto" />
-              <h3 className="text-ds-17 font-bold text-foreground">Join the Helpr community</h3>
-              <p className="text-ds-11 text-muted-foreground">
+            <div
+              className="rounded-ds-lg p-8 max-w-lg mx-auto space-y-4"
+              style={{
+                background:
+                  "linear-gradient(135deg, hsl(var(--bark) / 0.08) 0%, hsl(var(--burnt-sienna) / 0.07) 100%)",
+                border: "1px solid hsl(var(--bark) / 0.14)",
+              }}
+            >
+              <Lock className="w-8 h-8 mx-auto" style={{ color: "hsl(var(--burnt-sienna))" }} />
+              <h3
+                className="font-display italic font-bold text-ds-20 tracking-[-0.025em]"
+                style={{ color: "hsl(var(--ink-deep))" }}
+              >
+                Join the Helpr community
+              </h3>
+              <p
+                className="font-serif italic text-ds-13 leading-relaxed"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              >
                 Sign up to apply for jobs, message posters, and start earning — or post your own job and find help today.
               </p>
               <Button
-                variant="hero"
+                variant="bark"
                 size="lg"
                 onClick={() => navigate("/signup")}
-                className="group"
+                className="group rounded-ds-md px-8"
               >
                 Get started
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>
           </div>

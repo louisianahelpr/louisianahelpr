@@ -153,9 +153,11 @@ const HeroSection = () => {
         <div className="mx-auto w-full max-w-3xl flex flex-col items-center">
 
           {/* Live status pill — real count of currently-open jobs (last 7
-              days) when activity exists, "Live in Louisiana" otherwise so we
-              never flash a deflating "0 jobs". Leads the hero as the first
-              proof-of-life signal. */}
+              days) when activity exists, "Live now" otherwise so we never
+              flash a deflating "0 jobs". Kept Louisiana-free on purpose: the
+              eyebrow ("Made in Louisiana") and H1 ("Louisiana's") already
+              carry the place, so repeating it in the pill read as redundant.
+              Leads the hero as the first proof-of-life signal. */}
           <span
             className="status-pill-glow inline-flex items-center gap-2 px-3.5 py-2 rounded-full font-mono font-medium"
             style={{
@@ -179,7 +181,7 @@ const HeroSection = () => {
             />
             {animatedCount !== null
               ? `${animatedCount} ${animatedCount === 1 ? "job" : "jobs"} open now`
-              : "Live in Louisiana"}
+              : "Live now"}
           </span>
 
           <span className="text-display-eyebrow mt-6">Made in Louisiana</span>
@@ -214,7 +216,7 @@ const HeroSection = () => {
             }}
           >
             Hire a Helpr or find local work. Whether you need a hand or
-            you&rsquo;re ready to lend one, we&rsquo;re your trusted Louisiana
+            you&rsquo;re ready to lend one, we&rsquo;re your trusted local
             partner for everyday jobs.
           </p>
 

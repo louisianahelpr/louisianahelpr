@@ -155,15 +155,7 @@ const LandingJobsStrip = () => {
       <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
         <div className="flex items-end justify-between gap-4 mb-4">
           <div>
-            <p
-              className="text-ds-11 tracking-[0.18em] uppercase font-serif italic"
-              /* WCAG AA: full burnt-sienna on parchment measures ~5:1;
-                 the previous / 0.8 alpha dropped it to 4.0:1 which fails
-                 AA at 11px. Alpha removed per Cowork 2026-07-08. */
-              style={{ color: "hsl(var(--burnt-sienna))" }}
-            >
-              Fresh today · pulled live
-            </p>
+            <p className="text-display-eyebrow">Fresh today · pulled live</p>
             <h2
               className="font-display italic font-bold tracking-[-0.025em]"
               style={{ fontSize: "clamp(1.5rem, 2.5vw + 0.5rem, 2.25rem)", color: "hsl(var(--ink-deep))" }}

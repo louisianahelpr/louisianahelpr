@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
  * in the landing scroll.
  */
 const BusinessCTASection = () => (
-  <section className="px-5 sm:px-8 lg:px-12 py-10 sm:py-12">
+  <section className="px-5 sm:px-8 lg:px-12 py-10 sm:py-14 lg:py-20">
     <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
       <div
         className="observe-fade-up relative overflow-hidden rounded-[2rem] px-6 py-8 sm:px-10 sm:py-10"
@@ -27,10 +27,7 @@ const BusinessCTASection = () => (
             Words first, then the two CTAs directly under them — never a
             far-right action panel (that reintroduced a mid-band gap). */}
         <div className="max-w-3xl mx-auto space-y-2.5 text-center">
-          <span
-            className="inline-flex items-center gap-2 font-serif italic uppercase text-[0.66rem] tracking-[0.18em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
+          <span className="text-display-eyebrow inline-flex items-center gap-2">
             <Building2 className="w-3.5 h-3.5" strokeWidth={1.75} />
             For business
           </span>

@@ -113,7 +113,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative flex flex-col justify-center items-center min-h-[70svh] px-5 sm:px-8 lg:px-12 pt-20 sm:pt-24 lg:pt-28 pb-8 sm:pb-10 lg:pb-12">
+    <section className="relative flex flex-col justify-center items-center min-h-[75svh] px-5 sm:px-8 lg:px-12 pt-20 sm:pt-24 lg:pt-28 pb-8 sm:pb-10 lg:pb-12">
       <div className="w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid lg:grid-cols-[1.6fr_1fr] items-center gap-10 lg:gap-16 text-center lg:text-left">
         <h1
           ref={headlineRef}
@@ -131,10 +131,10 @@ const HeroSection = () => {
           </em>
         </h1>
 
-        {/* Right column — always horizontally centered (subhead above the
-            two stacked buttons). Vertically centered with the H1 row via
-            the grid's items-center. */}
-        <div className="flex flex-col gap-8 lg:gap-10 items-center">
+        {/* Right column — subhead centered above the two stacked buttons.
+            Explicit text-center overrides the parent grid's lg:text-left
+            so the paragraph reads on the same axis as the button stack. */}
+        <div className="flex flex-col gap-8 lg:gap-10 items-center text-center">
           <p
             className="max-w-sm mx-auto text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed text-balance"
             style={{

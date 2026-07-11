@@ -68,7 +68,7 @@ const HowItWorksSection = () => {
   return (
     <section
       id="how-it-works"
-      className="py-10 sm:py-14 lg:py-20 px-5 sm:px-8 lg:px-12 scroll-mt-24"
+      className="pt-2 pb-10 sm:pt-4 sm:pb-14 lg:pt-6 lg:pb-20 px-5 sm:px-8 lg:px-12 scroll-mt-24"
     >
       <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
         {/* Eyebrow + headline live OUTSIDE the glass — same pattern as the FAQ,
@@ -112,9 +112,9 @@ const HowItWorksSection = () => {
                     active
                       ? {
                           background:
-                            "linear-gradient(135deg, hsl(var(--bark)) 0%, hsl(var(--burnt-sienna)) 100%)",
+                            "linear-gradient(160deg, hsl(var(--burnt-sienna)) 0%, hsl(var(--bark) / 0.85) 100%)",
                           color: "hsl(var(--parchment))",
-                          boxShadow: "0 2px 10px hsl(var(--bark) / 0.25)",
+                          boxShadow: "0 2px 8px hsl(var(--bark) / 0.22)",
                         }
                       : { color: "hsl(var(--olivewood))" }
                   }

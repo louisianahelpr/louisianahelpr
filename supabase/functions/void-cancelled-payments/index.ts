@@ -66,11 +66,26 @@ serve(async (req) => {
       const platformCut = Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
       const helperPayout = cancellationFee - platformCut;
 
-      const { data: helperProfile } = await supabaseAdmin
+      const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
         .eq("user_id", job.helper_id)
         .single();
+
+      // A dropped read here would silently skip paying the helper their
+      // cancellation fee (poster's fee is already captured), stranding the
+      // money on the platform balance with no signal. Alert instead of skipping.
+      if (helperProfileErr) {
+        console.error(`[void-cancelled-payments] helper profile read failed for ${job.helper_id} (job ${job.id}):`, helperProfileErr);
+        await postSlackOpsAlert({
+          kind: "payout_failed",
+          severity: "warning",
+          title: "Cancellation-fee payout could not read helper account",
+          message: "A helper's cancellation fee could not be paid because their payout account read failed. The poster's fee is already captured — reconcile manually.",
+          fields: { job_id: job.id, helper_id: job.helper_id, amount: helperPayout, db_error: helperProfileErr.message },
+        });
+        return;
+      }
 
       if (!helperProfile?.stripe_account_id || !(helperPayout > 0)) return;
       try {

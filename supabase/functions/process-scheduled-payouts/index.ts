@@ -53,13 +53,21 @@ serve(async (req) => {
     let processed = 0;
     const results: any[] = [];
 
-    // Load onboarding fee setting once
-    const { data: settingsRow } = await supabaseAdmin
+    // Load onboarding fee setting once. A dropped error here previously
+    // defaulted to a hardcoded 200 (¢) — if the real configured fee differs,
+    // that silently over/under-charges every payout in the run. On a read
+    // failure, skip the deduction entirely (0): under-charging is recoverable
+    // (onboarding_fee_paid stays false, so it's collected next run) whereas
+    // over-charging on a bad read is not.
+    const { data: settingsRow, error: settingsErr } = await supabaseAdmin
       .from("platform_settings")
       .select("onboarding_fee_cents")
       .limit(1)
       .single();
-    const onboardingFeeCents = settingsRow?.onboarding_fee_cents ?? 200;
+    if (settingsErr || settingsRow?.onboarding_fee_cents == null) {
+      console.error("[process-scheduled-payouts] platform_settings read failed — skipping onboarding-fee deduction this run:", settingsErr);
+    }
+    const onboardingFeeCents = settingsErr ? 0 : (settingsRow?.onboarding_fee_cents ?? 0);
 
     for (const job of (jobs || [])) {
       if (!job.helper_id) continue;

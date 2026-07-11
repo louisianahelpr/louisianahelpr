@@ -45,11 +45,22 @@ serve(async (req) => {
     const userId = userData.user.id;
 
     // Get user's Stripe Connect account
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from("profiles")
       .select("stripe_account_id")
       .eq("user_id", userId)
       .single();
+
+    // Distinguish a transient read failure from a genuine "no account" — a
+    // dropped error here would falsely tell a helper WITH a Connect account to
+    // go re-onboard, and this read gates the whole payout.
+    if (profileErr) {
+      console.error(`[cash-out-credits] profile read failed for ${userId}:`, profileErr);
+      return new Response(
+        JSON.stringify({ error: "We couldn't verify your payout account right now. Please try again in a moment." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
 
     if (!profile?.stripe_account_id) {
       return new Response(

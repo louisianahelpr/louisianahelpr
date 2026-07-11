@@ -5,6 +5,23 @@ import { useLongPress } from "@/hooks/useLongPress";
 import { hapticMedium } from "@/lib/haptics";
 import type { Conversation, Message } from "./types";
 
+/**
+ * Message `content` is attacker-controlled free text, and both the photo and
+ * location branches inject a URL from it straight into an `href`/`src`. React
+ * does NOT strip `javascript:`/`data:` from runtime-computed URL props, so an
+ * unvalidated href is a stored-XSS vector (tap "View location on map" runs the
+ * sender's script in the recipient's authed session). Only render as an active
+ * link/image when the URL is a real `https:` URL; legit senders always are
+ * (location → `https://maps.google.com/…`, photos → Supabase storage https).
+ */
+const isSafeHttpsUrl = (raw: string): boolean => {
+  try {
+    return new URL(raw).protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
 export const renderMessageContent = (
   content: string,
   onImageClick: (url: string) => void,
@@ -14,6 +31,8 @@ export const renderMessageContent = (
     const parts = content.slice(2).trim().split("\n");
     const url = parts[0].trim();
     const caption = parts.slice(1).join("\n").trim();
+    // Untrusted scheme → never emit an <img src>; fall back to inert text.
+    if (!isSafeHttpsUrl(url)) return <p>{content}</p>;
     return (
       <div className="space-y-1">
         <img
@@ -30,7 +49,9 @@ export const renderMessageContent = (
   }
   // Location message
   if (content.startsWith("📍 Location:")) {
-    const url = content.replace("📍 Location: ", "");
+    const url = content.replace("📍 Location: ", "").trim();
+    // Untrusted scheme → never emit an <a href>; fall back to inert text.
+    if (!isSafeHttpsUrl(url)) return <p>{content}</p>;
     return (
       <a
         href={url}

@@ -1,98 +1,123 @@
 /**
- * SubscriptionPage — standalone /subscription route.
+ * SubscriptionPage — /subscription (editorial remodel 2026-07-11).
  *
- * Document-scroll page (listed in DOCUMENT_SCROLL_ROUTES) with:
- *  1. Current plan card
- *  2. Tier comparison cards (Free / Basic / Pro / Elite)
- *  3. Collapsible full perk comparison table
- *  4. FAQ section
+ * Full editorial-magazine layout matching the landing style:
+ *  1. Editorial hero — eyebrow / big Bodoni H1 with italic burnt-sienna
+ *     accent / warm ambient halo / one Bodoni-italic subhead / single
+ *     rounded-2xl bark-fill pill CTA that anchors to the tiers section.
+ *  2. Tiers — magazine two-column (masthead left, tier grid right), all
+ *     four consumer tiers side-by-side, no accordion. Pro carries a warm
+ *     halo behind it and reads as the recommended pick. Sequential
+ *     IntersectionObserver fade-in (1100ms fade + 400ms stagger).
+ *  3. Why upgrade — same two-column magazine layout, 3 numbered benefits
+ *     with giant Bodoni numeral anchors.
+ *  4. Trust band + closing CTA — small caps trust row and a mirrored
+ *     hero-style Bodoni H2 with rounded-2xl bark pill.
  *
- * Upgrade taps: Calls create-pro-checkout edge function and redirects to
- * Stripe Checkout. Paid users get a "Manage plan" button that opens the
- * Stripe billing portal via pro-customer-portal edge function.
+ * Behavior preserved from the pre-remodel implementation:
+ *  - Guest tap → /login?redirect=/subscription (checkout requires auth).
+ *  - Authed tap → create-pro-checkout edge function → Stripe Checkout.
+ *  - Paid tier → "Manage membership" via pro-customer-portal edge function.
+ *  - Native platform → bare document-scroll shell (no PublicLayout chrome).
+ *  - "Current" chip on the active tier, its CTA is hidden.
+ *  - Copy is sourced from TIER_PERKS so the /subscription page and the
+ *    in-app SubscriptionTab never advertise different perks for a tier.
  */
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Crown, CheckCircle, Minus, ChevronDown, ChevronUp,
-  Sparkles, Briefcase, Sprout, Loader2, HelpCircle, ArrowRight,
-} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, Check, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import PageHeader from "@/components/PageHeader";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import {
   TIER_PERKS,
-  getPaysSelfBack,
   toSubscriptionTier,
   type SubscriptionTier,
 } from "@/lib/subscriptionTiers";
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
 // Business is acquired through the seats flow (create-business-seat-checkout),
-// not this consumer upgrade page, so it is intentionally omitted here — leaving
-// it in would render a card whose checkout has no Stripe price and 500s.
-const TIER_ORDER: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
+// not this consumer upgrade page, so it is intentionally omitted here —
+// leaving it in would render a card whose checkout has no Stripe price and
+// 500s.
+const CONSUMER_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
 
-// Representative values used for "pays for itself" math on-card.
-const AVG_JOB = 80;
-const JOBS_PER_MONTH = 6;
-
-function tierAccent(tier: SubscriptionTier): { color: string; soft: string } {
-  switch (tier) {
-    case "elite":
-      return { color: "hsl(var(--gold-warm))", soft: "hsl(var(--gold-warm) / 0.14)" };
-    case "pro":
-      return { color: "hsl(var(--burnt-sienna))", soft: "hsl(var(--burnt-sienna) / 0.12)" };
-    case "basic":
-      // Softer olivewood accent — entry paid tier reads warmer than free
-      // (which uses the same base) but doesn't compete visually with Pro's
-      // burnt sienna or Elite's gold.
-      return { color: "hsl(var(--olivewood))", soft: "hsl(var(--olivewood) / 0.16)" };
-    case "business":
-      return { color: "hsl(var(--bark))", soft: "hsl(var(--bark) / 0.12)" };
-    default:
-      return { color: "hsl(var(--olivewood))", soft: "hsl(var(--olivewood) / 0.10)" };
-  }
-}
-
-function TierIcon({ tier, className }: { tier: SubscriptionTier; className?: string }) {
-  if (tier === "elite") return <Crown className={className} strokeWidth={2.1} />;
-  if (tier === "pro") return <Sparkles className={className} strokeWidth={2.1} />;
-  if (tier === "basic") return <Sprout className={className} strokeWidth={2.1} />;
-  if (tier === "business") return <Briefcase className={className} strokeWidth={2.1} />;
-  return <Sprout className={className} strokeWidth={2.1} />;
-}
-
-// Perk rows for the full comparison table.
-const PERK_ROWS: Array<{ label: string; key: keyof typeof TIER_PERKS.free }> = [
-  { label: "Platform fee", key: "platformFeePercent" },
-  { label: "Priority placement", key: "priorityPlacement" },
-  { label: "Featured badge", key: "featuredBadge" },
-  { label: "Early job access", key: "earlyAccess" },
-  { label: "Advanced analytics", key: "advancedAnalytics" },
-  { label: "Dedicated support", key: "dedicatedSupport" },
-  { label: "Multi-tech team", key: "multiTech" },
-  { label: "Verified business badge", key: "verifiedBusiness" },
+// The three benefits shown in the "Why upgrade" section. Kept short —
+// they're anchored by giant Bodoni numerals, not by prose.
+const BENEFITS: Array<{ title: string; desc: string }> = [
+  {
+    title: "Keep more of every job.",
+    desc:
+      "Membership lowers the marketplace commission on both sides — the fee taken from a helper's payout and the service fee added to a poster's total.",
+  },
+  {
+    title: "Get seen first.",
+    desc:
+      "Paid tiers unlock early access to new jobs, priority placement in poster recommendations, and profile badges that read as trusted.",
+  },
+  {
+    title: "Cancel anytime.",
+    desc:
+      "Billed monthly or annually through Stripe. Change, pause, or cancel from the same billing portal — no calls, no hold music.",
+  },
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function SubscriptionPage() {
-  usePageTitle("Membership — Helpr");
+  usePageMeta({
+    title: "Membership — Helpr",
+    description:
+      "Lower the commission on every Louisiana Helpr job. Pick the plan that fits how you use Helpr — cancel anytime.",
+  });
+
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const currentTier = toSubscriptionTier(profile?.subscription_tier);
 
   const [upgrading, setUpgrading] = useState(false);
 
-  // Full comparison table collapse state
-  const [tableOpen, setTableOpen] = useState(false);
+  // Sequential fade-in for the tier grid — mirrors HowItWorksSection.
+  const tiersRef = useRef<HTMLDivElement>(null);
+  const [tiersInView, setTiersInView] = useState(false);
+  const benefitsRef = useRef<HTMLDivElement>(null);
+  const [benefitsInView, setBenefitsInView] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reduceMotion) {
+      setTiersInView(true);
+      setBenefitsInView(true);
+      return;
+    }
+    const observers: IntersectionObserver[] = [];
+    const observe = (
+      el: HTMLElement | null,
+      set: (v: boolean) => void,
+    ) => {
+      if (!el) return;
+      const io = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            set(true);
+            io.disconnect();
+          }
+        },
+        { threshold: 0.2, rootMargin: "0px 0px -10% 0px" },
+      );
+      io.observe(el);
+      observers.push(io);
+    };
+    observe(tiersRef.current, setTiersInView);
+    observe(benefitsRef.current, setBenefitsInView);
+    return () => observers.forEach((o) => o.disconnect());
+  }, []);
 
   async function handleUpgrade(tier: Exclude<SubscriptionTier, "free">) {
     // Guests can browse plans on the public route, but checkout needs an
@@ -104,15 +129,21 @@ export default function SubscriptionPage() {
     }
     setUpgrading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
-        body: { tier, billing_cycle: "monthly" },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "create-pro-checkout",
+        {
+          body: { tier, billing_cycle: "monthly" },
+        },
+      );
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      if ((data as any)?.url) window.location.href = (data as any).url;
+      if ((data as { error?: string })?.error)
+        throw new Error((data as { error: string }).error);
+      const url = (data as { url?: string })?.url;
+      if (url) window.location.href = url;
       else throw new Error("Couldn't start checkout. Please try again.");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Couldn't start checkout";
+      const message =
+        err instanceof Error ? err.message : "Couldn't start checkout";
       toast.error(message);
     } finally {
       setUpgrading(false);
@@ -122,9 +153,12 @@ export default function SubscriptionPage() {
   async function handleManagePortal() {
     setUpgrading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("pro-customer-portal");
+      const { data, error } = await supabase.functions.invoke(
+        "pro-customer-portal",
+      );
       if (error) throw error;
-      if ((data as any)?.url) window.location.href = (data as any).url;
+      const url = (data as { url?: string })?.url;
+      if (url) window.location.href = url;
       else throw new Error("Couldn't open billing portal");
     } catch {
       toast.error("Couldn't open billing portal. Please try again.");
@@ -133,406 +167,540 @@ export default function SubscriptionPage() {
     }
   }
 
-  const tierPerks = TIER_PERKS[currentTier];
-
   const inner = (
     <>
-      <PageHeader title="Membership" meta="Lower the commission on the jobs you complete" />
+      {/* ── 1. Editorial hero ───────────────────────────────────────────── */}
+      <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
+        <div className="relative z-10 mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-12">
+          <span className="text-display-eyebrow">Membership</span>
 
-      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 space-y-5 mt-2 pb-10">
-        {/* ── Current plan card ─────────────────────────────────────────── */}
-        <div
-          className="rounded-2xl p-4 relative overflow-hidden"
-          style={{
-            background:
-              "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
-              "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.10) 0%, transparent 60%), " +
-              "var(--surface-premium)",
-            border: "0.5px solid hsl(var(--bark) / 0.22)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-              "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.18), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-              "0 14px 28px -8px hsl(var(--olivewood) / 0.12)",
-          }}
-        >
-          <p
-            className="font-serif italic uppercase"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Your current plan
-          </p>
-          <h2
-            className="font-display italic font-bold leading-tight mt-0.5"
-            style={{ fontSize: "1.35rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.022em" }}
-          >
-            {tierPerks.name}
-            <span
-              className="not-italic font-sans text-ds-12 font-semibold ml-2 align-middle px-2 py-0.5 rounded-full"
-              style={{
-                background: "hsl(var(--burnt-sienna) / 0.10)",
-                color: "hsl(var(--burnt-sienna))",
-              }}
-            >
-              {tierPerks.platformFeePercent}% platform fee
-            </span>
-          </h2>
-          <p
-            className="font-serif italic mt-1"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            {tierPerks.tagline}
-          </p>
-          {currentTier !== "free" && (
-            <button
-              onClick={handleManagePortal}
-              disabled={upgrading}
-              className="mt-3 text-ds-12 font-sans font-semibold underline underline-offset-2 inline-flex items-center gap-1"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              {upgrading ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : null}
-              Manage membership →
-            </button>
-          )}
-        </div>
-
-        {/* Membership framing + billing disclosure. Helpr memberships lower
-            the marketplace commission on the real-world jobs a helper
-            completes (Apple Guideline 3.1.5(a) — physical/real-world
-            services), and are billed through Stripe, the same processor that
-            handles job payments.
-
-            The "% platform fee" quoted per tier applies to BOTH sides — the
-            commission deducted from a helper's earnings AND the service fee
-            added to a poster's checkout total. Called out explicitly here
-            (Cowork audit 2026-07-08 flagged the poster's +12% as under-
-            disclosed — it only surfaced at checkout). */}
-        <p
-          className="font-serif italic text-center px-2 max-w-2xl mx-auto"
-          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)", lineHeight: 1.5 }}
-        >
-          A membership lowers the commission Helpr takes on the real-world jobs
-          you complete <em>and</em> the service fee added when you post a job —
-          the same % applies to both sides. Billed securely through Stripe —
-          manage or cancel anytime.
-        </p>
-
-        {/* ── Tier cards ────────────────────────────────────────────────── */}
-        <div className="grid gap-4 sm:grid-cols-2">
-        {TIER_ORDER.map((tier) => {
-          const perks = TIER_PERKS[tier];
-          const { color, soft } = tierAccent(tier);
-          const isActive = tier === currentTier;
-          const isFree = tier === "free";
-          const isElite = tier === "elite";
-          // "Most popular" chip lives on Pro (the middle-of-the-ladder
-          // consumer tier) — matches the in-app SubscriptionTab chip so
-          // the marketing page and the upgrade tab agree on which tier
-          // is recommended. Was on Elite pre-Basic; now that Basic exists
-          // Pro is the genuine middle tier. Cowork audit 2026-07-08.
-          const isMostPopular = tier === "pro";
-          const paysSelf =
-            !isFree ? getPaysSelfBack(tier, AVG_JOB, JOBS_PER_MONTH) : "";
-
-          return (
+          <div className="relative flex items-center justify-center w-full">
+            {/* Warm ambient halo behind the H1 — same recipe as the landing hero. */}
             <div
-              key={tier}
-              className="relative rounded-2xl p-4"
+              aria-hidden
+              className="pointer-events-none absolute -inset-16 sm:-inset-24 lg:-inset-32 -z-0"
               style={{
                 background:
-                  "radial-gradient(60% 80% at 0% 0%, hsl(var(--parchment) / 0.9) 0%, transparent 60%), " +
-                  "hsla(0, 0%, 100%, 0.60)",
-                backdropFilter: "blur(16px)",
-                WebkitBackdropFilter: "blur(16px)",
-                border: isElite
-                  ? `1.5px solid ${color}`
-                  : "0.5px solid hsl(var(--bark) / 0.18)",
-                boxShadow: isElite
-                  ? `0 0 0 1px ${soft}, inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 8px 20px -6px hsl(var(--gold-warm) / 0.20)`
-                  : "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 4px 12px -4px hsl(var(--bark) / 0.10)",
+                  "radial-gradient(50% 50% at 50% 50%, hsl(var(--gold-warm) / 0.24) 0%, hsl(var(--burnt-sienna) / 0.10) 40%, transparent 75%)",
+                filter: "blur(32px)",
+              }}
+            />
+            <h1
+              className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.25rem] sm:text-[4.5rem] md:text-[5.75rem] lg:text-[6rem] xl:text-[7rem]"
+              style={{
+                color: "hsl(var(--olivewood))",
+                letterSpacing: "-0.03em",
               }}
             >
-              {/* Most popular chip on Pro (see isMostPopular derivation above) */}
-              {isMostPopular && (
-                <span
-                  className="absolute -top-2.5 left-4 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full shadow-sm"
+              Get more from every{" "}
+              <em
+                className="relative inline-block"
+                style={{
+                  fontStyle: "italic",
+                  color: "hsl(var(--burnt-sienna))",
+                }}
+              >
+                job.
+              </em>
+            </h1>
+          </div>
+
+          <p
+            className="max-w-xl lg:max-w-3xl text-ds-15 sm:text-ds-17 lg:text-ds-24 leading-relaxed text-balance font-serif italic"
+            style={{
+              color: "hsl(var(--stormy-sky))",
+              letterSpacing: "-0.005em",
+            }}
+          >
+            Pick the plan that fits how you use Helpr.
+          </p>
+
+          <a
+            href="#plans"
+            className="group inline-flex items-center justify-center rounded-2xl transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] h-14 sm:h-16 px-10 sm:px-12"
+            style={{
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              fontSize: "1rem",
+              letterSpacing: "-0.005em",
+              color: "hsl(var(--parchment))",
+              background: "hsl(var(--bark))",
+              border: "1px solid hsl(66 25% 19%)",
+              boxShadow:
+                "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
+            }}
+          >
+            <Sparkles className="mr-2.5 w-5 h-5" strokeWidth={1.5} />
+            See the plans
+            <ArrowRight
+              className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
+              strokeWidth={1.5}
+            />
+          </a>
+        </div>
+      </section>
+
+      {/* ── 2. Plans / tiers ────────────────────────────────────────────── */}
+      <section
+        id="plans"
+        ref={tiersRef}
+        className="relative px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
+      >
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
+          {/* Left masthead */}
+          <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32">
+            <span className="text-display-eyebrow">Plans</span>
+            <h2
+              className="mt-3 font-display font-bold text-balance leading-[1.05]"
+              style={{
+                fontSize: "clamp(2.25rem, 3.4vw, 3.25rem)",
+                letterSpacing: "-0.025em",
+                color: "hsl(var(--ink-deep))",
+              }}
+            >
+              Pick your plan.
+            </h2>
+            <p
+              className="mt-4 font-serif italic text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
+              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              The same commission % applies to both sides — helpers keep more of
+              their payout, posters pay a lower service fee.
+            </p>
+            {currentTier !== "free" && (
+              <button
+                type="button"
+                onClick={handleManagePortal}
+                disabled={upgrading}
+                className="mt-6 inline-flex items-center gap-1.5 font-sans font-semibold text-ds-13 underline underline-offset-4 disabled:opacity-60"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                {upgrading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Manage membership
+                <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+              </button>
+            )}
+          </div>
+
+          {/* Right — tier grid */}
+          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-6 lg:gap-8">
+            {CONSUMER_TIERS.map((tier, i) => {
+              const perks = TIER_PERKS[tier];
+              const isActive = tier === currentTier;
+              const isFree = tier === "free";
+              // Pro is the recommended middle tier — carries a subtle warm halo
+              // behind the card (matching the hero halo) and reads as the
+              // primary conversion. Mirrors the in-app SubscriptionTab.
+              const isFeatured = tier === "pro";
+              const feeSavings = isFree
+                ? null
+                : TIER_PERKS.free.platformFeePercent - perks.platformFeePercent;
+
+              return (
+                <div
+                  key={tier}
+                  className="relative"
                   style={{
-                    background: "hsl(var(--gold-warm))",
-                    color: "#fff",
-                    letterSpacing: "0.14em",
+                    opacity: tiersInView ? 1 : 0,
+                    transform: tiersInView
+                      ? "translateY(0)"
+                      : "translateY(24px)",
+                    transition: `opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms, transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms`,
+                    willChange: "opacity, transform",
                   }}
                 >
-                  Most popular
-                </span>
-              )}
+                  {/* Featured tier gets a warm halo behind it. */}
+                  {isFeatured && (
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute -inset-6 sm:-inset-8 -z-0"
+                      style={{
+                        background:
+                          "radial-gradient(60% 60% at 50% 50%, hsl(var(--gold-warm) / 0.22) 0%, hsl(var(--burnt-sienna) / 0.10) 45%, transparent 78%)",
+                        filter: "blur(28px)",
+                      }}
+                    />
+                  )}
 
-              <div className="flex items-start gap-3">
-                {/* Icon tile */}
-                <span
-                  className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ background: soft, color }}
-                >
-                  <TierIcon tier={tier} className="w-5 h-5" />
-                </span>
+                  <div
+                    className="relative z-10 h-full flex flex-col rounded-2xl p-6 sm:p-7"
+                    style={{
+                      background: isFeatured
+                        ? "hsla(0, 0%, 100%, 0.72)"
+                        : "hsla(0, 0%, 100%, 0.55)",
+                      backdropFilter: "blur(16px)",
+                      WebkitBackdropFilter: "blur(16px)",
+                      border: isFeatured
+                        ? "1px solid hsl(var(--burnt-sienna) / 0.35)"
+                        : "0.5px solid hsl(var(--bark) / 0.2)",
+                      boxShadow: isFeatured
+                        ? "0 1px 2px rgba(0,0,0,0.04), 0 20px 48px -16px hsl(var(--burnt-sienna) / 0.28)"
+                        : "0 1px 2px rgba(0,0,0,0.03), 0 12px 32px -12px hsl(var(--bark) / 0.14)",
+                    }}
+                  >
+                    {/* Eyebrow row: tier name + optional chips */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-display-eyebrow">
+                        {isFree
+                          ? "Free"
+                          : perks.name.replace(/^Helpr\s+/, "")}
+                      </span>
+                      {isFeatured && (
+                        <span
+                          className="font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full"
+                          style={{
+                            background: "hsl(var(--burnt-sienna))",
+                            color: "hsl(var(--parchment))",
+                            letterSpacing: "0.14em",
+                          }}
+                        >
+                          Recommended
+                        </span>
+                      )}
+                      {isActive && (
+                        <span
+                          className="font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"
+                          style={{
+                            background: "hsl(var(--bark) / 0.12)",
+                            color: "hsl(var(--bark))",
+                            letterSpacing: "0.12em",
+                          }}
+                        >
+                          <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                          Current
+                        </span>
+                      )}
+                    </div>
 
-                <div className="flex-1 min-w-0">
-                  {/* Name + "Current" chip */}
-                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Tier name — big Bodoni */}
                     <h3
-                      className="font-display italic font-bold"
-                      style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
+                      className="mt-3 font-display font-bold leading-[1.05] tracking-tight"
+                      style={{
+                        fontSize: "clamp(1.6rem, 2.4vw, 2.15rem)",
+                        letterSpacing: "-0.025em",
+                        color: "hsl(var(--ink-deep))",
+                      }}
                     >
                       {perks.name}
                     </h3>
-                    {isActive && (
-                      <span
-                        className="text-[9px] font-sans font-bold uppercase px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"
-                        style={{
-                          background: `${color.replace(")", " / 0.12)")}`,
-                          color,
-                          letterSpacing: "0.08em",
-                        }}
-                      >
-                        <CheckCircle className="w-2.5 h-2.5" strokeWidth={2.5} />
-                        Current
-                      </span>
-                    )}
-                  </div>
 
-                  {/* Tagline */}
-                  <p
-                    className="font-serif italic mt-0.5"
-                    style={{ fontSize: "0.73rem", color: "hsl(var(--olivewood) / 0.8)" }}
-                  >
-                    {perks.tagline}
-                  </p>
+                    {/* Tagline — italic */}
+                    <p
+                      className="mt-2 font-serif italic text-ds-13 sm:text-ds-15 leading-relaxed"
+                      style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                    >
+                      {perks.tagline}
+                    </p>
 
-                  {/* Fee bullet is computed (it carries the "save X%"
-                      framing), then the canonical per-tier perk bullets come
-                      straight from TIER_PERKS.featureBullets — the SAME list
-                      the in-app membership tab renders, so the two surfaces
-                      can never advertise different perks for a tier again.
-                      (Previously four hardcoded branches lived here and had
-                      drifted from the in-app tab; the in-app tab had even
-                      drifted into advertising unshipped perks.) */}
-                  <ul className="mt-2 space-y-0.5">
-                    <PerkBullet color={color}>
-                      {perks.platformFeePercent}% platform fee
-                      {isFree
-                        ? " (standard)"
-                        : ` (save ${TIER_PERKS.free.platformFeePercent - perks.platformFeePercent}%)`}
-                    </PerkBullet>
-                    {perks.featureBullets.map((bullet) => (
-                      <PerkBullet key={bullet} color={color}>{bullet}</PerkBullet>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Price column — the free tier's name already reads "Free",
-                    so we omit a redundant "Free" price here and let only the
-                    paid tiers carry a price label. */}
-                <div className="shrink-0 flex flex-col items-end gap-1.5">
-                  {isFree ? null : (
-                    <>
-                      <p
-                        className="font-display italic font-bold tabular-nums leading-none"
-                        style={{ fontSize: "1.1rem", color, letterSpacing: "-0.02em" }}
-                      >
-                        ${perks.price}/mo
-                      </p>
-                      {perks.annualPrice && (
-                        <p
-                          className="font-serif italic leading-none text-right"
-                          style={{ fontSize: "0.65rem", color: "hsl(var(--olivewood) / 0.8)" }}
-                        >
-                          or ${perks.annualPrice}/mo
-                          <br />annual
-                        </p>
-                      )}
-                      {/* CTA */}
-                      {!isActive && (
-                        <button
-                          onClick={() => handleUpgrade(tier as Exclude<SubscriptionTier, "free">)}
-                          disabled={upgrading}
-                          className="mt-1 inline-flex items-center justify-center gap-1 px-3 h-7 rounded-full font-sans font-bold text-[0.7rem] transition active:scale-[0.96] disabled:opacity-60"
+                    {/* Price line */}
+                    <div className="mt-5 flex items-baseline gap-2">
+                      {isFree ? (
+                        <span
+                          className="font-display font-black tabular-nums leading-none"
                           style={{
-                            background: `linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 48%), ${color}`,
-                            color: "#fff",
-                            boxShadow: `inset 0 1px 0 0 rgba(255,255,255,0.45), 0 3px 8px -2px ${soft}`,
+                            fontSize: "clamp(2.25rem, 3.4vw, 3rem)",
+                            letterSpacing: "-0.03em",
+                            color: "hsl(var(--olivewood))",
                           }}
                         >
-                          {upgrading ? (
-                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          ) : null}
+                          $0
+                        </span>
+                      ) : (
+                        <>
+                          <span
+                            className="font-display font-black tabular-nums leading-none"
+                            style={{
+                              fontSize: "clamp(2.25rem, 3.4vw, 3rem)",
+                              letterSpacing: "-0.03em",
+                              color: "hsl(var(--olivewood))",
+                            }}
+                          >
+                            ${perks.price}
+                          </span>
+                          <span
+                            className="font-sans font-medium text-ds-13"
+                            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                          >
+                            /mo
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {!isFree && perks.annualPrice && (
+                      <p
+                        className="mt-1 font-serif italic text-ds-12"
+                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                      >
+                        or ${perks.annualPrice}/mo billed annually
+                      </p>
+                    )}
+
+                    {/* Fee line — the headline benefit */}
+                    <p
+                      className="mt-5 font-sans font-semibold text-ds-13"
+                      style={{ color: "hsl(var(--burnt-sienna))" }}
+                    >
+                      {perks.platformFeePercent}% platform fee
+                      {feeSavings && feeSavings > 0
+                        ? ` — save ${feeSavings}%`
+                        : isFree
+                          ? " (standard)"
+                          : ""}
+                    </p>
+
+                    {/* Feature bullets */}
+                    <ul className="mt-4 space-y-2 flex-1">
+                      {perks.featureBullets.map((bullet) => (
+                        <li
+                          key={bullet}
+                          className="flex items-start gap-2 font-sans text-ds-13 leading-relaxed"
+                          style={{ color: "hsl(var(--olivewood) / 0.9)" }}
+                        >
+                          <Check
+                            className="w-4 h-4 shrink-0 mt-0.5"
+                            strokeWidth={2.25}
+                            style={{ color: "hsl(var(--burnt-sienna))" }}
+                          />
+                          <span>{bullet}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* CTA */}
+                    <div className="mt-6">
+                      {isActive ? (
+                        <div
+                          className="inline-flex items-center gap-1.5 h-11 px-5 rounded-2xl font-sans font-semibold text-ds-13"
+                          style={{
+                            background: "hsl(var(--bark) / 0.08)",
+                            color: "hsl(var(--bark))",
+                            border: "1px solid hsl(var(--bark) / 0.2)",
+                          }}
+                        >
+                          <Check className="w-4 h-4" strokeWidth={2.5} />
+                          Current plan
+                        </div>
+                      ) : isFree ? (
+                        <Link
+                          to={user ? "/dashboard" : "/signup"}
+                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full sm:w-auto transition-all duration-200 hover:-translate-y-0.5"
+                          style={{
+                            fontFamily: "Montserrat, system-ui, sans-serif",
+                            fontWeight: 600,
+                            fontSize: "0.9375rem",
+                            letterSpacing: "-0.005em",
+                            color: "hsl(var(--bark))",
+                            background: "rgba(255, 255, 255, 0.45)",
+                            backdropFilter: "blur(20px) saturate(180%)",
+                            WebkitBackdropFilter: "blur(20px) saturate(180%)",
+                            border: "1.5px solid hsl(var(--bark) / 0.4)",
+                            boxShadow:
+                              "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
+                          }}
+                        >
+                          Start free
+                          <ArrowRight
+                            className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
+                            strokeWidth={1.5}
+                          />
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleUpgrade(
+                              tier as Exclude<SubscriptionTier, "free">,
+                            )
+                          }
+                          disabled={upgrading}
+                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full sm:w-auto transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+                          style={{
+                            fontFamily: "Montserrat, system-ui, sans-serif",
+                            fontWeight: 600,
+                            fontSize: "0.9375rem",
+                            letterSpacing: "-0.005em",
+                            color: "hsl(var(--parchment))",
+                            background: isFeatured
+                              ? "hsl(var(--burnt-sienna))"
+                              : "hsl(var(--bark))",
+                            border: isFeatured
+                              ? "1px solid hsl(var(--burnt-sienna))"
+                              : "1px solid hsl(66 25% 19%)",
+                            boxShadow: isFeatured
+                              ? "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--burnt-sienna) / 0.35)"
+                              : "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
+                          }}
+                        >
+                          {upgrading && (
+                            <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                          )}
                           {perks.ctaLabel}
+                          <ArrowRight
+                            className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
+                            strokeWidth={1.5}
+                          />
                         </button>
                       )}
-                    </>
-                  )}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
-              {/* "Pays for itself" math — only for paid tiers */}
-              {paysSelf && (
-                <p
-                  className="font-serif italic mt-2 pt-2"
+      {/* ── 3. Why upgrade — magazine layout with numeral anchors ──────── */}
+      <section
+        ref={benefitsRef}
+        className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-24"
+      >
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-center">
+          {/* Left masthead */}
+          <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
+            <span className="text-display-eyebrow">Why upgrade</span>
+            <h2
+              className="mt-3 font-display font-bold text-balance leading-[1.05]"
+              style={{
+                fontSize: "clamp(2.25rem, 3.4vw, 3.25rem)",
+                letterSpacing: "-0.025em",
+                color: "hsl(var(--ink-deep))",
+              }}
+            >
+              Small monthly. Bigger take-home.
+            </h2>
+          </div>
+
+          {/* Right — 3 benefits, sequential fade-in */}
+          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-8 lg:gap-10">
+            {BENEFITS.map((b, i) => (
+              <div
+                key={b.title}
+                className="text-center md:text-left"
+                style={{
+                  opacity: benefitsInView ? 1 : 0,
+                  transform: benefitsInView
+                    ? "translateY(0)"
+                    : "translateY(24px)",
+                  transition: `opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms, transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms`,
+                  willChange: "opacity, transform",
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="block font-display font-black leading-none"
                   style={{
-                    fontSize: "0.72rem",
-                    color: "hsl(var(--olivewood) / 0.8)",
-                    borderTop: "0.5px dashed hsl(var(--bark) / 0.14)",
+                    fontSize: "clamp(4rem, 6.5vw, 6rem)",
+                    color: "hsl(var(--burnt-sienna) / 0.35)",
+                    letterSpacing: "-0.04em",
                   }}
                 >
-                  <span style={{ color }}>✦</span> {paysSelf}
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <h3
+                  className="mt-4 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
+                  style={{ color: "hsl(var(--ink-deep))" }}
+                >
+                  {b.title}
+                </h3>
+                <p
+                  className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:mx-0"
+                  style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                >
+                  {b.desc}
                 </p>
-              )}
-            </div>
-          );
-        })}
+              </div>
+            ))}
+          </div>
         </div>
+      </section>
 
-        {/* ── Full perk comparison table (collapsible) ───────────────────── */}
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{
-            border: "0.5px solid hsl(var(--bark) / 0.18)",
-            background: "hsla(0, 0%, 100%, 0.55)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-          }}
-        >
-          <button
-            onClick={() => setTableOpen((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-3"
-            style={{ color: "hsl(var(--ink-deep))" }}
-          >
-            <span className="font-display italic font-bold" style={{ fontSize: "1rem", letterSpacing: "-0.016em" }}>
-              Full feature comparison
-            </span>
-            {tableOpen ? (
-              <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-            ) : (
-              <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-            )}
-          </button>
-
-          {tableOpen && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left" style={{ borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ borderTop: "0.5px solid hsl(var(--bark) / 0.14)" }}>
-                    <th className="px-4 py-2 font-sans text-ds-11 font-semibold" style={{ color: "hsl(var(--olivewood) / 0.8)", width: "38%" }}>
-                      Feature
-                    </th>
-                    {TIER_ORDER.map((t) => (
-                      <th key={t} className="px-2 py-2 text-center font-sans text-ds-11 font-bold" style={{ color: tierAccent(t).color }}>
-                        {t === "free" ? "Free" : TIER_PERKS[t].name.replace(/^Helpr\s+/, "")}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {PERK_ROWS.map((row, i) => (
-                    <tr
-                      key={row.key}
-                      style={{
-                        borderTop: "0.5px solid hsl(var(--bark) / 0.10)",
-                        background: i % 2 === 0 ? "transparent" : "hsl(var(--parchment) / 0.25)",
-                      }}
-                    >
-                      <td className="px-4 py-2 font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.80)" }}>
-                        {row.label}
-                      </td>
-                      {TIER_ORDER.map((t) => {
-                        const val = TIER_PERKS[t][row.key];
-                        if (row.key === "platformFeePercent") {
-                          return (
-                            <td key={t} className="px-2 py-2 text-center font-display font-bold text-ds-12" style={{ color: tierAccent(t).color }}>
-                              {val as number}%
-                            </td>
-                          );
-                        }
-                        return (
-                          <td key={t} className="px-2 py-2 text-center">
-                            {val ? (
-                              <CheckCircle
-                                className="w-3.5 h-3.5 mx-auto"
-                                style={{ color: tierAccent(t).color }}
-                                strokeWidth={2.5}
-                              />
-                            ) : (
-                              <Minus
-                                className="w-3 h-3 mx-auto"
-                                style={{ color: "hsl(var(--olivewood) / 0.25)" }}
-                                strokeWidth={2}
-                              />
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* ── Questions? → Help Center ──────────────────────────────────────
-            The membership FAQ now lives in the Help Center's "Membership &
-            Billing" section, so every FAQ answer has one home. Link out
-            instead of duplicating the questions here. */}
-        <div className="max-w-3xl mx-auto w-full">
-          <button
-            onClick={() => navigate("/help")}
-            className="w-full flex items-center justify-between gap-3 rounded-ds-md px-4 py-3.5 text-left transition-colors hover:bg-white/40"
+      {/* ── 4. Trust band + closing CTA ─────────────────────────────────── */}
+      <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-16 sm:pb-24 lg:pb-32">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center gap-8 sm:gap-10">
+          {/* Small caps trust band */}
+          <p
+            className="font-sans uppercase text-[0.68rem] sm:text-[0.72rem]"
             style={{
-              background: "hsla(0, 0%, 100%, 0.55)",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              border: "0.5px solid hsl(var(--bark) / 0.16)",
+              color: "hsl(var(--olivewood) / 0.6)",
+              letterSpacing: "0.22em",
             }}
           >
-            <span className="flex items-center gap-2.5">
-              <HelpCircle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} />
-              <span
-                className="font-display italic font-bold"
-                style={{ fontSize: "0.9rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.014em" }}
-              >
-                Questions about membership?
-              </span>
-            </span>
-            <span
-              className="font-sans font-semibold text-ds-13 shrink-0 inline-flex items-center gap-1"
-              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            Cancel anytime <span className="mx-2">·</span> Stripe secure
+            <span className="mx-2">·</span> Louisiana-owned
+          </p>
+
+          <div className="relative flex items-center justify-center w-full">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -inset-16 sm:-inset-24 lg:-inset-32 -z-0"
+              style={{
+                background:
+                  "radial-gradient(50% 50% at 50% 50%, hsl(var(--gold-warm) / 0.24) 0%, hsl(var(--burnt-sienna) / 0.10) 40%, transparent 75%)",
+                filter: "blur(32px)",
+              }}
+            />
+            <h2
+              className="relative z-10 font-display font-bold leading-[1.02] text-balance"
+              style={{
+                fontSize: "clamp(2.5rem, 5vw, 4.5rem)",
+                letterSpacing: "-0.03em",
+                color: "hsl(var(--ink-deep))",
+              }}
             >
-              Help Center
-              <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
-            </span>
-          </button>
+              Ready to keep{" "}
+              <em
+                className="inline-block"
+                style={{
+                  fontStyle: "italic",
+                  color: "hsl(var(--burnt-sienna))",
+                }}
+              >
+                more?
+              </em>
+            </h2>
+          </div>
+
+          <p
+            className="max-w-xl text-ds-15 sm:text-ds-17 leading-relaxed text-balance font-serif italic"
+            style={{ color: "hsl(var(--stormy-sky))" }}
+          >
+            Start free, upgrade when it pays for itself.
+          </p>
+
+          <a
+            href="#plans"
+            className="group inline-flex items-center justify-center rounded-2xl transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] h-14 sm:h-16 px-10 sm:px-12"
+            style={{
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              fontSize: "1rem",
+              letterSpacing: "-0.005em",
+              color: "hsl(var(--parchment))",
+              background: "hsl(var(--bark))",
+              border: "1px solid hsl(66 25% 19%)",
+              boxShadow:
+                "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
+            }}
+          >
+            <Sparkles className="mr-2.5 w-5 h-5" strokeWidth={1.5} />
+            Pick your plan
+            <ArrowRight
+              className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
+              strokeWidth={1.5}
+            />
+          </a>
         </div>
-      </div>
+      </section>
     </>
   );
 
-  // Web: render inside the shared marketing chrome (top nav + footer) so
-  // /subscription matches every other web page. Native: bare document-scroll
-  // shell (the app supplies its own nav), so it must NOT pull in the marketing
-  // Navbar/Footer that PublicLayout renders unconditionally.
+  // Native: bare document-scroll shell (the app supplies its own nav).
+  // Web: shared marketing chrome (top nav + footer).
   if (isNativePlatform) {
-    return <div className="min-h-screen bg-premium-page pb-safe-nav">{inner}</div>;
+    return (
+      <div className="min-h-screen bg-premium-page pb-safe-nav">{inner}</div>
+    );
   }
   return <PublicLayout showCtaBand={false}>{inner}</PublicLayout>;
-}
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function PerkBullet({ color, children }: { color: string; children: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-1.5 font-sans" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.82)" }}>
-      <CheckCircle className="w-3 h-3 mt-0.5 shrink-0" style={{ color }} strokeWidth={2.5} />
-      {children}
-    </li>
-  );
 }

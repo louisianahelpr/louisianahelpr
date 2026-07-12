@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Apple, Heart, Mail, MapPin } from "lucide-react";
+import { Apple, Heart } from "lucide-react";
 
 // Inline Facebook glyph — lucide-react v1.x removed brand icons including
 // `Facebook`. Inlining the standard "f" mark keeps the social link working
@@ -79,19 +79,6 @@ const Footer = () => (
             Hire a Helpr or find local work — your trusted Louisiana partner for
             everyday jobs.
           </p>
-          <div className="flex flex-col gap-1.5 text-ds-11 text-[hsl(var(--olivewood))]/80 pt-1">
-            <a
-              href="mailto:admin@louisianahelpr.com"
-              className="inline-flex items-center gap-2 link-standard w-fit"
-            >
-              <Mail className="w-3.5 h-3.5" />
-              admin@louisianahelpr.com
-            </a>
-            <span className="inline-flex items-center gap-2">
-              <MapPin className="w-3.5 h-3.5" />
-              Serving all of Louisiana
-            </span>
-          </div>
         </div>
 
         {/* Company */}

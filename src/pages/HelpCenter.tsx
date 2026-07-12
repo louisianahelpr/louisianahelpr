@@ -87,14 +87,22 @@ const TopicSection = ({
   section,
   accent,
   forceOpen,
+  externallyOpened,
   itemKeyQuery,
 }: {
   section: { topic: string; items: Array<{ q: string; a: string }> };
   accent: string;
   forceOpen: boolean;
+  externallyOpened: boolean;
   itemKeyQuery: string;
 }) => {
   const [manualOpen, setManualOpen] = useState(false);
+  // When the parent flips externallyOpened to true (user clicked a topic
+  // card up in Section 2), open this section. Users can still collapse
+  // it by clicking the chevron.
+  useEffect(() => {
+    if (externallyOpened) setManualOpen(true);
+  }, [externallyOpened]);
   const open = forceOpen || manualOpen;
   return (
     <div
@@ -160,6 +168,9 @@ const TopicSection = ({
 
 const HelpCenter = () => {
   const [query, setQuery] = useState("");
+  // Track which FAQ topic sections were requested to open via the topic
+  // cards up in Section 2. Set-based so multiple can be open at once.
+  const [expandedSlugs, setExpandedSlugs] = useState<Set<string>>(new Set());
 
   // Client-side KB search (preserved from the previous implementation) — the
   // whole knowledge base is the static FAQ_SECTIONS array, so we filter
@@ -418,17 +429,30 @@ const HelpCenter = () => {
                     href={`#faq-${topicSlug(topic.label)}`}
                     onClick={(e) => {
                       e.preventDefault();
-                      const target = document.getElementById(
-                        `faq-${topicSlug(topic.label)}`,
-                      );
-                      if (target) {
-                        target.scrollIntoView({
-                          behavior: "smooth",
-                          block: "start",
-                        });
-                      } else {
-                        scrollToFaq();
-                      }
+                      const slug = topicSlug(topic.label);
+                      // Mark this section as expanded so the matching
+                      // FAQ TopicSection opens automatically, then
+                      // scroll to it. Delay the scroll a frame so the
+                      // section has re-rendered with its expanded body
+                      // and the scroll target is the correct position.
+                      setExpandedSlugs((prev) => {
+                        const next = new Set(prev);
+                        next.add(slug);
+                        return next;
+                      });
+                      requestAnimationFrame(() => {
+                        const target = document.getElementById(
+                          `faq-${slug}`,
+                        );
+                        if (target) {
+                          target.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          });
+                        } else {
+                          scrollToFaq();
+                        }
+                      });
                     }}
                     className="mt-4 inline-flex items-center gap-1.5 font-sans font-semibold text-ds-13 sm:text-ds-14 transition-transform hover:translate-x-0.5"
                     style={{
@@ -525,6 +549,9 @@ const HelpCenter = () => {
                       "hsl(var(--burnt-sienna))"
                     }
                     forceOpen={searching}
+                    externallyOpened={expandedSlugs.has(
+                      topicSlug(section.topic),
+                    )}
                     itemKeyQuery={q}
                   />
                 ))}

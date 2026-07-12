@@ -114,144 +114,94 @@ const HeroSection = () => {
 
   return (
     <section className="relative overflow-hidden flex flex-col justify-center items-center min-h-[calc(100svh-19rem)] px-5 sm:px-8 lg:px-12 pt-14 sm:pt-16 lg:pt-20 pb-3 sm:pb-4 lg:pb-6">
-<div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-stretch gap-8 md:gap-12 lg:gap-16 text-center">
-        {/* H1 wrapped in a relative container so a soft warm-gold ambient
-            halo can sit BEHIND the card on the parchment — an ambient
-            light source that makes the title feel featured without any
-            hard glow or drop shadow. */}
-        <div className="relative flex items-center justify-center">
-          {/* Ambient warm halo — large soft radial that bleeds beyond the
-              box, giving the parchment behind the H1 a faint gold-warm
-              cast. Non-interactive, decorative only. */}
+      {/* Editorial poster: ONE centered column. No boxes. The parchment
+          is the paper; the type is the show. Confidence over complexity. */}
+      <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-12">
+        {/* Warm ambient halo behind the title — subtle gold light source
+            on the parchment. No box, no border. */}
+        <div className="relative flex items-center justify-center w-full">
           <div
             aria-hidden
-            className="pointer-events-none absolute -inset-16 sm:-inset-20 lg:-inset-24 -z-0"
+            className="pointer-events-none absolute -inset-16 sm:-inset-24 lg:-inset-32 -z-0"
             style={{
               background:
-                "radial-gradient(50% 50% at 50% 50%, hsl(var(--gold-warm) / 0.22) 0%, hsl(var(--burnt-sienna) / 0.08) 45%, transparent 75%)",
-              filter: "blur(24px)",
+                "radial-gradient(50% 50% at 50% 50%, hsl(var(--gold-warm) / 0.24) 0%, hsl(var(--burnt-sienna) / 0.10) 40%, transparent 75%)",
+              filter: "blur(32px)",
             }}
           />
-        <div
-          className="relative z-10 rounded-3xl px-6 py-8 sm:px-10 sm:py-10 lg:px-12 lg:py-12 flex items-center justify-center w-full"
-          style={{
-            background: "hsl(0 0% 100%)",
-            border: "1px solid hsl(var(--olivewood) / 0.22)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255,255,255,0.9), inset 0 -1px 1px 0 hsl(var(--olivewood) / 0.08)",
-          }}
-        >
           <h1
             ref={headlineRef}
-            className="relative font-display font-black leading-[1.02] text-balance break-words text-[3rem] sm:text-[3.5rem] md:text-[3.75rem] lg:text-[5rem] xl:text-[6rem] hero-h1-settle"
+            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[5rem] md:text-[6.5rem] lg:text-[8rem] xl:text-[10rem] hero-h1-settle"
             style={{
               color: "hsl(var(--olivewood))",
-              letterSpacing: "-0.025em",
+              letterSpacing: "-0.03em",
             }}
           >
             Louisiana&rsquo;s Local Job{" "}
-            <span className="relative inline-block">
-              <em
-                className="relative"
-                style={{
-                  fontStyle: "italic",
-                  color: "hsl(var(--burnt-sienna))",
-                }}
-              >
-                Partner.
-              </em>
-            </span>
+            <em
+              className="relative inline-block"
+              style={{
+                fontStyle: "italic",
+                color: "hsl(var(--burnt-sienna))",
+              }}
+            >
+              Partner.
+            </em>
           </h1>
         </div>
-        </div>
 
-        {/* Underneath / right column — SUBDUED translucent glass so it
-            visually subordinates to the H1's punchy fill. Content is
-            centered and vertically stacked at every width so subhead
-            sits on top and CTAs stack below it. */}
-        <div
-          className="flex flex-col items-center justify-between text-center rounded-3xl px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12 gap-8"
+        {/* Subhead — tight, editorial, quiet. Sits directly on parchment. */}
+        <p
+          className="max-w-xl text-ds-15 sm:text-ds-17 lg:text-ds-20 leading-relaxed text-balance"
           style={{
-            background: "hsl(0 0% 100% / 0.35)",
-            border: "1px solid hsl(var(--olivewood) / 0.1)",
-            boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.4)",
+            fontFamily: "Montserrat, system-ui, sans-serif",
+            fontWeight: 400,
+            letterSpacing: "-0.005em",
+            color: "hsl(var(--stormy-sky))",
           }}
         >
-          {/* Tagline "Made in Louisiana" removed per user request. */}
-          <p
-            className="max-w-sm mx-auto text-ds-11 sm:text-ds-13 lg:text-ds-15 leading-relaxed text-balance"
+          Hire a Helpr or find local work. Trusted neighbors, escrow-protected,
+          across Louisiana.
+        </p>
+
+        {/* One primary CTA — bark fill, oversized pill. Browse Jobs is
+            demoted to a text link beneath so the fold has ONE conversion
+            choice, not two competing ones. */}
+        <div className="flex flex-col items-center gap-4">
+          <Button
+            asChild
+            size="xl"
+            className="btn-grad-primary group h-16 sm:h-[4.25rem] px-12 rounded-full tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 400,
+              fontWeight: 600,
+              fontSize: "1.0625rem",
+              lineHeight: 1,
               letterSpacing: "-0.005em",
-              color: "hsl(var(--stormy-sky))",
+              color: "hsl(var(--parchment))",
+              border: "1px solid hsl(66 25% 19%)",
+              boxShadow:
+                "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
             }}
           >
-            Hire a Helpr or find local work. Whether you need a hand or
-            you&rsquo;re ready to lend one, we&rsquo;re your trusted local
-            partner for everyday jobs.
-          </p>
-
-          {/* Proof strip removed per user request. */}
-
-          {/* Stacked CTAs — always vertical, sit right under the subhead */}
-          <div className="flex flex-col gap-3 w-full max-w-sm">
-            <Button
-              asChild
-              size="xl"
-              className="btn-grad-primary group h-14 sm:h-[3.75rem] lg:h-16 px-8 rounded-full tracking-tight w-full transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
-              style={{
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                fontSize: "1rem",
-                lineHeight: 1,
-                letterSpacing: "-0.005em",
-                color: "hsl(var(--parchment))",
-                border: "1px solid hsl(66 25% 19%)",
-                boxShadow:
-                  "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 12px 32px -8px hsl(var(--bark) / 0.35)",
-              }}
-            >
-              <Link to="/signup" onClick={goToPostJob}>
-                <Sparkles className="mr-2 w-5 h-5" strokeWidth={1.25} />
-                Post a job
-                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              size="xl"
-              variant="outline"
-              className="group h-14 sm:h-[3.75rem] lg:h-16 px-8 rounded-full tracking-tight w-full transition-all duration-200 hover:-translate-y-0.5"
-              style={{
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                fontSize: "1rem",
-                lineHeight: 1,
-                letterSpacing: "-0.005em",
-                color: "hsl(var(--bark))",
-                background: "rgba(255, 255, 255, 0.45)",
-                backgroundImage: "none",
-                backdropFilter: "blur(20px) saturate(180%)",
-                WebkitBackdropFilter: "blur(20px) saturate(180%)",
-                border: "1.5px solid hsl(var(--bark) / 0.4)",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
-              }}
-            >
-              <Link to="/browse" onClick={goToJoinCommunity}>
-                <Search className="mr-2 w-5 h-5" strokeWidth={1.25} />
-                Browse Jobs
-                <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
-              </Link>
-            </Button>
-          </div>
+            <Link to="/signup" onClick={goToPostJob}>
+              <Sparkles className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
+              Post a job
+              <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
+            </Link>
+          </Button>
+          <Link
+            to="/browse"
+            onClick={goToJoinCommunity}
+            className="group inline-flex items-center gap-1.5 text-ds-13 font-sans font-medium underline underline-offset-4 decoration-[hsl(var(--olivewood)/0.3)] hover:decoration-[hsl(var(--heritage-gold))] transition-colors"
+            style={{ color: "hsl(var(--olivewood))" }}
+          >
+            <Search className="w-3.5 h-3.5" strokeWidth={1.5} />
+            Or browse open jobs
+            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={1.5} />
+          </Link>
         </div>
       </div>
-
-      {/* Scroll hint was moved OUT of the hero and placed below the jobs
-          strip in Index.tsx per user preference (chevron should sit under
-          the marquee, not on top of it). */}
-
     </section>
   );
 };

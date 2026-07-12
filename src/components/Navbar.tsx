@@ -122,7 +122,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               <Button
                 asChild
                 size="sm"
-                className="rounded-full btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                className="rounded-2xl btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                 style={{ color: "hsl(var(--parchment))" }}
               >
                 <Link
@@ -141,7 +141,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                   asChild
                   variant="ghost"
                   size="sm"
-                  className="rounded-full btn-press transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                  className="rounded-2xl btn-press transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
                 >
                   <Link
                     to="/login"
@@ -161,7 +161,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                 <Button
                   asChild
                   size="sm"
-                  className="rounded-full btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                  className="rounded-2xl btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                   style={{ color: "hsl(var(--parchment))" }}
                 >
                   <Link
@@ -187,7 +187,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               <Button
                 asChild
                 size="sm"
-                className="hidden sm:inline-flex rounded-full btn-press h-9 px-4 !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                className="hidden sm:inline-flex rounded-2xl btn-press h-9 px-4 !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                 style={{ color: "hsl(var(--parchment))" }}
               >
                 <Link
@@ -210,7 +210,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               <Button
                 variant="ghost"
                 size="icon"
-                className="btn-press rounded-full h-9 w-9"
+                className="btn-press rounded-2xl h-9 w-9"
                 style={{
                   background: "hsl(0 0% 100% / 0.2)",
                   border: "1px solid hsl(var(--olivewood) / 0.08)",
@@ -291,7 +291,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                   <Button
                     asChild
                     size="lg"
-                    className="btn-liquid-fill group w-full rounded-full font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                    className="btn-liquid-fill group w-full rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                     style={{
                       color: "hsl(var(--parchment))",
                       backgroundColor: "hsl(var(--bark))",
@@ -314,7 +314,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                     <Button
                       asChild
                       size="lg"
-                      className="btn-liquid-fill group w-full rounded-full font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                      className="btn-liquid-fill group w-full rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                       style={{
                         color: "hsl(var(--parchment))",
                         backgroundColor: "hsl(var(--bark))",

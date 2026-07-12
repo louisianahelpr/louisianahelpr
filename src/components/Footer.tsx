@@ -37,19 +37,6 @@ const Instagram = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Inline Google Play glyph — the classic play-store triangle, used in
-// grayscale for the "coming soon" state.
-const GooglePlay = ({ className }: { className?: string }) => (
-  <svg
-    viewBox="0 0 24 24"
-    className={className}
-    fill="currentColor"
-    aria-hidden="true"
-  >
-    <path d="M4.5 3.5v17a1 1 0 0 0 1.55.83l13-8.5a1 1 0 0 0 0-1.66l-13-8.5A1 1 0 0 0 4.5 3.5z" />
-  </svg>
-);
-
 const APP_STORE_URL = "https://apps.apple.com/us/app/helpr/id6754470134";
 const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
 const INSTAGRAM_URL = "https://www.instagram.com/louisianahelpr";
@@ -123,12 +110,12 @@ const Footer = () => (
             </li>
             <li>
               <Link to="/subscription" className="link-standard">
-                Subscription
+                Membership
               </Link>
             </li>
             <li>
               <Link to="/help" className="link-standard">
-                Help
+                Help Center
               </Link>
             </li>
           </ul>
@@ -161,9 +148,8 @@ const Footer = () => (
           </ul>
         </div>
 
-        {/* Follow — Facebook + Instagram (the two live socials). App Store
-            + Google Play live below in the download row so we don't mix a
-            download link into the social cluster. */}
+        {/* Follow — App Store icon (download) + Facebook + Instagram (socials).
+            Compact squircle chips, one row. */}
         <div className="md:col-span-2">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
@@ -171,74 +157,57 @@ const Footer = () => (
           >
             Follow
           </h3>
+          {/* Three uniform editorial chips — all olivewood-fill squircles
+              with parchment icons. No clashing brand colors; the row
+              reads as one coherent set instead of three loud logos. */}
           <div className="flex items-center gap-2">
-            <a
-              href={FACEBOOK_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
-              aria-label="Follow us on Facebook (opens in a new tab)"
-              title="Follow us on Facebook"
-            >
-              <Facebook
-                className="h-[15px] w-[15px] transition-transform duration-300 group-hover:scale-110"
-                strokeWidth={1.5}
-                fill="currentColor"
-              />
-            </a>
-            <a
-              href={INSTAGRAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex h-9 w-9 items-center justify-center rounded-full text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
-              style={{
-                background:
-                  "linear-gradient(135deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)",
-              }}
-              aria-label="Follow us on Instagram (opens in a new tab)"
-              title="Follow us on Instagram"
-            >
-              <Instagram className="h-[15px] w-[15px] transition-transform duration-300 group-hover:scale-110" />
-            </a>
+            {[
+              {
+                href: APP_STORE_URL,
+                label: "Download on the App Store",
+                Icon: Apple,
+                iconProps: { strokeWidth: 1.5, fill: "currentColor" as const },
+              },
+              {
+                href: FACEBOOK_URL,
+                label: "Follow us on Facebook",
+                Icon: Facebook,
+                iconProps: { strokeWidth: 1.5, fill: "currentColor" as const },
+              },
+              {
+                href: INSTAGRAM_URL,
+                label: "Follow us on Instagram",
+                Icon: Instagram,
+                iconProps: {},
+              },
+            ].map(({ href, label, Icon, iconProps }) => (
+              <a
+                key={href}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-300 ease-out hover:-translate-y-0.5"
+                style={{
+                  background: "hsl(var(--olivewood))",
+                  color: "hsl(var(--parchment))",
+                  boxShadow:
+                    "inset 0 1px 0 hsl(var(--parchment) / 0.15), 0 1px 2px rgba(0,0,0,0.06), 0 6px 16px -6px hsl(var(--olivewood) / 0.35)",
+                }}
+                aria-label={`${label} (opens in a new tab)`}
+                title={label}
+              >
+                <Icon
+                  className="h-[17px] w-[17px] transition-transform duration-300 group-hover:scale-110"
+                  {...iconProps}
+                />
+              </a>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Compact app-store download row — Apple pill is live, Google Play
-          sits in a muted "coming soon" state until Android ships. */}
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
-        <a
-          href={APP_STORE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-ds-11 font-sans font-semibold transition-all duration-300 ease-out hover:-translate-y-0.5"
-          style={{
-            background: "hsl(var(--olivewood))",
-            color: "hsl(var(--parchment))",
-            boxShadow:
-              "inset 0 1px 0 hsl(var(--parchment) / 0.15), 0 1px 2px rgba(0,0,0,0.05)",
-          }}
-          aria-label="Download Helpr on the App Store (opens in a new tab)"
-        >
-          <Apple className="w-3.5 h-3.5" strokeWidth={1.5} fill="currentColor" />
-          App Store
-        </a>
-        <span
-          className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-ds-11 font-sans font-semibold cursor-not-allowed"
-          style={{
-            background: "hsl(var(--olivewood) / 0.1)",
-            color: "hsl(var(--olivewood) / 0.6)",
-            border: "1px dashed hsl(var(--olivewood) / 0.25)",
-          }}
-          aria-label="Google Play — coming soon"
-        >
-          <GooglePlay className="w-3.5 h-3.5" />
-          Google Play &middot; Coming soon
-        </span>
-      </div>
-
       {/* Bottom row: copyright */}
-      <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-[hsl(var(--olivewood))]/15">
+      <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-[hsl(var(--olivewood))]/15">
         <p className="text-ds-11 text-[hsl(var(--olivewood))]/80">
           © {new Date().getFullYear()} Helpr LLC. All rights reserved. · Louisiana, USA
         </p>

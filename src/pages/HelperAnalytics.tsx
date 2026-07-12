@@ -94,7 +94,7 @@ const HelperAnalytics = () => {
       />
 
       <div className="container mx-auto px-5 py-6">
-        <div className="max-w-lg mx-auto space-y-5">
+        <div className="max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto space-y-5">
 
           {/* A failed fetch leaves `analytics` undefined, which would render
               $0 / 0 jobs everywhere and read as a brand-new helper rather

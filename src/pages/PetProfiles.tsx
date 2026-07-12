@@ -92,7 +92,7 @@ const PetProfiles = () => {
         width="2xl"
       />
 
-      <div className="max-w-2xl mx-auto px-5 lg:px-8 pt-4 space-y-3">
+      <div className="max-w-2xl lg:max-w-4xl mx-auto px-5 lg:px-8 pt-4 space-y-3">
         {isLoading && (
           <div className="space-y-2">
             {[1, 2].map((n) => (

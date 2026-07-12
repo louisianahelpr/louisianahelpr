@@ -281,7 +281,7 @@ export default function PayItForward() {
         width="2xl"
       />
 
-      <div className="max-w-2xl mx-auto px-5 lg:px-8 pt-4 space-y-6">
+      <div className="max-w-2xl lg:max-w-5xl mx-auto px-5 lg:px-8 pt-4 space-y-6">
         {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
         {claiming && (
           <div

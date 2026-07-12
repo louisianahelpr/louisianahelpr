@@ -385,7 +385,7 @@ const ProfilePage = () => {
         className="bg-premium-page"
       >
         <div className="container mx-auto px-5 lg:px-8 xl:px-12 py-4 flex-1 min-h-0 overflow-y-auto">
-          <div className="max-w-lg mx-auto">
+          <div className="max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto">
             <ProfilePageSkeleton />
           </div>
         </div>

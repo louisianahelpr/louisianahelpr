@@ -175,7 +175,7 @@ export default function StrSettings() {
         rightSlot={<NotificationPanel />}
       />
 
-      <div className="max-w-lg mx-auto px-4 space-y-4 mt-2 pb-8">
+      <div className="max-w-lg lg:max-w-3xl mx-auto px-4 space-y-4 mt-2 pb-8">
 
         {/* Explanation card */}
         <div className="rounded-ds-md p-4" style={cardStyle}>

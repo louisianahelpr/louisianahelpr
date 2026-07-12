@@ -113,7 +113,7 @@ export default function FamilyDashboard() {
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader title="Family & care" onBack={() => navigate(-1)} width="lg" showBrand rightSlot={<NotificationPanel />} />
 
-      <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
+      <div className="max-w-lg lg:max-w-4xl mx-auto px-4 pt-4 space-y-6">
 
         {/* ── Caregiver section — always shown so the user can add a
             family member even if they aren't managing anyone yet. ── */}

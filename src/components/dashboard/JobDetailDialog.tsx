@@ -84,7 +84,7 @@ const JobDetailDialog = ({
         // cutting long words in the description mid-glyph. grid-cols-1 swaps the
         // track to `minmax(0,1fr)`, pinning it to the dialog width so children
         // wrap instead of overflowing.
-        className="grid-cols-1 sm:max-w-lg !gap-2"
+        className="grid-cols-1 sm:max-w-lg lg:max-w-3xl xl:max-w-5xl !gap-2"
         onTouchStart={(e) => {
           if (!_allJobs || !_onSelect) return;
           const t = e.touches[0];

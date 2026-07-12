@@ -190,16 +190,33 @@ const HeroSection = () => {
               <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
             </Link>
           </Button>
-          <Link
-            to="/browse"
-            onClick={goToJoinCommunity}
-            className="group inline-flex items-center gap-1.5 text-ds-13 font-sans font-medium underline underline-offset-4 decoration-[hsl(var(--olivewood)/0.3)] hover:decoration-[hsl(var(--heritage-gold))] transition-colors"
-            style={{ color: "hsl(var(--olivewood))" }}
+          <Button
+            asChild
+            size="xl"
+            variant="outline"
+            className="group h-16 sm:h-[4.25rem] px-12 rounded-full tracking-tight transition-all duration-200 hover:-translate-y-0.5"
+            style={{
+              fontFamily: "Montserrat, system-ui, sans-serif",
+              fontWeight: 600,
+              fontSize: "1.0625rem",
+              lineHeight: 1,
+              letterSpacing: "-0.005em",
+              color: "hsl(var(--bark))",
+              background: "rgba(255, 255, 255, 0.45)",
+              backgroundImage: "none",
+              backdropFilter: "blur(20px) saturate(180%)",
+              WebkitBackdropFilter: "blur(20px) saturate(180%)",
+              border: "1.5px solid hsl(var(--bark) / 0.4)",
+              boxShadow:
+                "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
+            }}
           >
-            <Search className="w-3.5 h-3.5" strokeWidth={1.5} />
-            Or browse open jobs
-            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={1.5} />
-          </Link>
+            <Link to="/browse" onClick={goToJoinCommunity}>
+              <Search className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
+              Browse Jobs
+              <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
+            </Link>
+          </Button>
         </div>
       </div>
     </section>

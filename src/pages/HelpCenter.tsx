@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Search, X, ArrowRight, ChevronDown } from "lucide-react";
 import PublicLayout from "@/components/marketing/PublicLayout";
+import FaqRow from "@/components/marketing/FaqRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import {
   TOPICS,
@@ -30,57 +31,22 @@ import {
 const topicSlug = (label: string) =>
   label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-// ─── FaqRow — hairline-divider expandable, no glass panel ─────────────────────
-const FaqRow = ({
-  q,
-  a,
-  defaultOpen = false,
-}: {
-  q: string;
-  a: string;
-  defaultOpen?: boolean;
-}) => {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div
-      className="border-b last:border-0"
-      style={{ borderColor: "hsl(var(--olivewood) / 0.18)" }}
-    >
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-start justify-between gap-6 py-5 sm:py-6 text-left transition-opacity hover:opacity-80"
-      >
-        <span
-          className="font-sans font-semibold text-ds-15 sm:text-ds-17 leading-snug"
-          style={{ color: "hsl(var(--ink-deep))" }}
-        >
-          {q}
-        </span>
-        <ChevronDown
-          className="w-5 h-5 shrink-0 mt-1 transition-transform duration-200"
-          style={{
-            color: "hsl(var(--olivewood))",
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-          }}
-          strokeWidth={1.75}
-          aria-hidden
-        />
-      </button>
-      {open && (
-        <div className="pb-5 sm:pb-6 pr-8">
-          <p
-            className="font-serif italic text-ds-14 sm:text-ds-15 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-          >
-            {a}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
+// ─── Popular searches ─────────────────────────────────────────────────────────
+// Curated seed terms shown as clickable pills under the search input when the
+// visitor hasn't typed anything yet. Each term is chosen because it matches
+// at least one FAQ item in FAQ_SECTIONS via the existing q/a substring filter
+// (escrow → Payments & Escrow items; refund → Escrow + dispute items; posting
+// → Posting a Job section; fees → Payments & Escrow "What fees" item;
+// cancel → cancellation copy across Posting/Trust/Membership). Clicking a
+// pill calls setQuery(term), which triggers the same in-memory filter as
+// typing it in and expands the matching FAQ sections.
+const POPULAR_SEARCHES = [
+  "escrow",
+  "refund",
+  "posting",
+  "fees",
+  "cancel",
+];
 
 // ─── TopicSection — collapsible topic wrapper (topic click expands the FAQ list) ─
 const TopicSection = ({
@@ -341,6 +307,43 @@ const HelpCenter = () => {
                 </button>
               )}
             </div>
+
+            {/* Popular searches — surface a handful of common queries so
+                first-time visitors can jump into a topic without knowing
+                the vocabulary. Hidden the moment the visitor starts
+                typing; clicking a pill drives the same client-side
+                filter as typing the term into the input. */}
+            {!searching && (
+              <div className="mt-5 flex flex-col items-center gap-2.5">
+                <span
+                  className="font-sans font-medium uppercase text-[0.62rem]"
+                  style={{
+                    color: "hsl(var(--burnt-sienna))",
+                    letterSpacing: "0.22em",
+                  }}
+                >
+                  Popular searches
+                </span>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {POPULAR_SEARCHES.map((term) => (
+                    <button
+                      key={term}
+                      type="button"
+                      onClick={() => setQuery(term)}
+                      className="h-8 px-3.5 rounded-2xl inline-flex items-center transition-colors hover:bg-[hsl(var(--olivewood)/0.06)]"
+                      style={{
+                        border: "1px solid hsl(var(--olivewood) / 0.2)",
+                        color: "hsl(var(--olivewood))",
+                      }}
+                    >
+                      <span className="font-sans font-semibold text-ds-13">
+                        {term}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>

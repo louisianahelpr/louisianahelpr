@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PublicLayout from "@/components/marketing/PublicLayout";
+import FaqRow from "@/components/marketing/FaqRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 /**
@@ -114,6 +115,35 @@ const TRUST_ITEMS = [
   "Stripe escrow",
   "ID-verified helpers",
   "W-9 / 1099 handled",
+] as const;
+
+// Business FAQ — written in the same plain, direct tone as HelpCenter FAQs.
+// Answers stay concrete: what happens, who does what, when. No marketing fluff.
+const BUSINESS_FAQS = [
+  {
+    q: "How does team-seat billing work?",
+    a: "The account owner's card on file is charged for every job posted by any seat member — jobs roll up to one invoice. Your seat count is the number of concurrent active users who can post and manage jobs from the same account.",
+  },
+  {
+    q: "Can I change my seat count mid-month?",
+    a: "Yes. Adjust seats up or down anytime from the billing portal; changes are pro-rated to the day, and there's no penalty for downgrading.",
+  },
+  {
+    q: "Do you handle W-9s and 1099s for the workers we hire?",
+    a: "Yes. Stripe collects the W-9 during helper onboarding, and we issue 1099-Ks to any helper who exceeds the IRS reporting thresholds through the platform. Your AP team doesn't chase paperwork.",
+  },
+  {
+    q: "What happens if a job goes wrong?",
+    a: "Funds sit in Stripe escrow until you confirm the work is complete — nothing releases automatically. If something's off, our support team mediates within one business day, and refunds are available any time before you release payment.",
+  },
+  {
+    q: "Is there a cancellation fee or long-term contract?",
+    a: "No. Every paid plan is month-to-month, cancel anytime from the billing portal, and there's no cancellation fee. You keep access through the end of the billing period you already paid for.",
+  },
+  {
+    q: "Can we require background-checked helpers only?",
+    a: "Yes. Filter jobs to Verified helpers only in your job settings and only ID-verified, background-checked helpers can apply. Every helper on the platform is Stripe-ID verified by default.",
+  },
 ] as const;
 
 /* -------------------------------------------------------------------------- */
@@ -282,14 +312,22 @@ const BuiltForSection = () => {
 
         <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 gap-10 sm:gap-8 lg:gap-10">
           {INDUSTRIES.map((industry, i) => (
+            // Outer wrapper carries the entry fade-in (opacity + translateY),
+            // inner box carries the hover elevation. Splitting them avoids the
+            // inline `transform: translateY(...)` from the fade-in clobbering
+            // Tailwind's hover:-translate-y-1.
             <div
               key={industry.name}
-              className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 flex flex-col"
               style={{
                 opacity: inView ? 1 : 0,
                 transform: inView ? "translateY(0)" : "translateY(24px)",
                 transition: `opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms, transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms`,
                 willChange: "opacity, transform",
+              }}
+            >
+            <div
+              className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 flex flex-col transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg"
+              style={{
                 background: "hsl(var(--burnt-sienna) / 0.04)",
                 border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
                 boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
@@ -318,6 +356,7 @@ const BuiltForSection = () => {
               >
                 {industry.pitch}
               </p>
+            </div>
             </div>
           ))}
         </div>
@@ -358,7 +397,7 @@ const PricingSection = () => (
         {TIERS.map((tier) => (
           <div
             key={tier.name}
-            className="relative flex flex-col rounded-2xl px-5 py-7 sm:px-5 sm:py-8 lg:px-6 lg:py-8"
+            className="relative flex flex-col rounded-2xl px-5 py-7 sm:px-5 sm:py-8 lg:px-6 lg:py-8 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg"
             style={{
               background: "hsl(var(--burnt-sienna) / 0.04)",
               border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
@@ -519,6 +558,69 @@ const PricingSection = () => (
 );
 
 /**
+ * 4. Business FAQ — magazine layout matching PricingSection: left column-4
+ * masthead (sticky at md+, "FREQUENT" eyebrow, "Questions." H2 with italic
+ * burnt-sienna accent), right column-8 collapsible FAQ list wrapped in ONE
+ * burnt-sienna/0.04 squircle box. Reuses the shared FaqRow from HelpCenter.
+ */
+const BusinessFaqSection = () => (
+  <section
+    id="business-faq"
+    aria-labelledby="business-faq-heading"
+    className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
+  >
+    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
+      <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
+        <span className="text-display-eyebrow">Frequent</span>
+        <h2
+          id="business-faq-heading"
+          className="mt-3 font-display font-bold text-balance leading-[1.05] max-w-[10ch] md:max-w-none mx-auto md:mx-0"
+          style={{
+            fontSize: "clamp(2.25rem, 3.4vw, 3.25rem)",
+            letterSpacing: "-0.025em",
+            color: "hsl(var(--ink-deep))",
+          }}
+        >
+          <em
+            className="inline-block"
+            style={{
+              fontStyle: "italic",
+              color: "hsl(var(--burnt-sienna))",
+            }}
+          >
+            Questions.
+          </em>
+        </h2>
+        <p
+          className="mt-4 font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
+          style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+        >
+          The things business owners ask before they post their first job.
+        </p>
+      </div>
+
+      <div className="md:col-span-8 lg:col-span-9">
+        {/* ONE squircle box wraps the whole FAQ list — hairline dividers
+            between rows come from FaqRow itself. Hover elevation matches
+            the industry / pricing tiles. */}
+        <div
+          className="rounded-2xl px-5 sm:px-6 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg"
+          style={{
+            background: "hsl(var(--burnt-sienna) / 0.04)",
+            border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
+            boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+          }}
+        >
+          {BUSINESS_FAQS.map((item) => (
+            <FaqRow key={item.q} q={item.q} a={item.a} />
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
+/**
  * @deprecated Kept as a reference component; not currently rendered.
  * Trust band + closing CTA — small dot-separated horizontal trust
  * strip, then a mirrored hero CTA moment ("Ready when you are.").
@@ -644,6 +746,7 @@ const ForBusiness = () => {
       <BusinessHero />
       <BuiltForSection />
       <PricingSection />
+      <BusinessFaqSection />
       {/* ClosingSection removed — trust band + mirrored CTA was making
           the page too long; the hero already carries the primary CTA. */}
     </PublicLayout>

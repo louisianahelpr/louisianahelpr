@@ -140,33 +140,7 @@ const HeroSection = () => {
     <section className="relative overflow-hidden min-h-svh flex flex-col justify-center items-center px-5 sm:px-8 lg:px-12 pt-28 sm:pt-32 lg:pt-20 pb-3 sm:pb-4 lg:pb-6">
       {/* Editorial poster: ONE centered column. No boxes. The parchment
           is the paper; the type is the show. Confidence over complexity. */}
-      <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-6 sm:gap-8 lg:gap-8">
-        {/* Trust eyebrow — three strong one-word attributes, small-caps,
-            wide-tracked. Plants relationship (Trusted), place (Local),
-            and safety (Protected) before the H1 hits. */}
-        <span
-          className="font-sans font-semibold text-[0.72rem] sm:text-[0.78rem] uppercase tracking-[0.32em]"
-          style={{ color: "hsl(var(--olivewood) / 0.6)" }}
-        >
-          Trusted
-          <span
-            aria-hidden
-            className="mx-2.5 sm:mx-3"
-            style={{ color: "hsl(var(--gold-warm))" }}
-          >
-            ·
-          </span>
-          Local
-          <span
-            aria-hidden
-            className="mx-2.5 sm:mx-3"
-            style={{ color: "hsl(var(--gold-warm))" }}
-          >
-            ·
-          </span>
-          Protected
-        </span>
-
+      <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-8">
         {/* Warm ambient halo behind the title — subtle gold light source
             on the parchment. No box, no border. */}
         <div className="relative flex items-center justify-center w-full">
@@ -200,9 +174,10 @@ const HeroSection = () => {
           </h1>
         </div>
 
-        {/* Subhead — tight, editorial, quiet. Sits directly on parchment. */}
+        {/* Subhead — two lines. Product pitch on line 1, trust promise
+            on line 2 with a hard break so each thought reads on its own. */}
         <p
-          className="max-w-xl lg:max-w-2xl text-ds-15 sm:text-ds-17 lg:text-ds-24 leading-relaxed text-balance"
+          className="max-w-xl lg:max-w-3xl text-ds-15 sm:text-ds-17 lg:text-ds-24 leading-relaxed text-balance"
           style={{
             fontFamily: "Montserrat, system-ui, sans-serif",
             fontWeight: 400,
@@ -210,8 +185,9 @@ const HeroSection = () => {
             color: "hsl(var(--stormy-sky))",
           }}
         >
-          Hire a Helpr or find local work. Trusted neighbors, escrow-protected,
-          across Louisiana.
+          Hire a Helpr or find local work.
+          <br />
+          For everyday jobs, big and small.
         </p>
 
         {/* Primary CTA sits horizontally next to a demoted Browse Jobs
@@ -240,51 +216,43 @@ const HeroSection = () => {
               <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
             </Link>
           </Button>
-          {/* Browse Jobs — secondary weight. Same pill shape but shorter,
-              no border, quieter fill/color, smaller type. Post-a-job
-              clearly leads; this reads as an escape hatch. */}
           <Button
             asChild
-            size="lg"
-            variant="ghost"
-            className="group h-12 sm:h-14 lg:h-[3.75rem] px-8 lg:px-10 rounded-full tracking-tight transition-all duration-200 hover:-translate-y-0.5"
+            size="xl"
+            variant="outline"
+            className="group h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 rounded-full tracking-tight transition-all duration-200 hover:-translate-y-0.5"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 500,
-              fontSize: "0.95rem",
+              fontWeight: 600,
+              fontSize: "1.0625rem",
               lineHeight: 1,
               letterSpacing: "-0.005em",
-              color: "hsl(var(--olivewood))",
-              background: "transparent",
+              color: "hsl(var(--bark))",
+              background: "rgba(255, 255, 255, 0.45)",
               backgroundImage: "none",
-              border: "none",
-              boxShadow: "none",
+              backdropFilter: "blur(20px) saturate(180%)",
+              WebkitBackdropFilter: "blur(20px) saturate(180%)",
+              border: "1.5px solid hsl(var(--bark) / 0.4)",
+              boxShadow:
+                "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
             }}
           >
             <Link to="/browse" onClick={goToJoinCommunity}>
-              <Search className="mr-2 w-4 h-4" strokeWidth={1.5} />
+              <Search className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
               Browse Jobs
-              <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.5} />
+              <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* Bottom stack — quiet Louisiana place list above the scroll
-          chevron. The city names are the single strongest local signal
-          the page has (short of a photograph), and they name the actual
-          parishes the marketplace serves. Both fade together on scroll. */}
+      {/* Scroll hint — bouncing chevron only. Fades to 0 opacity over
+          the first 160 px of scroll. */}
       <div
         aria-hidden="true"
-        className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-4 sm:gap-5 transition-opacity duration-150"
+        className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 pointer-events-none transition-opacity duration-150"
         style={{ opacity: scrollHintOpacity }}
       >
-        <span
-          className="hidden sm:block font-sans font-medium text-[0.65rem] uppercase tracking-[0.35em] text-center whitespace-nowrap"
-          style={{ color: "hsl(var(--olivewood) / 0.5)" }}
-        >
-          New Orleans &nbsp;·&nbsp; Baton Rouge &nbsp;·&nbsp; Shreveport &nbsp;·&nbsp; Lafayette &nbsp;·&nbsp; Lake Charles
-        </span>
         <ChevronDown
           className="w-5 h-5 animate-bounce"
           strokeWidth={1.75}

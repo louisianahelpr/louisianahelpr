@@ -374,7 +374,7 @@ const HelpCenter = () => {
               {TOPICS.map((topic, i) => (
                 <div
                   key={topic.label}
-                  className="text-center sm:text-left rounded-2xl p-6 sm:p-7 lg:p-8 flex flex-col"
+                  className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 flex flex-col"
                   style={{
                     opacity: topicsInView ? 1 : 0,
                     transform: topicsInView
@@ -409,7 +409,7 @@ const HelpCenter = () => {
                     {topic.label}
                   </h3>
                   <p
-                    className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto sm:mx-0"
+                    className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:mx-0"
                     style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                   >
                     {topic.desc}

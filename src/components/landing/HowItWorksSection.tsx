@@ -82,7 +82,7 @@ const HowItWorksSection = () => {
               style={{
                 opacity: inView ? 1 : 0,
                 transform: inView ? "translateY(0)" : "translateY(24px)",
-                transition: `opacity 700ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 180}ms, transform 700ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 180}ms`,
+                transition: `opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms, transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms`,
                 willChange: "opacity, transform",
               }}
             >

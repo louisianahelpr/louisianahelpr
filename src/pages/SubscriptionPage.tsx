@@ -217,11 +217,12 @@ export default function SubscriptionPage() {
 
           <a
             href="#plans"
-            className="group inline-flex items-center justify-center rounded-2xl transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] h-14 sm:h-16 px-10 sm:px-12"
+            className="group inline-flex items-center justify-center rounded-2xl transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 tracking-tight"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,
-              fontSize: "1rem",
+              fontSize: "1.0625rem",
+              lineHeight: 1,
               letterSpacing: "-0.005em",
               color: "hsl(var(--parchment))",
               background: "hsl(var(--bark))",
@@ -230,11 +231,11 @@ export default function SubscriptionPage() {
                 "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
             }}
           >
-            <Sparkles className="mr-2.5 w-5 h-5" strokeWidth={1.5} />
+            <Sparkles className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
             See the plans
             <ArrowRight
               className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
-              strokeWidth={1.5}
+              strokeWidth={1.25}
             />
           </a>
         </div>
@@ -323,19 +324,15 @@ export default function SubscriptionPage() {
                   )}
 
                   <div
-                    className="relative z-10 h-full flex flex-col rounded-2xl p-6 sm:p-7"
+                    className="relative z-10 h-full flex flex-col rounded-2xl p-6 sm:p-7 lg:p-8"
                     style={{
-                      background: isFeatured
-                        ? "hsla(0, 0%, 100%, 0.72)"
-                        : "hsla(0, 0%, 100%, 0.55)",
-                      backdropFilter: "blur(16px)",
-                      WebkitBackdropFilter: "blur(16px)",
+                      background: "hsl(var(--burnt-sienna) / 0.04)",
                       border: isFeatured
-                        ? "1px solid hsl(var(--burnt-sienna) / 0.35)"
-                        : "0.5px solid hsl(var(--bark) / 0.2)",
+                        ? "1.5px solid hsl(var(--burnt-sienna) / 0.35)"
+                        : "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
                       boxShadow: isFeatured
-                        ? "0 1px 2px rgba(0,0,0,0.04), 0 20px 48px -16px hsl(var(--burnt-sienna) / 0.28)"
-                        : "0 1px 2px rgba(0,0,0,0.03), 0 12px 32px -12px hsl(var(--bark) / 0.14)",
+                        ? "inset 0 1px 0 hsl(var(--parchment) / 0.5), 0 20px 48px -16px hsl(var(--burnt-sienna) / 0.28)"
+                        : "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
                     }}
                   >
                     {/* Eyebrow row: tier name + optional chips */}
@@ -576,7 +573,7 @@ export default function SubscriptionPage() {
             {BENEFITS.map((b, i) => (
               <div
                 key={b.title}
-                className="text-center md:text-left"
+                className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8"
                 style={{
                   opacity: benefitsInView ? 1 : 0,
                   transform: benefitsInView
@@ -584,6 +581,9 @@ export default function SubscriptionPage() {
                     : "translateY(24px)",
                   transition: `opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms, transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms`,
                   willChange: "opacity, transform",
+                  background: "hsl(var(--burnt-sienna) / 0.04)",
+                  border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
+                  boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
                 }}
               >
                 <span

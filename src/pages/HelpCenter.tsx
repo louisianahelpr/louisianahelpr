@@ -374,7 +374,7 @@ const HelpCenter = () => {
               {TOPICS.map((topic, i) => (
                 <div
                   key={topic.label}
-                  className="text-center sm:text-left rounded-2xl p-6 sm:p-7 flex flex-col"
+                  className="text-center sm:text-left rounded-2xl p-6 sm:p-7 lg:p-8 flex flex-col"
                   style={{
                     opacity: topicsInView ? 1 : 0,
                     transform: topicsInView
@@ -395,7 +395,7 @@ const HelpCenter = () => {
                     aria-hidden
                     className="block font-display font-black leading-none"
                     style={{
-                      fontSize: "clamp(3.5rem, 5vw, 5rem)",
+                      fontSize: "clamp(4rem, 6.5vw, 6rem)",
                       color: "hsl(var(--burnt-sienna) / 0.35)",
                       letterSpacing: "-0.04em",
                     }}
@@ -403,13 +403,13 @@ const HelpCenter = () => {
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <h3
-                    className="mt-3 font-display font-bold text-ds-20 sm:text-ds-22 lg:text-ds-24 tracking-tight leading-tight"
+                    className="mt-4 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
                     style={{ color: "hsl(var(--ink-deep))" }}
                   >
                     {topic.label}
                   </h3>
                   <p
-                    className="mt-2 font-sans text-ds-13 sm:text-ds-14 lg:text-ds-15 leading-relaxed max-w-xs mx-auto sm:mx-0"
+                    className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto sm:mx-0"
                     style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                   >
                     {topic.desc}

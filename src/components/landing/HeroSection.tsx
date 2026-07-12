@@ -129,6 +129,41 @@ const HeroSection = () => {
               "inset 0 1px 1px 0 rgba(255,255,255,0.9), inset 0 -1px 1px 0 hsl(var(--olivewood) / 0.08)",
           }}
         >
+          {/* Gold corner brackets — four L-shaped marks framing the H1 as
+              an editorial "featured" callout. Interior effect only — no
+              external glow or shadow. */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-3 left-3 sm:top-4 sm:left-4 w-5 h-5 sm:w-6 sm:h-6 rounded-tl-lg"
+            style={{
+              borderTop: "2px solid hsl(var(--gold-warm) / 0.75)",
+              borderLeft: "2px solid hsl(var(--gold-warm) / 0.75)",
+            }}
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-3 right-3 sm:top-4 sm:right-4 w-5 h-5 sm:w-6 sm:h-6 rounded-tr-lg"
+            style={{
+              borderTop: "2px solid hsl(var(--gold-warm) / 0.75)",
+              borderRight: "2px solid hsl(var(--gold-warm) / 0.75)",
+            }}
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute bottom-3 left-3 sm:bottom-4 sm:left-4 w-5 h-5 sm:w-6 sm:h-6 rounded-bl-lg"
+            style={{
+              borderBottom: "2px solid hsl(var(--gold-warm) / 0.75)",
+              borderLeft: "2px solid hsl(var(--gold-warm) / 0.75)",
+            }}
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute bottom-3 right-3 sm:bottom-4 sm:right-4 w-5 h-5 sm:w-6 sm:h-6 rounded-br-lg"
+            style={{
+              borderBottom: "2px solid hsl(var(--gold-warm) / 0.75)",
+              borderRight: "2px solid hsl(var(--gold-warm) / 0.75)",
+            }}
+          />
           <h1
             ref={headlineRef}
             className="relative font-display font-black leading-[1.02] text-balance break-words text-[3rem] sm:text-[3.5rem] md:text-[3.75rem] lg:text-[5rem] xl:text-[6rem] hero-h1-settle"

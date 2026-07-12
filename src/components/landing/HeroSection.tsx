@@ -133,7 +133,7 @@ const HeroSection = () => {
             }}
           />
         <div
-          className="relative z-10 rounded-3xl px-6 py-8 sm:px-10 sm:py-10 lg:px-12 lg:py-12 flex items-center justify-center w-full"
+          className="relative z-10 rounded-3xl px-6 py-12 sm:px-12 sm:py-16 md:px-14 md:py-20 lg:px-12 lg:py-12 flex items-center justify-center w-full"
           style={{
             background: "hsl(0 0% 100%)",
             border: "1px solid hsl(var(--olivewood) / 0.22)",
@@ -143,7 +143,7 @@ const HeroSection = () => {
         >
           <h1
             ref={headlineRef}
-            className="relative font-display font-black leading-[1.02] text-balance break-words text-[3rem] sm:text-[3.5rem] md:text-[3.75rem] lg:text-[5rem] xl:text-[6rem] hero-h1-settle"
+            className="relative font-display font-black leading-[1.02] text-balance break-words text-[3rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[5rem] xl:text-[6rem] hero-h1-settle"
             style={{
               color: "hsl(var(--olivewood))",
               letterSpacing: "-0.025em",
@@ -165,12 +165,13 @@ const HeroSection = () => {
         </div>
         </div>
 
-        {/* Right column — SUBDUED translucent glass so it visually
-            subordinates to the H1's punchy fill. Content is distributed
-            (subhead near top, CTAs near bottom) so it fills the full
-            height instead of clustering in the middle. */}
+        {/* Underneath / right column — SUBDUED translucent glass so it
+            visually subordinates to the H1's punchy fill. In the stacked
+            case (below lg) the subhead sits LEFT and the CTAs stack RIGHT
+            so the box uses the full width horizontally. On mobile (<sm)
+            and in the 2-col case (lg+) it stacks vertically. */}
         <div
-          className="flex flex-col items-center justify-between text-center rounded-3xl px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12 gap-8"
+          className="flex flex-col sm:flex-row lg:flex-col items-center sm:items-center lg:items-center justify-center sm:justify-between lg:justify-between text-center sm:text-left lg:text-center rounded-3xl px-6 py-8 sm:px-10 sm:py-10 lg:px-10 lg:py-12 gap-8 sm:gap-12 lg:gap-8"
           style={{
             background: "hsl(0 0% 100% / 0.35)",
             border: "1px solid hsl(var(--olivewood) / 0.1)",
@@ -179,7 +180,7 @@ const HeroSection = () => {
         >
           {/* Tagline "Made in Louisiana" removed per user request. */}
           <p
-            className="max-w-sm mx-auto text-ds-11 sm:text-ds-13 lg:text-ds-15 leading-relaxed text-balance"
+            className="max-w-sm sm:max-w-md lg:max-w-sm mx-auto sm:mx-0 lg:mx-auto sm:flex-1 lg:flex-none text-ds-11 sm:text-ds-15 lg:text-ds-15 leading-relaxed text-balance"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 400,
@@ -194,8 +195,9 @@ const HeroSection = () => {
 
           {/* Proof strip removed per user request. */}
 
-          {/* Stacked CTAs — always vertical, sit right under the subhead */}
-          <div className="flex flex-col gap-3 w-full max-w-sm">
+          {/* Stacked CTAs — vertical stack. In the sm-lg row layout they
+              sit to the right of the subhead; otherwise they sit below it. */}
+          <div className="flex flex-col gap-3 w-full max-w-sm sm:max-w-xs lg:max-w-sm sm:shrink-0">
             <Button
               asChild
               size="xl"

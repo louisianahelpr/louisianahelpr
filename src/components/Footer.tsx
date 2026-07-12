@@ -76,8 +76,7 @@ const Footer = () => (
             </span>
           </Link>
           <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">
-            Hire a Helpr or find local work — your trusted Louisiana partner for
-            everyday jobs.
+            Hire a Helpr or find local work. For everyday jobs, big and small.
           </p>
         </div>
 

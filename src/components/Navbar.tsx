@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Sparkles, Briefcase, Building2, ArrowRight } from "lucide-react";
-import { useState, useEffect, forwardRef } from "react";
+import { useState, forwardRef } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import HelprMark from "@/components/HelprMark";
@@ -24,7 +24,6 @@ interface NavbarProps {
 
 const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   // Session-only auth (no profile DB round-trip) so the marketing nav can
   // reflect logged-in state: an authenticated visitor landing on a public
   // page (/for-business, /legal, /) should see an "Open app" CTA instead of
@@ -46,16 +45,6 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
   // shift the nav's own top down by the banner's reserved height. 0 normally.
   const bannerOffset = useOfflineBannerOffset();
 
-  // Toggle the Heritage Gold border-bottom + linen surface once the user
-  // scrolls past the immersive hero. While at the top of the page, the nav
-  // stays fully transparent so the photo flows uninterrupted.
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 80);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   if (railOwnsNav) return null;
 
   return (
@@ -63,8 +52,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
       ref={ref}
       aria-label="Primary"
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 glass-nav transition-[border-color,background-color,box-shadow] duration-300",
-        (scrolled || solid) && "is-scrolled",
+        "fixed top-0 left-0 right-0 z-50 glass-nav",
+        solid && "is-scrolled",
       )}
       style={{
         // The iOS Capacitor WebView is edge-to-edge (`overlaysWebView: true`

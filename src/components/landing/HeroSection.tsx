@@ -129,15 +129,27 @@ const HeroSection = () => {
             <span className="flex-1 h-px" style={{ background: "currentColor" }} />
             <svg
               viewBox="0 0 100 140"
-              className="w-3 h-4 shrink-0"
+              className="w-4 h-5 shrink-0"
               fill="currentColor"
               aria-hidden="true"
             >
-              {/* Tiny fleur-de-lis: center flame, side lobes, banded waist */}
-              <path d="M50 4 C46 18 40 30 40 42 C40 52 44 60 50 66 C56 60 60 52 60 42 C60 30 54 18 50 4 Z" />
-              <path d="M50 66 C34 62 22 68 18 82 C15 92 20 104 32 108 C28 100 30 92 38 88 C42 86 46 84 50 82 C54 84 58 86 62 88 C70 92 72 100 68 108 C80 104 85 92 82 82 C78 68 66 62 50 66 Z" />
-              <path d="M32 92 L68 92 L72 102 L28 102 Z" />
-              <path d="M50 82 L50 136" strokeWidth="4" stroke="currentColor" />
+              {/* Heraldic fleur-de-lis — matches the wrought-iron style of
+                  the Helpr H emblem (Garden District ironwork). Central
+                  spear, two curling side lobes, a banded waist, and the
+                  characteristic bottom foil. */}
+              {/* Central spear */}
+              <path d="M50 4 C 44 22, 42 40, 44 58 L 44 68 L 56 68 L 56 58 C 58 40, 56 22, 50 4 Z" />
+              {/* Left curl */}
+              <path d="M44 60 C 30 56, 18 62, 14 76 C 10 92, 20 108, 34 108 C 28 102, 26 94, 32 88 C 38 82, 44 84, 46 76 L 44 68 Z" />
+              {/* Right curl */}
+              <path d="M56 60 C 70 56, 82 62, 86 76 C 90 92, 80 108, 66 108 C 72 102, 74 94, 68 88 C 62 82, 56 84, 54 76 L 56 68 Z" />
+              {/* Banded waist */}
+              <path d="M30 78 L 70 78 L 74 90 L 26 90 Z" />
+              {/* Bottom flame / stem */}
+              <path d="M46 88 L 46 128 C 46 132, 48 136, 50 136 C 52 136, 54 132, 54 128 L 54 88 Z" />
+              {/* Base foil tips */}
+              <path d="M42 128 C 38 132, 34 132, 30 128 C 32 134, 38 138, 46 138 Z" />
+              <path d="M58 128 C 62 132, 66 132, 70 128 C 68 134, 62 138, 54 138 Z" />
             </svg>
             <span className="flex-1 h-px" style={{ background: "currentColor" }} />
           </div>
@@ -179,15 +191,27 @@ const HeroSection = () => {
             <span className="flex-1 h-px" style={{ background: "currentColor" }} />
             <svg
               viewBox="0 0 100 140"
-              className="w-3 h-4 shrink-0"
+              className="w-4 h-5 shrink-0"
               fill="currentColor"
               aria-hidden="true"
             >
-              {/* Tiny fleur-de-lis: center flame, side lobes, banded waist */}
-              <path d="M50 4 C46 18 40 30 40 42 C40 52 44 60 50 66 C56 60 60 52 60 42 C60 30 54 18 50 4 Z" />
-              <path d="M50 66 C34 62 22 68 18 82 C15 92 20 104 32 108 C28 100 30 92 38 88 C42 86 46 84 50 82 C54 84 58 86 62 88 C70 92 72 100 68 108 C80 104 85 92 82 82 C78 68 66 62 50 66 Z" />
-              <path d="M32 92 L68 92 L72 102 L28 102 Z" />
-              <path d="M50 82 L50 136" strokeWidth="4" stroke="currentColor" />
+              {/* Heraldic fleur-de-lis — matches the wrought-iron style of
+                  the Helpr H emblem (Garden District ironwork). Central
+                  spear, two curling side lobes, a banded waist, and the
+                  characteristic bottom foil. */}
+              {/* Central spear */}
+              <path d="M50 4 C 44 22, 42 40, 44 58 L 44 68 L 56 68 L 56 58 C 58 40, 56 22, 50 4 Z" />
+              {/* Left curl */}
+              <path d="M44 60 C 30 56, 18 62, 14 76 C 10 92, 20 108, 34 108 C 28 102, 26 94, 32 88 C 38 82, 44 84, 46 76 L 44 68 Z" />
+              {/* Right curl */}
+              <path d="M56 60 C 70 56, 82 62, 86 76 C 90 92, 80 108, 66 108 C 72 102, 74 94, 68 88 C 62 82, 56 84, 54 76 L 56 68 Z" />
+              {/* Banded waist */}
+              <path d="M30 78 L 70 78 L 74 90 L 26 90 Z" />
+              {/* Bottom flame / stem */}
+              <path d="M46 88 L 46 128 C 46 132, 48 136, 50 136 C 52 136, 54 132, 54 128 L 54 88 Z" />
+              {/* Base foil tips */}
+              <path d="M42 128 C 38 132, 34 132, 30 128 C 32 134, 38 138, 46 138 Z" />
+              <path d="M58 128 C 62 132, 66 132, 70 128 C 68 134, 62 138, 54 138 Z" />
             </svg>
             <span className="flex-1 h-px" style={{ background: "currentColor" }} />
           </div>

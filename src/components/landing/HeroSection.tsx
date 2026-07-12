@@ -115,13 +115,25 @@ const HeroSection = () => {
   return (
     <section className="relative overflow-hidden flex flex-col justify-center items-center min-h-[calc(100svh-19rem)] px-5 sm:px-8 lg:px-12 pt-14 sm:pt-16 lg:pt-20 pb-3 sm:pb-4 lg:pb-6">
 <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-stretch gap-10 md:gap-12 lg:gap-16 text-center">
-        {/* H1 in a liquid-glass card — this box PUNCHES OUT: near-solid
-            bright fill (0.92) that contrasts against the parchment. No
-            drop shadow — the punch comes from brightness/saturation, not
-            elevation. Every other box on the page uses a subdued 0.35
-            translucent fill so the title dominates. */}
+        {/* H1 wrapped in a relative container so a soft warm-gold ambient
+            halo can sit BEHIND the card on the parchment — an ambient
+            light source that makes the title feel featured without any
+            hard glow or drop shadow. */}
+        <div className="relative flex items-center justify-center">
+          {/* Ambient warm halo — large soft radial that bleeds beyond the
+              box, giving the parchment behind the H1 a faint gold-warm
+              cast. Non-interactive, decorative only. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -inset-16 sm:-inset-20 lg:-inset-24 -z-0"
+            style={{
+              background:
+                "radial-gradient(50% 50% at 50% 50%, hsl(var(--gold-warm) / 0.22) 0%, hsl(var(--burnt-sienna) / 0.08) 45%, transparent 75%)",
+              filter: "blur(24px)",
+            }}
+          />
         <div
-          className="relative rounded-3xl px-6 py-8 sm:px-10 sm:py-10 lg:px-12 lg:py-12 flex items-center justify-center"
+          className="relative z-10 rounded-3xl px-6 py-8 sm:px-10 sm:py-10 lg:px-12 lg:py-12 flex items-center justify-center w-full"
           style={{
             background: "hsl(0 0% 100%)",
             border: "1px solid hsl(var(--olivewood) / 0.22)",
@@ -129,41 +141,6 @@ const HeroSection = () => {
               "inset 0 1px 1px 0 rgba(255,255,255,0.9), inset 0 -1px 1px 0 hsl(var(--olivewood) / 0.08)",
           }}
         >
-          {/* Gold corner brackets — four L-shaped marks framing the H1 as
-              an editorial "featured" callout. Interior effect only — no
-              external glow or shadow. */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute top-3 left-3 sm:top-4 sm:left-4 w-5 h-5 sm:w-6 sm:h-6 rounded-tl-lg"
-            style={{
-              borderTop: "2px solid hsl(var(--gold-warm) / 0.75)",
-              borderLeft: "2px solid hsl(var(--gold-warm) / 0.75)",
-            }}
-          />
-          <span
-            aria-hidden
-            className="pointer-events-none absolute top-3 right-3 sm:top-4 sm:right-4 w-5 h-5 sm:w-6 sm:h-6 rounded-tr-lg"
-            style={{
-              borderTop: "2px solid hsl(var(--gold-warm) / 0.75)",
-              borderRight: "2px solid hsl(var(--gold-warm) / 0.75)",
-            }}
-          />
-          <span
-            aria-hidden
-            className="pointer-events-none absolute bottom-3 left-3 sm:bottom-4 sm:left-4 w-5 h-5 sm:w-6 sm:h-6 rounded-bl-lg"
-            style={{
-              borderBottom: "2px solid hsl(var(--gold-warm) / 0.75)",
-              borderLeft: "2px solid hsl(var(--gold-warm) / 0.75)",
-            }}
-          />
-          <span
-            aria-hidden
-            className="pointer-events-none absolute bottom-3 right-3 sm:bottom-4 sm:right-4 w-5 h-5 sm:w-6 sm:h-6 rounded-br-lg"
-            style={{
-              borderBottom: "2px solid hsl(var(--gold-warm) / 0.75)",
-              borderRight: "2px solid hsl(var(--gold-warm) / 0.75)",
-            }}
-          />
           <h1
             ref={headlineRef}
             className="relative font-display font-black leading-[1.02] text-balance break-words text-[3rem] sm:text-[3.5rem] md:text-[3.75rem] lg:text-[5rem] xl:text-[6rem] hero-h1-settle"
@@ -185,6 +162,7 @@ const HeroSection = () => {
               </em>
             </span>
           </h1>
+        </div>
         </div>
 
         {/* Right column — SUBDUED translucent glass so it visually

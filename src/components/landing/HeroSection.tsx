@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, ArrowRight, Search } from "lucide-react";
+import { Sparkles, ArrowRight, Search, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -15,7 +15,31 @@ import { Button } from "@/components/ui/button";
 const HeroSection = () => {
   const navigate = useNavigate();
   const [loggedIn, setLoggedIn] = useState(false);
+  const [scrollHintOpacity, setScrollHintOpacity] = useState(1);
   const headlineRef = useRef<HTMLHeadingElement>(null);
+
+  // Fade the scroll hint out over the first 160 px of scroll — fully
+  // visible at rest, fully invisible by the time the user has committed
+  // to scrolling. rAF-throttled for smoothness.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let raf = 0;
+    const update = () => {
+      const y = window.scrollY;
+      const next = Math.max(0, 1 - y / 160);
+      setScrollHintOpacity(next);
+    };
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(update);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    update();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   // Variable kerning on scroll — the H1 letter-spacing tightens slightly as
   // the user scrolls past the hero. Restrained: clamps at -0.06 em max.
@@ -218,6 +242,27 @@ const HeroSection = () => {
             </Link>
           </Button>
         </div>
+      </div>
+
+      {/* Scroll hint — chevron + label centered at the bottom of the
+          hero. Fades to 0 opacity over the first 160 px of scroll so it
+          quietly disappears once the visitor commits to scrolling. */}
+      <div
+        aria-hidden="true"
+        className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-1.5 transition-opacity duration-150"
+        style={{ opacity: scrollHintOpacity }}
+      >
+        <span
+          className="text-[0.68rem] font-sans font-semibold uppercase tracking-[0.18em]"
+          style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+        >
+          Scroll
+        </span>
+        <ChevronDown
+          className="w-4 h-4 animate-bounce"
+          strokeWidth={1.75}
+          style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+        />
       </div>
     </section>
   );

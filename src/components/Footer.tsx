@@ -64,7 +64,7 @@ const Footer = () => (
             here matches the top nav exactly (H emblem + non-italic
             "Helpr" + italic burnt-sienna "· LA" tail). */}
         <div className="md:col-span-4 space-y-3">
-          <HelprMark to="/" size="md" />
+          <HelprMark to="/" size="md" hideEmblem />
           <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">
             Hire a Helpr or find local work. For everyday jobs, big and small.
           </p>

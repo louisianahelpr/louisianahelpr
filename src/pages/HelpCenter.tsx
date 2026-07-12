@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { Search, X, Mail, ArrowRight, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search, X, ArrowRight, ChevronDown } from "lucide-react";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import {
@@ -78,6 +76,80 @@ const FaqRow = ({
           >
             {a}
           </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── TopicSection — collapsible topic wrapper (topic click expands the FAQ list) ─
+const TopicSection = ({
+  section,
+  accent,
+  forceOpen,
+  itemKeyQuery,
+}: {
+  section: { topic: string; items: Array<{ q: string; a: string }> };
+  accent: string;
+  forceOpen: boolean;
+  itemKeyQuery: string;
+}) => {
+  const [manualOpen, setManualOpen] = useState(false);
+  const open = forceOpen || manualOpen;
+  return (
+    <div
+      id={`faq-${topicSlug(section.topic)}`}
+      className="scroll-mt-24 rounded-2xl"
+      style={{
+        background: "hsl(var(--burnt-sienna) / 0.04)",
+        border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
+        boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+      }}
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setManualOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-6 py-4 sm:py-5 px-5 sm:px-6 text-left transition-opacity hover:opacity-80"
+      >
+        <span
+          className="font-sans font-semibold uppercase text-[0.72rem] sm:text-[0.78rem] tracking-[0.18em] inline-flex items-center gap-3"
+          style={{ color: accent }}
+        >
+          <span
+            aria-hidden
+            className="inline-block w-6 h-px"
+            style={{ background: accent }}
+          />
+          {section.topic}
+          <span
+            aria-hidden
+            className="ml-1 font-sans font-medium normal-case tracking-normal text-[0.7rem]"
+            style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+          >
+            {section.items.length}
+          </span>
+        </span>
+        <ChevronDown
+          className="w-5 h-5 shrink-0 transition-transform duration-200"
+          style={{
+            color: "hsl(var(--olivewood))",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+          strokeWidth={1.75}
+          aria-hidden
+        />
+      </button>
+      {open && (
+        <div className="px-5 sm:px-6 pb-2">
+          {section.items.map((item) => (
+            <FaqRow
+              key={`${item.q}-${itemKeyQuery}`}
+              q={item.q}
+              a={item.a}
+              defaultOpen={forceOpen}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -302,7 +374,7 @@ const HelpCenter = () => {
               {TOPICS.map((topic, i) => (
                 <div
                   key={topic.label}
-                  className="text-center sm:text-left"
+                  className="text-center sm:text-left rounded-2xl p-6 sm:p-7 flex flex-col"
                   style={{
                     opacity: topicsInView ? 1 : 0,
                     transform: topicsInView
@@ -314,6 +386,9 @@ const HelpCenter = () => {
                       i * 400
                     }ms`,
                     willChange: "opacity, transform",
+                    background: "hsl(var(--burnt-sienna) / 0.04)",
+                    border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
+                    boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
                   }}
                 >
                   <span
@@ -440,146 +515,28 @@ const HelpCenter = () => {
                 </p>
               </div>
             ) : (
-              <div className="space-y-14 sm:space-y-16">
-                {filteredSections.map((section) => {
-                  const accent =
-                    SECTION_ACCENTS[section.topic] ??
-                    "hsl(var(--burnt-sienna))";
-                  return (
-                    <div
-                      key={section.topic}
-                      id={`faq-${topicSlug(section.topic)}`}
-                      className="scroll-mt-24"
-                    >
-                      {/* Topic label — a small tinted eyebrow, not a card
-                          header. Keeps the editorial "sits on paper" feel. */}
-                      <p
-                        className="font-sans font-semibold uppercase text-[0.7rem] tracking-[0.18em] mb-5 flex items-center justify-center md:justify-start"
-                        style={{ color: accent }}
-                      >
-                        <span
-                          className="inline-block w-6 h-px mr-3 align-middle"
-                          style={{ background: accent }}
-                        />
-                        {section.topic}
-                      </p>
-                      <div>
-                        {section.items.map((item) => (
-                          <FaqRow
-                            key={`${item.q}-${q}`}
-                            q={item.q}
-                            a={item.a}
-                            defaultOpen={searching}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="space-y-3 sm:space-y-4">
+                {filteredSections.map((section) => (
+                  <TopicSection
+                    key={section.topic}
+                    section={section}
+                    accent={
+                      SECTION_ACCENTS[section.topic] ??
+                      "hsl(var(--burnt-sienna))"
+                    }
+                    forceOpen={searching}
+                    itemKeyQuery={q}
+                  />
+                ))}
               </div>
             )}
           </div>
         </div>
       </section>
 
-      {/* ─────────────────────── 4. Still need help? contact ─────────────────── */}
-      <section
-        aria-labelledby="contact-heading"
-        className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-16 sm:pb-24 lg:pb-32"
-      >
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center gap-8 sm:gap-10">
-          {/* Small horizontal band — three brief facts, hairline separators. */}
-          <div
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 font-sans text-ds-13 sm:text-ds-14"
-            style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-          >
-            <div className="flex items-center gap-2">
-              <Mail
-                className="w-4 h-4"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
-                strokeWidth={1.75}
-                aria-hidden
-              />
-              <span>admin@louisianahelpr.com</span>
-            </div>
-            <span
-              aria-hidden
-              className="hidden sm:inline-block"
-              style={{ color: "hsl(var(--olivewood) / 0.4)" }}
-            >
-              ·
-            </span>
-            <span>Mon–Fri, 8am–6pm CST</span>
-            <span
-              aria-hidden
-              className="hidden sm:inline-block"
-              style={{ color: "hsl(var(--olivewood) / 0.4)" }}
-            >
-              ·
-            </span>
-            <span>Response within one business day</span>
-          </div>
-
-          {/* Closing headline + CTA — mirrors the hero's Bodoni + italic accent
-              treatment so the page closes as it opened. */}
-          <h2
-            id="contact-heading"
-            className="font-display font-bold text-balance leading-[1.05]"
-            style={{
-              fontSize: "clamp(2.25rem, 3.6vw, 3.5rem)",
-              letterSpacing: "-0.025em",
-              color: "hsl(var(--ink-deep))",
-            }}
-          >
-            Still need{" "}
-            <em
-              className="inline-block"
-              style={{
-                fontStyle: "italic",
-                color: "hsl(var(--burnt-sienna))",
-              }}
-            >
-              help?
-            </em>
-          </h2>
-          <p
-            className="max-w-xl text-ds-15 sm:text-ds-17 leading-relaxed text-balance"
-            style={{
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 400,
-              color: "hsl(var(--stormy-sky))",
-            }}
-          >
-            Message our team directly — we review every note and reply within
-            one business day.
-          </p>
-          <Button
-            asChild
-            size="xl"
-            className="btn-grad-primary group h-16 sm:h-[4.25rem] px-12 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
-            style={{
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              fontSize: "1.0625rem",
-              lineHeight: 1,
-              letterSpacing: "-0.005em",
-              color: "hsl(var(--parchment))",
-              border: "1px solid hsl(66 25% 19%)",
-              boxShadow:
-                "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
-            }}
-          >
-            <Link to="mailto:admin@louisianahelpr.com">
-              <Mail className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
-              Contact support
-              <ArrowRight
-                className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
-                strokeWidth={1.25}
-              />
-            </Link>
-          </Button>
-        </div>
-      </section>
+      {/* Closing "Still need help?" section removed — the FAQ +
+          Topics grid already carries the primary support paths;
+          this closing CTA was making the page too long. */}
     </PublicLayout>
   );
 };

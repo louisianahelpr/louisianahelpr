@@ -273,18 +273,28 @@ const BuiltForSection = () => {
           >
             Every business.
           </h2>
+          <p
+            className="mt-4 font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            A few we support most often — but Helpr works for any Louisiana
+            business that needs local help.
+          </p>
         </div>
 
         <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 gap-10 sm:gap-8 lg:gap-10">
           {INDUSTRIES.map((industry, i) => (
             <div
               key={industry.name}
-              className="text-center md:text-left"
+              className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 flex flex-col"
               style={{
                 opacity: inView ? 1 : 0,
                 transform: inView ? "translateY(0)" : "translateY(24px)",
                 transition: `opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms, transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms`,
                 willChange: "opacity, transform",
+                background: "hsl(var(--burnt-sienna) / 0.04)",
+                border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
+                boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
               }}
             >
               <span
@@ -346,18 +356,15 @@ const PricingSection = () => (
         </p>
       </div>
 
-      <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        {TIERS.map((tier, i) => (
+      <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-5">
+        {TIERS.map((tier) => (
           <div
             key={tier.name}
-            className={`relative flex flex-col px-5 sm:px-4 lg:px-6 py-8 sm:py-6 lg:py-8 ${
-              i > 0
-                ? "sm:border-t-0 border-t lg:border-t-0 sm:[&:nth-child(2n+1)]:border-l-0 lg:border-l lg:[&:first-child]:border-l-0"
-                : ""
-            }`}
+            className="relative flex flex-col rounded-2xl px-5 py-7 sm:px-5 sm:py-8 lg:px-6 lg:py-8"
             style={{
-              borderColor: "hsl(var(--olivewood) / 0.18)",
-              borderTopWidth: i > 0 ? undefined : 0,
+              background: "hsl(var(--burnt-sienna) / 0.04)",
+              border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
+              boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
             }}
           >
             {tier.featured && <WarmHalo />}
@@ -514,9 +521,11 @@ const PricingSection = () => (
 );
 
 /**
- * 4. Trust band + closing CTA — small dot-separated horizontal trust
+ * @deprecated Kept as a reference component; not currently rendered.
+ * Trust band + closing CTA — small dot-separated horizontal trust
  * strip, then a mirrored hero CTA moment ("Ready when you are.").
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ClosingSection = () => (
   <section className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
     <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center">
@@ -637,7 +646,8 @@ const ForBusiness = () => {
       <BusinessHero />
       <BuiltForSection />
       <PricingSection />
-      <ClosingSection />
+      {/* ClosingSection removed — trust band + mirrored CTA was making
+          the page too long; the hero already carries the primary CTA. */}
     </PublicLayout>
   );
 };

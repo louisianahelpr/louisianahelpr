@@ -81,7 +81,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
             ("Helpr · LA") matches the authenticated DashboardHeader
             and the signup AuthShell. Single source of truth, single
             on-brand presentation. */}
-        <HelprMark to="/" size="md" />
+        <HelprMark to="/" size="md" hideEmblem />
         {/* Smooth-scroll-to-top behavior on the marketing root used to
             live inline on this Link; HelprMark handles routing but if
             we want the same behavior in the future, replace with a

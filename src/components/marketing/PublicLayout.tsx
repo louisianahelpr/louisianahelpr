@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -115,6 +115,27 @@ const PublicLayout = ({
           aria-hidden
           style={{ height: "calc(max(env(safe-area-inset-top), 1.5rem) + 3rem)" }}
         />
+      )}
+
+      {/* Back-to-landing link — quiet editorial arrow + label, shown on
+          every non-landing public page so visitors don't need to use
+          the browser back button. Landing opts out via noNavSpacer. */}
+      {!noNavSpacer && location.pathname !== "/" && (
+        <div className="px-5 sm:px-8 lg:px-12 pt-4">
+          <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+            <Link
+              to="/"
+              className="group inline-flex items-center gap-1.5 text-ds-11 font-sans font-semibold uppercase tracking-[0.18em] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            >
+              <ArrowLeft
+                className="w-3.5 h-3.5 transition-transform duration-300 group-hover:-translate-x-0.5"
+                strokeWidth={2}
+              />
+              Back to home
+            </Link>
+          </div>
+        </div>
       )}
 
       <div className="flex-1">{children}</div>

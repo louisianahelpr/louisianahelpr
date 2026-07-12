@@ -615,83 +615,9 @@ export default function SubscriptionPage() {
         </div>
       </section>
 
-      {/* ── 4. Trust band + closing CTA ─────────────────────────────────── */}
-      <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-16 sm:pb-24 lg:pb-32">
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center gap-8 sm:gap-10">
-          {/* Small caps trust band */}
-          <p
-            className="font-sans uppercase text-[0.68rem] sm:text-[0.72rem]"
-            style={{
-              color: "hsl(var(--olivewood) / 0.6)",
-              letterSpacing: "0.22em",
-            }}
-          >
-            Cancel anytime <span className="mx-2">·</span> Stripe secure
-            <span className="mx-2">·</span> Louisiana-owned
-          </p>
-
-          <div className="relative flex items-center justify-center w-full">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -inset-16 sm:-inset-24 lg:-inset-32 -z-0"
-              style={{
-                background:
-                  "radial-gradient(50% 50% at 50% 50%, hsl(var(--gold-warm) / 0.24) 0%, hsl(var(--burnt-sienna) / 0.10) 40%, transparent 75%)",
-                filter: "blur(32px)",
-              }}
-            />
-            <h2
-              className="relative z-10 font-display font-bold leading-[1.02] text-balance"
-              style={{
-                fontSize: "clamp(2.5rem, 5vw, 4.5rem)",
-                letterSpacing: "-0.03em",
-                color: "hsl(var(--ink-deep))",
-              }}
-            >
-              Ready to keep{" "}
-              <em
-                className="inline-block"
-                style={{
-                  fontStyle: "italic",
-                  color: "hsl(var(--burnt-sienna))",
-                }}
-              >
-                more?
-              </em>
-            </h2>
-          </div>
-
-          <p
-            className="max-w-xl text-ds-15 sm:text-ds-17 leading-relaxed text-balance font-serif italic"
-            style={{ color: "hsl(var(--stormy-sky))" }}
-          >
-            Start free, upgrade when it pays for itself.
-          </p>
-
-          <a
-            href="#plans"
-            className="group inline-flex items-center justify-center rounded-2xl transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] h-14 sm:h-16 px-10 sm:px-12"
-            style={{
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              fontSize: "1rem",
-              letterSpacing: "-0.005em",
-              color: "hsl(var(--parchment))",
-              background: "hsl(var(--bark))",
-              border: "1px solid hsl(66 25% 19%)",
-              boxShadow:
-                "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
-            }}
-          >
-            <Sparkles className="mr-2.5 w-5 h-5" strokeWidth={1.5} />
-            Pick your plan
-            <ArrowRight
-              className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
-              strokeWidth={1.5}
-            />
-          </a>
-        </div>
-      </section>
+      {/* Closing trust band + mirrored CTA removed — the plans grid
+          already carries the primary CTAs, and the closing band was
+          making the page too long. */}
     </>
   );
 

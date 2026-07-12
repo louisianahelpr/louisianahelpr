@@ -78,12 +78,15 @@ const HowItWorksSection = () => {
           {STEPS.map((step, i) => (
             <div
               key={step.title}
-              className="text-center md:text-left"
+              className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8"
               style={{
                 opacity: inView ? 1 : 0,
                 transform: inView ? "translateY(0)" : "translateY(24px)",
                 transition: `opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms, transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms`,
                 willChange: "opacity, transform",
+                background: "hsl(var(--burnt-sienna) / 0.04)",
+                border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
+                boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
               }}
             >
               <span

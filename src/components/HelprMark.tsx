@@ -12,6 +12,9 @@ interface HelprMarkProps {
   /** Render only the wrought-iron H emblem, without the "Helpr·LA"
    *  wordmark — used as a standalone brand crest (e.g. auth screens). */
   emblemOnly?: boolean;
+  /** Render only the wordmark, without the H emblem — used in the
+   *  footer where the emblem would double up with the nav. */
+  hideEmblem?: boolean;
   className?: string;
 }
 
@@ -34,11 +37,12 @@ const emblemSizeMap = { sm: "h-8", md: "h-10", lg: "h-14" };
  * via webp at the right resolution per size. No surrounding frosted-glass
  * tile — the wrought iron is detailed enough to hold its own.
  */
-export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnly = false, className = "" }: HelprMarkProps) => {
+export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnly = false, hideEmblem = false, className = "" }: HelprMarkProps) => {
   const s = sizeMap[size];
   const logoClass = emblemOnly ? emblemSizeMap[size] : s.logo;
   const inner = (
     <>
+      {!hideEmblem && (
       <img
         src={size === "lg" || emblemOnly ? helprLogoMd : helprLogoSm}
         srcSet={`${helprLogoSm} 96w, ${helprLogoMd} 256w`}
@@ -54,6 +58,7 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnl
         }}
         draggable={false}
       />
+      )}
       {!emblemOnly && (
       <span className="inline-flex items-baseline gap-0.5">
         <span

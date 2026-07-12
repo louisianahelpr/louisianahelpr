@@ -22,7 +22,56 @@ import {
   TAB_LABELS,
   TAB_ICONS,
   TAB_ORIGIN_LABELS,
+  LAST_UPDATED,
 } from "./legal/legalSections";
+
+/* ─────────────────────────  EDITORIAL HERO COPY  ───────────────────────── */
+// Per-tab hero content — mirrors the landing hero pattern (small-caps eyebrow,
+// Bodoni H1 with italic burnt-sienna accent, one-line Montserrat subhead).
+// Copy is editorial framing only; every clause of the legal text below is
+// preserved verbatim inside TermsContent / CommunityContent / PrivacyContent.
+const HERO_EYEBROWS: Record<TabKey, string> = {
+  terms: "Terms of service",
+  community: "Community rules",
+  privacy: "Privacy policy",
+};
+
+// H1 is split into a leading phrase + a trailing italic burnt-sienna accent.
+// Together they always end in a period so the headline reads as a poster
+// statement (matches the "Louisiana's Local Job Partner." landing pattern).
+const HERO_TITLES: Record<TabKey, { lead: string; accent: string }> = {
+  terms: { lead: "Terms of", accent: "service." },
+  community: { lead: "Community", accent: "rules." },
+  privacy: { lead: "Privacy", accent: "policy." },
+};
+
+// One-line Montserrat subhead. Distinct from TAB_TAGLINES (which is the small
+// italic dek shown between the tab strip and the policy sections) — this is
+// the wider poster-scale subhead pinned under the halo.
+const HERO_SUBHEADS: Record<TabKey, string> = {
+  terms:
+    "The agreement you accept when you use Helpr — eligibility, escrow, fees, and liability.",
+  community:
+    "How we keep jobs fair, safe, and accountable — cancellations, disputes, strikes, and bans.",
+  privacy:
+    "What we collect, why, and the control you keep. We never sell your personal data.",
+};
+
+/* ─────────────────────────  WARM HALO  ───────────────────────── */
+// Reusable ambient halo behind the H1 — identical recipe to the landing hero
+// (gold-warm 0.24 → burnt-sienna 0.10 → transparent, blur 32) so /legal reads
+// as cut from the same paper as /, /help, /for-business, and /subscription.
+const WarmHalo = () => (
+  <div
+    aria-hidden
+    className="pointer-events-none absolute -inset-16 sm:-inset-24 lg:-inset-32 -z-0"
+    style={{
+      background:
+        "radial-gradient(50% 50% at 50% 50%, hsl(var(--gold-warm) / 0.24) 0%, hsl(var(--burnt-sienna) / 0.10) 40%, transparent 75%)",
+      filter: "blur(32px)",
+    }}
+  />
+);
 
 // Tab → content element, used by the cross-tab search view (which renders
 // all three at once). Outside of search, the panels render these inside
@@ -104,10 +153,13 @@ const Legal = () => {
     setParams(nextParams, { replace: true });
   };
 
-  // Back button + title block. No explicit `to` — BackButton falls back to
-  // history.back(), which works for authenticated users from /profile?tab=legal
-  // and unauthenticated visitors from the signup agreement checkbox.
-  const headerRow = (
+  // NATIVE header: back button + compact per-tab title. AppShell space is
+  // tight and users are already inside the app chrome, so we keep the tight
+  // stacked layout — the editorial hero is a WEB-only affordance. No explicit
+  // `to` on BackButton: it falls back to history.back(), which works for
+  // authenticated users from /profile?tab=legal and unauthenticated visitors
+  // from the signup agreement checkbox.
+  const nativeHeaderRow = (
     <div className="flex items-center gap-3">
       <div data-print-hide className="shrink-0"><BackButton /></div>
       <div className="flex flex-col leading-none min-w-0 mb-1">
@@ -118,13 +170,93 @@ const Legal = () => {
             letterSpacing: "0.18em",
           }}
         >
-          Compliance &amp; disclosures
+          {HERO_EYEBROWS[tab]}
         </span>
         <h1 className="text-page-title leading-tight mt-1 text-balance">
-          Legal
+          {HERO_TITLES[tab].lead}{" "}
+          <em
+            style={{
+              fontStyle: "italic",
+              color: "hsl(var(--burnt-sienna))",
+            }}
+          >
+            {HERO_TITLES[tab].accent}
+          </em>
         </h1>
       </div>
     </div>
+  );
+
+  // WEB editorial hero: matches the landing / help / for-business / membership
+  // hero pattern exactly — eyebrow small-caps, Bodoni H1 with italic
+  // burnt-sienna accent, warm ambient halo (same recipe as HeroSection.tsx),
+  // one-line Montserrat subhead, and a wide-tracked "Last updated" chip.
+  // A small back button floats above the composition so users still have the
+  // return path they had before, but visually it stays out of the poster.
+  const webHero = (
+    <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-24 pb-8 sm:pb-10 lg:pb-12">
+      <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex flex-col items-center text-center gap-6 sm:gap-8 lg:gap-10">
+        {/* Back button pinned to the top-left of the composition — same
+            history.back() semantics as before, just visually demoted so the
+            hero reads as an editorial poster instead of a stacked toolbar. */}
+        <div
+          data-print-hide
+          className="absolute left-0 top-0 sm:top-2"
+        >
+          <BackButton />
+        </div>
+
+        <div className="relative flex flex-col items-center justify-center w-full">
+          <WarmHalo />
+          <span className="text-display-eyebrow relative z-10 mb-5 sm:mb-6">
+            {HERO_EYEBROWS[tab]}
+          </span>
+          <h1
+            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[2.75rem] sm:text-[4rem] md:text-[5rem] lg:text-[5.5rem] xl:text-[6.25rem]"
+            style={{
+              color: "hsl(var(--olivewood))",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            {HERO_TITLES[tab].lead}{" "}
+            <em
+              className="relative inline-block"
+              style={{
+                fontStyle: "italic",
+                color: "hsl(var(--burnt-sienna))",
+              }}
+            >
+              {HERO_TITLES[tab].accent}
+            </em>
+          </h1>
+        </div>
+
+        <p
+          className="max-w-xl lg:max-w-3xl text-ds-15 sm:text-ds-17 lg:text-ds-20 leading-relaxed text-balance"
+          style={{
+            fontFamily: "Montserrat, system-ui, sans-serif",
+            fontWeight: 400,
+            letterSpacing: "-0.005em",
+            color: "hsl(var(--stormy-sky))",
+          }}
+        >
+          {HERO_SUBHEADS[tab]}
+        </p>
+
+        {/* Wide-tracked small caps "last updated" — mirrors the editorial
+            date-line convention used on the marketing pages, and keeps the
+            revision date visible before users tap into any policy tab. */}
+        <span
+          className="font-sans font-medium uppercase tabular-nums text-[0.7rem] sm:text-[0.75rem]"
+          style={{
+            color: "hsl(var(--olivewood) / 0.7)",
+            letterSpacing: "0.22em",
+          }}
+        >
+          Last updated · {LAST_UPDATED[tab]}
+        </span>
+      </div>
+    </section>
   );
 
   const tabBar = (
@@ -305,7 +437,7 @@ const Legal = () => {
         >
           <div className="px-5 pt-3">
             <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
-              {headerRow}
+              {nativeHeaderRow}
               {tabBar}
               {body}
             </div>
@@ -325,9 +457,13 @@ const Legal = () => {
   return (
     <PublicLayout showCtaBand={false}>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <div className="container mx-auto px-5 pb-8 pt-3">
+        {/* Editorial hero — full-bleed poster (halo, Bodoni H1, subhead,
+            "last updated" chip) that changes copy per tab. Lives OUTSIDE the
+            centered container so the halo can bleed to the edges. */}
+        {webHero}
+
+        <div className="container mx-auto px-5 pb-16 sm:pb-24 lg:pb-32 pt-4">
           <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
-            {headerRow}
             <div
               className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5"
               style={{

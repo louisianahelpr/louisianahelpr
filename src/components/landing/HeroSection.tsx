@@ -123,13 +123,15 @@ const HeroSection = () => {
         <div className="relative">
           {/* Wide anchoring glow — sits behind the whole H1, gives the
               title its own visual weight so it doesn't feel loose next
-              to the framed right column. */}
+              to the framed right column. Larger radius + stronger opacity
+              so it actually reads (was 0.10/0.06 which was invisible). */}
           <div
             aria-hidden="true"
-            className="absolute inset-0 -m-12 pointer-events-none"
+            className="absolute inset-0 -m-20 pointer-events-none"
             style={{
               background:
-                "radial-gradient(ellipse at center, hsl(var(--burnt-sienna) / 0.10) 0%, hsl(var(--gold-warm) / 0.06) 40%, transparent 75%)",
+                "radial-gradient(ellipse at center, hsl(var(--burnt-sienna) / 0.28) 0%, hsl(var(--gold-warm) / 0.18) 35%, hsl(var(--burnt-sienna) / 0.08) 60%, transparent 85%)",
+              filter: "blur(12px)",
             }}
           />
           <h1

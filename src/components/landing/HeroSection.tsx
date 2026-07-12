@@ -113,7 +113,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative overflow-hidden flex flex-col justify-center items-center min-h-[calc(100svh-6rem)] lg:min-h-[calc(100svh-18rem)] px-5 sm:px-8 lg:px-12 pt-28 sm:pt-32 lg:pt-24 pb-3 sm:pb-4 lg:pb-8">
+    <section className="relative overflow-hidden flex-1 flex flex-col justify-center items-center px-5 sm:px-8 lg:px-12 pt-28 sm:pt-32 lg:pt-20 pb-3 sm:pb-4 lg:pb-6">
       {/* Editorial poster: ONE centered column. No boxes. The parchment
           is the paper; the type is the show. Confidence over complexity. */}
       <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-8">
@@ -131,7 +131,7 @@ const HeroSection = () => {
           />
           <h1
             ref={headlineRef}
-            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[5rem] md:text-[6.5rem] lg:text-[7rem] xl:text-[8.5rem] hero-h1-settle"
+            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[5rem] md:text-[6.5rem] lg:text-[6rem] xl:text-[7.25rem] hero-h1-settle"
             style={{
               color: "hsl(var(--olivewood))",
               letterSpacing: "-0.03em",

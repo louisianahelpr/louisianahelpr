@@ -165,11 +165,13 @@ const Index = () => {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      {/* Minimal landing — Hero → Live jobs → How it works → Footer.
-          Hero fills 100svh so the first paint is only the hero, then the
-          user scrolls to reveal the rest. Live-jobs strip sits above How
-          it works so a visitor sees real work happening before we explain
-          the flow. */}
+      {/* Self-fitting fold: Hero + divider + Jobs strip live inside ONE
+          `min-h-svh flex-col` container so together they always exactly
+          equal one viewport. Hero is `flex-1` (grows to fill remaining
+          space); the divider and jobs sit at natural size below it.
+          HIW starts AFTER this wrapper — always off-fold at every screen
+          size, no manual per-breakpoint tuning of hero height. */}
+      <div className="min-h-svh flex flex-col">
       <HeroSection />
 
       {/* 3-dot editorial border between hero and live-jobs strip. No color
@@ -177,7 +179,7 @@ const Index = () => {
           that fades at both edges with three bark dots centered on it. */}
       <div
         aria-hidden="true"
-        className="relative mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 sm:px-8 lg:px-12 pt-4 sm:pt-6 pb-1"
+        className="relative mx-auto w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 sm:px-8 lg:px-12 pt-4 sm:pt-6 pb-1"
       >
         <div className="relative flex items-center justify-center">
           <div
@@ -210,6 +212,7 @@ const Index = () => {
       <Suspense fallback={null}>
         <LandingJobsStrip />
       </Suspense>
+      </div>
 
       {/* Scroll hint removed — was getting cut off at the bottom of the
           first viewport, and the moving marquee itself is enough of an

@@ -72,7 +72,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
       }}
     >
       <div
-        className="w-full flex items-center justify-between h-16
+        className="w-full flex items-center justify-between h-14 lg:h-16
           pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))]
           sm:pl-[max(2rem,env(safe-area-inset-left))] sm:pr-[max(2rem,env(safe-area-inset-right))]
           lg:pl-[max(3rem,env(safe-area-inset-left))] lg:pr-[max(3rem,env(safe-area-inset-right))]"
@@ -177,13 +177,40 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
           </div>
         </div>
 
-        {/* Mobile toggle */}
-        <div className="lg:hidden flex items-center gap-1">
+        {/* Mobile cluster — a compact Get started CTA (guests, sm+ only,
+            hidden at true-mobile), a subtle vertical divider, and the
+            icon-only hamburger toggle. On phones only the hamburger
+            shows so we don't crowd the narrow width. */}
+        <div className="lg:hidden flex items-center gap-2 sm:gap-3">
+          {!user && (
+            <>
+              <Button
+                asChild
+                size="sm"
+                className="hidden sm:inline-flex rounded-full btn-press h-9 px-4 !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                style={{ color: "hsl(var(--parchment))" }}
+              >
+                <Link
+                  to="/signup"
+                  onMouseEnter={() => prefetchRoute("/signup")}
+                  onFocus={() => prefetchRoute("/signup")}
+                >
+                  Get started
+                </Link>
+              </Button>
+              <span
+                aria-hidden
+                className="hidden sm:block w-px h-5"
+                style={{ background: "hsl(var(--olivewood) / 0.18)" }}
+              />
+            </>
+          )}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
-                className="btn-press rounded-full h-8 px-3 gap-1.5 font-sans font-semibold text-ds-13"
+                size="icon"
+                className="btn-press rounded-full h-9 w-9"
                 style={{
                   background: "hsl(0 0% 100% / 0.2)",
                   border: "1px solid hsl(var(--olivewood) / 0.08)",
@@ -193,7 +220,6 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
               >
                 {mobileOpen ? <X className="w-4 h-4" strokeWidth={2.25} /> : <Menu className="w-4 h-4" strokeWidth={2.25} />}
-                Menu
               </Button>
             </SheetTrigger>
             <SheetContent
@@ -265,7 +291,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                   <Button
                     asChild
                     size="lg"
-                    className="btn-liquid-fill group w-full rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                    className="btn-liquid-fill group w-full rounded-full font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                     style={{
                       color: "hsl(var(--parchment))",
                       backgroundColor: "hsl(var(--bark))",
@@ -288,7 +314,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                     <Button
                       asChild
                       size="lg"
-                      className="btn-liquid-fill group w-full rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                      className="btn-liquid-fill group w-full rounded-full font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                       style={{
                         color: "hsl(var(--parchment))",
                         backgroundColor: "hsl(var(--bark))",

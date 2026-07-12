@@ -174,8 +174,7 @@ const HeroSection = () => {
           </h1>
         </div>
 
-        {/* Subhead — two lines. Product pitch on line 1, trust promise
-            on line 2 with a hard break so each thought reads on its own. */}
+        {/* Subhead — one flowing line (natural wrap at narrow widths). */}
         <p
           className="max-w-xl lg:max-w-3xl text-ds-15 sm:text-ds-17 lg:text-ds-24 leading-relaxed text-balance"
           style={{
@@ -185,9 +184,7 @@ const HeroSection = () => {
             color: "hsl(var(--stormy-sky))",
           }}
         >
-          Hire a Helpr or find local work.
-          <br />
-          For everyday jobs, big and small.
+          Hire a Helpr or find local work. For everyday jobs, big and small.
         </p>
 
         {/* Primary CTA sits horizontally next to a demoted Browse Jobs

@@ -57,7 +57,7 @@ const Footer = () => (
       color: "hsl(var(--olivewood))",
     }}
   >
-    <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] pt-6 md:pt-8 pb-3 md:pb-4">
+    <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] pt-6 md:pt-8 pb-2">
       <div className="grid gap-6 md:gap-8 md:grid-cols-12">
         {/* Brand */}
         <div className="md:col-span-4 space-y-3">
@@ -195,7 +195,7 @@ const Footer = () => (
       </div>
 
       {/* Bottom row: copyright */}
-      <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-[hsl(var(--olivewood))]/15">
+      <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-[hsl(var(--olivewood))]/15">
         <p className="text-ds-11 text-[hsl(var(--olivewood))]/80">
           © {new Date().getFullYear()} Helpr LLC. All rights reserved. · Louisiana, USA
         </p>

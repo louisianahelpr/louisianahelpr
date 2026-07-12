@@ -281,11 +281,13 @@ export default function PayItForward() {
         width="2xl"
       />
 
-      <div className="max-w-2xl lg:max-w-5xl mx-auto px-5 lg:px-8 pt-4 space-y-6">
+      <div className="max-w-2xl lg:max-w-5xl xl:max-w-7xl mx-auto px-5 lg:px-8 pt-4">
         {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
+        {/* Spans full width above the split so the status is visible regardless
+            of which column the eye lands on first. */}
         {claiming && (
           <div
-            className="rounded-ds-md p-4 flex items-center gap-3"
+            className="rounded-ds-md p-4 flex items-center gap-3 mb-6"
             style={{
               background: "hsl(var(--pif-tint) / 0.06)",
               border: "0.5px solid hsl(var(--pif-tint) / 0.18)",
@@ -301,237 +303,275 @@ export default function PayItForward() {
           </div>
         )}
 
-        {/* ── What is this? ───────────────────────────────────────────────── */}
-        <div
-          className="rounded-ds-md p-4"
-          style={{
-            background: "hsl(var(--pif-tint) / 0.06)",
-            border: "0.5px solid hsl(var(--pif-tint) / 0.18)",
-          }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--pif-green))" }} />
-            <p
-              className="font-display italic font-semibold text-ds-14"
-              style={{ color: "hsl(var(--pif-ink))" }}
-            >
-              What is this?
-            </p>
-          </div>
-          <p className="font-serif italic text-ds-13 leading-relaxed" style={{ color: "hsl(var(--ink-deep) / 0.75)" }}>
-            Prepay a Helpr credit for someone specific. Enter their email, choose an amount, and
-            we'll send them a link to claim it — they can put it toward any job they need done.
-          </p>
-        </div>
-
-        {/* ── Give a gift form ────────────────────────────────────────────── */}
-        <div
-          className="rounded-ds-md p-4 space-y-4"
-          style={{
-            background:
-              "radial-gradient(circle at 20% 0%, var(--pif-sheen) 0%, transparent 60%), " +
-              "linear-gradient(180deg, hsl(var(--pif-form-from) / 0.92) 0%, hsl(var(--pif-form-to) / 0.74) 100%)",
-            border: "0.5px solid hsl(var(--bark) / 0.22)",
-            boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.6)",
-          }}
-        >
-          <p
-            className="font-serif italic uppercase"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Send a gift
-          </p>
-
-          {/* Recipient email */}
-          <div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Recipient's email
-            </p>
-            <input
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              placeholder="friend@example.com"
-              value={recipientEmail}
-              onChange={(e) => setRecipientEmail(e.target.value)}
-              aria-label="Recipient's email"
-              className="w-full rounded-ds-sm py-2 px-3 text-ds-13 font-sans"
+        {/* Desktop splits into a sticky context/action rail on the left and the
+            gift history listings on the right. Mobile stays a single stacked
+            column — the grid degrades to grid-cols-1 below lg. */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 xl:gap-12 items-start">
+          {/* ── Left rail: context + primary action ─────────────────────────── */}
+          <aside className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-6 lg:self-start">
+            {/* What is this? */}
+            <div
+              className="rounded-ds-md p-4"
               style={{
-                background: "hsl(var(--parchment) / 0.6)",
-                border: `0.5px solid hsl(var(--bark) / ${recipientEmail && !emailValid ? "0.4" : "0.22"})`,
-                color: "hsl(var(--ink-deep))",
-                outline: "none",
+                background: "hsl(var(--pif-tint) / 0.06)",
+                border: "0.5px solid hsl(var(--pif-tint) / 0.18)",
               }}
-            />
-            {recipientEmail.trim() && !emailValid && (
-              <p className="font-serif italic text-ds-11 mt-1.5" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                Enter a valid email address.
-              </p>
-            )}
-            {isSelfGift && (
-              <p className="font-serif italic text-ds-11 mt-1.5" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                You can't send a gift to yourself.
-              </p>
-            )}
-          </div>
-
-          {/* Amount chips */}
-          <div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Amount
-            </p>
-            <div className="flex gap-2 flex-wrap">
-              {AMOUNT_PRESETS.map((amt) => (
-                <button
-                  key={amt}
-                  onClick={() => { setSelectedAmount(amt); setCustomAmount(""); }}
-                  className="flex-1 py-2 rounded-ds-sm text-ds-13 font-sans font-semibold transition-colors"
-                  style={{
-                    background: selectedAmount === amt ? "hsl(var(--bark) / 0.15)" : "transparent",
-                    border: `1px solid hsl(var(--bark) / ${selectedAmount === amt ? "0.4" : "0.18"})`,
-                    color: "hsl(var(--bark))",
-                  }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--pif-green))" }} />
+                <p
+                  className="font-display italic font-semibold text-ds-14"
+                  style={{ color: "hsl(var(--pif-ink))" }}
                 >
-                  ${amt}
-                </button>
-              ))}
-              <input
-                type="number"
-                aria-label="Custom gift amount in dollars"
-                min={MIN_GIFT}
-                placeholder="Custom"
-                value={customAmount}
-                onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
-                className="flex-1 py-2 px-3 rounded-ds-sm text-ds-13 font-sans font-semibold text-center"
+                  What is this?
+                </p>
+              </div>
+              <p
+                className="font-serif italic text-ds-13 leading-relaxed"
+                style={{ color: "hsl(var(--ink-deep) / 0.75)" }}
+              >
+                Prepay a Helpr credit for someone specific. Enter their email, choose an amount, and
+                we'll send them a link to claim it — they can put it toward any job they need done.
+              </p>
+            </div>
+
+            {/* Give a gift form */}
+            <div
+              className="rounded-ds-md p-4 space-y-4"
+              style={{
+                background:
+                  "radial-gradient(circle at 20% 0%, var(--pif-sheen) 0%, transparent 60%), " +
+                  "linear-gradient(180deg, hsl(var(--pif-form-from) / 0.92) 0%, hsl(var(--pif-form-to) / 0.74) 100%)",
+                border: "0.5px solid hsl(var(--bark) / 0.22)",
+                boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.6)",
+              }}
+            >
+              <p
+                className="font-serif italic uppercase"
+                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+              >
+                Send a gift
+              </p>
+
+              {/* Recipient email */}
+              <div>
+                <p
+                  className="font-serif italic text-ds-12 mb-2"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  Recipient's email
+                </p>
+                <input
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder="friend@example.com"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  aria-label="Recipient's email"
+                  className="w-full rounded-ds-sm py-2 px-3 text-ds-13 font-sans"
+                  style={{
+                    background: "hsl(var(--parchment) / 0.6)",
+                    border: `0.5px solid hsl(var(--bark) / ${recipientEmail && !emailValid ? "0.4" : "0.22"})`,
+                    color: "hsl(var(--ink-deep))",
+                    outline: "none",
+                  }}
+                />
+                {recipientEmail.trim() && !emailValid && (
+                  <p
+                    className="font-serif italic text-ds-11 mt-1.5"
+                    style={{ color: "hsl(var(--burnt-sienna))" }}
+                  >
+                    Enter a valid email address.
+                  </p>
+                )}
+                {isSelfGift && (
+                  <p
+                    className="font-serif italic text-ds-11 mt-1.5"
+                    style={{ color: "hsl(var(--burnt-sienna))" }}
+                  >
+                    You can't send a gift to yourself.
+                  </p>
+                )}
+              </div>
+
+              {/* Amount chips */}
+              <div>
+                <p
+                  className="font-serif italic text-ds-12 mb-2"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  Amount
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {AMOUNT_PRESETS.map((amt) => (
+                    <button
+                      key={amt}
+                      onClick={() => { setSelectedAmount(amt); setCustomAmount(""); }}
+                      className="flex-1 py-2 rounded-ds-sm text-ds-13 font-sans font-semibold transition-colors"
+                      style={{
+                        background: selectedAmount === amt ? "hsl(var(--bark) / 0.15)" : "transparent",
+                        border: `1px solid hsl(var(--bark) / ${selectedAmount === amt ? "0.4" : "0.18"})`,
+                        color: "hsl(var(--bark))",
+                      }}
+                    >
+                      ${amt}
+                    </button>
+                  ))}
+                  <input
+                    type="number"
+                    aria-label="Custom gift amount in dollars"
+                    min={MIN_GIFT}
+                    placeholder="Custom"
+                    value={customAmount}
+                    onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
+                    className="flex-1 py-2 px-3 rounded-ds-sm text-ds-13 font-sans font-semibold text-center"
+                    style={{
+                      background: customAmount ? "hsl(var(--bark) / 0.10)" : "transparent",
+                      border: `1px solid hsl(var(--bark) / ${customAmount ? "0.40" : "0.18"})`,
+                      color: "hsl(var(--bark))",
+                      outline: "none",
+                      minWidth: 0,
+                    }}
+                  />
+                </div>
+                <p
+                  className="font-serif italic text-ds-11 mt-1.5"
+                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                >
+                  ${MIN_GIFT} minimum. A card-processing fee ({(STRIPE_PCT * 100).toFixed(1)}% + {STRIPE_FLAT_CENTS}¢) is added at checkout.
+                </p>
+              </div>
+
+              {/* Category */}
+              <div>
+                <p
+                  className="font-serif italic text-ds-12 mb-2"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  Category suggestion — optional
+                </p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className="py-1 px-2.5 rounded-full text-ds-12 font-sans font-medium transition-colors"
+                      style={{
+                        background: selectedCategory === cat ? "hsl(var(--bark) / 0.14)" : "hsl(var(--bark) / 0.04)",
+                        border: `0.5px solid hsl(var(--bark) / ${selectedCategory === cat ? "0.38" : "0.14"})`,
+                        color: "hsl(var(--bark))",
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Personal note */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p
+                    className="font-serif italic text-ds-12"
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                  >
+                    Personal note — optional
+                  </p>
+                  <span
+                    className="font-sans tabular-nums text-ds-11"
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                  >
+                    {note.length}/{MAX_NOTE_LENGTH}
+                  </span>
+                </div>
+                <Textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
+                  placeholder="Hope this helps — thinking of you!"
+                  rows={2}
+                  maxLength={MAX_NOTE_LENGTH}
+                  className="rounded-ds-sm bg-background/60 border-border/60 font-serif italic text-ds-13 leading-relaxed"
+                />
+              </div>
+
+              {/* Submit */}
+              <Button
+                onClick={handleDonate}
+                disabled={!canDonate || donateMutation.isPending}
+                className="w-full rounded-ds-sm font-display italic font-semibold"
                 style={{
-                  background: customAmount ? "hsl(var(--bark) / 0.10)" : "transparent",
-                  border: `1px solid hsl(var(--bark) / ${customAmount ? "0.40" : "0.18"})`,
-                  color: "hsl(var(--bark))",
-                  outline: "none",
-                  minWidth: 0,
+                  background: canDonate ? "hsl(var(--pif-green))" : "hsl(var(--bark) / 0.15)",
+                  color: canDonate ? "#fff" : "hsl(var(--bark) / 0.5)",
+                  border: "none",
                 }}
-              />
+              >
+                <Gift className="w-4 h-4 mr-2" />
+                {donateMutation.isPending ? "Starting checkout…" : "Continue to checkout"}
+              </Button>
             </div>
-            <p className="font-serif italic text-ds-11 mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-              ${MIN_GIFT} minimum. A card-processing fee ({(STRIPE_PCT * 100).toFixed(1)}% + {STRIPE_FLAT_CENTS}¢) is added at checkout.
-            </p>
-          </div>
+          </aside>
 
-          {/* Category */}
-          <div>
-            <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Category suggestion — optional
-            </p>
-            <div className="flex gap-1.5 flex-wrap">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className="py-1 px-2.5 rounded-full text-ds-12 font-sans font-medium transition-colors"
-                  style={{
-                    background: selectedCategory === cat ? "hsl(var(--bark) / 0.14)" : "hsl(var(--bark) / 0.04)",
-                    border: `0.5px solid hsl(var(--bark) / ${selectedCategory === cat ? "0.38" : "0.14"})`,
-                    color: "hsl(var(--bark))",
-                  }}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Personal note */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Personal note — optional
+          {/* ── Right pane: gift listings ────────────────────────────────────── */}
+          <section className="lg:col-span-7 xl:col-span-8 space-y-6 pb-8">
+            {/* Gifts sent to you */}
+            <div>
+              <p
+                className="font-serif italic uppercase mb-3"
+                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+              >
+                Gifts sent to you
               </p>
-              <span className="font-sans tabular-nums text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {note.length}/{MAX_NOTE_LENGTH}
-              </span>
+              {loadingReceived ? (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  {[0, 1].map((i) => (
+                    <div
+                      key={i}
+                      className="rounded-ds-md h-24 animate-pulse"
+                      style={{ background: "hsl(var(--olivewood) / 0.07)" }}
+                    />
+                  ))}
+                </div>
+              ) : myReceived.length === 0 ? (
+                <EmptyState message="When someone sends you a Helpr credit, it'll show up here." />
+              ) : (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  {myReceived.map((credit) => (
+                    <CreditCard
+                      key={credit.id}
+                      credit={credit}
+                      perspective="received"
+                      onRedeem={handleUseGift}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-            <Textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
-              placeholder="Hope this helps — thinking of you!"
-              rows={2}
-              maxLength={MAX_NOTE_LENGTH}
-              className="rounded-ds-sm bg-background/60 border-border/60 font-serif italic text-ds-13 leading-relaxed"
-            />
-          </div>
 
-          {/* Submit */}
-          <Button
-            onClick={handleDonate}
-            disabled={!canDonate || donateMutation.isPending}
-            className="w-full rounded-ds-sm font-display italic font-semibold"
-            style={{
-              background: canDonate ? "hsl(var(--pif-green))" : "hsl(var(--bark) / 0.15)",
-              color: canDonate ? "#fff" : "hsl(var(--bark) / 0.5)",
-              border: "none",
-            }}
-          >
-            <Gift className="w-4 h-4 mr-2" />
-            {donateMutation.isPending ? "Starting checkout…" : "Continue to checkout"}
-          </Button>
-        </div>
-
-        {/* ── Gifts sent to you ───────────────────────────────────────────── */}
-        <div>
-          <p
-            className="font-serif italic uppercase mb-3"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Gifts sent to you
-          </p>
-          {loadingReceived ? (
-            <div className="space-y-3">
-              {[0, 1].map((i) => (
+            {/* Gifts you've sent */}
+            <div>
+              <p
+                className="font-serif italic uppercase mb-3"
+                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+              >
+                Gifts you've sent
+              </p>
+              {loadingDonated ? (
                 <div
-                  key={i}
-                  className="rounded-ds-md h-24 animate-pulse"
+                  className="rounded-ds-md h-16 animate-pulse"
                   style={{ background: "hsl(var(--olivewood) / 0.07)" }}
                 />
-              ))}
+              ) : myDonated.length === 0 ? (
+                <EmptyState message="Gifts you send will appear here." />
+              ) : (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  {myDonated.map((credit) => (
+                    <CreditCard key={credit.id} credit={credit} perspective="sent" />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : myReceived.length === 0 ? (
-            <EmptyState message="When someone sends you a Helpr credit, it'll show up here." />
-          ) : (
-            <div className="space-y-3">
-              {myReceived.map((credit) => (
-                <CreditCard
-                  key={credit.id}
-                  credit={credit}
-                  perspective="received"
-                  onRedeem={handleUseGift}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* ── Gifts you've sent ───────────────────────────────────────────── */}
-        <div className="pb-8">
-          <p
-            className="font-serif italic uppercase mb-3"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Gifts you've sent
-          </p>
-          {loadingDonated ? (
-            <div
-              className="rounded-ds-md h-16 animate-pulse"
-              style={{ background: "hsl(var(--olivewood) / 0.07)" }}
-            />
-          ) : myDonated.length === 0 ? (
-            <EmptyState message="Gifts you send will appear here." />
-          ) : (
-            <div className="space-y-3">
-              {myDonated.map((credit) => (
-                <CreditCard key={credit.id} credit={credit} perspective="sent" />
-              ))}
-            </div>
-          )}
+          </section>
         </div>
       </div>
     </div>

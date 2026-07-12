@@ -115,7 +115,19 @@ const HeroSection = () => {
   return (
     <section className="relative overflow-hidden hero-mesh-bg flex flex-col justify-center items-center min-h-[calc(100svh-22rem)] px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-24 pb-6 sm:pb-8 lg:pb-10">
 <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-center gap-10 md:gap-12 lg:gap-16 text-center">
-        <div className="relative">
+        {/* H1 in a frosted-glass card — STRONGER treatment than the right
+            column so the title catches the eye first. Deeper white fill,
+            heavier drop shadow, larger padding. */}
+        <div
+          className="relative rounded-3xl px-6 py-8 sm:px-10 sm:py-12 lg:px-14 lg:py-16 backdrop-blur-sm"
+          style={{
+            background:
+              "linear-gradient(135deg, hsl(0 0% 100% / 0.85) 0%, hsl(38 25% 96% / 0.75) 100%)",
+            border: "1px solid hsl(var(--olivewood) / 0.18)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255,255,255,0.7), 0 1px 3px hsl(var(--olivewood) / 0.10), 0 30px 60px -20px hsl(var(--olivewood) / 0.22)",
+          }}
+        >
           <h1
             ref={headlineRef}
             className="relative font-display font-black leading-[1.02] text-balance break-words text-[3.25rem] sm:text-6xl md:text-[4rem] lg:text-[6rem] xl:text-[8rem] hero-h1-settle"
@@ -139,17 +151,16 @@ const HeroSection = () => {
           </h1>
         </div>
 
-        {/* Right column — the WHOLE stack (tagline → subhead → rating →
-            CTAs) sits inside a single frosted-glass card. Anchors the
-            call-to-action as one focal object rather than loose text. */}
+        {/* Right column — subtle glass card (weaker than the H1's card
+            above) so the title catches the eye first and the right block
+            reads as a supporting focal object. Lighter fill, softer border,
+            no drop shadow — just an inset highlight. */}
         <div
-          className="flex flex-col gap-6 lg:gap-8 items-center text-center rounded-3xl px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12 backdrop-blur-sm"
+          className="flex flex-col gap-6 lg:gap-8 items-center text-center rounded-2xl px-6 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10"
           style={{
-            background:
-              "linear-gradient(135deg, hsl(0 0% 100% / 0.6) 0%, hsl(38 25% 96% / 0.5) 100%)",
-            border: "1px solid hsl(var(--olivewood) / 0.14)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 1px 2px hsl(var(--olivewood) / 0.06), 0 20px 40px -20px hsl(var(--olivewood) / 0.14)",
+            background: "hsl(0 0% 100% / 0.35)",
+            border: "1px solid hsl(var(--olivewood) / 0.08)",
+            boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.4)",
           }}
         >
           {/* Tagline "Made in Louisiana" removed per user request. */}

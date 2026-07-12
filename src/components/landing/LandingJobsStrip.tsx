@@ -72,7 +72,12 @@ const JobStripCard = ({ job }: { job: StripJob }) => {
   return (
     <Link
       to="/jobs"
-      className="group w-full rounded-2xl px-5 py-5 flex flex-col gap-3.5 transition-all duration-300 ease-out hover:-translate-y-0.5 bg-white border border-[hsl(var(--olivewood)/0.14)]"
+      className="group w-full rounded-2xl px-5 py-6 flex flex-col gap-4 transition-all duration-300 ease-out hover:-translate-y-0.5"
+      style={{
+        background: "hsl(0 0% 100% / 0.2)",
+        border: "1px solid hsl(var(--olivewood) / 0.08)",
+        boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.3)",
+      }}
       aria-label={`${label} job: ${job.title}. View on the jobs board.`}
     >
       <div className="flex items-center justify-between gap-2">

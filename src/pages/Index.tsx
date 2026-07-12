@@ -172,6 +172,41 @@ const Index = () => {
           the flow. */}
       <HeroSection />
 
+      {/* 3-dot editorial border between hero and live-jobs strip. No color
+          break — page bg is uniform parchment — just a gold-warm hairline
+          that fades at both edges with three bark dots centered on it. */}
+      <div
+        aria-hidden="true"
+        className="relative mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 sm:px-8 lg:px-12 pt-4 sm:pt-6 pb-1"
+      >
+        <div className="relative flex items-center justify-center">
+          <div
+            className="absolute inset-x-0 top-1/2 h-px"
+            style={{
+              background:
+                "linear-gradient(90deg, hsl(var(--gold-warm) / 0) 0%, hsl(var(--gold-warm) / 0.45) 30%, hsl(var(--gold-warm) / 0.45) 70%, hsl(var(--gold-warm) / 0) 100%)",
+            }}
+          />
+          <div
+            className="relative flex items-center gap-2 px-4"
+            style={{ background: "hsl(var(--parchment))" }}
+          >
+            <span
+              className="w-1 h-1 rounded-full"
+              style={{ background: "hsl(var(--bark) / 0.35)" }}
+            />
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ background: "hsl(var(--bark) / 0.55)" }}
+            />
+            <span
+              className="w-1 h-1 rounded-full"
+              style={{ background: "hsl(var(--bark) / 0.35)" }}
+            />
+          </div>
+        </div>
+      </div>
+
       <Suspense fallback={null}>
         <LandingJobsStrip />
       </Suspense>

@@ -37,7 +37,14 @@ const HowItWorksSection = () => (
           Three steps. Zero surprises.
         </h2>
       </div>
-      <div className="rounded-3xl bg-white border border-[hsl(var(--olivewood)/0.12)] px-6 py-10 sm:px-10 sm:py-14 lg:px-14 lg:py-16 grid grid-cols-1 md:grid-cols-3 gap-10 sm:gap-12">
+      <div
+        className="rounded-3xl px-6 py-10 sm:px-10 sm:py-14 lg:px-14 lg:py-16 grid grid-cols-1 md:grid-cols-3 gap-10 sm:gap-12"
+        style={{
+          background: "hsl(0 0% 100% / 0.2)",
+          border: "1px solid hsl(var(--olivewood) / 0.08)",
+          boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.3)",
+        }}
+      >
         {STEPS.map((step, i) => {
           const Icon = step.icon;
           return (

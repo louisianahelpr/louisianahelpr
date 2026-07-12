@@ -84,7 +84,11 @@ const JobDetailDialog = ({
         // cutting long words in the description mid-glyph. grid-cols-1 swaps the
         // track to `minmax(0,1fr)`, pinning it to the dialog width so children
         // wrap instead of overflowing.
-        className="grid-cols-1 sm:max-w-lg lg:max-w-3xl xl:max-w-5xl !gap-2"
+        //
+        // xl+ bumps to max-w-6xl so the two-column split-pane layout below
+        // has breathing room (left 7/12 job content, right 5/12 sticky
+        // apply pane). Below xl the dialog keeps its single-column stack.
+        className="grid-cols-1 sm:max-w-lg lg:max-w-3xl xl:max-w-6xl !gap-2"
         onTouchStart={(e) => {
           if (!_allJobs || !_onSelect) return;
           const t = e.touches[0];
@@ -134,6 +138,16 @@ const JobDetailDialog = ({
           title={job.title}
         />
 
+        {/* Split-pane wrapper. Below xl this is a no-op flex column
+            (contents flow like they used to). At xl+ it's a 12-col grid:
+            the left column carries the job content (photo, pills, video,
+            description, stat tiles); the right column stickies the
+            actionable content (payout, poster card, queue banner, footer).
+            xl:items-start is required for the sticky right column to work
+            — a stretch align would size both columns to the tallest and
+            the right column would never scroll past its own height. */}
+        <div className="contents xl:grid xl:grid-cols-12 xl:gap-6 xl:items-start">
+        <div className="contents xl:col-span-7 xl:flex xl:flex-col xl:gap-2 min-w-0">
         {/* Photo cover wrapped so Boosted (top-right) and Urgent
             (top-left) can stamp the corners without being clipped by
             the photo's overflow-hidden. */}
@@ -352,7 +366,16 @@ const JobDetailDialog = ({
         </div>
 
         <JobStatTiles job={job} distMilesForDriving={distMilesForDriving} drivingLabel={drivingLabel} />
-
+        </div>
+        {/* Right column — the "act on this job" pane. Sticky at xl+ so
+            the apply/message CTAs stay pinned as the helpr scrolls a long
+            description on the left. `xl:top-0` sticks to the dialog's
+            internal scroll container (the DialogContent itself); the
+            container has p-7 top padding, so top-0 aligns cleanly under
+            the header. Below xl this div collapses via `contents` and
+            each child slots back into the outer single-column grid,
+            preserving the original vertical order. */}
+        <div className="contents xl:col-span-5 xl:flex xl:flex-col xl:gap-2 xl:sticky xl:top-0 xl:self-start min-w-0">
         {/* Payout — the shared JobPrice element (detail variant), tap
             anywhere to expand the breakdown. Same component as the feed
             card so the number is identical across surfaces. */}
@@ -393,6 +416,8 @@ const JobDetailDialog = ({
           viewerTier={viewerTier}
           onAskQuestion={handleAskQuestion}
         />
+        </div>
+        </div>
 
         <PhotoLightbox photos={photos} lightboxIndex={lightboxIndex} setLightboxIndex={setLightboxIndex} openInGridNonce={gridOpenNonce} />
       </DialogContent>

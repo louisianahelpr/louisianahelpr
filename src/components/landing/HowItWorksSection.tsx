@@ -1,85 +1,79 @@
-import { ClipboardList, Users, CheckCircle } from "lucide-react";
-
 /**
- * How It Works — 3 inline text steps (Post → Pick → Pay). Rebuilt from
- * scratch as part of the minimal landing rewrite: no cards, no toggle, no
- * liquid-glass panel. Just an eyebrow + H2 header and three column blocks
- * with icon + step number + title + one-line description. Matches the
- * calm, functional grammar of the authed app.
+ * How It Works — editorial magazine layout. Title lives in the left
+ * column as a masthead; the three numbered steps flow across the right.
+ * No cards, no glass panel, no icons — giant Bodoni numerals anchor
+ * each step. Sits directly on parchment to match the hero's editorial
+ * poster feel. Positive-framing copy — no "no upfront risk".
  */
 const STEPS = [
   {
-    icon: ClipboardList,
     title: "Post the job",
     desc: "Tell us what you need, set your budget, pick a date. Takes about a minute.",
   },
   {
-    icon: Users,
     title: "Pick your Helpr",
     desc: "Local applicants come to you. Compare profiles, ratings, and reviews.",
   },
   {
-    icon: CheckCircle,
     title: "Pay when it's done",
-    desc: "Funds sit in escrow until you confirm the work. No upfront risk.",
+    desc: "Funds sit safe in escrow until you confirm the work is done.",
   },
 ];
 
 const HowItWorksSection = () => (
   <section
     id="how-it-works"
-    className="px-5 sm:px-8 lg:px-12 pt-6 sm:pt-8 lg:pt-10 pb-16 sm:pb-24 lg:pb-28 scroll-mt-24"
+    className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-16 sm:pb-24 lg:pb-32 scroll-mt-24"
   >
-    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-      <div className="text-center mb-8 sm:mb-10">
+    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-center">
+      {/* Left column — masthead. Title stacks vertically, left-aligned
+          at desktop, centered at mobile. Reads as the "kicker" of the
+          feature spread. */}
+      <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
         <span className="text-display-eyebrow">How it works</span>
-        <h2 className="text-display-xl mt-3 text-balance">
-          Three steps. Zero surprises.
+        <h2
+          className="mt-3 font-display font-bold text-balance leading-[1.05] max-w-[10ch] md:max-w-none mx-auto md:mx-0"
+          style={{
+            fontSize: "clamp(2.25rem, 3.4vw, 3.25rem)",
+            letterSpacing: "-0.025em",
+            color: "hsl(var(--ink-deep))",
+          }}
+        >
+          Three steps.
         </h2>
       </div>
-      <div
-        className="rounded-3xl px-6 py-10 sm:px-10 sm:py-14 lg:px-14 lg:py-16 grid grid-cols-1 md:grid-cols-3 gap-10 sm:gap-12"
-        style={{
-          background: "hsl(0 0% 100% / 0.2)",
-          border: "1px solid hsl(var(--olivewood) / 0.08)",
-          boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.3)",
-        }}
-      >
-        {STEPS.map((step, i) => {
-          const Icon = step.icon;
-          return (
-            <div key={step.title} className="text-center">
-              <div
-                className="w-14 h-14 mx-auto rounded-full flex items-center justify-center"
-                style={{ backgroundColor: "hsl(var(--burnt-sienna) / 0.10)" }}
-              >
-                <Icon
-                  className="w-6 h-6"
-                  strokeWidth={1.5}
-                  style={{ color: "hsl(var(--burnt-sienna))" }}
-                />
-              </div>
-              <div
-                className="mt-4 text-ds-11 font-mono font-semibold uppercase tracking-wider"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
-              >
-                Step {String(i + 1).padStart(2, "0")}
-              </div>
-              <h3
-                className="mt-2 font-display font-bold text-ds-17 sm:text-ds-20 lg:text-ds-24 tracking-tight leading-tight whitespace-nowrap"
-                style={{ color: "hsl(var(--ink-deep))" }}
-              >
-                {step.title}
-              </h3>
-              <p
-                className="mt-3 font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto"
-                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-              >
-                {step.desc}
-              </p>
-            </div>
-          );
-        })}
+
+      {/* Right column — 3 steps flow across. At mobile they stack; at
+          md+ they're a 3-column subgrid to the right of the masthead. */}
+      <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-8 lg:gap-10">
+        {STEPS.map((step, i) => (
+          <div key={step.title} className="text-center md:text-left">
+            {/* Giant Bodoni numeral — the visual anchor. */}
+            <span
+              aria-hidden
+              className="block font-display font-black leading-none"
+              style={{
+                fontSize: "clamp(4rem, 6.5vw, 6rem)",
+                color: "hsl(var(--burnt-sienna) / 0.35)",
+                letterSpacing: "-0.04em",
+              }}
+            >
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <h3
+              className="mt-4 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
+              style={{ color: "hsl(var(--ink-deep))" }}
+            >
+              {step.title}
+            </h3>
+            <p
+              className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:mx-0"
+              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              {step.desc}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   </section>

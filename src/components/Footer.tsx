@@ -3,8 +3,7 @@ import { Apple, Heart, Mail, MapPin } from "lucide-react";
 
 // Inline Facebook glyph — lucide-react v1.x removed brand icons including
 // `Facebook`. Inlining the standard "f" mark keeps the social link working
-// without pinning lucide back to 0.x. Sized + styled via className/props
-// to match the previous <Facebook> usage.
+// without pinning lucide back to 0.x.
 const Facebook = ({ className, strokeWidth, fill }: { className?: string; strokeWidth?: number; fill?: string }) => (
   <svg
     viewBox="0 0 24 24"
@@ -18,29 +17,61 @@ const Facebook = ({ className, strokeWidth, fill }: { className?: string; stroke
   </svg>
 );
 
+// Inline Instagram glyph — lucide-react v1.x removed brand icons. Simple
+// square-outline with the dot and lens; matches the visual weight of the
+// Facebook "f" mark next to it.
+const Instagram = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.75}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
+  </svg>
+);
+
+// Inline Google Play glyph — the classic play-store triangle, used in
+// grayscale for the "coming soon" state.
+const GooglePlay = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    className={className}
+    fill="currentColor"
+    aria-hidden="true"
+  >
+    <path d="M4.5 3.5v17a1 1 0 0 0 1.55.83l13-8.5a1 1 0 0 0 0-1.66l-13-8.5A1 1 0 0 0 4.5 3.5z" />
+  </svg>
+);
+
 const APP_STORE_URL = "https://apps.apple.com/us/app/helpr/id6754470134";
 const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
+const INSTAGRAM_URL = "https://www.instagram.com/louisianahelpr";
 
 /**
- * Signature footer — Jasper Green ground with Heritage Gold category titles
- * and white links. Multi-column dense layout to keep the vertical footprint
- * tight. Reads as the closing seal of the page rather than a utility strip.
+ * Editorial footer — matches the landing hero's parchment surface, no
+ * card panels, quiet Heritage Gold section labels. Store badges live
+ * here (relocated from the nav) — Google Play shows a "Coming soon"
+ * state until the Android app ships.
  */
 const Footer = () => (
   <footer
     className="px-5 sm:px-8 lg:px-12 relative border-t border-[hsl(var(--olivewood))]/15"
     style={{
-      /* Floating-glass footer — minimal tint, blur-only, NO horizontal line.
-         The page's mesh gradient flows continuously into the footer area
-         so there's no visible cut between page and footer. */
       backgroundColor: "rgba(255, 255, 255, 0.08)",
       backdropFilter: "blur(20px) saturate(170%)",
       WebkitBackdropFilter: "blur(20px) saturate(170%)",
       color: "hsl(var(--olivewood))",
     }}
   >
-    <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] pt-7 md:pt-9 pb-3 md:pb-4">
-      <div className="grid gap-8 md:gap-10 md:grid-cols-12">
+    <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] pt-6 md:pt-8 pb-3 md:pb-4">
+      <div className="grid gap-6 md:gap-8 md:grid-cols-12">
         {/* Brand */}
         <div className="md:col-span-4 space-y-3">
           <Link
@@ -49,9 +80,6 @@ const Footer = () => (
             style={{ color: "hsl(var(--heritage-gold))" }}
           >
             Helpr
-            {/* "· LA" gold echo of the wax-seal monogram. Gives the brand mark
-                a second appearance at the bottom of the page, tying the
-                hero seal to the footer wordmark. */}
             <span
               className="text-ds-15 font-serif font-bold tracking-[0.05em]"
               style={{ color: "hsl(var(--heritage-gold) / 0.7)" }}
@@ -95,12 +123,12 @@ const Footer = () => (
             </li>
             <li>
               <Link to="/subscription" className="link-standard">
-                Membership
+                Subscription
               </Link>
             </li>
             <li>
               <Link to="/help" className="link-standard">
-                Help Center
+                Help
               </Link>
             </li>
           </ul>
@@ -133,29 +161,17 @@ const Footer = () => (
           </ul>
         </div>
 
-        {/* Connect */}
+        {/* Follow — Facebook + Instagram (the two live socials). App Store
+            + Google Play live below in the download row so we don't mix a
+            download link into the social cluster. */}
         <div className="md:col-span-2">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
           >
-            Connect
+            Follow
           </h3>
           <div className="flex items-center gap-2">
-            <a
-              href={APP_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
-              aria-label="Download on the App Store (opens in a new tab)"
-              title="Download on the App Store"
-            >
-              <Apple
-                className="h-[15px] w-[15px] transition-transform duration-300 group-hover:scale-110"
-                strokeWidth={1.5}
-                fill="currentColor"
-              />
-            </a>
             <a
               href={FACEBOOK_URL}
               target="_blank"
@@ -170,25 +186,59 @@ const Footer = () => (
                 fill="currentColor"
               />
             </a>
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex h-9 w-9 items-center justify-center rounded-full text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              style={{
+                background:
+                  "linear-gradient(135deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)",
+              }}
+              aria-label="Follow us on Instagram (opens in a new tab)"
+              title="Follow us on Instagram"
+            >
+              <Instagram className="h-[15px] w-[15px] transition-transform duration-300 group-hover:scale-110" />
+            </a>
           </div>
         </div>
       </div>
 
-      {/* Motto — EB Garamond italic. Print-era flourish that establishes the
-          "established institution" feel above the standard copyright row. */}
-      <p
-        className="mt-6 text-center font-serif italic text-ds-13 sm:text-ds-15"
-        style={{
-          color: "hsl(var(--heritage-gold))",
-          fontWeight: 400,
-          letterSpacing: "0.02em",
-        }}
-      >
-        Serving Louisiana since 2026.
-      </p>
+      {/* Compact app-store download row — Apple pill is live, Google Play
+          sits in a muted "coming soon" state until Android ships. */}
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+        <a
+          href={APP_STORE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-ds-11 font-sans font-semibold transition-all duration-300 ease-out hover:-translate-y-0.5"
+          style={{
+            background: "hsl(var(--olivewood))",
+            color: "hsl(var(--parchment))",
+            boxShadow:
+              "inset 0 1px 0 hsl(var(--parchment) / 0.15), 0 1px 2px rgba(0,0,0,0.05)",
+          }}
+          aria-label="Download Helpr on the App Store (opens in a new tab)"
+        >
+          <Apple className="w-3.5 h-3.5" strokeWidth={1.5} fill="currentColor" />
+          App Store
+        </a>
+        <span
+          className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-ds-11 font-sans font-semibold cursor-not-allowed"
+          style={{
+            background: "hsl(var(--olivewood) / 0.1)",
+            color: "hsl(var(--olivewood) / 0.6)",
+            border: "1px dashed hsl(var(--olivewood) / 0.25)",
+          }}
+          aria-label="Google Play — coming soon"
+        >
+          <GooglePlay className="w-3.5 h-3.5" />
+          Google Play &middot; Coming soon
+        </span>
+      </div>
 
-      {/* Bottom: copyright */}
-      <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 border-t border-[hsl(var(--olivewood))]/15">
+      {/* Bottom row: copyright */}
+      <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-[hsl(var(--olivewood))]/15">
         <p className="text-ds-11 text-[hsl(var(--olivewood))]/80">
           © {new Date().getFullYear()} Helpr LLC. All rights reserved. · Louisiana, USA
         </p>

@@ -63,7 +63,7 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false,
       {showTopBar && (
         <header className="glass-header sticky top-0 z-50">
           <div className={`mx-auto flex h-14 items-center gap-2 ${containerWidth} ${showBrand ? "justify-between" : "justify-end"}`}>
-            {showBrand && <HelprMark to="/dashboard" size="md" />}
+            {showBrand && <HelprMark to="/dashboard" size="md" hideEmblem />}
             {rightSlot && <div className="flex items-center gap-1 shrink-0">{rightSlot}</div>}
           </div>
         </header>

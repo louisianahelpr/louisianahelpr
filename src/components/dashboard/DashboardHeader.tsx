@@ -32,7 +32,7 @@ const DashboardHeader = ({ title, onMenuClick, inProgressJob, onViewInProgress }
           {title ? (
             <span className="font-display font-bold text-foreground text-ds-15 truncate">{title}</span>
           ) : (
-            <HelprMark to="/dashboard" size="md" />
+            <HelprMark to="/dashboard" size="md" hideEmblem />
           )}
         </div>
         <div className="flex items-center gap-1.5 -mr-1">

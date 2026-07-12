@@ -130,45 +130,58 @@ const HeroSection = () => {
       </svg>
 
       <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-center gap-10 md:gap-12 lg:gap-16 text-center">
-        {/* (2) H1: "Partner." is italic + burnt-sienna (restored) with a
-            hairline gold-warm underline (6) and a soft radial glow (5)
-            behind it for anchoring. */}
-        <h1
-          ref={headlineRef}
-          className="font-display font-black leading-[1.02] text-balance break-words text-[3.25rem] sm:text-6xl md:text-[4rem] lg:text-[6rem] xl:text-[8rem] hero-h1-settle"
-          style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
+        {/* Frosted-glass FRAME around the title — makes the H1 read as
+            an editorial "featured plate" rather than raw type on the page.
+            Soft white fill with a subtle warm-tint gradient, hairline
+            olivewood border, and a very quiet drop shadow. Padding is
+            generous so the huge display type has room to breathe inside. */}
+        <div
+          className="relative rounded-3xl px-6 py-8 sm:px-10 sm:py-12 lg:px-14 lg:py-16 backdrop-blur-sm"
+          style={{
+            background:
+              "linear-gradient(135deg, hsl(0 0% 100% / 0.65) 0%, hsl(38 25% 96% / 0.55) 100%)",
+            border: "1px solid hsl(var(--olivewood) / 0.14)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255,255,255,0.6), 0 1px 2px hsl(var(--olivewood) / 0.06), 0 20px 40px -20px hsl(var(--olivewood) / 0.14)",
+          }}
         >
-          Louisiana&rsquo;s Local Job{" "}
-          <span className="relative inline-block">
-            {/* (5) Soft radial glow behind "Partner." — anchors the eye */}
-            <span
-              aria-hidden="true"
-              className="absolute inset-0 -m-8 pointer-events-none"
-              style={{
-                background:
-                  "radial-gradient(closest-side, hsl(var(--burnt-sienna) / 0.14), transparent 70%)",
-              }}
-            />
-            <em
-              className="relative"
-              style={{
-                fontStyle: "italic",
-                color: "hsl(var(--burnt-sienna))",
-              }}
-            >
-              Partner.
-              {/* (6) Hairline underline in gold-warm at 0.3 opacity */}
+          <h1
+            ref={headlineRef}
+            className="font-display font-black leading-[1.02] text-balance break-words text-[3.25rem] sm:text-6xl md:text-[4rem] lg:text-[6rem] xl:text-[8rem] hero-h1-settle"
+            style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
+          >
+            Louisiana&rsquo;s Local Job{" "}
+            <span className="relative inline-block">
+              {/* Soft radial glow behind "Partner." */}
               <span
                 aria-hidden="true"
-                className="absolute left-0 right-0 h-[2px] pointer-events-none"
+                className="absolute inset-0 -m-8 pointer-events-none"
                 style={{
-                  bottom: "-0.08em",
-                  background: "hsl(var(--gold-warm) / 0.3)",
+                  background:
+                    "radial-gradient(closest-side, hsl(var(--burnt-sienna) / 0.14), transparent 70%)",
                 }}
               />
-            </em>
-          </span>
-        </h1>
+              <em
+                className="relative"
+                style={{
+                  fontStyle: "italic",
+                  color: "hsl(var(--burnt-sienna))",
+                }}
+              >
+                Partner.
+                {/* Hairline underline in gold-warm at 0.3 opacity */}
+                <span
+                  aria-hidden="true"
+                  className="absolute left-0 right-0 h-[2px] pointer-events-none"
+                  style={{
+                    bottom: "-0.08em",
+                    background: "hsl(var(--gold-warm) / 0.3)",
+                  }}
+                />
+              </em>
+            </span>
+          </h1>
+        </div>
 
         {/* Right column — tagline → subhead → CTAs → proof strip. */}
         <div className="flex flex-col gap-6 lg:gap-8 items-center text-center">

@@ -173,7 +173,7 @@ export function ApplyConfirmDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <AlertDialogContent className="!gap-3 lg:max-w-2xl">
+      <AlertDialogContent className="!gap-3 lg:max-w-3xl xl:max-w-4xl">
         <div className="!text-left space-y-0">
           <AlertDialogHero
             eyebrow={isBidMode ? "You're bidding" : isInstantBook ? "You're booking" : "You're applying"}

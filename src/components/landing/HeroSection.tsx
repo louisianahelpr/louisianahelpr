@@ -140,7 +140,7 @@ const HeroSection = () => {
     <section className="relative overflow-hidden min-h-svh flex flex-col justify-center items-center px-5 sm:px-8 lg:px-12 pt-28 sm:pt-32 lg:pt-20 pb-3 sm:pb-4 lg:pb-6">
       {/* Editorial poster: ONE centered column. No boxes. The parchment
           is the paper; the type is the show. Confidence over complexity. */}
-      <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-8">
+      <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16">
         {/* Warm ambient halo behind the title — subtle gold light source
             on the parchment. No box, no border. */}
         <div className="relative flex items-center justify-center w-full">

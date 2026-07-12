@@ -113,7 +113,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative overflow-hidden flex flex-col justify-center items-center min-h-[calc(100svh-19rem)] px-5 sm:px-8 lg:px-12 pt-14 sm:pt-16 lg:pt-20 pb-3 sm:pb-4 lg:pb-6">
+    <section className="relative overflow-hidden flex flex-col justify-center items-center min-h-[calc(100svh-19rem)] px-5 sm:px-8 lg:px-12 pt-28 sm:pt-32 lg:pt-40 pb-3 sm:pb-4 lg:pb-6">
       {/* Editorial poster: ONE centered column. No boxes. The parchment
           is the paper; the type is the show. Confidence over complexity. */}
       <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-12">
@@ -164,10 +164,10 @@ const HeroSection = () => {
           across Louisiana.
         </p>
 
-        {/* One primary CTA — bark fill, oversized pill. Browse Jobs is
-            demoted to a text link beneath so the fold has ONE conversion
-            choice, not two competing ones. */}
-        <div className="flex flex-col items-center gap-4">
+        {/* Primary CTA sits horizontally next to a demoted Browse Jobs
+            text link so the fold has one clear primary + one quiet
+            secondary, side-by-side. Stacks vertically on mobile. */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
           <Button
             asChild
             size="xl"

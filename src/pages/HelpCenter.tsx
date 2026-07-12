@@ -344,7 +344,7 @@ const HelpCenter = () => {
         >
           <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16">
             {/* Left column — masthead */}
-            <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
+            <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
               <span className="text-display-eyebrow">Topics</span>
               <h2
                 id="topics-heading"

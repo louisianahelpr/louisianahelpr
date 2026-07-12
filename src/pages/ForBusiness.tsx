@@ -29,11 +29,8 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 /* Data                                                                        */
 /* -------------------------------------------------------------------------- */
 
+// Ordered by demand — most-popular industries first, restaurants last.
 const INDUSTRIES = [
-  {
-    name: "Restaurants",
-    pitch: "Cover a callout shift or book a hood-to-floor deep clean in hours.",
-  },
   {
     name: "Property managers",
     pitch: "Route unit turns, work orders, and tenant requests to one workforce.",
@@ -45,6 +42,10 @@ const INDUSTRIES = [
   {
     name: "Healthcare",
     pitch: "Discharge-day home prep dispatched the moment a patient is released.",
+  },
+  {
+    name: "Restaurants",
+    pitch: "Cover a callout shift or book a hood-to-floor deep clean in hours.",
   },
 ] as const;
 
@@ -181,10 +182,7 @@ const BusinessHero = () => (
     <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16">
       <div className="relative flex flex-col items-center justify-center w-full">
         <WarmHalo />
-        <span
-          className="text-display-eyebrow relative z-10 mb-6 sm:mb-8"
-          style={{ color: "hsl(var(--olivewood) / 0.6)" }}
-        >
+        <span className="text-display-eyebrow relative z-10 mb-6 sm:mb-8">
           For business
         </span>
         <h1
@@ -261,7 +259,7 @@ const BuiltForSection = () => {
       className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24"
     >
       <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
-        <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
+        <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
           <span className="text-display-eyebrow">Built for</span>
           <h2
             className="mt-3 font-display font-bold text-balance leading-[1.05] max-w-[10ch] md:max-w-none mx-auto md:mx-0"

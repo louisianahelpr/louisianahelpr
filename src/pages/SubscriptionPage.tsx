@@ -335,50 +335,52 @@ export default function SubscriptionPage() {
                         : "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
                     }}
                   >
-                    {/* Eyebrow row: tier name + optional chips */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-display-eyebrow">
-                        {isFree
-                          ? "Free"
-                          : perks.name.replace(/^Helpr\s+/, "")}
-                      </span>
-                      {isFeatured && (
-                        <span
-                          className="font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full"
-                          style={{
-                            background: "hsl(var(--burnt-sienna))",
-                            color: "hsl(var(--parchment))",
-                            letterSpacing: "0.14em",
-                          }}
-                        >
-                          Recommended
-                        </span>
-                      )}
-                      {isActive && (
-                        <span
-                          className="font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"
-                          style={{
-                            background: "hsl(var(--bark) / 0.12)",
-                            color: "hsl(var(--bark))",
-                            letterSpacing: "0.12em",
-                          }}
-                        >
-                          <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
-                          Current
-                        </span>
-                      )}
-                    </div>
+                    {/* Chip row — Recommended / Current only. Removed
+                        the eyebrow tier-name (duplicated the H3 below). */}
+                    {(isFeatured || isActive) && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isFeatured && (
+                          <span
+                            className="font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full"
+                            style={{
+                              background: "hsl(var(--burnt-sienna))",
+                              color: "hsl(var(--parchment))",
+                              letterSpacing: "0.14em",
+                            }}
+                          >
+                            Recommended
+                          </span>
+                        )}
+                        {isActive && (
+                          <span
+                            className="font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"
+                            style={{
+                              background: "hsl(var(--bark) / 0.12)",
+                              color: "hsl(var(--bark))",
+                              letterSpacing: "0.12em",
+                            }}
+                          >
+                            <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                            Current
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-                    {/* Tier name — big Bodoni */}
+                    {/* Tier name — big Bodoni. Strips the "Helpr " prefix
+                        so tiers read as just "Basic / Pro / Elite" (Free
+                        for the free tier). */}
                     <h3
-                      className="mt-3 font-display font-bold leading-[1.05] tracking-tight"
+                      className={`font-display font-bold leading-[1.05] tracking-tight ${
+                        isFeatured || isActive ? "mt-3" : ""
+                      }`}
                       style={{
                         fontSize: "clamp(1.6rem, 2.4vw, 2.15rem)",
                         letterSpacing: "-0.025em",
                         color: "hsl(var(--ink-deep))",
                       }}
                     >
-                      {perks.name}
+                      {isFree ? "Free" : perks.name.replace(/^Helpr\s+/, "")}
                     </h3>
 
                     {/* Tagline — italic */}
@@ -510,7 +512,7 @@ export default function SubscriptionPage() {
                             )
                           }
                           disabled={upgrading}
-                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full sm:w-auto transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full sm:w-auto whitespace-nowrap transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
                           style={{
                             fontFamily: "Montserrat, system-ui, sans-serif",
                             fontWeight: 600,
@@ -554,7 +556,7 @@ export default function SubscriptionPage() {
       >
         <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-center">
           {/* Left masthead */}
-          <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
+          <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
             <span className="text-display-eyebrow">Why upgrade</span>
             <h2
               className="mt-3 font-display font-bold text-balance leading-[1.05]"

@@ -58,8 +58,9 @@ const HowItWorksSection = () => {
       className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-16 sm:pb-24 lg:pb-32 scroll-mt-24"
     >
       <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-center">
-        {/* Left column — masthead. */}
-        <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
+        {/* Left column — masthead. Sticky at md+ so it stays anchored
+            while the reader scrolls through the numbered steps. */}
+        <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
           <span className="text-display-eyebrow">How it works</span>
           <h2
             className="mt-3 font-display font-bold text-balance leading-[1.05] max-w-[10ch] md:max-w-none mx-auto md:mx-0"

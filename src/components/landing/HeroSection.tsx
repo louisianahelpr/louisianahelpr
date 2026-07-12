@@ -113,7 +113,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative overflow-hidden flex flex-col justify-center items-center min-h-[calc(100svh-6rem)] lg:min-h-[calc(100svh-22rem)] px-5 sm:px-8 lg:px-12 pt-28 sm:pt-32 lg:pt-20 pb-3 sm:pb-4 lg:pb-6">
+    <section className="relative overflow-hidden flex flex-col justify-center items-center min-h-[calc(100svh-6rem)] lg:min-h-[calc(100svh-18rem)] px-5 sm:px-8 lg:px-12 pt-28 sm:pt-32 lg:pt-24 pb-3 sm:pb-4 lg:pb-8">
       {/* Editorial poster: ONE centered column. No boxes. The parchment
           is the paper; the type is the show. Confidence over complexity. */}
       <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-8">
@@ -131,7 +131,7 @@ const HeroSection = () => {
           />
           <h1
             ref={headlineRef}
-            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[5rem] md:text-[6.5rem] lg:text-[5.5rem] xl:text-[7rem] hero-h1-settle"
+            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[5rem] md:text-[6.5rem] lg:text-[7rem] xl:text-[8.5rem] hero-h1-settle"
             style={{
               color: "hsl(var(--olivewood))",
               letterSpacing: "-0.03em",
@@ -152,7 +152,7 @@ const HeroSection = () => {
 
         {/* Subhead — tight, editorial, quiet. Sits directly on parchment. */}
         <p
-          className="max-w-xl text-ds-15 sm:text-ds-17 lg:text-ds-20 leading-relaxed text-balance"
+          className="max-w-xl lg:max-w-2xl text-ds-15 sm:text-ds-17 lg:text-ds-24 leading-relaxed text-balance"
           style={{
             fontFamily: "Montserrat, system-ui, sans-serif",
             fontWeight: 400,
@@ -171,7 +171,7 @@ const HeroSection = () => {
           <Button
             asChild
             size="xl"
-            className="btn-grad-primary group h-16 sm:h-[4.25rem] px-12 rounded-full tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
+            className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 rounded-full tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,
@@ -194,7 +194,7 @@ const HeroSection = () => {
             asChild
             size="xl"
             variant="outline"
-            className="group h-16 sm:h-[4.25rem] px-12 rounded-full tracking-tight transition-all duration-200 hover:-translate-y-0.5"
+            className="group h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 rounded-full tracking-tight transition-all duration-200 hover:-translate-y-0.5"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,

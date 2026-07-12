@@ -72,7 +72,7 @@ const JobStripCard = ({ job }: { job: StripJob }) => {
   return (
     <Link
       to="/jobs"
-      className="group snap-start shrink-0 w-[15.5rem] rounded-2xl px-5 py-5 flex flex-col gap-3.5 transition-all duration-300 ease-out hover:-translate-y-0.5 bg-white border border-[hsl(var(--olivewood)/0.14)]"
+      className="group w-full rounded-2xl px-5 py-5 flex flex-col gap-3.5 transition-all duration-300 ease-out hover:-translate-y-0.5 bg-white border border-[hsl(var(--olivewood)/0.14)]"
       aria-label={`${label} job: ${job.title}. View on the jobs board.`}
     >
       <div className="flex items-center justify-between gap-2">
@@ -176,35 +176,19 @@ const LandingJobsStrip = () => {
     <section
       id="jobs"
       aria-label="Live jobs in Louisiana"
-      className="observe-fade-up pt-2 sm:pt-3 pb-2 sm:pb-3 scroll-mt-20"
+      className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-4 sm:pt-6 pb-4 sm:pb-6 scroll-mt-20"
     >
-      {/* Auto-scrolling marquee — jobs drift left continuously. Pauses on
-          hover so users can click into a specific card. Duplicated array
-          makes the 0 → -50% translate loop seamless. Marquee is a DIRECT
-          child of the section (no max-w container around it) so the rail
-          runs edge-to-edge of the viewport. */}
-      {/* No padding on the marquee track — the 0 → -50% seamless loop
-          requires the second copy to be perfectly aligned to where the
-          first copy was, and horizontal padding on the flex track shifts
-          the loop boundary so the animation visibly jumps at reset. Cards
-          run edge-to-edge; the fade-mask on the container handles the
-          visual edges. */}
-      {/* Track content is TRIPLED (not just doubled) — the seamless loop
-          then only resets every 2× as long, so any residual pixel-level
-          mismatch at the reset boundary is far less visible. */}
-      <div className="jobs-strip-marquee-container overflow-hidden" role="list">
-        <div className="jobs-strip-marquee gap-5 sm:gap-6">
-          {[...jobs, ...jobs, ...jobs].map((job, i) => (
-            <div role="listitem" key={`${job.id}-${i}`} className="contents">
-              <JobStripCard job={job} />
-            </div>
-          ))}
-        </div>
+      {/* Static 3-card grid — no motion. Shows the top 3 live jobs from
+          the RPC. Card width shrinks to fit the column; marquee auto-scroll
+          removed per user preference (\"can we make jobs scroll some other
+          way\" → picked static grid). */}
+      <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 lg:gap-6" role="list">
+        {jobs.slice(0, 3).map((job) => (
+          <div role="listitem" key={job.id} className="contents">
+            <JobStripCard job={job} />
+          </div>
+        ))}
       </div>
-
-      {/* "See all jobs" link removed — every marquee card is already a
-          clickable Link to /jobs, so a standalone affordance was redundant
-          marketing chrome. Card taps carry the same intent. */}
     </section>
   );
 };

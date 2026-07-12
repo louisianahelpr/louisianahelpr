@@ -142,7 +142,18 @@ const HeroSection = () => {
             style={{ color: "hsl(var(--gold-warm) / 0.5)" }}
           >
             <span className="flex-1 h-px" style={{ background: "currentColor" }} />
-            <span className="font-serif italic text-lg leading-none">&#10086;</span>
+            <svg
+              viewBox="0 0 100 140"
+              className="w-3 h-4 shrink-0"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              {/* Tiny fleur-de-lis: center flame, side lobes, banded waist */}
+              <path d="M50 4 C46 18 40 30 40 42 C40 52 44 60 50 66 C56 60 60 52 60 42 C60 30 54 18 50 4 Z" />
+              <path d="M50 66 C34 62 22 68 18 82 C15 92 20 104 32 108 C28 100 30 92 38 88 C42 86 46 84 50 82 C54 84 58 86 62 88 C70 92 72 100 68 108 C80 104 85 92 82 82 C78 68 66 62 50 66 Z" />
+              <path d="M32 92 L68 92 L72 102 L28 102 Z" />
+              <path d="M50 82 L50 136" strokeWidth="4" stroke="currentColor" />
+            </svg>
             <span className="flex-1 h-px" style={{ background: "currentColor" }} />
           </div>
 
@@ -181,28 +192,36 @@ const HeroSection = () => {
             style={{ color: "hsl(var(--gold-warm) / 0.5)" }}
           >
             <span className="flex-1 h-px" style={{ background: "currentColor" }} />
-            <span className="font-serif italic text-lg leading-none">&#10086;</span>
+            <svg
+              viewBox="0 0 100 140"
+              className="w-3 h-4 shrink-0"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              {/* Tiny fleur-de-lis: center flame, side lobes, banded waist */}
+              <path d="M50 4 C46 18 40 30 40 42 C40 52 44 60 50 66 C56 60 60 52 60 42 C60 30 54 18 50 4 Z" />
+              <path d="M50 66 C34 62 22 68 18 82 C15 92 20 104 32 108 C28 100 30 92 38 88 C42 86 46 84 50 82 C54 84 58 86 62 88 C70 92 72 100 68 108 C80 104 85 92 82 82 C78 68 66 62 50 66 Z" />
+              <path d="M32 92 L68 92 L72 102 L28 102 Z" />
+              <path d="M50 82 L50 136" strokeWidth="4" stroke="currentColor" />
+            </svg>
             <span className="flex-1 h-px" style={{ background: "currentColor" }} />
           </div>
         </div>
 
-        {/* Right column — tagline → subhead → CTAs → proof strip. */}
-        <div className="flex flex-col gap-6 lg:gap-8 items-center text-center">
-          {/* Italic-serif tagline inside a small frosted-glass pill —
-              reads like a wax-seal provenance mark for the marketplace. */}
-          <span
-            className="inline-flex items-center px-4 py-1.5 rounded-full backdrop-blur-sm font-serif italic text-ds-11 sm:text-ds-13 tracking-wide"
-            style={{
-              background:
-                "linear-gradient(135deg, hsl(0 0% 100% / 0.55) 0%, hsl(38 25% 96% / 0.45) 100%)",
-              border: "1px solid hsl(var(--olivewood) / 0.16)",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 1px 2px hsl(var(--olivewood) / 0.06)",
-              color: "hsl(var(--olivewood) / 0.75)",
-            }}
-          >
-            Made in Louisiana
-          </span>
+        {/* Right column — the WHOLE stack (tagline → subhead → rating →
+            CTAs) sits inside a single frosted-glass card. Anchors the
+            call-to-action as one focal object rather than loose text. */}
+        <div
+          className="flex flex-col gap-6 lg:gap-8 items-center text-center rounded-3xl px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12 backdrop-blur-sm"
+          style={{
+            background:
+              "linear-gradient(135deg, hsl(0 0% 100% / 0.6) 0%, hsl(38 25% 96% / 0.5) 100%)",
+            border: "1px solid hsl(var(--olivewood) / 0.14)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 1px 2px hsl(var(--olivewood) / 0.06), 0 20px 40px -20px hsl(var(--olivewood) / 0.14)",
+          }}
+        >
+          {/* Tagline "Made in Louisiana" removed per user request. */}
           <p
             className="max-w-sm mx-auto text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed text-balance"
             style={{

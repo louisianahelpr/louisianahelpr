@@ -98,7 +98,12 @@ const PublicLayout = ({
           from the top so the nav has a visible bottom edge against the page
           surface. The landing hero (noNavSpacer) stays transparent until
           scroll so it can float over the photo. */}
-      <Navbar solid={!noNavSpacer} />
+      {/* Nav renders in the SAME glass-transparent + backdrop-blur state
+          on every public page (landing, business, membership, help,
+          legal). Previously interior pages used `solid=true` which added
+          a bordered olive surface — that made every non-landing page's
+          top nav look different from the landing. Uniform now. */}
+      <Navbar solid={false} />
       {/* Spacer clears the fixed Navbar (h-12 = 3rem + safe-area top inset)
           AND adds a comfortable breathing gap below it so a page's title/header
           doesn't crowd the nav. The min breathing room is 1.5rem (was 0.25rem,

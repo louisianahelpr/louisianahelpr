@@ -157,51 +157,53 @@ const Footer = () => (
           >
             Follow
           </h3>
-          {/* Three uniform editorial chips — all olivewood-fill squircles
-              with parchment icons. No clashing brand colors; the row
-              reads as one coherent set instead of three loud logos. */}
-          <div className="flex items-center gap-2">
-            {[
-              {
-                href: APP_STORE_URL,
-                label: "Download on the App Store",
-                Icon: Apple,
-                iconProps: { strokeWidth: 1.5, fill: "currentColor" as const },
-              },
-              {
-                href: FACEBOOK_URL,
-                label: "Follow us on Facebook",
-                Icon: Facebook,
-                iconProps: { strokeWidth: 1.5, fill: "currentColor" as const },
-              },
-              {
-                href: INSTAGRAM_URL,
-                label: "Follow us on Instagram",
-                Icon: Instagram,
-                iconProps: {},
-              },
-            ].map(({ href, label, Icon, iconProps }) => (
-              <a
-                key={href}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-300 ease-out hover:-translate-y-0.5"
-                style={{
-                  background: "hsl(var(--olivewood))",
-                  color: "hsl(var(--parchment))",
-                  boxShadow:
-                    "inset 0 1px 0 hsl(var(--parchment) / 0.15), 0 1px 2px rgba(0,0,0,0.06), 0 6px 16px -6px hsl(var(--olivewood) / 0.35)",
-                }}
-                aria-label={`${label} (opens in a new tab)`}
-                title={label}
-              >
-                <Icon
-                  className="h-[17px] w-[17px] transition-transform duration-300 group-hover:scale-110"
-                  {...iconProps}
-                />
-              </a>
-            ))}
+          {/* Brand-color chips with a softer squircle radius — bigger,
+              airier, less pinched than the previous rounded-2xl chips.
+              Apple black, Facebook blue, Instagram gradient are kept for
+              instant brand recognition. */}
+          <div className="flex items-center gap-2.5">
+            <a
+              href={APP_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              aria-label="Download on the App Store (opens in a new tab)"
+              title="Download on the App Store"
+            >
+              <Apple
+                className="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110"
+                strokeWidth={1.5}
+                fill="currentColor"
+              />
+            </a>
+            <a
+              href={FACEBOOK_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              aria-label="Follow us on Facebook (opens in a new tab)"
+              title="Follow us on Facebook"
+            >
+              <Facebook
+                className="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110"
+                strokeWidth={1.5}
+                fill="currentColor"
+              />
+            </a>
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex h-11 w-11 items-center justify-center rounded-[14px] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              style={{
+                background:
+                  "linear-gradient(135deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)",
+              }}
+              aria-label="Follow us on Instagram (opens in a new tab)"
+              title="Follow us on Instagram"
+            >
+              <Instagram className="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110" />
+            </a>
           </div>
         </div>
       </div>

@@ -14,9 +14,21 @@ interface PetFormProps {
   ownerId: string;
   onClose: () => void;
   onSaved: () => void;
+  /**
+   * "sheet" (default) — full-screen fixed overlay, used on mobile.
+   * "inline" — renders in the normal document flow so it can live inside
+   * the split-column desktop right pane without covering the left rail.
+   */
+  variant?: "sheet" | "inline";
 }
 
-export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormProps) {
+export function PetForm({
+  initialValues,
+  ownerId,
+  onClose,
+  onSaved,
+  variant = "sheet",
+}: PetFormProps) {
   const [form, setForm] = useState<Omit<PetInsert, "owner_id">>({
     ...BLANK_FORM,
     ...(initialValues
@@ -97,12 +109,27 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
     }
   };
 
+  const isInline = variant === "inline";
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-premium-page overflow-y-auto">
+    <div
+      className={
+        isInline
+          ? "rounded-ds-lg liquid-glass overflow-hidden"
+          : "fixed inset-0 z-50 flex flex-col bg-premium-page overflow-y-auto"
+      }
+    >
       {/* Header */}
       <div
-        className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b"
-        style={{ background: "hsl(var(--parchment))", borderColor: "hsl(var(--olivewood) / 0.12)" }}
+        className={
+          isInline
+            ? "flex items-center justify-between px-4 py-3 border-b"
+            : "sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b"
+        }
+        style={{
+          background: isInline ? "transparent" : "hsl(var(--parchment))",
+          borderColor: "hsl(var(--olivewood) / 0.12)",
+        }}
       >
         <h2
           className="font-display font-bold text-ds-18"
@@ -120,7 +147,13 @@ export function PetForm({ initialValues, ownerId, onClose, onSaved }: PetFormPro
         </button>
       </div>
 
-      <div className="px-4 py-4 space-y-5 pb-safe-nav">
+      <div
+        className={
+          isInline
+            ? "px-4 py-4 space-y-5"
+            : "px-4 py-4 space-y-5 pb-safe-nav"
+        }
+      >
         {/* Basic info */}
         <section>
           <h3

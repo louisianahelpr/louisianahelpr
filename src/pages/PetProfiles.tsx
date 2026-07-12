@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -19,6 +19,8 @@ import { Plus, Siren, PawPrint } from "lucide-react";
 import type { PetProfile } from "./petProfiles/types";
 import { PetForm } from "./petProfiles/PetForm";
 import { PetCard } from "./petProfiles/PetCard";
+import { PetRailRow } from "./petProfiles/PetRailRow";
+import { PetDetail } from "./petProfiles/PetDetail";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -28,9 +30,14 @@ const PetProfiles = () => {
   const { user } = useCurrentUser();
   const userId = user?.id ?? null;
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  // Mobile: full-screen sheet form. Desktop: inline right-pane form.
   const [formOpen, setFormOpen] = useState(false);
   const [editingPet, setEditingPet] = useState<PetProfile | null>(null);
+  // Desktop-only: reveal the inline create form in the right pane.
+  const [desktopAdding, setDesktopAdding] = useState(false);
+  // Mobile-only: which card is expanded in the stacked list.
   const [expandedId, setExpandedId] = useState<string | null>(null);
   // Pet pending removal — gates the destructive delete behind a branded
   // confirm dialog instead of a native confirm() (off-brand in the
@@ -51,13 +58,40 @@ const PetProfiles = () => {
     },
   });
 
+  // Desktop: active pet id lives in the URL (?pet=<id>) so deep-links work.
+  const activePetId = searchParams.get("pet");
+  const activePet = useMemo(
+    () => pets?.find((p) => p.id === activePetId) ?? null,
+    [pets, activePetId],
+  );
+
+  // If the URL points at a pet that no longer exists (e.g. after delete),
+  // clear the param so the desktop right pane shows the empty state instead
+  // of stranding a dead ID.
+  useEffect(() => {
+    if (!activePetId) return;
+    if (isLoading) return;
+    if (!pets) return;
+    if (!pets.some((p) => p.id === activePetId)) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("pet");
+      setSearchParams(next, { replace: true });
+    }
+  }, [activePetId, pets, isLoading, searchParams, setSearchParams]);
+
   const deleteMutation = useMutation({
     mutationFn: async (petId: string) => {
       unwrap(await supabase.from("pet_profiles").delete().eq("id", petId));
     },
-    onSuccess: () => {
+    onSuccess: (_data, petId) => {
       queryClient.invalidateQueries({ queryKey: ["pet_profiles", userId] });
       toast.success("Pet removed");
+      // If we just deleted the active desktop pet, clear the URL param.
+      if (petId === activePetId) {
+        const next = new URLSearchParams(searchParams);
+        next.delete("pet");
+        setSearchParams(next, { replace: true });
+      }
     },
     onError: (err) => {
       report(err, { tags: { area: "pet_profiles.delete" } });
@@ -70,14 +104,33 @@ const PetProfiles = () => {
     queryClient.invalidateQueries({ queryKey: ["pet_profiles", userId] });
   };
 
-  const openAdd = () => {
+  // Mobile add: open the full-screen sheet form (existing behavior).
+  const openAddMobile = () => {
     setEditingPet(null);
     setFormOpen(true);
   };
 
-  const openEdit = (pet: PetProfile) => {
+  // Desktop add: reveal the inline right-pane create form, clearing the
+  // active-pet URL param so the pane isn't showing a detail underneath.
+  const openAddDesktop = () => {
+    setDesktopAdding(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("pet");
+    setSearchParams(next, { replace: true });
+  };
+
+  // Mobile edit: open the full-screen sheet form.
+  const openEditMobile = (pet: PetProfile) => {
     setEditingPet(pet);
     setFormOpen(true);
+  };
+
+  // Desktop: select a pet → write ?pet=<id>, close any inline-add mode.
+  const selectPetDesktop = (pet: PetProfile) => {
+    setDesktopAdding(false);
+    const next = new URLSearchParams(searchParams);
+    next.set("pet", pet.id);
+    setSearchParams(next, { replace: true });
   };
 
   return (
@@ -92,96 +145,228 @@ const PetProfiles = () => {
         width="2xl"
       />
 
-      <div className="max-w-2xl lg:max-w-4xl mx-auto px-5 lg:px-8 pt-4 space-y-3">
-        {isLoading && (
-          <div className="space-y-2">
-            {[1, 2].map((n) => (
-              <Skeleton key={n} className="rounded-ds-lg h-20" />
-            ))}
-          </div>
-        )}
+      <div className="max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto px-5 lg:px-8 pt-4">
+        {/* ─── Mobile (default): stacked list ─────────────────────────── */}
+        <div className="lg:hidden space-y-3">
+          {isLoading && (
+            <div className="space-y-2">
+              {[1, 2].map((n) => (
+                <Skeleton key={n} className="rounded-ds-lg h-20" />
+              ))}
+            </div>
+          )}
 
-        {isError && (
-          <ErrorState
-            variant="inline"
-            title="Couldn't load your pets."
-            body="Tap Try again to reload your pet profiles."
-            onRetry={() => refetch()}
-          />
-        )}
+          {isError && (
+            <ErrorState
+              variant="inline"
+              title="Couldn't load your pets."
+              body="Tap Try again to reload your pet profiles."
+              onRetry={() => refetch()}
+            />
+          )}
 
-        {!isLoading && !isError && pets?.length === 0 && (
-          <EmptyState
-            variant="inline"
-            icon={PawPrint}
-            title="No pets yet"
-            body="Add your pets' profiles so helpers know their needs."
-            action={
-              <Button variant="bark" onClick={openAdd}>
-                <Plus className="w-4 h-4 mr-1" /> Add a pet
-              </Button>
-            }
-          />
-        )}
+          {!isLoading && !isError && pets?.length === 0 && (
+            <EmptyState
+              variant="inline"
+              icon={PawPrint}
+              title="No pets yet"
+              body="Add your pets' profiles so helpers know their needs."
+              action={
+                <Button variant="bark" onClick={openAddMobile}>
+                  <Plus className="w-4 h-4 mr-1" /> Add a pet
+                </Button>
+              }
+            />
+          )}
 
-        {pets?.map((pet) => (
-          <PetCard
-            key={pet.id}
-            pet={pet}
-            isExpanded={expandedId === pet.id}
-            onToggle={() =>
-              setExpandedId(expandedId === pet.id ? null : pet.id)
-            }
-            onEdit={openEdit}
-            onRequestDelete={setPetToDelete}
-            deletePending={deleteMutation.isPending}
-          />
-        ))}
+          {pets?.map((pet) => (
+            <PetCard
+              key={pet.id}
+              pet={pet}
+              isExpanded={expandedId === pet.id}
+              onToggle={() =>
+                setExpandedId(expandedId === pet.id ? null : pet.id)
+              }
+              onEdit={openEditMobile}
+              onRequestDelete={setPetToDelete}
+              deletePending={deleteMutation.isPending}
+            />
+          ))}
 
-        {/* Add button — only when at least one pet exists. The empty
-            state already renders its own "Add a pet" CTA, so showing this
-            standalone one too would surface two identical CTAs at once. */}
-        {!!pets?.length && (
-          <Button
-            variant="bark"
-            className="w-full"
-            size="lg"
-            onClick={openAdd}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add a pet
-          </Button>
-        )}
+          {/* Add button — only when at least one pet exists. The empty
+              state already renders its own "Add a pet" CTA, so showing this
+              standalone one too would surface two identical CTAs at once. */}
+          {!!pets?.length && (
+            <Button
+              variant="bark"
+              className="w-full"
+              size="lg"
+              onClick={openAddMobile}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add a pet
+            </Button>
+          )}
 
-        {/* Evacuation promo */}
-        <div
-          className="rounded-ds-lg overflow-hidden px-4 py-3 flex items-start gap-3"
-          style={{
-            background:
-              "linear-gradient(135deg, hsl(var(--burnt-sienna) / 0.08), hsl(var(--bark) / 0.06))",
-            border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
-          }}
-        >
-          <Siren
-            className="w-5 h-5 shrink-0 mt-0.5"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          />
-          <div>
-            <p className="text-ds-13 font-semibold leading-tight" style={{ color: "hsl(var(--ink-deep))" }}>
-              Hurricane Season Active
-            </p>
-            <p className="text-ds-11 text-muted-foreground leading-snug mt-0.5">
-              Register your pets for evacuation transport. During a declared emergency, Helpr volunteers
-              can help move your pets to safety.{" "}
-              <a href="/evacuation" className="font-semibold underline" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                Learn more
-              </a>
-            </p>
-          </div>
+          {/* Evacuation promo */}
+          <EvacPromo />
+        </div>
+
+        {/* ─── Desktop (lg+): split-column ─────────────────────────────── */}
+        <div className="hidden lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+          {/* Left rail — pets list */}
+          <aside className="lg:col-span-4 xl:col-span-4 space-y-3">
+            <div className="rounded-ds-lg liquid-glass overflow-hidden">
+              {/* Rail header + add */}
+              <div
+                className="flex items-center justify-between px-4 py-3 border-b"
+                style={{ borderColor: "hsl(var(--olivewood) / 0.10)" }}
+              >
+                <p
+                  className="font-serif italic uppercase text-ds-9"
+                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                >
+                  Your pets
+                </p>
+                <button
+                  type="button"
+                  onClick={openAddDesktop}
+                  className="inline-flex items-center gap-1 text-ds-12 font-semibold px-2 py-1 rounded-ds-sm transition-colors active:bg-secondary/40"
+                  style={{ color: "hsl(var(--bark))" }}
+                  aria-label="Add a pet"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add
+                </button>
+              </div>
+
+              {isLoading && (
+                <div className="p-3 space-y-2">
+                  {[1, 2, 3].map((n) => (
+                    <Skeleton key={n} className="rounded-ds-md h-14" />
+                  ))}
+                </div>
+              )}
+
+              {isError && (
+                <div className="p-3">
+                  <ErrorState
+                    variant="inline"
+                    title="Couldn't load your pets."
+                    body="Tap Try again to reload."
+                    onRetry={() => refetch()}
+                  />
+                </div>
+              )}
+
+              {!isLoading && !isError && pets?.length === 0 && (
+                <div className="p-4">
+                  <EmptyState
+                    variant="inline"
+                    icon={PawPrint}
+                    title="No pets yet"
+                    body="Add your first pet to get started."
+                    action={
+                      <Button variant="bark" size="sm" onClick={openAddDesktop}>
+                        <Plus className="w-4 h-4 mr-1" /> Add a pet
+                      </Button>
+                    }
+                  />
+                </div>
+              )}
+
+              {!!pets?.length && (
+                <ul
+                  className="max-h-[calc(100dvh-16rem)] overflow-y-auto divide-y"
+                  style={{ borderColor: "hsl(var(--olivewood) / 0.08)" }}
+                >
+                  {pets.map((pet) => (
+                    <li key={pet.id}>
+                      <PetRailRow
+                        pet={pet}
+                        active={activePetId === pet.id && !desktopAdding}
+                        onSelect={() => selectPetDesktop(pet)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Evacuation promo lives under the rail on desktop so both
+                columns share the same rhythm. */}
+            <EvacPromo />
+          </aside>
+
+          {/* Right pane — active pet detail, inline create form, or empty */}
+          <section className="lg:col-span-8 xl:col-span-8 min-w-0">
+            <div
+              className="max-h-[calc(100dvh-10rem)] overflow-y-auto pr-1"
+              style={{ scrollbarGutter: "stable" }}
+            >
+              {desktopAdding && userId && (
+                <PetForm
+                  key="desktop-add"
+                  variant="inline"
+                  initialValues={null}
+                  ownerId={userId}
+                  onClose={() => setDesktopAdding(false)}
+                  onSaved={handleSaved}
+                />
+              )}
+
+              {!desktopAdding && activePet && (
+                <PetDetail
+                  key={activePet.id}
+                  pet={activePet}
+                  ownerId={userId ?? ""}
+                  onSaved={handleSaved}
+                  onRequestDelete={setPetToDelete}
+                  deletePending={deleteMutation.isPending}
+                />
+              )}
+
+              {!desktopAdding && !activePet && !isLoading && (
+                <div
+                  className="rounded-ds-lg liquid-glass flex flex-col items-center justify-center text-center px-8 py-16"
+                >
+                  <PawPrint
+                    className="w-10 h-10 mb-3"
+                    style={{ color: "hsl(var(--bark) / 0.4)" }}
+                  />
+                  <p
+                    className="font-display text-ds-20 leading-tight"
+                    style={{ color: "hsl(var(--ink-deep))" }}
+                  >
+                    {pets?.length ? "Pick a pet from the list" : "Add your first pet"}
+                  </p>
+                  <p className="text-ds-12 text-muted-foreground mt-1.5 max-w-sm">
+                    {pets?.length
+                      ? "Select a pet on the left to view their care details, or add a new one."
+                      : "Care details help your Helpr know what your pet needs."}
+                  </p>
+                  {!pets?.length && (
+                    <Button
+                      variant="bark"
+                      className="mt-4"
+                      onClick={openAddDesktop}
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Add a pet
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {isLoading && !activePet && (
+                <Skeleton className="rounded-ds-lg h-96" />
+              )}
+            </div>
+          </section>
         </div>
       </div>
 
-      {/* Pet form sheet */}
+      {/* Mobile-only full-screen pet form sheet. Desktop uses the inline
+          right-pane variant, so we only mount this when NOT in desktop-add
+          mode and only when the mobile sheet was explicitly opened. */}
       {formOpen && userId && (
         <PetForm
           initialValues={editingPet}
@@ -208,5 +393,36 @@ const PetProfiles = () => {
     </div>
   );
 };
+
+// ─── Shared evacuation promo — same node on mobile + desktop ─────────────────
+function EvacPromo() {
+  return (
+    <div
+      className="rounded-ds-lg overflow-hidden px-4 py-3 flex items-start gap-3"
+      style={{
+        background:
+          "linear-gradient(135deg, hsl(var(--burnt-sienna) / 0.08), hsl(var(--bark) / 0.06))",
+        border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
+      }}
+    >
+      <Siren
+        className="w-5 h-5 shrink-0 mt-0.5"
+        style={{ color: "hsl(var(--burnt-sienna))" }}
+      />
+      <div>
+        <p className="text-ds-13 font-semibold leading-tight" style={{ color: "hsl(var(--ink-deep))" }}>
+          Hurricane Season Active
+        </p>
+        <p className="text-ds-11 text-muted-foreground leading-snug mt-0.5">
+          Register your pets for evacuation transport. During a declared emergency, Helpr volunteers
+          can help move your pets to safety.{" "}
+          <a href="/evacuation" className="font-semibold underline" style={{ color: "hsl(var(--burnt-sienna))" }}>
+            Learn more
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default PetProfiles;

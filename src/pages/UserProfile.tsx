@@ -337,216 +337,244 @@ const UserProfile = () => {
       />
 
       <div className="container mx-auto px-5 py-6">
-        <div className="max-w-lg mx-auto space-y-5">
-          {/* Profile Card — brand-aligned hero. Avatar with tier ring,
-              italic display name, italic serif meta and bio. */}
-          <ProfileHeaderCard
-            profile={profile}
-            userId={userId!}
-            displayName={displayName}
-            initials={initials}
-            isOwnProfile={isOwnProfile}
-            isIdVerified={isIdVerified}
-            lastActiveLabel={lastActiveLabel}
-            mutualJobsCount={mutualJobsCount}
-            responseMetrics={responseMetrics}
-            onTimeArrivalRate={onTimeArrivalRate}
-            revisionFrequency={revisionFrequency}
-            cancellationRate={cancellationRate}
-            hasCleanRecord={hasCleanRecord}
-            petCareSignal={petCareSignal}
-            badges={badges}
-            tierProfile={tierProfile}
-            stats={stats}
-            hasSubmittedCredentials={hasSubmittedCredentials}
-            workedJobs={workedJobs}
-            showNearbyProof={showNearbyProof}
-            onShowNearbyProof={() => setShowNearbyProof(true)}
-            viewerLoc={viewerLoc}
-            jobsNearbyCount={jobsNearbyCount}
-            nearbyRadiusMi={NEARBY_RADIUS_MI}
-          />
-
-          {/* Profile completion nudge — only shown to the owner, hidden at 100% */}
-          {isOwnProfile && userId && (
-            <ProfileCompletionCard
-              avatarUrl={profile.avatar_url}
-              bio={profile.bio}
-              skills={profile.skills}
-              completedJobs={stats.completedJobs}
-              reviewCount={stats.reviewCount}
-              userId={userId}
-            />
-          )}
-
-          {/* Paid background-check → public Background-Checked badge.
-              Own profile only; self-hides into a confirmation once verified. */}
-          {isOwnProfile && (
-            <BackgroundCheckCard status={backgroundCheckStatus} />
-          )}
-
-          {/* Stats */}
-          <ProfileStatsGrid
-            stats={stats}
-            postedJobsCount={postedJobs.length}
-            workedJobsCount={completedWorkedJobs.length}
-            isOwnProfile={isOwnProfile}
-            showReviews={showReviews}
-            showPostedJobs={showPostedJobs}
-            showWorkedJobs={showWorkedJobs}
-            onToggleReviews={() => {
-              setShowReviews(!showReviews);
-              setShowPostedJobs(false);
-              setShowWorkedJobs(false);
-            }}
-            onTogglePosted={() => {
-              setShowPostedJobs(!showPostedJobs);
-              setShowReviews(false);
-              setShowWorkedJobs(false);
-            }}
-            onToggleWorked={() => {
-              setShowWorkedJobs(!showWorkedJobs);
-              setShowReviews(false);
-              setShowPostedJobs(false);
-            }}
-          />
-
-          {/* ── Rating distribution + sub-ratings (1a/1b) ── */}
-          <RatingBreakdown reviews={reviews} />
-
-          {/* ── As a job poster (1c) ── */}
-          <PosterReputationCard
-            postedTotalCount={postedTotalCount}
-            postedCancelledCount={postedCancelledCount}
-            posterReputation={posterReputation}
-          />
-
-          {/* Skill endorsements — pills showing the helper's endorsed
-              skills. Past clients (mutual job count > 0) see a + button
-              to endorse. Own profile hides the section here (managed
-              in ProfileLanding instead). */}
-          {!isOwnProfile && (
-            <SkillEndorsements
-              profileUserId={userId!}
-              viewerUserId={currentUserId}
-              canEndorse={!isOwnProfile && mutualJobsCount > 0}
-            />
-          )}
-
-          {/* Career milestones — earned badges based on job count, rating,
-              and credential tier. Shows next-milestone progress on own profile.
-              credential_tier: 2 = verified license (license_status=verified). */}
-          {(() => {
-            const credentialTier = (data as any)?.credentialTier ??
-              (profile as any)?.license_status === "verified" ? 2 : 0;
-            const milestoneStats = {
-              completedJobs: stats.completedJobs,
-              avgRating: stats.avgRating,
-              repeatHirePercent: data?.repeatHirePercent ?? 0,
-              credentialTier,
-            };
-            return (
-              <CareerMilestones
-                stats={milestoneStats}
-                showProgress={isOwnProfile}
-              />
-            );
-          })()}
-
-          {/* Recent reviews — public trust-signal wall (#86). Always
-              visible on other-user profiles so prospective posters see
-              quotes from past customers without having to expand the
-              full reviews tab. Owner sees the existing toggle only. */}
-          {!isOwnProfile && (
-            <PublicReviewWall
-              helperId={userId!}
-              totalReviewCount={stats.reviewCount}
-              onSeeAll={
-                stats.reviewCount > 5
-                  ? () => {
-                      setShowReviews(true);
-                      setShowPostedJobs(false);
-                      setShowWorkedJobs(false);
-                    }
-                  : undefined
-              }
-            />
-          )}
-
-          {/* Reviews expanded inline — filter by category/rating +
-              progressive pagination (#27). */}
-          {showReviews && (
-            <ReviewsSection
-              reviews={reviews}
+        {/* Split-column desktop layout: the mobile-first single column
+            (max-w-lg centered) widens to a two-column masthead + reviews
+            layout at lg+. Below lg the grid collapses to one column and
+            the section order stays exactly as it was on mobile — the
+            left-column blocks (identity, milestones) render first, then
+            the right-column blocks (stats, reviews, history, etc.) stack
+            below. Outer container widens per Profile.tsx precedent so
+            desktop uses the full app-shell width instead of an lg-column
+            marooned in dead margin. */}
+        <div className="max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-12 items-start">
+          {/* ── LEFT COLUMN (masthead) ──
+              Identity, trust chips, bio, career milestones. Sticky at
+              lg+ so it stays visible as the viewer scrolls through the
+              reviews / history on the right. `self-start` keeps sticky
+              working under `items-start` (otherwise the grid would
+              stretch this column to match the taller right column and
+              the sticky element would have nothing to slide against). */}
+          <div className="lg:col-span-4 xl:col-span-3 space-y-5 lg:sticky lg:top-6 lg:self-start">
+            {/* Profile Card — brand-aligned hero. Avatar with tier ring,
+                italic display name, italic serif meta and bio. */}
+            <ProfileHeaderCard
+              profile={profile}
+              userId={userId!}
+              displayName={displayName}
+              initials={initials}
               isOwnProfile={isOwnProfile}
-              profileFullName={profile.full_name}
-              reviewCategoryFilter={reviewCategoryFilter}
-              reviewRatingFilter={reviewRatingFilter}
-              reviewVisibleCount={reviewVisibleCount}
-              onSetReviewCategoryFilter={setReviewCategoryFilter}
-              onSetReviewRatingFilter={setReviewRatingFilter}
-              onSetReviewVisibleCount={setReviewVisibleCount}
-              onResetVisibleCount={setReviewVisibleCount}
-              respondingToReview={respondingToReview}
-              responseText={responseText}
-              onSetResponseText={setResponseText}
-              onStartResponding={(reviewId, initial) => {
-                setResponseText(initial);
-                setRespondingToReview(reviewId);
-              }}
-              onCancelResponding={() => setRespondingToReview(null)}
-              onSaveResponse={handleSaveResponse}
-              savingResponse={savingResponse}
-              reviewsHasMore={reviewsHasMore}
-              loadMoreReviews={loadMoreReviews}
-              loadingMoreReviews={loadingMoreReviews}
+              isIdVerified={isIdVerified}
+              lastActiveLabel={lastActiveLabel}
+              mutualJobsCount={mutualJobsCount}
+              responseMetrics={responseMetrics}
+              onTimeArrivalRate={onTimeArrivalRate}
+              revisionFrequency={revisionFrequency}
+              cancellationRate={cancellationRate}
+              hasCleanRecord={hasCleanRecord}
+              petCareSignal={petCareSignal}
+              badges={badges}
+              tierProfile={tierProfile}
+              stats={stats}
+              hasSubmittedCredentials={hasSubmittedCredentials}
+              workedJobs={workedJobs}
+              showNearbyProof={showNearbyProof}
+              onShowNearbyProof={() => setShowNearbyProof(true)}
+              viewerLoc={viewerLoc}
+              jobsNearbyCount={jobsNearbyCount}
+              nearbyRadiusMi={NEARBY_RADIUS_MI}
             />
-          )}
 
-          {/* Posted Jobs expanded inline */}
-          {showPostedJobs && <JobsList jobs={postedJobs} variant="posted" />}
+            {/* Career milestones — earned badges based on job count, rating,
+                and credential tier. Shows next-milestone progress on own profile.
+                credential_tier: 2 = verified license (license_status=verified).
+                Sits with identity in the masthead because it's a persistent
+                trust-signal about the person, not about a specific interaction. */}
+            {(() => {
+              const credentialTier = (data as any)?.credentialTier ??
+                (profile as any)?.license_status === "verified" ? 2 : 0;
+              const milestoneStats = {
+                completedJobs: stats.completedJobs,
+                avgRating: stats.avgRating,
+                repeatHirePercent: data?.repeatHirePercent ?? 0,
+                credentialTier,
+              };
+              return (
+                <CareerMilestones
+                  stats={milestoneStats}
+                  showProgress={isOwnProfile}
+                />
+              );
+            })()}
+          </div>
 
-          {/* Worked Jobs expanded inline */}
-          {showWorkedJobs && <JobsList jobs={completedWorkedJobs} variant="worked" />}
+          {/* ── RIGHT COLUMN (activity + reviews) ──
+              Stats, rating breakdown, poster reputation, skill
+              endorsements, review wall + expanded reviews, job history,
+              availability, portfolio, member-since, report affordance.
+              This column takes the scroll so the masthead can stay
+              pinned as the viewer reads reviews. */}
+          <div className="lg:col-span-8 xl:col-span-9 space-y-5">
+            {/* Profile completion nudge — only shown to the owner, hidden at 100% */}
+            {isOwnProfile && userId && (
+              <ProfileCompletionCard
+                avatarUrl={profile.avatar_url}
+                bio={profile.bio}
+                skills={profile.skills}
+                completedJobs={stats.completedJobs}
+                reviewCount={stats.reviewCount}
+                userId={userId}
+              />
+            )}
 
-          {profile.hourly_rate && (
-            <div className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">
-              <Clock className="w-5 h-5 text-primary" />
-              <div>
-                <p className="text-ds-13 font-semibold text-foreground">${profile.hourly_rate}/hr</p>
-                <p className="text-ds-11 text-muted-foreground">Hourly rate</p>
+            {/* Paid background-check → public Background-Checked badge.
+                Own profile only; self-hides into a confirmation once verified. */}
+            {isOwnProfile && (
+              <BackgroundCheckCard status={backgroundCheckStatus} />
+            )}
+
+            {/* Stats */}
+            <ProfileStatsGrid
+              stats={stats}
+              postedJobsCount={postedJobs.length}
+              workedJobsCount={completedWorkedJobs.length}
+              isOwnProfile={isOwnProfile}
+              showReviews={showReviews}
+              showPostedJobs={showPostedJobs}
+              showWorkedJobs={showWorkedJobs}
+              onToggleReviews={() => {
+                setShowReviews(!showReviews);
+                setShowPostedJobs(false);
+                setShowWorkedJobs(false);
+              }}
+              onTogglePosted={() => {
+                setShowPostedJobs(!showPostedJobs);
+                setShowReviews(false);
+                setShowWorkedJobs(false);
+              }}
+              onToggleWorked={() => {
+                setShowWorkedJobs(!showWorkedJobs);
+                setShowReviews(false);
+                setShowPostedJobs(false);
+              }}
+            />
+
+            {/* ── Rating distribution + sub-ratings (1a/1b) ── */}
+            <RatingBreakdown reviews={reviews} />
+
+            {/* ── As a job poster (1c) ── */}
+            <PosterReputationCard
+              postedTotalCount={postedTotalCount}
+              postedCancelledCount={postedCancelledCount}
+              posterReputation={posterReputation}
+            />
+
+            {/* Skill endorsements — pills showing the helper's endorsed
+                skills. Past clients (mutual job count > 0) see a + button
+                to endorse. Own profile hides the section here (managed
+                in ProfileLanding instead). */}
+            {!isOwnProfile && (
+              <SkillEndorsements
+                profileUserId={userId!}
+                viewerUserId={currentUserId}
+                canEndorse={!isOwnProfile && mutualJobsCount > 0}
+              />
+            )}
+
+            {/* Recent reviews — public trust-signal wall (#86). Always
+                visible on other-user profiles so prospective posters see
+                quotes from past customers without having to expand the
+                full reviews tab. Owner sees the existing toggle only. */}
+            {!isOwnProfile && (
+              <PublicReviewWall
+                helperId={userId!}
+                totalReviewCount={stats.reviewCount}
+                onSeeAll={
+                  stats.reviewCount > 5
+                    ? () => {
+                        setShowReviews(true);
+                        setShowPostedJobs(false);
+                        setShowWorkedJobs(false);
+                      }
+                    : undefined
+                }
+              />
+            )}
+
+            {/* Reviews expanded inline — filter by category/rating +
+                progressive pagination (#27). */}
+            {showReviews && (
+              <ReviewsSection
+                reviews={reviews}
+                isOwnProfile={isOwnProfile}
+                profileFullName={profile.full_name}
+                reviewCategoryFilter={reviewCategoryFilter}
+                reviewRatingFilter={reviewRatingFilter}
+                reviewVisibleCount={reviewVisibleCount}
+                onSetReviewCategoryFilter={setReviewCategoryFilter}
+                onSetReviewRatingFilter={setReviewRatingFilter}
+                onSetReviewVisibleCount={setReviewVisibleCount}
+                onResetVisibleCount={setReviewVisibleCount}
+                respondingToReview={respondingToReview}
+                responseText={responseText}
+                onSetResponseText={setResponseText}
+                onStartResponding={(reviewId, initial) => {
+                  setResponseText(initial);
+                  setRespondingToReview(reviewId);
+                }}
+                onCancelResponding={() => setRespondingToReview(null)}
+                onSaveResponse={handleSaveResponse}
+                savingResponse={savingResponse}
+                reviewsHasMore={reviewsHasMore}
+                loadMoreReviews={loadMoreReviews}
+                loadingMoreReviews={loadingMoreReviews}
+              />
+            )}
+
+            {/* Posted Jobs expanded inline */}
+            {showPostedJobs && <JobsList jobs={postedJobs} variant="posted" />}
+
+            {/* Worked Jobs expanded inline */}
+            {showWorkedJobs && <JobsList jobs={completedWorkedJobs} variant="worked" />}
+
+            {profile.hourly_rate && (
+              <div className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">
+                <Clock className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-ds-13 font-semibold text-foreground">${profile.hourly_rate}/hr</p>
+                  <p className="text-ds-11 text-muted-foreground">Hourly rate</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Availability */}
-          <HelperAvailabilityDisplay helperId={userId!} />
+            {/* Availability */}
+            <HelperAvailabilityDisplay helperId={userId!} />
 
-          {/* Portfolio — Pro+ only */}
-          {(profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
+            {/* Portfolio — Pro+ only */}
+            {(profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
 
-          {/* Member since */}
-          <p className="text-ds-11 text-muted-foreground text-center">
-            Member since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-          </p>
+            {/* Member since */}
+            <p className="text-ds-11 text-muted-foreground text-center">
+              Member since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            </p>
 
-          {/* Inline "Report this profile" surface (#29). The header dropdown
-              still exposes Report, but a viewer who feels uneasy after
-              reading the bio shouldn't have to hunt the 3-dot menu. Kept
-              low-key (muted text, no destructive color) so it reads as a
-              safety affordance rather than an accusation. */}
-          {!isOwnProfile && currentUserId && (
-            <div className="pt-2 flex justify-center">
-              <button
-                onClick={() => setShowReport(true)}
-                className="inline-flex items-center gap-1.5 text-ds-11 text-muted-foreground underline-offset-4 hover:underline hover:text-foreground transition-colors min-h-[44px] px-3"
-                aria-label="Report this profile"
-              >
-                <Flag className="w-3 h-3" />
-                Report this profile
-              </button>
-            </div>
-          )}
+            {/* Inline "Report this profile" surface (#29). The header dropdown
+                still exposes Report, but a viewer who feels uneasy after
+                reading the bio shouldn't have to hunt the 3-dot menu. Kept
+                low-key (muted text, no destructive color) so it reads as a
+                safety affordance rather than an accusation. */}
+            {!isOwnProfile && currentUserId && (
+              <div className="pt-2 flex justify-center">
+                <button
+                  onClick={() => setShowReport(true)}
+                  className="inline-flex items-center gap-1.5 text-ds-11 text-muted-foreground underline-offset-4 hover:underline hover:text-foreground transition-colors min-h-[44px] px-3"
+                  aria-label="Report this profile"
+                >
+                  <Flag className="w-3 h-3" />
+                  Report this profile
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

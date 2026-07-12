@@ -207,7 +207,17 @@ const Legal = () => {
           <span className="text-display-eyebrow relative z-10 mb-5 sm:mb-6">
             Legal
           </span>
-          <h1
+          {/* Hero H1 fades + slides on tab change — keyed by tab so
+              React remounts the motion element every time. */}
+          <motion.h1
+            key={`h1-${tab}`}
+            {...(reduceMotion
+              ? {}
+              : {
+                  initial: { opacity: 0, y: 12 },
+                  animate: { opacity: 1, y: 0 },
+                  transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
+                })}
             className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[2.75rem] sm:text-[4rem] md:text-[5rem] lg:text-[5.5rem] xl:text-[6.25rem]"
             style={{
               color: "hsl(var(--olivewood))",
@@ -224,10 +234,18 @@ const Legal = () => {
             >
               {HERO_TITLES[tab].accent}
             </em>
-          </h1>
+          </motion.h1>
         </div>
 
-        <p
+        <motion.p
+          key={`sub-${tab}`}
+          {...(reduceMotion
+            ? {}
+            : {
+                initial: { opacity: 0, y: 12 },
+                animate: { opacity: 1, y: 0 },
+                transition: { duration: 0.4, delay: 0.05, ease: [0.22, 1, 0.36, 1] as const },
+              })}
           className="max-w-xl lg:max-w-3xl text-ds-15 sm:text-ds-17 lg:text-ds-20 leading-relaxed text-balance"
           style={{
             fontFamily: "Montserrat, system-ui, sans-serif",
@@ -237,12 +255,19 @@ const Legal = () => {
           }}
         >
           {HERO_SUBHEADS[tab]}
-        </p>
+        </motion.p>
 
-        {/* Wide-tracked small caps "last updated" — mirrors the editorial
-            date-line convention used on the marketing pages, and keeps the
-            revision date visible before users tap into any policy tab. */}
-        <span
+        {/* Wide-tracked small caps "last updated" — fades in with the
+            same tab-change transition so the whole hero animates as one. */}
+        <motion.span
+          key={`updated-${tab}`}
+          {...(reduceMotion
+            ? {}
+            : {
+                initial: { opacity: 0, y: 12 },
+                animate: { opacity: 1, y: 0 },
+                transition: { duration: 0.4, delay: 0.1, ease: [0.22, 1, 0.36, 1] as const },
+              })}
           className="font-sans font-medium uppercase tabular-nums text-[0.7rem] sm:text-[0.75rem]"
           style={{
             color: "hsl(var(--olivewood) / 0.7)",
@@ -250,7 +275,7 @@ const Legal = () => {
           }}
         >
           Last updated · {LAST_UPDATED[tab]}
-        </span>
+        </motion.span>
       </div>
     </section>
   );
@@ -357,16 +382,34 @@ const Legal = () => {
     </p>
   );
 
+  // Smooth cross-tab transition — each panel fades + slides in on mount.
+  // Radix TabsContent unmounts inactive tabs, so switching tabs remounts
+  // the new panel, which triggers the `initial → animate` sequence. Also
+  // fades the hero copy (eyebrow/title/subhead/updated chip) via keyed
+  // motion.div wrapper further down.
+  const fadeMotion = reduceMotion
+    ? {}
+    : {
+        initial: { opacity: 0, y: 12 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const },
+      };
   const panels = (
     <>
       <TabsContent value="terms" className="mt-0" style={{ paddingBottom: "1rem" }}>
-        <TermsContent />
+        <motion.div key="terms-panel" {...fadeMotion}>
+          <TermsContent />
+        </motion.div>
       </TabsContent>
       <TabsContent value="community" className="mt-0" style={{ paddingBottom: "1rem" }}>
-        <CommunityContent />
+        <motion.div key="community-panel" {...fadeMotion}>
+          <CommunityContent />
+        </motion.div>
       </TabsContent>
       <TabsContent value="privacy" className="mt-0" style={{ paddingBottom: "1rem" }}>
-        <PrivacyContent />
+        <motion.div key="privacy-panel" {...fadeMotion}>
+          <PrivacyContent />
+        </motion.div>
       </TabsContent>
     </>
   );

@@ -12,13 +12,10 @@ import { useScrollFadeUp } from "@/hooks/useScrollFadeUp";
 // Supabase before paint.
 const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 
-// Minimal landing — Hero → Live jobs → How it works → Footer.
+// Minimal landing — Hero → How it works → Footer. Live-jobs strip
+// removed per user request; the hero is the only thing above the fold.
 import HeroSection from "@/components/landing/HeroSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
-// LandingJobsStrip self-fetches open jobs from Supabase, so it stays lazy
-// to keep the supabase chunk out of the Index entry / LCP path. Self-hides
-// silently on empty / errored / not-yet-deployed (PGRST202) data.
-const LandingJobsStrip = lazy(() => import("@/components/landing/LandingJobsStrip"));
 
 const SITE_URL = "https://www.louisianahelpr.com";
 
@@ -165,54 +162,11 @@ const Index = () => {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      {/* Self-fitting fold: Hero + divider + Jobs strip live inside ONE
-          `min-h-svh flex-col` container so together they always exactly
-          equal one viewport. Hero is `flex-1` (grows to fill remaining
-          space); the divider and jobs sit at natural size below it.
-          HIW starts AFTER this wrapper — always off-fold at every screen
-          size, no manual per-breakpoint tuning of hero height. */}
-      <div className="min-h-svh flex flex-col">
+      {/* Hero is the only thing on the fold — title, subhead, CTAs,
+          nothing else. Live-jobs strip and 3-dot divider removed per
+          user request. Hero fills exactly one viewport; HIW sits below
+          the fold naturally. */}
       <HeroSection />
-
-      {/* 3-dot editorial border between hero and live-jobs strip. No color
-          break — page bg is uniform parchment — just a gold-warm hairline
-          that fades at both edges with three bark dots centered on it. */}
-      <div
-        aria-hidden="true"
-        className="relative mx-auto w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 sm:px-8 lg:px-12 pt-4 sm:pt-6 pb-1"
-      >
-        <div className="relative flex items-center justify-center">
-          <div
-            className="absolute inset-x-0 top-1/2 h-px"
-            style={{
-              background:
-                "linear-gradient(90deg, hsl(var(--gold-warm) / 0) 0%, hsl(var(--gold-warm) / 0.45) 30%, hsl(var(--gold-warm) / 0.45) 70%, hsl(var(--gold-warm) / 0) 100%)",
-            }}
-          />
-          <div
-            className="relative flex items-center gap-2 px-4"
-            style={{ background: "hsl(var(--parchment))" }}
-          >
-            <span
-              className="w-1 h-1 rounded-full"
-              style={{ background: "hsl(var(--bark) / 0.35)" }}
-            />
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ background: "hsl(var(--bark) / 0.55)" }}
-            />
-            <span
-              className="w-1 h-1 rounded-full"
-              style={{ background: "hsl(var(--bark) / 0.35)" }}
-            />
-          </div>
-        </div>
-      </div>
-
-      <Suspense fallback={null}>
-        <LandingJobsStrip />
-      </Suspense>
-      </div>
 
       {/* Scroll hint removed — was getting cut off at the bottom of the
           first viewport, and the moving marquee itself is enough of an

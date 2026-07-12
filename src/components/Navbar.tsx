@@ -201,8 +201,9 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                 variant="ghost"
                 className="btn-press rounded-full h-8 px-3 gap-1.5 font-sans font-semibold text-ds-13"
                 style={{
-                  background: "hsl(0 0% 100%)",
-                  border: "1px solid hsl(var(--bark) / 0.22)",
+                  background: "hsl(0 0% 100% / 0.2)",
+                  border: "1px solid hsl(var(--olivewood) / 0.08)",
+                  boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.3)",
                   color: "hsl(var(--bark))",
                 }}
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}

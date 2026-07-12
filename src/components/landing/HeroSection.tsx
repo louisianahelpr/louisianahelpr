@@ -123,13 +123,10 @@ const HeroSection = () => {
         <div
           className="relative rounded-3xl px-6 py-8 sm:px-10 sm:py-10 lg:px-12 lg:py-12 flex items-center justify-center"
           style={{
-            background:
-              "linear-gradient(135deg, hsl(0 0% 100% / 0.95) 0%, hsl(38 25% 96% / 0.9) 100%)",
-            border: "1px solid hsl(var(--olivewood) / 0.2)",
-            backdropFilter: "blur(24px) saturate(180%)",
-            WebkitBackdropFilter: "blur(24px) saturate(180%)",
+            background: "hsl(0 0% 100%)",
+            border: "1px solid hsl(var(--olivewood) / 0.22)",
             boxShadow:
-              "inset 0 1px 1px 0 rgba(255,255,255,0.85), inset 0 -1px 1px 0 hsl(var(--olivewood) / 0.08), inset 0 0 0 1px hsl(0 0% 100% / 0.35)",
+              "inset 0 1px 1px 0 rgba(255,255,255,0.9), inset 0 -1px 1px 0 hsl(var(--olivewood) / 0.08)",
           }}
         >
           <h1

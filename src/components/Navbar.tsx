@@ -284,6 +284,32 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                 <Building2 className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
                 Business
               </Link>
+              <Link
+                to="/subscription"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                style={{
+                  fontSize: "1rem",
+                  color: "hsl(var(--ink-deep))",
+                  borderBottom: "1px solid hsl(var(--olivewood) / 0.1)",
+                }}
+                onClick={() => setMobileOpen(false)}
+              >
+                <Sparkles className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
+                Membership
+              </Link>
+              <Link
+                to="/help"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                style={{
+                  fontSize: "1rem",
+                  color: "hsl(var(--ink-deep))",
+                  borderBottom: "1px solid hsl(var(--olivewood) / 0.1)",
+                }}
+                onClick={() => setMobileOpen(false)}
+              >
+                <Briefcase className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
+                Help Center
+              </Link>
               <div className="flex flex-col gap-3 mt-auto pt-6">
                 {user ? (
                   // Authenticated visitor — single "Open app" CTA back into

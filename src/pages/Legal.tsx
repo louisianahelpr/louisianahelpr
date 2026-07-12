@@ -196,20 +196,16 @@ const Legal = () => {
   const webHero = (
     <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-24 pb-8 sm:pb-10 lg:pb-12">
       <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex flex-col items-center text-center gap-6 sm:gap-8 lg:gap-10">
-        {/* Back button pinned to the top-left of the composition — same
-            history.back() semantics as before, just visually demoted so the
-            hero reads as an editorial poster instead of a stacked toolbar. */}
-        <div
-          data-print-hide
-          className="absolute left-0 top-0 sm:top-2"
-        >
-          <BackButton />
-        </div>
+        {/* BackButton removed — PublicLayout renders a global
+            "Back to home" link at the top of every non-landing public
+            page, so the inline one was doubling up.
+            Eyebrow simplified to "LEGAL" so the H1 below doesn't
+            duplicate the same phrase. */}
 
         <div className="relative flex flex-col items-center justify-center w-full">
           <WarmHalo />
           <span className="text-display-eyebrow relative z-10 mb-5 sm:mb-6">
-            {HERO_EYEBROWS[tab]}
+            Legal
           </span>
           <h1
             className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[2.75rem] sm:text-[4rem] md:text-[5rem] lg:text-[5.5rem] xl:text-[6.25rem]"
@@ -262,11 +258,7 @@ const Legal = () => {
   const tabBar = (
     <TabsList
       data-print-hide
-      className="grid w-full grid-cols-3 items-center gap-1 rounded-2xl p-1 h-auto"
-      style={{
-        background: "hsl(var(--bark) / 0.06)",
-        border: "1px solid hsl(var(--bark) / 0.16)",
-      }}
+      className="grid w-full grid-cols-3 items-center gap-1 rounded-2xl p-1 h-auto bg-transparent border-0"
     >
       {VALID_TABS.map((t) => {
         const isActive = t === tab;

@@ -114,22 +114,7 @@ const HeroSection = () => {
 
   return (
     <section className="relative overflow-hidden hero-mesh-bg flex flex-col justify-center items-center min-h-[calc(100svh-22rem)] px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-24 pb-6 sm:pb-8 lg:pb-10">
-      {/* (7) Louisiana state outline — absolute, bottom-right, 8% opacity.
-          A rough boot-shaped path silhouette, in olivewood. Decorative,
-          aria-hidden. */}
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="pointer-events-none absolute right-2 sm:right-6 bottom-2 sm:bottom-6 hidden md:block w-40 lg:w-56 h-40 lg:h-56"
-        style={{ color: "hsl(var(--olivewood))", opacity: 0.08 }}
-        fill="currentColor"
-      >
-        {/* Simplified Louisiana silhouette — flat top, coastal bottom */}
-        <path d="M12 12 L74 12 L74 30 L88 30 L88 68 L76 68 L74 78 L62 82 L58 74 L46 78 L42 70 L34 74 L28 66 L20 70 L14 60 L18 46 L14 40 L20 32 L12 24 Z" />
-      </svg>
-
-      <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-center gap-10 md:gap-12 lg:gap-16 text-center">
+<div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-center gap-10 md:gap-12 lg:gap-16 text-center">
         {/* H1 with ornamental serif-flourish dividers above and below —
             hairline gold-warm rules with a centered fleuron ornament, like
             a featured pull-quote in an editorial magazine. Makes the title
@@ -236,17 +221,7 @@ const HeroSection = () => {
             partner for everyday jobs.
           </p>
 
-          {/* (8) Slim proof strip — ONE line, muted. Adds legitimacy
-              without the visual weight of a full trust-badge row. */}
-          <p
-            className="text-ds-11 font-sans"
-            style={{ color: "hsl(var(--olivewood) / 0.6)" }}
-          >
-            <span style={{ color: "hsl(var(--gold-warm))" }} aria-hidden>
-              ★
-            </span>{" "}
-            4.9 · 340 jobs done this week · Held in escrow
-          </p>
+          {/* Proof strip removed per user request. */}
 
           {/* Stacked CTAs — always vertical, sit right under the subhead */}
           <div className="flex flex-col gap-3 w-full max-w-sm">

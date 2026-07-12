@@ -105,15 +105,15 @@ const Index = () => {
   useScrollFadeUp();
 
   usePageMeta({
-    title: "Helpr — Louisiana's Local Help Marketplace | Cleaning, Moving, Errands & More",
+    title: "Helpr — Louisiana's Local Job Partner | Hire or Find Work",
     description:
-      "Find trusted Helprs in New Orleans, Baton Rouge, Shreveport & across Louisiana for cleaning, yard work, moving, errands, and handyman jobs. Post a job in minutes.",
+      "Hire a Helpr or find local work in Louisiana. For everyday jobs, big and small — post or apply in minutes across New Orleans, Baton Rouge & beyond.",
     keywords:
       "Louisiana helprs, local help, cleaning services Louisiana, yard work New Orleans, moving help Baton Rouge, errands Shreveport, handyman Lafayette, task marketplace, trusted neighbors, home services Louisiana",
     canonical: SITE_URL,
-    ogTitle: "Helpr — Louisiana's Trusted Marketplace for Everyday Tasks",
+    ogTitle: "Helpr — Louisiana's Local Job Partner",
     ogDescription:
-      "Connect with verified neighbors in Louisiana for cleaning, moving, yard work, errands & more. Post a job and get help today.",
+      "Hire a Helpr or find local work. For everyday jobs, big and small — Louisiana's trusted marketplace.",
     geoRegion: "US-LA",
     geoPlacename: "Louisiana",
   });

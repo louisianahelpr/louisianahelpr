@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, createContext, useContext, Children, isValidElement, type ReactNode } from "react";
+import React, { useState, useMemo, useEffect, createContext, useContext, Children, isValidElement, cloneElement, type ReactNode } from "react";
 import { ChevronDown, type LucideIcon } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -30,11 +30,10 @@ const highlight = (text: string, query: string): React.ReactNode => {
     parts.push(
       <mark
         key={i}
+        className="rounded px-0.5"
         style={{
-          background: "hsl(var(--burnt-sienna) / 0.22)",
-          color: "inherit",
-          borderRadius: "2px",
-          padding: "0 1px",
+          background: "hsl(var(--burnt-sienna) / 0.18)",
+          color: "hsl(var(--ink-deep))",
         }}
       >
         {text.slice(i, i + q.length)}
@@ -45,6 +44,48 @@ const highlight = (text: string, query: string): React.ReactNode => {
   }
   if (cursor < text.length) parts.push(text.slice(cursor));
   return <>{parts}</>;
+};
+
+// Recursively wrap query matches inside arbitrary React children (leaf strings
+// only). Any element whose `type` is in SKIP_TYPES — links, code, mark itself
+// — is left untouched so we don't wrap link labels or inline code. When the
+// element has children, we recurse and rebuild it via cloneElement.
+const SKIP_TAGS = new Set(["a", "code", "pre", "kbd", "mark"]);
+const isSkippedType = (t: unknown): boolean => {
+  if (typeof t === "string") return SKIP_TAGS.has(t);
+  // React Router <Link> and other components render as functions/objects;
+  // skip anything whose displayName / name looks like a link, to be safe.
+  if (typeof t !== "function" && (typeof t !== "object" || t === null)) return false;
+  const name = (t as { displayName?: string; name?: string }).displayName
+    ?? (t as { name?: string }).name;
+  if (!name) return false;
+  return name === "Link" || name === "NavLink" || name === "Anchor";
+};
+
+const highlightChildren = (
+  node: React.ReactNode,
+  query: string,
+): React.ReactNode => {
+  if (!query.trim()) return node;
+  if (node == null || typeof node === "boolean") return node;
+  if (typeof node === "string") return highlight(node, query);
+  if (typeof node === "number") return node;
+  if (Array.isArray(node)) {
+    return node.map((child, i) => (
+      <React.Fragment key={i}>{highlightChildren(child, query)}</React.Fragment>
+    ));
+  }
+  if (isValidElement(node)) {
+    if (isSkippedType(node.type)) return node;
+    const props = node.props as { children?: React.ReactNode };
+    if (props.children === undefined) return node;
+    return cloneElement(
+      node,
+      undefined,
+      highlightChildren(props.children, query),
+    );
+  }
+  return node;
 };
 
 export type PolicyRow = {
@@ -113,7 +154,7 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
       </CollapsibleTrigger>
       <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
         <div className="px-3 pt-2 pb-3 text-ds-11 text-muted-foreground space-y-1.5 border-l-2 border-border/40 ml-5 my-1">
-          {body}
+          {isSearching ? highlightChildren(body, query) : body}
         </div>
       </CollapsibleContent>
     </Collapsible>

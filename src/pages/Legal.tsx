@@ -22,6 +22,7 @@ import {
   TAB_LABELS,
   TAB_ICONS,
   TAB_ORIGIN_LABELS,
+  TAB_TOC,
   LAST_UPDATED,
 } from "./legal/legalSections";
 
@@ -97,6 +98,56 @@ const Legal = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasResults, setHasResults] = useState(true);
   const isSearching = !!query.trim();
+
+  // Active TOC entry (WEB, lg+). We observe each PolicySection anchor in the
+  // active tab and mark the top-most visible one as active so the sidebar
+  // reads as "here is where you are in the document." Only runs outside of
+  // search (search view renders all three tabs and hides the TOC).
+  const [activeTocId, setActiveTocId] = useState<string>("");
+  useEffect(() => {
+    if (isSearching) return;
+    if (typeof window === "undefined") return;
+    const entries = TAB_TOC[tab] ?? [];
+    if (entries.length === 0) return;
+    let io: IntersectionObserver | null = null;
+    // Wait one paint so freshly-mounted sections are in the DOM before we
+    // wire up the observer — otherwise tab-switching would attach to zero
+    // targets and the TOC would never light up until the user scrolled.
+    const raf = requestAnimationFrame(() => {
+      const targets = entries
+        .map((e) => document.getElementById(e.id))
+        .filter((el): el is HTMLElement => !!el);
+      if (targets.length === 0) return;
+      // Default to the first entry so the TOC is never blank when the page
+      // paints — otherwise the top of the doc would show no active state
+      // until the user scrolls past a section header.
+      setActiveTocId(entries[0].id);
+      io = new IntersectionObserver(
+        (obs) => {
+          // Pick the entry closest to the top of the viewport (smallest
+          // positive boundingClientRect.top). This mirrors the "which
+          // heading is at the top" heuristic users expect from a docs TOC.
+          const visible = obs
+            .filter((e) => e.isIntersecting)
+            .map((e) => ({ id: e.target.id, top: e.boundingClientRect.top }))
+            .sort((a, b) => a.top - b.top);
+          if (visible.length > 0) setActiveTocId(visible[0].id);
+        },
+        {
+          // Trigger when a heading is within the top third of the viewport
+          // so the "active" swap happens as the section title crosses the
+          // sticky tab band, not when it's already scrolled out of view.
+          rootMargin: "-15% 0px -65% 0px",
+          threshold: 0,
+        },
+      );
+      targets.forEach((el) => io?.observe(el));
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      io?.disconnect();
+    };
+  }, [tab, isSearching]);
 
   // Users who ask the OS to reduce motion get the pill snapped into place
   // rather than spring-sliding between tabs.
@@ -482,6 +533,62 @@ const Legal = () => {
     );
   }
 
+  // Desktop TOC sidebar — only on lg+, only outside search (search view renders
+  // all three tabs at once, so a single-tab TOC would be misleading). Enumerates
+  // the current tab's PolicySection anchors from TAB_TOC, highlights the section
+  // closest to the viewport top (via the IntersectionObserver above), and
+  // smooth-scrolls the corresponding section into view when clicked.
+  const tocSidebar = (
+    <nav
+      aria-label="On this page"
+      className="hidden lg:block lg:sticky lg:top-32 lg:self-start"
+    >
+      <span
+        className="block font-sans font-semibold uppercase text-[0.62rem] mb-3 pl-3"
+        style={{
+          color: "hsl(var(--burnt-sienna))",
+          letterSpacing: "0.22em",
+        }}
+      >
+        On this page
+      </span>
+      <ul className="border-l border-[hsl(var(--bark)/0.18)] space-y-0.5">
+        {(TAB_TOC[tab] ?? []).map((entry) => {
+          const active = entry.id === activeTocId;
+          return (
+            <li key={entry.id}>
+              <a
+                href={`#${entry.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  // Use hash navigation so the existing PolicySection
+                  // hashchange listener auto-opens the collapsible; then
+                  // smooth-scroll into view for a docs-style feel.
+                  window.history.replaceState(null, "", `#${entry.id}`);
+                  window.dispatchEvent(new HashChangeEvent("hashchange"));
+                  const el = document.getElementById(entry.id);
+                  el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="block -ml-px pl-4 pr-2 py-1.5 text-ds-13 font-sans transition-colors leading-snug border-l-2"
+                style={{
+                  color: active
+                    ? "hsl(var(--burnt-sienna))"
+                    : "hsl(var(--olivewood) / 0.85)",
+                  borderLeftColor: active
+                    ? "hsl(var(--burnt-sienna))"
+                    : "transparent",
+                  fontWeight: active ? 600 : 500,
+                }}
+              >
+                {entry.label}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+
   // WEB: long-form document scroll (SEO). Rendered inside the shared marketing
   // chrome (PublicLayout → Navbar + Footer + page-warmth/mesh-gradient
   // background) so /legal matches every other public page instead of drifting
@@ -509,7 +616,18 @@ const Legal = () => {
             >
               {tabBar}
             </div>
-            {body}
+            {/* On lg+ split into TOC sidebar + body. TOC hides while
+                searching (body then renders all three policies at once
+                and the single-tab TOC would be misleading). Below lg the
+                body flows full-width — the TOC has `hidden lg:block`. */}
+            {isSearching ? (
+              body
+            ) : (
+              <div className="lg:grid lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10 xl:grid-cols-[16rem_minmax(0,1fr)] xl:gap-12">
+                {tocSidebar}
+                <div className="min-w-0">{body}</div>
+              </div>
+            )}
           </div>
         </div>
       </Tabs>

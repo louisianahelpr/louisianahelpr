@@ -90,6 +90,14 @@ const Footer = () => (
               </Link>
             </li>
             <li>
+              <a
+                href="mailto:admin@louisianahelpr.com"
+                className="link-standard"
+              >
+                Contact
+              </a>
+            </li>
+            <li>
               <Link to="/help" className="link-standard">
                 Help Center
               </Link>

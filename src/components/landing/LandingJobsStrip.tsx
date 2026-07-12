@@ -72,7 +72,7 @@ const JobStripCard = ({ job }: { job: StripJob }) => {
   return (
     <Link
       to="/jobs"
-      className="group w-full rounded-2xl px-5 py-6 flex flex-col gap-4 transition-all duration-300 ease-out hover:-translate-y-0.5"
+      className="group w-full rounded-2xl px-4 py-4 flex flex-col gap-2.5 transition-all duration-300 ease-out hover:-translate-y-0.5"
       style={{
         background: "hsl(0 0% 100% / 0.2)",
         border: "1px solid hsl(var(--olivewood) / 0.08)",
@@ -99,8 +99,8 @@ const JobStripCard = ({ job }: { job: StripJob }) => {
       </div>
 
       <p
-        className="font-display font-bold leading-snug line-clamp-2 min-h-[2.6em]"
-        style={{ fontSize: "0.98rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+        className="font-display font-bold leading-tight line-clamp-2 min-h-[2.4em]"
+        style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
       >
         {job.title}
       </p>
@@ -126,8 +126,8 @@ const JobStripCard = ({ job }: { job: StripJob }) => {
         )}
       </div>
 
-      <div className="mt-auto flex items-center justify-between pt-1">
-        <span className="font-display font-bold flex items-baseline gap-1.5" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
+      <div className="mt-auto flex items-center justify-between pt-0.5">
+        <span className="font-display font-bold flex items-baseline gap-1.5" style={{ fontSize: "0.98rem", color: "hsl(var(--ink-deep))" }}>
           {isBids ? (
             /* Open-to-bids jobs deliberately hide the dollar amount so the
                 marketing strip doesn't pre-anchor a price on jobs whose
@@ -181,7 +181,7 @@ const LandingJobsStrip = () => {
     <section
       id="jobs"
       aria-label="Live jobs in Louisiana"
-      className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-4 sm:pt-6 pb-4 sm:pb-6 scroll-mt-20"
+      className="observe-fade-up px-5 sm:px-8 lg:px-12 pt-2 sm:pt-3 pb-2 sm:pb-3 scroll-mt-20"
     >
       {/* Static 3-card grid — no motion. Shows the top 3 live jobs from
           the RPC. Card width shrinks to fit the column; marquee auto-scroll

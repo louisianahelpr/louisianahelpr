@@ -57,7 +57,7 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnl
       {!emblemOnly && (
       <span className="inline-flex items-baseline gap-0.5">
         <span
-          className="font-serif italic leading-none"
+          className="font-serif leading-none"
           style={{
             fontSize: s.helpr,
             fontWeight: 500,

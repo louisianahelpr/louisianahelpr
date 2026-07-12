@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
 import { Apple, Heart } from "lucide-react";
+import { Link } from "react-router-dom";
+import HelprMark from "@/components/HelprMark";
 
 // Inline Facebook glyph — lucide-react v1.x removed brand icons including
 // `Facebook`. Inlining the standard "f" mark keeps the social link working
@@ -59,22 +60,11 @@ const Footer = () => (
   >
     <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] pt-6 md:pt-8 pb-2">
       <div className="grid gap-6 md:gap-8 md:grid-cols-12">
-        {/* Brand */}
+        {/* Brand — uses the shared HelprMark component so the wordmark
+            here matches the top nav exactly (H emblem + non-italic
+            "Helpr" + italic burnt-sienna "· LA" tail). */}
         <div className="md:col-span-4 space-y-3">
-          <Link
-            to="/"
-            className="inline-flex items-baseline gap-2 text-ds-24 font-serif font-extrabold tracking-[-0.025em]"
-            style={{ color: "hsl(var(--heritage-gold))" }}
-          >
-            Helpr
-            <span
-              className="text-ds-15 font-serif font-bold tracking-[0.05em]"
-              style={{ color: "hsl(var(--heritage-gold) / 0.7)" }}
-              aria-hidden
-            >
-              · LA
-            </span>
-          </Link>
+          <HelprMark to="/" size="md" />
           <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">
             Hire a Helpr or find local work. For everyday jobs, big and small.
           </p>

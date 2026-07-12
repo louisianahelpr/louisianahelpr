@@ -120,20 +120,12 @@ const HeroSection = () => {
     navigate(session?.user ? "/post-job" : "/signup");
   };
 
-  // Anonymous visitors get the public job feed (/browse) so they can taste
-  // the marketplace before signing up. Logged-in users go to their
-  // dashboard, where the same feed lives but with personalized rails.
-  const goToJoinCommunity = async (e: React.MouseEvent) => {
+  // Browse Jobs always sends the visitor to the public /jobs board — the
+  // marketing landing's "browse jobs" affordance should show the actual
+  // public jobs webpage regardless of auth state.
+  const goToJoinCommunity = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (loggedIn) {
-      navigate("/dashboard");
-      return;
-    }
-    const { supabase } = await import("@/integrations/supabase/client");
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    navigate(session?.user ? "/dashboard" : "/browse");
+    navigate("/jobs");
   };
 
   return (
@@ -234,7 +226,7 @@ const HeroSection = () => {
                 "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px -8px rgba(46,47,34,0.08)",
             }}
           >
-            <Link to="/browse" onClick={goToJoinCommunity}>
+            <Link to="/jobs" onClick={goToJoinCommunity}>
               <Search className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
               Browse Jobs
               <ArrowRight className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.25} />

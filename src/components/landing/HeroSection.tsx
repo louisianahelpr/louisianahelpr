@@ -114,7 +114,7 @@ const HeroSection = () => {
 
   return (
     <section className="relative overflow-hidden flex flex-col justify-center items-center min-h-[calc(100svh-19rem)] px-5 sm:px-8 lg:px-12 pt-14 sm:pt-16 lg:pt-20 pb-3 sm:pb-4 lg:pb-6">
-<div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-stretch gap-10 md:gap-12 lg:gap-16 text-center">
+<div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid lg:grid-cols-[1.6fr_1fr] items-stretch gap-8 lg:gap-16 text-center">
         {/* H1 wrapped in a relative container so a soft warm-gold ambient
             halo can sit BEHIND the card on the parchment — an ambient
             light source that makes the title feel featured without any

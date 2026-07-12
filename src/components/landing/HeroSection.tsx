@@ -165,7 +165,7 @@ const HeroSection = () => {
         >
           {/* Tagline "Made in Louisiana" removed per user request. */}
           <p
-            className="max-w-sm mx-auto text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed text-balance"
+            className="max-w-sm mx-auto text-ds-11 sm:text-ds-13 lg:text-ds-15 leading-relaxed text-balance"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 400,

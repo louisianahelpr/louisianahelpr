@@ -115,61 +115,34 @@ const HeroSection = () => {
   return (
     <section className="relative overflow-hidden hero-mesh-bg flex flex-col justify-center items-center min-h-[calc(100svh-22rem)] px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-24 pb-6 sm:pb-8 lg:pb-10">
 <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-center gap-10 md:gap-12 lg:gap-16 text-center">
-        {/* H1 with ornamental serif-flourish dividers above and below —
-            hairline gold-warm rules with a centered fleuron ornament, like
-            a featured pull-quote in an editorial magazine. Makes the title
-            stand out from the rest of the page without a heavy container. */}
-        <div className="flex flex-col items-center gap-4 sm:gap-6">
-          {/* Top ornament: hairline rules + fleuron */}
+        {/* H1 — ornamental dividers removed. To make the title stand out
+            against the frosted-glass right column, a large soft radial
+            burnt-sienna glow (larger + more opaque than the previous one
+            just behind "Partner.") now anchors the WHOLE H1 block. Plus
+            a subtle text-shadow gives the display type depth. */}
+        <div className="relative">
+          {/* Wide anchoring glow — sits behind the whole H1, gives the
+              title its own visual weight so it doesn't feel loose next
+              to the framed right column. */}
           <div
             aria-hidden="true"
-            className="flex items-center gap-3 w-full max-w-md"
-            style={{ color: "hsl(var(--gold-warm) / 0.5)" }}
-          >
-            <span className="flex-1 h-px" style={{ background: "currentColor" }} />
-            <svg
-              viewBox="0 0 100 140"
-              className="w-4 h-5 shrink-0"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              {/* Heraldic fleur-de-lis — matches the wrought-iron style of
-                  the Helpr H emblem (Garden District ironwork). Central
-                  spear, two curling side lobes, a banded waist, and the
-                  characteristic bottom foil. */}
-              {/* Central spear */}
-              <path d="M50 4 C 44 22, 42 40, 44 58 L 44 68 L 56 68 L 56 58 C 58 40, 56 22, 50 4 Z" />
-              {/* Left curl */}
-              <path d="M44 60 C 30 56, 18 62, 14 76 C 10 92, 20 108, 34 108 C 28 102, 26 94, 32 88 C 38 82, 44 84, 46 76 L 44 68 Z" />
-              {/* Right curl */}
-              <path d="M56 60 C 70 56, 82 62, 86 76 C 90 92, 80 108, 66 108 C 72 102, 74 94, 68 88 C 62 82, 56 84, 54 76 L 56 68 Z" />
-              {/* Banded waist */}
-              <path d="M30 78 L 70 78 L 74 90 L 26 90 Z" />
-              {/* Bottom flame / stem */}
-              <path d="M46 88 L 46 128 C 46 132, 48 136, 50 136 C 52 136, 54 132, 54 128 L 54 88 Z" />
-              {/* Base foil tips */}
-              <path d="M42 128 C 38 132, 34 132, 30 128 C 32 134, 38 138, 46 138 Z" />
-              <path d="M58 128 C 62 132, 66 132, 70 128 C 68 134, 62 138, 54 138 Z" />
-            </svg>
-            <span className="flex-1 h-px" style={{ background: "currentColor" }} />
-          </div>
-
+            className="absolute inset-0 -m-12 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse at center, hsl(var(--burnt-sienna) / 0.10) 0%, hsl(var(--gold-warm) / 0.06) 40%, transparent 75%)",
+            }}
+          />
           <h1
             ref={headlineRef}
-            className="font-display font-black leading-[1.02] text-balance break-words text-[3.25rem] sm:text-6xl md:text-[4rem] lg:text-[6rem] xl:text-[8rem] hero-h1-settle"
-            style={{ color: "hsl(var(--olivewood))", letterSpacing: "-0.025em" }}
+            className="relative font-display font-black leading-[1.02] text-balance break-words text-[3.25rem] sm:text-6xl md:text-[4rem] lg:text-[6rem] xl:text-[8rem] hero-h1-settle"
+            style={{
+              color: "hsl(var(--olivewood))",
+              letterSpacing: "-0.025em",
+              textShadow: "0 2px 4px hsl(var(--olivewood) / 0.06)",
+            }}
           >
             Louisiana&rsquo;s Local Job{" "}
             <span className="relative inline-block">
-              {/* Soft radial glow behind "Partner." — anchors the eye */}
-              <span
-                aria-hidden="true"
-                className="absolute inset-0 -m-8 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(closest-side, hsl(var(--burnt-sienna) / 0.14), transparent 70%)",
-                }}
-              />
               <em
                 className="relative"
                 style={{
@@ -181,40 +154,6 @@ const HeroSection = () => {
               </em>
             </span>
           </h1>
-
-          {/* Bottom ornament: matches the top */}
-          <div
-            aria-hidden="true"
-            className="flex items-center gap-3 w-full max-w-md"
-            style={{ color: "hsl(var(--gold-warm) / 0.5)" }}
-          >
-            <span className="flex-1 h-px" style={{ background: "currentColor" }} />
-            <svg
-              viewBox="0 0 100 140"
-              className="w-4 h-5 shrink-0"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              {/* Heraldic fleur-de-lis — matches the wrought-iron style of
-                  the Helpr H emblem (Garden District ironwork). Central
-                  spear, two curling side lobes, a banded waist, and the
-                  characteristic bottom foil. */}
-              {/* Central spear */}
-              <path d="M50 4 C 44 22, 42 40, 44 58 L 44 68 L 56 68 L 56 58 C 58 40, 56 22, 50 4 Z" />
-              {/* Left curl */}
-              <path d="M44 60 C 30 56, 18 62, 14 76 C 10 92, 20 108, 34 108 C 28 102, 26 94, 32 88 C 38 82, 44 84, 46 76 L 44 68 Z" />
-              {/* Right curl */}
-              <path d="M56 60 C 70 56, 82 62, 86 76 C 90 92, 80 108, 66 108 C 72 102, 74 94, 68 88 C 62 82, 56 84, 54 76 L 56 68 Z" />
-              {/* Banded waist */}
-              <path d="M30 78 L 70 78 L 74 90 L 26 90 Z" />
-              {/* Bottom flame / stem */}
-              <path d="M46 88 L 46 128 C 46 132, 48 136, 50 136 C 52 136, 54 132, 54 128 L 54 88 Z" />
-              {/* Base foil tips */}
-              <path d="M42 128 C 38 132, 34 132, 30 128 C 32 134, 38 138, 46 138 Z" />
-              <path d="M58 128 C 62 132, 66 132, 70 128 C 68 134, 62 138, 54 138 Z" />
-            </svg>
-            <span className="flex-1 h-px" style={{ background: "currentColor" }} />
-          </div>
         </div>
 
         {/* Right column — the WHOLE stack (tagline → subhead → rating →

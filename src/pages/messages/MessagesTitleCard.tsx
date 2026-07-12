@@ -14,7 +14,11 @@ export const MessagesTitleCard = ({
   conversations: Conversation[];
   loading: boolean;
 }) => (
-  <div className="flex items-center justify-between gap-3">
+  // Constrained to the list-rail width (340px, matching Messages.tsx's
+  // left column) so the thread count + unread pill sit over the list
+  // column instead of floating out across the empty thread pane. Bar
+  // itself still spans both panes for background/border continuity.
+  <div className="flex items-center justify-between gap-3 w-[340px]">
     <div className="flex flex-col leading-none min-w-0">
       {/* Section name lives in the top bar now (Instagram/Facebook pattern);
           this desktop bar keeps only the thread count on the left and the

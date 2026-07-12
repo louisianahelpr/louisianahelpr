@@ -211,7 +211,11 @@ const HelpCenter = () => {
   return (
     <PublicLayout>
       {/* ───────────────────────────── 1. Editorial hero ─────────────────────── */}
-      <section className="relative px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
+      {/* overflow-hidden is required because the WarmHalo below uses
+          -inset-16/24/32 which at lg pushes 8rem past this section's
+          horizontal edges. Without a clip, that overshoot caused a
+          48px html-level horizontal scrollbar at 1440. */}
+      <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
         <div className="relative z-10 mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-12">
           {/* Warm ambient halo behind the H1 — same gold-warm → burnt-sienna
               radial pattern as the landing hero, so the two pages read as

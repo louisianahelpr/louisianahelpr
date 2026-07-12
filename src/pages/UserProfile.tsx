@@ -168,7 +168,7 @@ const UserProfile = () => {
       <>
         <PageHeader
           showBrand
-          width="lg"
+          width="5xl"
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -201,7 +201,7 @@ const UserProfile = () => {
       <>
         <PageHeader
           showBrand
-          width="lg"
+          width="5xl"
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -221,7 +221,7 @@ const UserProfile = () => {
       <>
         <PageHeader
           showBrand
-          width="lg"
+          width="5xl"
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}

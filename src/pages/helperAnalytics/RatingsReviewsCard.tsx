@@ -17,6 +17,7 @@ const RatingsReviewsCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Rati
       hasAccess={hasAccess}
       isLoading={isLoading}
       onUpgrade={onUpgrade}
+      lockedPreview="Star breakdown across every review, with reviewer names."
     >
       {analytics && (
         <div className="py-1">

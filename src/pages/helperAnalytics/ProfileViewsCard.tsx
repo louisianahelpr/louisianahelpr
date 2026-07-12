@@ -17,6 +17,7 @@ const ProfileViewsCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Profil
       hasAccess={hasAccess}
       isLoading={isLoading}
       onUpgrade={onUpgrade}
+      lockedPreview="See how many posters viewed your profile this month."
     >
       {analytics && (
         <div className="text-center py-2 space-y-1">

@@ -17,6 +17,7 @@ const TopCategoriesCard = ({ analytics, hasAccess, isLoading, onUpgrade }: TopCa
       hasAccess={hasAccess}
       isLoading={isLoading}
       onUpgrade={onUpgrade}
+      lockedPreview="Rank which job categories earn you the most — and where to focus."
     >
       {analytics && (
         <div className="space-y-2.5">

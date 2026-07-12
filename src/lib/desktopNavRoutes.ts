@@ -20,6 +20,12 @@ export const AUTH_PREFIXES = [
   // shares the prefix and would surface the authed rail to logged-out invitees.
   "/pay-it-forward", "/str-settings", "/home-history", "/work-record",
   "/benefits", "/analytics", "/pets",
+  // /family DOES get the authed desktop rail so wayfinding persists from
+  // /dashboard → /family instead of dropping the rail entirely. The
+  // public invite sub-route /family/accept/:token must still surface the
+  // marketing nav (logged-out invitees), so it's carved out below via
+  // AUTH_PREFIX_EXCLUSIONS.
+  "/family",
   // NOTE: /subscription is deliberately NOT in this list — it's a
   // marketing page (like /for-business, /help, /legal), rendered inside
   // PublicLayout with the marketing Navbar + Footer + editorial hero.
@@ -30,6 +36,12 @@ export const AUTH_PREFIXES = [
   // signed-in users on /for-business or /help do.
 ];
 
+// Path prefixes that MUST NOT get the rail even though they'd otherwise
+// match an AUTH_PREFIXES entry. Currently just /family/accept — a public
+// invite acceptance flow that logged-out visitors can hit; showing them
+// the authed rail would be a wayfinding lie.
+export const AUTH_PREFIX_EXCLUSIONS = ["/family/accept"];
+
 export const NO_NAV_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin"];
 
 /**
@@ -39,5 +51,6 @@ export const NO_NAV_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset
  */
 export function isDesktopRailRoute(pathname: string) {
   if (NO_NAV_PREFIXES.some((p) => pathname.startsWith(p))) return false;
+  if (AUTH_PREFIX_EXCLUSIONS.some((p) => pathname.startsWith(p))) return false;
   return AUTH_PREFIXES.some((p) => pathname.startsWith(p));
 }

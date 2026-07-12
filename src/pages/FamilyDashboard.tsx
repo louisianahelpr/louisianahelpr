@@ -230,18 +230,64 @@ export default function FamilyDashboard() {
         <aside className="hidden lg:block lg:col-span-5 space-y-5 lg:sticky lg:top-6 lg:self-start">
           {userId && <InviteForm myUserId={userId} />}
 
+          {/* Educational panel — explains what family accounts unlock so
+              the right pane isn't just an invite form + hint. Fills the
+              empty-state real estate on a wide desktop when the user has
+              no family members yet. Icons + short benefit lines. */}
           <div
-            className="rounded-ds-md p-4 flex gap-3"
+            className="rounded-ds-md p-5 space-y-4"
             style={{
               background: "hsl(var(--bark) / 0.04)",
               border: "0.5px solid hsl(var(--bark) / 0.1)",
             }}
           >
-            <MessageSquare className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "hsl(var(--bark) / 0.5)" }} />
-            <p className="text-ds-12 font-serif italic leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Family members you invite can view jobs, post new jobs, and message helpers on your behalf.
-              You can remove their access at any time.
-            </p>
+            <h3
+              className="font-display font-bold text-ds-15 leading-tight"
+              style={{ color: "hsl(var(--ink-deep))" }}
+            >
+              What family accounts unlock
+            </h3>
+            <ul className="space-y-3">
+              {[
+                {
+                  Icon: Users,
+                  title: "Post & manage jobs on their behalf",
+                  desc: "An adult child can hire a Helpr for an aging parent — same escrow, same reviews, same trust.",
+                },
+                {
+                  Icon: MessageSquare,
+                  title: "Message helpers directly",
+                  desc: "Coordinate arrivals and check on progress without handing off phone numbers.",
+                },
+                {
+                  Icon: Shield,
+                  title: "Full audit trail",
+                  desc: "See every job, message, and payment. Revoke access anytime from this page.",
+                },
+              ].map(({ Icon, title, desc }) => (
+                <li key={title} className="flex gap-3">
+                  <Icon
+                    className="w-4 h-4 mt-0.5 shrink-0"
+                    style={{ color: "hsl(var(--burnt-sienna))" }}
+                    strokeWidth={1.75}
+                  />
+                  <div className="min-w-0">
+                    <p
+                      className="font-sans font-semibold text-ds-13 leading-snug"
+                      style={{ color: "hsl(var(--ink-deep))" }}
+                    >
+                      {title}
+                    </p>
+                    <p
+                      className="mt-1 font-serif italic text-ds-12 leading-snug"
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                    >
+                      {desc}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         </aside>
 

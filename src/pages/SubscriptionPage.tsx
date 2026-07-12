@@ -225,7 +225,11 @@ export default function SubscriptionPage() {
   const inner = (
     <>
       {/* ── 1. Editorial hero ───────────────────────────────────────────── */}
-      <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
+      {/* pb-* tightened — the hero used to close with pb-24 and the plans
+          section opened with pt-24, producing ~200px of visible gap on
+          desktop. Now hero ends tight and plans opens tight; the natural
+          gap between the two comes from the CTA + section separator. */}
+      <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-6 sm:pb-8 lg:pb-10">
         <div className="relative z-10 mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-12">
           <span className="text-display-eyebrow">Membership</span>
 
@@ -297,10 +301,13 @@ export default function SubscriptionPage() {
       </section>
 
       {/* ── 2. Plans / tiers ────────────────────────────────────────────── */}
+      {/* Tightened pt-* — the pt-24 desktop gap between the hero CTA and
+          this section left ~200px of visible empty space, reading as a
+          layout gap. */}
       <section
         id="plans"
         ref={tiersRef}
-        className="relative px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
+        className="relative px-5 sm:px-8 lg:px-12 pt-6 sm:pt-8 lg:pt-10 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
       >
         {/* Billing-cycle segmented control — sits centered above the grid.
             Small squircle, filter-chip weight (not a CTA). Bark fill on
@@ -496,18 +503,31 @@ export default function SubscriptionPage() {
                     {(() => {
                       if (isFree) {
                         return (
-                          <div className="mt-5 flex items-baseline gap-2">
-                            <span
-                              className="font-display font-black tabular-nums leading-none"
-                              style={{
-                                fontSize: "clamp(2.25rem, 3.4vw, 3rem)",
-                                letterSpacing: "-0.03em",
-                                color: "hsl(var(--olivewood))",
-                              }}
+                          <>
+                            <div className="mt-5 flex items-baseline gap-2">
+                              <span
+                                className="font-display font-black tabular-nums leading-none"
+                                style={{
+                                  fontSize: "clamp(2.25rem, 3.4vw, 3rem)",
+                                  letterSpacing: "-0.03em",
+                                  color: "hsl(var(--olivewood))",
+                                }}
+                              >
+                                $0
+                              </span>
+                            </div>
+                            {/* Caption line matches the annual-equivalent
+                                caption on paid tiers so all 4 tier cards
+                                share the same vertical rhythm — otherwise
+                                $0 sits higher than $5 / $10 / $15 and the
+                                row of prices reads uneven. */}
+                            <p
+                              className="mt-1.5 font-sans uppercase text-[10px] font-semibold tracking-[0.14em]"
+                              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
                             >
-                              $0
-                            </span>
-                          </div>
+                              Free forever · no card required
+                            </p>
+                          </>
                         );
                       }
                       const paidTierId = tier as "basic" | "pro" | "elite";

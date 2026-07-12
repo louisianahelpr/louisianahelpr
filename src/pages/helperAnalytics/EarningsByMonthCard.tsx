@@ -17,6 +17,7 @@ const EarningsByMonthCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Ear
       hasAccess={hasAccess}
       isLoading={isLoading}
       onUpgrade={onUpgrade}
+      lockedPreview="Track month-over-month earnings trends and spot your best months."
     >
       {analytics && (
         <div className="flex items-end gap-2 h-28">

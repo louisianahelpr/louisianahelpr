@@ -17,6 +17,7 @@ const RepeatHireCard = ({ analytics, hasAccess, isLoading, onUpgrade }: RepeatHi
       hasAccess={hasAccess}
       isLoading={isLoading}
       onUpgrade={onUpgrade}
+      lockedPreview="What share of your posters have hired you more than once."
     >
       {analytics && (
         <div className="text-center py-2 space-y-1">

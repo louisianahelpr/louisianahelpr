@@ -177,7 +177,15 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           users still get the in-app support tab from inside Profile. */}
       <Route path="/support" element={<Navigate to="/help" replace />} />
 
-      <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Marketing routes intentionally skip PageTransition — its
+          motion.div sets `will-change: transform`, which establishes
+          a CSS containing block that pins the marketing Navbar's
+          `position: fixed` to the wrapper (so the nav scrolls away
+          with the page instead of staying fixed to the viewport).
+          Landing (/) also skips PageTransition for the same reason;
+          this preserves the same fixed-nav behaviour on /legal,
+          /for-business, /help, /subscription. */}
+      <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<Legal />)}</RouteErrorBoundary>} />
       <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
       <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
       <Route path="/data-rights" element={<RouteErrorBoundary>{routeEl(<PageTransition><DataRights /></PageTransition>)}</RouteErrorBoundary>} />
@@ -213,13 +221,13 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Public so the footer "Plans" link and marketing CTAs resolve for
           logged-out visitors. The page renders read-only for guests (current
           plan shows Free); tapping Upgrade routes them to sign in first. */}
-      <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<PageTransition><SubscriptionPage /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<SubscriptionPage />)}</RouteErrorBoundary>} />
       <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Pay It Forward — community credit marketplace */}
       <Route path="/pay-it-forward" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<ForBusiness />)}</RouteErrorBoundary>} />
       <Route path="/analytics" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelperAnalytics /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -245,7 +253,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* The standalone How It Works page was folded into the landing section
           (poster/Helpr toggle) — keep old links landing on that anchor. */}
       <Route path="/how-it-works" element={<Navigate to="/#how-it-works" replace />} />
-      <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/help" element={<RouteErrorBoundary>{routeEl(<HelpCenter />)}</RouteErrorBoundary>} />
       {/* Retired public discovery pages — redirect legacy links.
           Jobs are discovered via the landing strip + /jobs; parish/impact/
           pricing-guide standalone pages were removed. */}

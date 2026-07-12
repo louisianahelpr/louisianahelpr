@@ -118,10 +118,13 @@ const PublicLayout = ({
       )}
 
       {/* Back-to-landing link — quiet editorial arrow + label, shown on
-          every non-landing public page so visitors don't need to use
-          the browser back button. Landing opts out via noNavSpacer. */}
+          non-landing public pages so mobile visitors have an obvious
+          back path (the browser back button is easy to miss, and mobile
+          hides the Helpr wordmark inside the drawer). Hidden at lg+
+          because the Helpr·LA wordmark in the top nav is already a home
+          link there and this text would just duplicate it. */}
       {!noNavSpacer && location.pathname !== "/" && (
-        <div className="px-5 sm:px-8 lg:px-12 pt-4">
+        <div className="px-5 sm:px-8 lg:px-12 pt-4 lg:hidden">
           <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
             <Link
               to="/"

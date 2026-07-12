@@ -17,6 +17,7 @@ const OnTimeArrivalCard = ({ analytics, hasAccess, isLoading, onUpgrade }: OnTim
       hasAccess={hasAccess}
       isLoading={isLoading}
       onUpgrade={onUpgrade}
+      lockedPreview="Your reliability score across every completed job."
     >
       {analytics && (
         <div className="text-center py-2 space-y-1">

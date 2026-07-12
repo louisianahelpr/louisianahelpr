@@ -18,6 +18,7 @@ const BestDaysCard = ({ analytics, hasAccess, isLoading, onUpgrade }: BestDaysCa
       hasAccess={hasAccess}
       isLoading={isLoading}
       onUpgrade={onUpgrade}
+      lockedPreview="See which weekdays book fastest for you and plan your availability."
     >
       {analytics && (
         <div>

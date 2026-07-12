@@ -36,7 +36,7 @@ const HeroSummary = ({ analytics, isLoading }: HeroSummaryProps) => {
               <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                 {analytics?.completedCount ?? 0}
               </span>{" "}
-              jobs completed
+              {(analytics?.completedCount ?? 0) === 1 ? "job completed" : "jobs completed"}
             </span>
             {analytics && analytics.netEarnings > 0 && (
               <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

@@ -17,6 +17,7 @@ const SuccessRateCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Success
       hasAccess={hasAccess}
       isLoading={isLoading}
       onUpgrade={onUpgrade}
+      lockedPreview="Track your applications-to-hires conversion and dial in your pitch."
     >
       {analytics && (
         <div className="text-center py-2 space-y-1">

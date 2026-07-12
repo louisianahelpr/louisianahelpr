@@ -7,6 +7,13 @@ interface SectionCardProps {
   hasAccess: boolean;
   isLoading: boolean;
   onUpgrade: () => void;
+  /** Section-specific preview line shown in the locked/upsell state.
+   *  Without this every locked card showed the same "Upgrade to Helpr
+   *  Pro to unlock earnings insights" text, so 7 cards on a free-tier
+   *  /analytics page read as a broken template loop. Passing a distinct
+   *  preview per section (e.g. "See which categories earned you the
+   *  most" for TopCategories) makes each locked card differentiated. */
+  lockedPreview?: string;
   children: React.ReactNode;
 }
 
@@ -16,6 +23,7 @@ const SectionCard = ({
   hasAccess,
   isLoading,
   onUpgrade,
+  lockedPreview,
   children,
 }: SectionCardProps) => {
   return (
@@ -47,28 +55,36 @@ const SectionCard = ({
         children
       )}
 
-      {/* Upgrade gate — blurs the content when the user is on free tier */}
+      {/* Upgrade gate — blurs the content when the user is on free tier.
+          Uses the section's own title + per-section preview so each
+          locked card reads as distinct (not seven identical upsells). */}
       {!hasAccess && !isLoading && (
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center"
+          className="absolute inset-0 flex flex-col items-center justify-center px-4"
           style={{
             background: "hsl(var(--parchment) / 0.85)",
             backdropFilter: "blur(8px)",
             borderRadius: "inherit",
           }}
         >
-          <Crown className="w-6 h-6 mb-2" style={{ color: "hsl(var(--bark))" }} />
+          <span
+            className="inline-flex items-center gap-1 mb-2 font-sans font-semibold uppercase text-[0.6rem] tracking-[0.16em]"
+            style={{ color: "hsl(var(--bark) / 0.8)" }}
+          >
+            <Crown className="w-3 h-3" strokeWidth={2} />
+            Pro
+          </span>
           <p
             className="font-display italic font-bold text-ds-16 text-center"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
-            Pro feature
+            {title}
           </p>
           <p
-            className="font-serif italic text-ds-12 mb-3 text-center max-w-[200px] mt-1"
+            className="font-serif italic text-ds-12 mb-3 text-center max-w-[220px] mt-1"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Upgrade to Helpr Pro to unlock earnings insights
+            {lockedPreview ?? "Available with Helpr Pro"}
           </p>
           <button
             type="button"
@@ -76,7 +92,7 @@ const SectionCard = ({
             className="font-sans font-semibold text-ds-13 underline underline-offset-2"
             style={{ color: "hsl(var(--burnt-sienna))" }}
           >
-            Upgrade →
+            Unlock →
           </button>
         </div>
       )}

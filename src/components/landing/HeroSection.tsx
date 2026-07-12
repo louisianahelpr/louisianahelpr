@@ -115,32 +115,13 @@ const HeroSection = () => {
   return (
     <section className="relative overflow-hidden hero-mesh-bg flex flex-col justify-center items-center min-h-[calc(100svh-22rem)] px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-24 pb-6 sm:pb-8 lg:pb-10">
 <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid md:grid-cols-[1.6fr_1fr] items-center gap-10 md:gap-12 lg:gap-16 text-center">
-        {/* H1 — ornamental dividers removed. To make the title stand out
-            against the frosted-glass right column, a large soft radial
-            burnt-sienna glow (larger + more opaque than the previous one
-            just behind "Partner.") now anchors the WHOLE H1 block. Plus
-            a subtle text-shadow gives the display type depth. */}
         <div className="relative">
-          {/* Wide anchoring glow — sits behind the whole H1, gives the
-              title its own visual weight so it doesn't feel loose next
-              to the framed right column. Larger radius + stronger opacity
-              so it actually reads (was 0.10/0.06 which was invisible). */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 -m-20 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(ellipse at center, hsl(var(--burnt-sienna) / 0.28) 0%, hsl(var(--gold-warm) / 0.18) 35%, hsl(var(--burnt-sienna) / 0.08) 60%, transparent 85%)",
-              filter: "blur(12px)",
-            }}
-          />
           <h1
             ref={headlineRef}
             className="relative font-display font-black leading-[1.02] text-balance break-words text-[3.25rem] sm:text-6xl md:text-[4rem] lg:text-[6rem] xl:text-[8rem] hero-h1-settle"
             style={{
               color: "hsl(var(--olivewood))",
               letterSpacing: "-0.025em",
-              textShadow: "0 2px 4px hsl(var(--olivewood) / 0.06)",
             }}
           >
             Louisiana&rsquo;s Local Job{" "}

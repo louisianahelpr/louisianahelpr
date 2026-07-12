@@ -113,91 +113,137 @@ export default function FamilyDashboard() {
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader title="Family & care" onBack={() => navigate(-1)} width="lg" showBrand rightSlot={<NotificationPanel />} />
 
-      <div className="max-w-lg lg:max-w-4xl mx-auto px-4 pt-4 space-y-6">
+      {/* Split-column desktop layout: on mobile/tablet this stacks as a
+          single column exactly as before. At lg+ it becomes a two-column
+          grid — the members lists take the wide reading column on the
+          left, and the invite form + about-panel are pulled into a
+          sticky action pane on the right. Outer container widens to
+          max-w-5xl/6xl to give the two columns real breathing room. */}
+      <div className="max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto px-4 pt-4 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 xl:gap-12 items-start">
 
-        {/* ── Caregiver section — always shown so the user can add a
-            family member even if they aren't managing anyone yet. ── */}
-        <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-              <h2 className="font-display italic font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
-                Managing jobs for
-              </h2>
-            </div>
+        {/* ── LEFT COLUMN — members lists ──
+            Primary reading content: who you manage, and (if applicable)
+            who manages jobs on your behalf. */}
+        <div className="lg:col-span-7 space-y-6 min-w-0">
 
-            {relQuery.isLoading && (
-              <div className="space-y-2">
-                {[0, 1].map((i) => (
-                  <Skeleton key={i} className="h-24 rounded-ds-md" />
-                ))}
-              </div>
-            )}
-
-            {!relQuery.isLoading && relQuery.isError && (
-              <ErrorState
-                variant="inline"
-                title="Couldn't load your family connections."
-                body="Tap Try again to reload who you're managing jobs for."
-                onRetry={() => relQuery.refetch()}
-              />
-            )}
-
-            {!relQuery.isLoading && !relQuery.isError && asCaregiver.length === 0 && (
-              <p className="text-ds-13 font-serif italic px-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                You're not managing jobs for anyone yet.
-              </p>
-            )}
-
-            {asCaregiver.map((rel) => (
-              <CareRecipientCard
-                key={rel.id}
-                relationship={rel}
-                recipientProfile={profileMap[rel.care_recipient_id]}
-                onRevokeAccess={setPendingRevokeId}
-              />
-            ))}
-
-            {/* Invite form — always shown in caregiver section */}
-            {userId && <InviteForm myUserId={userId} />}
-        </section>
-
-        {/* ── Recipient section — who manages my jobs ── */}
-        {asRecipient.length > 0 && (
+          {/* ── Caregiver section — always shown so the user can see the
+              empty state even if they aren't managing anyone yet. The
+              invite affordance itself moved to the right column at lg+;
+              on mobile it renders inline at the bottom of this section
+              so the single-column flow is unchanged. ── */}
           <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4" style={{ color: "hsl(var(--sage))" }} />
-              <h2 className="font-display italic font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
-                Your family helper
-              </h2>
-            </div>
-            <p className="text-ds-12 font-serif italic -mt-1 px-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              These people can view and post jobs on your behalf.
-            </p>
-            {asRecipient.map((rel) => (
-              <CaregiverCard
-                key={rel.id}
-                relationship={rel}
-                caregiverProfile={profileMap[rel.caregiver_id]}
-                onRevokeAccess={setPendingRevokeId}
-              />
-            ))}
-          </section>
-        )}
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
+                <h2 className="font-display italic font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+                  Managing jobs for
+                </h2>
+              </div>
 
-        {/* ── About section ── */}
-        <div
-          className="rounded-ds-md p-4 flex gap-3"
-          style={{
-            background: "hsl(var(--bark) / 0.04)",
-            border: "0.5px solid hsl(var(--bark) / 0.1)",
-          }}
-        >
-          <MessageSquare className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "hsl(var(--bark) / 0.5)" }} />
-          <p className="text-ds-12 font-serif italic leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Family members you invite can view jobs, post new jobs, and message helpers on your behalf.
-            You can remove their access at any time.
-          </p>
+              {relQuery.isLoading && (
+                <div className="space-y-2">
+                  {[0, 1].map((i) => (
+                    <Skeleton key={i} className="h-24 rounded-ds-md" />
+                  ))}
+                </div>
+              )}
+
+              {!relQuery.isLoading && relQuery.isError && (
+                <ErrorState
+                  variant="inline"
+                  title="Couldn't load your family connections."
+                  body="Tap Try again to reload who you're managing jobs for."
+                  onRetry={() => relQuery.refetch()}
+                />
+              )}
+
+              {!relQuery.isLoading && !relQuery.isError && asCaregiver.length === 0 && (
+                <p className="text-ds-13 font-serif italic px-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  You're not managing jobs for anyone yet.
+                </p>
+              )}
+
+              {asCaregiver.map((rel) => (
+                <CareRecipientCard
+                  key={rel.id}
+                  relationship={rel}
+                  recipientProfile={profileMap[rel.care_recipient_id]}
+                  onRevokeAccess={setPendingRevokeId}
+                />
+              ))}
+
+              {/* Invite form — mobile/tablet only. At lg+ this component
+                  is rendered in the sticky right column instead so the
+                  action pane always has a send-invite affordance in view. */}
+              {userId && (
+                <div className="lg:hidden">
+                  <InviteForm myUserId={userId} />
+                </div>
+              )}
+          </section>
+
+          {/* ── Recipient section — who manages my jobs ── */}
+          {asRecipient.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4" style={{ color: "hsl(var(--sage))" }} />
+                <h2 className="font-display italic font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+                  Your family helper
+                </h2>
+              </div>
+              <p className="text-ds-12 font-serif italic -mt-1 px-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                These people can view and post jobs on your behalf.
+              </p>
+              {asRecipient.map((rel) => (
+                <CaregiverCard
+                  key={rel.id}
+                  relationship={rel}
+                  caregiverProfile={profileMap[rel.caregiver_id]}
+                  onRevokeAccess={setPendingRevokeId}
+                />
+              ))}
+            </section>
+          )}
+
+          {/* ── About section — mobile/tablet only. Duplicated in the
+              right column at lg+ where it sits below the invite form. ── */}
+          <div
+            className="lg:hidden rounded-ds-md p-4 flex gap-3"
+            style={{
+              background: "hsl(var(--bark) / 0.04)",
+              border: "0.5px solid hsl(var(--bark) / 0.1)",
+            }}
+          >
+            <MessageSquare className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "hsl(var(--bark) / 0.5)" }} />
+            <p className="text-ds-12 font-serif italic leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Family members you invite can view jobs, post new jobs, and message helpers on your behalf.
+              You can remove their access at any time.
+            </p>
+          </div>
+
         </div>
+
+        {/* ── RIGHT COLUMN — sticky action pane (lg+ only) ──
+            Invite form and the about/help snippet. Sticky so the primary
+            call-to-action stays in view as the members list scrolls. The
+            column itself is hidden below lg — its contents render inline
+            in the left column at those breakpoints. */}
+        <aside className="hidden lg:block lg:col-span-5 space-y-5 lg:sticky lg:top-6 lg:self-start">
+          {userId && <InviteForm myUserId={userId} />}
+
+          <div
+            className="rounded-ds-md p-4 flex gap-3"
+            style={{
+              background: "hsl(var(--bark) / 0.04)",
+              border: "0.5px solid hsl(var(--bark) / 0.1)",
+            }}
+          >
+            <MessageSquare className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "hsl(var(--bark) / 0.5)" }} />
+            <p className="text-ds-12 font-serif italic leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Family members you invite can view jobs, post new jobs, and message helpers on your behalf.
+              You can remove their access at any time.
+            </p>
+          </div>
+        </aside>
 
       </div>
     </div>

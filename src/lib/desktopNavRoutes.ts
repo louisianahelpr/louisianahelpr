@@ -20,15 +20,14 @@ export const AUTH_PREFIXES = [
   // shares the prefix and would surface the authed rail to logged-out invitees.
   "/pay-it-forward", "/str-settings", "/home-history", "/work-record",
   "/benefits", "/analytics", "/pets",
-  // Dual-audience: /subscription is guest-reachable (NOT a ProtectedRoute) yet
-  // also an authed app page. It still belongs here because isDesktopRailRoute
-  // only decides "the rail owns nav IF a user is present" — both the rail
-  // (DesktopSidebarNav's `!user` guard) and the Navbar step-aside (`railOwnsNav`
-  // = `!!user && ...`) already AND-in the user, so a signed-out visitor keeps
-  // the marketing Navbar while a signed-in one gets the rail + #root inset.
-  // Omitting it left authed users on /subscription with the marketing nav and
-  // no rail — a cohesion defect vs. /dashboard and /profile.
-  "/subscription",
+  // NOTE: /subscription is deliberately NOT in this list — it's a
+  // marketing page (like /for-business, /help, /legal), rendered inside
+  // PublicLayout with the marketing Navbar + Footer + editorial hero.
+  // Adding it here surfaces the authed desktop rail alongside the
+  // marketing content for signed-in users, which reads as two navigation
+  // systems stacked and clashes with the editorial layout. Signed-in
+  // users on /subscription keep the marketing Navbar the same way
+  // signed-in users on /for-business or /help do.
 ];
 
 export const NO_NAV_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin"];

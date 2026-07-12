@@ -24,9 +24,9 @@
  *    in-app SubscriptionTab never advertise different perks for a tier.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Check, Loader2, Sparkles } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -38,6 +38,32 @@ import {
   toSubscriptionTier,
   type SubscriptionTier,
 } from "@/lib/subscriptionTiers";
+
+type BillingCycle = "monthly" | "annual";
+
+// Local mirror of the `formatTierPrices` helper in
+// `src/components/profile/subscriptionTab/tierConfig.tsx`. Kept in-file so
+// the public /subscription page can render the annual toggle without pulling
+// in the in-app SubscriptionTab config, but the numeric inputs are still
+// sourced from TIER_PERKS (single source of truth) — if a price moves in
+// subscriptionTiers.ts, both surfaces update in lockstep.
+function formatPaidTierPrices(tierId: "basic" | "pro" | "elite") {
+  const perk = TIER_PERKS[tierId];
+  const monthlyPrice = perk.price!;
+  const annualMonthly = perk.annualPrice!;
+  const yearlyTotal = Math.round(annualMonthly * 12);
+  const monthlyTotalIfPaidMonthly = monthlyPrice * 12;
+  const savePct = Math.round(
+    ((monthlyTotalIfPaidMonthly - yearlyTotal) / monthlyTotalIfPaidMonthly) *
+      100,
+  );
+  return {
+    monthlyPrice,
+    annualMonthlyEquivalent: annualMonthly,
+    yearlyTotal,
+    annualSave: `Save ${savePct}%`,
+  };
+}
 
 // Business is acquired through the seats flow (create-business-seat-checkout),
 // not this consumer upgrade page, so it is intentionally omitted here —
@@ -79,12 +105,39 @@ export default function SubscriptionPage() {
   const currentTier = toSubscriptionTier(profile?.subscription_tier);
 
   const [upgrading, setUpgrading] = useState(false);
+  // Billing-cycle toggle. Defaults to monthly to match the pre-toggle
+  // pricing displayed on the tier cards; flipping to annual re-renders the
+  // price line AND is forwarded to create-pro-checkout as `billing_cycle`
+  // so Stripe charges the correct price.
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  // Compare-features table is collapsed by default (it is dense — showing
+  // it inline would push the primary conversion below the fold). Toggling
+  // slides it in below the "Compare all features" button.
+  const [showCompare, setShowCompare] = useState(false);
 
   // Sequential fade-in for the tier grid — mirrors HowItWorksSection.
   const tiersRef = useRef<HTMLDivElement>(null);
   const [tiersInView, setTiersInView] = useState(false);
   const benefitsRef = useRef<HTMLDivElement>(null);
   const [benefitsInView, setBenefitsInView] = useState(false);
+
+  // Union of every feature bullet across all four tiers, deduped by string
+  // equality — this is the row axis for the compare-features table. TIER_PERKS
+  // stays the single source of truth so a copy edit to a bullet automatically
+  // updates both the tier card AND the compare row without a manual sync.
+  const comparisonFeatures = useMemo(() => {
+    const seen = new Set<string>();
+    const ordered: string[] = [];
+    for (const tier of CONSUMER_TIERS) {
+      for (const bullet of TIER_PERKS[tier].featureBullets) {
+        if (!seen.has(bullet)) {
+          seen.add(bullet);
+          ordered.push(bullet);
+        }
+      }
+    }
+    return ordered;
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -132,7 +185,9 @@ export default function SubscriptionPage() {
       const { data, error } = await supabase.functions.invoke(
         "create-pro-checkout",
         {
-          body: { tier, billing_cycle: "monthly" },
+          // billing_cycle mirrors the toggle so Stripe charges the price
+          // (monthly vs annual) the user actually saw on the card they tapped.
+          body: { tier, billing_cycle: billingCycle },
         },
       );
       if (error) throw error;
@@ -247,6 +302,48 @@ export default function SubscriptionPage() {
         ref={tiersRef}
         className="relative px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
       >
+        {/* Billing-cycle segmented control — sits centered above the grid.
+            Small squircle, filter-chip weight (not a CTA). Bark fill on
+            active, transparent on inactive. */}
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl mb-10 sm:mb-12 flex justify-center">
+          <div
+            role="tablist"
+            aria-label="Billing cycle"
+            className="inline-flex items-center gap-1 p-1 rounded-2xl"
+            style={{
+              background: "hsl(var(--burnt-sienna) / 0.06)",
+              border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
+              boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+            }}
+          >
+            {(["monthly", "annual"] as const).map((cycle) => {
+              const active = billingCycle === cycle;
+              return (
+                <button
+                  key={cycle}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setBillingCycle(cycle)}
+                  className="h-9 sm:h-10 px-4 sm:px-5 rounded-xl font-sans font-semibold text-ds-13 transition-[background,color,transform] duration-150 active:scale-[0.98]"
+                  style={{
+                    background: active ? "hsl(var(--bark))" : "transparent",
+                    color: active
+                      ? "hsl(var(--parchment))"
+                      : "hsl(var(--olivewood))",
+                    boxShadow: active
+                      ? "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)"
+                      : "none",
+                    letterSpacing: "-0.005em",
+                  }}
+                >
+                  {cycle === "monthly" ? "Monthly" : "Annual"}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
           {/* Left masthead */}
           <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32">
@@ -391,48 +488,87 @@ export default function SubscriptionPage() {
                       {perks.tagline}
                     </p>
 
-                    {/* Price line */}
-                    <div className="mt-5 flex items-baseline gap-2">
-                      {isFree ? (
-                        <span
-                          className="font-display font-black tabular-nums leading-none"
-                          style={{
-                            fontSize: "clamp(2.25rem, 3.4vw, 3rem)",
-                            letterSpacing: "-0.03em",
-                            color: "hsl(var(--olivewood))",
-                          }}
-                        >
-                          $0
-                        </span>
-                      ) : (
+                    {/* Price line — annual/monthly aware. On annual, the big
+                        number is the yearly total ($100/yr), with the
+                        monthly-equivalent + save chip in the caption. On
+                        monthly, the big number is $X/mo. Free tier is always
+                        $0 regardless of toggle. */}
+                    {(() => {
+                      if (isFree) {
+                        return (
+                          <div className="mt-5 flex items-baseline gap-2">
+                            <span
+                              className="font-display font-black tabular-nums leading-none"
+                              style={{
+                                fontSize: "clamp(2.25rem, 3.4vw, 3rem)",
+                                letterSpacing: "-0.03em",
+                                color: "hsl(var(--olivewood))",
+                              }}
+                            >
+                              $0
+                            </span>
+                          </div>
+                        );
+                      }
+                      const paidTierId = tier as "basic" | "pro" | "elite";
+                      const priceInfo = formatPaidTierPrices(paidTierId);
+                      const isAnnual = billingCycle === "annual";
+                      return (
                         <>
-                          <span
-                            className="font-display font-black tabular-nums leading-none"
-                            style={{
-                              fontSize: "clamp(2.25rem, 3.4vw, 3rem)",
-                              letterSpacing: "-0.03em",
-                              color: "hsl(var(--olivewood))",
-                            }}
-                          >
-                            ${perks.price}
-                          </span>
-                          <span
-                            className="font-sans font-medium text-ds-13"
-                            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                          >
-                            /mo
-                          </span>
+                          <div className="mt-5 flex items-baseline gap-2 flex-wrap">
+                            <span
+                              className="font-display font-black tabular-nums leading-none"
+                              style={{
+                                fontSize: "clamp(2.25rem, 3.4vw, 3rem)",
+                                letterSpacing: "-0.03em",
+                                color: "hsl(var(--olivewood))",
+                              }}
+                            >
+                              {isAnnual
+                                ? `$${priceInfo.yearlyTotal}`
+                                : `$${priceInfo.monthlyPrice}`}
+                            </span>
+                            <span
+                              className="font-sans font-medium text-ds-13"
+                              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                            >
+                              {isAnnual ? "/yr" : "/mo"}
+                            </span>
+                          </div>
+                          {isAnnual ? (
+                            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                              <p
+                                className="font-sans uppercase text-[10px] font-semibold tracking-[0.14em]"
+                                style={{
+                                  color: "hsl(var(--olivewood) / 0.75)",
+                                }}
+                              >
+                                or ${priceInfo.annualMonthlyEquivalent}/mo
+                                billed annually
+                              </p>
+                              <span
+                                className="font-sans text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full"
+                                style={{
+                                  background: "hsl(var(--burnt-sienna))",
+                                  color: "hsl(var(--parchment))",
+                                  letterSpacing: "0.12em",
+                                }}
+                              >
+                                {priceInfo.annualSave}
+                              </span>
+                            </div>
+                          ) : (
+                            <p
+                              className="mt-1 font-serif italic text-ds-12"
+                              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                            >
+                              or ${priceInfo.annualMonthlyEquivalent}/mo billed
+                              annually
+                            </p>
+                          )}
                         </>
-                      )}
-                    </div>
-                    {!isFree && perks.annualPrice && (
-                      <p
-                        className="mt-1 font-serif italic text-ds-12"
-                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                      >
-                        or ${perks.annualPrice}/mo billed annually
-                      </p>
-                    )}
+                      );
+                    })()}
 
                     {/* Fee line — the headline benefit */}
                     <p
@@ -546,6 +682,178 @@ export default function SubscriptionPage() {
               );
             })}
           </div>
+        </div>
+
+        {/* Compare-features toggle + table. Ghost button collapses/expands
+            the full feature matrix — kept collapsed by default so the
+            primary conversion (tier cards + CTAs) stays above the fold on
+            typical viewports. */}
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl mt-12 sm:mt-16">
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowCompare((s) => !s)}
+              aria-expanded={showCompare}
+              aria-controls="compare-features-table"
+              className="group inline-flex items-center gap-2 h-10 sm:h-11 px-4 sm:px-5 rounded-2xl font-sans font-semibold text-ds-13 transition-[background,color] duration-150"
+              style={{
+                color: "hsl(var(--bark))",
+                background: "transparent",
+                border: "1px solid hsl(var(--bark) / 0.28)",
+                letterSpacing: "-0.005em",
+              }}
+            >
+              {showCompare ? "Hide comparison" : "Compare all features"}
+              <ChevronDown
+                className="w-4 h-4 transition-transform duration-200"
+                strokeWidth={2}
+                style={{
+                  transform: showCompare ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              />
+            </button>
+          </div>
+
+          {showCompare && (
+            <div
+              id="compare-features-table"
+              className="mt-8 sm:mt-10 -mx-5 sm:mx-0 overflow-x-auto"
+            >
+              <table
+                className="w-full min-w-[560px] sm:min-w-0 border-collapse font-sans"
+                style={{ color: "hsl(var(--olivewood))" }}
+              >
+                <thead>
+                  <tr>
+                    <th
+                      scope="col"
+                      className="text-left align-bottom py-4 px-3 sm:px-4"
+                      style={{
+                        borderBottom:
+                          "1px solid hsl(var(--olivewood) / 0.14)",
+                        width: "34%",
+                      }}
+                    >
+                      <span
+                        className="font-sans uppercase text-[10px] font-semibold tracking-[0.14em]"
+                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                      >
+                        Feature
+                      </span>
+                    </th>
+                    {CONSUMER_TIERS.map((tier) => {
+                      const perks = TIER_PERKS[tier];
+                      const isFree = tier === "free";
+                      const isFeatured = tier === "pro";
+                      const displayName = isFree
+                        ? "Free"
+                        : perks.name.replace(/^Helpr\s+/, "");
+                      return (
+                        <th
+                          key={tier}
+                          scope="col"
+                          className="text-center align-bottom py-4 px-2 sm:px-3"
+                          style={{
+                            borderBottom:
+                              "1px solid hsl(var(--olivewood) / 0.14)",
+                          }}
+                        >
+                          <div className="flex flex-col items-center gap-1">
+                            <span
+                              className="font-display font-bold leading-none"
+                              style={{
+                                fontSize: "clamp(1.05rem, 1.6vw, 1.35rem)",
+                                letterSpacing: "-0.02em",
+                                color: isFeatured
+                                  ? "hsl(var(--burnt-sienna))"
+                                  : "hsl(var(--ink-deep))",
+                              }}
+                            >
+                              {displayName}
+                            </span>
+                            {isFeatured && (
+                              <span
+                                className="mt-1 font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full"
+                                style={{
+                                  background: "hsl(var(--burnt-sienna))",
+                                  color: "hsl(var(--parchment))",
+                                  letterSpacing: "0.14em",
+                                }}
+                              >
+                                Recommended
+                              </span>
+                            )}
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparisonFeatures.map((feature) => (
+                    <tr
+                      key={feature}
+                      className="transition-colors duration-150"
+                      style={{
+                        // Row hover — subtle warm tint, matches card fills.
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "hsl(var(--burnt-sienna) / 0.04)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <th
+                        scope="row"
+                        className="text-left py-3 px-3 sm:px-4 font-sans font-medium text-ds-13 leading-snug"
+                        style={{
+                          color: "hsl(var(--olivewood))",
+                          borderBottom:
+                            "1px solid hsl(var(--olivewood) / 0.10)",
+                        }}
+                      >
+                        {feature}
+                      </th>
+                      {CONSUMER_TIERS.map((tier) => {
+                        const has =
+                          TIER_PERKS[tier].featureBullets.includes(feature);
+                        return (
+                          <td
+                            key={tier}
+                            className="text-center py-3 px-2 sm:px-3"
+                            style={{
+                              borderBottom:
+                                "1px solid hsl(var(--olivewood) / 0.10)",
+                            }}
+                          >
+                            {has ? (
+                              <Check
+                                className="inline-block w-4 h-4"
+                                strokeWidth={2.5}
+                                style={{ color: "hsl(140 45% 38%)" }}
+                                aria-label="Included"
+                              />
+                            ) : (
+                              <span
+                                aria-label="Not included"
+                                style={{
+                                  color: "hsl(var(--olivewood) / 0.4)",
+                                }}
+                              >
+                                —
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </section>
 

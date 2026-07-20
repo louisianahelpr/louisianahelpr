@@ -3,7 +3,11 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 2500;
-const DEBUG_AUTH = import.meta.env.DEV;
+// See ProtectedRoute.tsx — dev-only + opt-in via `?debug_auth=1`.
+const DEBUG_AUTH =
+  import.meta.env.DEV &&
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).has("debug_auth");
 
 type AuthSnapshot = { user: User | null; isReady: boolean };
 

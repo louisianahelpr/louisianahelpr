@@ -175,7 +175,7 @@ const UserProfile = () => {
           rightSlot={headerActionPlaceholder}
         />
         <div className="container mx-auto px-5 py-6">
-          <div className="max-w-lg mx-auto space-y-5">
+          <div className="max-w-2xl mx-auto space-y-5">
             <div className="rounded-2xl liquid-glass p-5 text-center space-y-3">
               <div className="w-24 h-24 rounded-ds-pill squircle bg-muted animate-pulse mx-auto" />
               <div className="h-6 w-40 bg-muted animate-pulse mx-auto rounded" />
@@ -208,7 +208,7 @@ const UserProfile = () => {
           rightSlot={headerActionPlaceholder}
         />
         <div className="container mx-auto px-5 py-6">
-          <div className="max-w-lg mx-auto flex">
+          <div className="max-w-2xl mx-auto flex">
             <ErrorState onRetry={() => refetch()} />
           </div>
         </div>
@@ -228,7 +228,7 @@ const UserProfile = () => {
           rightSlot={headerActionPlaceholder}
         />
         <div className="container mx-auto px-5 py-6">
-          <div className="max-w-lg mx-auto flex">
+          <div className="max-w-2xl mx-auto flex">
             <EmptyState
               variant="inline"
               icon={UserX}

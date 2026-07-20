@@ -29,7 +29,7 @@ interface PageHeaderProps {
    * Analytics, Profile, STR Settings, Family) — use it whenever the body is
    * `max-w-lg mx-auto`.
    */
-  width?: "default" | "lg" | "2xl" | "5xl";
+  width?: "default" | "lg" | "2xl" | "3xl" | "4xl" | "5xl";
   /**
    * Set when a sibling header (e.g. DashboardHeader) already sits ABOVE this
    * PageHeader and has already cleared the notch/status-bar safe-area inset.
@@ -44,6 +44,8 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, string> = {
   default: "max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 lg:px-8 xl:px-12",
   lg: "max-w-lg px-5 lg:px-8",
   "2xl": "max-w-2xl px-5 lg:px-8",
+  "3xl": "max-w-3xl px-5 lg:px-8",
+  "4xl": "max-w-4xl px-5 lg:px-8",
   "5xl": "max-w-5xl px-5 lg:px-8",
 };
 

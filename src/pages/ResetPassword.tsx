@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Check, X } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
+import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
 import HelprMark from "@/components/HelprMark";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { friendlyAuthError } from "@/lib/authErrors";
@@ -98,7 +99,7 @@ const ResetPassword = () => {
   };
 
   return (
-    <AuthShell hideHeader maxWidth="sm" backTo="/login">
+    <AuthShell hideHeader maxWidth="sm" backTo="/login" desktopBrandPanel={<AuthBrandPane />}>
       <div className="text-center mb-8 space-y-2">
         <div className="flex justify-center mb-3">
           <HelprMark to={null} size="md" emblemOnly />

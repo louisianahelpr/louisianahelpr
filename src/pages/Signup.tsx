@@ -9,6 +9,7 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
+import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
 import HelprMark from "@/components/HelprMark";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -345,7 +346,7 @@ const Signup = () => {
       : { title: "Tell us about you.", subtitle: "A few basics so neighbors know who they're working with." };
 
   return (
-    <AuthShell hideHeader>
+    <AuthShell hideHeader desktopBrandPanel={<AuthBrandPane />}>
       <div className="text-center mb-4 space-y-1.5">
         <div className="flex justify-center mb-2">
           <HelprMark to={null} size="md" emblemOnly />

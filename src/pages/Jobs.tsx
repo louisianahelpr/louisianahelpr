@@ -379,11 +379,11 @@ const Jobs = () => {
               ))}
             </div>
           ) : jobsError && jobs.length === 0 ? (
-            <div className="max-w-md mx-auto">
+            <div className="max-w-2xl mx-auto">
               <ErrorState onRetry={() => refetch()} />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="max-w-md mx-auto">
+            <div className="max-w-2xl mx-auto">
               <EmptyState
                 variant="inline"
                 icon={(search || selectedCategory) ? Search : Briefcase}
@@ -487,7 +487,7 @@ const Jobs = () => {
           {/* CTA */}
           <div className="text-center mt-12 space-y-4">
             <div
-              className="rounded-ds-lg p-8 max-w-lg mx-auto space-y-4"
+              className="rounded-ds-lg p-8 max-w-2xl mx-auto space-y-4"
               style={{
                 background:
                   "linear-gradient(135deg, hsl(var(--bark) / 0.08) 0%, hsl(var(--burnt-sienna) / 0.07) 100%)",

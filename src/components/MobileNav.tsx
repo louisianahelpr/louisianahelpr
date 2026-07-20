@@ -344,8 +344,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           ) : (
             <Icon
               className="w-[22px] h-[22px] transition-all duration-200"
-              strokeWidth={isActive ? 2.3 : 1.8}
-              fill={isActive ? "hsl(var(--bark) / 0.16)" : "none"}
+              strokeWidth={isActive ? 2 : 1.6}
+              fill={isActive ? "currentColor" : "none"}
             />
           )}
           {/* No per-tab padlock for guests — three padlocks in a row read
@@ -376,7 +376,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         {isActive && (
           <motion.span
             layoutId="mobile-nav-underline"
-            className="absolute bottom-0.5 w-1 h-[2px] rounded-full pointer-events-none"
+            className="absolute bottom-0.5 w-6 h-[3px] rounded-full pointer-events-none"
             style={{
               background: "hsl(var(--burnt-sienna))",
               boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.45)",
@@ -485,16 +485,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             }}
           >
             <div className="flex items-stretch h-14 px-2">
-              {[...leftItems, ...rightItems].map((item, i) => (
+              {[...leftItems, ...rightItems].map((item) => (
                 <div key={item.path} className="flex flex-1 items-stretch relative">
-                  {/* Hairline divider before each item except the first */}
-                  {i > 0 && (
-                    <span
-                      aria-hidden
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-px h-5"
-                      style={{ background: "hsl(var(--olivewood) / 0.08)" }}
-                    />
-                  )}
                   {renderItem(item)}
                 </div>
               ))}

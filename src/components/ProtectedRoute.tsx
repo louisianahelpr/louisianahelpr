@@ -6,7 +6,14 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { report } from "@/lib/errorLogger";
 import { track, AhaEvent } from "@/lib/analytics";
 
-const DEBUG_AUTH = import.meta.env.DEV;
+// Auth debug logging is dev-only by default. In dev it's still noisy —
+// a single tab hop can print ~15 lines and drown real errors. Devs who
+// want the trace opt in via `?debug_auth=1` on any URL; everyone else
+// gets a quiet console. Prod always stays silent.
+const DEBUG_AUTH =
+  import.meta.env.DEV &&
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).has("debug_auth");
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

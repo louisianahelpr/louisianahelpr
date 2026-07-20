@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/skeletons/JobCardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCachedUserLocation } from "@/hooks/useUserLocation";
+import { useProfile } from "@/hooks/useProfile";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -143,6 +144,15 @@ export function BrowseTasksFeed({
   hoveredJobId,
   setHoveredJobId,
 }: BrowseTasksFeedProps) {
+  // Personalize the signed-in empty state — greet by first name instead of
+  // the generic "neighbor" the guest screen uses. Falls back to "neighbor"
+  // when we don't yet have a name (unauthed OR still-loading profile) so
+  // the copy never reads as broken.
+  const { data: myProfile } = useProfile(user?.id ?? null);
+  const emptyStateGreeting = (() => {
+    const first = (myProfile?.full_name ?? "").trim().split(/\s+/)[0]?.replace(/[^a-zA-Z'-]/g, "");
+    return first || "neighbor";
+  })();
   // Lift the viewer's cached coords out of filters.userLoc — or fall back
   // to the module-level cache populated by any prior useUserLocation()
   // call elsewhere (the BrowseMap, the "nearby" filter, JobTracking) so
@@ -278,7 +288,7 @@ export function BrowseTasksFeed({
               ? (nearbyActive
                 ? `No jobs within ${currentMiles} mi of you.`
                 : "No jobs match your filters.")
-              : "Nothing today, neighbor."
+              : `Nothing today, ${emptyStateGreeting}.`
           }
           body={
             filters.hasFilters

@@ -7,6 +7,7 @@ import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
 import { Mail, Loader2, Check } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
+import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
 import HelprMark from "@/components/HelprMark";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -90,7 +91,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <AuthShell hideHeader backTo="/login">
+    <AuthShell hideHeader backTo="/login" desktopBrandPanel={<AuthBrandPane />}>
       {!sent && (
         <div className="text-center mb-8 space-y-2">
           <div className="flex justify-center mb-3">

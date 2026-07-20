@@ -11,6 +11,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import AuthShell from "@/components/auth/AuthShell";
+import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
 import HelprMark from "@/components/HelprMark";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import BuildStamp from "@/components/BuildStamp";
@@ -261,7 +262,7 @@ const Login = () => {
   };
 
   return (
-    <AuthShell hideHeader>
+    <AuthShell hideHeader desktopBrandPanel={<AuthBrandPane />}>
       <div className="text-center mb-8 space-y-2">
         <div className="flex justify-center mb-3">
           <HelprMark to={null} size="md" emblemOnly />

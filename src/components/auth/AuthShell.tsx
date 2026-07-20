@@ -24,6 +24,12 @@ interface AuthShellProps {
       use only for genuinely short, single-card screens. */
   align?: "start" | "center";
   maxWidth?: "sm" | "md" | "lg" | "2xl";
+  /** Desktop-only (lg+) companion pane rendered to the LEFT of the
+      form column so the auth page fills wide viewports instead of
+      stranding the form in a 500px column with huge empty gutters.
+      Mobile is unchanged — the pane is `hidden` below lg. Passing
+      `null`/undefined preserves the original narrow-centered layout. */
+  desktopBrandPanel?: ReactNode;
 }
 
 const widthMap = {
@@ -42,6 +48,7 @@ const AuthShell = ({
   compactHeader = false,
   align = "start",
   maxWidth = "lg",
+  desktopBrandPanel,
 }: AuthShellProps) => {
   const showCompactTopBar = compactHeader && !hideHeader;
   const showFullHeader = !compactHeader && !hideHeader;
@@ -70,6 +77,11 @@ const AuthShell = ({
         </div>
       )}
       <div className={`relative z-10 flex ${alignClass} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-16"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12"}`}>
+        {desktopBrandPanel && (
+          <aside className="hidden lg:flex lg:w-1/2 lg:max-w-2xl lg:pr-12 lg:items-center">
+            {desktopBrandPanel}
+          </aside>
+        )}
         <div className={`w-full ${widthMap[maxWidth]}`}>
           {showCompactTopBar ? (
             <div className="relative mb-4 flex items-center justify-center min-h-7">

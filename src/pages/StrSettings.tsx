@@ -170,15 +170,15 @@ export default function StrSettings() {
       <PageHeader
         title="Host Automation"
         meta="Auto-post cleaning jobs on guest checkout"
-        width="lg"
+        width="5xl"
         showBrand
         rightSlot={<NotificationPanel />}
       />
 
-      <div className="max-w-lg lg:max-w-3xl mx-auto px-4 space-y-4 mt-2 pb-8">
+      <div className="max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto px-4 lg:px-8 mt-2 pb-8">
 
-        {/* Explanation card */}
-        <div className="rounded-ds-md p-4" style={cardStyle}>
+        {/* Explanation card (mobile: stacked above list; desktop: sticky in left rail) */}
+        <div className="lg:hidden mb-4 rounded-ds-md p-4" style={cardStyle}>
           <div className="flex items-start gap-3">
             <div
               className="rounded-full flex items-center justify-center shrink-0"
@@ -209,76 +209,111 @@ export default function StrSettings() {
           </div>
         </div>
 
-        {/* Connected calendars */}
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <HelprSpinner size={24} />
-          </div>
-        ) : connections.length === 0 ? (
-          <div className="rounded-ds-md" style={cardStyle}>
-            <EmptyConnections />
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {connections.map((conn) => (
-              <ConnectionCard
-                key={conn.id}
-                conn={conn}
-                onSync={handleSync}
-                onRemove={(id) => { setRemovingId(id); removeConnection(id); }}
-                syncing={syncingId === conn.id}
-                removing={removingId === conn.id}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Add calendar collapsible */}
-        <div className="rounded-ds-md overflow-hidden" style={cardStyle}>
-          <button
-            className="w-full flex items-center justify-between px-4 py-3.5"
-            onClick={() => setAddOpen((v) => !v)}
-            aria-expanded={addOpen}
-            aria-controls="add-calendar-form"
-          >
-            <div className="flex items-center gap-2">
-              <Plus
-                className="w-4 h-4"
-                style={{ color: "hsl(var(--bark))" }}
-              />
-              <span
-                className="font-display italic font-semibold"
-                style={{ fontSize: "0.9rem", color: "hsl(var(--ink-deep))" }}
+        <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+          {/* Desktop-only left rail: explanation hero */}
+          <aside className="hidden lg:block lg:col-span-4">
+            <div className="rounded-ds-md p-5 lg:sticky lg:top-6" style={cardStyle}>
+              <div
+                className="rounded-full flex items-center justify-center mb-3"
+                style={{
+                  width: 44, height: 44,
+                  background: "hsl(var(--gold-warm) / 0.12)",
+                  border: "1.5px solid hsl(var(--gold-warm) / 0.3)",
+                }}
               >
-                Add a calendar
-              </span>
+                <Home className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} />
+              </div>
+              <p
+                className="font-display italic font-bold"
+                style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))" }}
+              >
+                Never scramble for a cleaner again
+              </p>
+              <p
+                className="mt-2"
+                style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.85)", lineHeight: 1.55 }}
+              >
+                Connect your Airbnb or VRBO calendar. When a guest checks out,
+                Helpr automatically posts a cleaning job — so you always have
+                someone lined up before the next guest arrives.
+              </p>
             </div>
-            {addOpen ? (
-              <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+          </aside>
+
+          {/* Main column: calendars + add + help */}
+          <section className="lg:col-span-8 space-y-4 min-w-0">
+            {/* Connected calendars */}
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <HelprSpinner size={24} />
+              </div>
+            ) : connections.length === 0 ? (
+              <div className="rounded-ds-md" style={cardStyle}>
+                <EmptyConnections />
+              </div>
             ) : (
-              <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+              <div className="space-y-3">
+                {connections.map((conn) => (
+                  <ConnectionCard
+                    key={conn.id}
+                    conn={conn}
+                    onSync={handleSync}
+                    onRemove={(id) => { setRemovingId(id); removeConnection(id); }}
+                    syncing={syncingId === conn.id}
+                    removing={removingId === conn.id}
+                  />
+                ))}
+              </div>
             )}
-          </button>
 
-          {addOpen && (
-            <div id="add-calendar-form" className="px-4 pb-4">
-              <AddCalendarForm
-                onAdd={(form) => addConnection(form)}
-                loading={adding}
-              />
+            {/* Add calendar collapsible */}
+            <div className="rounded-ds-md overflow-hidden" style={cardStyle}>
+              <button
+                className="w-full flex items-center justify-between px-4 py-3.5"
+                onClick={() => setAddOpen((v) => !v)}
+                aria-expanded={addOpen}
+                aria-controls="add-calendar-form"
+              >
+                <div className="flex items-center gap-2">
+                  <Plus
+                    className="w-4 h-4"
+                    style={{ color: "hsl(var(--bark))" }}
+                  />
+                  <span
+                    className="font-display italic font-semibold"
+                    style={{ fontSize: "0.9rem", color: "hsl(var(--ink-deep))" }}
+                  >
+                    Add a calendar
+                  </span>
+                </div>
+                {addOpen ? (
+                  <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+                ) : (
+                  <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+                )}
+              </button>
+
+              {addOpen && (
+                <div id="add-calendar-form" className="px-4 pb-4">
+                  <AddCalendarForm
+                    onAdd={(form) => addConnection(form)}
+                    loading={adding}
+                  />
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Help note */}
-        <p
-          className="text-center px-2"
-          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}
-        >
-          Helpr fetches your calendar every few hours. Cleaning jobs are created
-          for checkouts up to 7 days out. Jobs you created manually are never
-          affected.
-        </p>
+            {/* Help note */}
+            <p
+              className="text-center px-2"
+              style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}
+            >
+              Helpr fetches your calendar every few hours. Cleaning jobs are created
+              for checkouts up to 7 days out. Jobs you created manually are never
+              affected.
+            </p>
+          </section>
+        </div>
       </div>
     </div>
   );

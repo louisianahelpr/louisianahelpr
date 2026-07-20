@@ -2,7 +2,7 @@ import {
   Home,
   Briefcase,
   MessageSquare,
-  User,
+  UserRound,
   ClipboardList,
 } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
@@ -44,7 +44,7 @@ export const leftItems = [
 export const rightItems = [
   { path: "/my-jobs", icon: Briefcase, label: "Jobs", badgeKey: "jobs" as const },
   { path: "/messages", icon: MessageSquare, label: "Messages", badgeKey: "messages" as const },
-  { path: "/profile", icon: User, label: "Profile" },
+  { path: "/profile", icon: UserRound, label: "Profile" },
 ];
 
 export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/account-pending", "/saved-helpers",

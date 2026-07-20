@@ -1,4 +1,5 @@
 import { useLongPress } from "@/hooks/useLongPress";
+import { hapticMedium } from "@/lib/haptics";
 import type { TabButtonProps } from "./types";
 
 /**
@@ -26,7 +27,16 @@ export const TabButton = ({
   // so the tab keeps behaving as a normal button.
   const longPress = useLongPress({
     threshold: 500,
-    onLongPress,
+    // Fire a medium haptic the moment the long-press threshold hits so the
+    // gesture feels acknowledged BEFORE the quick-actions sheet slides up.
+    // Matches the long-press pattern the dashboard cards already use — no
+    // silent gestures anywhere in the app.
+    onLongPress: onLongPress
+      ? () => {
+          hapticMedium();
+          onLongPress();
+        }
+      : onLongPress,
     onTap,
   });
 

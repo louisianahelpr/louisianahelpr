@@ -94,7 +94,8 @@ const ForgotPassword = () => {
     <AuthShell hideHeader backTo="/login" desktopBrandPanel={<AuthBrandPane />}>
       {!sent && (
         <div className="text-center mb-8 space-y-2">
-          <div className="flex justify-center mb-3">
+          {/* Redundant on desktop — AuthBrandPane hero already shows H. */}
+          <div className="flex justify-center mb-3 lg:hidden">
             <HelprMark to={null} size="md" emblemOnly />
           </div>
           <h1

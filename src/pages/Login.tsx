@@ -263,8 +263,12 @@ const Login = () => {
 
   return (
     <AuthShell hideHeader desktopBrandPanel={<AuthBrandPane />}>
-      <div className="text-center mb-8 space-y-2">
-        <div className="flex justify-center mb-3">
+      <div className="text-center mb-6 lg:mb-4 space-y-2">
+        {/* The H emblem is redundant on desktop when the AuthBrandPane
+            hero above already carries the full wordmark. Hide it at lg+
+            so the form column is short enough to fit below the hero
+            without vertical scroll at a 900px viewport. */}
+        <div className="flex justify-center mb-3 lg:hidden">
           <HelprMark to={null} size="md" emblemOnly />
         </div>
         <h1
@@ -289,7 +293,7 @@ const Login = () => {
         </p>
       </div>
 
-      <div className="liquid-glass px-6 sm:px-8 py-8 space-y-6">
+      <div className="liquid-glass px-6 sm:px-8 py-8 lg:py-5 space-y-6 lg:space-y-4">
         {mfaChallenge ? (
           <div className="space-y-5">
             <div className="flex flex-col items-center text-center gap-2">

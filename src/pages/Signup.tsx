@@ -348,7 +348,9 @@ const Signup = () => {
   return (
     <AuthShell hideHeader desktopBrandPanel={<AuthBrandPane />}>
       <div className="text-center mb-4 space-y-1.5">
-        <div className="flex justify-center mb-2">
+        {/* The H emblem is redundant on desktop — the AuthBrandPane hero
+            above already renders it. Hide at lg+ so the two don't stack. */}
+        <div className="flex justify-center mb-2 lg:hidden">
           <HelprMark to={null} size="md" emblemOnly />
         </div>
         <h1

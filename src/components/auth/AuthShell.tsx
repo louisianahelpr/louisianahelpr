@@ -35,7 +35,11 @@ interface AuthShellProps {
 const widthMap = {
   sm: "max-w-sm",
   md: "max-w-md",
-  lg: "max-w-md sm:max-w-lg",
+  // On desktop, widen the form column beyond the phone-first max-w-lg so
+  // the card visually anchors the page instead of floating in a narrow
+  // strip on 1440+ viewports (matches the "wider centered card" audit
+  // direction the user picked for the ambient-bg auth pages).
+  lg: "max-w-md sm:max-w-lg lg:max-w-xl",
   "2xl": "max-w-md sm:max-w-lg md:max-w-2xl",
 };
 
@@ -61,7 +65,26 @@ const AuthShell = ({
   const backLink = <BackButton to={resolvedBackTo} />;
 
   return (
-    <div className="min-h-screen bg-premium-page relative">
+    <div className="min-h-screen bg-premium-page relative overflow-hidden">
+      {/* Ambient brand-wash decoration — desktop-only, sits behind the
+          auth column. Two soft radial gradients in the brand palette
+          (olivewood + burnt-sienna) fill the empty gutters on wide
+          viewports so the page reads as intentional atmosphere rather
+          than blank whitespace. Kept `pointer-events-none` + `aria-hidden`
+          so it never intercepts input or announces to screen readers. */}
+      {desktopBrandPanel && (
+        <div
+          aria-hidden
+          className="hidden lg:block pointer-events-none absolute inset-0 z-0"
+          style={{
+            background: [
+              "radial-gradient(60% 55% at 12% 22%, hsl(var(--olivewood) / 0.09) 0%, transparent 60%)",
+              "radial-gradient(50% 45% at 88% 78%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%)",
+              "radial-gradient(38% 32% at 92% 18%, hsl(var(--olivewood) / 0.05) 0%, transparent 65%)",
+            ].join(", "),
+          }}
+        />
+      )}
       {/* Anchor the content to the TOP on every viewport. A prior
           `sm:items-center` vertically-centered the whole block on tablet/
           desktop, leaving the heading floating in dead space well below
@@ -76,11 +99,24 @@ const AuthShell = ({
           {backLink}
         </div>
       )}
-      <div className={`relative z-10 flex ${alignClass} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-16"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12"}`}>
+      {/* Desktop-brand-hero variant: pin the back button top-LEFT so it
+          sits above the horizontal brand band rather than in the form
+          column. Mobile keeps the in-flow back button inside the form
+          column, unchanged. */}
+      {desktopBrandPanel && align !== "center" && !hideBack && (
+        <div className="hidden lg:block absolute left-8 top-8 z-20">
+          {backLink}
+        </div>
+      )}
+      <div className={`relative z-10 flex flex-col ${alignClass} ${desktopBrandPanel ? "lg:items-center lg:justify-center" : ""} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12 lg:pt-6"}`}>
+        {/* Brand mark hero — desktop-only. Sits as a sibling INSIDE the
+            same vertically-centered flex column as the form so hero +
+            form read as one composed unit centered on the viewport
+            (fixes the "top-heavy, cut off at the bottom" imbalance). */}
         {desktopBrandPanel && (
-          <aside className="hidden lg:flex lg:w-1/2 lg:max-w-2xl lg:pr-12 lg:items-center">
+          <div className="hidden lg:block mb-2">
             {desktopBrandPanel}
-          </aside>
+          </div>
         )}
         <div className={`w-full ${widthMap[maxWidth]}`}>
           {showCompactTopBar ? (
@@ -90,7 +126,11 @@ const AuthShell = ({
             </div>
           ) : (
             !hideBack && align !== "center" && (
-              <div className="mb-5">{backLink}</div>
+              // Hide the in-flow back button at lg+ when a brand pane is
+              // rendered — the pinned top-left back button covers desktop.
+              <div className={`mb-5 ${desktopBrandPanel ? "lg:hidden" : ""}`}>
+                {backLink}
+              </div>
             )
           )}
 

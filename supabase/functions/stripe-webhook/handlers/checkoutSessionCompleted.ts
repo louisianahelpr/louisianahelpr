@@ -72,13 +72,30 @@ export async function handleCheckoutSessionCompleted(
       updateData.subscription_expires_at = subscriptionEnd;
     }
 
-    const { error } = await supabase
+    const { data: updatedProfiles, error } = await supabase
       .from("profiles")
       .update(updateData)
-      .eq("email", customerEmail);
+      .eq("email", customerEmail)
+      .select("user_id");
 
-    if (error) logStep("ERROR updating profile", { error: error.message });
-    else logStep("Profile updated with tier", { email: customerEmail, tier, expires: subscriptionEnd });
+    if (error) {
+      logStep("ERROR updating profile", { error: error.message });
+    } else if (!updatedProfiles || updatedProfiles.length === 0) {
+      // A paying customer's email didn't match any profile row. The tier was
+      // NOT applied — they were charged but have no access. This happens when
+      // the Stripe customer email diverges from the profile email (e.g. they
+      // updated their email in Stripe but not in Helpr). Alert ops to reconcile.
+      logStep("WARNING: tier update matched 0 profiles — email mismatch", { email: customerEmail, tier });
+      postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Subscription tier not granted — no matching profile",
+        message: "A customer's checkout completed but no profile matched their Stripe email. They were charged but have no Pro/Elite access. Reconcile manually.",
+        fields: { email: customerEmail, tier: String(tier), session_id: session.id },
+      });
+    } else {
+      logStep("Profile updated with tier", { email: customerEmail, tier, expires: subscriptionEnd });
+    }
   }
 
   // Handle tip checkout completion

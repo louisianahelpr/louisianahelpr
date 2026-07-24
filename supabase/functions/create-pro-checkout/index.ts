@@ -29,9 +29,14 @@ serve(async (req) => {
       });
     }
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    const { data, error: userErr } = await supabaseClient.auth.getUser(token);
+    if (userErr || !data.user?.email) {
+      return new Response(JSON.stringify({ error: "User not authenticated" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
     const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated");
 
     const { tier, billing_cycle = "monthly", billing_day } = await req.json();
     const cycle = PRICE_MAP[billing_cycle];

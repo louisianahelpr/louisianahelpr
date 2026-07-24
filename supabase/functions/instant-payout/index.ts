@@ -8,6 +8,14 @@ import {
   INSTANT_PAYOUT_MIN_CENTS,
 } from "../_shared/instantPayoutFee.ts";
 
+// User-facing errors (business logic / bad input) → 4xx.
+// Server/infra errors (DB failures, Stripe API errors) stay as plain Error → 5xx.
+class ClientError extends Error {
+  constructor(msg: string, readonly httpStatus: number = 400) {
+    super(msg);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -31,10 +39,10 @@ serve(async (req) => {
     );
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing Authorization header");
+    if (!authHeader) throw new ClientError("Missing Authorization header", 401);
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userErr } = await supabaseClient.auth.getUser(token);
-    if (userErr || !userData?.user) throw new Error("Not authenticated");
+    if (userErr || !userData?.user) throw new ClientError("Not authenticated", 401);
     const user = userData.user;
 
     const body = await req.json().catch(() => ({}));
@@ -54,7 +62,7 @@ serve(async (req) => {
       throw new Error("Could not load your payout account right now. Please try again in a moment.");
     }
     if (!profile?.stripe_account_id) {
-      throw new Error("No payout account connected. Set up your payout account first.");
+      throw new ClientError("No payout account connected. Set up your payout account first.");
     }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -67,7 +75,7 @@ serve(async (req) => {
     const availableCents = usdInstant?.amount ?? 0;
 
     if (availableCents <= 0) {
-      throw new Error("No funds available for instant payout right now. Funds become available once jobs are completed and released.");
+      throw new ClientError("No funds available for instant payout right now. Funds become available once jobs are completed and released.");
     }
 
     // Minimum-cashout floor. Below this, a flat 3% doesn't reliably clear
@@ -77,7 +85,7 @@ serve(async (req) => {
     // (or calls the API directly) still can't cash out under the floor.
     if (availableCents < INSTANT_PAYOUT_MIN_CENTS) {
       const min = (INSTANT_PAYOUT_MIN_CENTS / 100).toFixed(2);
-      throw new Error(
+      throw new ClientError(
         `Instant payout needs at least $${min} available. You have less than that right now, so these funds will pay out on the standard schedule for free.`
       );
     }
@@ -86,7 +94,7 @@ serve(async (req) => {
     const netCents = availableCents - feeCents;
 
     if (netCents <= 0) {
-      throw new Error("Balance is too low to cover the instant payout fee.");
+      throw new ClientError("Balance is too low to cover the instant payout fee.");
     }
 
     // Quote only — return breakdown without executing
@@ -103,7 +111,7 @@ serve(async (req) => {
     }
 
     if (action !== "execute") {
-      throw new Error("Invalid action");
+      throw new ClientError("Invalid action");
     }
 
     // Create pending record first
@@ -253,9 +261,21 @@ serve(async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[instant-payout] error:", message);
+    // ClientError → caller's mistake (4xx). Stripe SDK errors → upstream failure
+    // (502). Everything else (DB errors, unhandled bugs) → 500. The old flat 400
+    // caused monitoring tools to misclassify server-side Stripe/DB failures as
+    // bad-request noise and suppressed alerting on real infra problems.
+    let status: number;
+    if (err instanceof ClientError) {
+      status = err.httpStatus;
+    } else if (typeof (err as any)?.type === "string" && (err as any).type.startsWith("Stripe")) {
+      status = 502;
+    } else {
+      status = 500;
+    }
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
+      status,
     });
   }
 });

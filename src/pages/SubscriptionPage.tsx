@@ -230,7 +230,7 @@ export default function SubscriptionPage() {
           desktop. Now hero ends tight and plans opens tight; the natural
           gap between the two comes from the CTA + section separator. */}
       <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-6 sm:pb-8 lg:pb-10">
-        <div className="relative z-10 mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-12">
+        <div className="relative z-10 mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-12">
           <span className="text-display-eyebrow">Membership</span>
 
           <div className="relative flex items-center justify-center w-full">
@@ -312,7 +312,7 @@ export default function SubscriptionPage() {
         {/* Billing-cycle segmented control — sits centered above the grid.
             Small squircle, filter-chip weight (not a CTA). Bark fill on
             active, transparent on inactive. */}
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl mb-10 sm:mb-12 flex justify-center">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mb-10 sm:mb-12 flex justify-center">
           <div
             role="tablist"
             aria-label="Billing cycle"
@@ -351,7 +351,7 @@ export default function SubscriptionPage() {
           </div>
         </div>
 
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
           {/* Left masthead */}
           <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32">
             <span className="text-display-eyebrow">Plans</span>
@@ -369,7 +369,7 @@ export default function SubscriptionPage() {
               className="mt-4 font-serif italic text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
-              The same commission % applies to both sides — helpers keep more of
+              The same commission % applies to both sides — Helprs keep more of
               their payout, posters pay a lower service fee.
             </p>
             {currentTier !== "free" && (
@@ -708,7 +708,7 @@ export default function SubscriptionPage() {
             the full feature matrix — kept collapsed by default so the
             primary conversion (tier cards + CTAs) stays above the fold on
             typical viewports. */}
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl mt-12 sm:mt-16">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mt-12 sm:mt-16">
           <div className="flex justify-center">
             <button
               type="button"
@@ -882,7 +882,7 @@ export default function SubscriptionPage() {
         ref={benefitsRef}
         className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-24"
       >
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-center">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-center">
           {/* Left masthead */}
           <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
             <span className="text-display-eyebrow">Why upgrade</span>

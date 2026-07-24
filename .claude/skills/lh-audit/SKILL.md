@@ -344,10 +344,16 @@ sibling uses is a defect even if it "looks fine."
      (→subtitle) parts, in the same order, at the same sizes/spacing/colors. A
      dialog that still composes its own `<DialogHeader>`/`<DialogTitle>`/
      `<DialogDescription>` stack (or any bespoke `<h2>`+`<p>` header) is a DEFECT
-     to migrate, whether or not the current change touches it. There are ~60 such
-     files today (`BlockUserDialog`, `ReportDialog`, `DisputeDialog`, `TipDialog`,
-     `CancellationDialog`, the whole `admin/*` dialog set, etc.); migrating them
-     to `DialogHero` is in scope for every audit pass until the count is zero.
+     to migrate, whether or not the current change touches it. **Status as of
+     2026-07-24: the DIALOG side of this backlog is CLOSED** — all 62 non-primitive
+     `DialogContent` files now render through `DialogHero`, and `DialogHeader`'s
+     `pr-10` lane (`dialog.tsx:67`) means X-to-title crowding is structurally
+     solved for every Dialog. The remaining backlog is **Sheets**: a twin
+     `SheetHero` primitive exists (`ui/sheet.tsx:197`) but only ~7 of 15 sheets
+     adopt it, and the hand-copied stacks have already drifted to four different
+     title sizes. Migrating the remaining sheets to `SheetHero` is in scope for
+     every audit pass until the count is zero. (Re-verify this count before
+     trusting it — do not re-audit dialogs that are already migrated.)
      The ONLY popups exempt are the confirm primitives whose header is itself the
      shared canonical component — `AlertDialog`/`BrandConfirmDialog` (their
      `AlertDialogHeader`/`AlertDialogTitle` IS the one shared confirm header) —

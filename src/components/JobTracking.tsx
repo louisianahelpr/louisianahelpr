@@ -11,9 +11,7 @@ import { report } from "@/lib/errorLogger";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
+  SheetHero,
 } from "@/components/ui/sheet";
 import { shareNative } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -470,15 +468,14 @@ export function JobTracking({
       {/* SOS confirmation sheet */}
       <Sheet open={sosOpen} onOpenChange={setSosOpen}>
         <SheetContent side="bottom" className="pb-safe-nav">
-          <SheetHeader className="text-left">
-            <SheetTitle className="inline-flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
-              Share your location
-            </SheetTitle>
-            <SheetDescription>
-              Share your live location with a trusted contact? They'll get a link showing your current job.
-            </SheetDescription>
-          </SheetHeader>
+          {/* Canonical sheet header — this was a bare SheetHeader/SheetTitle
+              stack with no eyebrow and default type tokens, which read as a
+              different designer's popup next to every other titled sheet. */}
+          <SheetHero
+            eyebrow="Live location"
+            title="Share your location"
+            subtitle="Share your live location with a trusted contact? They'll get a link showing your current job."
+          />
           <div className="mt-4 space-y-2">
             <Button
               className="w-full"

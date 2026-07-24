@@ -166,7 +166,11 @@ export function BrowseTasksToolbar({
               ? `Filtered · ${filters.activeFilterCount} active`
               : "Fresh today"}
           </span>
-          <h2
+          {/* h1, not h2: this is the primary heading of the surfaces that
+              render this toolbar (/browse guest board and /dashboard). Neither
+              page renders any other h1, so demoting this to h2 left both with
+              zero h1 and a broken heading order. */}
+          <h1
             className="font-display italic font-bold leading-tight mt-2"
             style={{
               fontSize: "1.25rem",
@@ -174,8 +178,11 @@ export function BrowseTasksToolbar({
               letterSpacing: "-0.018em",
             }}
           >
-            {filters.hasFilters ? "Filtered Results" : "Browse Jobs"}
-          </h2>
+            {/* Sentence case, matching the /jobs public board's "Browse jobs"
+                h1 — the same feature must not read "Browse Jobs" on one
+                surface and "Browse jobs" on the other. */}
+            {filters.hasFilters ? "Filtered results" : "Browse jobs"}
+          </h1>
           {/* Subtitle hidden when 0 jobs — the empty-state card
               below already says "Nothing nearby just yet" in a much
               more prominent way. Showing "0 jobs" here too is

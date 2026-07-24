@@ -148,7 +148,7 @@ const EvacuationMode = () => {
               Hurricane Season Active
             </p>
             <p className="text-ds-12 text-muted-foreground mt-1 leading-snug">
-              Louisiana Helpr connects pet owners with volunteer transport helpers
+              Louisiana Helpr connects pet owners with volunteer transport Helprs
               during declared emergencies. No charge — community helping community.
             </p>
           </div>
@@ -400,7 +400,7 @@ const EvacuationMode = () => {
         >
           <p className="text-ds-12 text-muted-foreground leading-snug">
             <span className="font-semibold text-foreground">How it works:</span>{" "}
-            Pet owners register their animals and a destination. Volunteer helpers claim
+            Pet owners register their animals and a destination. Volunteer Helprs claim
             transport runs and update the status. All coordination is community-driven and
             free of charge during declared emergencies.
           </p>

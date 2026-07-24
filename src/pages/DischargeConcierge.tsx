@@ -52,7 +52,7 @@ const DischargeConcierge = () => {
   usePageMeta({
     title: "Healthcare Discharge Concierge — Louisiana Helpr",
     description:
-      "Coming home from the hospital? Find verified local helpers for transport, home prep, meals, and errands — same-day, Louisiana-wide.",
+      "Coming home from the hospital? Find verified local Helprs for transport, home prep, meals, and errands — same-day, Louisiana-wide.",
     canonical: "https://www.louisianahelpr.com/discharge",
     ogTitle: "Coming home from the hospital? Louisiana Helpr has you covered.",
     ogDescription:
@@ -113,7 +113,7 @@ const DischargeConcierge = () => {
             style={{ color: "hsl(var(--olivewood))" }}
           >
             Leaving the hospital is stressful enough. Louisiana Helpr connects
-            you with ID-verified local helpers for transport, home prep, meals,
+            you with ID-verified local Helprs for transport, home prep, meals,
             and everyday errands — often within the hour.
           </p>
         </div>
@@ -290,7 +290,7 @@ const DischargeConcierge = () => {
             },
             {
               icon: ShieldCheck,
-              label: "ID-verified helpers",
+              label: "ID-verified Helprs",
               body: "Every Helpr clears Stripe identity verification.",
             },
             {

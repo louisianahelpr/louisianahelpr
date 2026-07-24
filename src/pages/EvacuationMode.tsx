@@ -16,6 +16,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { Button } from "@/components/ui/button";
 import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
+import { isNativePlatform } from "@/lib/nativeInit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
@@ -125,9 +126,14 @@ const EvacuationMode = () => {
         }}
       >
         <div className="flex items-start gap-3">
-          <div className="shrink-0">
-            <BackButton />
-          </div>
+          {/* Native-only: on web this stacked under PublicLayout's "Back to
+              home" link, giving two back affordances 47px apart at 375px. The
+              marketing nav + that link already cover web navigation. */}
+          {isNativePlatform && (
+            <div className="shrink-0">
+              <BackButton />
+            </div>
+          )}
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
             style={{ background: "hsl(var(--burnt-sienna) / 0.15)" }}

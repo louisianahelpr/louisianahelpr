@@ -92,20 +92,33 @@ const AdminSidebar = ({
           <item.icon className="w-4 h-4" />
           {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
           {!collapsed && (
-            <button
-              type="button"
+            // role="button" span, NOT a nested <button>: SidebarMenuButton
+            // already renders a <button>, and <button> inside <button> is
+            // invalid HTML (fires validateDOMNesting and confuses AT). A
+            // labelled role=button span is valid nested markup and stays
+            // keyboard-operable via onKeyDown; stopPropagation keeps a pin
+            // toggle from also selecting the row.
+            <span
+              role="button"
+              tabIndex={0}
               onClick={(e) => togglePin(item.id, e)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  togglePin(item.id, e as unknown as React.MouseEvent);
+                }
+              }}
               aria-label={isPinned ? `Unpin ${item.label}` : `Pin ${item.label}`}
               title={isPinned ? "Unpin" : "Pin to top"}
               className={cn(
-                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-md transition-opacity",
+                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-md transition-opacity cursor-pointer",
                 isPinned
                   ? "opacity-100 text-primary hover:bg-primary/10"
                   : "opacity-0 group-hover/item:opacity-60 hover:opacity-100 text-muted-foreground hover:bg-muted",
               )}
             >
               {isPinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
-            </button>
+            </span>
           )}
           {badge !== undefined && (
             <span className={cn(

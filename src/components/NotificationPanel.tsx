@@ -393,15 +393,23 @@ const NotificationPanel = () => {
                       static so the panel doesn't feel slow to open. */}
                   <AnimatePresence initial={false}>
                     {group.items.map((n) => (
-                      <motion.button
+                      <motion.div
                         key={n.id}
+                        role="button"
+                        tabIndex={0}
                         layout={!reducedMotion}
                         initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
                         animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                         exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
                         transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
                         onClick={() => handleClick(n)}
-                        className="w-full text-left px-4 py-3 transition-colors active:opacity-80"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleClick(n);
+                          }
+                        }}
+                        className="w-full text-left px-4 py-3 transition-colors active:opacity-80 cursor-pointer"
                         style={{
                           background: !n.read ? "hsl(var(--burnt-sienna) / 0.06)" : undefined,
                           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
@@ -495,7 +503,7 @@ const NotificationPanel = () => {
                             </p>
                           </div>
                         </div>
-                      </motion.button>
+                      </motion.div>
                     ))}
                   </AnimatePresence>
                 </section>

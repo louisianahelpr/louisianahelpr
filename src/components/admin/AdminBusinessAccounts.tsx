@@ -151,7 +151,8 @@ const AdminBusinessAccounts = () => {
                 <p className="text-ds-11 text-muted-foreground truncate">
                   {b.owner_name ?? b.owner_email ?? b.owner_id.slice(0, 8)} ·{" "}
                   <Users className="w-3 h-3 inline" /> {b.member_count} ·{" "}
-                  GMV {fmtCents(b.total_gmv_cents)} · Active {fmtDate(b.last_activity_at)}
+                  GMV {fmtCents(b.total_gmv_cents)} ·{" "}
+                  {b.last_activity_at ? `Active ${fmtDate(b.last_activity_at)}` : "No activity yet"}
                 </p>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />

@@ -214,7 +214,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // bg-premium-page shell with skeleton cards inside the bottom box.
     return (
       <PageScaffold
-        header={<DashboardHeader title={tab === "posted" ? "My Posts" : "My Jobs"} />}
+        header={<DashboardHeader titleAs="h1" title={tab === "posted" ? "My Posts" : "My Jobs"} />}
         titleCard={<Skeleton className="h-3 w-44 rounded" />}
       >
         <div className="px-4 pt-3 space-y-2.5">
@@ -264,7 +264,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     <>
       <PageScaffold
         animate
-        header={<DashboardHeader title={tab === "posted" ? "My Posts" : "My Jobs"} />}
+        header={<DashboardHeader titleAs="h1" title={tab === "posted" ? "My Posts" : "My Jobs"} />}
         titleCard={
           /* The section name now lives in the top bar (Instagram/Facebook
              pattern), so the title card holds only the count chip. When the

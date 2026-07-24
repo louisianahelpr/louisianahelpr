@@ -113,7 +113,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
 
   const { startISO, endISO, end } = useMemo(() => currentWeekRange(), []);
 
-  const { data, isLoading } = useQuery<ForecastData>({
+  const { data, isLoading, isError } = useQuery<ForecastData>({
     queryKey: queryKeys.earningsForecast.forWindow(helperId, startISO, endISO, feeFallbackPercent),
     queryFn: async () => {
       // Filter at the DB level — never fetch the entire helper history
@@ -156,6 +156,12 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
   });
 
   if (!enabled) return null;
+
+  // On a hard query error `data` stays undefined, which the condition below
+  // would render as a PERMANENT skeleton (a stuck "loading forever" state).
+  // Hide the card instead — matches HelperStreakBadge's degrade-silently
+  // pattern for these secondary cosmetic cards; react-query still retries.
+  if (isError) return null;
 
   if (isLoading || !data) {
     return (

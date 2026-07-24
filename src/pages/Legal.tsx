@@ -109,43 +109,59 @@ const Legal = () => {
     if (typeof window === "undefined") return;
     const entries = TAB_TOC[tab] ?? [];
     if (entries.length === 0) return;
-    let io: IntersectionObserver | null = null;
-    // Wait one paint so freshly-mounted sections are in the DOM before we
-    // wire up the observer — otherwise tab-switching would attach to zero
-    // targets and the TOC would never light up until the user scrolled.
+    // Scroll-position scrollspy, NOT IntersectionObserver. The sections are
+    // COLLAPSED accordions, so all five headers sit inside a ~250px stack. The
+    // old observer band (`rootMargin: "-15% 0px -65% 0px"` — only 20% of the
+    // viewport tall) stopped matching any target the moment you scrolled past
+    // that stack, and since the callback no-ops when nothing intersects, the
+    // indicator froze. Measured: it stuck on section 2 of 5 at scrollY 300, 700
+    // AND 965 (page bottom) and never advanced.
+    //
+    // Picking the LAST heading whose top has crossed the band is deterministic
+    // at every scroll offset — including the very bottom, where it correctly
+    // resolves to the final section instead of freezing.
+    let tickRaf = 0;
+    let targets: HTMLElement[] = [];
+    const compute = () => {
+      tickRaf = 0;
+      if (targets.length === 0) return;
+      // Bottom-snap. With every accordion COLLAPSED the five section headers
+      // occupy only ~250px of an ~1865px document, so the later ones can never
+      // scroll up into the band — the page isn't tall enough. Without this the
+      // TOC tops out at section 2 no matter how far you scroll. Once the
+      // viewport reaches the end of the document the reader is by definition at
+      // the last section, so activate it.
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
+        setActiveTocId(targets[targets.length - 1].id);
+        return;
+      }
+      const band = window.innerHeight * 0.15;
+      let current = targets[0].id;
+      for (const el of targets) {
+        if (el.getBoundingClientRect().top <= band) current = el.id;
+      }
+      setActiveTocId(current);
+    };
+    const onScroll = () => {
+      if (tickRaf) return;
+      tickRaf = requestAnimationFrame(compute);
+    };
+    // Wait one paint so freshly-mounted sections are in the DOM — otherwise
+    // tab-switching would resolve zero targets and the TOC would never light up.
     const raf = requestAnimationFrame(() => {
-      const targets = entries
+      targets = entries
         .map((e) => document.getElementById(e.id))
         .filter((el): el is HTMLElement => !!el);
       if (targets.length === 0) return;
-      // Default to the first entry so the TOC is never blank when the page
-      // paints — otherwise the top of the doc would show no active state
-      // until the user scrolls past a section header.
-      setActiveTocId(entries[0].id);
-      io = new IntersectionObserver(
-        (obs) => {
-          // Pick the entry closest to the top of the viewport (smallest
-          // positive boundingClientRect.top). This mirrors the "which
-          // heading is at the top" heuristic users expect from a docs TOC.
-          const visible = obs
-            .filter((e) => e.isIntersecting)
-            .map((e) => ({ id: e.target.id, top: e.boundingClientRect.top }))
-            .sort((a, b) => a.top - b.top);
-          if (visible.length > 0) setActiveTocId(visible[0].id);
-        },
-        {
-          // Trigger when a heading is within the top third of the viewport
-          // so the "active" swap happens as the section title crosses the
-          // sticky tab band, not when it's already scrolled out of view.
-          rootMargin: "-15% 0px -65% 0px",
-          threshold: 0,
-        },
-      );
-      targets.forEach((el) => io?.observe(el));
+      compute(); // seed immediately so the TOC is never blank on first paint
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", onScroll, { passive: true });
     });
     return () => {
       cancelAnimationFrame(raf);
-      io?.disconnect();
+      if (tickRaf) cancelAnimationFrame(tickRaf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
     };
   }, [tab, isSearching]);
 

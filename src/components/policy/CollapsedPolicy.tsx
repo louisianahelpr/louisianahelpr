@@ -246,6 +246,14 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
             : "3px solid hsl(var(--bark) / 0.35)",
         }}
       >
+        {/* WAI-ARIA accordion pattern: the heading WRAPS the trigger button.
+            Radix Collapsible (unlike Radix Accordion) does not supply a heading,
+            so a long policy document rendered zero h2/h3 — screen-reader users
+            got no heading navigation at all through Terms/Privacy/Rules, and the
+            page skipped h1 -> h3 (the Footer's column headings). The h2 must be
+            OUTSIDE the button: <h2> is flow content and is invalid inside
+            <button>, which only accepts phrasing content. */}
+        <h2 className="m-0">
         <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left btn-press">
           <span className="flex items-center gap-3 min-w-0">
             <span
@@ -260,9 +268,9 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
             </span>
             <span className="min-w-0">
               <span className="flex items-center gap-2 flex-wrap">
-                <p className="font-display font-bold text-foreground leading-tight text-ds-15">
+                <span className="block font-display font-bold text-foreground leading-tight text-ds-15">
                   {isSearching ? highlight(title, query) : title}
-                </p>
+                </span>
                 {/* During a cross-tab search, mark which policy this section
                     lives under so results spanning all three tabs stay
                     legible. Only shown when a tab origin is supplied. */}
@@ -289,13 +297,14 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
                   </span>
                 )}
               </span>
-              <p className="text-ds-11 text-muted-foreground line-clamp-2 leading-snug">
+              <span className="block text-ds-11 text-muted-foreground line-clamp-2 leading-snug">
                 {isSearching ? highlight(subtitle, query) : subtitle}
-              </p>
+              </span>
             </span>
           </span>
           <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${effectiveOpen ? "rotate-180" : ""}`} />
         </CollapsibleTrigger>
+        </h2>
         <CollapsibleContent className="data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up overflow-hidden">
           <div className="px-2 pb-2 pt-1 space-y-0.5 border-t border-border/50">{children}</div>
         </CollapsibleContent>

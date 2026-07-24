@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { TabsContent } from "@/components/ui/tabs";
-import { formatJobDate, formatCategory } from "@/lib/format";
+import { formatTimestamp, formatCategory } from "@/lib/format";
 import type { Profile } from "../adminUserHelpers";
 
 interface OverviewTabProps {
@@ -55,7 +55,7 @@ export function OverviewTab({ viewProfile, profileViolations }: OverviewTabProps
           </div>
           <div>
             <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Joined</p>
-            <p className="text-ds-13 font-medium text-foreground">{formatJobDate(viewProfile.created_at)}</p>
+            <p className="text-ds-13 font-medium text-foreground">{formatTimestamp(viewProfile.created_at)}</p>
           </div>
           <div>
             <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Last Active</p>

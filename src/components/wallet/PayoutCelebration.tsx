@@ -26,6 +26,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
 import { useReducedMotion } from "@/lib/accessibility";
+import { formatPrice } from "@/lib/format";
 
 /** Subset of payout_transfers we need for the celebration. */
 export interface CelebratablePayout {
@@ -70,10 +71,7 @@ function payoutTimestampMs(p: CelebratablePayout): number {
 }
 
 function formatUsdCents(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
+  return `$${formatPrice(cents / 100)}`;
 }
 
 export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationProps) {

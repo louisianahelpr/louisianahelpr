@@ -175,7 +175,7 @@ const WorkRecord = () => {
   async function handleShare() {
     await shareNative({
       title: "My Helpr Work Record",
-      text: `Check out my verified work history on Helpr — ${data?.completedJobs.length ?? 0} jobs completed.`,
+      text: `Check out my verified work history on Helpr — ${data?.completedJobs.length ?? 0} job${(data?.completedJobs.length ?? 0) === 1 ? "" : "s"} completed.`,
       url: `${window.location.origin}/work-record`,
       dialogTitle: "Share my Helpr Work Record",
     });

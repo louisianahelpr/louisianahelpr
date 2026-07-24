@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Star, Info, ArrowDownAZ, ArrowUpAZ, CalendarClock } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { formatJobDate } from "@/lib/format";
+import { formatTimestamp } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -352,7 +352,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   </span>
                 </div>
                 <span className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                  {formatJobDate(review.created_at)}
+                  {formatTimestamp(review.created_at)}
                 </span>
               </div>
               {(review.punctuality || review.quality || review.communication) && (

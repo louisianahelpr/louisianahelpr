@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Target, Flame, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { formatPrice } from "@/lib/format";
 
 interface MonthlyGoalCardProps {
   /** All completed jobs with their date and net payout */
@@ -205,10 +206,10 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
                   : "hsl(var(--ink-deep))",
               }}
             >
-              ${thisMonthEarnings.toFixed(2)}
+              ${formatPrice(thisMonthEarnings)}
             </span>
             <span className="text-ds-12 text-muted-foreground">
-              of ${goal.toFixed(0)} goal
+              of ${formatPrice(goal)} goal
             </span>
           </div>
 
@@ -230,8 +231,8 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
 
           <p className="text-ds-11 text-muted-foreground">
             {hitGoal
-              ? `Goal reached! $${(thisMonthEarnings - goal).toFixed(2)} over`
-              : `$${(goal - thisMonthEarnings).toFixed(2)} to go`}
+              ? `Goal reached! $${formatPrice(thisMonthEarnings - goal)} over`
+              : `$${formatPrice(goal - thisMonthEarnings)} to go`}
           </p>
         </div>
       ) : (

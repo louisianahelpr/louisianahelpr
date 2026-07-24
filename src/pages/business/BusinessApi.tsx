@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import BusinessLayout from "@/components/business/BusinessLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
-import { formatJobDate } from "@/lib/format";
+import { formatTimestamp } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,7 @@ interface WebhookRow {
 const isPostgrestError = (e: unknown): e is { code?: string; message?: string } =>
   typeof e === "object" && e !== null && "code" in e;
 
-const fmtDate = (s: string | null): string => (s ? formatJobDate(s) : "Never");
+const fmtDate = (s: string | null): string => (s ? formatTimestamp(s) : "Never");
 
 const BusinessApi = () => {
   usePageTitle("API & Webhooks — Helpr Business");

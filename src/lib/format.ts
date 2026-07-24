@@ -16,8 +16,12 @@
  * Canonical date formatter for job timestamps (created_at, completed_at, etc.).
  * Produces "Jun 18, 2026" — short month + day + year, locale-stable.
  * Use this instead of bare `toLocaleDateString()` so every surface matches.
+ *
+ * Named `formatTimestamp` to distinguish it from `formatJobDate` in
+ * `@/lib/dateUtils`, which formats the date_needed DATE column
+ * (YYYY-MM-DD) with a weekday prefix ("Mon, Jun 22").
  */
-export function formatJobDate(date: string | Date | null | undefined): string {
+export function formatTimestamp(date: string | Date | null | undefined): string {
   if (!date) return "";
   const d = typeof date === "string" ? new Date(date) : date;
   if (isNaN(d.getTime())) return "";
@@ -28,7 +32,7 @@ export function formatJobDate(date: string | Date | null | undefined): string {
  * Compact relative date — "Jun 13" within the current year, "Jun 13, 2025"
  * for prior years. Year is appended only when the date falls outside the
  * current year, so recent activity stays terse while older entries still
- * disambiguate. Use for dense activity/review lists; use `formatJobDate`
+ * disambiguate. Use for dense activity/review lists; use `formatTimestamp`
  * when the year must always show.
  */
 export function formatShortDate(date: string | Date | null | undefined): string {

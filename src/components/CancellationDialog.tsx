@@ -9,6 +9,7 @@ import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, Clock, ArrowR
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
+import { formatPrice } from "@/lib/format";
 
 type CancellationDialogProps = {
   jobId: string;
@@ -266,16 +267,16 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                 <div className="rounded-ds-sm bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
                   <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide mb-1">Your fee breakdown</p>
                   <div className="flex justify-between text-ds-11">
-                    <span className="text-muted-foreground">Cancellation fee ({cancellationFeePercent}% of ${jobBudget.toFixed(2)})</span>
-                    <span className="font-semibold text-foreground">${cancellationFee.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Cancellation fee ({cancellationFeePercent}% of ${formatPrice(jobBudget)})</span>
+                    <span className="font-semibold text-foreground">${formatPrice(cancellationFee)}</span>
                   </div>
                   <div className="flex justify-between text-ds-11">
                     <span className="text-muted-foreground">Platform fee ({commissionPercent}%)</span>
-                    <span className="text-muted-foreground">−${platformCut.toFixed(2)}</span>
+                    <span className="text-muted-foreground">−${formatPrice(platformCut)}</span>
                   </div>
                   <div className="border-t border-border pt-1.5 flex justify-between text-ds-11">
                     <span className="text-muted-foreground">{helperName || "Helpr"} receives</span>
-                    <span className="font-semibold text-primary">${helperPayout.toFixed(2)}</span>
+                    <span className="font-semibold text-primary">${formatPrice(helperPayout)}</span>
                   </div>
                 </div>
               )}

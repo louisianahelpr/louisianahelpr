@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TabsContent } from "@/components/ui/tabs";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
-import { formatJobDate } from "@/lib/format";
+import { formatTimestamp } from "@/lib/format";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { Profile } from "../adminUserHelpers";
 
@@ -119,7 +119,7 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
                     <Badge variant="outline" className="text-ds-10 h-5">{isHelper ? "Worked" : "Posted"}</Badge>
                     {j.parish && <span>{j.parish}</span>}
                     <span>·</span>
-                    <span>{formatJobDate(dateRef)}</span>
+                    <span>{formatTimestamp(dateRef)}</span>
                     {j.payment_status && (
                       <>
                         <span>·</span>

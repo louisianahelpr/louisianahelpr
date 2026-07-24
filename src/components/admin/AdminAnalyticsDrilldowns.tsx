@@ -158,14 +158,6 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
   const statuses = ["all", "escrow", "payout_pending", "released", "refunded"];
   const filtered = filter === "all" ? jobs : jobs.filter(j => j.payment_status === filter);
 
-  const statusLabel: Record<string, string> = {
-    escrow: "In Escrow",
-    payout_pending: "Payout Pending",
-    released: "Released",
-    refunded: "Refunded",
-    cancelled: "Cancelled",
-  };
-
   const statusTone: Record<string, Tone> = {
     escrow: "warning",
     payout_pending: "info",
@@ -180,8 +172,8 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
       <div className="flex gap-1 flex-wrap bg-secondary/50 rounded-ds-sm p-1">
         {statuses.map(s => (
           <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-            {s === "all" ? `All (${jobs.length})` : `${statusLabel[s] || s} (${jobs.filter(j => j.payment_status === s).length})`}
+            className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {s === "all" ? `All (${jobs.length})` : `${paymentStatusLabel(s)} (${jobs.filter(j => j.payment_status === s).length})`}
           </button>
         ))}
       </div>

@@ -81,7 +81,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
     if (hitGoal && !celebrated && goal != null) {
       setCelebrated(true);
       toast.success(
-        `🎉 Goal hit! You've earned $${thisMonthEarnings.toFixed(0)} this month!`,
+        `🎉 Goal hit! You've earned $${formatPrice(thisMonthEarnings)} this month!`,
         { duration: 5000 }
       );
     }

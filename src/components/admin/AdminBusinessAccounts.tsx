@@ -8,7 +8,7 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { Building2, ChevronRight, Search, Users, ShieldCheck } from "lucide-react";
 import { queryKeys } from "@/lib/queryKeys";
-import { formatJobDate } from "@/lib/format";
+import { formatTimestamp } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 interface BusinessRow {
@@ -39,7 +39,7 @@ interface MemberRow {
 const fmtCents = (cents: number | null | undefined) =>
   ((cents ?? 0) / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-const fmtDate = (s: string | null) => (s ? formatJobDate(s) : "Never");
+const fmtDate = (s: string | null) => (s ? formatTimestamp(s) : "Never");
 
 /**
  * Admin-facing list of business accounts with team rosters + total GMV.

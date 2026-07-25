@@ -295,7 +295,8 @@ export default function PayItForward() {
         onBack={() => navigate(-1)}
         showBrand
         rightSlot={<NotificationPanel />}
-        width="2xl"
+        // Mirrors the body ladder below (max-w-2xl → lg:5xl → xl:7xl).
+        width="2xl-5xl-7xl"
       />
 
       <div className="max-w-2xl lg:max-w-5xl xl:max-w-7xl mx-auto px-5 lg:px-8 pt-4">

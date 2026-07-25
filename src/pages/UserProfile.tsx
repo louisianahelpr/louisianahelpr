@@ -168,7 +168,7 @@ const UserProfile = () => {
       <>
         <PageHeader
           showBrand
-          width="5xl"
+          width="container-lg-5xl-6xl"
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -201,7 +201,7 @@ const UserProfile = () => {
       <>
         <PageHeader
           showBrand
-          width="5xl"
+          width="container-lg-5xl-6xl"
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -221,7 +221,7 @@ const UserProfile = () => {
       <>
         <PageHeader
           showBrand
-          width="5xl"
+          width="container-lg-5xl-6xl"
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -232,7 +232,6 @@ const UserProfile = () => {
             <EmptyState
               variant="inline"
               icon={UserX}
-              eyebrow="Profile unavailable"
               title="User not found"
               body="This profile may have been removed, or the link is no longer valid."
               action={
@@ -290,7 +289,12 @@ const UserProfile = () => {
     <>
       <PageHeader
         showBrand
-        width="lg"
+        // Same width in EVERY state (loading / error / empty / loaded): this
+        // used to be "5xl" while loading and "lg" once data landed, so the
+        // title jumped hundreds of pixels the moment the query resolved. The
+        // value mirrors the loaded body below — `container mx-auto px-5` >
+        // `max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto`.
+        width="container-lg-5xl-6xl"
         eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
         title={isOwnProfile ? "Profile Review" : "Profile"}
         meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}

@@ -123,7 +123,7 @@ const AdminBusinessAccounts = () => {
         <EmptyState
           icon={Building2}
           title="No business accounts"
-          body={search ? "No matches — try a different search." : "No accounts have signed up yet."}
+          body={search ? "No matches — try a different search." : "Accounts appear here as soon as a business signs up."}
         />
       ) : (
         <Card className="divide-y divide-border/40">

@@ -8,6 +8,48 @@ import type { AddFormState, Platform } from "./types";
 import { EMPTY_FORM, PLATFORM_HELP, PLATFORM_LABELS } from "./types";
 
 // ---------------------------------------------------------------------------
+// Cleaning-budget validation
+//
+// `cleaning_budget` is the FLAT dollar budget every auto-posted cleaning job
+// is created with (str-ical-sync writes it straight to `jobs.budget`), so it
+// is real money the host is committing to. The input advertises min/max, but
+// it lives outside a <form> so browser constraint validation never fires —
+// these bounds are the ones actually enforced, in the UI and again at save.
+// ---------------------------------------------------------------------------
+
+/** Lowest cleaning budget a host may set (matches the input's `min`). */
+export const CLEANING_BUDGET_MIN = 10;
+/** Highest cleaning budget a host may set (matches the input's `max`). */
+export const CLEANING_BUDGET_MAX = 999;
+
+export type CleaningBudgetCheck =
+  | { value: number; error: null }
+  | { value: null; error: string };
+
+/**
+ * Parse + bound-check the raw "Cleaning budget ($)" field. Returns the dollar
+ * amount or a message to show the host. Uses `Number`, not `parseFloat`, so
+ * "80abc" is rejected rather than quietly read as 80 — and never substitutes a
+ * default the host didn't choose.
+ */
+export function validateCleaningBudget(raw: string): CleaningBudgetCheck {
+  const trimmed = raw.trim();
+  if (!trimmed) return { value: null, error: "Enter a cleaning budget." };
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed)) {
+    return { value: null, error: "Enter the cleaning budget as a number, like 80." };
+  }
+  if (parsed < CLEANING_BUDGET_MIN) {
+    return { value: null, error: `Cleaning budget must be at least $${CLEANING_BUDGET_MIN}.` };
+  }
+  if (parsed > CLEANING_BUDGET_MAX) {
+    return { value: null, error: `Cleaning budget can't be more than $${CLEANING_BUDGET_MAX}.` };
+  }
+  // Money — keep it to cents so the column (numeric(10,2)) stores what's shown.
+  return { value: Math.round(parsed * 100) / 100, error: null };
+}
+
+// ---------------------------------------------------------------------------
 // Add Calendar form
 // ---------------------------------------------------------------------------
 export function AddCalendarForm({
@@ -23,6 +65,12 @@ export function AddCalendarForm({
     setForm((prev) => ({ ...prev, [k]: v }));
 
   const helpUrl = PLATFORM_HELP[form.platform];
+
+  // Only gates the save when auto-create is ON — with the toggle off the field
+  // is hidden and no cleaning job is ever posted from this feed.
+  const budgetError = form.auto_create_cleaning
+    ? validateCleaningBudget(form.cleaning_budget).error
+    : null;
 
   return (
     <div className="space-y-4">
@@ -139,13 +187,25 @@ export function AddCalendarForm({
             <Input
               id="str-cleaning-budget"
               type="number"
-              min={10}
-              max={999}
+              min={CLEANING_BUDGET_MIN}
+              max={CLEANING_BUDGET_MAX}
               placeholder="80"
               value={form.cleaning_budget}
               onChange={(e) => set("cleaning_budget", e.target.value)}
               className="rounded-ds-md mt-1"
+              aria-invalid={!!budgetError}
+              aria-describedby={budgetError ? "str-cleaning-budget-error" : undefined}
             />
+            {budgetError && (
+              <p
+                id="str-cleaning-budget-error"
+                role="alert"
+                className="mt-1"
+                style={{ fontSize: "0.74rem", color: "hsl(var(--burnt-sienna))" }}
+              >
+                {budgetError}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -166,7 +226,7 @@ export function AddCalendarForm({
 
       <Button
         onClick={() => onAdd(form)}
-        disabled={loading || !form.ical_url.trim()}
+        disabled={loading || !form.ical_url.trim() || !!budgetError}
         className="w-full rounded-ds-md"
         style={{ background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }}
       >

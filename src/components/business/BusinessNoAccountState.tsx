@@ -64,7 +64,6 @@ export default function BusinessNoAccountState({ title }: { title: string }) {
       <EmptyState
         variant="inline"
         icon={Building2}
-        eyebrow="No business account"
         title="You're not part of a business"
         body="Create a business account to add teammates and manage jobs together under one account."
         action={

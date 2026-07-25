@@ -77,11 +77,13 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
           sm:pl-[max(2rem,env(safe-area-inset-left))] sm:pr-[max(2rem,env(safe-area-inset-right))]
           lg:pl-[max(3rem,env(safe-area-inset-left))] lg:pr-[max(3rem,env(safe-area-inset-right))]"
       >
-        {/* Use the shared HelprMark so the public Navbar wordmark
-            ("Helpr · LA") matches the authenticated DashboardHeader
-            and the signup AuthShell. Single source of truth, single
-            on-brand presentation. */}
-        <HelprMark to="/" size="md" hideEmblem />
+        {/* Emblem + wordmark on the MARKETING nav. This is the public,
+            first-impression surface, and the wrought-iron H is the most
+            distinctive part of the brand — it previously appeared only on
+            the auth screens. The authed DashboardHeader deliberately stays
+            wordmark-only (hideEmblem): in-app the user already knows where
+            they are, and the top bar is tight on vertical space. */}
+        <HelprMark to="/" size="md" />
         {/* Smooth-scroll-to-top behavior on the marketing root used to
             live inline on this Link; HelprMark handles routing but if
             we want the same behavior in the future, replace with a

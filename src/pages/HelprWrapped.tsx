@@ -13,7 +13,7 @@ import { shareNative } from "@/lib/nativeShare";
 import { report } from "@/lib/errorLogger";
 import { formatCategory, wrappedSeasonLabel } from "@/lib/format";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
-import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 
 const YEAR = new Date().getFullYear();
 // "Wrapped" in December, "so far" the rest of the year (see LH-39).
@@ -117,20 +117,15 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
   // Total spent = sum of budgets on posted jobs (proxy)
   const totalSpent = posted.reduce((acc, j) => acc + (j.budget ?? 0), 0);
   // Total earned = helper take-home (net of the platform fee), so the same
-  // $75 job reads the same here as on analytics/work-record/Earnings. Prefer
-  // the stamped platform_fee_amount; for legacy/seed rows without one, derive
-  // the fee from the helper's tier (matching every other earnings surface).
+  // $75 job reads the same here as on analytics/work-record/Earnings. The
+  // per-job resolution (stamped fee → frozen per-job % → tier rate, plus the
+  // net urgent bonus) lives in `helperEarnings.ts` so this page and
+  // /work-record can't drift apart again.
   const feeFallbackPct = tierFeePercent(
     profileRes.data?.subscription_tier ?? null,
     profileRes.data?.subscription_expires_at ?? null,
   );
-  const totalEarned = completed.reduce((acc, j) => {
-    const budget = j.budget ?? 0;
-    // Nullish, not `||`: a genuinely-stamped $0 fee (a comped/promo job) must
-    // be trusted verbatim, not mistaken for an unstamped legacy row.
-    const fee = j.platform_fee_amount ?? (budget * (j.helper_fee_percent ?? feeFallbackPct)) / 100;
-    return acc + (budget - fee + netUrgentFeeDollars(j.urgent_fee));
-  }, 0);
+  const totalEarned = sumHelperTakeHomeDollars(completed, feeFallbackPct);
 
   // Unique people worked with — union of helper_ids from posted jobs (who accepted)
   // and customer_ids from completed helper jobs

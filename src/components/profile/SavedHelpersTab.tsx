@@ -175,7 +175,6 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 <EmptyStateIllustration variant="saved" />
               ) : undefined
             }
-            eyebrow={helpers.length === 0 ? "Nothing saved" : "No matches"}
             title={helpers.length === 0 ? "No saved Helprs yet." : "Nothing matches that search."}
             body={
               helpers.length === 0

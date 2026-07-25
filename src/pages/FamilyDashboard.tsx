@@ -137,7 +137,9 @@ export default function FamilyDashboard() {
       {/* No `showBrand`: /family is a Profile sub-page. The back chevron
           anchors to /profile (its parent) rather than the misleading Helpr
           wordmark that read as a top-level destination. */}
-      <PageHeader title="Family & care" onBack={() => navigate("/profile")} width="lg" rightSlot={<NotificationPanel />} />
+      {/* width mirrors the body container below, gutters included — a fixed
+          "lg" pinned the title to a 32rem column the body outgrows at md+. */}
+      <PageHeader title="Family & care" onBack={() => navigate("/profile")} width="lg-2xl-5xl-6xl-tight" rightSlot={<NotificationPanel />} />
 
       {/* Split-column desktop layout: on mobile/tablet this stacks as a
           single column exactly as before. At lg+ it becomes a two-column

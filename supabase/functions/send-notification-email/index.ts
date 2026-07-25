@@ -73,17 +73,17 @@ function renderNotificationEmail(title: string, message: string, link: string | 
   const safeRootDomain = htmlEscape(ROOT_DOMAIN)
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif;margin:0;padding:0">
+<body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:0">
 <div style="padding:32px 28px;max-width:480px;margin:0 auto">
-  <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
-  <h1 style="font-size:20px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 12px">${safeTitle}</h1>
-  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 8px">Hey ${safeUser},</p>
-  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">${safeMessage}</p>
-  <a href="${safeActionUrl}" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
+  <p style="font-size:28px;font-weight:bold;color:#5E6544;margin:0 0 24px;font-family:'Bodoni Moda',Didot,'Times New Roman',Georgia,serif">Helpr</p>
+  <h1 style="font-size:20px;font-weight:bold;color:#23231A;margin:0 0 12px">${safeTitle}</h1>
+  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 8px">Hey ${safeUser},</p>
+  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">${safeMessage}</p>
+  <a href="${safeActionUrl}" style="display:inline-block;background-color:#5E6544;color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
     View Details
   </a>
-  <p style="font-size:14px;color:hsl(160,8%,30%);margin:28px 0 4px">— ${safeFromName}</p>
-  <p style="font-size:12px;color:hsl(160,6%,65%);margin:24px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">
+  <p style="font-size:14px;color:#2E2F22;margin:28px 0 4px">— ${safeFromName}</p>
+  <p style="font-size:12px;color:#6A6F5D;margin:24px 0 0;padding:16px 0 0;border-top:1px solid #E3E4DD">
     You're receiving this because you enabled email notifications on ${safeRootDomain}. Manage your preferences in your profile settings.
   </p>
 </div></body></html>`

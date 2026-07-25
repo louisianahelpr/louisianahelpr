@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -35,7 +35,11 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 /* Data                                                                        */
 /* -------------------------------------------------------------------------- */
 
-// Ordered by demand — most-popular industries first, restaurants last.
+// Ordered by demand — highest-volume industries first. Two rows of four at
+// lg. Every entry names work Helpr already supports through existing job
+// categories (cleaning, moving, handyman, yard_work, delivery, events,
+// storm_prep, assembly) — nothing here promises a capability the marketplace
+// doesn't have.
 const INDUSTRIES = [
   {
     name: "Property managers",
@@ -52,6 +56,22 @@ const INDUSTRIES = [
   {
     name: "Restaurants",
     pitch: "Cover a callout shift or book a hood-to-floor deep clean in hours.",
+  },
+  {
+    name: "Short-term rentals",
+    pitch: "Auto-post a turnover clean the moment a guest checks out.",
+  },
+  {
+    name: "Retail & offices",
+    pitch: "Recurring cleans, restocking runs, and after-hours setup.",
+  },
+  {
+    name: "Events & venues",
+    pitch: "Setup, teardown, and extra hands booked for a single date.",
+  },
+  {
+    name: "Movers & storage",
+    pitch: "Load-in, load-out, and furniture assembly by the job.",
   },
 ] as const;
 
@@ -84,7 +104,7 @@ const TIERS: readonly Tier[] = [
       "Recurring jobs",
       "Receipts export",
     ],
-    ctaLabel: "Choose Crew",
+    ctaLabel: "Upgrade",
   },
   {
     name: "Team",
@@ -99,7 +119,7 @@ const TIERS: readonly Tier[] = [
       "Team spend tracking & roles",
       "Priority support",
     ],
-    ctaLabel: "Choose Team",
+    ctaLabel: "Upgrade",
   },
   {
     name: "Enterprise",
@@ -112,9 +132,21 @@ const TIERS: readonly Tier[] = [
       "Custom onboarding",
       "Dedicated success manager",
     ],
-    ctaLabel: "Choose Enterprise",
+    ctaLabel: "Upgrade",
   },
 ] as const;
+
+/**
+ * Every paid tier opens its bullet list with a "Everything in <lower tier>,
+ * plus:" lead-in. That line is a pointer at the tier below, NOT a feature: the
+ * tier card renders it as an italic carry-over line, and the compare table must
+ * never turn it into a row (it would read as a perk exactly one tier has).
+ * The table encodes its meaning structurally instead — TIERS is a strict seat
+ * ladder, so a feature checks for the tier that introduces it and every tier
+ * above it.
+ */
+const isCarryOverBullet = (feature: string) =>
+  feature.startsWith("Everything in");
 
 const TRUST_ITEMS = [
   "Stripe escrow",
@@ -226,43 +258,10 @@ const PageIntro = () => (
         </div>
       </div>
 
-      <p
-        className="max-w-xl lg:max-w-2xl text-ds-15 sm:text-ds-17 leading-relaxed text-balance"
-        style={{
-          fontFamily: "Montserrat, system-ui, sans-serif",
-          fontWeight: 400,
-          letterSpacing: "-0.005em",
-          color: "hsl(var(--stormy-sky))",
-        }}
-      >
-        Find, hire, and pay local pros for every job your business needs.
-      </p>
-
-      <Button
-        asChild
-        size="lg"
-        className="btn-grad-primary group mt-6 h-14 px-8 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
-        style={{
-          fontFamily: "Montserrat, system-ui, sans-serif",
-          fontWeight: 600,
-          fontSize: "0.9375rem",
-          lineHeight: 1,
-          letterSpacing: "-0.005em",
-          color: "hsl(var(--parchment))",
-          border: "1px solid hsl(66 25% 19%)",
-          boxShadow:
-            "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 12px 30px -10px hsl(var(--bark) / 0.4)",
-        }}
-      >
-        <Link to="/signup">
-          <Sparkles className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
-          Start a business account
-          <ArrowRight
-            className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
-            strokeWidth={1.25}
-          />
-        </Link>
-      </Button>
+      {/* No lede or CTA here — /subscription goes straight from its title row
+          into the plans, and this page mirrors that. Each pricing tier already
+          carries its own CTA, so a separate "Start a business account" button
+          above them was a duplicate of the action the cards offer. */}
     </div>
   </section>
 );
@@ -274,10 +273,13 @@ const PageIntro = () => (
 const BuiltForSection = () => {
   const { ref, inView } = useInViewOnce();
 
+  // First section under the compact header — opens with a modest top pad
+  // instead of the pt-24/32/40 that used to separate it from a full-height
+  // hero. With the hero gone that gap read as a dead band.
   return (
     <section
       ref={ref}
-      className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24"
+      className="px-5 sm:px-8 lg:px-12 pt-10 sm:pt-12 lg:pt-16 pb-12 sm:pb-16 lg:pb-24"
     >
       <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
         <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
@@ -301,7 +303,15 @@ const BuiltForSection = () => {
           </p>
         </div>
 
-        <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 gap-10 sm:gap-8 lg:gap-10">
+        {/* Four across at lg, matching the seat-plan grid below. The giant
+            01/02/03 numerals were dropped: they imply an ordered sequence
+            (correct on "Three steps", wrong here — these are parallel
+            industries, not stages), and they consumed most of each card's
+            height. Without them the cards are compact enough that more
+            industries can be added to INDUSTRIES without the section
+            ballooning. `h-full` on both the fade wrapper and the card keeps
+            every box the same height regardless of pitch length. */}
+        <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-5">
           {INDUSTRIES.map((industry, i) => (
             // Outer wrapper carries the entry fade-in (opacity + translateY),
             // inner box carries the hover elevation. Splitting them avoids the
@@ -309,6 +319,7 @@ const BuiltForSection = () => {
             // Tailwind's hover:-translate-y-1.
             <div
               key={industry.name}
+              className="h-full"
               style={{
                 opacity: inView ? 1 : 0,
                 transform: inView ? "translateY(0)" : "translateY(24px)",
@@ -317,32 +328,21 @@ const BuiltForSection = () => {
               }}
             >
             <div
-              className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 flex flex-col transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg"
+              className="h-full text-center md:text-left rounded-2xl px-5 py-7 sm:px-5 sm:py-8 lg:px-6 lg:py-8 flex flex-col transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.04)",
                 border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
                 boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
               }}
             >
-              <span
-                aria-hidden
-                className="block font-display font-black leading-none"
-                style={{
-                  fontSize: "clamp(4rem, 6.5vw, 6rem)",
-                  color: "hsl(var(--burnt-sienna) / 0.35)",
-                  letterSpacing: "-0.04em",
-                }}
-              >
-                {String(i + 1).padStart(2, "0")}
-              </span>
               <h3
-                className="mt-4 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
+                className="font-display font-bold text-ds-20 sm:text-ds-24 tracking-tight leading-tight"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 {industry.name}
               </h3>
               <p
-                className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:mx-0"
+                className="mt-3 font-sans text-ds-13 leading-snug"
                 style={{ color: "hsl(var(--olivewood) / 0.85)" }}
               >
                 {industry.pitch}
@@ -357,12 +357,217 @@ const BuiltForSection = () => {
 };
 
 /**
+ * Compare-features disclosure for the seat tiers — the same pattern
+ * /subscription uses (collapsed ghost toggle → dense feature × tier table), so
+ * the two pricing surfaces read as one system.
+ *
+ * Two deliberate constraints, both learned on /subscription:
+ *   • The toggle sits DIRECTLY above the table it reveals, not up in the
+ *     pricing masthead. Grouped with the masthead it looked tidier, but the
+ *     table then opened a full grid-height away and the click read as broken.
+ *   • No monthly/annual switch. Business seat plans only have monthly Stripe
+ *     Prices (supabase/functions/_shared/businessSeatTiers.ts), so an annual
+ *     column could only show a price that cannot be checked out.
+ */
+const TierComparison = () => {
+  // Collapsed by default — the table is dense, and showing it inline would
+  // push the tier CTAs below the fold.
+  const [showCompare, setShowCompare] = useState(false);
+
+  // Union of every REAL feature bullet across all four seat tiers, deduped by
+  // string equality and kept in ladder order — this is the row axis of the
+  // table. The "Everything in X, plus:" lead-ins are filtered out (see
+  // isCarryOverBullet); their meaning is carried by the cumulative checkmark
+  // logic below instead. TIERS stays the single source of truth, so a copy
+  // edit to a bullet updates both the tier card and the compare row with no
+  // manual sync.
+  const comparisonFeatures = useMemo(() => {
+    const seen = new Set<string>();
+    const ordered: string[] = [];
+    for (const tier of TIERS) {
+      for (const bullet of tier.features) {
+        if (isCarryOverBullet(bullet) || seen.has(bullet)) continue;
+        seen.add(bullet);
+        ordered.push(bullet);
+      }
+    }
+    return ordered;
+  }, []);
+
+  return (
+    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mt-12 sm:mt-16">
+      <div className="flex justify-center">
+        <button
+          type="button"
+          onClick={() => setShowCompare((s) => !s)}
+          aria-expanded={showCompare}
+          aria-controls="business-compare-features-table"
+          className="group inline-flex items-center gap-2 h-10 sm:h-11 px-4 sm:px-5 rounded-2xl font-sans font-semibold text-ds-13 transition-[background,color] duration-150"
+          style={{
+            color: "hsl(var(--bark))",
+            background: "transparent",
+            border: "1px solid hsl(var(--bark) / 0.28)",
+            letterSpacing: "-0.005em",
+          }}
+        >
+          {showCompare ? "Hide comparison" : "Compare all features"}
+          <ChevronDown
+            className="w-4 h-4 transition-transform duration-200"
+            strokeWidth={2}
+            style={{
+              transform: showCompare ? "rotate(180deg)" : "rotate(0deg)",
+            }}
+          />
+        </button>
+      </div>
+
+      {showCompare && (
+        <div
+          id="business-compare-features-table"
+          className="mt-8 sm:mt-10 -mx-5 sm:mx-0 overflow-x-auto"
+        >
+          <table
+            className="w-full min-w-[560px] sm:min-w-0 border-collapse font-sans"
+            style={{ color: "hsl(var(--olivewood))" }}
+          >
+            <thead>
+              <tr>
+                <th
+                  scope="col"
+                  className="text-left align-bottom py-4 px-3 sm:px-4"
+                  style={{
+                    borderBottom: "1px solid hsl(var(--olivewood) / 0.14)",
+                    width: "34%",
+                  }}
+                >
+                  <span
+                    className="font-sans uppercase text-[10px] font-semibold tracking-[0.14em]"
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
+                    Feature
+                  </span>
+                </th>
+                {TIERS.map((tier) => (
+                  <th
+                    key={tier.name}
+                    scope="col"
+                    className="text-center align-bottom py-4 px-2 sm:px-3"
+                    style={{
+                      borderBottom: "1px solid hsl(var(--olivewood) / 0.14)",
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <span
+                        className="font-display font-bold leading-none"
+                        style={{
+                          fontSize: "clamp(1.05rem, 1.6vw, 1.35rem)",
+                          letterSpacing: "-0.02em",
+                          color: tier.featured
+                            ? "hsl(var(--burnt-sienna))"
+                            : "hsl(var(--ink-deep))",
+                        }}
+                      >
+                        {tier.name}
+                      </span>
+                      {tier.featured && (
+                        <span
+                          className="mt-1 font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full"
+                          style={{
+                            background: "hsl(var(--burnt-sienna))",
+                            color: "hsl(var(--parchment))",
+                            letterSpacing: "0.14em",
+                          }}
+                        >
+                          Most popular
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {comparisonFeatures.map((feature) => (
+                <tr
+                  key={feature}
+                  className="transition-colors duration-150"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background =
+                      "hsl(var(--burnt-sienna) / 0.04)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <th
+                    scope="row"
+                    className="text-left py-3 px-3 sm:px-4 font-sans font-medium text-ds-13 leading-snug"
+                    style={{
+                      color: "hsl(var(--olivewood))",
+                      borderBottom: "1px solid hsl(var(--olivewood) / 0.10)",
+                    }}
+                  >
+                    {feature}
+                  </th>
+                  {TIERS.map((tier, tierIndex) => {
+                    // Seat tiers are a strict upgrade ladder (Starter < Crew <
+                    // Team < Enterprise) — that is exactly what each paid
+                    // tier's "Everything in <lower tier>, plus:" lead-in says.
+                    // So a tier is checked when EITHER its own bullets list the
+                    // feature OR any tier below it does; matching only its own
+                    // list would wrongly show higher tiers losing perks their
+                    // lower tiers already include.
+                    const has = TIERS.slice(0, tierIndex + 1).some((t) =>
+                      t.features.includes(feature),
+                    );
+                    return (
+                      <td
+                        key={tier.name}
+                        className="text-center py-3 px-2 sm:px-3"
+                        style={{
+                          borderBottom:
+                            "1px solid hsl(var(--olivewood) / 0.10)",
+                        }}
+                      >
+                        {has ? (
+                          <Check
+                            className="inline-block w-4 h-4"
+                            strokeWidth={2.5}
+                            style={{ color: "hsl(140 45% 38%)" }}
+                            aria-label="Included"
+                          />
+                        ) : (
+                          <span
+                            aria-label="Not included"
+                            style={{ color: "hsl(var(--olivewood) / 0.4)" }}
+                          >
+                            —
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
  * 3. Pricing — all 4 tiers side-by-side, features fully visible, only
  * hairline vertical dividers between columns. Team column has the warm halo
- * behind it and takes the bark-fill squircle CTA.
+ * behind it and takes the bark-fill squircle CTA. A collapsed
+ * compare-all-features table sits directly below the grid.
  */
 const PricingSection = () => (
-  <section className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
+  // Pricing is the FIRST section now (it sits directly under the compact page
+  // header), so the old pt-24/32/40 — sized to clear a full-height hero — left
+  // a large dead band above the plans.
+  <section className="px-5 sm:px-8 lg:px-12 pt-2 sm:pt-4 lg:pt-6 pb-12 sm:pb-16 lg:pb-24">
     <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
       <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
         <span className="text-display-eyebrow">Pricing</span>
@@ -450,7 +655,7 @@ const PricingSection = () => (
 
               <ul className="mt-6 space-y-2.5 flex-1">
                 {tier.features.map((feature) => {
-                  const isCarryOver = feature.startsWith("Everything in");
+                  const isCarryOver = isCarryOverBullet(feature);
                   return (
                     <li
                       key={feature}
@@ -545,6 +750,10 @@ const PricingSection = () => (
         ))}
       </div>
     </div>
+
+    {/* Compare-features disclosure — toggle + table, both below the tier
+        grid so the button sits directly on top of what it reveals. */}
+    <TierComparison />
   </section>
 );
 
@@ -733,13 +942,21 @@ const ForBusiness = () => {
   });
 
   return (
-    <PublicLayout>
-      <BusinessHero />
-      <BuiltForSection />
+    // hideHomeLink: the compact header below carries the canonical
+    // BackButton, so PublicLayout's mobile-only "Back to home" link would
+    // stack a second back affordance directly above it.
+    <PublicLayout hideHomeLink>
+      <PageIntro />
+      {/* Pricing leads, mirroring /subscription (header → plans immediately).
+          A visitor arriving from the footer's "Business" link is comparing
+          seats, so the plans should be the first thing after the title; the
+          industry pitch reads better as supporting material below them. */}
       <PricingSection />
+      <BuiltForSection />
       <BusinessFaqSection />
       {/* ClosingSection removed — trust band + mirrored CTA was making
-          the page too long; the hero already carries the primary CTA. */}
+          the page too long; the page header already carries the primary
+          CTA. */}
     </PublicLayout>
   );
 };

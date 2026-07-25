@@ -144,7 +144,8 @@ const PetProfiles = () => {
         meta="Care details your Helpr should know"
         onBack={() => navigate("/profile")}
         rightSlot={<NotificationPanel />}
-        width="2xl"
+        // Mirrors the body ladder below (max-w-lg → lg:5xl → xl:6xl, px-5 → lg:px-8).
+        width="lg-5xl-6xl"
       />
 
       <div className="max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto px-5 lg:px-8 pt-4">

@@ -38,16 +38,16 @@ async function sendEmail(apiKey: string, to: string, subject: string, html: stri
 
 function wrapEmail(title: string, bodyHtml: string, ctaUrl?: string, ctaLabel?: string) {
   const cta = ctaUrl
-    ? `<a href="${ctaUrl}" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">${ctaLabel || 'Open Helpr'}</a>`
+    ? `<a href="${ctaUrl}" style="display:inline-block;background-color:#5E6544;color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">${ctaLabel || 'Open Helpr'}</a>`
     : ''
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif">
+<body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
-  <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
-  <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">${title}</h1>
+  <p style="font-size:28px;font-weight:bold;color:#5E6544;margin:0 0 24px;font-family:'Bodoni Moda',Didot,'Times New Roman',Georgia,serif">Helpr</p>
+  <h1 style="font-size:24px;font-weight:bold;color:#23231A;margin:0 0 16px">${title}</h1>
   ${bodyHtml}
   ${cta}
-  <p style="font-size:13px;color:hsl(160,6%,50%);line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">
+  <p style="font-size:13px;color:#5E5F4E;line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid #E3E4DD">
     Questions? Reply to this email or contact our support team at any time.
   </p>
 </div>
@@ -140,8 +140,8 @@ Deno.serve(async (req) => {
       if (resendApiKey) {
         const html = wrapEmail(
           'You\'re verified ✅',
-          `<p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
-           <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">An admin has personally <strong style="color:hsl(158,45%,42%)">verified your account</strong>. You now have full access to post or accept jobs on Helpr.</p>`,
+          `<p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
+           <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">An admin has personally <strong style="color:#984216">verified your account</strong>. You now have full access to post or accept jobs on Helpr.</p>`,
           `${SITE_URL}/dashboard`,
           'Go to Dashboard',
         )
@@ -177,9 +177,9 @@ Deno.serve(async (req) => {
       if (resendApiKey) {
         const html = wrapEmail(
           'Quick fix needed on your ID',
-          `<p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
-           <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">Your ID photo was a bit hard to read on our end. Can you snap a clearer one so we can finish setting you up?</p>
-           ${note ? `<p style="font-size:14px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)"><strong>Admin note:</strong> ${note}</p>` : ''}`,
+          `<p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
+           <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">Your ID photo was a bit hard to read on our end. Can you snap a clearer one so we can finish setting you up?</p>
+           ${note ? `<p style="font-size:14px;color:#5E5F4E;line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)"><strong>Admin note:</strong> ${note}</p>` : ''}`,
           `${SITE_URL}/profile`,
           'Re-upload ID',
         )
@@ -214,8 +214,8 @@ Deno.serve(async (req) => {
       if (resendApiKey) {
         const html = wrapEmail(
           'Reset your password',
-          `<p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
-           <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">An admin sent you a password reset link. Click the button below to choose a new password. This link expires in 1 hour.</p>`,
+          `<p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
+           <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">An admin sent you a password reset link. Click the button below to choose a new password. This link expires in 1 hour.</p>`,
           actionLink,
           'Reset Password',
         )
@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
       let notifMsg = note || 'You\'ve received a formal warning for a platform rule violation. Please review the platform rules.'
       let emailSubject = 'Helpr — Formal warning issued'
       let emailHeading = 'Formal warning (Strike 1 of 3)'
-      let escalationHtml = '<p style="font-size:14px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">This is your <strong>1st strike</strong>. A 2nd strike will trigger a final warning banner across the app; a 3rd will result in a 7-day account suspension.</p>'
+      let escalationHtml = '<p style="font-size:14px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">This is your <strong>1st strike</strong>. A 2nd strike will trigger a final warning banner across the app; a 3rd will result in a 7-day account suspension.</p>'
 
       if (strikeNumber === 2) {
         actionTaken = 'final_warning'
@@ -316,9 +316,9 @@ Deno.serve(async (req) => {
       if (resendApiKey) {
         const html = wrapEmail(
           emailHeading,
-          `<p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
-           <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">${strikeNumber >= 3 ? 'Your account has been automatically suspended due to a third platform policy violation:' : 'You\'ve received a formal warning regarding a platform policy violation:'}</p>
-           ${note ? `<p style="font-size:14px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)">${note}</p>` : ''}
+          `<p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
+           <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">${strikeNumber >= 3 ? 'Your account has been automatically suspended due to a third platform policy violation:' : 'You\'ve received a formal warning regarding a platform policy violation:'}</p>
+           ${note ? `<p style="font-size:14px;color:#5E5F4E;line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)">${note}</p>` : ''}
            ${escalationHtml}`,
           `${SITE_URL}/rules`,
           'Review Platform Rules',

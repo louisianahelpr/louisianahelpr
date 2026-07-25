@@ -23,7 +23,7 @@ import type { AddFormState, StrConnection } from "./strSettings/types";
 import { cardStyle } from "./strSettings/strSettingsHelpers";
 import { EmptyConnections } from "./strSettings/EmptyConnections";
 import { ConnectionCard } from "./strSettings/ConnectionCard";
-import { AddCalendarForm } from "./strSettings/AddCalendarForm";
+import { AddCalendarForm, validateCleaningBudget } from "./strSettings/AddCalendarForm";
 
 // ---------------------------------------------------------------------------
 // Main page
@@ -61,7 +61,16 @@ export default function StrSettings() {
     mutationFn: async (form: AddFormState) => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      const budget = parseFloat(form.cleaning_budget) || 80;
+      // This budget is the flat dollar amount every auto-posted cleaning job
+      // will be created with, so it must be the host's OWN number. The old
+      // `parseFloat(...) || 80` silently turned "", "abc" or "0" into $80 and
+      // accepted "5" despite the input advertising a $10 minimum — a host
+      // could end up committing to a price they never chose. Refuse the save
+      // with the same message the form shows instead.
+      const budgetCheck = validateCleaningBudget(form.cleaning_budget);
+      if (form.auto_create_cleaning && budgetCheck.error) {
+        throw new Error(budgetCheck.error);
+      }
 
       const { data, error } = await supabase
         .from("str_calendar_connections")
@@ -72,7 +81,10 @@ export default function StrSettings() {
           property_name: form.property_name.trim() || null,
           property_address: form.property_address.trim() || null,
           auto_create_cleaning: form.auto_create_cleaning,
-          cleaning_budget: budget,
+          // Omitted (→ column default) only when auto-create is OFF and the
+          // hidden field holds nothing usable; never overwritten with a
+          // made-up number when the host did type one.
+          ...(budgetCheck.value !== null ? { cleaning_budget: budgetCheck.value } : {}),
           cleaning_notes: form.cleaning_notes.trim() || null,
         })
         .select("id")
@@ -175,7 +187,8 @@ export default function StrSettings() {
       <PageHeader
         title="Host Automation"
         meta="Auto-post cleaning jobs on guest checkout"
-        width="5xl"
+        // Mirrors the body ladder below, gutters included.
+        width="lg-2xl-5xl-6xl"
         showBrand
         rightSlot={<NotificationPanel />}
       />

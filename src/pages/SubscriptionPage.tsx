@@ -2,9 +2,14 @@
  * SubscriptionPage — /subscription (editorial remodel 2026-07-11).
  *
  * Full editorial-magazine layout matching the landing style:
- *  1. Editorial hero — eyebrow / big Bodoni H1 with italic burnt-sienna
- *     accent / warm ambient halo / one Bodoni-italic subhead / single
- *     rounded-2xl bark-fill pill CTA that anchors to the tiers section.
+ *  1. Compact page header — canonical BackButton to the LEFT of a
+ *     normal-size "Membership" page title, the same row shape /jobs uses.
+ *     /subscription is a FOOTER destination, so the full-bleed hero it used
+ *     to open with (display eyebrow, clamp() Bodoni H1 "Get more from every
+ *     job.", warm halo) read as a second landing page. Its subhead ("Pick
+ *     the plan that fits how you use Helpr.") was dropped as redundant —
+ *     the plans masthead a few hundred pixels below already says "Pick your
+ *     plan."
  *  2. Tiers — magazine two-column (masthead left, tier grid right), all
  *     four consumer tiers side-by-side, no accordion. Pro carries a warm
  *     halo behind it and reads as the recommended pick. Sequential
@@ -28,6 +33,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Check, ChevronDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { supabase } from "@/integrations/supabase/client";
@@ -224,62 +230,29 @@ export default function SubscriptionPage() {
 
   const inner = (
     <>
-      {/* ── 1. Editorial hero ───────────────────────────────────────────── */}
-      {/* pb-* tightened — the hero used to close with pb-24 and the plans
-          section opened with pt-24, producing ~200px of visible gap on
-          desktop. Now hero ends tight and plans opens tight; the natural
-          gap between the two comes from the CTA + section separator. */}
-      <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-6 sm:pb-8 lg:pb-10">
-        <div className="relative z-10 mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-12">
-          <span className="text-display-eyebrow">Membership</span>
-
-          <div className="relative flex items-center justify-center w-full">
-            {/* Warm ambient halo behind the H1 — same recipe as the landing hero. */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -inset-16 sm:-inset-24 lg:-inset-32 -z-0"
-              style={{
-                background:
-                  "radial-gradient(50% 50% at 50% 50%, hsl(var(--gold-warm) / 0.24) 0%, hsl(var(--burnt-sienna) / 0.10) 40%, transparent 75%)",
-                filter: "blur(32px)",
-              }}
-            />
-            <h1
-              className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.25rem] sm:text-[4.5rem] md:text-[5.75rem] lg:text-[6rem] xl:text-[7rem]"
-              style={{
-                color: "hsl(var(--olivewood))",
-                letterSpacing: "-0.03em",
-              }}
-            >
-              Get more from every{" "}
-              <em
-                className="relative inline-block"
-                style={{
-                  fontStyle: "italic",
-                  color: "hsl(var(--burnt-sienna))",
-                }}
-              >
-                job.
-              </em>
-            </h1>
+      {/* ── 1. Compact page header ──────────────────────────────────────── */}
+      {/* Back button LEFT of a normal-size title, same row shape as /jobs.
+          The container/padding match the sections below so the title lines
+          up with the plans grid. */}
+      <section className="px-5 sm:px-8 lg:px-12">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+          <div className="flex items-center gap-3 mt-2 md:mt-6 mb-2 md:mb-4">
+            <div className="shrink-0">
+              <BackButton />
+            </div>
+            <div className="flex flex-col leading-none min-w-0 flex-1">
+              <h1 className="text-page-title leading-tight truncate">
+                Membership
+              </h1>
+            </div>
           </div>
-
-          <p
-            className="max-w-xl lg:max-w-3xl text-ds-15 sm:text-ds-17 lg:text-ds-24 leading-relaxed text-balance font-serif italic"
-            style={{
-              color: "hsl(var(--stormy-sky))",
-              letterSpacing: "-0.005em",
-            }}
-          >
-            Pick the plan that fits how you use Helpr.
-          </p>
         </div>
       </section>
 
       {/* ── 2. Plans / tiers ────────────────────────────────────────────── */}
-      {/* Tightened pt-* — the pt-24 desktop gap between the hero CTA and
-          this section left ~200px of visible empty space, reading as a
-          layout gap. */}
+      {/* Tight pt-* — this section opens directly under the compact page
+          header, so a large top pad would read as a dead band rather than
+          as section separation. */}
       <section
         id="plans"
         ref={tiersRef}
@@ -361,8 +334,10 @@ export default function SubscriptionPage() {
             )}
           </div>
 
-          {/* Right — tier grid */}
-          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-6 lg:gap-8">
+          {/* Right — tier grid. Four across at lg, matching /for-business's
+              seat-plan grid so the two pricing pages read the same way
+              (2x2 stacking below lg). */}
+          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-5">
             {CONSUMER_TIERS.map((tier, i) => {
               const perks = TIER_PERKS[tier];
               const isActive = tier === currentTier;
@@ -529,17 +504,21 @@ export default function SubscriptionPage() {
                               {isAnnual ? "/yr" : "/mo"}
                             </span>
                           </div>
-                          {isAnnual ? (
-                            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                              <p
-                                className="font-sans uppercase text-[10px] font-semibold tracking-[0.14em]"
-                                style={{
-                                  color: "hsl(var(--olivewood) / 0.75)",
-                                }}
-                              >
-                                or ${priceInfo.annualMonthlyEquivalent}/mo
-                                billed annually
-                              </p>
+                          {/* ONE typographic treatment for this sub-line in
+                              both billing states. It used to render as small
+                              uppercase sans on annual and serif italic on
+                              monthly — the same sentence in two different
+                              fonts depending on a toggle. Serif italic matches
+                              the tagline above it and the rest of the card. */}
+                          <div className="mt-1 flex items-center gap-2 flex-wrap">
+                            <p
+                              className="font-serif italic text-ds-12"
+                              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                            >
+                              or ${priceInfo.annualMonthlyEquivalent}/mo billed
+                              annually
+                            </p>
+                            {isAnnual && (
                               <span
                                 className="font-sans text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full"
                                 style={{
@@ -550,16 +529,8 @@ export default function SubscriptionPage() {
                               >
                                 {priceInfo.annualSave}
                               </span>
-                            </div>
-                          ) : (
-                            <p
-                              className="mt-1 font-serif italic text-ds-12"
-                              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                            >
-                              or ${priceInfo.annualMonthlyEquivalent}/mo billed
-                              annually
-                            </p>
-                          )}
+                            )}
+                          </div>
                         </>
                       );
                     })()}
@@ -695,10 +666,10 @@ export default function SubscriptionPage() {
           </div>
         </div>
 
-        {/* Compare-features toggle + table. Ghost button collapses/expands
-            the full feature matrix — kept collapsed by default so the
-            primary conversion (tier cards + CTAs) stays above the fold on
-            typical viewports. */}
+        {/* Compare-features disclosure. The toggle sits DIRECTLY above the
+            table it reveals — parking it up in the masthead grouped it nicely
+            with the billing switch but broke the disclosure: the table opens
+            a full grid-height away, so the click read as doing nothing. */}
         <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mt-12 sm:mt-16">
           <div className="flex justify-center">
             <button
@@ -957,11 +928,22 @@ export default function SubscriptionPage() {
   );
 
   // Native: bare document-scroll shell (the app supplies its own nav).
-  // Web: shared marketing chrome (top nav + footer).
+  // pt-safe-top is required now that the page opens with a compact header
+  // instead of the old pt-24/32/40 hero — without it the title row sits
+  // under the status bar / notch on device.
+  // Web: shared marketing chrome (top nav + footer). hideHomeLink because the
+  // compact header already carries the canonical BackButton; PublicLayout's
+  // mobile-only "Back to home" link would stack a second one above it.
   if (isNativePlatform) {
     return (
-      <div className="min-h-screen bg-premium-page pb-safe-nav">{inner}</div>
+      <div className="min-h-screen bg-premium-page pt-safe-top pb-safe-nav">
+        {inner}
+      </div>
     );
   }
-  return <PublicLayout showCtaBand={false}>{inner}</PublicLayout>;
+  return (
+    <PublicLayout showCtaBand={false} hideHomeLink>
+      {inner}
+    </PublicLayout>
+  );
 }

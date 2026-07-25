@@ -41,6 +41,13 @@ interface PublicLayoutProps {
    * other page keeps the spacer so content starts below the nav.
    */
   noNavSpacer?: boolean;
+  /**
+   * Suppress the mobile-only "Back to home" link. Pages that render the
+   * canonical in-content `<BackButton />` next to their H1 opt in, otherwise
+   * two back affordances stack on top of each other at <lg. Default false,
+   * so every other public page keeps the link exactly as before.
+   */
+  hideHomeLink?: boolean;
 }
 
 const PublicLayout = ({
@@ -51,6 +58,7 @@ const PublicLayout = ({
   ctaLabel = "Get started",
   ctaTo = "/signup",
   noNavSpacer = false,
+  hideHomeLink = false,
 }: PublicLayoutProps) => {
   // Session-only auth (no profile round-trip) so the CTA band mirrors the
   // Navbar: an authenticated visitor sees "Open app" instead of the
@@ -131,7 +139,7 @@ const PublicLayout = ({
           hides the Helpr wordmark inside the drawer). Hidden at lg+
           because the Helpr·LA wordmark in the top nav is already a home
           link there and this text would just duplicate it. */}
-      {!noNavSpacer && location.pathname !== "/" && (
+      {!noNavSpacer && !hideHomeLink && location.pathname !== "/" && (
         <div className="px-5 sm:px-8 lg:px-12 pt-4 lg:hidden">
           <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
             <Link

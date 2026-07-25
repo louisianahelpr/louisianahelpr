@@ -78,7 +78,10 @@ export function ConnectionCard({ conn, onSync, onRemove, syncing, removing }: Co
         </div>
       )}
 
-      {/* Budget info row */}
+      {/* Budget info row.
+          cleaning_budget is a FLAT per-job budget — AddCalendarForm labels it
+          "Cleaning budget ($)" and str-ical-sync writes it straight to
+          jobs.budget — never an hourly rate, so no "/hr" suffix here. */}
       <div
         className="flex items-center gap-2 rounded-lg px-3 py-2"
         style={{ background: "hsl(var(--gold-warm) / 0.08)", border: "0.5px solid hsl(var(--gold-warm) / 0.2)" }}
@@ -87,7 +90,7 @@ export function ConnectionCard({ conn, onSync, onRemove, syncing, removing }: Co
         <span style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
           Auto-creates <strong style={{ color: "hsl(var(--ink-deep))" }}>cleaning jobs</strong> at{" "}
           <strong style={{ color: "hsl(var(--ink-deep))" }}>
-            ${conn.cleaning_budget ?? 80}/hr
+            ${conn.cleaning_budget ?? 80}
           </strong>
         </span>
       </div>

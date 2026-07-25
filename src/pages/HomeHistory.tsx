@@ -105,10 +105,13 @@ const HomeHistory = () => {
       <PageHeader
         title="Home History"
         eyebrow="Your maintenance record"
-        meta="Every job you've had completed — your home's service history."
         onBack={() => navigate("/profile")}
         showBrand
         rightSlot={<NotificationPanel />}
+        // Mirrors the body container below (max-w-5xl, px-4 → lg:px-8 → xl:px-12).
+        // Without it the header defaulted to a 90rem container and the title sat
+        // outside the 5xl column it heads.
+        width="5xl-p4"
       />
 
       <div className="mx-auto max-w-5xl px-4 lg:px-8 xl:px-12 pb-10 space-y-8 mt-2">

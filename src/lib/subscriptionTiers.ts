@@ -91,7 +91,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     verifiedBusiness: false,
     dedicatedSupport: false,
     tagline: "Get paid faster, save on boosts",
-    ctaLabel: "Get Basic",
+    ctaLabel: "Upgrade",
     featureBullets: [
       "Helpr Badge",
       "Instant Payouts",
@@ -112,7 +112,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     verifiedBusiness: false,
     dedicatedSupport: false,
     tagline: "For helpers serious about earning",
-    ctaLabel: "Upgrade to Pro",
+    ctaLabel: "Upgrade",
     featureBullets: [
       "Priority Placement",
       "Portfolio Showcase",
@@ -133,7 +133,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     verifiedBusiness: false,
     dedicatedSupport: true,
     tagline: "Top helpers. Maximum visibility.",
-    ctaLabel: "Go Elite",
+    ctaLabel: "Upgrade",
     featureBullets: [
       "Featured Crown Badge",
       "20-min early access",

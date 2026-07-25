@@ -4,10 +4,10 @@
 -- (SELECT ...) initplan wrapper, causing Postgres to re-evaluate the auth
 -- call for every row scanned instead of once per query.
 --
--- 1. public.jobs "Customers can create jobs" (INSERT) — bare auth.uid() calls
---    in the WITH CHECK. This is the server-side IDV + business-membership gate
---    (source: 20260710140000_jobs_insert_idv_gate.sql). All three auth.uid()
---    references are wrapped in (SELECT auth.uid()).
+-- 1. public.jobs INSERT policy "Customers can create jobs" — the WITH CHECK
+--    contained three bare calls to auth.uid() (customer_id comparison, profiles
+--    IDV lookup, business_members lookup). Each is wrapped in (SELECT auth.uid()).
+--    Source: 20260710140000_jobs_insert_idv_gate.sql.
 --
 -- 2. public.pif_credits "PIF credits are party-only" (SELECT) — the email
 --    branch uses current_setting('request.jwt.claims', true) to derive the
@@ -22,7 +22,7 @@
 -- idempotent; re-running produces identical policies.
 
 -- ============================================================
--- 1. jobs "Customers can create jobs" — wrap bare auth.uid()
+-- 1. jobs INSERT policy "Customers can create jobs" — initplan fix
 -- ============================================================
 
 DROP POLICY IF EXISTS "Customers can create jobs" ON public.jobs;

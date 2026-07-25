@@ -178,7 +178,7 @@ export function EmailsTab({
         <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
           <MailIcon className="w-4 h-4" /> Emails Sent
           {emailSendStats.length > 0 && (
-            <Badge variant="secondary" className="ml-1 text-ds-10">
+            <Badge variant="sienna" className="ml-1 text-ds-10">
               {emailSendStats.reduce((sum, s) => sum + s.count, 0)} total
             </Badge>
           )}

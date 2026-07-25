@@ -324,7 +324,7 @@ const BusinessTeam = () => {
     >
       <div className="mx-auto max-w-3xl">
         <div className="flex flex-wrap items-center gap-2 mb-5">
-          <Badge variant="secondary" className="text-ds-11 gap-1">
+          <Badge variant="sienna" className="text-ds-11 gap-1">
             <Sparkles className="w-3 h-3" /> {currentTierMeta.name} · {currentTierMeta.price}
           </Badge>
           <Badge variant="outline" className="text-ds-11">

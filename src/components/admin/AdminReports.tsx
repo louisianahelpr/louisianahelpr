@@ -259,10 +259,10 @@ const AdminReports = () => {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                  {/* Neutral "secondary" badge, not destructive: a new/pending
+                  {/* Calm "sienna" accent badge, not destructive: a new/pending
                       report isn't a danger/delete action — the mauve destructive
                       color is reserved for genuinely destructive controls. */}
-                  <Badge variant="secondary">
+                  <Badge variant="sienna">
                     {report.status === "pending" ? "new" : report.status}
                   </Badge>
                   {report.assigned_to_name && (

@@ -140,7 +140,7 @@ const AdminBusinessAccounts = () => {
                 <div className="flex items-center gap-2 flex-wrap mb-0.5">
                   <span className="font-semibold truncate">{b.business_name}</span>
                   {b.verification_status === "verified" && (
-                    <Badge variant="secondary" className="text-ds-10 gap-1">
+                    <Badge variant="sienna" className="text-ds-10 gap-1">
                       <ShieldCheck className="w-3 h-3" /> Verified
                     </Badge>
                   )}

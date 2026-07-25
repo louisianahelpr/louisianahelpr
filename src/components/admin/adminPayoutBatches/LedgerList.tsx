@@ -18,7 +18,7 @@ export const LedgerList = ({ ledger }: LedgerListProps) => {
       <div className="flex items-center gap-2">
         <ListChecks className="w-4 h-4 text-primary" />
         <h3 className="text-ds-13 font-semibold text-foreground">Recent transfers</h3>
-        <Badge variant="secondary" className="text-ds-10">last {ledger.length}</Badge>
+        <Badge variant="sienna" className="text-ds-10">last {ledger.length}</Badge>
       </div>
       <p className="text-ds-11 text-muted-foreground">
         Authoritative ledger from <code className="text-ds-10">payout_transfers</code>.

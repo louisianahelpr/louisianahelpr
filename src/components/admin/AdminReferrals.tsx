@@ -340,7 +340,7 @@ const AdminReferrals = () => {
                 {credits.some(c => c.referred_user_id === r.referred_id || c.referred_user_id === r.referrer_id) ? (
                   <Badge variant="default" className="text-ds-10">Bonus earned</Badge>
                 ) : (
-                  <Badge variant="secondary" className="text-ds-10">Awaiting first job</Badge>
+                  <Badge variant="sienna" className="text-ds-10">Awaiting first job</Badge>
                 )}
               </div>
             </div>

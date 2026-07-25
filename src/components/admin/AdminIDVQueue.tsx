@@ -274,7 +274,7 @@ const AdminIDVQueue = () => {
                       <Badge className={`text-ds-11 ${tab.color}`}>{tab.label}</Badge>
                     )}
                     {p.idv_confidence !== null && (
-                      <Badge variant="secondary" className="text-ds-11">
+                      <Badge variant="sienna" className="text-ds-11">
                         {Math.round(p.idv_confidence)}% confidence
                       </Badge>
                     )}

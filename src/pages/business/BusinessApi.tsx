@@ -323,7 +323,7 @@ const BusinessApi = () => {
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
                     <span className="font-semibold text-ds-13 truncate">{k.name}</span>
                     {k.revoked_at && <Badge variant="destructive" className="text-ds-10">Revoked</Badge>}
-                    {!k.revoked_at && <Badge variant="secondary" className="text-ds-10">Active</Badge>}
+                    {!k.revoked_at && <Badge variant="sienna" className="text-ds-10">Active</Badge>}
                   </div>
                   <p className="text-ds-11 text-muted-foreground">
                     helpr_live_…{k.key_last4 ?? "????"} · Created {fmtDate(k.created_at)} · Last used {fmtDate(k.last_used_at)}

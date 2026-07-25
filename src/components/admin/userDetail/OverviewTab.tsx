@@ -70,7 +70,7 @@ export function OverviewTab({ viewProfile, profileViolations }: OverviewTabProps
         {viewProfile.skills ? (
           <div className="flex flex-wrap gap-1.5">
             {viewProfile.skills.split(",").map((skill, i) => (
-              <Badge key={i} variant="secondary" className="text-ds-11">{skill.trim()}</Badge>
+              <Badge key={i} variant="sienna" className="text-ds-11">{skill.trim()}</Badge>
             ))}
           </div>
         ) : (

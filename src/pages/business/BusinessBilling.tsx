@@ -170,7 +170,7 @@ const BusinessBilling = () => {
           <h2 className="font-semibold flex items-center gap-2">
             <Clock className="w-4 h-4" /> Outstanding invoices
           </h2>
-          <Badge variant="secondary" className="text-ds-11">
+          <Badge variant="sienna" className="text-ds-11">
             {outstanding.length} open
           </Badge>
         </div>
@@ -204,7 +204,7 @@ const BusinessBilling = () => {
           <h2 className="font-semibold flex items-center gap-2">
             <FileText className="w-4 h-4" /> Payment history
           </h2>
-          <Badge variant="secondary" className="text-ds-11">
+          <Badge variant="sienna" className="text-ds-11">
             {history.length} paid
           </Badge>
         </div>

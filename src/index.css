@@ -834,6 +834,77 @@ html.web-desktop {
 }
 
 
+/* ── .squircle — Apple-style continuous corners ────────────────────────────
+   `.squircle` rides on ~25 components and, via `buttonVariants`, on virtually
+   every Button in the app. It was a no-op semantic marker for a long time;
+   this is its real implementation.
+
+   TECHNIQUE — `corner-shape` (CSS Borders & Box Decorations L4).
+   `corner-shape` re-shapes the corner curve that `border-radius` already
+   defines. `superellipse(4)` is the spec's `squircle` keyword: the continuous
+   corner iOS uses, instead of the plain quarter-ellipse `round` default.
+
+   WHY THIS AND NOT A MASK. This is the ONLY approach that satisfies the two
+   hard constraints here:
+   1. It never touches `border-radius`. Verified in Chrome 148: an element with
+      only `corner-shape` set still computes `border-radius: 0px`. So this adds
+      NO third radius source — it cannot fight Tailwind's `rounded-*` or the
+      `border-radius: 1.5rem` that `.liquid-glass` declares below. Each element
+      keeps whatever radius its own class gave it; `.squircle` only bends the
+      curve. A `mask-image`/SVG superellipse would have done the opposite —
+      it clips the box, which kills the `border`, the `inset 0 1px 0` top
+      highlight and the multi-layer drop shadows that `buttonVariants` and
+      `.btn-grad-primary` depend on, on every button in the app.
+   2. It degrades to exactly today's rendering. Unknown declarations are
+      dropped at parse time, so a non-supporting engine renders the plain
+      `border-radius` it renders now — border, inset highlight, box-shadows and
+      `overflow` clipping all untouched. No `@supports` guard is needed (or
+      useful): there is no fallback to switch on, only an enhancement to skip.
+
+   SUPPORT (measured, not assumed — 2026-07):
+   · Chromium 139+ (Chrome/Edge, desktop + Android WebView) — ENHANCED.
+     Probed Chrome 148: `CSS.supports('corner-shape','superellipse(4)')` true.
+     Confirmed visually that border, inset highlight, multi-layer shadow and
+     `overflow: hidden` clipping all follow the squircle curve.
+   · WebKit — FALLBACK. Probed Mobile Safari on the iOS 26.4 simulator, i.e.
+     the exact engine this app's WKWebView runs: `CSS.supports` false, computed
+     `corner-shape` empty, and `border-radius`/`box-shadow` preserved intact.
+     So iOS (and macOS Safari, and Firefox) get today's rounded corners.
+     Nothing to remove when WebKit ships it — those users just upgrade in.
+
+   PILL / CIRCLE CARVE-OUT (below). A superellipse spans the WHOLE radius, so
+   at a pill or circular radius `superellipse(4)` stops reading as a squircle
+   and collapses toward a rectangle: a 180x44 pill becomes a near-square bar,
+   and a circular icon button becomes a boxy tile. Measured in Chrome, not
+   guessed. ~16 `<Button className="… rounded-full …">` call sites inherit
+   `.squircle` from `buttonVariants` (NotificationPanel, QuickReplies,
+   RichMessageInput, ChatHeader, PublicLayout, ShareJobButton), so those are
+   pinned back to the `round` default — `.squircle` shapes moderate corners and
+   leaves genuinely round ones alone. `:where()` keeps the carve-out at plain
+   `.squircle` specificity (0,1,0), so it wins purely on source order and never
+   escalates a specificity war.
+
+   Kept in `@layer components` so it lands BEFORE Tailwind's utilities: nothing
+   in the app emits a `corner-shape` utility today, so this always applies, but
+   an explicit `[corner-shape:round]` arbitrary value could override it later
+   without needing `!important`. Note that Tailwind v3 content-purges custom
+   `@layer components` CSS — both rules below survive only because the literal
+   string `squircle` appears in the scanned source (including the
+   `buttonVariants` base string). Renaming the class without updating call
+   sites would silently drop this block rather than error. */
+@layer components {
+  .squircle {
+    corner-shape: superellipse(4);
+  }
+
+  /* Pills and circles keep the true `round` corner — see carve-out note above.
+     `round` is `corner-shape`'s initial value, so this is an exact restore. */
+  .squircle:where(.rounded-full, .rounded-ds-pill) {
+    corner-shape: round;
+  }
+}
+
+
 /* Typography Utilities — page titles use the editorial Bodoni Moda italic
    treatment so internal pages match the landing's typographic voice. The
    `!important` on font-size beats the trailing Tailwind `text-2xl` that

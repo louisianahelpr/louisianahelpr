@@ -195,15 +195,15 @@ SheetDescription.displayName = SheetPrimitive.Description.displayName;
  *   <SheetHero eyebrow="Filters" title="Refine your search" subtitle="…" />
  */
 const SheetHero = ({
-  eyebrow,
   title,
   subtitle,
   className,
   titleClassName,
   titleStyle,
-  eyebrowClassName,
-  eyebrowStyle,
 }: {
+  // `eyebrow`/`eyebrowClassName`/`eyebrowStyle` kept in the type for call-site
+  // compatibility but intentionally not rendered — 2026-07-25 app-wide
+  // eyebrow-removal decision (mirrors DialogHero).
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
@@ -214,14 +214,6 @@ const SheetHero = ({
   eyebrowStyle?: React.CSSProperties;
 }) => (
   <SheetHeader className={cn("space-y-0 text-left pr-12", className)}>
-    {eyebrow && (
-      <span
-        className={cn("font-serif italic uppercase block", eyebrowClassName)}
-        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em", ...eyebrowStyle }}
-      >
-        {eyebrow}
-      </span>
-    )}
     <SheetTitle
       className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
       style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}

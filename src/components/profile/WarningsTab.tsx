@@ -67,7 +67,6 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
             const renderHero = (
               icon: typeof Shield,
               tone: "destructive" | "orange" | "amber" | "primary",
-              eyebrow: string,
               title: string,
               body: string,
             ) => {
@@ -83,9 +82,6 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                   <div className={`w-14 h-14 rounded-full bg-card mx-auto flex items-center justify-center`}>
                     <Icon className={`w-7 h-7 ${palette.icon}`} />
                   </div>
-                  <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                    {eyebrow}
-                  </p>
                   <h2 className="font-display italic font-bold leading-tight text-headline-hero" style={{ color: palette.title, letterSpacing: "-0.02em" }}>
                     {title}
                   </h2>
@@ -95,13 +91,13 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                 </div>
               );
             };
-            if (hasBan) return renderHero(Shield, "destructive", "Status", "Account banned", "Permanently banned due to policy violations.");
-            if (hasSuspension) return renderHero(AlertTriangle, "orange", "Status", "Suspended", "Your account is under temporary suspension.");
+            if (hasBan) return renderHero(Shield, "destructive", "Account banned", "Permanently banned due to policy violations.");
+            if (hasSuspension) return renderHero(AlertTriangle, "orange", "Suspended", "Your account is under temporary suspension.");
             if (strikeCount > 0) return renderHero(
-              AlertTriangle, "amber", "Status", `Strike ${strikeCount}/2`,
+              AlertTriangle, "amber", `Strike ${strikeCount}/2`,
               strikeCount === 1 ? "One warning on file. A second strike may lead to suspension." : "Final warning. Another violation will result in a permanent ban."
             );
-            return renderHero(CheckCircle2, "primary", "Status", "Good standing", "No warnings or violations on record. Keep it up.");
+            return renderHero(CheckCircle2, "primary", "Good standing", "No warnings or violations on record. Keep it up.");
           })()}
 
           {/* Violation history — only when there's actual history. With

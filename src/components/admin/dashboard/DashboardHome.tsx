@@ -60,14 +60,8 @@ export const DashboardHome = ({
             "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
         }}
       >
-        <span
-          className="font-serif italic uppercase text-[0.62rem] block"
-          style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-        >
-          Operations
-        </span>
         <h1
-          className="font-display italic font-bold leading-tight mt-2"
+          className="font-display italic font-bold leading-tight"
           style={{ fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.85rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
         >
           Welcome back

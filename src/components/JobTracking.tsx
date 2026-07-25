@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
-import { Navigation, MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, ShieldCheck, AlertTriangle, Share2 } from "lucide-react";
+import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, ShieldCheck, AlertTriangle, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { formatShortDate } from "@/lib/format";
@@ -327,14 +327,8 @@ export function JobTracking({
     <div className="rounded-2xl liquid-glass p-5 space-y-4">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <span
-            className="font-serif italic uppercase inline-flex items-center gap-1.5"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            <Navigation className="w-3 h-3" /> Live
-          </span>
           <h3
-            className="font-display italic font-bold leading-tight mt-1 text-headline-card"
+            className="font-display italic font-bold leading-tight text-headline-card"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
           >
             Job tracking

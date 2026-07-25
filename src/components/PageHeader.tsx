@@ -49,7 +49,9 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, string> = {
   "5xl": "max-w-5xl px-5 lg:px-8",
 };
 
-const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
+const PageHeader = ({ title, meta, onBack, rightSlot, hideBack = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
+  // `eyebrow` is accepted by PageHeaderProps for call-site compatibility but
+  // intentionally not destructured/rendered — see the removal note below.
   const containerWidth = WIDTH_CLASS[width];
 
   // The sticky top bar renders when there's brand or a rightSlot to show.
@@ -86,17 +88,13 @@ const PageHeader = ({ title, eyebrow, meta, onBack, rightSlot, hideBack = false,
             </div>
           )}
           <div className="flex flex-col leading-none min-w-0 mb-1">
-            {eyebrow && (
-              <span
-                className="font-serif italic uppercase text-[0.62rem]"
-                style={{
-                  color: "hsl(var(--burnt-sienna))",
-                  letterSpacing: "0.18em",
-                }}
-              >
-                {eyebrow}
-              </span>
-            )}
+            {/* Eyebrow render intentionally removed (2026-07-25 decision):
+                the small burnt-sienna uppercase kicker above the title read as
+                redundant noise app-wide (FRESH TODAY / POSTED JOBS / ACTIVITY
+                TREND, …). The `eyebrow` prop is kept in the type so the ~140
+                existing call sites don't have to churn and the label is a
+                one-line restore if we ever want it back — it just no longer
+                paints. `meta` still renders below the title. */}
             <h1 className="text-page-title leading-tight mt-1 text-balance">
               {title}
             </h1>

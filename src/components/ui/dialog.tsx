@@ -110,41 +110,27 @@ DialogDescription.displayName = DialogPrimitive.Description.displayName;
  * long name needs it, without forking the structure.
  */
 const DialogHero = ({
-  eyebrow,
   title,
   subtitle,
   className,
   titleClassName,
   titleStyle,
-  eyebrowClassName,
-  eyebrowStyle,
 }: {
+  // `eyebrow`/`eyebrowClassName`/`eyebrowStyle` remain in the type for
+  // call-site compatibility but are intentionally not rendered — see the
+  // 2026-07-25 app-wide eyebrow-removal decision. Kept as accepted props so
+  // the many existing <DialogHero eyebrow="…"> call sites don't have to churn
+  // and the label is a one-line restore if ever wanted.
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   className?: string;
   titleClassName?: string;
   titleStyle?: React.CSSProperties;
-  // eyebrowClassName/eyebrowStyle let a caller recolor the eyebrow without
-  // forking the header — e.g. job dialogs tint it with the job's category
-  // color while every other dialog keeps the canonical burnt-sienna.
   eyebrowClassName?: string;
   eyebrowStyle?: React.CSSProperties;
 }) => (
   <DialogHeader className={cn("space-y-0 text-left", className)}>
-    {eyebrow && (
-      <span
-        className={cn("font-serif italic uppercase block", eyebrowClassName)}
-        /* WCAG AA: full burnt-sienna on parchment measures 5.88:1;
-           the previous / 0.78 alpha dropped it to 3.84:1 which fails
-           AA at 9.92px. Alpha removed globally so every DialogHero
-           eyebrow across the app clears AA in one edit. Chrome-drove
-           the NotificationPanel 2026-07-08. */
-        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em", ...eyebrowStyle }}
-      >
-        {eyebrow}
-      </span>
-    )}
     <DialogTitle
       className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
       style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}

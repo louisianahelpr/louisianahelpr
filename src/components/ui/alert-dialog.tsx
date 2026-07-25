@@ -80,15 +80,15 @@ AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayNam
  *   <AlertDialogHero eyebrow="Safety" title="Block Sarah?" subtitle="They won't…" />
  */
 const AlertDialogHero = ({
-  eyebrow,
   title,
   subtitle,
   className,
   titleClassName,
   titleStyle,
-  eyebrowClassName,
-  eyebrowStyle,
 }: {
+  // `eyebrow`/`eyebrowClassName`/`eyebrowStyle` kept in the type for call-site
+  // compatibility but intentionally not rendered — 2026-07-25 app-wide
+  // eyebrow-removal decision (mirrors DialogHero).
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
@@ -99,14 +99,6 @@ const AlertDialogHero = ({
   eyebrowStyle?: React.CSSProperties;
 }) => (
   <AlertDialogHeader className={cn("space-y-0 text-left", className)}>
-    {eyebrow && (
-      <span
-        className={cn("font-serif italic uppercase block", eyebrowClassName)}
-        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em", ...eyebrowStyle }}
-      >
-        {eyebrow}
-      </span>
-    )}
     <AlertDialogTitle
       className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
       style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}

@@ -11,14 +11,14 @@
  * Linked from Settings, Privacy Policy, and the iOS App Store privacy listing.
  */
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { report } from "@/lib/errorLogger";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Download, ShieldOff, Loader2, ArrowLeft } from "lucide-react";
+import { Download, ShieldOff, Loader2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import BackButton from "@/components/BackButton";
 import NotificationPanel from "@/components/NotificationPanel";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -120,29 +120,44 @@ const DataRights = () => {
     />
   ) : (
     <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-8">
-      <h1 className="text-page-title leading-tight">Your Data Rights</h1>
-      <p className="font-serif italic mt-1 text-[0.82rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        Export, correct, or delete your information at any time
-      </p>
+      <div className="flex items-center gap-3">
+        <div className="shrink-0">
+          <BackButton to="/privacy" />
+        </div>
+        <div className="flex flex-col leading-none min-w-0">
+          <h1 className="text-page-title leading-tight">Your Data Rights</h1>
+          <p className="font-serif italic mt-1 text-[0.82rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Export, correct, or delete your information at any time
+          </p>
+          {/* Intro copy lives in the SAME column as the title (not the row's
+              outer edge, which starts under the back button) so it reads as
+              body text belonging to the page, not a caption scoped to the
+              back button. */}
+          <p className="text-ds-11 text-muted-foreground max-w-2xl leading-normal mt-3">
+            Under the EU GDPR and California CCPA, you have specific rights about how Helpr handles your personal data.
+            Use the controls below to exercise them. For all other privacy questions email{" "}
+            <a href="mailto:admin@louisianahelpr.com" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>admin@louisianahelpr.com</a>.
+          </p>
+        </div>
+      </div>
     </div>
   );
 
   const inner = (
     <>
       {header}
-      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pb-10 space-y-5 mt-2">
-        <p className="text-ds-11 text-muted-foreground max-w-2xl">
-          Under the EU GDPR and California CCPA, you have specific rights about how Helpr handles your personal data.
-          Use the controls below to exercise them. For all other privacy questions email{" "}
-          <a href="mailto:admin@louisianahelpr.com" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>admin@louisianahelpr.com</a>.
-        </p>
-
+      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pb-10 space-y-5 mt-4">
         <div className="grid gap-4 sm:grid-cols-2">
         {/* Export */}
-        <section className="rounded-2xl liquid-glass p-5 space-y-3">
+        <section className="rounded-2xl liquid-glass p-5 space-y-4">
           <div className="flex items-start gap-3">
-            <Download className="w-5 h-5 text-primary mt-1 flex-shrink-0" aria-hidden />
-            <div className="flex-1">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: "hsl(var(--bark) / 0.10)" }}
+            >
+              <Download className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} aria-hidden />
+            </div>
+            <div className="flex-1 min-w-0">
               <h2 className="font-display italic font-semibold text-ds-17">Download your data</h2>
               <p className="text-ds-11 text-muted-foreground mt-1">
                 Get a complete copy of your Helpr data — profile, posted jobs, applications, and reviews — as a single JSON file.
@@ -161,30 +176,34 @@ const DataRights = () => {
         </section>
 
         {/* Do not sell — CCPA */}
-        <section className="rounded-2xl liquid-glass p-5 space-y-3">
+        <section className="rounded-2xl liquid-glass p-5 space-y-4">
           <div className="flex items-start gap-3">
-            <ShieldOff className="w-5 h-5 text-primary mt-1 flex-shrink-0" aria-hidden />
-            <div className="flex-1">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: "hsl(var(--bark) / 0.10)" }}
+            >
+              <ShieldOff className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} aria-hidden />
+            </div>
+            <div className="flex-1 min-w-0">
               <h2 className="font-display italic font-semibold text-ds-17">Do not sell or share my personal information</h2>
               <p className="text-ds-11 text-muted-foreground mt-1">
                 Helpr does not sell your data. This toggle additionally opts you out of any cross-context behavioral
                 advertising that may be enabled in the future.
               </p>
             </div>
-            <Switch checked={doNotSell} onCheckedChange={toggleDoNotSell} aria-label="Do not sell my personal information" />
           </div>
+          <label className="flex items-center justify-between gap-3 pt-1 cursor-pointer" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
+            <span className="text-ds-12 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+              {doNotSell ? "Opted out" : "Opted in"}
+            </span>
+            <Switch checked={doNotSell} onCheckedChange={toggleDoNotSell} aria-label="Do not sell my personal information" />
+          </label>
         </section>
         </div>
 
         {/* Account deletion (GDPR Art. 17 erasure) lives on the Profile /
             Settings screen — keeping a single entry point avoids a confusing
             duplicate control here. */}
-
-        <div className="text-center pt-4">
-          <Link to="/privacy" className="text-ds-11 text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
-            <ArrowLeft className="w-4 h-4" /> Back to Privacy Policy
-          </Link>
-        </div>
       </div>
     </>
   );

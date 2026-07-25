@@ -112,11 +112,16 @@
   --success-foreground: 0 0% 100%;
   --warning: 33 26% 53%;
   --warning-foreground: 0 0% 100%;
-  --error: 0 13% 48%;
+  /* Real red (was the muted `0 13% 48%` that read as mauve/dusty-rose).
+     Retuned 2026-07-25 per "nothing should be mauve" to a saturated warm red
+     aligned with the vetted `--cancel` pair (hue ~6). White foreground keeps
+     AA on the solid fill. Applies to every destructive/error button, badge,
+     and text token app-wide. */
+  --error: 6 64% 46%;
   --error-foreground: 0 0% 100%;
   --info: 78 9% 53%;
   --info-foreground: 0 0% 100%;
-  --destructive: 0 13% 48%;
+  --destructive: 6 64% 46%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:         var(--parchment);
   --sidebar-foreground:         var(--olivewood);
@@ -313,11 +318,14 @@
   --success-foreground:   0 0% 100%;
   --warning:              33 26% 60%;
   --warning-foreground:   0 0% 100%;
-  --error:                0 18% 55%;
+  /* Real red for dark mode (was the muted mauve `0 18% 55%`). Slightly
+     lighter/brighter than the light-mode red so it reads on the dark canvas
+     while keeping white-foreground contrast. See the light-mode note. */
+  --error:                6 60% 52%;
   --error-foreground:     0 0% 100%;
   --info:                 78 12% 55%;
   --info-foreground:      0 0% 100%;
-  --destructive:          0 18% 55%;
+  --destructive:          6 60% 52%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:   var(--parchment);
   --sidebar-foreground:   var(--olivewood);
@@ -1231,7 +1239,13 @@ button,
    numbers and category eyebrows. Reads like an architect's drawing label or
    the date line in a journal rather than a web tagline. */
 .text-display-eyebrow {
-  display: inline-block;
+  /* Eyebrow kickers removed app-wide (2026-07-25 decision: "all eyebrows
+     gone"). This utility was used exclusively for the small burnt-sienna
+     uppercase kicker above titles on the marketing/status pages, in
+     EmptyState, and in ErrorState — hiding it here retires every one of those
+     in a single place. The type rules are kept (commented) so the label is a
+     one-line restore if ever wanted. */
+  display: none;
   font-family: "EB Garamond", Georgia, Cambria, serif;
   font-style: italic;
   font-size: 0.78rem;

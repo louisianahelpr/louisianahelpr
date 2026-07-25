@@ -4,6 +4,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Shield, Home, LogOut, Pin, PinOff } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -229,7 +230,25 @@ const AdminSidebar = ({
         })}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-2">
+      <SidebarFooter className="border-t border-sidebar-border p-2 gap-1">
+        {/* Back to the normal app — the admin console previously had no exit
+            except Log out, stranding admins in the console (couldn't reach
+            home / post / messages / profile without signing out). This returns
+            to the app shell WITHOUT logging out. */}
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "justify-start gap-2",
+            collapsed && "justify-center px-0"
+          )}
+        >
+          <Link to="/dashboard" aria-label="Back to the app">
+            <Home className="w-4 h-4" />
+            {!collapsed && <span>Back to app</span>}
+          </Link>
+        </Button>
         <Button
           variant="ghost"
           size="sm"

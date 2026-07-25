@@ -70,13 +70,35 @@ const MESSAGE_MAX = 5000
 // adjudicate RFC 5322. Real deliverability is Resend's problem.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
-/** Trim, collapse stray control characters, and cap length. */
+/**
+ * Trim, strip control characters, and cap length.
+ *
+ * Two variants on purpose:
+ *   clean()     - for the MESSAGE BODY. Keeps tab + newline; a support
+ *                 message with paragraphs is normal.
+ *   cleanLine() - for anything that reaches an email HEADER (topic, name,
+ *                 subject). Strips tabs and newlines outright: a newline
+ *                 surviving into the Resend `subject` field is the classic
+ *                 header-injection shape, and no legitimate name or subject
+ *                 line contains one.
+ */
 function clean(input: unknown, max: number): string {
   if (typeof input !== 'string') return ''
   return input
-    // Strip C0/C1 control chars EXCEPT tab (\t) and newline (\n), which the
-    // message body legitimately contains.
+    // C0/C1 control chars EXCEPT tab and newline, which the message body
+    // legitimately contains.
     .replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, '')
+    .trim()
+    .slice(0, max)
+}
+
+function cleanLine(input: unknown, max: number): string {
+  if (typeof input !== 'string') return ''
+  return input
+    // EVERY C0/C1 control char, no exceptions - then collapse whitespace runs
+    // so a padded-out value can't smuggle layout into the header either.
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim()
     .slice(0, max)
 }
@@ -195,8 +217,13 @@ Deno.serve(async (req) => {
       })
     }
 
-    const topic = clean(body.topic, 32)
-    const topicLabel = TOPIC_LABELS[topic]
+    const topic = cleanLine(body.topic, 32)
+    // hasOwnProperty, not a bare index: `topic` is attacker-controlled, and a
+    // plain `TOPIC_LABELS[topic]` would happily resolve "constructor" or
+    // "toString" off Object.prototype into a truthy non-string label.
+    const topicLabel = Object.prototype.hasOwnProperty.call(TOPIC_LABELS, topic)
+      ? TOPIC_LABELS[topic]
+      : undefined
     if (!topicLabel) {
       return new Response(JSON.stringify({ error: 'Choose what your message is about.' }), {
         status: 400,
@@ -204,9 +231,12 @@ Deno.serve(async (req) => {
       })
     }
 
-    let name = clean(body.name, NAME_MAX)
-    let email = clean(body.email, EMAIL_MAX).toLowerCase()
-    const subject = clean(body.subject, SUBJECT_MAX)
+    // topic / name / email / subject all reach an email HEADER, so they go
+    // through cleanLine (no newlines survive), not clean.
+    let name = cleanLine(body.name, NAME_MAX)
+    let email = cleanLine(body.email, EMAIL_MAX).toLowerCase()
+    const subject = cleanLine(body.subject, SUBJECT_MAX)
+    // Body only - paragraphs are legitimate here.
     const message = clean(body.message, MESSAGE_MAX)
 
     if (message.length < MESSAGE_MIN) {
@@ -252,8 +282,14 @@ Deno.serve(async (req) => {
       if (profileErr) {
         console.error('[contact-support] profile lookup failed', profileErr.message)
       }
-      if (profile?.full_name?.trim()) name = profile.full_name.trim().slice(0, NAME_MAX)
-      if (profile?.email?.trim()) email = profile.email.trim().toLowerCase().slice(0, EMAIL_MAX)
+      // cleanLine here too: `profiles.full_name` is itself user-supplied, so
+      // it gets the same header-safety treatment as a guest's typed name.
+      // Only overwrite when the profile actually has a value — a half-filled
+      // profile must not blank out what the visitor typed.
+      const profileName = cleanLine(profile?.full_name, NAME_MAX)
+      const profileEmail = cleanLine(profile?.email, EMAIL_MAX).toLowerCase()
+      if (profileName) name = profileName
+      if (profileEmail) email = profileEmail
     }
 
     // Guests must supply both; a signed-in sender has them filled above.

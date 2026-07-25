@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowRight, Search, SlidersHorizontal, X, Lock, Briefcase } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import BackButton from "@/components/BackButton";
 import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
@@ -45,6 +45,7 @@ const Jobs = () => {
     ogDescription:
       "Find jobs near you and start earning. Helpr Escrow keeps every transaction safe.",
   });
+  const reducedMotion = useReducedMotion();
   // Capture ?ref= attribution from share/external links (e.g. ?ref=share
   // from the Share Sheet) so we can attribute traffic source for job views.
   useJobRef();
@@ -297,9 +298,9 @@ const Jobs = () => {
           <AnimatePresence>
             {searchOpen && (
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
+                initial={reducedMotion ? false : { height: 0, opacity: 0 }}
+                animate={reducedMotion ? {} : { height: "auto", opacity: 1 }}
+                exit={reducedMotion ? {} : { height: 0, opacity: 0 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
                 className="overflow-hidden mb-4"
               >

@@ -56,7 +56,7 @@ export const StarRow = ({
             onClick={() => { hapticLight(); onChange(s); }}
             onMouseEnter={() => setHover(s)}
             onMouseLeave={() => setHover(0)}
-            className="p-0.5 active:scale-90 transition-transform"
+            className="p-2 active:scale-90 transition-transform"
             aria-label={`${label} ${s} star${s > 1 ? "s" : ""}`}
           >
             <Star

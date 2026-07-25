@@ -14,7 +14,7 @@ export const JobsList = ({ jobs, variant }: Props) => {
   const emptyCopy = variant === "posted" ? "No posted jobs yet" : "No completed jobs yet";
 
   return (
-    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+    <div className="space-y-2 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 motion-safe:duration-200">
       {jobs.length > 0 ? jobs.map((job) => (
         <div key={job.id} className="rounded-ds-md liquid-glass p-3 flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">

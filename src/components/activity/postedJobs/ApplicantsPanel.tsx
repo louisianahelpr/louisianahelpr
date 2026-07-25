@@ -137,7 +137,7 @@ export function ApplicantsPanel({
   return (
     <>
       {/* Applicants full-screen comparison view */}
-      <div className="fixed inset-0 z-50 flex flex-col animate-in slide-in-from-right duration-200" style={{ background: "hsl(var(--parchment))" }}>
+      <div className="fixed inset-0 z-50 flex flex-col motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200" style={{ background: "hsl(var(--parchment))" }}>
         {/* Header */}
         <div
           className="flex items-center gap-2 px-4 py-3"
@@ -507,7 +507,7 @@ export function ApplicantsPanel({
                                   className="inline-flex items-center gap-0.5 mt-0.5 text-ds-11 font-semibold px-1.5 py-0.5 rounded-full"
                                   style={{ background: "hsl(var(--sage) / 0.12)", color: "hsl(var(--sage))" }}
                                 >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" aria-hidden="true" />
+                                  <span className="w-1.5 h-1.5 rounded-full bg-current motion-safe:animate-pulse" aria-hidden="true" />
                                   Available now
                                 </span>
                               ) : null;

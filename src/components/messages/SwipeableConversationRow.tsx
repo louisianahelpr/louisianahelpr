@@ -1,5 +1,5 @@
 import { memo, useState, type ReactNode } from "react";
-import { motion, useMotionValue, useTransform, animate, type PanInfo } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate, useReducedMotion, type PanInfo } from "framer-motion";
 import { Pin, PinOff, Archive } from "lucide-react";
 import { hapticHeavy, hapticLight } from "@/lib/haptics";
 
@@ -40,6 +40,7 @@ function SwipeableConversationRowBase({
   onArchive,
   onTogglePin,
 }: SwipeableConversationRowProps) {
+  const reducedMotion = useReducedMotion();
   const x = useMotionValue(0);
   // Archive trail (left swipe → negative x): sienna gradient
   const archiveOpacity = useTransform(x, [-160, -40, 0], [1, 0.55, 0]);
@@ -61,7 +62,7 @@ function SwipeableConversationRowBase({
     // Always snap back — the callbacks own any "row removed" / "row
     // moved to top" reflow. Snap before the next paint so the trail
     // doesn't linger after the row reaches its commit position.
-    animate(x, 0, { type: "spring", stiffness: 500, damping: 35 });
+    if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "spring", stiffness: 500, damping: 35 }); }
     setDragging(false);
   };
 

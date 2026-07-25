@@ -75,7 +75,7 @@ export const ReviewsSection = ({
   const hasMore = filteredReviews.length > visible.length;
 
   return (
-    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+    <div className="space-y-2 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 motion-safe:duration-200">
       {/* Filter row — only render when there's something to filter
           (at least one category beyond "other" OR more than one
           distinct rating). Avoids cluttering a 1-review profile. */}

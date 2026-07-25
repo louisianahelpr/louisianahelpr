@@ -448,7 +448,13 @@ const UserProfile = () => {
             {/* Stats */}
             <ProfileStatsGrid
               stats={stats}
-              postedJobsCount={postedJobs.length}
+              // postedTotalCount, NOT postedJobs.length — the `postedJobs`
+              // fetch carries a .limit(20), so the stat read "20 Posted" for
+              // anyone with more than 20 jobs. The exact count is already
+              // fetched on this same load (count: exact, head: true) and was
+              // simply never wired up. The list below still shows 20; the
+              // number above it is now true.
+              postedJobsCount={postedTotalCount}
               workedJobsCount={completedWorkedJobs.length}
               isOwnProfile={isOwnProfile}
               showReviews={showReviews}

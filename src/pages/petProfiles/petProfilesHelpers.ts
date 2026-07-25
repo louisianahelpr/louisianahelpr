@@ -84,8 +84,11 @@ export function isPetFormDirty(
 // actually enforced. Keep them in sync with the `min`/`max` on the inputs.
 // ---------------------------------------------------------------------------
 
-/** Oldest age accepted (matches the age input's `max`). */
-export const PET_AGE_MAX = 30;
+/** Oldest age accepted (matches the age input's `max`). 30 rejected real pets —
+ *  parrots and tortoises routinely outlive it, and a boarded horse would too.
+ *  100 still catches an order-of-magnitude typo without calling a customer's
+ *  animal impossible. */
+export const PET_AGE_MAX = 100;
 /** Heaviest weight accepted — catches order-of-magnitude typos (450 for 45)
  *  while still clearing any realistic household pet. */
 export const PET_WEIGHT_MAX = 500;

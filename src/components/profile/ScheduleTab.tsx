@@ -216,14 +216,24 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                       "hover:bg-secondary text-foreground"
                     }`}
                     style={
-                      isBlocked && !isSelected && !isToday
+                      isSelected
                         ? {
-                            // Subtle diagonal hatch + grey backdrop —
-                            // signals "unavailable" without screaming.
-                            backgroundImage:
-                              "repeating-linear-gradient(135deg, transparent 0 4px, hsl(var(--olivewood) / 0.06) 4px 5px)",
+                            // Canonical glossy selected-control treatment
+                            // (matches the Subscription billing pills):
+                            // drop shadow + inset parchment top-highlight so
+                            // the picked day reads as elevated, not a flat
+                            // fill.
+                            boxShadow:
+                              "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)",
                           }
-                        : undefined
+                        : isBlocked && !isToday
+                          ? {
+                              // Subtle diagonal hatch + grey backdrop —
+                              // signals "unavailable" without screaming.
+                              backgroundImage:
+                                "repeating-linear-gradient(135deg, transparent 0 4px, hsl(var(--olivewood) / 0.06) 4px 5px)",
+                            }
+                          : undefined
                     }
                   >
                     {day}

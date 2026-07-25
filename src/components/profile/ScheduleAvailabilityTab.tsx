@@ -199,6 +199,13 @@ function SubViewToggle({
               style={{
                 background: active ? "hsl(var(--bark))" : "transparent",
                 color: active ? "hsl(var(--parchment))" : "hsl(var(--olivewood))",
+                // Canonical glossy selected-control treatment (matches the
+                // Subscription billing pills): drop shadow + inset parchment
+                // top-highlight so the active segment reads as elevated,
+                // not a flat swatch.
+                boxShadow: active
+                  ? "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)"
+                  : undefined,
               }}
             >
               <Icon className="w-3.5 h-3.5" />

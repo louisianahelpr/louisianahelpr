@@ -5,6 +5,7 @@ import {
   Clock,
   ExternalLink,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
 import NotificationPanel from "@/components/NotificationPanel";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -19,7 +20,6 @@ interface BenefitItem {
 interface BenefitSection {
   icon: React.ReactNode;
   title: string;
-  color: string;
   items: BenefitItem[];
 }
 
@@ -27,7 +27,6 @@ const SECTIONS: BenefitSection[] = [
   {
     icon: <Heart className="w-5 h-5" />,
     title: "Health & Wellness",
-    color: "hsl(var(--burnt-sienna))",
     items: [
       {
         name: "Stride Health",
@@ -44,7 +43,6 @@ const SECTIONS: BenefitSection[] = [
   {
     icon: <DollarSign className="w-5 h-5" />,
     title: "Financial Tools",
-    color: "hsl(var(--bark))",
     items: [
       {
         name: "Catch",
@@ -61,7 +59,6 @@ const SECTIONS: BenefitSection[] = [
   {
     icon: <ShoppingBag className="w-5 h-5" />,
     title: "Supplies & Discounts",
-    color: "hsl(var(--gold-warm))",
     items: [
       {
         name: "Toolbarn",
@@ -89,59 +86,66 @@ const COMING_SOON: string[] = [
   "Background check fee coverage",
 ];
 
+// Calm parchment card — matches HomeHistory / WorkRecord / StrSettings so
+// /benefits reads like the rest of the profile-linked surface (no saturated
+// hero, no cream fills). One shared style keeps the sections cohesive.
+const cardStyle: React.CSSProperties = {
+  background: "hsl(var(--parchment) / 0.70)",
+  border: "1px solid hsl(var(--olivewood) / 0.10)",
+  boxShadow:
+    "0 1px 3px hsl(var(--olivewood) / 0.06), 0 4px 10px -4px hsl(var(--olivewood) / 0.08)",
+};
+
+// Design-system eyebrow — same serif-italic burnt-sienna caption the peer
+// pages use for their section headers ("Work Summary", year groups, etc.).
+const eyebrowClass = "font-serif italic uppercase text-ds-9";
+const eyebrowStyle: React.CSSProperties = {
+  color: "hsl(var(--burnt-sienna))",
+  letterSpacing: "0.18em",
+};
+
 export default function BenefitsPage() {
   usePageTitle("Benefits & Perks — Helpr");
+  const navigate = useNavigate();
 
   const open = (url: string) =>
     window.open(url, "_blank", "noopener noreferrer");
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Benefits & Perks" showBrand rightSlot={<NotificationPanel />} />
+      {/* The intro copy that used to live in a saturated gradient hero now
+          rides in the standard PageHeader eyebrow/meta slots — the same calm
+          header treatment every other profile-linked page uses. */}
+      <PageHeader
+        title="Benefits & Perks"
+        eyebrow="Built for Helprs, by Helprs"
+        meta="Partner perks curated for Louisiana Helpr members — health coverage, financial tools, and supply discounts to help you earn more and keep more."
+        onBack={() => navigate("/profile")}
+        showBrand
+        rightSlot={<NotificationPanel />}
+      />
 
-      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 lg:px-8 pt-4 space-y-6">
-        {/* Hero — text-white swapped for the parchment token used by every
-            other gradient hero in the app, so the color reads from the
-            design-system source instead of a raw utility. */}
-        <div
-          className="rounded-2xl p-6 shadow-md"
-          style={{
-            background:
-              "linear-gradient(135deg, hsl(var(--burnt-sienna)) 0%, hsl(var(--bark)) 100%)",
-            color: "hsl(var(--parchment))",
-          }}
-        >
-          <p className="font-semibold text-lg mb-1">Built for Helprs, by Helprs.</p>
-          <p className="text-sm opacity-85">
-            These partner perks are curated for Louisiana Helpr members — health
-            coverage, financial tools, and supply discounts to help you earn more
-            and keep more.
-          </p>
-        </div>
-
+      <div className="mx-auto max-w-5xl px-4 lg:px-8 xl:px-12 pb-10 space-y-6 mt-2">
         {/* Sections */}
         {SECTIONS.map((section) => (
           <div
             key={section.title}
-            className="rounded-2xl overflow-hidden"
-            style={{ background: "hsl(var(--cream))" }}
+            className="rounded-ds-lg overflow-hidden"
+            style={cardStyle}
           >
             {/* Section header */}
             <div
-              className="flex items-center gap-2 px-5 py-3"
-              style={{ borderBottom: "1px solid hsl(var(--bark) / 0.08)" }}
+              className="flex items-center gap-2 px-5 py-3.5"
+              style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.10)" }}
             >
-              <span style={{ color: section.color }}>{section.icon}</span>
-              <h2
-                className="font-semibold text-sm uppercase tracking-wide"
-                style={{ color: section.color }}
-              >
+              <span style={{ color: "hsl(var(--bark))" }}>{section.icon}</span>
+              <h2 className={eyebrowClass} style={eyebrowStyle}>
                 {section.title}
               </h2>
             </div>
 
             {/* Items */}
-            <div className="divide-y" style={{ borderColor: "hsl(var(--bark) / 0.06)" }}>
+            <div className="divide-y" style={{ borderColor: "hsl(var(--olivewood) / 0.10)" }}>
               {section.items.map((item) => (
                 <button
                   key={item.name}
@@ -150,13 +154,13 @@ export default function BenefitsPage() {
                 >
                   <div>
                     <p
-                      className="font-semibold text-sm"
-                      style={{ color: "hsl(var(--bark))" }}
+                      className="font-semibold text-ds-14"
+                      style={{ color: "hsl(var(--ink-deep))" }}
                     >
                       {item.name}
                     </p>
                     <p
-                      className="text-xs mt-0.5 leading-relaxed"
+                      className="text-ds-12 mt-0.5 leading-relaxed"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {item.tagline}
@@ -173,16 +177,10 @@ export default function BenefitsPage() {
         ))}
 
         {/* Coming soon */}
-        <div
-          className="rounded-2xl p-5"
-          style={{ background: "hsl(var(--cream))" }}
-        >
+        <div className="rounded-ds-lg p-5" style={cardStyle}>
           <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-4 h-4" style={{ color: "hsl(var(--olivewood))" }} />
-            <h2
-              className="font-semibold text-sm uppercase tracking-wide"
-              style={{ color: "hsl(var(--olivewood))" }}
-            >
+            <Clock className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
+            <h2 className={eyebrowClass} style={eyebrowStyle}>
               Coming soon
             </h2>
           </div>
@@ -190,7 +188,7 @@ export default function BenefitsPage() {
             {COMING_SOON.map((item) => (
               <li
                 key={item}
-                className="text-sm flex items-center gap-2"
+                className="text-ds-13 flex items-center gap-2"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0" />

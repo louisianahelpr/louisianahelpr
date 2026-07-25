@@ -92,48 +92,12 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
         onBack={onBack}
       />
 
-      {/* Zero-state hero — same shell as the populated hero so the
-          page has visual anchor weight even before the first review
-          lands. Sets expectations rather than dropping the user
-          straight into "no reviews yet". */}
-      {reviewCount === 0 && (
-        <div className="rounded-2xl liquid-glass px-5 py-4 flex items-center gap-4">
-          <div className="shrink-0 text-center">
-            <p
-              className="font-display italic font-bold tabular-nums leading-none"
-              style={{ fontSize: "2.25rem", color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "-0.03em" }}
-            >
-              —
-            </p>
-            <p
-              className="font-serif italic mt-1 text-[0.68rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              out of 5
-            </p>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-0.5 mb-1.5">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <Star
-                  key={n}
-                  className="w-4 h-4"
-                  style={{
-                    color: "hsl(var(--olivewood) / 0.25)",
-                    fill: "transparent",
-                  }}
-                />
-              ))}
-            </div>
-            <p
-              className="font-serif italic text-[0.85rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              No rating yet — your first review sets the baseline.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* No zero-state hero. It rendered an empty "— out of 5" card saying
+          "No rating yet…" directly above the EmptyState below, which says
+          "No reviews yet" and explains the same thing again — two headings
+          narrating one emptiness, simultaneously on screen. The EmptyState
+          (with its illustration and the how-reviews-work popover) is the
+          better of the two, so it carries the zero case alone. */}
 
       {/* Hero summary — big rating number + stars + count. Anchors the
           page so the reader has the at-a-glance signal before they scroll

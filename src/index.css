@@ -2354,6 +2354,12 @@ button,
   nav,
   header[role="banner"],
   [data-print-hide],
+  /* The authed sticky top bar (wordmark + NotificationPanel). Every shell
+     that renders one — PageHeader, DashboardHeader, BusinessLayout,
+     DashboardGuest, GuestBrowseSkeleton — marks it with `.glass-header` and
+     none of them set role="banner", so without this the app bar printed on
+     top of documents like /work-record and /legal. */
+  .glass-header,
   .app-bottom-nav,
   .bottom-nav,
   [data-bottom-nav],

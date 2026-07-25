@@ -1,10 +1,14 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Search, SlidersHorizontal, X, Briefcase } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import BackButton from "@/components/BackButton";
-import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
+import {
+  FilterSheet,
+  buildJobFilterSections,
+  type FilterSheetSection,
+} from "@/components/dashboard/FilterSheet";
+import { chipStyles } from "@/components/dashboard/JobFilters";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -45,7 +49,6 @@ const Jobs = () => {
     ogDescription:
       "Find jobs near you and start earning. Helpr Escrow keeps every transaction safe.",
   });
-  const reducedMotion = useReducedMotion();
   // Capture ?ref= attribution from share/external links (e.g. ?ref=share
   // from the Share Sheet) so we can attribute traffic source for job views.
   useJobRef();
@@ -53,6 +56,14 @@ const Jobs = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   // Pricing-style filter: "all" | "bids" (open to bids) | "budget" (set price).
   const [pricingMode, setPricingMode] = useState<"all" | "bids" | "budget">("all");
+  // Remaining filters mirror the signed-in browse sheet 1:1 — same value
+  // conventions ("" = unset budget bound, "24h"/"3d"/"7d" expiry windows,
+  // "smart" default sort) so both surfaces behave identically.
+  const [minBudget, setMinBudget] = useState("");
+  const [maxBudget, setMaxBudget] = useState("");
+  const [expiresWithin, setExpiresWithin] = useState("");
+  const [boostedOnly, setBoostedOnly] = useState(false);
+  const [sortBy, setSortBy] = useState("smart");
   // Collapsed-toolbar state mirroring the logged-in BrowseTasksToolbar: search
   // and filters are hidden behind icon buttons and expand on tap, instead of
   // sitting always-open. Search expands inline; filters open the shared sheet.
@@ -99,7 +110,16 @@ const Jobs = () => {
     hasNextPage,
     isFetchingNextPage,
     refetch,
-  } = useOpenJobsFeed({ search, selectedCategory, pricingMode });
+  } = useOpenJobsFeed({
+    search,
+    selectedCategory,
+    pricingMode,
+    minBudget,
+    maxBudget,
+    expiresWithin,
+    boostedOnly,
+    sortBy,
+  });
 
   // Mirror the open job into the URL (?job=<id>) so a jump to a sub-route from
   // inside the dialog — e.g. the Helper Pro "Learn more" → /subscription —
@@ -153,21 +173,60 @@ const Jobs = () => {
   }, [authLoading, jobsLoading, user?.id]);
 
   // Drives the badge on the Filters icon + the sheet's "Clear all" gate.
-  const activeFilterCount =
-    (pricingMode !== "all" ? 1 : 0) + (selectedCategory ? 1 : 0);
+  // Counted the same way the authed toolbar counts (sort is a presentation
+  // choice, not a filter, so it's excluded there and here).
+  const activeFilterCount = [
+    pricingMode !== "all",
+    !!selectedCategory,
+    !!minBudget,
+    !!maxBudget,
+    !!expiresWithin,
+    boostedOnly,
+  ].filter(Boolean).length;
 
-  // Guest filter sheet sections — pricing style + category. No auth-only
-  // controls (location/availability/boosted), so the sheet stays lean.
+  // "Did the visitor narrow the feed?" — drives the empty state's copy and its
+  // clear affordance. Counts the search box too (which lives outside the sheet
+  // and so isn't part of activeFilterCount).
+  const isNarrowed = !!search || activeFilterCount > 0;
+
+  const clearAllFilters = useCallback(() => {
+    setPricingMode("all");
+    setSelectedCategory(null);
+    setMinBudget("");
+    setMaxBudget("");
+    setExpiresWithin("");
+    setBoostedOnly(false);
+    setSortBy("smart");
+  }, []);
+
+  // Guest filter sheet — built by the SAME `buildJobFilterSections` the
+  // signed-in browse toolbar uses, so the two sheets can't drift: Sort by,
+  // Category, Budget range, When (expires within), Boosted only. Two authed
+  // sections are deliberately withheld because a signed-out visitor has no
+  // data to make them mean anything:
+  //   • Nearby radius — the public feed (get_ranked_open_jobs) masks every
+  //     address to "City, ST" and returns no coordinates, and a guest has no
+  //     saved location/parish for the authed string-match fallback. The chips
+  //     could not filter anything.
+  //   • Only my hours — reads the account's saved weekly availability rows.
+  // Pricing (open-to-bids vs set-budget) is appended after: it's guest-only
+  // framing that the authed sheet doesn't carry.
   const guestFilterSections = useMemo<FilterSheetSection[]>(() => [
+    ...buildJobFilterSections({
+      selectedCategory, setSelectedCategory,
+      minBudget, setMinBudget,
+      maxBudget, setMaxBudget,
+      sortBy, setSortBy,
+      expiresWithin, setExpiresWithin,
+      boostedOnly, setBoostedOnly,
+      showNearby: false,
+      showAvailability: false,
+    }),
     {
       key: "pricing",
       title: "Pricing",
       content: (
-        <div
-          role="group"
-          aria-label="Filter by pricing type"
-          className="inline-flex gap-1 p-1 rounded-ds-md bg-white/60 dark:bg-card/60 backdrop-blur border border-border/60 squircle"
-        >
+        <div role="group" aria-label="Filter by pricing type" className="flex flex-wrap gap-1.5">
           {([
             { key: "all", label: "All" },
             { key: "bids", label: "Open to bids" },
@@ -180,11 +239,9 @@ const Jobs = () => {
                 type="button"
                 onClick={() => setPricingMode(key)}
                 aria-pressed={isActive}
-                className={`inline-flex items-center min-h-[36px] px-3.5 rounded-ds-sm text-ds-12 font-semibold whitespace-nowrap transition-all duration-200 btn-press ${
-                  isActive
-                    ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                // Shared chip recipe from JobFilters so this guest-only
+                // section looks native beside the shared sections above.
+                className={`${chipStyles.chipBase} ${isActive ? chipStyles.chipActive : chipStyles.chipIdle}`}
               >
                 {label}
               </button>
@@ -193,33 +250,7 @@ const Jobs = () => {
         </div>
       ),
     },
-    {
-      key: "category",
-      title: "Category",
-      content: (
-        <div className="flex flex-wrap gap-2">
-          {[{ key: null as string | null, label: "All" }, ...ALL_CATEGORIES.map((c) => ({ key: c, label: categoryLabels[c] }))].map(({ key, label }) => {
-            const isActive = selectedCategory === key;
-            return (
-              <button
-                key={label ?? "all"}
-                type="button"
-                onClick={() => setSelectedCategory(isActive ? null : key)}
-                aria-pressed={isActive}
-                className={`inline-flex items-center min-h-[36px] px-3.5 py-2 rounded-ds-md text-ds-12 font-semibold whitespace-nowrap transition-all duration-200 btn-press squircle border ${
-                  isActive
-                    ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] border-[hsl(var(--bark)/0.40)]"
-                    : "bg-white/60 dark:bg-card/60 backdrop-blur text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      ),
-    },
-  ], [pricingMode, selectedCategory]);
+  ], [pricingMode, selectedCategory, minBudget, maxBudget, expiresWithin, boostedOnly, sortBy]);
 
   // Native app: /jobs is the WEB SEO browse surface — it carries the marketing
   // Navbar + Footer per the "every web page carries chrome" rule, which must
@@ -233,38 +264,83 @@ const Jobs = () => {
   }
 
   return (
-    <PublicLayout showCtaBand={false} noNavSpacer>
-      {/* pt-20 sits flush under the fixed Navbar (h-14 + safe-area).
-          The bottom padding clears the floating MobileNav (96px) plus
+    // No `noNavSpacer`: /jobs used to opt out of PublicLayout's shared nav
+    // spacer and hand-roll `pt-20` instead, which put its H1 8px lower than
+    // /for-business, /subscription, and /help. All four now clear the fixed
+    // Navbar through the SAME spacer, so their titles land at one offset.
+    // `hideHomeLink` because this page renders the canonical in-content
+    // <BackButton /> next to its H1 — without it the mobile-only "Back to
+    // home" link stacks a second back affordance directly above it.
+    <PublicLayout showCtaBand={false} hideHomeLink>
+      {/* The bottom padding clears the floating MobileNav (96px) plus
           the iOS home-indicator safe area, with a 16px gap so the
           last action isn't kissing the dock. pb-32 was barely 2px
           short on notched phones. */}
-      <div className="pt-20 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)] md:pb-safe-nav px-5">
+      <div className="pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)] md:pb-safe-nav px-5">
         <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
           {/* Header — canonical BackButton sits to the LEFT of the title block
               (same row, chevron as lead-in), matching PageHeader everywhere.
               The icon-button cluster (Search + Filters) sits on the right,
-              mirroring the logged-in BrowseTasksToolbar collapsed toolbar. */}
-          <div className="flex items-center gap-3 mt-2 md:mt-6 mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-400">
+              mirroring the logged-in BrowseTasksToolbar collapsed toolbar.
+
+              Search expands INSIDE this row (the title yields its space to the
+              input) rather than dropping a second row underneath. `flex-wrap`
+              plus the input's `min-w-[220px]` floor is the narrow-phone
+              escape hatch: the input drops to a second line intact instead of
+              being squeezed toward zero width. */}
+          <div className="flex flex-wrap items-center gap-3 mt-2 md:mt-6 mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-400">
             <div className="shrink-0">
               <BackButton />
             </div>
-            <div className="flex flex-col leading-none min-w-0 flex-1">
-              <h1 className="text-page-title leading-tight truncate">
-                Browse jobs
-              </h1>
-            </div>
+
+            {searchOpen ? (
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  aria-label="Search jobs"
+                  placeholder="Search by title or location…"
+                  enterKeyHint="search"
+                  inputMode="search"
+                  autoComplete="off"
+                  autoFocus
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  // focus:ring-inset — an outset ring on a full-width input
+                  // paints outside the row's edge and clips against the page
+                  // gutter. Inset keeps it on the field.
+                  className="w-full h-10 pl-9 pr-9 text-ds-13 rounded-ds-md squircle glass-field focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/40 transition-shadow placeholder:text-muted-foreground"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setSearch(""); setSearchOpen(false); }}
+                  aria-label="Close search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col leading-none min-w-0 flex-1">
+                <h1 className="text-page-title leading-tight truncate">
+                  Browse jobs
+                </h1>
+              </div>
+            )}
+
             <div className="flex items-center gap-1 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => { setSearchOpen((v) => !v); if (filtersOpen) setFiltersOpen(false); }}
-                className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${searchOpen || search ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
-                aria-label="Search jobs"
-                aria-expanded={searchOpen}
-              >
-                <Search className="w-5 h-5" />
-              </Button>
+              {!searchOpen && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => { setSearchOpen(true); if (filtersOpen) setFiltersOpen(false); }}
+                  className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${search ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
+                  aria-label="Search jobs"
+                  aria-expanded={searchOpen}
+                >
+                  <Search className="w-5 h-5" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -282,46 +358,6 @@ const Jobs = () => {
               </Button>
             </div>
           </div>
-
-          {/* Expandable search bar — hidden until the Search icon is tapped,
-              matching the logged-in toolbar's collapse behavior. */}
-          <AnimatePresence>
-            {searchOpen && (
-              <motion.div
-                initial={reducedMotion ? false : { height: 0, opacity: 0 }}
-                animate={reducedMotion ? {} : { height: "auto", opacity: 1 }}
-                exit={reducedMotion ? {} : { height: 0, opacity: 0 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-                className="overflow-hidden mb-4"
-              >
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="search"
-                    aria-label="Search jobs"
-                    placeholder="Search by title or location…"
-                    enterKeyHint="search"
-                    inputMode="search"
-                    autoComplete="off"
-                    autoFocus
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-10 pr-9 h-11 text-ds-13 rounded-2xl squircle glass-field focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/15 transition-all placeholder:text-muted-foreground"
-                  />
-                  {search && (
-                    <button
-                      type="button"
-                      onClick={() => setSearch("")}
-                      aria-label="Clear search"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* One-tap category switcher — hidden until a category is picked in
               the filter sheet, then expands so guests can switch/clear with a
@@ -352,13 +388,14 @@ const Jobs = () => {
           )}
 
           {/* Shared filter bottom sheet — the Filters icon toggles it open.
-              Guests get pricing-style + category sections (no auth-only
-              controls), rendered in the same sheet the dashboard uses. */}
+              Same sheet AND same section builder the signed-in dashboard uses;
+              see `guestFilterSections` above for the two sections a guest
+              can't be given and why. */}
           <FilterSheet
             open={filtersOpen}
             onOpenChange={setFiltersOpen}
             activeFilterCount={activeFilterCount}
-            onClearAll={() => { setPricingMode("all"); setSelectedCategory(null); }}
+            onClearAll={clearAllFilters}
             sections={guestFilterSections}
           />
 
@@ -377,15 +414,15 @@ const Jobs = () => {
             <div>
               <EmptyState
                 variant="inline"
-                icon={(search || selectedCategory) ? Search : Briefcase}
-                title={(search || selectedCategory) ? "No jobs found" : "No open jobs right now"}
+                icon={isNarrowed ? Search : Briefcase}
+                title={isNarrowed ? "No jobs found" : "No open jobs right now"}
                 body="New jobs are posted across Louisiana every day."
                 action={
-                  (search || selectedCategory) ? (
+                  isNarrowed ? (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => { setSearch(""); setSelectedCategory(null); setPricingMode("all"); }}
+                      onClick={() => { setSearch(""); clearAllFilters(); }}
                       className="squircle"
                     >
                       Clear filters

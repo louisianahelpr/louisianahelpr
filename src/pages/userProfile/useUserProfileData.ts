@@ -169,12 +169,17 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
           .order("created_at", { ascending: false })
           .limit(50),
         // Poster-side reputation — reviews left for this user in their role
-        // as a job poster (customer). We look up jobs posted by this user,
-        // then fetch reviews where the reviewee is this user AND the job is
-        // in that set. Degrades gracefully to empty on error.
+        // as a job poster (customer). `customer_id` is pulled through the
+        // inner join so the poster/helper split below is decided by the
+        // job's OWN authoritative owner column. It used to be decided by
+        // membership in `postedJobs`, which carries a .limit(20) — so a
+        // poster with 100+ jobs had their reputation computed from only
+        // their 20 most recent. This query is deliberately unlimited (same
+        // as the avgRating path it already feeds). Degrades gracefully to
+        // empty on error.
         supabase
           .from("reviews")
-          .select("rating, job_id, jobs!inner(status)")
+          .select("rating, job_id, jobs!inner(status, customer_id)")
           .eq("reviewee_id", userId!)
           .lte("feedback_visible_at", new Date().toISOString())
           .neq("jobs.status", "cancelled"),
@@ -368,15 +373,21 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       }
 
       // Poster-side reputation — determine which reviews were received
-      // for jobs where this user was the customer (poster). We resolve
-      // job_id → customer_id by checking against postedJobs. Reviews
-      // whose job_id maps to a job the user posted are "poster reviews".
+      // for jobs where this user was the customer (poster). The joined
+      // `jobs.customer_id` answers that per row, so this covers the user's
+      // ENTIRE posting history rather than the 20 rows `postedJobs` renders.
+      // PostgREST returns a to-one embed as an object, but the generated
+      // types occasionally infer an array — read both shapes defensively.
       // Only show when there are 3+ poster reviews (same minimum as the
       // helper-side chart) to avoid noisy stats on fresh accounts.
-      const postedJobIdSet = new Set(postedJobs.map((j) => j.id));
-      const allReviewRows = (posterReviewsRes.data || []) as Array<{ rating: number; job_id: string }>;
-      const posterReviewRows = allReviewRows.filter((r) => postedJobIdSet.has(r.job_id));
-      const posterRatings = posterReviewRows.map((r) => r.rating);
+      const allReviewRows = (posterReviewsRes.data ?? []) as any[];
+      const posterReviewRows = allReviewRows.filter((r) => {
+        const job = Array.isArray(r?.jobs) ? r.jobs[0] : r?.jobs;
+        return job?.customer_id === userId;
+      });
+      const posterRatings = posterReviewRows
+        .map((r) => r.rating as number)
+        .filter(Number.isFinite);
       const posterReputation = posterRatings.length >= 3
         ? {
             reviewCount: posterRatings.length,
@@ -649,6 +660,9 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     stats,
     loadingMoreReviews,
     reviewsHasMore,
+    // Exported alongside reviewsHasMore so the pagination UI's "(x of y)"
+    // denominator is the exact value the has-more check is derived from.
+    reviewsTotalCount,
     loadMoreReviews,
     postedJobs,
     workedJobs,

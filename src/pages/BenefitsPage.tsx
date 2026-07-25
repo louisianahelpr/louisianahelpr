@@ -89,6 +89,11 @@ const COMING_SOON: string[] = [
 // Calm parchment card — matches HomeHistory / WorkRecord / StrSettings so
 // /benefits reads like the rest of the profile-linked surface (no saturated
 // hero, no cream fills). One shared style keeps the sections cohesive.
+//
+// DELIBERATE deviation from the app's `rounded-2xl liquid-glass p-5` card
+// convention, for exactly that reason: the parchment family is its own
+// documented surface. These sections are also edge-to-edge containers with
+// their own header/row padding, so a blanket p-5 would double-pad them.
 const cardStyle: React.CSSProperties = {
   background: "hsl(var(--parchment) / 0.70)",
   border: "1px solid hsl(var(--olivewood) / 0.10)",

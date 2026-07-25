@@ -45,7 +45,12 @@ export function ApplicantsErrorState({ onRetry }: { onRetry: () => void }) {
       <AlertCircle className="w-8 h-8 text-destructive" />
       <div className="space-y-1">
         <p className="font-semibold text-foreground text-ds-15">Couldn't load applicants</p>
-        <p className="text-ds-13 text-muted-foreground">Check your connection and try again.</p>
+        {/* Deliberately NOT "check your connection" — most failures here are
+            server-side, and blaming the user's wifi is a false diagnosis.
+            Matches the shared ErrorState's default copy. */}
+        <p className="text-ds-13 text-muted-foreground">
+          Tap Try again. If it sticks, our end is having a hiccup — not yours.
+        </p>
       </div>
       <Button
         variant="outline"

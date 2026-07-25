@@ -9,7 +9,7 @@
 // authed left rail must not cover it. Its authed counterpart is /dashboard.
 export const AUTH_PREFIXES = [
   "/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile",
-  "/messages", "/support", "/schedule", "/availability", "/user", "/earnings",
+  "/messages", "/schedule", "/availability", "/user", "/earnings",
   "/browse", "/saved-helpers",
   // Strictly-authed (ProtectedRoute) app pages with no public sibling that
   // shares their prefix. They belong to the signed-in app chrome, so the
@@ -34,6 +34,15 @@ export const AUTH_PREFIXES = [
   // systems stacked and clashes with the editorial layout. Signed-in
   // users on /subscription keep the marketing Navbar the same way
   // signed-in users on /for-business or /help do.
+  //
+  // NOTE: /support was REMOVED from this list for exactly that reason. It
+  // was here when the route was a redirect into /profile?tab=support (a real
+  // authed app page). It now renders src/pages/Support.tsx inside
+  // PublicLayout and is reachable LOGGED OUT, so it belongs with /help and
+  // /subscription: marketing Navbar, no rail, no #root rail inset. Left in,
+  // a signed-in desktop visitor got the authed rail stacked against a
+  // marketing footer, plus PublicLayout's nav spacer sitting under a Navbar
+  // that had stepped aside — an empty band at the top of the page.
 ];
 
 // Path prefixes that MUST NOT get the rail even though they'd otherwise

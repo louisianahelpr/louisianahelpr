@@ -295,6 +295,7 @@ const NotificationPanel = () => {
             // and re-opening the panel.
             <div className="px-4 pt-6 flex min-h-full">
               <ErrorState
+                variant="inline"
                 title="We couldn't load your notifications."
                 onRetry={loadNotifications}
               />

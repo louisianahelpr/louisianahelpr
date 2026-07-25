@@ -2,8 +2,9 @@
 // from this job", so every surface that shows a helper their money agrees.
 //
 // The math mirrors the authoritative payout in the `release-payout` edge
-// function: a helper nets `budget − platform fee + net urgent bonus`. Two
-// details are load-bearing and were the source of real drift:
+// function: a helper nets `budget − platform fee + net urgent bonus`, divided
+// across the roster on a group job. Three details are load-bearing and were each
+// the source of real drift:
 //
 //  1. PER-JOB fee resolution, not "the helper's fee % today". A job's
 //     commission is frozen at post/payout time (`jobs.platform_fee_amount`,
@@ -14,6 +15,13 @@
 //     for legacy/seed rows that predate both columns.
 //  2. `??`, not `||`. A genuinely-stamped $0 fee (a comped / promo job) is
 //     real and must be trusted verbatim, not mistaken for an unstamped row.
+//  3. GROUP JOBS PAY PER HELPER. The poster is charged the budget ONCE and the
+//     roster is `helpers_needed` strong, so each member is transferred
+//     `budget / N` (plus their 1/N slice of the urgent bonus) — see
+//     `release-payout/index.ts` (`perHelperBudget = budget / helpersCount`).
+//     A surface that shows the FULL budget on a group job overstates what the
+//     helper is actually paid by N×, which is why the split is unconditional
+//     here rather than an opt-in.
 //
 // The urgent bonus passes through to the helper net of its own bundled Stripe
 // processing cost (`netUrgentFeeDollars`), so the figure shown equals the
@@ -24,11 +32,18 @@
 // subscription_expires_at)` (src/lib/subscriptionTiers.ts). It is passed in
 // rather than looked up here so this module stays pure and synchronous.
 //
-// NOTE ON GROUP JOBS: this helper deliberately treats `budget` as the amount
-// attributable to the caller's helper row, matching the /profile and /wrapped
-// behaviour it was extracted from. Surfaces that split a group job's budget
-// across `helpers_needed` (EarningsTab, ProfileStatsTrend, admin analytics)
-// have their own per-helper division and are NOT wired to this module yet.
+// ONE SUBTLETY THE GROUP SPLIT HAS TO WORK AROUND: `jobs.platform_fee_amount`
+// has AMBIGUOUS SCOPE on a group row. `release-payout` and
+// `process-scheduled-payouts` stamp the PER-HELPER fee (`perHelperBudget × pct`),
+// while `create-payment` stamps the WHOLE-JOB fee at escrow time and again on
+// the dispute-resolution path (`budget × pct`, divided by the roster only when
+// computing the transfer). Reading the column verbatim would therefore under- or
+// over-deduct by N× depending on which path last wrote it. All of those paths do
+// agree on the effective per-helper deduction — `perHelperBudget ×
+// helper_fee_percent` — and all of them stamp `helper_fee_percent` alongside the
+// amount, so on a genuine group row (N > 1) the frozen PERCENT is the authority
+// and the stamped amount is consulted only when the job resolves to a single
+// helper (which is every non-group job).
 
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 
@@ -36,46 +51,72 @@ import { netUrgentFeeDollars } from "@/lib/stripeFees";
  * The subset of a `jobs` row needed to compute helper take-home. Kept
  * structural (not the generated Row type) so callers can pass a narrow
  * `select(...)` result without casting.
+ *
+ * `is_group_job` / `helpers_needed` are optional only so a caller may omit them
+ * for a query that cannot return a group job at all. Any query that CAN return
+ * one must select them, or the roster split silently won't apply.
  */
 export interface HelperEarningsJob {
   budget: number | null;
-  /** Exact fee stamped by the payout path. Wins over every derivation. */
+  /** Exact fee stamped by the payout path. Wins on a single-helper job. */
   platform_fee_amount?: number | null;
   /** Commission % frozen on the job row when it was posted. */
   helper_fee_percent?: number | null;
   /** Poster-paid urgent bonus, gross (dollars). */
   urgent_fee?: number | null;
+  /** Whether the budget is shared by a roster rather than paid to one helper. */
+  is_group_job?: boolean | null;
+  /** Roster size on a group job. Null/0/absent all resolve to a single helper. */
+  helpers_needed?: number | null;
 }
 
 /**
- * The platform fee (dollars) charged against this job's budget, resolved in
- * order of authority: stamped amount → per-job frozen percent → the helper's
- * tier rate (legacy rows only).
+ * How many helpers this job's money is divided across: `helpers_needed` on a
+ * group job, otherwise 1. Guards null/0/negative — a bad roster value must
+ * degrade to "pay one helper", never to a divide-by-zero (`Infinity`) or a
+ * sign-flipped payout.
+ */
+export function helperShareCount(job: HelperEarningsJob): number {
+  if (!job.is_group_job) return 1;
+  const needed = job.helpers_needed ?? 0;
+  return needed > 1 ? needed : 1;
+}
+
+/**
+ * The platform fee (dollars) charged against ONE helper's share of this job,
+ * resolved in order of authority: stamped amount → per-job frozen percent → the
+ * helper's tier rate (legacy rows only).
+ *
+ * On a group row (roster > 1) the stamped amount is deliberately skipped — its
+ * scope varies by which payout path wrote it — and the frozen percent is applied
+ * to the per-helper budget instead. See the note at the top of this file.
  */
 export function helperPlatformFeeDollars(
   job: HelperEarningsJob,
   feeFallbackPercent: number,
 ): number {
-  const budget = job.budget ?? 0;
-  return (
-    job.platform_fee_amount ??
-    (budget * (job.helper_fee_percent ?? feeFallbackPercent)) / 100
-  );
+  const shares = helperShareCount(job);
+  const perHelperBudget = (job.budget ?? 0) / shares;
+  const derived = (perHelperBudget * (job.helper_fee_percent ?? feeFallbackPercent)) / 100;
+  if (shares !== 1) return derived;
+  return job.platform_fee_amount ?? derived;
 }
 
 /**
  * What the helper took home on one completed job, in dollars:
- * `budget − platform fee + net urgent bonus`.
+ * `budget/N − platform fee + net urgent bonus/N`, where N is the roster size
+ * (1 for every non-group job).
  */
 export function helperTakeHomeDollars(
   job: HelperEarningsJob,
   feeFallbackPercent: number,
 ): number {
+  const shares = helperShareCount(job);
   const budget = job.budget ?? 0;
   return (
-    budget -
+    budget / shares -
     helperPlatformFeeDollars(job, feeFallbackPercent) +
-    netUrgentFeeDollars(job.urgent_fee)
+    netUrgentFeeDollars(job.urgent_fee) / shares
   );
 }
 

@@ -39,9 +39,12 @@ import { CreditCard } from "./payItForward/CreditCard";
 import { EmptyState } from "./payItForward/EmptyState";
 
 // Client-side shape check only — the edge function is the authority (it also
-// enforces the $10–$500 bounds and the self-gift block server-side).
+// enforces the bounds and the self-gift block server-side). We mirror the
+// bounds here so an out-of-range amount is caught in the form rather than
+// after a round trip to Stripe Checkout.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_GIFT = 10; // matches MIN_GIFT_CENTS in create-pif-donation
+const MIN_GIFT = 10; // matches MIN_GIFT_CENTS (1000) in create-pif-donation
+const MAX_GIFT = 500; // matches MAX_GIFT_CENTS (50000) in create-pif-donation
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function PayItForward() {
@@ -243,6 +246,7 @@ export default function PayItForward() {
       if (!user?.id) throw new Error("Please sign in to send a gift card.");
       const amt = effectiveAmount;
       if (!amt || isNaN(amt) || amt < MIN_GIFT) throw new Error(`The smallest gift card is $${MIN_GIFT}.`);
+      if (amt > MAX_GIFT) throw new Error(`The largest single gift card is $${MAX_GIFT}.`);
       if (!emailValid) throw new Error("Enter a valid email for the person you're gifting.");
       if (isSelfGift) throw new Error("You can't send a gift card to yourself.");
 
@@ -283,8 +287,15 @@ export default function PayItForward() {
     navigate(`/post-job?budget=${budget}&pif_credit=${creditId}`);
   };
 
+  const amountTooLarge = effectiveAmount != null && !isNaN(effectiveAmount) && effectiveAmount > MAX_GIFT;
+
   const canDonate =
-    !!effectiveAmount && effectiveAmount >= MIN_GIFT && !isNaN(effectiveAmount) && emailValid && !isSelfGift;
+    !!effectiveAmount &&
+    effectiveAmount >= MIN_GIFT &&
+    effectiveAmount <= MAX_GIFT &&
+    !isNaN(effectiveAmount) &&
+    emailValid &&
+    !isSelfGift;
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
@@ -433,24 +444,35 @@ export default function PayItForward() {
                     type="number"
                     aria-label="Custom gift amount in dollars"
                     min={MIN_GIFT}
+                    max={MAX_GIFT}
                     placeholder="Custom"
                     value={customAmount}
                     onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
                     className="flex-1 py-2 px-3 rounded-ds-sm text-ds-13 font-sans font-semibold text-center"
                     style={{
                       background: customAmount ? "hsl(var(--bark) / 0.10)" : "transparent",
-                      border: `1px solid hsl(var(--bark) / ${customAmount ? "0.40" : "0.18"})`,
+                      border: amountTooLarge
+                        ? "1px solid hsl(var(--burnt-sienna) / 0.55)"
+                        : `1px solid hsl(var(--bark) / ${customAmount ? "0.40" : "0.18"})`,
                       color: "hsl(var(--bark))",
                       outline: "none",
                       minWidth: 0,
                     }}
                   />
                 </div>
+                {amountTooLarge && (
+                  <p
+                    className="font-serif italic text-ds-11 mt-1.5"
+                    style={{ color: "hsl(var(--burnt-sienna))" }}
+                  >
+                    The largest single gift card is ${MAX_GIFT}.
+                  </p>
+                )}
                 <p
                   className="font-serif italic text-ds-11 mt-1.5"
                   style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                 >
-                  ${MIN_GIFT} minimum. A card-processing fee ({(STRIPE_PCT * 100).toFixed(1)}% + {STRIPE_FLAT_CENTS}¢) is added at checkout.
+                  ${MIN_GIFT}–${MAX_GIFT} per gift card. A card-processing fee ({(STRIPE_PCT * 100).toFixed(1)}% + {STRIPE_FLAT_CENTS}¢) is added at checkout.
                 </p>
               </div>
 

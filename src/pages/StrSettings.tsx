@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import PageHeader from "@/components/PageHeader";
 import NotificationPanel from "@/components/NotificationPanel";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -33,6 +34,9 @@ export default function StrSettings() {
   const [addOpen, setAddOpen] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  // Connection pending removal — gates the destructive action behind a
+  // branded confirm, same as PetProfiles and FamilyDashboard do for theirs.
+  const [connToRemove, setConnToRemove] = useState<StrConnection | null>(null);
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
 
@@ -286,7 +290,7 @@ export default function StrSettings() {
                     key={conn.id}
                     conn={conn}
                     onSync={handleSync}
-                    onRemove={(id) => { setRemovingId(id); removeConnection(id); }}
+                    onRequestRemove={setConnToRemove}
                     syncing={syncingId === conn.id}
                     removing={removingId === conn.id}
                   />
@@ -343,6 +347,35 @@ export default function StrSettings() {
           </section>
         </div>
       </div>
+
+      {/* Removing is a soft-delete (`is_active: false`) and there is no
+          archived view, so from the host's side it is permanent — the confirm
+          copy says so rather than implying it can be undone. Confirming closes
+          this dialog; the card's own trash button takes over the pending
+          spinner while the mutation runs. */}
+      <BrandConfirmDialog
+        open={connToRemove !== null}
+        onOpenChange={(open) => { if (!open) setConnToRemove(null); }}
+        title={
+          connToRemove
+            ? `Remove ${connToRemove.property_name || "this calendar"}?`
+            : "Remove this calendar?"
+        }
+        description="Helpr will stop syncing it and won't post any more cleaning jobs from it. Cleaning jobs already posted stay exactly as they are."
+        callout={{
+          text: "This can't be undone — you'd have to paste the calendar URL in again to reconnect.",
+        }}
+        primaryLabel="Remove"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => {
+          if (!connToRemove) return;
+          setRemovingId(connToRemove.id);
+          removeConnection(connToRemove.id);
+          setConnToRemove(null);
+        }}
+        secondaryLabel="Keep calendar"
+      />
     </div>
   );
 }

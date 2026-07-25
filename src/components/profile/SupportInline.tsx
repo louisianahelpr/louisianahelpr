@@ -21,61 +21,27 @@ import {
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import {
+  SUPPORT_TOPICS,
+  type SupportTopicKey as SupportCategory,
+} from "@/lib/supportTopics";
 
-type SupportCategory = "message" | "suggestion" | "report" | "help";
+// Topic copy (labels, descriptions, placeholders, submit labels, admin-facing
+// reportLabel) is SHARED with the public /support page via
+// src/lib/supportTopics.ts — the two support surfaces must not drift. Only the
+// icons live here: that module stays JSX-free so the edge function's mirrored
+// copy of it is easy to eyeball.
+const CATEGORY_ICONS: Record<SupportCategory, React.ReactNode> = {
+  message: <MessageSquarePlus className="w-5 h-5" />,
+  suggestion: <Lightbulb className="w-5 h-5" />,
+  report: <AlertTriangle className="w-5 h-5" />,
+  help: <HelpCircle className="w-5 h-5" />,
+};
 
-interface CategoryConfig {
-  key: SupportCategory;
-  label: string;
-  icon: React.ReactNode;
-  description: string;
-  /** Placeholder for the main message textarea, written specifically for the
-   *  selected category so the form feels tailored, not generic. */
-  messagePlaceholder: string;
-  /** Submit-button label tuned to the action (Send Idea vs Report Bug, etc). */
-  submitLabel: string;
-  /** Stored prefix on the report so admins can triage faster. */
-  reportLabel: string;
-}
-
-const supportCategories: CategoryConfig[] = [
-  {
-    key: "message",
-    label: "Message Admin",
-    icon: <MessageSquarePlus className="w-5 h-5" />,
-    description: "Send a direct message to the admin team",
-    messagePlaceholder: "How can our team help you today?",
-    submitLabel: "Send Message",
-    reportLabel: "Admin Message",
-  },
-  {
-    key: "suggestion",
-    label: "Suggestion",
-    icon: <Lightbulb className="w-5 h-5" />,
-    description: "Share an idea to improve the platform",
-    messagePlaceholder: "Describe your idea to improve Helpr…",
-    submitLabel: "Send Suggestion",
-    reportLabel: "Suggestion",
-  },
-  {
-    key: "report",
-    label: "Report Issue",
-    icon: <AlertTriangle className="w-5 h-5" />,
-    description: "Report a bug, problem, or concern",
-    messagePlaceholder: "Please describe the bug or technical problem…",
-    submitLabel: "Report Issue",
-    reportLabel: "Issue Report",
-  },
-  {
-    key: "help",
-    label: "Get Help",
-    icon: <HelpCircle className="w-5 h-5" />,
-    description: "Ask a question or request assistance",
-    messagePlaceholder: "What is your question regarding our services?",
-    submitLabel: "Send Question",
-    reportLabel: "Help Request",
-  },
-];
+const supportCategories = SUPPORT_TOPICS.map((topic) => ({
+  ...topic,
+  icon: CATEGORY_ICONS[topic.key],
+}));
 
 export function SupportInline({ userId, onBack }: { userId?: string; onBack: () => void }) {
   const [category, setCategory] = useState<SupportCategory | null>(null);
@@ -296,13 +262,9 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
 
           <div className="space-y-1.5">
             <Label htmlFor="support-message" className="text-ds-11">
-              {selected.key === "suggestion"
-                ? "Your idea *"
-                : selected.key === "report"
-                ? "What went wrong? *"
-                : selected.key === "help"
-                ? "Your question *"
-                : "Your message *"}
+              {/* Per-topic label ("Your idea", "What went wrong?"…) comes from
+                  the shared topic config so /support shows the same wording. */}
+              {selected.messageLabel} *
             </Label>
             <Textarea
               id="support-message"

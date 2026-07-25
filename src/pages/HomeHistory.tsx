@@ -123,8 +123,8 @@ const HomeHistory = () => {
 
         {isError && !loading && (
           <ErrorState
+            variant="inline"
             title="Couldn't load your home history"
-            body="Check your connection and try again."
             onRetry={() => refetch()}
           />
         )}
@@ -200,7 +200,14 @@ const HomeHistory = () => {
                         }}
                       />
 
-                      {/* Job card */}
+                      {/* Job card. DELIBERATE deviation from the
+                          `rounded-2xl liquid-glass p-5` card convention: this
+                          is the shared parchment "record" surface used by
+                          /work-record and /benefits (see the note on
+                          BenefitsPage's cardStyle). liquid-glass's opaque
+                          white fill would make these timeline entries read as
+                          app cards floating over the page rather than as
+                          entries on a single sheet. */}
                       <div
                         className="rounded-ds-lg p-4 space-y-2.5"
                         style={{

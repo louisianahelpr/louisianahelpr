@@ -119,8 +119,10 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
   // Total earned = helper take-home (net of the platform fee), so the same
   // $75 job reads the same here as on analytics/work-record/Earnings. The
   // per-job resolution (stamped fee → frozen per-job % → tier rate, plus the
-  // net urgent bonus) lives in `helperEarnings.ts` so this page and
-  // /work-record can't drift apart again.
+  // net urgent bonus, divided across a group job's roster) lives in
+  // `helperEarnings.ts` so this page and /work-record can't drift apart again.
+  // The group split is why `helpers_needed, is_group_job` are selected above:
+  // a $300 job needing 3 helpers paid this helper ~$100, not $300.
   const feeFallbackPct = tierFeePercent(
     profileRes.data?.subscription_tier ?? null,
     profileRes.data?.subscription_expires_at ?? null,
@@ -333,16 +335,19 @@ const HelprWrapped = () => {
               className="w-10 h-10 mx-auto mb-3"
               style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }}
             />
-            {/* h2, not h1: the canonical PageHeader above already renders the
-                page's <h1> ("Your {SEASON.title}"). Two h1s saying nearly the
-                same thing ("Your 2026 so far" / "Your 2026 on Helpr.") is a
-                heading-structure defect — the hero keeps its display size but
-                sits correctly under the page title. */}
+            {/* The canonical PageHeader above already names the year — it
+                renders the page's <h1> ("Your {SEASON.title}"). This card used
+                to repeat it ("Your {YEAR} on Helpr."), so two headings restated
+                each other on screen at once. It now leads INTO the stats grid
+                below instead of re-announcing the page, and stays an <h2> so
+                the heading order still descends from the page title. Season-
+                neutral on purpose: it has to read correctly under both "Your
+                {YEAR} Wrapped" (December) and "Your {YEAR} so far". */}
             <h2
               className="text-ds-28 font-display italic font-bold leading-tight"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Your {YEAR} on Helpr.
+              Here's how it added up.
             </h2>
             <p
               className="mt-1 font-serif italic text-ds-13"

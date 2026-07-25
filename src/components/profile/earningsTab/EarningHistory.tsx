@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { formatPrice, formatShortDate } from "@/lib/format";
-import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { Job } from "./types";
 
@@ -104,12 +104,12 @@ export function EarningHistory({
       ) : (
         <div className="space-y-3">
           {earningsJobs.slice(0, historyVisible).map((job) => {
-            const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-            const perHelper = job.budget / helpers;
-            const commissionPercent = job.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
-            const commission = (perHelper * commissionPercent) / 100;
-            // Urgent fee splits across the roster like the budget (#114).
-            const payout = job.status === "completed" ? perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers : null;
+            // Same shared take-home definition as the tab's Total tile (group
+            // budget + urgent fee split across the roster, #114), so a row can
+            // never disagree with the number it rolls up into.
+            const payout = job.status === "completed"
+              ? helperTakeHomeDollars(job, HELPER_FEE_LEGACY_FALLBACK_PERCENT)
+              : null;
             const jobTips = tips.filter((t) => t.job_id === job.id);
             const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
             return (

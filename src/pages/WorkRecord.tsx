@@ -127,8 +127,10 @@ const WorkRecord = () => {
       // Total earnings, resolved PER JOB by the shared helper: the fee stamped
       // at payout wins, then the % frozen on the row, then (legacy rows only)
       // the tier rate — plus the net urgent bonus the helper was actually
-      // paid. This is an official employment/earnings document, so it must
-      // report what each job really paid, not today's tier applied backwards.
+      // paid, and a group job's budget divided across its roster. This is an
+      // official employment/earnings document, so it must report what each job
+      // really paid, not today's tier applied backwards or a group job's full
+      // budget when only 1/N of it was transferred.
       const totalEarnings = sumHelperTakeHomeDollars(completedJobs, feeFallbackPercent);
 
       // Top categories by frequency
@@ -228,15 +230,22 @@ const WorkRecord = () => {
 
         {isError && !loading && (
           <ErrorState
+            variant="inline"
             title="Couldn't load your work record"
-            body="Check your connection and try again."
             onRetry={() => refetch()}
           />
         )}
 
         {!loading && !isError && data && (
           <>
-            {/* Official Document Card */}
+            {/* Official Document Card.
+                DELIBERATE deviation from the `rounded-2xl liquid-glass p-5`
+                card convention: this is the printed letterhead surface shared
+                with /home-history, /benefits and /str-settings (parchment fill,
+                olivewood hairline, section dividers that bleed edge-to-edge),
+                not an app content card — `liquid-glass`'s white fill + backdrop
+                blur + p-5 would break both the document look and the section
+                geometry. */}
             <div
               className="rounded-ds-lg overflow-hidden print:shadow-none"
               style={{
@@ -484,8 +493,12 @@ const WorkRecord = () => {
               </div>
             </div>
 
-            {/* Share CTA */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            {/* Share CTA. `data-print-hide` (the app-wide print-chrome hook —
+                see the @media print block in index.css) keeps the Share/Print
+                controls off the saved PDF: this record is printed as an
+                income/employment document, and an interactive button row on
+                page 1 undercuts that. */}
+            <div data-print-hide className="flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
                 onClick={() => { void handleShare(); }}

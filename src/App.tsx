@@ -108,6 +108,7 @@ const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
+const Support = lazy(() => import("./pages/Support"));
 const HomeHistory = lazy(() => import("./pages/HomeHistory"));
 const WorkRecord = lazy(() => import("./pages/WorkRecord"));
 const PetProfiles = lazy(() => import("./pages/PetProfiles"));
@@ -169,12 +170,15 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* /support is linked from the public marketing footer, so it must
-          resolve WITHOUT auth. The old target (/profile?tab=support) forced
-          a sign-in. /help (HelpCenter) is the public contact surface — email,
-          hours, FAQ — reachable by guests and signed-in users alike. Authed
-          users still get the in-app support tab from inside Profile. */}
-      <Route path="/support" element={<Navigate to="/help" replace />} />
+      {/* /support is linked from the footer, the legal pages, and /data-rights,
+          so it must resolve WITHOUT auth. It used to redirect to /help — a
+          static FAQ whose only contact affordance was a raw `mailto:` (which
+          does nothing inside the native app). It now renders a real contact
+          form that works signed-out AND signed-in (prefilled from the profile).
+          Authed users still get the same form as a Profile tab.
+          No PageTransition — it renders inside PublicLayout, so the fixed-nav
+          rule in the note directly below applies to it too. */}
+      <Route path="/support" element={<RouteErrorBoundary>{routeEl(<Support />)}</RouteErrorBoundary>} />
 
       {/* Marketing routes intentionally skip PageTransition — its
           motion.div sets `will-change: transform`, which establishes

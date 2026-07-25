@@ -134,21 +134,32 @@ interface JobFilterSectionsArgs {
   setMinBudget: (v: string) => void;
   maxBudget: string;
   setMaxBudget: (v: string) => void;
-  locationFilter: string;
-  setLocationFilter: (v: string) => void;
   sortBy: string;
   setSortBy: (v: string) => void;
   expiresWithin: string;
   setExpiresWithin: (v: string) => void;
-  matchAvailability: boolean;
-  setMatchAvailability: (v: boolean) => void;
-  hasAvailability: boolean;
   boostedOnly: boolean;
   setBoostedOnly: (v: boolean) => void;
+  /* ---- Nearby-radius section (omit together with showNearby={false}) ---- */
+  locationFilter?: string;
+  setLocationFilter?: (v: string) => void;
   userLocStatus?: "idle" | "loading" | "ready" | "error";
   userLocMessage?: string;
+  /* ---- "Only my hours" row (omit together with showAvailability={false}) ---- */
+  matchAvailability?: boolean;
+  setMatchAvailability?: (v: boolean) => void;
+  hasAvailability?: boolean;
   /** Hide the "Only my hours" availability row (guests have no schedule). */
   showAvailability?: boolean;
+  /**
+   * Hide the "Nearby radius" section. The guest browse feed comes from
+   * `get_ranked_open_jobs`, whose rows carry no latitude/longitude (the server
+   * masks each address down to "City, ST"), and a signed-out visitor has no
+   * saved profile location or parish to fall back on — so every radius chip
+   * would be a control that provably cannot change the results. Hidden rather
+   * than shipped as a no-op.
+   */
+  showNearby?: boolean;
 }
 
 /** Inline "Only my hours" availability row, lifted from JobFilters so the
@@ -196,22 +207,29 @@ function AvailabilityRow({
  * Builds the standard stacked job-filter sections (Sort, Category, Nearby,
  * Budget, When, Boosted) for the FilterSheet. Reuses the exact content
  * blocks from JobFilters so the controls match the legacy inline panel.
+ *
+ * ONE builder serves both the signed-in browse toolbar and the signed-out
+ * /jobs board, so the two filter sets can't silently drift apart. A guest
+ * passes showNearby / showAvailability = false — those are the only two
+ * sections that need account data (see the prop docs above); every other
+ * filter runs off fields the public feed already returns.
  */
 export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheetSection[] {
   const {
     selectedCategory, setSelectedCategory,
     minBudget, setMinBudget,
     maxBudget, setMaxBudget,
-    locationFilter, setLocationFilter,
+    locationFilter = "", setLocationFilter,
     sortBy, setSortBy,
     expiresWithin, setExpiresWithin,
-    matchAvailability, setMatchAvailability, hasAvailability,
+    matchAvailability = false, setMatchAvailability, hasAvailability = false,
     boostedOnly, setBoostedOnly,
     userLocStatus, userLocMessage,
     showAvailability = true,
+    showNearby = true,
   } = args;
 
-  return [
+  const sections: FilterSheetSection[] = [
     {
       key: "sort",
       title: "Sort by",
@@ -227,7 +245,10 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
         />
       ),
     },
-    {
+  ];
+
+  if (showNearby && setLocationFilter) {
+    sections.push({
       key: "nearby",
       title: "Location",
       content: (
@@ -238,7 +259,10 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
           message={userLocMessage}
         />
       ),
-    },
+    });
+  }
+
+  sections.push(
     {
       key: "budget",
       title: "Budget range",
@@ -257,7 +281,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
       content: (
         <div className="space-y-3">
           <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} />
-          {showAvailability && (
+          {showAvailability && setMatchAvailability && (
             <AvailabilityRow
               matchAvailability={matchAvailability}
               setMatchAvailability={setMatchAvailability}
@@ -292,5 +316,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
         </button>
       ),
     },
-  ];
+  );
+
+  return sections;
 }

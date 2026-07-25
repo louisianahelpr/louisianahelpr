@@ -44,7 +44,7 @@ const JobDetail = () => {
 
   // Guests fetch the single job from the RLS-public masked view. We skip
   // the fetch entirely for authed users — they're redirected below.
-  const { data: job, isLoading, isError } = useQuery({
+  const { data: job, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.jobs.publicDetail(id ?? ""),
     queryFn: async (): Promise<EnrichedJob | null> => {
       const { data, error } = await supabase
@@ -90,10 +90,25 @@ const JobDetail = () => {
               <JobCardSkeleton />
             </div>
           ) : isError ? (
+            /* Retry really re-runs the fetch — the old handler navigated to
+               /jobs under a "Try again" label, so the one button that
+               promised a retry was the one that left the page. Browsing all
+               open jobs is still offered, as the honest second option. */
             <ErrorState
+              variant="inline"
               title="We couldn't load this job."
-              body="It may have been taken down, or our end is having a hiccup. Try browsing all open jobs instead."
-              onRetry={() => navigate("/jobs")}
+              body="It may have been taken down, or our end is having a hiccup. Try again, or browse everything that's open."
+              onRetry={() => { void refetch(); }}
+              secondaryAction={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/jobs")}
+                  className="squircle"
+                >
+                  Browse open jobs
+                </Button>
+              }
             />
           ) : !job ? (
             <EmptyState
@@ -112,22 +127,31 @@ const JobDetail = () => {
                 </Button>
               }
             />
-          ) : null}
+          ) : (
+            /* The dialog chunk is lazy, so hold the same skeleton that was
+               already on screen until it lands. `fallback={null}` painted a
+               blank page for the length of the chunk fetch on a cold cache.
+               DialogContent portals to <body>, so living inside this column
+               costs the dialog nothing. */
+            <Suspense
+              fallback={
+                <div aria-label="Loading job">
+                  <JobCardSkeleton />
+                </div>
+              }
+            >
+              <JobDetailDialog
+                guest
+                job={job}
+                effectiveFee={TIER_PERKS.free.platformFeePercent}
+                onClose={() => navigate("/jobs")}
+                onApply={requireSignup}
+                onReport={requireSignup}
+              />
+            </Suspense>
+          )}
         </div>
       </div>
-
-      {job && (
-        <Suspense fallback={null}>
-          <JobDetailDialog
-            guest
-            job={job}
-            effectiveFee={TIER_PERKS.free.platformFeePercent}
-            onClose={() => navigate("/jobs")}
-            onApply={requireSignup}
-            onReport={requireSignup}
-          />
-        </Suspense>
-      )}
     </PublicLayout>
   );
 };

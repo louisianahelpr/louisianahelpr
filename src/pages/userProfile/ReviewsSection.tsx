@@ -24,6 +24,8 @@ type Props = {
   onSaveResponse: (reviewId: string) => void;
   savingResponse: boolean;
   reviewsHasMore: boolean;
+  /** Server-side total (the count query), not just the rows loaded so far. */
+  reviewsTotalCount: number;
   loadMoreReviews: () => void;
   loadingMoreReviews: boolean;
 };
@@ -47,6 +49,7 @@ export const ReviewsSection = ({
   onSaveResponse,
   savingResponse,
   reviewsHasMore,
+  reviewsTotalCount,
   loadMoreReviews,
   loadingMoreReviews,
 }: Props) => {
@@ -72,7 +75,36 @@ export const ReviewsSection = ({
   });
   const hasActiveFilter = reviewCategoryFilter !== null || reviewRatingFilter !== "all";
   const visible = filteredReviews.slice(0, reviewVisibleCount);
-  const hasMore = filteredReviews.length > visible.length;
+
+  // ONE pagination control, two sources. There used to be two stacked
+  // buttons here — a client-side "Show 5 more (5 of 12)" sitting directly on
+  // top of a server-side "Load more reviews", different visual weight,
+  // unrelated counts. Now a single button reveals reviews already held in
+  // memory first, and only reaches for the next server page once those run
+  // out.
+  const hasLocalMore = filteredReviews.length > visible.length;
+  // Server pages are only offered on the unfiltered list: the filter runs
+  // against rows already in memory, so a fetched page whose rows may not
+  // match would make the "(x of y)" count lie.
+  const hasServerMore = !hasActiveFilter && reviewsHasMore;
+  const canShowMore = hasLocalMore || hasServerMore;
+  // Denominator: unfiltered, the honest total is the server's count, not
+  // however many rows happen to be loaded right now.
+  const knownTotal = hasActiveFilter
+    ? filteredReviews.length
+    : Math.max(filteredReviews.length, reviewsTotalCount);
+  // How many rows the next tap actually reveals. A server fetch returns a
+  // full page, so PAGE_SIZE is the honest promise there too.
+  const nextRevealCount = hasLocalMore
+    ? Math.min(PAGE_SIZE, filteredReviews.length - visible.length)
+    : PAGE_SIZE;
+  const handleShowMore = () => {
+    // Always widen the window — after a server fetch appends rows, the
+    // slice above would otherwise still cap at the old count and the newly
+    // fetched reviews would stay invisible until a second tap.
+    onSetReviewVisibleCount((n) => n + PAGE_SIZE);
+    if (!hasLocalMore) loadMoreReviews();
+  };
 
   return (
     <div className="space-y-2 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 motion-safe:duration-200">
@@ -80,7 +112,10 @@ export const ReviewsSection = ({
           (at least one category beyond "other" OR more than one
           distinct rating). Avoids cluttering a 1-review profile. */}
       {reviews.length > 1 && (distinctCategories.length > 0 || new Set(reviews.map((r) => r.rating)).size > 1) && (
-        <div className="rounded-ds-md liquid-glass p-3 space-y-2">
+        // p-3, not the convention's p-5: this is a dense chip toolbar, not a
+        // content card — p-5 gives it more presence than the reviews it
+        // filters. Radius/material match the sibling cards.
+        <div className="rounded-2xl liquid-glass p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Filter</span>
             {hasActiveFilter && (
@@ -166,8 +201,11 @@ export const ReviewsSection = ({
       )}
       {filteredReviews.length > 0 ? (
         <>
-          {visible.map((r, i) => (
-            <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2">
+          {visible.map((r) => (
+            // Keyed by review id, never array index: the category/star
+            // filters reorder and re-slice this list, and an index key let
+            // the inline response editor stay mounted on the wrong card.
+            <div key={r.id} className="rounded-2xl liquid-glass p-5 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-0.5">
@@ -268,7 +306,11 @@ export const ReviewsSection = ({
                     <button
                       type="button"
                       onClick={() => onSaveResponse(r.id)}
-                      disabled={savingResponse}
+                      // Empty draft = nothing to save. Disabled outright so
+                      // the button can't be tapped into a dead end (the save
+                      // handler also guards, but that's a toast, not an
+                      // affordance).
+                      disabled={savingResponse || responseText.trim().length === 0}
                       className="btn-press px-4 py-1.5 rounded-ds-md text-ds-12 font-semibold text-white disabled:opacity-50"
                       style={{ backgroundColor: "hsl(var(--burnt-sienna))" }}
                     >
@@ -287,36 +329,30 @@ export const ReviewsSection = ({
               )}
             </div>
           ))}
-          {hasMore && (
+          {canShowMore && (
+            // p-3 rather than the card convention's p-5: a full-width
+            // pagination control, sized as a button, not a content card.
             <button
-              onClick={() => onSetReviewVisibleCount((n) => n + PAGE_SIZE)}
-              className="w-full rounded-ds-md liquid-glass p-3 text-ds-13 font-medium text-foreground hover:bg-muted/30 transition-colors flex items-center justify-center gap-1.5"
-            >
-              <ChevronDown className="w-4 h-4" />
-              Show {Math.min(PAGE_SIZE, filteredReviews.length - visible.length)} more
-              <span className="text-muted-foreground">({visible.length} of {filteredReviews.length})</span>
-            </button>
-          )}
-          {/* Load more from server — only shown when the local
-              filter is not active (filtered view shows what's
-              already loaded; fetching more could confuse the count)
-              and when there are server-side pages remaining. */}
-          {!hasActiveFilter && reviewsHasMore && (
-            <button
-              onClick={loadMoreReviews}
+              onClick={handleShowMore}
               disabled={loadingMoreReviews}
-              className="w-full py-3 text-ds-13 font-medium rounded-ds-md border disabled:opacity-50 mt-2"
-              style={{
-                borderColor: "hsl(var(--olivewood) / 0.2)",
-                color: "hsl(var(--olivewood))",
-              }}
+              className="w-full rounded-2xl liquid-glass p-3 text-ds-13 font-medium text-foreground hover:bg-muted/30 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              {loadingMoreReviews ? "Loading…" : "Load more reviews"}
+              {loadingMoreReviews ? (
+                <span>Loading…</span>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  Show {nextRevealCount} more
+                  <span className="text-muted-foreground">({visible.length} of {knownTotal})</span>
+                </>
+              )}
             </button>
           )}
         </>
       ) : (
-        <div className="rounded-ds-md liquid-glass p-6 text-center">
+        // p-6 over the convention's p-5: an icon-over-caption empty state
+        // wants the extra breathing room, matching the other empty cards.
+        <div className="rounded-2xl liquid-glass p-6 text-center">
           <Star className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
           <p className="text-ds-11 text-muted-foreground">
             {hasActiveFilter ? "No reviews match this filter" : "No reviews yet"}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Search, X, ArrowRight, ChevronDown } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -245,6 +246,26 @@ const HelpCenter = () => {
             }}
           >
             Answers, guides, and support — for posters and Helprs alike.
+          </p>
+
+          {/* The FAQ can't answer everything, and until /support existed the
+              only escape hatch on this page was a `mailto:` buried in the
+              zero-results state — i.e. reachable only by failing a search.
+              This is the always-visible way out to a human, and it works
+              logged-out and inside the native app. */}
+          <p
+            className="mt-3 font-sans text-ds-13 leading-relaxed"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            Can&apos;t find it?{" "}
+            <Link
+              to="/support"
+              className="font-semibold underline"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+            >
+              Contact support
+            </Link>{" "}
+            — no account needed.
           </p>
 
           {/* Squircle search pill — client-side filter drives the FAQ list
@@ -519,14 +540,18 @@ const HelpCenter = () => {
                   className="mt-3 font-serif italic text-ds-15 leading-relaxed"
                   style={{ color: "hsl(var(--olivewood) / 0.9)" }}
                 >
+                  {/* /support, not a raw mailto: — a mailto needs a configured
+                      mail client and does nothing at all inside the native app,
+                      so the one contact affordance on a dead-end search was
+                      dead too for a chunk of visitors. */}
                   Try a different word, or{" "}
-                  <a
-                    href="mailto:admin@louisianahelpr.com"
+                  <Link
+                    to="/support"
                     className="font-semibold underline"
                     style={{ color: "hsl(var(--burnt-sienna))" }}
                   >
-                    email our team
-                  </a>
+                    message our team
+                  </Link>
                   .
                 </p>
               </div>

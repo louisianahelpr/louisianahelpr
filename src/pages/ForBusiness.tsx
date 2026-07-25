@@ -73,6 +73,14 @@ const INDUSTRIES = [
     name: "Movers & storage",
     pitch: "Load-in, load-out, and furniture assembly by the job.",
   },
+  // Deliberately last (bottom-right of the 2x4 grid): the seven above are the
+  // highest-volume verticals, and this closes the list so a plumber, HVAC
+  // company, electrician, or roofer doesn't scan the grid, miss themselves,
+  // and assume Helpr isn't for them.
+  {
+    name: "Everyone else",
+    pitch: "Trades, salons, nonprofits — any Louisiana business is welcome.",
+  },
 ] as const;
 
 type Tier = {

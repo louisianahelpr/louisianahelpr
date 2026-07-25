@@ -8,7 +8,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -30,6 +30,7 @@ interface JobRow {
   helper_id: string | null;
   status: string;
   budget: number;
+  platform_fee_amount: number | null;
   helper_fee_percent: number | null;
   helpers_needed: number | null;
   is_group_job: boolean | null;
@@ -42,15 +43,6 @@ const WINDOW_LABEL: Record<Window, string> = {
   "30d": "30 days",
   "90d": "90 days",
   "12mo": "12 months",
-};
-
-const helperTakeHome = (j: JobRow, feeFallbackPercent: number): number => {
-  const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
-  const perHelper = j.budget / helpers;
-  const commissionPercent = j.helper_fee_percent ?? feeFallbackPercent;
-  const commission = (perHelper * commissionPercent) / 100;
-  // Urgent fee splits across the roster like the budget (#114).
-  return perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers;
 };
 
 export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStatsTrendProps) {
@@ -67,7 +59,7 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
       since.setMonth(since.getMonth() - 12);
       const { data, error } = await supabase
         .from("jobs")
-        .select("id, helper_id, status, budget, helper_fee_percent, helpers_needed, is_group_job, urgent_fee, helper_completed_at, created_at")
+        .select("id, helper_id, status, budget, platform_fee_amount, helper_fee_percent, helpers_needed, is_group_job, urgent_fee, helper_completed_at, created_at")
         .eq("helper_id", helperId)
         .eq("status", "completed")
         .gte("created_at", since.toISOString())
@@ -121,7 +113,7 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
       if (idx === -1 && t >= buckets[buckets.length - 1].bucketStart) idx = buckets.length - 1;
       if (idx === -1) return;
       buckets[idx].jobs += 1;
-      buckets[idx].earned += helperTakeHome(j, feeFallbackPercent);
+      buckets[idx].earned += helperTakeHomeDollars(j, feeFallbackPercent);
     });
 
     return buckets.map((b) => ({

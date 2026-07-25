@@ -1,13 +1,31 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { unwrap } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
 import { X } from "lucide-react";
-import type { PetProfile, PetInsert } from "./types";
-import { SPECIES_OPTIONS, BLANK_FORM } from "./petProfilesHelpers";
+import type { PetProfile } from "./types";
+import {
+  SPECIES_OPTIONS,
+  PET_AGE_MAX,
+  PET_WEIGHT_MAX,
+  buildPetForm,
+  isPetFormDirty,
+  validatePetForm,
+} from "./petProfilesHelpers";
+
+/** Focusable descendants, for the sheet variant's focus containment. */
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(", ");
 
 interface PetFormProps {
   initialValues?: PetProfile | null;
@@ -29,36 +47,99 @@ export function PetForm({
   onSaved,
   variant = "sheet",
 }: PetFormProps) {
-  const [form, setForm] = useState<Omit<PetInsert, "owner_id">>({
-    ...BLANK_FORM,
-    ...(initialValues
-      ? {
-          name: initialValues.name,
-          species: initialValues.species,
-          breed: initialValues.breed ?? "",
-          age_years: initialValues.age_years,
-          weight_lbs: initialValues.weight_lbs,
-          color_markings: initialValues.color_markings ?? "",
-          microchip_id: initialValues.microchip_id ?? "",
-          vet_name: initialValues.vet_name ?? "",
-          vet_phone: initialValues.vet_phone ?? "",
-          medical_notes: initialValues.medical_notes ?? "",
-          behavioral_notes: initialValues.behavioral_notes ?? "",
-          emergency_contact: initialValues.emergency_contact ?? "",
-          feeding_schedule: initialValues.feeding_schedule ?? "",
-          photo_url: initialValues.photo_url ?? "",
-          is_evacuation_registered: initialValues.is_evacuation_registered,
-        }
-      : {}),
-  });
+  const [form, setForm] = useState(() => buildPetForm(initialValues));
+  // The values this form opened with — the baseline the unsaved-changes guard
+  // compares against. useRef only honours its argument on the first render, so
+  // this snapshot never drifts as the user types.
+  const initialFormRef = useRef(form);
   const [saving, setSaving] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const set = (field: string, value: unknown) =>
     setForm((f) => ({ ...f, [field]: value }));
 
+  const isInline = variant === "inline";
+
+  const errors = useMemo(() => validatePetForm(form), [form]);
+  const firstError = Object.values(errors)[0];
+  // Required-ness is surfaced only once the user has touched something — a
+  // pristine "Add a pet" sheet shouldn't open with a red error on it.
+  const nameMissing = !form.name.trim();
+  const isDirty = isPetFormDirty(form, initialFormRef.current);
+  const canSave = !nameMissing && !firstError;
+
+  // Closing discards everything typed since open — nothing is persisted until
+  // handleSave runs — so a filled-in form has to be confirmed before it goes.
+  const requestClose = useCallback(() => {
+    if (isDirty && !saving) {
+      setConfirmDiscard(true);
+      return;
+    }
+    onClose();
+  }, [isDirty, saving, onClose]);
+
+  // ── Sheet-variant modal semantics ────────────────────────────────────────
+  // The sheet is a `fixed inset-0` overlay: it covers the page, but the page
+  // behind it stays in the tab order, so focus has to be moved in and kept in.
+  // Deliberately hand-rolled rather than refactored onto <SheetContent>: that
+  // primitive has no full-bleed side, and its scrim + p-6 + floating close
+  // button would visually redesign a screen this change isn't meant to touch.
+  useEffect(() => {
+    if (isInline) return;
+    const node = dialogRef.current;
+    if (!node) return;
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    node.focus({ preventScroll: true });
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const items = Array.from(
+        node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((el) => el.offsetParent !== null);
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === node)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    node.addEventListener("keydown", onKeyDown);
+    return () => {
+      node.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [isInline]);
+
+  // Escape closes the sheet — routed through the same guard as the X so it
+  // can't silently throw away a filled-in form. Skipped while the discard
+  // confirmation is up: that dialog owns Escape (Radix closes it itself).
+  useEffect(() => {
+    if (isInline || confirmDiscard) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      requestClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isInline, confirmDiscard, requestClose]);
+
   const handleSave = async () => {
-    if (!form.name.trim()) {
+    if (nameMissing) {
       toast.error("Pet name is required");
+      hapticError();
+      return;
+    }
+    if (firstError) {
+      toast.error(firstError);
       hapticError();
       return;
     }
@@ -79,7 +160,6 @@ export function PetForm({
         behavioral_notes: form.behavioral_notes || null,
         emergency_contact: form.emergency_contact || null,
         feeding_schedule: form.feeding_schedule || null,
-        photo_url: form.photo_url || null,
         is_evacuation_registered: form.is_evacuation_registered ?? false,
         updated_at: new Date().toISOString(),
       };
@@ -109,14 +189,18 @@ export function PetForm({
     }
   };
 
-  const isInline = variant === "inline";
-
   return (
+    <>
     <div
+      ref={dialogRef}
+      role={isInline ? undefined : "dialog"}
+      aria-modal={isInline ? undefined : true}
+      aria-labelledby={isInline ? undefined : "pet-form-title"}
+      tabIndex={isInline ? undefined : -1}
       className={
         isInline
           ? "rounded-ds-lg liquid-glass overflow-hidden"
-          : "fixed inset-0 z-50 flex flex-col bg-premium-page overflow-y-auto"
+          : "fixed inset-0 z-50 flex flex-col bg-premium-page overflow-y-auto focus:outline-none"
       }
     >
       {/* Header */}
@@ -132,6 +216,7 @@ export function PetForm({
         }}
       >
         <h2
+          id={isInline ? undefined : "pet-form-title"}
           className="font-display font-bold text-ds-18"
           style={{ color: "hsl(var(--ink-deep))" }}
         >
@@ -139,7 +224,7 @@ export function PetForm({
         </h2>
         <button
           type="button"
-          onClick={onClose}
+          onClick={requestClose}
           className="w-10 h-10 flex items-center justify-center rounded-full active:bg-secondary/60 transition-colors"
           aria-label="Close"
         >
@@ -202,7 +287,14 @@ export function PetForm({
                 placeholder="Max, Luna, Biscuit…"
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
+                aria-invalid={isDirty && nameMissing ? true : undefined}
+                aria-describedby={
+                  isDirty && nameMissing ? "pet-name-error" : undefined
+                }
               />
+              {isDirty && nameMissing && (
+                <FieldError id="pet-name-error">Pet name is required.</FieldError>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -221,15 +313,20 @@ export function PetForm({
                   id="pet-age"
                   type="number"
                   min={0}
-                  max={30}
+                  max={PET_AGE_MAX}
                   step={0.5}
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                   placeholder="3"
                   value={form.age_years ?? ""}
                   onChange={(e) =>
-                    set("age_years", e.target.value ? parseFloat(e.target.value) : null)
+                    set("age_years", e.target.value ? Number(e.target.value) : null)
                   }
+                  aria-invalid={errors.age_years ? true : undefined}
+                  aria-describedby={errors.age_years ? "pet-age-error" : undefined}
                 />
+                {errors.age_years && (
+                  <FieldError id="pet-age-error">{errors.age_years}</FieldError>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -239,14 +336,20 @@ export function PetForm({
                   id="pet-weight"
                   type="number"
                   min={0}
+                  max={PET_WEIGHT_MAX}
                   step={0.5}
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                   placeholder="45"
                   value={form.weight_lbs ?? ""}
                   onChange={(e) =>
-                    set("weight_lbs", e.target.value ? parseFloat(e.target.value) : null)
+                    set("weight_lbs", e.target.value ? Number(e.target.value) : null)
                   }
+                  aria-invalid={errors.weight_lbs ? true : undefined}
+                  aria-describedby={errors.weight_lbs ? "pet-weight-error" : undefined}
                 />
+                {errors.weight_lbs && (
+                  <FieldError id="pet-weight-error">{errors.weight_lbs}</FieldError>
+                )}
               </div>
               <div>
                 <label htmlFor="pet-color" className="text-ds-11 text-muted-foreground block mb-1">Color / markings</label>
@@ -291,7 +394,12 @@ export function PetForm({
                   placeholder="(504) 555-0100"
                   value={form.vet_phone ?? ""}
                   onChange={(e) => set("vet_phone", e.target.value)}
+                  aria-invalid={errors.vet_phone ? true : undefined}
+                  aria-describedby={errors.vet_phone ? "pet-vet-phone-error" : undefined}
                 />
+                {errors.vet_phone && (
+                  <FieldError id="pet-vet-phone-error">{errors.vet_phone}</FieldError>
+                )}
               </div>
             </div>
             <div>
@@ -302,7 +410,12 @@ export function PetForm({
                 placeholder="985112345678901"
                 value={form.microchip_id ?? ""}
                 onChange={(e) => set("microchip_id", e.target.value)}
+                aria-invalid={errors.microchip_id ? true : undefined}
+                aria-describedby={errors.microchip_id ? "pet-microchip-error" : undefined}
               />
+              {errors.microchip_id && (
+                <FieldError id="pet-microchip-error">{errors.microchip_id}</FieldError>
+              )}
             </div>
             <div>
               <label htmlFor="pet-medical-notes" className="text-ds-11 text-muted-foreground block mb-1">
@@ -438,12 +551,53 @@ export function PetForm({
         <Button
           className="w-full"
           size="lg"
-          disabled={saving}
+          disabled={saving || !canSave}
           onClick={handleSave}
         >
           {saving ? "Saving…" : initialValues ? "Save changes" : "Add pet"}
         </Button>
       </div>
     </div>
+
+    {/* Discard guard. `primaryTone="bark"`, not sienna: the saved pet is
+        untouched by cancelling, and BrandConfirmDialog reserves sienna for
+        genuinely destructive actions like deletes. */}
+    <BrandConfirmDialog
+      open={confirmDiscard}
+      onOpenChange={(open) => { if (!open) setConfirmDiscard(false); }}
+      title={
+        initialValues
+          ? `Discard changes to ${initialValues.name}?`
+          : "Discard this pet?"
+      }
+      description={
+        initialValues
+          ? "Your edits haven't been saved. Closing keeps the details you had before."
+          : "Nothing has been saved yet — everything you typed will be lost."
+      }
+      primaryLabel="Discard"
+      primaryTone="bark"
+      primaryHaptic="warning"
+      onPrimary={() => {
+        setConfirmDiscard(false);
+        onClose();
+      }}
+      secondaryLabel="Keep editing"
+    />
+    </>
+  );
+}
+
+/** Inline field error — sienna, announced, and tied to its input via id. */
+function FieldError({ id, children }: { id: string; children: React.ReactNode }) {
+  return (
+    <p
+      id={id}
+      role="alert"
+      className="text-ds-11 mt-1 leading-snug"
+      style={{ color: "hsl(var(--burnt-sienna))" }}
+    >
+      {children}
+    </p>
   );
 }

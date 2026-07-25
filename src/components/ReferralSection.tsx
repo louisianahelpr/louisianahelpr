@@ -149,7 +149,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     // referral code and zeroed stats — show a recoverable error instead.
     return (
       <div className="h-full flex">
-        <ErrorState onRetry={() => { void refetch(); }} />
+        <ErrorState variant="inline" onRetry={() => { void refetch(); }} />
       </div>
     );
   }

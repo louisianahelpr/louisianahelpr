@@ -108,6 +108,7 @@ const UserProfile = () => {
     stats,
     loadingMoreReviews,
     reviewsHasMore,
+    reviewsTotalCount,
     loadMoreReviews,
     postedJobs,
     workedJobs,
@@ -177,7 +178,7 @@ const UserProfile = () => {
         <div className="container mx-auto px-5 py-6">
           <div className="max-w-2xl mx-auto space-y-5">
             <div className="rounded-2xl liquid-glass p-5 text-center space-y-3">
-              <div className="w-24 h-24 rounded-ds-pill squircle bg-muted animate-pulse mx-auto" />
+              <div className="w-24 h-24 rounded-[26px] squircle bg-muted animate-pulse mx-auto" />
               <div className="h-6 w-40 bg-muted animate-pulse mx-auto rounded" />
               <div className="h-4 w-24 bg-muted animate-pulse mx-auto rounded" />
               <div className="h-4 w-64 bg-muted animate-pulse mx-auto rounded" />
@@ -209,7 +210,7 @@ const UserProfile = () => {
         />
         <div className="container mx-auto px-5 py-6">
           <div className="max-w-2xl mx-auto flex">
-            <ErrorState onRetry={() => refetch()} />
+            <ErrorState variant="inline" onRetry={() => refetch()} />
           </div>
         </div>
       </>
@@ -252,7 +253,12 @@ const UserProfile = () => {
 
   // Save or update the reviewee's public response to a review they received.
   const handleSaveResponse = async (reviewId: string) => {
-    if (!responseText.trim()) return;
+    // Tapping Save on an empty textarea used to do nothing at all — no toast,
+    // no state change, no reason given. Say why instead of dead-ending.
+    if (!responseText.trim()) {
+      toast.error("Write a response first.");
+      return;
+    }
     setSavingResponse(true);
     try {
       const { error } = await (supabase.rpc as any)("respond_to_review", {
@@ -532,6 +538,7 @@ const UserProfile = () => {
                 onSaveResponse={handleSaveResponse}
                 savingResponse={savingResponse}
                 reviewsHasMore={reviewsHasMore}
+                reviewsTotalCount={reviewsTotalCount}
                 loadMoreReviews={loadMoreReviews}
                 loadingMoreReviews={loadingMoreReviews}
               />
@@ -544,7 +551,7 @@ const UserProfile = () => {
             {showWorkedJobs && <JobsList jobs={completedWorkedJobs} variant="worked" />}
 
             {profile.hourly_rate && (
-              <div className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">
+              <div className="rounded-2xl liquid-glass p-5 flex items-center gap-3">
                 <Clock className="w-5 h-5 text-primary" />
                 <div>
                   <p className="text-ds-13 font-semibold text-foreground">${profile.hourly_rate}/hr</p>

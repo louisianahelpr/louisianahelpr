@@ -66,6 +66,10 @@ export const PolicyFooter = ({ updated }: { updated: string }) => (
   >
     <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
       Questions?{" "}
+      {/* /support, not /profile?tab=support: the legal pages are public, so
+          this link is followed by logged-OUT visitors far more often than by
+          signed-in ones, and the Profile tab forces a sign-in they may not
+          have. /support renders the same form for both. */}
       <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
         Contact support
       </Link>

@@ -245,6 +245,7 @@ export function usePostJobForm() {
     clearOffer,
   } = useJobEntry({
     draft,
+    hasDraft,
     setStep,
     setDraftConsumed,
     setTitle,

@@ -2,6 +2,7 @@ import { categoryPricing } from "@/lib/pricingGuide";
 import { categories } from "@/components/postjob/DetailsSection";
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
 import { posterServiceFeeCents } from "@/lib/posterFees";
+import { MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimits";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
 import type { PricingMode } from "@/components/postjob/BudgetSection";
@@ -82,7 +83,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
   const budgetComplete =
     pricingMode === "accept_bids"
       ? true
-      : !!(budget && parseFloat(budget) >= 10);
+      : !!(budget && parseFloat(budget) >= MIN_JOB_BUDGET_DOLLARS);
 
   // Smart Pricing Guidance — live budget range from real completed jobs
   // in this category (+ parish), with a graceful fallback to the static

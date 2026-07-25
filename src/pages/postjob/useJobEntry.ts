@@ -17,6 +17,7 @@ import { parseLocationIntoFields } from "./postJobFormHelpers";
  */
 export interface UseJobEntryParams {
   draft: JobDraft;
+  hasDraft: boolean;
   setStep: (s: Step) => void;
   setDraftConsumed: (v: boolean) => void;
   setTitle: (v: string) => void;
@@ -55,6 +56,7 @@ export interface UseJobEntryParams {
 export function useJobEntry(params: UseJobEntryParams) {
   const {
     draft,
+    hasDraft,
     setStep,
     setDraftConsumed,
     setTitle,
@@ -150,8 +152,27 @@ export function useJobEntry(params: UseJobEntryParams) {
   // The entry screen offers three ways into the form so the page no longer
   // dumps the full multi-step form on the user at once.
 
-  /** "Start fresh" — current behavior, an empty form. */
+  /**
+   * "Start fresh" — an empty form. When an unfinished draft already exists,
+   * the 2s-debounced autosave (useDraftJob) will silently overwrite it as
+   * soon as the user types into the fresh form, so we warn first via a
+   * dismissible toast with an explicit "Start fresh" action — dismissing
+   * or ignoring the toast leaves the draft untouched.
+   */
   const startFresh = () => {
+    if (hasDraft) {
+      toast("You have an unfinished draft", {
+        description: "Starting fresh will overwrite it as you type.",
+        action: {
+          label: "Start fresh",
+          onClick: () => {
+            track("post_job_entry_choice", { choice: "start_fresh" });
+            setStep("form");
+          },
+        },
+      });
+      return;
+    }
     track("post_job_entry_choice", { choice: "start_fresh" });
     setStep("form");
   };

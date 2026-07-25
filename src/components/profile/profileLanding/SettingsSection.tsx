@@ -382,7 +382,11 @@ export function SettingsSection({
             onClick={onRequestLogout}
             className="glass-press w-full rounded-ds-lg bg-card py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
             style={{
-              color: "hsl(var(--bark))",
+              // Theme-adaptive ink (was fixed `--bark`): brand bark is a dark
+              // brown that drops to near-invisible contrast on the dark `card`
+              // surface under Auto/Dark mode. `--foreground` flips with the
+              // theme so "Sign out" stays legible in both.
+              color: "hsl(var(--foreground))",
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,
             }}

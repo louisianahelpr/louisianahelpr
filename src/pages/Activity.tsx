@@ -241,7 +241,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // items exist but the active filter hides them all, we keep the header
   // so the user can clear/change the filter that's hiding their tasks.
   const sourceCount = tab === "posted" ? postedJobs.length : appliedApps.length;
-  const filteredCount = tab === "posted" ? filteredPostedJobs.length : filteredAppliedApps.length;
   const isTrulyEmpty = sourceCount === 0;
 
   // Per-tab "updated Xm ago" indicator — only shown after the first
@@ -266,12 +265,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         animate
         header={<DashboardHeader titleAs="h1" title={tab === "posted" ? "My Posts" : "My Jobs"} />}
         titleCard={
-          /* The section name now lives in the top bar (Instagram/Facebook
-             pattern), so the title card holds only the count chip. When the
-             list is truly empty that chip is hidden — and rather than float an
-             empty frosted card, we drop the whole title card so the empty-state
-             panel sits flush below the titled top bar. */
-          isTrulyEmpty ? undefined : (
+          /* The "N jobs" count chip was removed (2026-07-25 decision) — the
+             section name already lives in the top bar and the count read as
+             redundant noise. The title card now carries ONLY the transient
+             post-refresh freshness cue (absent on a fresh load), and drops
+             out entirely when there's nothing to show so no empty frosted
+             card floats above the panel. */
+          isTrulyEmpty || !refreshIndicator ? undefined : (
             <p
               className="truncate font-sans font-semibold uppercase leading-none"
               style={{
@@ -280,10 +280,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
                 color: "hsl(var(--olivewood) / 0.8)",
               }}
             >
-              {filteredCount} {filteredCount === 1 ? "job" : "jobs"}
-              {refreshIndicator && (
-                <span aria-hidden="true">{" · "}{refreshIndicator}</span>
-              )}
+              <span aria-hidden="true">{refreshIndicator}</span>
             </p>
           )
         }

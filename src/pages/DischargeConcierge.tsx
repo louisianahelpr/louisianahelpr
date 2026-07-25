@@ -79,13 +79,7 @@ const DischargeConcierge = () => {
         />
       ) : (
         <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-8">
-          <span
-            className="font-serif italic uppercase"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Healthcare
-          </span>
-          <h1 className="text-page-title leading-tight mt-1">Discharge Concierge</h1>
+          <h1 className="text-page-title leading-tight">Discharge Concierge</h1>
         </div>
       )}
 

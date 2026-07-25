@@ -61,16 +61,7 @@ export function SampleJobTemplates({
       <div className="flex items-center justify-between gap-3 px-4 pt-3">
         <div className="min-w-0">
           <p
-            className="font-serif italic uppercase text-ds-9"
-            style={{
-              color: "hsl(var(--burnt-sienna))",
-              letterSpacing: "0.18em",
-            }}
-          >
-            Common around here
-          </p>
-          <p
-            className="font-display italic font-bold mt-0.5"
+            className="font-display italic font-bold"
             style={{
               fontSize: "0.95rem",
               color: "hsl(var(--ink-deep))",

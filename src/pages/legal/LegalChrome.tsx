@@ -33,10 +33,7 @@ export const TldrCard = ({ items }: { items: string[] }) => {
   >
     <div className="flex items-center gap-2">
       <ListChecks className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-      <span
-        className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
-        style={{ color: "hsl(var(--burnt-sienna))" }}
-      >
+      <span className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
         The short version
       </span>
     </div>

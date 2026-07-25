@@ -53,12 +53,6 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
           {/* Suggested amounts — celebratory tier-styled pills first
               since most people pick from quick-picks rather than typing. */}
           <div>
-            <p
-              className="font-serif italic uppercase mb-2"
-              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-            >
-              Quick pick
-            </p>
             <div className="grid grid-cols-3 gap-2">
               {SUGGESTED_AMOUNTS.map((amt) => (
                 <button

@@ -162,8 +162,8 @@ const HomeHistory = () => {
             {/* Year group header */}
             <div className="flex items-center gap-3 mb-3">
               <span
-                className="font-serif italic uppercase text-ds-9"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                className="font-display italic font-bold text-ds-13"
+                style={{ color: "hsl(var(--ink-deep))" }}
               >
                 {year}
               </span>

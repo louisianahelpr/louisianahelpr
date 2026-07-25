@@ -101,12 +101,6 @@ const AccountBanned = () => {
         )}
 
         <div className="border-t pt-6 space-y-3" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
-          <h2
-            className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            Think this is a mistake?
-          </h2>
           <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             If you believe your account was suspended in error, contact our support team with your account email and we'll review your case.
           </p>

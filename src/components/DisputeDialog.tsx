@@ -254,14 +254,8 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
             }}
           >
-            <p
-              className="font-serif italic uppercase"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-            >
-              The fine print
-            </p>
             <ul
-              className="font-serif italic mt-1.5 space-y-0.5 list-disc pl-4 leading-snug"
+              className="font-serif italic space-y-0.5 list-disc pl-4 leading-snug"
               style={{ fontSize: "0.75rem", color: "hsl(var(--olivewood) / 0.85)" }}
             >
               <li>Payment is held for <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>72 hours only</strong> while admin reviews.</li>

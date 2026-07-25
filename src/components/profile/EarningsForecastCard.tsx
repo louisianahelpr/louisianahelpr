@@ -191,16 +191,6 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
             <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--gold-warm))" }} />
           </div>
           <div className="min-w-0">
-            <p
-              className="font-serif italic uppercase"
-              style={{
-                fontSize: "0.62rem",
-                color: "hsl(var(--burnt-sienna))",
-                letterSpacing: "0.18em",
-              }}
-            >
-              This week's projection
-            </p>
             <h3
               className="font-display italic font-bold leading-tight"
               style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}

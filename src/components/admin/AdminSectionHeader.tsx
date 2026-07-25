@@ -4,17 +4,8 @@ const AdminSectionHeader = ({ title, onBack }: { title: string; onBack: () => vo
   <div className="mb-5 sm:mb-6 flex items-start gap-2">
     <BackButton onClick={onBack} />
     <div className="flex flex-col leading-none min-w-0">
-      <span
-        className="font-serif italic uppercase text-[0.62rem]"
-        style={{
-          color: "hsl(var(--burnt-sienna))",
-          letterSpacing: "0.18em",
-        }}
-      >
-        Operations
-      </span>
       <h1
-        className="font-display italic font-bold leading-tight mt-1 truncate"
+        className="font-display italic font-bold leading-tight truncate"
         style={{
           fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.85rem)",
           color: "hsl(var(--ink-deep))",

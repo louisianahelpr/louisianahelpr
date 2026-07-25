@@ -93,14 +93,8 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
           >
             {isSubscriber ? (
               <>
-                <span
-                  className="font-serif italic uppercase inline-flex items-center gap-1.5"
-                  style={{ fontSize: "0.62rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.18em" }}
-                >
-                  <Sparkles className="w-3 h-3" /> Included with Elite
-                </span>
                 <p
-                  className="font-display italic font-bold leading-none mt-2"
+                  className="font-display italic font-bold leading-none"
                   style={{ fontSize: "1.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
                 >
                   Free boost.

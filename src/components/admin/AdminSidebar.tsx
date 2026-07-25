@@ -155,17 +155,6 @@ const AdminSidebar = ({
               >
                 Helpr Admin
               </p>
-              <p
-                className="font-serif italic uppercase leading-tight"
-                style={{
-                  fontSize: "0.58rem",
-                  color: "hsl(var(--burnt-sienna))",
-                  letterSpacing: "0.18em",
-                  marginTop: "1px",
-                }}
-              >
-                Operations
-              </p>
             </div>
           )}
         </div>

@@ -152,12 +152,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
 
         {step === "reason" && (
           <div className="space-y-2">
-            <p
-              className="font-serif italic uppercase text-[0.6rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.16em" }}
-            >
-              Why are you reporting this?
-            </p>
             <div className="grid grid-cols-2 gap-1.5">
               {reasons.map(({ label, Icon }, i) => {
                 const active = reason === label;

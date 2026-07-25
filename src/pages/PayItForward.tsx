@@ -344,13 +344,6 @@ export default function PayItForward() {
                 boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.6)",
               }}
             >
-              <p
-                className="font-serif italic uppercase"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Send a gift card
-              </p>
-
               {/* Recipient email */}
               <div>
                 <p
@@ -488,10 +481,7 @@ export default function PayItForward() {
           <section className="lg:col-span-7 xl:col-span-8 space-y-6 pb-8">
             {/* Gifts sent to you */}
             <div>
-              <p
-                className="font-serif italic uppercase mb-3"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
+              <p className="text-ds-13 font-sans font-semibold mb-3" style={{ color: "hsl(var(--ink-deep))" }}>
                 Gift cards sent to you
               </p>
               {loadingReceived ? (
@@ -522,10 +512,7 @@ export default function PayItForward() {
 
             {/* Gifts you've sent */}
             <div>
-              <p
-                className="font-serif italic uppercase mb-3"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
+              <p className="text-ds-13 font-sans font-semibold mb-3" style={{ color: "hsl(var(--ink-deep))" }}>
                 Gift cards you've sent
               </p>
               {loadingDonated ? (

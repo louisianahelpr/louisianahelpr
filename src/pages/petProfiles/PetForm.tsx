@@ -157,8 +157,8 @@ export function PetForm({
         {/* Basic info */}
         <section>
           <h3
-            className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+            className="font-display italic font-bold text-ds-14 mb-3"
+            style={{ color: "hsl(var(--ink-deep))" }}
           >
             Basic info
           </h3>
@@ -265,8 +265,8 @@ export function PetForm({
         {/* Vet & medical */}
         <section>
           <h3
-            className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+            className="font-display italic font-bold text-ds-14 mb-3"
+            style={{ color: "hsl(var(--ink-deep))" }}
           >
             Vet &amp; medical
           </h3>
@@ -336,8 +336,8 @@ export function PetForm({
         {/* Care instructions */}
         <section>
           <h3
-            className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+            className="font-display italic font-bold text-ds-14 mb-3"
+            style={{ color: "hsl(var(--ink-deep))" }}
           >
             Care instructions
           </h3>
@@ -369,8 +369,8 @@ export function PetForm({
         {/* Evacuation */}
         <section>
           <h3
-            className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+            className="font-display italic font-bold text-ds-14 mb-3"
+            style={{ color: "hsl(var(--ink-deep))" }}
           >
             Hurricane &amp; evacuation
           </h3>

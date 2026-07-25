@@ -119,12 +119,6 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
                   "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22)",
               }}
             >
-              <p
-                className="font-serif italic uppercase mb-1"
-                style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Breakdown
-              </p>
               <div className="flex justify-between text-[0.8rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <span className="font-serif italic">Available balance</span>
                 <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>{fmt(quote.gross_cents)}</span>

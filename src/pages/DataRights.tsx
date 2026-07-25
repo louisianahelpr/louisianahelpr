@@ -120,13 +120,7 @@ const DataRights = () => {
     />
   ) : (
     <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-8">
-      <span
-        className="font-serif italic uppercase"
-        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-      >
-        Privacy controls
-      </span>
-      <h1 className="text-page-title leading-tight mt-1">Your Data Rights</h1>
+      <h1 className="text-page-title leading-tight">Your Data Rights</h1>
       <p className="font-serif italic mt-1 text-[0.82rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         Export, correct, or delete your information at any time
       </p>

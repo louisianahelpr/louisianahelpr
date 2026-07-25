@@ -27,16 +27,10 @@ import {
 } from "./legal/legalSections";
 
 /* ─────────────────────────  EDITORIAL HERO COPY  ───────────────────────── */
-// Per-tab hero content — mirrors the landing hero pattern (small-caps eyebrow,
-// Bodoni H1 with italic burnt-sienna accent, one-line Montserrat subhead).
-// Copy is editorial framing only; every clause of the legal text below is
+// Per-tab hero content — mirrors the landing hero pattern (Bodoni H1 with
+// italic burnt-sienna accent, one-line Montserrat subhead). Copy is
+// editorial framing only; every clause of the legal text below is
 // preserved verbatim inside TermsContent / CommunityContent / PrivacyContent.
-const HERO_EYEBROWS: Record<TabKey, string> = {
-  terms: "Terms of service",
-  community: "Community rules",
-  privacy: "Privacy policy",
-};
-
 // H1 is split into a leading phrase + a trailing italic burnt-sienna accent.
 // Together they always end in a period so the headline reads as a poster
 // statement (matches the "Louisiana's Local Job Partner." landing pattern).
@@ -237,16 +231,7 @@ const Legal = () => {
     <div className="flex items-center gap-3">
       <div data-print-hide className="shrink-0"><BackButton /></div>
       <div className="flex flex-col leading-none min-w-0 mb-1">
-        <span
-          className="font-serif italic uppercase text-[0.62rem]"
-          style={{
-            color: "hsl(var(--burnt-sienna))",
-            letterSpacing: "0.18em",
-          }}
-        >
-          {HERO_EYEBROWS[tab]}
-        </span>
-        <h1 className="text-page-title leading-tight mt-1 text-balance">
+        <h1 className="text-page-title leading-tight text-balance">
           {HERO_TITLES[tab].lead}{" "}
           <em
             style={{

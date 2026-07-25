@@ -196,13 +196,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           >
             Only the Overall rating is needed — the rest are optional. You can skip them and still post your review.
           </p>
-          <p
-            className="font-serif italic uppercase pt-1"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Tap any that fit
-          </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 pt-1">
             {quickOptions.map((opt) => {
               const selected = feedback.includes(opt);
               return (

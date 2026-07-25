@@ -96,14 +96,6 @@ const cardStyle: React.CSSProperties = {
     "0 1px 3px hsl(var(--olivewood) / 0.06), 0 4px 10px -4px hsl(var(--olivewood) / 0.08)",
 };
 
-// Design-system eyebrow — same serif-italic burnt-sienna caption the peer
-// pages use for their section headers ("Work Summary", year groups, etc.).
-const eyebrowClass = "font-serif italic uppercase text-ds-9";
-const eyebrowStyle: React.CSSProperties = {
-  color: "hsl(var(--burnt-sienna))",
-  letterSpacing: "0.18em",
-};
-
 export default function BenefitsPage() {
   usePageTitle("Benefits & Perks — Helpr");
   const navigate = useNavigate();
@@ -139,7 +131,7 @@ export default function BenefitsPage() {
               style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.10)" }}
             >
               <span style={{ color: "hsl(var(--bark))" }}>{section.icon}</span>
-              <h2 className={eyebrowClass} style={eyebrowStyle}>
+              <h2 className="font-display italic font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
                 {section.title}
               </h2>
             </div>
@@ -180,7 +172,7 @@ export default function BenefitsPage() {
         <div className="rounded-ds-lg p-5" style={cardStyle}>
           <div className="flex items-center gap-2 mb-3">
             <Clock className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-            <h2 className={eyebrowClass} style={eyebrowStyle}>
+            <h2 className="font-display italic font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
               Coming soon
             </h2>
           </div>

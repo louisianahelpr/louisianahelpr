@@ -250,13 +250,7 @@ const Jobs = () => {
               <BackButton />
             </div>
             <div className="flex flex-col leading-none min-w-0 flex-1">
-              <span
-                className="font-serif italic uppercase text-[0.62rem]"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Open across Louisiana
-              </span>
-              <h1 className="text-page-title leading-tight truncate mt-1">
+              <h1 className="text-page-title leading-tight truncate">
                 Browse jobs
               </h1>
               <span className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

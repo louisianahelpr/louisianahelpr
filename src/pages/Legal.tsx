@@ -354,10 +354,17 @@ const Legal = () => {
     </section>
   );
 
+  // Compact (icon-only, auto-width) while search is open — the tabs stay
+  // visible rather than disappearing, they just shrink to make room for the
+  // search input instead of splitting the row evenly with it.
   const tabBar = (
     <TabsList
       data-print-hide
-      className="grid w-full grid-cols-3 items-center gap-1 rounded-2xl p-1 h-auto bg-transparent border-0"
+      className={
+        searchOpen
+          ? "inline-flex items-center gap-1 rounded-2xl p-1 h-auto bg-transparent border-0"
+          : "grid w-full grid-cols-3 items-center gap-1 rounded-2xl p-1 h-auto bg-transparent border-0"
+      }
     >
       {VALID_TABS.map((t) => {
         const isActive = t === tab;
@@ -401,8 +408,32 @@ const Legal = () => {
     </TabsList>
   );
 
-  const searchBar = searchOpen ? (
-    <div className="relative" data-print-hide>
+  // Collapsed trigger — rendered as part of the SAME row as the Terms/Rules/
+  // Privacy toggle (not floating separately below it), so it reads as one
+  // connected control instead of a disconnected icon in empty space.
+  const searchToggle = !searchOpen && (
+    <button
+      type="button"
+      onClick={() => {
+        setSearchOpen(true);
+        // Focus after the input mounts (searchOpen flips to true this
+        // render, the ref attaches next paint).
+        requestAnimationFrame(() => searchInputRef.current?.focus());
+      }}
+      aria-label="Search all policies"
+      data-print-hide
+      className="shrink-0 w-9 h-9 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
+      style={{ color: "hsl(var(--olivewood))" }}
+    >
+      <Search className="w-4 h-4" />
+    </button>
+  );
+
+  // Expanded input — replaces the toggle in-place within the header row once
+  // open (see the two render sites below), instead of appearing disconnected
+  // further down the page.
+  const searchBar = searchOpen && (
+    <div className="relative flex-1 min-w-0" data-print-hide>
       <Search
         className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
@@ -414,7 +445,7 @@ const Legal = () => {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search all policies…"
-        className="w-full h-10 rounded-ds-md pl-9 pr-9 text-ds-13 font-sans bg-card outline-none transition-shadow focus:ring-2"
+        className="w-full h-10 rounded-ds-md pl-9 pr-9 text-ds-13 font-sans bg-card outline-none transition-shadow focus:ring-2 focus:ring-inset"
         style={{
           border: "1px solid hsl(var(--bark) / 0.18)",
           color: "hsl(var(--ink-deep))",
@@ -431,26 +462,6 @@ const Legal = () => {
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         <X className="w-4 h-4" />
-      </button>
-    </div>
-  ) : (
-    <div className="flex justify-end" data-print-hide>
-      <button
-        type="button"
-        onClick={() => {
-          setSearchOpen(true);
-          // Focus after the input mounts (searchOpen flips to true this
-          // render, the ref attaches next paint).
-          requestAnimationFrame(() => searchInputRef.current?.focus());
-        }}
-        aria-label="Search all policies"
-        className="w-9 h-9 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
-        style={{
-          border: "1px solid hsl(var(--bark) / 0.18)",
-          color: "hsl(var(--olivewood))",
-        }}
-      >
-        <Search className="w-4 h-4" />
       </button>
     </div>
   );
@@ -515,7 +526,6 @@ const Legal = () => {
   // tagline is editorial framing so it hides while a query is active.
   const body = (
     <PolicySearchContext.Provider value={query}>
-      {searchBar}
       <div ref={contentRef} className="mt-4 space-y-4">
         {isSearching ? (
           // Cross-tab results: render all three policies at once so a query
@@ -569,7 +579,15 @@ const Legal = () => {
           <div className="px-5 pt-3">
             <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
               {nativeHeaderRow}
-              {tabBar}
+              <div className="flex items-center gap-2">
+                {/* Search leads the row. Tabs stay visible either way —
+                    full-width when closed, shrunk to icon-only pills when
+                    open so the input can take the freed-up space instead of
+                    splitting the row evenly with a full-size tab list. */}
+                {searchBar}
+                {searchToggle}
+                <div className={searchOpen ? "shrink-0" : "flex-1 min-w-0"}>{tabBar}</div>
+              </div>
               {body}
             </div>
           </div>
@@ -656,10 +674,16 @@ const Legal = () => {
               style={{ top: webBandStickyTop }}
             >
               <div
-                className="rounded-2xl"
+                className="rounded-2xl flex items-center gap-2 p-1"
                 style={{ border: "1px solid hsl(var(--bark) / 0.18)" }}
               >
-                {tabBar}
+                {/* Search leads the row. Tabs stay visible either way —
+                    full-width when closed, shrunk to icon-only pills when
+                    open so the input can take the freed-up space instead of
+                    splitting the row evenly with a full-size tab list. */}
+                {searchBar}
+                {searchToggle}
+                <div className={searchOpen ? "shrink-0" : "flex-1 min-w-0"}>{tabBar}</div>
               </div>
             </div>
             {/* On lg+ split into TOC sidebar + body. TOC hides while

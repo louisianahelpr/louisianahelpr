@@ -257,7 +257,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               onClick={refreshSubscription}
               disabled={refreshing}
               variant="ghost"
-              className="rounded-ds-md font-sans font-semibold"
+              className="rounded-ds-md"
               style={{ color: "hsl(var(--bark))" }}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />

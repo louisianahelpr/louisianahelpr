@@ -289,9 +289,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                         backgroundImage: "none",
                         border: "1px solid hsl(var(--bark))",
                         color: "hsl(var(--parchment))",
-                        fontFamily: "Montserrat, system-ui, sans-serif",
-                        fontWeight: 600,
-                        letterSpacing: "0.01em",
                         boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
                       }
                     : undefined
@@ -383,9 +380,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                   backgroundImage: "none",
                   border: "1px solid hsl(var(--bark))",
                   color: "hsl(var(--parchment))",
-                  fontFamily: "Montserrat, system-ui, sans-serif",
-                  fontWeight: 600,
-                  letterSpacing: "0.01em",
                   boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
                 }}
               >

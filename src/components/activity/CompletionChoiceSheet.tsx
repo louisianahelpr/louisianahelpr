@@ -396,8 +396,6 @@ export function CompletionChoiceSheet({
                           backgroundImage: "none",
                           border: "1px solid hsl(var(--amber-solid))",
                           color: "white",
-                          fontFamily: "Montserrat, system-ui, sans-serif",
-                          fontWeight: 600,
                         }
                       : undefined
                   }

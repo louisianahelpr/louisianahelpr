@@ -283,9 +283,6 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               backgroundImage: "none",
               border: reason ? "1px solid hsl(var(--burnt-sienna))" : undefined,
               color: reason ? "hsl(var(--parchment))" : undefined,
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
               boxShadow: reason ? "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)" : undefined,
             }}
           >

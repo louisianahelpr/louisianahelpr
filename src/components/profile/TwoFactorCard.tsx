@@ -383,8 +383,6 @@ function DisableDialog({
               backgroundImage: "none",
               border: "1px solid hsl(var(--burnt-sienna))",
               color: "hsl(var(--parchment))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
             }}
           >
             {working ? "Turning off…" : "Turn off"}

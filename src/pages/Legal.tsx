@@ -94,6 +94,13 @@ const Legal = () => {
   // is derived after render by counting the section cards that survived the
   // filter, so we can show a clean empty state when nothing matches.
   const [query, setQuery] = useState("");
+  // Search starts collapsed to an icon — the sticky header stays light for
+  // the primary action (reading Terms/Rules/Privacy); tapping the icon
+  // reveals the input. Opening auto-focuses it; clearing the query (via the
+  // input's own X) does NOT auto-collapse, so a user isn't fighting a
+  // closing bar mid-edit — they collapse it explicitly.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasResults, setHasResults] = useState(true);
@@ -394,13 +401,14 @@ const Legal = () => {
     </TabsList>
   );
 
-  const searchBar = (
+  const searchBar = searchOpen ? (
     <div className="relative" data-print-hide>
       <Search
         className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       />
       <input
+        ref={searchInputRef}
         type="text"
         aria-label="Search all policies"
         value={query}
@@ -412,17 +420,38 @@ const Legal = () => {
           color: "hsl(var(--ink-deep))",
         }}
       />
-      {query && (
-        <button
-          type="button"
-          onClick={() => setQuery("")}
-          aria-label="Clear search"
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-        >
-          <X className="w-4 h-4" />
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => {
+          setQuery("");
+          setSearchOpen(false);
+        }}
+        aria-label="Close search"
+        className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  ) : (
+    <div className="flex justify-end" data-print-hide>
+      <button
+        type="button"
+        onClick={() => {
+          setSearchOpen(true);
+          // Focus after the input mounts (searchOpen flips to true this
+          // render, the ref attaches next paint).
+          requestAnimationFrame(() => searchInputRef.current?.focus());
+        }}
+        aria-label="Search all policies"
+        className="w-9 h-9 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
+        style={{
+          border: "1px solid hsl(var(--bark) / 0.18)",
+          color: "hsl(var(--olivewood))",
+        }}
+      >
+        <Search className="w-4 h-4" />
+      </button>
     </div>
   );
 
@@ -487,7 +516,7 @@ const Legal = () => {
   const body = (
     <PolicySearchContext.Provider value={query}>
       {searchBar}
-      <div ref={contentRef} className="space-y-4">
+      <div ref={contentRef} className="mt-4 space-y-4">
         {isSearching ? (
           // Cross-tab results: render all three policies at once so a query
           // surfaces matches wherever they live. Each surviving section
@@ -624,12 +653,14 @@ const Legal = () => {
           <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
             <div
               className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5 backdrop-blur-md"
-              style={{
-                top: webBandStickyTop,
-                background: "hsl(var(--parchment) / 0.6)",
-              }}
+              style={{ top: webBandStickyTop }}
             >
-              {tabBar}
+              <div
+                className="rounded-2xl"
+                style={{ border: "1px solid hsl(var(--bark) / 0.18)" }}
+              >
+                {tabBar}
+              </div>
             </div>
             {/* On lg+ split into TOC sidebar + body. TOC hides while
                 searching (body then renders all three policies at once

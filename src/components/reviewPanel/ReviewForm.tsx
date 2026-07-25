@@ -314,9 +314,6 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
               backgroundImage: "none",
               border: canSubmit ? "1px solid hsl(var(--bark))" : undefined,
               color: canSubmit ? "hsl(var(--parchment))" : undefined,
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
               boxShadow: canSubmit ? "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)" : undefined,
             }}
           >

@@ -73,8 +73,6 @@ export const PauseOfferDialog = ({
                 background: "hsl(var(--bark))",
                 color: "hsl(var(--parchment))",
                 border: "1px solid hsl(var(--bark))",
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
               }}
             >
               {acceptingPause ? (

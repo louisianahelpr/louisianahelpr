@@ -350,9 +350,6 @@ export const DisputeTimelineDialog = ({
                 backgroundImage: "none",
                 border: "1px solid hsl(var(--burnt-sienna))",
                 color: "hsl(var(--parchment))",
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                letterSpacing: "0.01em",
                 boxShadow: "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)",
               }}
             >

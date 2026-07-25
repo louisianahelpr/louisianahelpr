@@ -53,7 +53,7 @@ export function PhotoNameSection({
             </div>
           )}
           <label
-            className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+            className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
             style={{
               background: "hsl(var(--bark))",
               border: "2px solid hsl(var(--parchment))",

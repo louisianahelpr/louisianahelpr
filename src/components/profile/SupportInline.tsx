@@ -280,7 +280,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           ref={formRef}
           key={selected.key}
           onSubmit={handleSubmit}
-          className="rounded-2xl liquid-glass p-5 space-y-4 animate-in fade-in slide-in-from-right-2 duration-200"
+          className="rounded-2xl liquid-glass p-5 space-y-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-2 motion-safe:duration-200"
         >
           <div className="space-y-1.5">
             <Label htmlFor="support-subject" className="text-ds-11">

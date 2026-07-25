@@ -243,7 +243,7 @@ const HeroSection = () => {
         style={{ opacity: scrollHintOpacity }}
       >
         <ChevronDown
-          className="w-5 h-5 animate-bounce"
+          className="w-5 h-5 motion-safe:animate-bounce"
           strokeWidth={1.75}
           style={{ color: "hsl(var(--olivewood) / 0.55)" }}
         />

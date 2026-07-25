@@ -1,5 +1,5 @@
 import { startTransition, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Clock, MapPin, Search, SlidersHorizontal, X, List, Map as MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SavedSearches } from "@/components/SavedSearches";
@@ -39,6 +39,7 @@ export function BrowseTasksToolbar({
   hideViewToggle = false,
   onClearAllFilters,
 }: BrowseTasksToolbarProps) {
+  const reducedMotion = useReducedMotion();
   // Recent searches dropdown — shown only when the search input is
   // focused AND empty AND we have history to show. We snapshot the list
   // when the input opens, and refresh after each push so the dropdown
@@ -310,9 +311,9 @@ export function BrowseTasksToolbar({
       <AnimatePresence>
         {filters.searchOpen && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            initial={reducedMotion ? false : { height: 0, opacity: 0 }}
+            animate={reducedMotion ? {} : { height: "auto", opacity: 1 }}
+            exit={reducedMotion ? {} : { height: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="overflow-hidden border-b border-border/30"
           >

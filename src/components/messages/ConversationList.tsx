@@ -352,7 +352,7 @@ export function ConversationList({
               snippet + job title), so no debounce. */}
           {!isEmpty && searchOpen && (
             <div
-              className="shrink-0 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200"
+              className="shrink-0 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200"
               style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
             >
               <div className="relative px-4 py-3">

@@ -841,8 +841,19 @@ html.web-desktop {
 
    TECHNIQUE — `corner-shape` (CSS Borders & Box Decorations L4).
    `corner-shape` re-shapes the corner curve that `border-radius` already
-   defines. `superellipse(4)` is the spec's `squircle` keyword: the continuous
-   corner iOS uses, instead of the plain quarter-ellipse `round` default.
+   defines, replacing the plain quarter-ellipse `round` default.
+
+   WHY 2.4 AND NOT THE `squircle` KEYWORD (= `superellipse(4)`). Shipped
+   `superellipse(4)` first and it was WRONG here — in this exponent the curve
+   gets SQUARER as k rises (k=2 is `round`, k→∞ is a hard corner), and the
+   effect scales with how large the radius is relative to the box. This app's
+   radii are large for their elements — `rounded-ds-md` is 14px on 32px-tall
+   chips, `rounded-2xl` is 16px on a 44px button — i.e. already near pill
+   territory, exactly where the carve-out note below says superellipse(4)
+   collapses. Result: the nav CTA, the filter chips and the search field all
+   rendered as flat rectangles. 2.4 sits just above `round`, so it reads as a
+   continuous Apple-style corner at these radii instead of flattening them.
+   Verified in Chrome against the same three elements, not reasoned about.
 
    WHY THIS AND NOT A MASK. This is the ONLY approach that satisfies the two
    hard constraints here:
@@ -894,7 +905,7 @@ html.web-desktop {
    sites would silently drop this block rather than error. */
 @layer components {
   .squircle {
-    corner-shape: superellipse(4);
+    corner-shape: superellipse(2.4);
   }
 
   /* Pills and circles keep the true `round` corner — see carve-out note above.

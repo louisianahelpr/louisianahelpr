@@ -1,6 +1,6 @@
 import { memo, useCallback, type KeyboardEvent, type TouchEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck, ShieldCheck,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck, ShieldCheck, Hourglass,
 } from "lucide-react";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -176,13 +176,41 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       ? `${drivingMinutes} min`
       : `${Math.floor(drivingMinutes / 60)}h ${drivingMinutes % 60}m`;
 
-  // Expiry info
-  const expiryText = job.expires_at
-    ? new Date(job.expires_at) <= new Date()
+  // How long the work takes — jobs.estimated_hours, collected on every post
+  // and returned by BOTH feed sources (the `open_jobs_browse` view the
+  // signed-in dashboard reads and the `get_ranked_open_jobs` RPC the public
+  // /jobs page reads). It varies per job (2h vs 8h changes whether a helpr
+  // even considers it), which is exactly what the expiry countdown it
+  // replaces did NOT do.
+  const estHours = Number(job.estimated_hours ?? 0);
+  const durationLabel =
+    Number.isFinite(estHours) && estHours > 0
+      ? estHours < 1
+        ? `~${Math.round(estHours * 60)}m`
+        // 4 → "~4h", 2.5 → "~2.5h". Trailing ".0" from a numeric column
+        // ("4.00") would read like a typo at 10.5px.
+        : `~${Number.isInteger(estHours) ? estHours : Number(estHours.toFixed(1))}h`
+      : null;
+
+  // Expiry — an URGENCY signal, not a permanent meta line.
+  //
+  // Every job is created with the same 14-day window, so an unconditional
+  // countdown printed the identical string ("14 days left") on literally
+  // every card in the feed: zero decision value, and it consumed the one
+  // no-wrap meta slot a browsing helpr actually reads. It only becomes
+  // information once the window is genuinely closing — so it now renders
+  // inside a 48h horizon (or once expired) and stays silent before that.
+  // Under 24h it also goes destructive-red, the same tier as before.
+  const expiresAt = job.expires_at ? new Date(job.expires_at) : null;
+  const hoursToExpiry = expiresAt ? differenceInHours(expiresAt, new Date()) : null;
+  const isExpired = !!expiresAt && expiresAt <= new Date();
+  const showExpiry = !!expiresAt && (isExpired || (hoursToExpiry !== null && hoursToExpiry < 48));
+  const expiryText = !showExpiry || !expiresAt
+    ? null
+    : isExpired
       ? "Expired"
-      : formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) + " left"
-    : null;
-  const isExpiringSoon = job.expires_at && differenceInHours(new Date(job.expires_at), new Date()) < 24;
+      : formatDistanceToNow(expiresAt, { addSuffix: false }) + " left";
+  const isExpiringSoon = showExpiry && (isExpired || (hoursToExpiry !== null && hoursToExpiry < 24));
 
   // Stagger entry via CSS animation-delay — avoids pulling framer-motion into
   // the dashboard's hot list path (saves ~42KB on iOS cold start).
@@ -442,34 +470,51 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               </span>
             )}
             <span className="opacity-30">·</span>
-            {/* Date + time live in ONE no-wrap group so the time can never
-                drop to its own line on its own — the pair moves together.
-                "Due" is dropped — the date is self-evidently the day the work
-                must be done. The time chip only renders when a start_time is set. */}
-            {!job.date_needed && !job.start_time ? (
-              <span className="flex items-center gap-1">
-                <Calendar className="w-2.5 h-2.5 shrink-0" />
-                <span className="font-sans">Flexible</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-x-2">
-                {job.date_needed && (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-2.5 h-2.5 shrink-0" />
-                    <span className="font-sans whitespace-nowrap">
-                      {formatJobDate(job.date_needed)}
+            {/* Date + time + duration live in ONE no-wrap group so the "when"
+                of a job can never be split across lines — the trio moves
+                together. "Due" is dropped — the date is self-evidently the day
+                the work must be done. The start-time chip only renders when a
+                start_time is set (most posts leave it blank); the duration
+                chip fills that slot from estimated_hours, which every post
+                collects, so the row always answers "how much of my day?". */}
+            <span className="inline-flex items-center gap-x-2">
+              {!job.date_needed && !job.start_time ? (
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-2.5 h-2.5 shrink-0" />
+                  <span className="font-sans">Flexible</span>
+                </span>
+              ) : (
+                <>
+                  {job.date_needed && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-2.5 h-2.5 shrink-0" />
+                      <span className="font-sans whitespace-nowrap">
+                        {formatJobDate(job.date_needed)}
+                      </span>
                     </span>
+                  )}
+                  {job.date_needed && job.start_time && <span className="opacity-30">·</span>}
+                  {job.start_time && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5 shrink-0" />
+                      <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
+                    </span>
+                  )}
+                </>
+              )}
+              {durationLabel && (
+                <>
+                  <span className="opacity-30">·</span>
+                  <span
+                    className="flex items-center gap-1"
+                    aria-label={`Estimated ${estHours} ${estHours === 1 ? "hour" : "hours"} of work`}
+                  >
+                    <Hourglass className="w-2.5 h-2.5 shrink-0" aria-hidden />
+                    <span className="font-sans whitespace-nowrap">{durationLabel}</span>
                   </span>
-                )}
-                {job.date_needed && job.start_time && <span className="opacity-30">·</span>}
-                {job.start_time && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-2.5 h-2.5 shrink-0" />
-                    <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
-                  </span>
-                )}
-              </span>
-            )}
+                </>
+              )}
+            </span>
             {expiryText && (
               <>
                 <span className="opacity-30">·</span>

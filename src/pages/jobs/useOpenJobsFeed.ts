@@ -17,6 +17,7 @@ interface UseOpenJobsFeedArgs {
   /** "" | "24h" | "3d" | "7d" — same values the authed sheet emits. */
   expiresWithin?: string;
   boostedOnly?: boolean;
+  urgentOnly?: boolean;
   /** "smart" | "newest" | "highest_pay" | "lowest_pay" | "ending_soon". */
   sortBy?: string;
 }
@@ -29,6 +30,7 @@ export const useOpenJobsFeed = ({
   maxBudget = "",
   expiresWithin = "",
   boostedOnly = false,
+  urgentOnly = false,
   sortBy = "smart",
 }: UseOpenJobsFeedArgs) => {
   // Paginated open-jobs feed via React Query, consistent with the
@@ -102,6 +104,7 @@ export const useOpenJobsFeed = ({
         if ((new Date(job.expires_at).getTime() - nowMs) / 3_600_000 > expiryHours) return false;
       }
       if (boostedOnly && !(job.boost_expires_at && new Date(job.boost_expires_at) > now)) return false;
+      if (urgentOnly && !job.is_urgent) return false;
       return true;
     });
 
@@ -120,7 +123,7 @@ export const useOpenJobsFeed = ({
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
-  }, [jobs, search, selectedCategory, pricingMode, minBudget, maxBudget, expiresWithin, boostedOnly, sortBy]);
+  }, [jobs, search, selectedCategory, pricingMode, minBudget, maxBudget, expiresWithin, boostedOnly, urgentOnly, sortBy]);
 
   // Wrap each job in its own single-item row so the window-scroll
   // VirtualList (single-column row primitive) renders one card per row.

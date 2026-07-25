@@ -435,14 +435,13 @@ export function BrowseTasksToolbar({
         }}
         sections={buildJobFilterSections({
           selectedCategory: filters.selectedCategory, setSelectedCategory: filters.setSelectedCategory,
-          minBudget: filters.minBudget, setMinBudget: filters.setMinBudget,
-          maxBudget: filters.maxBudget, setMaxBudget: filters.setMaxBudget,
           locationFilter: filters.locationFilter, setLocationFilter: filters.setLocationFilter,
           sortBy: filters.sortBy, setSortBy: filters.setSortBy,
           expiresWithin: filters.expiresWithin, setExpiresWithin: filters.setExpiresWithin,
           matchAvailability: filters.matchAvailability, setMatchAvailability: filters.setMatchAvailability,
           hasAvailability: helperAvailability.length > 0,
           boostedOnly: filters.boostedOnly, setBoostedOnly: filters.setBoostedOnly,
+          urgentOnly: filters.urgentOnly, setUrgentOnly: filters.setUrgentOnly,
           userLocStatus: filters.userLoc?.status,
           userLocMessage: filters.userLoc?.status === "error" ? filters.userLoc.message : undefined,
         })}

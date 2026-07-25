@@ -63,6 +63,7 @@ const Jobs = () => {
   const [maxBudget, setMaxBudget] = useState("");
   const [expiresWithin, setExpiresWithin] = useState("");
   const [boostedOnly, setBoostedOnly] = useState(false);
+  const [urgentOnly, setUrgentOnly] = useState(false);
   const [sortBy, setSortBy] = useState("smart");
   // Collapsed-toolbar state mirroring the logged-in BrowseTasksToolbar: search
   // and filters are hidden behind icon buttons and expand on tap, instead of
@@ -118,6 +119,7 @@ const Jobs = () => {
     maxBudget,
     expiresWithin,
     boostedOnly,
+    urgentOnly,
     sortBy,
   });
 
@@ -175,13 +177,16 @@ const Jobs = () => {
   // Drives the badge on the Filters icon + the sheet's "Clear all" gate.
   // Counted the same way the authed toolbar counts (sort is a presentation
   // choice, not a filter, so it's excluded there and here).
+  // Budget counts ONCE, not once per bound: a budget band ("$50 – $150") sets
+  // min AND max together, so counting both reported "2 filters active" for a
+  // single tapped chip. Matches useDashboardFilters on the authed side.
   const activeFilterCount = [
     pricingMode !== "all",
     !!selectedCategory,
-    !!minBudget,
-    !!maxBudget,
+    !!minBudget || !!maxBudget,
     !!expiresWithin,
     boostedOnly,
+    urgentOnly,
   ].filter(Boolean).length;
 
   // "Did the visitor narrow the feed?" — drives the empty state's copy and its
@@ -200,57 +205,51 @@ const Jobs = () => {
   }, []);
 
   // Guest filter sheet — built by the SAME `buildJobFilterSections` the
-  // signed-in browse toolbar uses, so the two sheets can't drift: Sort by,
-  // Category, Budget range, When (expires within), Boosted only. Two authed
-  // sections are deliberately withheld because a signed-out visitor has no
-  // data to make them mean anything:
-  //   • Nearby radius — the public feed (get_ranked_open_jobs) masks every
+  // signed-in browse toolbar uses, so the two sheets can't drift: Category,
+  // Budget, Pricing, When (expires within), Show only (boosted), Sort by. Two
+  // authed sections are deliberately withheld because a signed-out visitor has
+  // no data to make them mean anything:
+  //   • Distance radius — the public feed (get_ranked_open_jobs) masks every
   //     address to "City, ST" and returns no coordinates, and a guest has no
   //     saved location/parish for the authed string-match fallback. The chips
   //     could not filter anything.
   //   • Only my hours — reads the account's saved weekly availability rows.
-  // Pricing (open-to-bids vs set-budget) is appended after: it's guest-only
-  // framing that the authed sheet doesn't carry.
-  const guestFilterSections = useMemo<FilterSheetSection[]>(() => [
-    ...buildJobFilterSections({
-      selectedCategory, setSelectedCategory,
-      minBudget, setMinBudget,
-      maxBudget, setMaxBudget,
-      sortBy, setSortBy,
-      expiresWithin, setExpiresWithin,
-      boostedOnly, setBoostedOnly,
-      showNearby: false,
-      showAvailability: false,
-    }),
-    {
-      key: "pricing",
-      title: "Pricing",
-      content: (
-        <div role="group" aria-label="Filter by pricing type" className="flex flex-wrap gap-1.5">
-          {([
-            { key: "all", label: "All" },
-            { key: "bids", label: "Open to bids" },
-            { key: "budget", label: "Set budget" },
-          ] as const).map(({ key, label }) => {
-            const isActive = pricingMode === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setPricingMode(key)}
-                aria-pressed={isActive}
-                // Shared chip recipe from JobFilters so this guest-only
-                // section looks native beside the shared sections above.
-                className={`${chipStyles.chipBase} ${isActive ? chipStyles.chipActive : chipStyles.chipIdle}`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      ),
-    },
-  ], [pricingMode, selectedCategory, minBudget, maxBudget, expiresWithin, boostedOnly, sortBy]);
+  // Pricing is guest-only framing the authed sheet doesn't carry, so it's
+  // handed to the builder as `pricingContent` — that slots it directly after
+  // Budget (the two are the same question) instead of stranding it last.
+  const guestFilterSections = useMemo<FilterSheetSection[]>(() => buildJobFilterSections({
+    selectedCategory, setSelectedCategory,
+    sortBy, setSortBy,
+    expiresWithin, setExpiresWithin,
+    boostedOnly, setBoostedOnly,
+    urgentOnly, setUrgentOnly,
+    showNearby: false,
+    showAvailability: false,
+    pricingContent: (
+      <div role="group" aria-label="Filter by pricing type" className="flex flex-wrap gap-1.5">
+        {([
+          { key: "all", label: "All" },
+          { key: "bids", label: "Open to bids" },
+          { key: "budget", label: "Set budget" },
+        ] as const).map(({ key, label }) => {
+          const isActive = pricingMode === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setPricingMode(key)}
+              aria-pressed={isActive}
+              // Shared chip recipe from JobFilters so this guest-only
+              // section looks native beside the shared sections above.
+              className={`${chipStyles.chipBase} ${isActive ? chipStyles.chipActive : chipStyles.chipIdle}`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    ),
+  }), [pricingMode, selectedCategory, expiresWithin, boostedOnly, urgentOnly, sortBy]);
 
   // Native app: /jobs is the WEB SEO browse surface — it carries the marketing
   // Navbar + Footer per the "every web page carries chrome" rule, which must
@@ -283,33 +282,50 @@ const Jobs = () => {
               The icon-button cluster (Search + Filters) sits on the right,
               mirroring the logged-in BrowseTasksToolbar collapsed toolbar.
 
-              Search expands INSIDE this row (the title yields its space to the
-              input) rather than dropping a second row underneath. `flex-wrap`
-              plus the input's `min-w-[220px]` floor is the narrow-phone
-              escape hatch: the input drops to a second line intact instead of
-              being squeezed toward zero width. */}
+              Search opens ALONGSIDE the title, never on top of it — the title
+              is the page's identity and shouldn't vanish to make room for a
+              text box. `order-*` is what makes that work at both widths: on
+              phones the field wraps to its own full-width line BELOW the
+              title+buttons row (order-4); from `md` up it slides inline
+              between them (md:order-3) at a fixed 18rem. */}
           <div className="flex flex-wrap items-center gap-3 mt-2 md:mt-6 mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-400">
-            <div className="shrink-0">
+            <div className="shrink-0 order-1">
               <BackButton />
             </div>
 
-            {searchOpen ? (
-              <div className="relative flex-1 min-w-[220px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <div className="flex flex-col leading-none min-w-0 flex-1 order-2">
+              <h1 className="text-page-title leading-tight truncate">
+                Browse jobs
+              </h1>
+            </div>
+
+            {searchOpen && (
+              <div className="relative order-4 md:order-3 w-full md:w-72 shrink-0">
+                {/* olivewood/55 rather than `text-muted-foreground`: the muted
+                    token is a desaturated blue-grey that all but disappears
+                    against this field's translucent near-white fill. */}
+                <Search
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                  style={{ color: "hsl(var(--olivewood) / 0.55)" }}
+                />
                 <input
                   type="text"
                   aria-label="Search jobs"
-                  placeholder="Search by title or location…"
+                  placeholder="Search jobs…"
                   enterKeyHint="search"
                   inputMode="search"
                   autoComplete="off"
                   autoFocus
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  // focus:ring-inset — an outset ring on a full-width input
-                  // paints outside the row's edge and clips against the page
-                  // gutter. Inset keeps it on the field.
-                  className="w-full h-10 pl-9 pr-9 text-ds-13 rounded-ds-md squircle glass-field focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/40 transition-shadow placeholder:text-muted-foreground"
+                  // A pill, not a squircle: `.squircle` resolves to
+                  // superellipse(4), whose near-flat corners read as an
+                  // outright rectangle on a 40px-tall field. `rounded-full`
+                  // also trips the `.squircle:where(.rounded-full)` reset in
+                  // index.css, so the corner-shape stays `round`.
+                  // focus:ring-inset — an outset ring on a wide input paints
+                  // outside the row's edge and clips against the page gutter.
+                  className="w-full h-10 pl-10 pr-9 text-ds-13 rounded-full glass-field border border-[hsl(var(--bark)/0.22)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/40 transition-shadow placeholder:text-muted-foreground"
                 />
                 <button
                   type="button"
@@ -320,15 +336,9 @@ const Jobs = () => {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-            ) : (
-              <div className="flex flex-col leading-none min-w-0 flex-1">
-                <h1 className="text-page-title leading-tight truncate">
-                  Browse jobs
-                </h1>
-              </div>
             )}
 
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-1 shrink-0 order-3 md:order-4">
               {!searchOpen && (
                 <Button
                   variant="ghost"

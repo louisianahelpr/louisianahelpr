@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpRight, Clock, Rocket, X } from "lucide-react";
+import { ArrowUpRight, Clock, Rocket, X, Zap, type LucideIcon } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -13,7 +13,6 @@ import {
   CategoryContent,
   NearbyContent,
   ExpiresContent,
-  BudgetContent,
 } from "@/components/dashboard/JobFilters";
 
 /**
@@ -26,8 +25,9 @@ import {
  * Activity, Guest) opens this same sheet so the UX is identical everywhere.
  *
  * It's section-agnostic: each surface passes the `sections` it supports and
- * the sheet renders only those. The dashboard passes Sort / Category /
- * Nearby / Budget / When / Boosted; Activity passes a single Status section.
+ * the sheet renders only those. The job surfaces build theirs with
+ * `buildJobFilterSections` below (Category / Budget / [Pricing] / [Distance] /
+ * When / Show only / Sort by); Activity passes a single Status section.
  */
 
 export interface FilterSheetSection {
@@ -130,16 +130,14 @@ export function FilterSheet({
 interface JobFilterSectionsArgs {
   selectedCategory: string | null;
   setSelectedCategory: (v: string | null) => void;
-  minBudget: string;
-  setMinBudget: (v: string) => void;
-  maxBudget: string;
-  setMaxBudget: (v: string) => void;
   sortBy: string;
   setSortBy: (v: string) => void;
   expiresWithin: string;
   setExpiresWithin: (v: string) => void;
   boostedOnly: boolean;
   setBoostedOnly: (v: boolean) => void;
+  urgentOnly: boolean;
+  setUrgentOnly: (v: boolean) => void;
   /* ---- Nearby-radius section (omit together with showNearby={false}) ---- */
   locationFilter?: string;
   setLocationFilter?: (v: string) => void;
@@ -149,6 +147,14 @@ interface JobFilterSectionsArgs {
   matchAvailability?: boolean;
   setMatchAvailability?: (v: boolean) => void;
   hasAvailability?: boolean;
+  /**
+   * Surface-specific "Pricing" controls (open-to-bids vs set-budget). Only the
+   * signed-out /jobs board has this concept, and it passes the chips in rather
+   * than appending its own section afterwards — appended sections always land
+   * dead last, which put Pricing below Sort/Boosted even though it belongs
+   * beside Budget. Omitted → the section isn't rendered at all.
+   */
+  pricingContent?: ReactNode;
   /** Hide the "Only my hours" availability row (guests have no schedule). */
   showAvailability?: boolean;
   /**
@@ -162,8 +168,57 @@ interface JobFilterSectionsArgs {
   showNearby?: boolean;
 }
 
-/** Inline "Only my hours" availability row, lifted from JobFilters so the
- *  sheet renders the identical control. */
+/**
+ * Full-width label + Switch row — the "Show only" group's single control
+ * shape. Both narrowing booleans (Boosted, my-hours) render through this so
+ * they read as one settings group instead of one stray gold pill under its
+ * own heading plus one switch buried in the When section.
+ */
+function ToggleRow({
+  icon: Icon,
+  iconClassName,
+  label,
+  hint,
+  checked,
+  onChange,
+  disabled,
+  ariaLabel,
+}: {
+  icon: LucideIcon;
+  iconClassName?: string;
+  label: string;
+  hint?: ReactNode;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  ariaLabel: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 w-full">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <Icon
+          className={`w-3.5 h-3.5 shrink-0 ${iconClassName ?? "text-primary"}`}
+          strokeWidth={2.25}
+          aria-hidden
+        />
+        <div className="min-w-0">
+          <p className="text-ds-12 font-semibold text-foreground leading-snug">{label}</p>
+          {hint}
+        </div>
+      </div>
+      <Switch
+        checked={checked}
+        onCheckedChange={(v) => { hapticLight(); onChange(v); }}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        className="shrink-0"
+      />
+    </div>
+  );
+}
+
+/** "Only my hours" — a ToggleRow with a "Set hours" shortcut for accounts
+ *  that haven't saved a weekly schedule yet (the switch is inert without one). */
 function AvailabilityRow({
   matchAvailability,
   setMatchAvailability,
@@ -175,66 +230,75 @@ function AvailabilityRow({
 }) {
   const navigate = useNavigate();
   return (
-    <div className="flex items-center justify-between gap-3 w-full">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        <Clock className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} />
-        <div className="min-w-0">
-          <p className="text-ds-12 font-semibold text-foreground leading-snug">Only my hours</p>
-          {!hasAvailability && (
-            <button
-              type="button"
-              onClick={() => navigate("/availability")}
-              className="inline-flex items-center gap-0.5 text-ds-11 font-semibold text-primary hover:text-primary/80 transition-colors btn-press"
-            >
-              Set hours
-              <ArrowUpRight className="w-2.5 h-2.5" />
-            </button>
-          )}
-        </div>
-      </div>
-      <Switch
-        checked={matchAvailability}
-        onCheckedChange={setMatchAvailability}
-        disabled={!hasAvailability}
-        aria-label="Match my availability"
-        className="shrink-0"
-      />
-    </div>
+    <ToggleRow
+      icon={Clock}
+      label="Jobs during my hours"
+      hint={
+        !hasAvailability ? (
+          <button
+            type="button"
+            onClick={() => navigate("/availability")}
+            className="inline-flex items-center gap-0.5 text-ds-11 font-semibold text-primary hover:text-primary/80 transition-colors btn-press"
+          >
+            Set hours
+            <ArrowUpRight className="w-2.5 h-2.5" />
+          </button>
+        ) : undefined
+      }
+      checked={matchAvailability}
+      onChange={setMatchAvailability}
+      disabled={!hasAvailability}
+      ariaLabel="Match my availability"
+    />
   );
 }
 
 /**
- * Builds the standard stacked job-filter sections (Sort, Category, Nearby,
- * Budget, When, Boosted) for the FilterSheet. Reuses the exact content
- * blocks from JobFilters so the controls match the legacy inline panel.
+ * Builds the standard stacked job-filter sections for the FilterSheet, reusing
+ * the exact content blocks from JobFilters.
  *
  * ONE builder serves both the signed-in browse toolbar and the signed-out
  * /jobs board, so the two filter sets can't silently drift apart. A guest
  * passes showNearby / showAvailability = false — those are the only two
  * sections that need account data (see the prop docs above); every other
  * filter runs off fields the public feed already returns.
+ *
+ * Section order is by how often a filter is actually reached for, not by
+ * historical accident:
+ *
+ *   1. Category   — the everyday filter, and the one a helper opens the sheet for
+ *   2. Pricing    — guest-only (open-to-bids vs set-budget)
+ *   3. Distance   — authed-only radius chips
+ *   4. When       — expiry window
+ *   5. Show only  — the narrowing switches, grouped: Boosted + Urgent +
+ *                   my-hours. Each used to be marooned (Boosted under a heading
+ *                   of its own for a single pill; my-hours tacked onto the end
+ *                   of When)
+ *   6. Sort by    — a refinement, and not a filter at all, so it lands last
+ *
+ * NO BUDGET SECTION — removed deliberately, on the user's call, after two
+ * attempts (a dual-thumb $0–$500+ slider, then preset bands) both read as
+ * fussy for what they bought. Amount is already legible on every card and
+ * orderable from Sort by (Highest / Lowest pay), which is how people actually
+ * shop a board this size. The feed hooks still accept min/max budget — a saved
+ * search can carry one — so restoring the section is additive, not a rebuild.
  */
 export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheetSection[] {
   const {
     selectedCategory, setSelectedCategory,
-    minBudget, setMinBudget,
-    maxBudget, setMaxBudget,
     locationFilter = "", setLocationFilter,
     sortBy, setSortBy,
     expiresWithin, setExpiresWithin,
     matchAvailability = false, setMatchAvailability, hasAvailability = false,
     boostedOnly, setBoostedOnly,
+    urgentOnly, setUrgentOnly,
     userLocStatus, userLocMessage,
+    pricingContent,
     showAvailability = true,
     showNearby = true,
   } = args;
 
   const sections: FilterSheetSection[] = [
-    {
-      key: "sort",
-      title: "Sort by",
-      content: <SortContent sortBy={sortBy} setSortBy={setSortBy} />,
-    },
     {
       key: "category",
       title: "Category",
@@ -247,10 +311,14 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     },
   ];
 
+  if (pricingContent) {
+    sections.push({ key: "pricing", title: "Pricing", content: pricingContent });
+  }
+
   if (showNearby && setLocationFilter) {
     sections.push({
       key: "nearby",
-      title: "Location",
+      title: "Distance",
       content: (
         <NearbyContent
           locationFilter={locationFilter}
@@ -264,23 +332,48 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
 
   sections.push(
     {
-      key: "budget",
-      title: "Budget range",
-      content: (
-        <BudgetContent
-          minBudget={minBudget}
-          maxBudget={maxBudget}
-          setMinBudget={setMinBudget}
-          setMaxBudget={setMaxBudget}
-        />
-      ),
-    },
-    {
       key: "when",
       title: "When",
+      content: <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} />,
+    },
+    {
+      key: "show-only",
+      title: "Show only",
       content: (
         <div className="space-y-3">
-          <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} />
+          <ToggleRow
+            icon={Rocket}
+            iconClassName="text-[hsl(var(--gold-warm))]"
+            label="Boosted jobs"
+            hint={
+              <p className="text-ds-11 text-muted-foreground leading-snug">
+                Promoted by the poster
+              </p>
+            }
+            checked={boostedOnly}
+            onChange={setBoostedOnly}
+            ariaLabel="Show boosted jobs only"
+          />
+          {/* Urgent is NOT a synonym for Boosted — different columns, and more
+              importantly different meaning to the person reading this sheet.
+              Boosted is the poster paying for placement, which buys the helper
+              nothing. Urgent is the poster paying `urgent_fee` on top of the
+              budget, which the helper actually takes home (JobCard surfaces it
+              as a bonus). So it's the one filter here that finds better-paying
+              work, and it earned its own row rather than being folded in. */}
+          <ToggleRow
+            icon={Zap}
+            iconClassName="text-[hsl(var(--burnt-sienna))]"
+            label="Urgent jobs"
+            hint={
+              <p className="text-ds-11 text-muted-foreground leading-snug">
+                Pays a bonus on top of the budget
+              </p>
+            }
+            checked={urgentOnly}
+            onChange={setUrgentOnly}
+            ariaLabel="Show urgent jobs only"
+          />
           {showAvailability && setMatchAvailability && (
             <AvailabilityRow
               matchAvailability={matchAvailability}
@@ -292,29 +385,9 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
       ),
     },
     {
-      key: "boosted",
-      title: "Boosted",
-      content: (
-        <button
-          type="button"
-          onClick={() => { hapticLight(); setBoostedOnly(!boostedOnly); }}
-          aria-pressed={boostedOnly}
-          className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-ds-md text-ds-12 font-semibold tracking-tight btn-press squircle border"
-          style={
-            boostedOnly
-              ? {
-                  background: "linear-gradient(90deg, hsl(var(--gold-warm) / 0.92), hsl(var(--burnt-sienna)))",
-                  borderColor: "hsl(var(--gold-warm) / 0.6)",
-                  color: "white",
-                  boxShadow: "0 4px 14px -4px hsl(var(--gold-warm) / 0.45)",
-                }
-              : { borderColor: "hsl(var(--border) / 0.6)" }
-          }
-        >
-          <Rocket className="w-3 h-3 shrink-0" strokeWidth={2.25} />
-          Boosted only
-        </button>
-      ),
+      key: "sort",
+      title: "Sort by",
+      content: <SortContent sortBy={sortBy} setSortBy={setSortBy} />,
     },
   );
 

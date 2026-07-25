@@ -78,7 +78,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   // Public vertical landing pages (PageHeader + min-h-screen document-scroll)
   "/discharge",       // Healthcare Discharge Concierge
   "/insurance-claim", // Insurance Claim Concierge
-  "/evacuation",      // Pet Evacuation Help (PublicLayout document-scroll on web)
 
   // Public marketing / informational pages (document-scroll)
   "/help",         // Help Center — static FAQ / support page

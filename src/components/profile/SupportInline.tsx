@@ -353,7 +353,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
                   variant="outline"
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full justify-center h-9"
+                  className="w-full justify-center"
                 >
                   <ImagePlus className="w-4 h-4 mr-2" />
                   Upload Screenshot

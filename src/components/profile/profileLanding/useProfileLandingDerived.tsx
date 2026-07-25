@@ -161,7 +161,7 @@ export function useProfileLandingDerived({
           key: "pets",
           label: "My Pets",
           icon: <PawPrint className="w-5 h-5" />,
-          desc: "Pet profiles, vet notes & evacuation",
+          desc: "Pet profiles & vet notes",
           tint: "var(--sage)",
           href: "/pets",
         },

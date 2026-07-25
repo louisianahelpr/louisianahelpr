@@ -494,39 +494,25 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     </span>
                   )}
                   {!isActive && (
-                    <button
+                    <Button
+                      variant={isPro ? "bark" : "outline"}
+                      size="sm"
                       onClick={() =>
                         currentTier && !isExpired
                           ? handleManageSubscription()
                           : handleSubscribe(tier.id)
                       }
                       disabled={loadingCheckout === tier.id || loadingPortal}
-                      className="inline-flex items-center justify-center gap-1 px-2.5 min-h-[44px] rounded-full font-sans font-bold text-[0.7rem] transition active:scale-[0.96] disabled:opacity-60"
-                      style={
-                        isPro
-                          ? {
-                              background: "hsl(var(--bark))",
-                              color: "hsl(var(--parchment))",
-                              border: "1px solid hsl(70 22% 24%)",
-                              boxShadow:
-                                "inset 0 1px 0 0 rgba(255,255,255,0.12), 0 4px 10px -3px hsl(var(--bark) / 0.45)",
-                            }
-                          : {
-                              background: "hsla(0, 0%, 100%, 0.55)",
-                              color: "hsl(var(--ink-deep))",
-                              border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                            }
-                      }
                     >
                       {(loadingCheckout === tier.id || loadingPortal) && (
-                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <Loader2 className="animate-spin" />
                       )}
                       {currentTier && !isExpired
                         ? "Change"
                         : billingInterval === "one_time"
                           ? "Buy"
                           : "Subscribe"}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

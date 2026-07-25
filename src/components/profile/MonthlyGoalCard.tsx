@@ -117,28 +117,44 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
     >
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Target
-            className="w-4 h-4"
-            style={{ color: "hsl(var(--sage))" }}
-          />
-          <span
-            className="text-ds-13 font-semibold"
-            style={{ color: "hsl(var(--ink-deep))" }}
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: "hsl(var(--sage) / 0.12)" }}
           >
-            {monthName} goal
-          </span>
-          {streak >= 2 && (
-            <span
-              className="flex items-center gap-0.5 text-ds-11 font-medium px-1.5 py-0.5 rounded-full"
+            <Target className="w-4 h-4" style={{ color: "hsl(var(--sage))" }} />
+          </div>
+          <div className="min-w-0">
+            <p
+              className="font-serif italic uppercase"
               style={{
-                background: "hsl(var(--heritage-gold) / 0.12)",
-                color: "hsl(var(--heritage-gold))",
+                fontSize: "0.62rem",
+                color: "hsl(var(--burnt-sienna))",
+                letterSpacing: "0.18em",
               }}
             >
-              <Flame className="w-3 h-3" /> {streak}mo
-            </span>
-          )}
+              Monthly goal
+            </p>
+            <div className="flex items-center gap-2">
+              <h2
+                className="font-display italic font-bold leading-tight"
+                style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}
+              >
+                {monthName}
+              </h2>
+              {streak >= 2 && (
+                <span
+                  className="flex items-center gap-0.5 text-ds-11 font-medium px-1.5 py-0.5 rounded-full not-italic"
+                  style={{
+                    background: "hsl(var(--heritage-gold) / 0.12)",
+                    color: "hsl(var(--heritage-gold))",
+                  }}
+                >
+                  <Flame className="w-3 h-3" /> {streak}mo
+                </span>
+              )}
+            </div>
+          </div>
         </div>
         {!editing && (
           <button
@@ -240,7 +256,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
         <Button
           variant="bark"
           size="sm"
-          className="w-full text-ds-12"
+          className="w-full"
           onClick={() => {
             setDraft("");
             setEditing(true);

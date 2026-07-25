@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import {
   Heart,
   DollarSign,
@@ -8,7 +7,6 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import NotificationPanel from "@/components/NotificationPanel";
-import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface BenefitItem {
@@ -93,7 +91,6 @@ const COMING_SOON: string[] = [
 
 export default function BenefitsPage() {
   usePageTitle("Benefits & Perks — Helpr");
-  const navigate = useNavigate();
 
   const open = (url: string) =>
     window.open(url, "_blank", "noopener noreferrer");
@@ -203,19 +200,9 @@ export default function BenefitsPage() {
           </ul>
         </div>
 
-        {/* Footer CTA */}
-        <Button
-          variant="outline"
-          className="w-full mb-2"
-          style={{
-            background: "hsl(var(--bark) / 0.10)",
-            color: "hsl(var(--bark))",
-            border: "1px solid hsl(var(--bark) / 0.30)",
-          }}
-          onClick={() => navigate("/dashboard")}
-        >
-          Back to dashboard
-        </Button>
+        {/* No footer "Back to dashboard" button: the page already has the
+            standard back affordance in its PageHeader (chevron, top-left), so a
+            second full-width back button at the bottom was redundant chrome. */}
       </div>
     </div>
   );

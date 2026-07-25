@@ -47,8 +47,16 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><Gift className="w-3 h-3" /> A little extra</>}
           title={`Send a tip${helperName ? ` to ${helperName}` : ""}.`}
-          subtitle="Pure thanks — no platform cut, just the small card-processing fee."
         />
+        {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
+            title": headers show a title and nothing else). Not dropped —
+            this is a fee disclosure, which a sighted
+            user has to be able to read. The `subtitle` prop is gone from the
+            hero above rather than left sr-only, so screen readers hear it
+            once, here, instead of twice. */}
+        <p className="font-serif italic leading-relaxed text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+          Pure thanks — no platform cut, just the small card-processing fee.
+        </p>
         <div className="space-y-4">
           {/* Suggested amounts — celebratory tier-styled pills first
               since most people pick from quick-picks rather than typing. */}

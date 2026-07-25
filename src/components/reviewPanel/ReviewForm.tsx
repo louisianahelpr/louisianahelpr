@@ -335,8 +335,17 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           <DialogHero
             eyebrow="Five stars — nice"
             title={`Send ${revieweeName} a tip?`}
-            subtitle="Goes straight to the Helpr — no platform cut. Most posters tip 10–15% for great work."
           />
+          {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
+              title": headers show a title and nothing else). Not dropped —
+              this is a fee disclosure, which a sighted
+              user has to be able to read. The `subtitle` prop is gone from the
+              hero above rather than left sr-only, so screen readers hear it
+              once, here, instead of twice. */}
+          <p className="font-serif italic leading-relaxed text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            Goes straight to the Helpr — no platform cut. Most posters tip 10–15%
+            for great work.
+          </p>
           <DialogFooter className="!gap-2">
             <Button
               variant="ghost"

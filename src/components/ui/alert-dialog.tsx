@@ -105,13 +105,16 @@ const AlertDialogHero = ({
     >
       {title}
     </AlertDialogTitle>
+    {/* Rendered for assistive tech only — 2026-07-25 "one main title" decision.
+        The header must show a single title, with nothing stacked above or
+        below it. This is NOT deleted, for two reasons: it is the Radix
+        `Description` wired to the dialog's `aria-describedby` (dropping it
+        loses the screen-reader description and trips Radix's missing-
+        description warning), and it is a one-line restore. Copy that a SIGHTED
+        user must see — fee, tax, or payout disclosure — belongs in the dialog
+        body, not here. */}
     {subtitle && (
-      <AlertDialogDescription
-        className="font-serif italic leading-relaxed pt-1.5"
-        style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.85)" }}
-      >
-        {subtitle}
-      </AlertDialogDescription>
+      <AlertDialogDescription className="sr-only">{subtitle}</AlertDialogDescription>
     )}
   </AlertDialogHeader>
 );

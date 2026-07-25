@@ -90,8 +90,18 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
             </>
           }
           title="Sign your W-9"
-          subtitle="This job requires a W-9 from the accepted Helpr. Type your full legal name to sign — we'll mail you a copy on file."
         />
+        {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
+            title": headers show a title and nothing else). Not dropped —
+            this is a tax-form requirement and a
+            record-keeping promise, which a sighted
+            user has to be able to read. The `subtitle` prop is gone from the
+            hero above rather than left sr-only, so screen readers hear it
+            once, here, instead of twice. */}
+        <p className="font-serif italic leading-relaxed text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+          This job requires a W-9 from the accepted Helpr. Type your full legal
+          name to sign — we'll mail you a copy on file.
+        </p>
         <div className="space-y-3">
           <div>
             <Label htmlFor="w9-name">Full legal name</Label>

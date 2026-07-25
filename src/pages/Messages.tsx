@@ -88,6 +88,7 @@ const Messages = () => {
     loading,
     loadError,
     chatLoadError,
+    chatLoading,
     hasMoreMessages,
     loadingMore,
     loadConversations,
@@ -263,6 +264,7 @@ const Messages = () => {
       messages={messages}
       userId={userId}
       chatLoadError={chatLoadError}
+      chatLoading={chatLoading}
       onRetryLoad={() => openConvo(activeConvo)}
       hasMoreMessages={hasMoreMessages}
       loadingMore={loadingMore}

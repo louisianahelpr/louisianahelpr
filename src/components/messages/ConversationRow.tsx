@@ -11,6 +11,7 @@ import {
   getMessageAttachmentSignedUrl,
   isImageMime,
 } from "@/lib/messageAttachments";
+import { report } from "@/lib/errorLogger";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColor } from "@/lib/statusColors";
 import { avatarGradientFor } from "@/lib/avatarGradient";
@@ -85,9 +86,21 @@ function LastMessageImageThumb({
     }
     // Only pay for a per-row round-trip when the batch didn't cover us.
     let cancelled = false;
-    void getMessageAttachmentSignedUrl(path).then((signed) => {
-      if (!cancelled) setUrl(signed);
-    });
+    void getMessageAttachmentSignedUrl(path)
+      .then((signed) => {
+        if (!cancelled) setUrl(signed);
+      })
+      .catch((err) => {
+        // Leave `url` null — the thumbnail box below already renders as
+        // an empty placeholder when `url` is null, so a failed sign-url
+        // just falls into that existing state instead of showing a
+        // broken-image icon. Still logged so silent failures surface.
+        if (cancelled) return;
+        report(err, {
+          severity: "warning",
+          tags: { source: "ConversationRow.LastMessageImageThumb" },
+        });
+      });
     return () => { cancelled = true; };
   }, [path, preResolvedUrl]);
   return (

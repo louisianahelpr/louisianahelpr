@@ -76,6 +76,10 @@ export function useMessagesData({
   // Tracks a failed message-thread fetch so the chat surfaces a
   // recoverable error instead of the misleading "Say hello." empty state.
   const [chatLoadError, setChatLoadError] = useState(false);
+  // True while a newly-opened conversation's messages are in flight. Lets
+  // the chat pane show a skeleton instead of a blank window between
+  // selecting a conversation and its first paint of real content.
+  const [chatLoading, setChatLoading] = useState(false);
   const [warningShown, setWarningShown] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -109,6 +113,7 @@ export function useMessagesData({
     setChatLoadError(false);
     setMessages([]);
     setJobSystemEvents([]);
+    setChatLoading(true);
     navigate("/messages?chat=1", { replace: true });
     // Fetch the job's transition timestamps alongside the message
     // thread so the system-event rows ("Helper marked on the way",
@@ -152,6 +157,7 @@ export function useMessagesData({
       console.error("[Messages] openConvo failed:", error);
       report(error, { tags: { source: "Messages.openConvo" } });
       setChatLoadError(true);
+      setChatLoading(false);
       return;
     }
 
@@ -215,6 +221,7 @@ export function useMessagesData({
         .eq("read", false)
         .like("link", `%job=${convo.jobId}%`);
     }
+    setChatLoading(false);
     scrollToBottom();
   }, [userId, navigate, scrollToBottom]);
 
@@ -330,6 +337,7 @@ export function useMessagesData({
     loading,
     loadError,
     chatLoadError,
+    chatLoading,
     hasMoreMessages,
     loadingMore,
     loadConversations,

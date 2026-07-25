@@ -35,6 +35,10 @@ interface ChatViewProps {
   /** True when the thread fetch failed — shows a recoverable error
    *  state instead of the misleading "Say hello." empty state. */
   chatLoadError: boolean;
+  /** True while a newly-opened conversation's messages are still being
+   *  fetched — shows a skeleton instead of a blank window or the
+   *  misleading "Say hello." empty state. */
+  chatLoading: boolean;
   /** Re-runs the thread fetch for the open conversation. */
   onRetryLoad: () => void;
   hasMoreMessages: boolean;
@@ -101,6 +105,7 @@ export function ChatView({
   messages,
   userId,
   chatLoadError,
+  chatLoading,
   onRetryLoad,
   hasMoreMessages,
   loadingMore,
@@ -257,6 +262,7 @@ export function ChatView({
             loadingMore={loadingMore}
             loadOlderMessages={loadOlderMessages}
             chatLoadError={chatLoadError}
+            chatLoading={chatLoading}
             onRetryLoad={onRetryLoad}
             isOtherTyping={isOtherTyping}
             bottomRef={bottomRef}

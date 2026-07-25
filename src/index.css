@@ -834,83 +834,51 @@ html.web-desktop {
 }
 
 
-/* ── .squircle — Apple-style continuous corners ────────────────────────────
+/* ── .squircle — intentionally a NO-OP marker class ────────────────────────
    `.squircle` rides on ~25 components and, via `buttonVariants`, on virtually
-   every Button in the app. It was a no-op semantic marker for a long time;
-   this is its real implementation.
+   every Button in the app. It has never had a visual effect, and shouldn't.
 
-   TECHNIQUE — `corner-shape` (CSS Borders & Box Decorations L4).
-   `corner-shape` re-shapes the corner curve that `border-radius` already
-   defines, replacing the plain quarter-ellipse `round` default.
+   Commit 0523faca gave it a real implementation via `corner-shape:
+   superellipse(4)` and that was a mistake — nobody asked for it, and it
+   squared off the nav CTA, every filter chip and the search field in one go.
+   Reverted the same day. Don't try again; here's why no value works:
 
-   WHY 2.4 AND NOT THE `squircle` KEYWORD (= `superellipse(4)`). Shipped
-   `superellipse(4)` first and it was WRONG here — in this exponent the curve
-   gets SQUARER as k rises (k=2 is `round`, k→∞ is a hard corner), and the
-   effect scales with how large the radius is relative to the box. This app's
-   radii are large for their elements — `rounded-ds-md` is 14px on 32px-tall
-   chips, `rounded-2xl` is 16px on a 44px button — i.e. already near pill
-   territory, exactly where the carve-out note below says superellipse(4)
-   collapses. Result: the nav CTA, the filter chips and the search field all
-   rendered as flat rectangles. 2.4 sits just above `round`, so it reads as a
-   continuous Apple-style corner at these radii instead of flattening them.
-   Verified in Chrome against the same three elements, not reasoned about.
+   `corner-shape: superellipse(k)` only moves one way — k=2 IS `round`, and
+   every k above 2 makes the corner SQUARER, approaching a hard 90° as k→∞.
+   Measured at a fixed 14px radius, corner cut depth:
 
-   WHY THIS AND NOT A MASK. This is the ONLY approach that satisfies the two
-   hard constraints here:
-   1. It never touches `border-radius`. Verified in Chrome 148: an element with
-      only `corner-shape` set still computes `border-radius: 0px`. So this adds
-      NO third radius source — it cannot fight Tailwind's `rounded-*` or the
-      `border-radius: 1.5rem` that `.liquid-glass` declares below. Each element
-      keeps whatever radius its own class gave it; `.squircle` only bends the
-      curve. A `mask-image`/SVG superellipse would have done the opposite —
-      it clips the box, which kills the `border`, the `inset 0 1px 0` top
-      highlight and the multi-layer drop shadows that `buttonVariants` and
-      `.btn-grad-primary` depend on, on every button in the app.
-   2. It degrades to exactly today's rendering. Unknown declarations are
-      dropped at parse time, so a non-supporting engine renders the plain
-      `border-radius` it renders now — border, inset highlight, box-shadows and
-      `overflow` clipping all untouched. No `@supports` guard is needed (or
-      useful): there is no fallback to switch on, only an enhancement to skip.
+       square             0.00px   (hard 90°)
+       superellipse(4)    0.25px   ← what shipped: 14% of round ⇒ reads square
+       superellipse(3)    0.75px
+       superellipse(2.4)  1.25px   ← retune attempt: still reads square
+       round (= s(2))     1.75px   ← what we ship
 
-   SUPPORT (measured, not assumed — 2026-07):
-   · Chromium 139+ (Chrome/Edge, desktop + Android WebView) — ENHANCED.
-     Probed Chrome 148: `CSS.supports('corner-shape','superellipse(4)')` true.
-     Confirmed visually that border, inset highlight, multi-layer shadow and
-     `overflow: hidden` clipping all follow the squircle curve.
-   · WebKit — FALLBACK. Probed Mobile Safari on the iOS 26.4 simulator, i.e.
-     the exact engine this app's WKWebView runs: `CSS.supports` false, computed
-     `corner-shape` empty, and `border-radius`/`box-shadow` preserved intact.
-     So iOS (and macOS Safari, and Firefox) get today's rounded corners.
-     Nothing to remove when WebKit ships it — those users just upgrade in.
+   A real Apple continuous corner is TWO changes: flatter through the diagonal
+   AND a larger radius (~1.53x the edge span), so it starts bending earlier.
+   Ship the flattening alone and you get a rectangle. Both were then rendered
+   head-to-head as 130px swatches — round vs s(2.5)/s(3)/s(4) at 1x, 1.6x and
+   2x radius — and plain `round` was chosen over all of them.
 
-   PILL / CIRCLE CARVE-OUT (below). A superellipse spans the WHOLE radius, so
-   at a pill or circular radius `superellipse(4)` stops reading as a squircle
-   and collapses toward a rectangle: a 180x44 pill becomes a near-square bar,
-   and a circular icon button becomes a boxy tile. Measured in Chrome, not
-   guessed. ~16 `<Button className="… rounded-full …">` call sites inherit
-   `.squircle` from `buttonVariants` (NotificationPanel, QuickReplies,
-   RichMessageInput, ChatHeader, PublicLayout, ShareJobButton), so those are
-   pinned back to the `round` default — `.squircle` shapes moderate corners and
-   leaves genuinely round ones alone. `:where()` keeps the carve-out at plain
-   `.squircle` specificity (0,1,0), so it wins purely on source order and never
-   escalates a specificity war.
+   If softer corners are ever genuinely wanted, the lever is `border-radius` on
+   the design tokens, not `corner-shape`.
 
-   Kept in `@layer components` so it lands BEFORE Tailwind's utilities: nothing
-   in the app emits a `corner-shape` utility today, so this always applies, but
-   an explicit `[corner-shape:round]` arbitrary value could override it later
-   without needing `!important`. Note that Tailwind v3 content-purges custom
-   `@layer components` CSS — both rules below survive only because the literal
-   string `squircle` appears in the scanned source (including the
-   `buttonVariants` base string). Renaming the class without updating call
-   sites would silently drop this block rather than error. */
+   Kept in `@layer components` so it lands before Tailwind's utilities. Tailwind
+   v3 content-purges custom `@layer components` CSS, so this rule survives only
+   because the literal string `squircle` appears in the scanned source
+   (including the `buttonVariants` base string) — renaming the class without
+   updating call sites would silently drop it rather than error. */
 @layer components {
-  .squircle {
-    corner-shape: superellipse(2.4);
-  }
+  /* `round` — i.e. `.squircle` is a NO-OP marker class, and stays one. Chosen
+     head-to-head: the candidates were rendered as 130px swatches side by side
+     (round, s(2.5), s(3) and s(4), each at 1x / 1.6x / 2x radius) and plain
+     `round` was picked over every superellipse variant. Each element keeps
+     whatever `border-radius` its own Tailwind class gives it.
 
-  /* Pills and circles keep the true `round` corner — see carve-out note above.
-     `round` is `corner-shape`'s initial value, so this is an exact restore. */
-  .squircle:where(.rounded-full, .rounded-ds-pill) {
+     Do not "finish" this. See the block above for why no superellipse value
+     wins here. Left as an explicit declaration rather than an empty rule so
+     the intent survives — an empty ruleset reads as an oversight and invites
+     the same re-implementation. */
+  .squircle {
     corner-shape: round;
   }
 }

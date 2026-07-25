@@ -106,7 +106,7 @@ const JobDetail = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => navigate("/jobs")}
-                  className="squircle rounded-full"
+                  className="squircle"
                 >
                   Browse open jobs
                 </Button>

@@ -433,7 +433,7 @@ const Legal = () => {
   // open (see the two render sites below), instead of appearing disconnected
   // further down the page.
   const searchBar = searchOpen && (
-    <div className="relative flex-1 min-w-0" data-print-hide>
+    <div className="relative flex-1 min-w-[220px]" data-print-hide>
       <Search
         className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
@@ -579,9 +579,13 @@ const Legal = () => {
           <div className="px-5 pt-3">
             <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
               {nativeHeaderRow}
-              <div className="flex items-center gap-2">
-                {/* Search leads the row. Tabs stay visible either way —
-                    full-width when closed, shrunk to icon-only pills when
+              <div className="flex flex-wrap items-center gap-2">
+                {/* flex-wrap: search input + full-labeled tabs together can
+                    exceed the row width on narrower viewports — wrapping to a
+                    second line beats letting content spill past the pill's
+                    rounded border. Search leads the row. Tabs stay visible
+                    either way — full-width when closed, auto-width (labels
+                    intact) when
                     open so the input can take the freed-up space instead of
                     splitting the row evenly with a full-size tab list. */}
                 {searchBar}
@@ -674,10 +678,13 @@ const Legal = () => {
               style={{ top: webBandStickyTop }}
             >
               <div
-                className="rounded-2xl flex items-center gap-2 p-1"
+                className="rounded-2xl flex flex-wrap items-center gap-2 p-1"
                 style={{ border: "1px solid hsl(var(--bark) / 0.18)" }}
               >
-                {/* Search leads the row. Tabs stay visible either way —
+                {/* flex-wrap: search input + full-labeled tabs together can
+                    exceed the row width on narrower viewports — wrapping to a
+                    second line beats letting content spill past the pill's
+                    rounded border. Search leads the row. Tabs stay visible either way —
                     full-width when closed, shrunk to icon-only pills when
                     open so the input can take the freed-up space instead of
                     splitting the row evenly with a full-size tab list. */}

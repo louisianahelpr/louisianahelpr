@@ -9,7 +9,12 @@ interface MonthlyGoalCardProps {
   completedJobs: Array<{ created_at: string; netPayout: number }>;
 }
 
-const GOAL_KEY = "helpr_earnings_goal";
+// MUST match the key `useEarningsGoal` uses in HelperAnalytics.tsx — this
+// card and the Analytics page's MonthlyGoalCard are two independent UIs for
+// the SAME goal. They used to read/write different storage keys (this one
+// had an underscore, Analytics used a colon), so a goal set on one screen
+// silently didn't show on the other. One key, one goal, everywhere.
+const GOAL_KEY = "helpr:earnings_goal";
 
 function getMonthlyEarnings(
   jobs: Array<{ created_at: string; netPayout: number }>

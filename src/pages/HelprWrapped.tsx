@@ -364,7 +364,7 @@ const HelprWrapped = () => {
               <Button
                 variant="hero"
                 size="lg"
-                className="w-full rounded-full squircle"
+                className="w-full squircle"
                 onClick={handleShare}
               >
                 <Share2 className="w-4 h-4 mr-2" />

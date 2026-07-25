@@ -1,4 +1,4 @@
-import { formatJobDate, formatPrice } from "@/lib/format";
+import { formatTimestamp, formatPrice } from "@/lib/format";
 import { payoutStatusLabel } from "@/lib/statusLabels";
 import type { PayoutLedgerRow } from "./types";
 
@@ -18,7 +18,7 @@ export function RecentTransfers({ payoutLedger }: RecentTransfersProps) {
       <div className="space-y-2.5">
         {payoutLedger.map((t) => {
           const jobTitle = (t.jobs as { title?: string } | null)?.title ?? "Job";
-          const date = formatJobDate(t.created_at);
+          const date = formatTimestamp(t.created_at);
           const amount = formatPrice(t.amount_cents / 100);
           const fee = formatPrice(t.platform_fee_cents / 100);
           const tone =

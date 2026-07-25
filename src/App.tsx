@@ -111,7 +111,6 @@ const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const HomeHistory = lazy(() => import("./pages/HomeHistory"));
 const WorkRecord = lazy(() => import("./pages/WorkRecord"));
 const PetProfiles = lazy(() => import("./pages/PetProfiles"));
-const EvacuationMode = lazy(() => import("./pages/EvacuationMode"));
 const BenefitsPage = lazy(() => import("./pages/BenefitsPage"));
 
 // Lazy load less-critical global components
@@ -223,8 +222,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           plan shows Free); tapping Upgrade routes them to sign in first. */}
       <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<SubscriptionPage />)}</RouteErrorBoundary>} />
       <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* Pay It Forward — community credit marketplace */}
-      <Route path="/pay-it-forward" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
+      <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* Legacy /pay-it-forward → /gift-card (feature renamed). */}
+      <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />
       <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<ForBusiness />)}</RouteErrorBoundary>} />
@@ -267,9 +268,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/wrapped" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelprWrapped /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Benefits marketplace — partner perks for helpers */}
       <Route path="/benefits" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BenefitsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* Pet care — manage pet profiles, vet notes, and evacuation mode */}
+      {/* Pet care — manage pet profiles and vet notes */}
       <Route path="/pets" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PetProfiles /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/evacuation" element={<RouteErrorBoundary>{routeEl(<PageTransition><EvacuationMode /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* /evacuation page removed — redirect old bookmarks/links to pets. */}
+      <Route path="/evacuation" element={<Navigate to="/pets" replace />} />
       {/* Legacy paths surfaced by 404s in error_logs (external links, old
           bookmarks, search-engine indexes) — redirect to their modern
           equivalents instead of dumping users on the NotFound page. */}

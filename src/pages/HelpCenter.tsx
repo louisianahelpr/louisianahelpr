@@ -216,7 +216,7 @@ const HelpCenter = () => {
           horizontal edges. Without a clip, that overshoot caused a
           48px html-level horizontal scrollbar at 1440. */}
       <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
-        <div className="relative z-10 mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-12">
+        <div className="relative z-10 mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-12">
           {/* Warm ambient halo behind the H1 — same gold-warm → burnt-sienna
               radial pattern as the landing hero, so the two pages read as
               cut from the same paper. */}
@@ -360,7 +360,7 @@ const HelpCenter = () => {
           aria-labelledby="topics-heading"
           className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
         >
-          <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16">
+          <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16">
             {/* Left column — masthead */}
             <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
               <span className="text-display-eyebrow">Topics</span>
@@ -483,7 +483,7 @@ const HelpCenter = () => {
         aria-labelledby="faq-heading"
         className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
       >
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16">
           {/* Left column — masthead */}
           <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
             <span className="text-display-eyebrow">FAQ</span>

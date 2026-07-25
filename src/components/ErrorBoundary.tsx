@@ -109,12 +109,6 @@ class ErrorBoundary extends React.Component<Props, State> {
             )}
           </div>
           <div className="space-y-1.5">
-            <span
-              className="font-serif italic uppercase block"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-            >
-              {chunkError ? "Fresh paint" : "A hiccup"}
-            </span>
             <h3
               className="font-display italic font-bold leading-tight"
               style={{ fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}

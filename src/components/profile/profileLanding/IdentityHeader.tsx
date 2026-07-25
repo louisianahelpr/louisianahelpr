@@ -4,6 +4,7 @@ import {
   BadgeCheck, Camera, Crown, QrCode, Video, Play,
   Star, Share2, Edit,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { formatPrice } from "@/lib/format";
@@ -489,18 +490,16 @@ export function IdentityHeader({
               >
                 Record a 60-second intro video
               </p>
-              <button
+              <Button
                 type="button"
+                variant="bark"
+                size="sm"
                 onClick={() => videoInputRef.current?.click()}
                 disabled={videoUploading}
-                className="shrink-0 h-9 px-3.5 rounded-full text-ds-12 font-sans font-semibold disabled:opacity-60 active:scale-95 transition-all"
-                style={{
-                  background: "hsl(var(--burnt-sienna))",
-                  color: "hsl(var(--parchment))",
-                }}
+                className="shrink-0"
               >
                 {videoUploading ? "Uploading…" : "Upload"}
-              </button>
+              </Button>
             </div>
           )}
           {/* Hidden file input — shared by the CTA and the "Re-record" link. */}

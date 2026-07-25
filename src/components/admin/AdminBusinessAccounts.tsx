@@ -8,7 +8,7 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { Building2, ChevronRight, Search, Users, ShieldCheck } from "lucide-react";
 import { queryKeys } from "@/lib/queryKeys";
-import { formatJobDate } from "@/lib/format";
+import { formatTimestamp } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 interface BusinessRow {
@@ -39,7 +39,7 @@ interface MemberRow {
 const fmtCents = (cents: number | null | undefined) =>
   ((cents ?? 0) / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-const fmtDate = (s: string | null) => (s ? formatJobDate(s) : "Never");
+const fmtDate = (s: string | null) => (s ? formatTimestamp(s) : "Never");
 
 /**
  * Admin-facing list of business accounts with team rosters + total GMV.
@@ -140,7 +140,7 @@ const AdminBusinessAccounts = () => {
                 <div className="flex items-center gap-2 flex-wrap mb-0.5">
                   <span className="font-semibold truncate">{b.business_name}</span>
                   {b.verification_status === "verified" && (
-                    <Badge variant="secondary" className="text-ds-10 gap-1">
+                    <Badge variant="sienna" className="text-ds-10 gap-1">
                       <ShieldCheck className="w-3 h-3" /> Verified
                     </Badge>
                   )}
@@ -151,7 +151,8 @@ const AdminBusinessAccounts = () => {
                 <p className="text-ds-11 text-muted-foreground truncate">
                   {b.owner_name ?? b.owner_email ?? b.owner_id.slice(0, 8)} ·{" "}
                   <Users className="w-3 h-3 inline" /> {b.member_count} ·{" "}
-                  GMV {fmtCents(b.total_gmv_cents)} · Active {fmtDate(b.last_activity_at)}
+                  GMV {fmtCents(b.total_gmv_cents)} ·{" "}
+                  {b.last_activity_at ? `Active ${fmtDate(b.last_activity_at)}` : "No activity yet"}
                 </p>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />

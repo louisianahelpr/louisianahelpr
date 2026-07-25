@@ -259,7 +259,10 @@ const AdminReports = () => {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                  <Badge variant={(report.status === "pending" || report.status === "new") ? "destructive" : "secondary"}>
+                  {/* Calm "sienna" accent badge, not destructive: a new/pending
+                      report isn't a danger/delete action — the mauve destructive
+                      color is reserved for genuinely destructive controls. */}
+                  <Badge variant="sienna">
                     {report.status === "pending" ? "new" : report.status}
                   </Badge>
                   {report.assigned_to_name && (
@@ -286,7 +289,10 @@ const AdminReports = () => {
                 <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-ds-sm p-3">{report.description}</p>
               )}
 
-              <div className="flex flex-wrap gap-2 pt-1">
+              {/* One line, not two: 7 action buttons kept on a single row —
+                  fits without scroll on wide admin screens, scrolls horizontally
+                  rather than wrapping to a second line on narrow ones. */}
+              <div className="flex flex-nowrap gap-2 pt-1 overflow-x-auto [&>button]:shrink-0">
                 <Button
                   size="sm"
                   variant="outline"

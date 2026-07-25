@@ -90,7 +90,15 @@ const PublicLayout = ({
   }
 
   return (
-    <div className="min-h-screen page-warmth pb-safe-nav relative flex flex-col">
+    // overflow-x-clip: structural guarantee for CLAUDE.md's "every page must FIT
+    // THE SCREEN — no horizontal overflow" rule. Decorative ambient halos
+    // (WarmHalo's `-inset-16 sm:-inset-24 lg:-inset-32`) intentionally bleed past
+    // their parent, which was widening the scroll area at 375px (/for-business
+    // overflowed 42px, /subscription 4px) and dragging every `w-full` fixed
+    // element out with it. `clip` not `hidden`: it does NOT create a scroll
+    // container, so sticky children still stick, and the fixed Navbar/mesh keep
+    // the viewport as their containing block and are not clipped.
+    <div className="min-h-screen page-warmth pb-safe-nav relative flex flex-col overflow-x-clip">
       {/* Global mesh behind every section — matches the landing surface. */}
       <div aria-hidden className="mesh-gradient-global" />
 

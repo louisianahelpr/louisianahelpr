@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { Star, Info, ArrowDownAZ, ArrowUpAZ, CalendarClock } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { formatJobDate } from "@/lib/format";
+import { formatTimestamp } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
@@ -352,7 +353,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   </span>
                 </div>
                 <span className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                  {formatJobDate(review.created_at)}
+                  {formatTimestamp(review.created_at)}
                 </span>
               </div>
               {(review.punctuality || review.quality || review.communication) && (
@@ -390,17 +391,14 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
             </div>
           ))}
           {hasMore && (
-            <button
+            <Button
+              variant="outline"
               onClick={onLoadMore}
               disabled={loadingMore}
-              className="w-full py-3 text-ds-13 font-medium rounded-ds-md border disabled:opacity-50 mt-2"
-              style={{
-                borderColor: "hsl(var(--olivewood) / 0.2)",
-                color: "hsl(var(--olivewood))",
-              }}
+              className="w-full mt-2"
             >
               {loadingMore ? "Loading…" : "Load more reviews"}
-            </button>
+            </Button>
           )}
         </div>
       )}

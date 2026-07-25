@@ -111,7 +111,10 @@ export default function FamilyDashboard() {
   return (
     <>
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Family & care" onBack={() => navigate(-1)} width="lg" showBrand rightSlot={<NotificationPanel />} />
+      {/* No `showBrand`: /family is a Profile sub-page. The back chevron
+          anchors to /profile (its parent) rather than the misleading Helpr
+          wordmark that read as a top-level destination. */}
+      <PageHeader title="Family & care" onBack={() => navigate("/profile")} width="lg" rightSlot={<NotificationPanel />} />
 
       {/* Split-column desktop layout: on mobile/tablet this stacks as a
           single column exactly as before. At lg+ it becomes a two-column
@@ -119,7 +122,7 @@ export default function FamilyDashboard() {
           left, and the invite form + about-panel are pulled into a
           sticky action pane on the right. Outer container widens to
           max-w-5xl/6xl to give the two columns real breathing room. */}
-      <div className="max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto px-4 pt-4 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 xl:gap-12 items-start">
+      <div className="max-w-lg md:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 md:px-6 lg:px-4 pt-4 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 xl:gap-12 items-start">
 
         {/* ── LEFT COLUMN — members lists ──
             Primary reading content: who you manage, and (if applicable)

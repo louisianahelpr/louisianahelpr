@@ -136,27 +136,24 @@ export function SavedHelperCard({
             className="w-full rounded-ds-sm border border-border/40 bg-card px-2 py-1.5 text-ds-13 font-serif italic resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
           <div className="flex items-center justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={cancelNoteEditor}
               disabled={savingNote}
-              className="inline-flex items-center gap-1 rounded-ds-sm px-2.5 py-1 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-transform"
-              style={{ color: "hsl(var(--olivewood))" }}
             >
               <X className="w-3.5 h-3.5" /> Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="bark"
+              size="sm"
               onClick={() => void saveNote(h.helper_id)}
               disabled={savingNote}
-              className="inline-flex items-center gap-1 rounded-ds-sm px-2.5 py-1 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-transform disabled:opacity-60"
-              style={{
-                background: "hsl(var(--bark))",
-                color: "hsl(var(--parchment))",
-              }}
             >
               <Check className="w-3.5 h-3.5" /> {savingNote ? "Saving…" : "Save"}
-            </button>
+            </Button>
           </div>
         </div>
       ) : h.private_note?.trim() ? (

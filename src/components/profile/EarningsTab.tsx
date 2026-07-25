@@ -277,7 +277,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         {!loading && (
           <div className="grid grid-cols-3 gap-2">
             {[
-              { icon: TrendingUp, label: "Total", value: `$${formatPrice(totalEarnings)}`, sub: `${completedJobs.length} jobs` },
+              { icon: TrendingUp, label: "Total", value: `$${formatPrice(totalEarnings)}`, sub: `${completedJobs.length} job${completedJobs.length === 1 ? "" : "s"}` },
               { icon: Gift, label: "Tips", value: `$${formatPrice(totalTips)}`, sub: `${tips.length} tips` },
               { icon: Briefcase, label: "Active", value: String(inProgressJobs.length), sub: "in progress" },
             ].map(({ icon: Icon, label, value, sub }) => (

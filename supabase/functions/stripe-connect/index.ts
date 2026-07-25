@@ -92,10 +92,14 @@ serve(async (req) => {
         }, { idempotencyKey: `stripe-connect-create-${user.id}` });
         accountId = account.id;
 
-        await supabaseAdmin
+        const { error: profileUpdateErr } = await supabaseAdmin
           .from("profiles")
           .update({ stripe_account_id: accountId })
           .eq("user_id", user.id);
+        if (profileUpdateErr) {
+          console.error(`[stripe-connect] Failed to save stripe_account_id for user ${user.id}:`, profileUpdateErr);
+          throw new Error("Could not link your payout account — please try again");
+        }
       }
 
       return { accountId, profile };

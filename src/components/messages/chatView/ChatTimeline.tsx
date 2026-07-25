@@ -136,7 +136,7 @@ export function ChatTimeline({
           </div>
         </div>
       )}
-      {!chatLoadError && timeline.map((item) => {
+      {!chatLoadError && timeline.map((item, i) => {
         if (item.type === "date") {
           // Section divider — quietly anchors the thread to the
           // calendar so scrolling back through long history reads
@@ -228,12 +228,21 @@ export function ChatTimeline({
             </div>
           );
         }
+        // Grouped when the previous timeline row is a non-system message
+        // from the same sender — tightens the inter-bubble gap (iOS run).
+        const prev = timeline[i - 1];
+        const grouped =
+          !!prev &&
+          prev.type === "message" &&
+          !prev.message.is_system &&
+          prev.message.sender_id === m.sender_id;
         return (
           <MessageBubble
             key={item.key}
             m={m}
             mine={m.sender_id === userId}
             showReadReceipt={m.id === lastOwnMessageId}
+            grouped={grouped}
             activeConvo={activeConvo}
             retryMessage={retryMessage}
             setLightboxPhoto={setLightboxPhoto}

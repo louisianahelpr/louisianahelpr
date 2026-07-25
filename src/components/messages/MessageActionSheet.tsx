@@ -1,6 +1,6 @@
 import { Copy, Flag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { hapticLight } from "@/lib/haptics";
 import type { Message } from "./types";
 
@@ -73,21 +73,15 @@ export function MessageActionSheet({
   return (
     <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
       <SheetContent side="bottom" className="rounded-t-2xl border-t-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
-        {/* Mirrors DialogHero's eyebrow → title stack for cohesion with every
-            other popup header in the app. Sheets can't use DialogHero
-            directly (it targets Dialog's X-button spacing) so the same
-            parts are composed inline. */}
-        <SheetHeader className="px-1 pb-2 space-y-0 text-left">
-          <span
-            className="font-serif italic uppercase block text-[0.62rem] tracking-[0.18em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            Message actions
-          </span>
-          <SheetTitle className="text-left font-display italic font-bold text-ds-15 mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
-            What next?
-          </SheetTitle>
-        </SheetHeader>
+        {/* SheetHero is the canonical sheet header (the Sheet-side twin of
+            DialogHero). This block used to compose the eyebrow → title parts
+            inline because SheetHero did not exist yet; hand-copying the tokens
+            is what let four sheets drift to four different title sizes. */}
+        <SheetHero
+          className="px-1 pb-2"
+          eyebrow="Message actions"
+          title="What next?"
+        />
         <div className="grid grid-cols-1 gap-1.5">
           {canCopy && (
             <ActionRow

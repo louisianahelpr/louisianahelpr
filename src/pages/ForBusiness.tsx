@@ -113,7 +113,7 @@ const TIERS: readonly Tier[] = [
 
 const TRUST_ITEMS = [
   "Stripe escrow",
-  "ID-verified helpers",
+  "ID-verified Helprs",
   "W-9 / 1099 handled",
 ] as const;
 
@@ -130,7 +130,7 @@ const BUSINESS_FAQS = [
   },
   {
     q: "Do you handle W-9s and 1099s for the workers we hire?",
-    a: "Yes. Stripe collects the W-9 during helper onboarding, and we issue 1099-Ks to any helper who exceeds the IRS reporting thresholds through the platform. Your AP team doesn't chase paperwork.",
+    a: "Yes. Stripe collects the W-9 during Helpr onboarding, and we issue 1099-Ks to any Helpr who exceeds the IRS reporting thresholds through the platform. Your AP team doesn't chase paperwork.",
   },
   {
     q: "What happens if a job goes wrong?",
@@ -141,8 +141,8 @@ const BUSINESS_FAQS = [
     a: "No. Every paid plan is month-to-month, cancel anytime from the billing portal, and there's no cancellation fee. You keep access through the end of the billing period you already paid for.",
   },
   {
-    q: "Can we require background-checked helpers only?",
-    a: "Yes. Filter jobs to Verified helpers only in your job settings and only ID-verified, background-checked helpers can apply. Every helper on the platform is Stripe-ID verified by default.",
+    q: "Can we require background-checked Helprs only?",
+    a: "Yes. Filter jobs to Verified Helprs only in your job settings and only ID-verified, background-checked Helprs can apply. Every Helpr on the platform is Stripe-ID verified by default.",
   },
 ] as const;
 
@@ -209,7 +209,7 @@ const useInViewOnce = () => {
  */
 const BusinessHero = () => (
   <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
-    <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16">
+    <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16">
       <div className="relative flex flex-col items-center justify-center w-full">
         <WarmHalo />
         <span className="text-display-eyebrow relative z-10 mb-6 sm:mb-8">
@@ -288,7 +288,7 @@ const BuiltForSection = () => {
       ref={ref}
       className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24"
     >
-      <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
+      <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
         <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
           <span className="text-display-eyebrow">Built for</span>
           <h2
@@ -372,7 +372,7 @@ const BuiltForSection = () => {
  */
 const PricingSection = () => (
   <section className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
-    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
+    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
       <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
         <span className="text-display-eyebrow">Pricing</span>
         <h2
@@ -569,7 +569,7 @@ const BusinessFaqSection = () => (
     aria-labelledby="business-faq-heading"
     className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
   >
-    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
+    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
       <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
         <span className="text-display-eyebrow">Frequent</span>
         <h2
@@ -628,7 +628,7 @@ const BusinessFaqSection = () => (
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ClosingSection = () => (
   <section className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
-    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center">
+    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex flex-col items-center text-center">
       {/* Trust band — Montserrat semibold caps, separated by gold-warm dots. */}
       <div
         className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-12 sm:mb-16 lg:mb-20"
@@ -734,11 +734,11 @@ const ForBusiness = () => {
   usePageMeta({
     title: "Business — Helpr | Louisiana's Local Job Partner",
     description:
-      "Find, hire, and pay local pros for every job your business needs. Stripe escrow, ID-verified helpers, W-9 / 1099 handled.",
+      "Find, hire, and pay local pros for every job your business needs. Stripe escrow, ID-verified Helprs, W-9 / 1099 handled.",
     canonical: "https://www.louisianahelpr.com/for-business",
     ogTitle: "Business — Helpr | Louisiana's Local Job Partner",
     ogDescription:
-      "Find, hire, and pay local pros for every job your business needs. Stripe escrow, ID-verified helpers, W-9 / 1099 handled.",
+      "Find, hire, and pay local pros for every job your business needs. Stripe escrow, ID-verified Helprs, W-9 / 1099 handled.",
   });
 
   return (

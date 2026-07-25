@@ -2,7 +2,7 @@ import { Bookmark, EyeOff, Share2, Flag } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { toast } from "sonner";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { hapticLight } from "@/lib/haptics";
 
 interface JobQuickActionSheetProps {
@@ -93,20 +93,10 @@ export function JobQuickActionSheet({
   return (
     <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
       <SheetContent side="bottom" className="rounded-t-2xl border-t-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
-        {/* Mirrors DialogHero's eyebrow → title stack for cohesion with every
-            other popup header in the app (see MessageActionSheet for the
-            same pattern — Sheets can't use DialogHero directly). */}
-        <SheetHeader className="px-1 pb-2 space-y-0 text-left">
-          <span
-            className="font-serif italic uppercase block text-[0.62rem] tracking-[0.18em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            Job actions
-          </span>
-          <SheetTitle className="text-left font-display italic font-bold text-ds-15 mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
-            {job.title}
-          </SheetTitle>
-        </SheetHeader>
+        {/* Canonical sheet header. Was a hand-copied eyebrow→title stack (one of
+            four sheets that drifted to four different title sizes); SheetHero is
+            the single source of truth. */}
+        <SheetHero className="px-1 pb-2" eyebrow="Job actions" title={job.title} />
         <div className="grid grid-cols-1 gap-1.5">
           <ActionRow
             icon={<Bookmark className={`w-5 h-5 ${isSaved ? "fill-current" : ""}`} strokeWidth={2} />}

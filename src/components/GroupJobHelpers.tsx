@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
-import { Users, XCircle } from "lucide-react";
+import { XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { applicationStatusLabel } from "@/lib/statusLabels";
 import { report } from "@/lib/errorLogger";
@@ -124,14 +124,8 @@ export function GroupJobHelpers({
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-3">
       <div>
-        <span
-          className="font-serif italic uppercase inline-flex items-center gap-1.5"
-          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-        >
-          <Users className="w-3 h-3" /> Crew
-        </span>
         <h3
-          className="font-display italic font-bold leading-tight mt-1 text-headline-card"
+          className="font-display italic font-bold leading-tight text-headline-card"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
         >
           Group job

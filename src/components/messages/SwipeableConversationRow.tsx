@@ -65,8 +65,12 @@ function SwipeableConversationRowBase({
     setDragging(false);
   };
 
+  // No rounding on the wrapper — rows are now a flat, contiguous iOS list,
+  // so a rounded clip would round the active-row tint and the inset
+  // hairline. `overflow-hidden` stays to clip the row's horizontal drag
+  // (prevents any transient horizontal overflow during a swipe).
   return (
-    <div className="relative overflow-hidden rounded-2xl">
+    <div className="relative overflow-hidden">
       {/* Archive trail (revealed by a left swipe). */}
       <motion.div
         className="absolute inset-y-0 right-0 flex items-center justify-end pr-5 rounded-2xl"

@@ -8,6 +8,7 @@ import { formatName } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { unwrap } from "@/lib/supabaseResult";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 interface HelperTier {
   user_id: string;
@@ -48,13 +49,18 @@ const TIER_ICON: Record<string, any> = {
 const AdminHelperTiers = () => {
   const [tierFilter, setTierFilter] = useState<string>("all");
 
-  const { data: helpers, isInitialLoading } = useInstantQuery<HelperTier[]>({
+  // isError/refetch are read below: unwrap() flips isError on a failed RPC, but
+  // this component previously destructured only `data` — so a failure collapsed
+  // into `helpers = []` and rendered as a misleading "No Helprs" empty state.
+  // (This is exactly how the get_helper_tiers 42501 grant bug hid: 7 real
+  // helpers, shown as zero. See migration 20260724194356.)
+  const { data: helpers, isInitialLoading, isError, refetch } = useInstantQuery<HelperTier[]>({
     key: ["admin-helper-tiers"],
     fallback: [],
     fetcher: async () => {
       // RPC row shape differs from the local HelperTier type (column
       // naming / nullability) — cast at the boundary. unwrap() surfaces a
-      // failed RPC as the query's error state instead of a silent empty list.
+      // failed RPC as the query's error state (isError), handled in render.
       const data = unwrap(await supabase.rpc("get_helper_tiers", { p_limit: 50 }));
       return (data as HelperTier[]) || [];
     },
@@ -95,6 +101,13 @@ const AdminHelperTiers = () => {
 
       {isInitialLoading ? (
         <p className="text-ds-11 text-muted-foreground">Loading tiers…</p>
+      ) : isError ? (
+        <ErrorState
+          variant="inline"
+          title="We couldn't load Helpr tiers."
+          body="Tap Try again — this is read-only, nothing was changed."
+          onRetry={() => refetch()}
+        />
       ) : visible.length === 0 ? (
         <p className="text-ds-11 text-muted-foreground text-center py-8">No Helprs in this tier yet.</p>
       ) : (

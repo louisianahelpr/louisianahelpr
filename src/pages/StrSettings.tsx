@@ -175,7 +175,7 @@ export default function StrSettings() {
         rightSlot={<NotificationPanel />}
       />
 
-      <div className="max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto px-4 lg:px-8 mt-2 pb-8">
+      <div className="max-w-lg md:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 md:px-6 lg:px-8 mt-2 pb-8">
 
         {/* Explanation card (mobile: stacked above list; desktop: sticky in left rail) */}
         <div className="lg:hidden mb-4 rounded-ds-md p-4" style={cardStyle}>

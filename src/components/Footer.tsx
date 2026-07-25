@@ -59,11 +59,16 @@ const Footer = () => (
     }}
   >
     <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] pt-6 md:pt-8 pb-2">
-      <div className="grid gap-6 md:gap-8 md:grid-cols-12">
+      {/* Columns go side-by-side from sm (640px), not md (768px). At tablet
+          widths the old md-only grid stacked brand + Company + Legal + Follow
+          into ONE tall column, which made the footer dominate the page. From
+          640px the brand takes the full row and the three link groups sit
+          4/4/4 beside each other; md+ keeps the original 4/3/3/2 layout. */}
+      <div className="grid gap-6 md:gap-8 sm:grid-cols-12">
         {/* Brand — uses the shared HelprMark component so the wordmark
             here matches the top nav exactly (H emblem + non-italic
             "Helpr" + italic burnt-sienna "· LA" tail). */}
-        <div className="md:col-span-4 space-y-3">
+        <div className="sm:col-span-12 md:col-span-4 space-y-3">
           <HelprMark to="/" size="md" hideEmblem />
           <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">
             Hire a Helpr or find local work. For everyday jobs, big and small.
@@ -71,7 +76,7 @@ const Footer = () => (
         </div>
 
         {/* Company */}
-        <div className="md:col-span-3">
+        <div className="sm:col-span-4 md:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
@@ -106,7 +111,7 @@ const Footer = () => (
         </div>
 
         {/* Legal */}
-        <div className="md:col-span-3">
+        <div className="sm:col-span-4 md:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
@@ -134,7 +139,7 @@ const Footer = () => (
 
         {/* Follow — App Store icon (download) + Facebook + Instagram (socials).
             Compact squircle chips, one row. */}
-        <div className="md:col-span-2">
+        <div className="sm:col-span-4 md:col-span-2">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}

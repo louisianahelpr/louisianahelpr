@@ -35,7 +35,7 @@ export const JobListItem = ({ job, flags, isResolved, onOpen }: JobListItemProps
             {showFlagStyle && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />}
             {flags && isResolved && <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />}
             <p className="font-semibold text-foreground truncate">{job.title}</p>
-            <Badge variant="secondary" className="text-ds-11 capitalize">{categoryLabels[job.category] || job.category}</Badge>
+            <Badge variant="sienna" className="text-ds-11 capitalize">{categoryLabels[job.category] || job.category}</Badge>
             {isRemoved && <Badge variant="destructive" className="text-ds-11">Removed</Badge>}
             {flags && isResolved && <Badge variant="outline" className="text-ds-11 gap-1"><CheckCircle2 className="w-3 h-3" />Resolved</Badge>}
           </div>

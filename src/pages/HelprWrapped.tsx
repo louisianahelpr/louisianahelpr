@@ -309,12 +309,17 @@ const HelprWrapped = () => {
               className="w-10 h-10 mx-auto mb-3"
               style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }}
             />
-            <h1
+            {/* h2, not h1: the canonical PageHeader above already renders the
+                page's <h1> ("Your {SEASON.title}"). Two h1s saying nearly the
+                same thing ("Your 2026 so far" / "Your 2026 on Helpr.") is a
+                heading-structure defect — the hero keeps its display size but
+                sits correctly under the page title. */}
+            <h2
               className="text-ds-28 font-display italic font-bold leading-tight"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               Your {YEAR} on Helpr.
-            </h1>
+            </h2>
             <p
               className="mt-1 font-serif italic text-ds-13"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}

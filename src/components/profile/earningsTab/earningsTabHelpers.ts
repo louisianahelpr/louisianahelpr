@@ -1,4 +1,4 @@
-import { formatJobDate } from "@/lib/format";
+import { formatTimestamp } from "@/lib/format";
 import type { StripePayout } from "./types";
 
 // Payout-status pills are a separate concern from job-status chips: this
@@ -18,7 +18,7 @@ export const payoutStatusColors: Record<string, string> = {
 export const formatCents = (cents: number, currency = "usd") =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
 
-export const formatDate = (unixSec: number) => formatJobDate(new Date(unixSec * 1000));
+export const formatDate = (unixSec: number) => formatTimestamp(new Date(unixSec * 1000));
 
 // Builds the tax-prep CSV for a given year from the Stripe payout list.
 // Returns the filtered rows (so the caller can toast the count / handle

@@ -43,7 +43,6 @@ const ROUTES: Route[] = [
   { path: "/jobs", auth: "anon" },
   { path: "/discharge", auth: "anon" },
   { path: "/insurance-claim", auth: "anon" },
-  { path: "/evacuation", auth: "anon" },
   { path: "/data-rights", auth: "anon" },
 
   // Auth screens render the AuthBrandPane on lg+ (see AuthShell) so the

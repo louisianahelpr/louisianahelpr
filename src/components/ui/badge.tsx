@@ -11,6 +11,14 @@ const badgeVariants = cva(
         default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
         secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        // Burnt-sienna accent chip for DECORATIVE / informational badges
+        // (status tags, counts, "new") — the calm on-brand alternative to
+        // `secondary`. Reserve `destructive` (mauve) for genuinely
+        // destructive/danger states only. Tinted fill + sienna text so it
+        // reads as an accent, not an alert. (Brand HSL tokens aren't wired
+        // into the Tailwind theme, so they're referenced as arbitrary values.)
+        sienna:
+          "border-transparent bg-[hsl(var(--burnt-sienna)/0.12)] text-[hsl(var(--burnt-sienna))] hover:bg-[hsl(var(--burnt-sienna)/0.18)]",
         outline: "text-foreground",
       },
     },

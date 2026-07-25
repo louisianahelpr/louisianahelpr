@@ -74,13 +74,14 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   const hasRecent = recentPosted && recentPosted.length > 0;
 
   return (
-    // Top-level cards render as a stacked column on mobile and a
-    // lg:grid-cols-2 grid on desktop so the wider parent column
-    // (max-w-5xl) is consumed instead of stranding a ~245px per-side
-    // dead band — Cowork audit 2026-07-08. Sections that expand
-    // (Repost, Templates) grow their own row independently in the
-    // grid, so an open section still reads naturally.
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 animate-ds-page-in">
+    // Top-level cards render as a stacked column on phones and flip to a
+    // two-column grid from md up (768px), so the parent column — which
+    // widens with the viewport (md:max-w-3xl → lg:max-w-5xl, see PostJob)
+    // — is consumed instead of stranding the cards in a 512px column with
+    // big side gutters on tablet / wide-phone widths. Sections that expand
+    // (Repost, Templates) grow their own row independently in the grid, so
+    // an open section still reads naturally.
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-ds-page-in">
       {/* 1 — START FRESH (primary action, always first) */}
       <button
         type="button"

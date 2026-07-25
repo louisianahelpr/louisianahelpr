@@ -106,7 +106,7 @@ serve(async (req) => {
     console.error(`[STRIPE-WEBHOOK] Webhook secret prefix: ${webhookSecret.slice(0, 8)}... (length: ${webhookSecret.length})`);
     console.error(`[STRIPE-WEBHOOK] Body length: ${body.length} bytes`);
     console.error("[STRIPE-WEBHOOK] → Returning 200 OK to stop Stripe retries. Fix the STRIPE_WEBHOOK_SECRET to match the endpoint that sent this event.");
-    postSlackOpsAlert({
+    await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Stripe webhook signature failed",

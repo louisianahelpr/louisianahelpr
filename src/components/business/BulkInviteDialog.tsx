@@ -273,7 +273,7 @@ export function BulkInviteDialog({
                       {r.email}
                     </td>
                     <td className="py-2">
-                      <Badge variant="secondary" className="text-ds-10">
+                      <Badge variant="sienna" className="text-ds-10">
                         {ROLE_LABEL[r.role]}
                       </Badge>
                     </td>

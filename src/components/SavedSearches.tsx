@@ -30,6 +30,12 @@ interface Props {
   /** Current dashboard filters — used to pre-fill "Save current search" */
   currentFilters: {
     selectedCategory: string | null;
+    // BOTH bounds. `min_budget` is a real column that used to be written by
+    // nobody and read by nobody: handleSave inserted only max_budget, and
+    // BrowseTasksToolbar's onApplySearch restored only max_budget. So a search
+    // saved with a "$50 – $150" band came back as "up to $150" — silently
+    // wider than what was saved, with no indication it had changed.
+    minBudget: string;
     maxBudget: string;
     locationFilter: string;
   };
@@ -100,6 +106,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
     }
     if (
       !currentFilters.selectedCategory &&
+      !currentFilters.minBudget &&
       !currentFilters.maxBudget &&
       !currentFilters.locationFilter
     ) {
@@ -113,6 +120,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
       user_id: userId,
       name: trimmed,
       category: currentFilters.selectedCategory,
+      min_budget: currentFilters.minBudget ? Number(currentFilters.minBudget) : null,
       max_budget: currentFilters.maxBudget ? Number(currentFilters.maxBudget) : null,
       location_keyword: currentFilters.locationFilter || null,
       notify_enabled: true,
@@ -351,7 +359,15 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                   >
                     {[
                       s.category && `Category: ${categoryLabels[s.category] ?? s.category}`,
-                      s.max_budget && `Max $${s.max_budget}`,
+                      // Describes the real range. Was `Max $X`, which printed
+                      // nothing at all for a min-only search ("$300+") and
+                      // understated a banded one.
+                      (s.min_budget || s.max_budget) &&
+                        (s.min_budget && s.max_budget
+                          ? `$${s.min_budget} – $${s.max_budget}`
+                          : s.min_budget
+                            ? `$${s.min_budget}+`
+                            : `Up to $${s.max_budget}`),
                       s.location_keyword && `Loc: ${s.location_keyword}`,
                     ]
                       .filter(Boolean)

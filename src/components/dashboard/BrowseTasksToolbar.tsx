@@ -222,11 +222,13 @@ export function BrowseTasksToolbar({
                   userId={user.id}
                   currentFilters={{
                     selectedCategory: filters.selectedCategory,
+                    minBudget: filters.minBudget,
                     maxBudget: filters.maxBudget,
                     locationFilter: filters.locationFilter,
                   }}
                   onApplySearch={(s) => {
                     filters.setSelectedCategory(s.category);
+                    filters.setMinBudget(s.min_budget ? String(s.min_budget) : "");
                     filters.setMaxBudget(s.max_budget ? String(s.max_budget) : "");
                     filters.setLocationFilter(s.location_keyword || "");
                   }}

@@ -5,7 +5,6 @@ import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { formatPrice, formatShortDate } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
-import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { Job } from "./types";
 
 interface EarningHistoryProps {
@@ -16,6 +15,16 @@ interface EarningHistoryProps {
   page: number;
   onLoadMore: () => void;
   onBrowseJobs: () => void;
+  /**
+   * Fee % to apply when a job row's `helper_fee_percent` is NULL (legacy rows
+   * predating the column). Passed in from EarningsTab rather than imported,
+   * because it is TIER-DERIVED — a Free helper is 12%, not the historical flat
+   * 10. This component used to import HELPER_FEE_LEGACY_FALLBACK_PERCENT
+   * directly while the tab's Total tile used the tier rate, so on any legacy
+   * row the per-job payouts listed here and the total they roll up into were
+   * computed at different fee rates and did not add up. One rate, one source.
+   */
+  feeFallbackPct: number;
 }
 
 export function EarningHistory({
@@ -26,6 +35,7 @@ export function EarningHistory({
   page,
   onLoadMore,
   onBrowseJobs,
+  feeFallbackPct,
 }: EarningHistoryProps) {
   if (loading) {
     // Content-shaped skeleton: section eyebrow + heading, plus three
@@ -108,7 +118,7 @@ export function EarningHistory({
             // budget + urgent fee split across the roster, #114), so a row can
             // never disagree with the number it rolls up into.
             const payout = job.status === "completed"
-              ? helperTakeHomeDollars(job, HELPER_FEE_LEGACY_FALLBACK_PERCENT)
+              ? helperTakeHomeDollars(job, feeFallbackPct)
               : null;
             const jobTips = tips.filter((t) => t.job_id === job.id);
             const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);

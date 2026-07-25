@@ -135,12 +135,14 @@ const PetProfiles = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
+      {/* No `showBrand`: /pets is a Profile sub-page, not a top-level
+          destination. The Helpr wordmark (which links to /dashboard) made it
+          read as standalone and competed with the back-to-Profile chevron.
+          The back button + title now carry the navigation context. */}
       <PageHeader
-        eyebrow="Your animals"
         title="My Pets"
         meta="Care details your Helpr should know"
         onBack={() => navigate("/profile")}
-        showBrand
         rightSlot={<NotificationPanel />}
         width="2xl"
       />

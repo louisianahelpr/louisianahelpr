@@ -111,7 +111,10 @@ export default function FamilyDashboard() {
   return (
     <>
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Family & care" onBack={() => navigate(-1)} width="lg" showBrand rightSlot={<NotificationPanel />} />
+      {/* No `showBrand`: /family is a Profile sub-page. The back chevron
+          anchors to /profile (its parent) rather than the misleading Helpr
+          wordmark that read as a top-level destination. */}
+      <PageHeader title="Family & care" onBack={() => navigate("/profile")} width="lg" rightSlot={<NotificationPanel />} />
 
       {/* Split-column desktop layout: on mobile/tablet this stacks as a
           single column exactly as before. At lg+ it becomes a two-column

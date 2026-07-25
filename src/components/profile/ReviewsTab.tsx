@@ -289,10 +289,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
           {/* Sort pills — Newest by default, with Highest/Lowest for
               triage when the feed has volume (e.g. responding to the
               worst recent review). */}
-          <div className="flex items-center justify-between gap-2 px-1">
-            <span className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-              All reviews · {reviews.length}
-            </span>
+          <div className="flex items-center justify-end gap-2 px-1">
             <Popover>
               <PopoverTrigger asChild>
                 <button

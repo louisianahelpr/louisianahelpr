@@ -48,12 +48,6 @@ export function TwoFactorCard() {
           <ShieldCheck className="w-4 h-4 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <p
-            className="font-serif italic uppercase text-[0.62rem]"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Sign-in
-          </p>
           <h2
             className="font-display italic font-bold leading-tight text-headline-card"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}

@@ -291,9 +291,6 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
           {selectedDate && (
             <div className="space-y-3">
               <div>
-                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                  Selected day
-                </p>
                 <h3 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                 </h3>
@@ -328,9 +325,6 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
           {!selectedDate && (
             <div className="space-y-3">
               <div>
-                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                  Coming up
-                </p>
                 <h3 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   Upcoming jobs
                 </h3>

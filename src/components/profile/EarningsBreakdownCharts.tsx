@@ -152,12 +152,6 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
   return (
     <section className="space-y-3">
       <div>
-        <p
-          className="font-serif italic uppercase"
-          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-        >
-          Breakdown
-        </p>
         <h2
           className="font-display italic font-bold leading-tight text-headline-section"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
@@ -168,12 +162,6 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
 
       {hasPieData && (
         <div className="rounded-2xl liquid-glass p-4">
-          <p
-            className="font-serif italic uppercase mb-1"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            By category
-          </p>
           <div className="h-[180px] w-full">
             <ResponsiveContainer width="100%" height="100%" minHeight={180}>
               <PieChart>

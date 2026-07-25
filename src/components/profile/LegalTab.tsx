@@ -48,9 +48,6 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
 
       {/* Anchor docs — dedicated full-text pages */}
       <div>
-        <p className="font-serif italic uppercase mb-2.5" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-          The full text
-        </p>
         <div className="space-y-2">
           {([
             { to: "/rules", icon: FileText, title: "Platform rules", body: "How Helpr works — every guideline that governs jobs, payments, and conduct." },
@@ -88,9 +85,6 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           policies. Uses the shared PolicySection / PolicyRowItem so
           this tab is visually identical to the /legal page. */}
       <div className="space-y-2.5">
-        <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-          Quick reference
-        </p>
 
       {/* Community Guidelines — opened by default so the tab doesn't
           read as empty when every section is collapsed. */}

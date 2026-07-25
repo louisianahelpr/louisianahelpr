@@ -120,12 +120,6 @@ export function SavedHelperCard({
             border: "1px solid hsl(var(--gold-warm) / 0.22)",
           }}
         >
-          <div className="flex items-center gap-1.5">
-            <StickyNote className="w-3 h-3" style={{ color: "hsl(var(--bark))" }} />
-            <span className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--bark) / 0.8)", letterSpacing: "0.14em" }}>
-              Private note · only you see this
-            </span>
-          </div>
           <textarea
             value={noteDraft}
             onChange={(e) => setNoteDraft(e.target.value)}

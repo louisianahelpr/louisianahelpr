@@ -125,16 +125,6 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
             <Target className="w-4 h-4" style={{ color: "hsl(var(--sage))" }} />
           </div>
           <div className="min-w-0">
-            <p
-              className="font-serif italic uppercase"
-              style={{
-                fontSize: "0.62rem",
-                color: "hsl(var(--burnt-sienna))",
-                letterSpacing: "0.18em",
-              }}
-            >
-              Monthly goal
-            </p>
             <div className="flex items-center gap-2">
               <h2
                 className="font-display italic font-bold leading-tight"

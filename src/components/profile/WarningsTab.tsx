@@ -107,9 +107,6 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
               card; we skip the whole History block in that case. */}
           {violations.length > 0 && (
             <div className="space-y-2 pt-2">
-              <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                History
-              </p>
               {violations.map((v) => (
                 <div key={v.id} className="rounded-ds-md liquid-glass p-4 space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-center justify-between gap-2">

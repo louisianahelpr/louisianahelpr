@@ -65,34 +65,8 @@ export function SettingsSection({
 
         {/* Unified list-of-rows navigation, grouped by section. */}
         {menuGroups.map((group) => {
-          const groupNeedsAction = group.items.some((i) => i.needsAction);
           return (
             <section key={group.title}>
-              <div className="flex items-center gap-2 px-1 mb-1.5">
-                <h2
-                  className="font-serif italic uppercase text-ds-9"
-                  style={{
-                    color: "hsl(var(--burnt-sienna))",
-                    letterSpacing: "0.18em",
-                  }}
-                >
-                  {group.title}
-                </h2>
-                {groupNeedsAction && (
-                  // Decorative red dot — purely a visual cue that one of
-                  // the rows below needs action. Each row that needs
-                  // action already renders the visible text "Action
-                  // needed" (see below), so the dot adds no information
-                  // for AT users. `aria-hidden` keeps it out of the a11y
-                  // tree and avoids the aria-prohibited-attr violation
-                  // that an `aria-label` on a generic <span> would
-                  // produce.
-                  <span
-                    aria-hidden="true"
-                    className="w-1.5 h-1.5 rounded-full bg-destructive"
-                  />
-                )}
-              </div>
               <div className="rounded-ds-lg liquid-glass overflow-hidden">
                 {group.items.map((item, idx) => (
                   <button
@@ -172,14 +146,6 @@ export function SettingsSection({
             pair instead of an "Appearance" header followed, two cards
             later, by an unlabeled senior-mode toggle. */}
         <section>
-          <div className="flex items-center gap-2 px-1 mb-1.5">
-            <h2
-              className="font-serif italic uppercase text-ds-9"
-              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-            >
-              Display
-            </h2>
-          </div>
           <div className="space-y-2">
             {/* Color mode — Light / Auto / Dark segmented control */}
             <div className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3 flex flex-col gap-2">

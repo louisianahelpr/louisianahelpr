@@ -561,9 +561,6 @@ export function IdentityHeader({
                   <div className="mt-3 space-y-3">
                     {portfolioUrls.length > 0 && (
                       <div>
-                        <p className="font-serif italic uppercase text-ds-9 mb-2" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                          Recent work
-                        </p>
                         {/* Horizontal scroll with scroll-snap so each
                             thumbnail snaps cleanly on touch-fling even
                             at 320 px (iPhone SE). snap-x mandatory +

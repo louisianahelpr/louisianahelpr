@@ -198,16 +198,6 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
             />
           </div>
           <div className="flex-1 min-w-0">
-            <p
-              className="font-serif italic uppercase"
-              style={{
-                fontSize: "0.6rem",
-                color: "hsl(var(--burnt-sienna))",
-                letterSpacing: "0.18em",
-              }}
-            >
-              Next 7 days
-            </p>
             <h3
               className="font-display italic font-bold leading-tight"
               style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}
@@ -246,16 +236,6 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
         className="rounded-2xl liquid-glass p-4"
       >
         <div className="mb-3">
-          <p
-            className="font-serif italic uppercase"
-            style={{
-              fontSize: "0.6rem",
-              color: "hsl(var(--burnt-sienna))",
-              letterSpacing: "0.18em",
-            }}
-          >
-            Next 7 days
-          </p>
           <h3
             className="font-display italic font-bold leading-tight"
             style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}

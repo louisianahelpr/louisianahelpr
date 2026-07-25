@@ -247,16 +247,6 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
             </div>
 
             <div className="flex-1 min-w-0">
-              <p
-                className="font-serif italic uppercase"
-                style={{
-                  fontSize: "0.6rem",
-                  color: "hsl(var(--burnt-sienna))",
-                  letterSpacing: "0.18em",
-                }}
-              >
-                {newPayouts.length > 1 ? "New payouts" : "New payout"}
-              </p>
               <h3
                 className="font-display italic font-bold leading-tight"
                 style={{

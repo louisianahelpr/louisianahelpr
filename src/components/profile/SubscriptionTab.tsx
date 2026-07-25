@@ -161,12 +161,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             border: "0.5px solid hsl(var(--bark) / 0.22)",
           }}
         >
-          <span
-            className="font-serif italic uppercase"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Your plan
-          </span>
           <h2
             className="font-display italic font-bold leading-tight mt-0.5 text-headline-hero"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
@@ -230,12 +224,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               <TierIcon name={activeTierConfig.iconName} className="w-5 h-5" />
             </span>
             <div className="flex-1 min-w-0">
-              <span
-                className="font-serif italic uppercase"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Your plan
-              </span>
               <h2
                 className="font-display italic font-bold leading-tight mt-0.5 text-headline-hero"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}

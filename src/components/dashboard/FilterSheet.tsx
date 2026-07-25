@@ -263,18 +263,25 @@ function AvailabilityRow({
  * sections that need account data (see the prop docs above); every other
  * filter runs off fields the public feed already returns.
  *
- * Section order is by how often a filter is actually reached for, not by
- * historical accident:
+ * Section order:
  *
- *   1. Category   — the everyday filter, and the one a helper opens the sheet for
- *   2. Pricing    — guest-only (open-to-bids vs set-budget)
- *   3. Distance   — authed-only radius chips
- *   4. When       — expiry window
- *   5. Show only  — the narrowing switches, grouped: Boosted + Urgent +
+ *   1. Sort by    — first, by explicit request. It's the control most likely to
+ *                   be touched on a board this size (nobody narrows a 12-job
+ *                   feed; they reorder it), and unlike every section below it
+ *                   ALWAYS changes what you see, so it earns the top slot.
+ *   2. Category   — the everyday filter, and the one a helper opens the sheet for
+ *   3. Pricing    — guest-only (open-to-bids vs set-budget)
+ *   4. Distance   — authed-only radius chips
+ *   5. When       — expiry window
+ *   6. Show only  — the narrowing switches, grouped: Boosted + Urgent +
  *                   my-hours. Each used to be marooned (Boosted under a heading
  *                   of its own for a single pill; my-hours tacked onto the end
  *                   of When)
- *   6. Sort by    — a refinement, and not a filter at all, so it lands last
+ *
+ * Every section renders the SAME chip at the SAME size in a wrapping row — see
+ * `chipBase`/`chipRow` in JobFilters.tsx. Do not reintroduce a `grid` or a
+ * `w-full` chip for one section; that divergence is what made this sheet read
+ * as three different controls stacked together.
  *
  * NO BUDGET SECTION — removed deliberately, on the user's call, after two
  * attempts (a dual-thumb $0–$500+ slider, then preset bands) both read as
@@ -299,6 +306,11 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
   } = args;
 
   const sections: FilterSheetSection[] = [
+    {
+      key: "sort",
+      title: "Sort by",
+      content: <SortContent sortBy={sortBy} setSortBy={setSortBy} />,
+    },
     {
       key: "category",
       title: "Category",
@@ -383,11 +395,6 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
           )}
         </div>
       ),
-    },
-    {
-      key: "sort",
-      title: "Sort by",
-      content: <SortContent sortBy={sortBy} setSortBy={setSortBy} />,
     },
   );
 

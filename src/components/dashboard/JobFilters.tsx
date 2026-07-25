@@ -42,12 +42,30 @@ interface JobFiltersProps {
   userLocMessage?: string;
 }
 
-// `whitespace-nowrap` matters now that Sort and Budget are wrapping chip rows:
-// a two-part label ("$150 – $300", "Highest pay") must break BETWEEN chips, not
-// inside one — chipBase is a fixed h-8, so an internal line break overflows the
-// pill instead of growing it.
+/**
+ * THE one chip recipe. Every option in the filter sheet — Sort, Category,
+ * Pricing, Distance, When — renders through this, at this size, in a wrapping
+ * row. Nothing may opt out with `w-full`, a `grid`, or its own height.
+ *
+ * The sheet previously ran three different control languages at once, which is
+ * what made it read as incoherent: Sort/Pricing were content-sized wrapping
+ * chips; Category was a sideways-scrolling `w-max` strip (so half its options
+ * were off-screen with no affordance); When/Distance were `grid-cols-4/5` with
+ * `w-full`, which stretched four short labels across the full sheet width and
+ * made "Any time" a 240px slab sitting directly above a 60px "Cleaning" chip.
+ * Same component, same purpose, three sizes.
+ *
+ * `whitespace-nowrap` because a two-part label ("Highest pay", "$150 – $300")
+ * must break BETWEEN chips, not inside one — the height is fixed, so an
+ * internal line break overflows the chip instead of growing it.
+ */
 const chipBase =
-  "inline-flex items-center gap-1 px-2.5 rounded-ds-md text-[10px] font-semibold tracking-tight whitespace-nowrap transition-all duration-200 btn-press squircle border h-8";
+  "inline-flex items-center gap-1.5 px-3 rounded-ds-md text-[11px] font-semibold tracking-tight whitespace-nowrap transition-all duration-200 btn-press squircle border h-9";
+
+/** The one row layout, paired with `chipBase`. Wrapping and content-sized:
+ *  no empty grid cells at any option count, no hidden off-screen options, and
+ *  every chip is exactly as wide as its own label. */
+const chipRow = "flex flex-wrap gap-1.5";
 const chipActive =
   "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] border-[hsl(var(--bark)/0.38)]";
 const chipIdle =
@@ -136,7 +154,7 @@ function matchBudgetBand(minBudget: string, maxBudget: string): string | null {
 // exact same controls and stay visually identical.
 
 export const SORT_OPTIONS = sortOptions;
-export const chipStyles = { chipBase, chipActive, chipIdle };
+export const chipStyles = { chipBase, chipActive, chipIdle, chipRow };
 
 // Wrapping chip row, not a 2-column grid: five options in `grid-cols-2` left a
 // lone half-width orphan on the last row. A content-sized wrap has no empty
@@ -145,7 +163,7 @@ export const chipStyles = { chipBase, chipActive, chipIdle };
 export const SortContent = ({
   sortBy, setSortBy, onSelect,
 }: { sortBy: string; setSortBy: (v: string) => void; onSelect?: () => void }) => (
-  <div role="group" aria-label="Sort results" className="flex flex-wrap gap-1.5">
+  <div role="group" aria-label="Sort results" className={chipRow}>
     {sortOptions.map((opt) => (
       <button
         key={opt.value}
@@ -163,10 +181,11 @@ export const SortContent = ({
 export const CategoryContent = ({
   selectedCategory, setSelectedCategory, onSelect,
 }: { selectedCategory: string | null; setSelectedCategory: (v: string | null) => void; onSelect?: () => void }) => (
-  // Single-line horizontal scroll — fits all 10 categories without
-  // wrapping onto a second/third row, no matter the viewport width.
-  <div className="-mx-2 px-2 overflow-x-auto scrollbar-hide">
-    <div className="flex items-center gap-1.5 pb-0.5 w-max">
+  // Wraps like every other row. It used to be a single-line horizontal scroll
+  // (`overflow-x-auto` + `w-max`), which hid roughly half the 12 categories
+  // off the right edge behind a scrollbar the sheet deliberately styles away
+  // (`scrollbar-hide`) — findable only by guessing it could be dragged.
+  <div role="group" aria-label="Filter by category" className={chipRow}>
       {Object.entries(categoryLabels).map(([key, label]) => {
         const isActive = selectedCategory === key;
         const titleColor = (categoryColors[key] || categoryColors.other).title;
@@ -174,19 +193,18 @@ export const CategoryContent = ({
           <button
             key={key}
             onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : key); onSelect?.(); }}
-            className={`${chipBase} shrink-0 ${isActive ? chipActive : chipIdle}`}
+            className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
           >
             <CategoryIcon
               category={key}
               aria-hidden
-              className={`w-2.5 h-2.5 ${isActive ? "" : titleColor}`}
+              className={`w-3 h-3 ${isActive ? "" : titleColor}`}
               strokeWidth={2.25}
             />
             {label}
           </button>
         );
       })}
-    </div>
   </div>
 );
 
@@ -207,14 +225,14 @@ export const NearbyContent = ({
       {/* No inner eyebrow — the FilterSheet section this renders into already
           carries the "Distance" heading, and stacking a second "Nearby radius"
           label under it was the sheet's only double-titled section. */}
-      <div role="group" aria-label="Filter by distance" className="grid grid-cols-5 gap-1.5">
+      <div role="group" aria-label="Filter by distance" className={chipRow}>
         {/* Explicit "Any" so the unfiltered state is a lit chip rather than the
             absence of one — same treatment as Budget and When. */}
         <button
           type="button"
           aria-pressed={current === null}
           onClick={() => { hapticLight(); setLocationFilter(""); onSelect?.(); }}
-          className={`${chipBase} w-full justify-center ${current === null ? chipActive : chipIdle}`}
+          className={`${chipBase} ${current === null ? chipActive : chipIdle}`}
         >
           Any
         </button>
@@ -226,7 +244,7 @@ export const NearbyContent = ({
               type="button"
               aria-pressed={active}
               onClick={() => { hapticLight(); setLocationFilter(active ? "" : `nearby:${mi}`); onSelect?.(); }}
-              className={`${chipBase} w-full justify-center ${active ? chipActive : chipIdle}`}
+              className={`${chipBase} ${active ? chipActive : chipIdle}`}
             >
               {mi} mi
             </button>
@@ -249,14 +267,14 @@ export const NearbyContent = ({
 export const ExpiresContent = ({
   expiresWithin, setExpiresWithin, onSelect,
 }: { expiresWithin: string; setExpiresWithin: (v: string) => void; onSelect?: () => void }) => (
-  <div role="group" aria-label="Filter by expiry window" className="grid grid-cols-4 gap-1.5">
+  <div role="group" aria-label="Filter by expiry window" className={chipRow}>
     {expiresOptions.map((opt) => (
       <button
         key={opt.value}
         type="button"
         aria-pressed={expiresWithin === opt.value}
         onClick={() => { hapticLight(); setExpiresWithin(expiresWithin === opt.value ? "" : opt.value); onSelect?.(); }}
-        className={`${chipBase} w-full justify-center ${expiresWithin === opt.value ? chipActive : chipIdle}`}
+        className={`${chipBase} ${expiresWithin === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
       </button>

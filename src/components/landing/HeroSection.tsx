@@ -147,7 +147,15 @@ const HeroSection = () => {
           />
           <h1
             ref={headlineRef}
-            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[5rem] md:text-[6.5rem] lg:text-[6rem] xl:text-[7.25rem] hero-h1-settle"
+            // Strictly increasing: 56 → 72 → 88 → 96 → 116px. It used to run
+            // 56 → 80 → 104 → 96 → 116, i.e. `md` was BIGGER than `lg`, so the
+            // 768–1023px band rendered the hero larger than a full desktop
+            // does — 12.4vw there against 9.4vw at `lg` and 9.1vw at `xl`. On a
+            // ~840px window (a half-screen browser, a small laptop, an iPad
+            // landscape) the headline swelled ~30% out of proportion and then
+            // visibly SHRANK as you widened past 1024. Only `sm` and `md` moved;
+            // `lg`/`xl` — the sizes on a normal desktop — are untouched.
+            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6rem] xl:text-[7.25rem] hero-h1-settle"
             style={{
               color: "hsl(var(--olivewood))",
               letterSpacing: "-0.03em",

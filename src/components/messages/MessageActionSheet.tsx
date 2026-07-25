@@ -1,4 +1,4 @@
-import { Copy, Flag, Trash2 } from "lucide-react";
+import { Ban, Copy, Flag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { hapticLight } from "@/lib/haptics";
@@ -13,6 +13,11 @@ interface MessageActionSheetProps {
   onClose: () => void;
   /** Open the existing report dialog for an inbound message. */
   onReport: (id: string) => void;
+  /** Open the existing BlockUserDialog for the thread's other participant.
+   *  Same handler the ChatHeader ⋮ menu uses — this sheet only surfaces a
+   *  second entry point so a user reacting to one bad message doesn't have
+   *  to back out to the header to block. Inbound messages only. */
+  onBlock: () => void;
   /** Open the existing delete confirm for the viewer's own message. */
   onDelete: (id: string) => void;
 }
@@ -26,8 +31,8 @@ const isPlainText = (content: string | null | undefined): content is string =>
 /**
  * Bottom action sheet for a long-press on a chat bubble. Surfaces the
  * actions a viewer can take on a message without the affordances having
- * to live inline on every row: Copy (plain-text only), plus Report
- * (inbound) or Delete (own).
+ * to live inline on every row: Copy (plain-text only), plus Report +
+ * Block (inbound) or Delete (own).
  *
  * Open/close is fully controlled by the parent — passing `message=null`
  * closes the sheet. Reuses the `@/components/ui/sheet` primitive so
@@ -39,6 +44,7 @@ export function MessageActionSheet({
   mine,
   onClose,
   onReport,
+  onBlock,
   onDelete,
 }: MessageActionSheetProps) {
   if (!message) return null;
@@ -60,6 +66,13 @@ export function MessageActionSheet({
 
   const handleReport = () => {
     onReport(message.id);
+    onClose();
+  };
+
+  const handleBlock = () => {
+    onBlock();
+    // Close BEFORE the block dialog opens so the sheet isn't stacked
+    // underneath it (same ordering as handleDelete).
     onClose();
   };
 
@@ -98,12 +111,25 @@ export function MessageActionSheet({
               tone="danger"
             />
           ) : (
-            <ActionRow
-              icon={<Flag className="w-5 h-5" strokeWidth={2} />}
-              label="Report"
-              onClick={handleReport}
-              tone="danger"
-            />
+            /* Inbound message — the two safety actions, in the same order
+               and with the same weight as the ChatHeader ⋮ menu ("Report
+               user" then "Block user"). Block is wired to the identical
+               `setBlockTarget` → BlockUserDialog path the header uses; no
+               blocking logic is duplicated here. */
+            <>
+              <ActionRow
+                icon={<Flag className="w-5 h-5" strokeWidth={2} />}
+                label="Report"
+                onClick={handleReport}
+                tone="danger"
+              />
+              <ActionRow
+                icon={<Ban className="w-5 h-5" strokeWidth={2} />}
+                label="Block"
+                onClick={handleBlock}
+                tone="danger"
+              />
+            </>
           )}
         </div>
       </SheetContent>

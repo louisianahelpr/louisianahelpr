@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareNative } from "@/lib/nativeShare";
@@ -32,6 +33,9 @@ interface WrappedStats {
   reviewsGiven: number;
   reviewsReceived: number;
   approxHours: number;
+  /** True when at least one (but not every) stat query failed, so the
+   *  numbers below are an undercount rather than the whole year. */
+  incomplete: boolean;
 }
 
 async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
@@ -85,6 +89,24 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
         context: { user_id: userId },
       });
     }
+  }
+
+  // The four stat queries above are the page's whole substance — `profile`
+  // only supplies a fee-percent fallback. If EVERY one of them failed this
+  // isn't a quiet year, it's an outage: throw so React Query flags isError
+  // and the page can offer a retry instead of telling someone with a full
+  // year of history "No activity yet". If only some failed, hand back an
+  // `incomplete` flag so the render side can say the numbers are partial
+  // rather than presenting an undercount as the truth.
+  const coreErrors = [
+    postedRes.error,
+    completedRes.error,
+    reviewsGivenRes.error,
+    reviewsReceivedRes.error,
+  ].filter((e): e is NonNullable<typeof e> => !!e);
+
+  if (coreErrors.length === 4) {
+    throw new Error(coreErrors[0].message || "Couldn't load your Helpr year.");
   }
 
   const posted = postedRes.data ?? [];
@@ -146,6 +168,7 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
     reviewsGiven: reviewsGiven.length,
     reviewsReceived: reviewsReceived.length,
     approxHours,
+    incomplete: coreErrors.length > 0,
   };
 }
 
@@ -197,7 +220,7 @@ const HelprWrapped = () => {
     }
   }, [isReady, user, navigate]);
 
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["helpr-wrapped", user?.id, YEAR],
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
@@ -276,6 +299,12 @@ const HelprWrapped = () => {
 
   const hasActivity = statCards.length > 0;
 
+  // "No activity yet" is a claim about the user's year — only make it when
+  // we actually know. A hard failure (every stat query down), or a partial
+  // failure that left us with nothing to show, both render as a retryable
+  // error instead. `incomplete` alongside real cards is footnoted below.
+  const loadFailed = isError || (!!stats?.incomplete && !hasActivity);
+
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
@@ -340,6 +369,16 @@ const HelprWrapped = () => {
                   />
                 ))}
               </div>
+            ) : loadFailed ? (
+              <div className="flex py-2">
+                <ErrorState
+                  variant="inline"
+                  title={`Couldn't load your ${YEAR}.`}
+                  body="Your jobs, earnings and reviews are all still there — we just couldn't add them up right now. Tap Try again."
+                  onRetry={() => void refetch()}
+                  retryDisabled={isFetching}
+                />
+              </div>
             ) : !hasActivity ? (
               <div className="text-center py-6 space-y-2">
                 <p className="text-ds-15 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -350,10 +389,30 @@ const HelprWrapped = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2.5">
-                {statCards.map((card, i) => (
-                  <StatCard key={i} {...card} />
-                ))}
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-2.5">
+                  {statCards.map((card, i) => (
+                    <StatCard key={i} {...card} />
+                  ))}
+                </div>
+                {/* Part of the year failed to load — say so rather than let
+                    an undercount pass for the full picture. */}
+                {stats?.incomplete && (
+                  <p
+                    className="text-center text-ds-11 font-serif italic"
+                    style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}
+                  >
+                    Some of your {YEAR} didn't load, so these numbers may be low.{" "}
+                    <button
+                      type="button"
+                      onClick={() => void refetch()}
+                      disabled={isFetching}
+                      className="underline underline-offset-2 disabled:opacity-60"
+                    >
+                      Try again
+                    </button>
+                  </p>
+                )}
               </div>
             )}
           </div>

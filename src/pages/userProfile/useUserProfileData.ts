@@ -10,6 +10,18 @@ import type { ProfileReview, ProfileJob } from "./types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
+// The three trust-signal side queries below are deliberately soft-failing —
+// a missing table/function must hide a badge, not brick the profile. But
+// "not deployed yet" is the ONLY benign case: PGRST202 (function missing),
+// PGRST205 / 42P01 (relation missing). Every other error — RLS regression,
+// timeout, outage — has to stay observable, otherwise a real failure reads
+// as "this user has no disputes / no credentials / no pet history", which is
+// a trust claim we'd be making without knowing it's true.
+const NOT_DEPLOYED_CODES = new Set(["PGRST202", "PGRST205", "42P01"]);
+function isNotDeployed(err: { code?: string } | null | undefined): boolean {
+  return !!err?.code && NOT_DEPLOYED_CODES.has(err.code);
+}
+
 // Shared review-enrichment mapper — identical in both the initial queryFn
 // fetch and the loadMore pagination path. Lifted verbatim so behaviour is
 // preserved; both call sites previously inlined this exact same shape.
@@ -103,7 +115,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // blocks the row read.
       const wantsMutual = !!currentUserId && currentUserId !== userId;
 
-      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes, repeatHireRes] = await Promise.all([
+      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes, repeatHireRes, credentialTierRes] = await Promise.all([
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
@@ -170,6 +182,12 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // this helper more than once. PGRST202-safe: function may not be
         // deployed on production yet; falls back to null (milestone hidden).
         supabase.rpc("get_user_repeat_hire_percent" as any, { p_user_id: userId! }),
+        // Credential tier (0-3) — drives the "Licensed Pro" career milestone
+        // (requires tier >= 2 = verified trade license). SECURITY DEFINER and
+        // granted to `authenticated`, so it resolves for any viewed profile,
+        // not just the viewer's own. Same RPC the Apply-gate uses in
+        // useJobDetailData.ts. PGRST202-safe: falls back to 0.
+        supabase.rpc("get_user_credential_tier", { p_user_id: userId! }),
       ]);
 
       // These five feed secondary stats (reviews, job counts, response
@@ -209,6 +227,21 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         report(repeatHireRes.error, {
           severity: "warning",
           tags: { area: "user_profile.repeat_hire_percent" },
+          context: { viewed_user_id: userId },
+        });
+      }
+      // Credential-tier RPC: same PGRST202-safe pattern, plus 42501
+      // (insufficient privilege) — EXECUTE is granted to `authenticated` only,
+      // so a signed-out visitor viewing a public profile hits that every time.
+      // Both mean "no tier available", not "outage": tier 0 hides the badge.
+      if (
+        credentialTierRes.error &&
+        credentialTierRes.error.code !== "PGRST202" &&
+        credentialTierRes.error.code !== "42501"
+      ) {
+        report(credentialTierRes.error, {
+          severity: "warning",
+          tags: { area: "user_profile.credential_tier" },
           context: { viewed_user_id: userId },
         });
       }
@@ -383,6 +416,12 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // Repeat-hire % — null when the RPC isn't deployed yet (PGRST202)
         // or when the helper has no completed jobs yet.
         repeatHirePercent: repeatHireRes?.error ? null : (typeof repeatHireRes?.data === "number" ? repeatHireRes.data : null),
+        // Credential tier 0-3 — 0 when the RPC errored/isn't deployed, which
+        // simply withholds the "Licensed Pro" milestone rather than claiming it.
+        credentialTier:
+          credentialTierRes?.error || typeof credentialTierRes?.data !== "number"
+            ? 0
+            : credentialTierRes.data,
       };
     },
   });
@@ -401,10 +440,26 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
           .from("job_disputes")
           .select("id", { count: "exact", head: true })
           .eq("opened_by", userId!);
-        // PGRST202 = table not deployed yet — hide badge silently.
-        if (error) return null;
+        // Table not deployed yet — hide the badge silently. Any other error
+        // is a real failure: report it rather than let it pass for a count
+        // we never actually read.
+        if (error) {
+          if (!isNotDeployed(error)) {
+            report(error, {
+              severity: "warning",
+              tags: { area: "user_profile.dispute_count" },
+              context: { viewed_user_id: userId },
+            });
+          }
+          return null;
+        }
         return { count: count ?? 0 };
-      } catch {
+      } catch (e) {
+        report(e, {
+          severity: "warning",
+          tags: { area: "user_profile.dispute_count" },
+          context: { viewed_user_id: userId },
+        });
         return null;
       }
     },
@@ -428,9 +483,25 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
           .select("id", { count: "exact", head: true })
           .eq("user_id", userId!)
           .eq("status", "submitted");
-        if (error) return null;
+        // Same split as above: undeployed table = quiet, anything else is a
+        // real failure and must be reported.
+        if (error) {
+          if (!isNotDeployed(error)) {
+            report(error, {
+              severity: "warning",
+              tags: { area: "user_profile.submitted_credentials" },
+              context: { viewed_user_id: userId },
+            });
+          }
+          return null;
+        }
         return { count: count ?? 0 };
-      } catch {
+      } catch (e) {
+        report(e, {
+          severity: "warning",
+          tags: { area: "user_profile.submitted_credentials" },
+          context: { viewed_user_id: userId },
+        });
         return null;
       }
     },
@@ -456,11 +527,32 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
             .select("id", { count: "exact", head: true })
             .eq("helper_id", userId!),
         ]);
-        if (petsRes.error?.code === "PGRST202" || reportsRes.error?.code === "PGRST202") return null;
+        // Undeployed pet_report_cards = hide the badge quietly. Any other
+        // error (RLS, timeout) is reported before we degrade, so an outage
+        // isn't indistinguishable from "never cared for a pet".
+        // Check each leg on its own: a genuine failure on one must not be
+        // excused by an undeployed code on the other.
+        for (const [leg, err] of [
+          ["pets", petsRes.error],
+          ["reports", reportsRes.error],
+        ] as const) {
+          if (err && !isNotDeployed(err)) {
+            report(err, {
+              severity: "warning",
+              tags: { area: `user_profile.pet_care_signal.${leg}` },
+              context: { viewed_user_id: userId },
+            });
+          }
+        }
         if (petsRes.error || reportsRes.error) return null;
         const distinctPets = new Set((petsRes.data ?? []).map((r: any) => r.pet_id)).size;
         return { distinctPets, reportCount: reportsRes.count ?? 0 };
-      } catch {
+      } catch (e) {
+        report(e, {
+          severity: "warning",
+          tags: { area: "user_profile.pet_care_signal" },
+          context: { viewed_user_id: userId },
+        });
         return null;
       }
     },

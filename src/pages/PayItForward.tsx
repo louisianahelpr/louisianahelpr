@@ -32,6 +32,7 @@ import PageHeader from "@/components/PageHeader";
 import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ErrorState } from "@/components/ui/ErrorState";
 import type { PifCredit } from "./payItForward/types";
 import { AMOUNT_PRESETS, MAX_NOTE_LENGTH } from "./payItForward/constants";
 import { CreditCard } from "./payItForward/CreditCard";
@@ -140,7 +141,17 @@ export default function PayItForward() {
   }, [searchParams, setSearchParams, authLoading, user?.id, queryClient]);
 
   // ── Queries ───────────────────────────────────────────────────────────────
-  const { data: myDonated = [], isLoading: loadingDonated } = useQuery({
+  // isError is load-bearing on both lists: these are real, paid gift cards.
+  // A failed fetch collapses to [] and would otherwise render the "nothing
+  // here yet" empty state — telling someone their unredeemed money doesn't
+  // exist. A failure must read as a failure, with a way back.
+  const {
+    data: myDonated = [],
+    isLoading: loadingDonated,
+    isError: donatedFailed,
+    isFetching: donatedFetching,
+    refetch: refetchDonated,
+  } = useQuery({
     queryKey: ["pif-donated", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -155,6 +166,7 @@ export default function PayItForward() {
         return rows;
       } catch (e: unknown) {
         if (e instanceof Error && e.message.includes("PGRST202")) return [];
+        report(e, { severity: "warning", tags: { source: "PayItForward.donated" } });
         throw e;
       }
     },
@@ -164,7 +176,13 @@ export default function PayItForward() {
   // Gifts sent TO me — matched by resolved recipient_id OR my named email, since
   // a gift I haven't claimed yet has recipient_id = null but is visible to my
   // email via RLS. Newest first.
-  const { data: myReceived = [], isLoading: loadingReceived } = useQuery({
+  const {
+    data: myReceived = [],
+    isLoading: loadingReceived,
+    isError: receivedFailed,
+    isFetching: receivedFetching,
+    refetch: refetchReceived,
+  } = useQuery({
     queryKey: ["pif-received", user?.id, myEmail],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -212,6 +230,7 @@ export default function PayItForward() {
         return rows;
       } catch (e: unknown) {
         if (e instanceof Error && e.message.includes("PGRST202")) return [];
+        report(e, { severity: "warning", tags: { source: "PayItForward.received" } });
         throw e;
       }
     },
@@ -494,6 +513,16 @@ export default function PayItForward() {
                     />
                   ))}
                 </div>
+              ) : receivedFailed ? (
+                <div className="flex">
+                  <ErrorState
+                    variant="inline"
+                    title="Couldn't load your gift cards."
+                    body="Any gift card sent to you is still yours — we just couldn't reach it right now. Tap Try again."
+                    onRetry={() => void refetchReceived()}
+                    retryDisabled={receivedFetching}
+                  />
+                </div>
               ) : myReceived.length === 0 ? (
                 <EmptyState message="When someone sends you a Helpr gift card, it'll show up here." />
               ) : (
@@ -520,6 +549,16 @@ export default function PayItForward() {
                   className="rounded-ds-md h-16 animate-pulse"
                   style={{ background: "hsl(var(--olivewood) / 0.07)" }}
                 />
+              ) : donatedFailed ? (
+                <div className="flex">
+                  <ErrorState
+                    variant="inline"
+                    title="Couldn't load the gift cards you've sent."
+                    body="Nothing was lost — we just couldn't reach your gift history. Tap Try again."
+                    onRetry={() => void refetchDonated()}
+                    retryDisabled={donatedFetching}
+                  />
+                </div>
               ) : myDonated.length === 0 ? (
                 <EmptyState message="Gift cards you send will appear here." />
               ) : (

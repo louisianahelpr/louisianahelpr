@@ -187,7 +187,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<Legal />)}</RouteErrorBoundary>} />
       <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
       <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
-      <Route path="/data-rights" element={<RouteErrorBoundary>{routeEl(<PageTransition><DataRights /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/data-rights" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><DataRights /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
 
       {/* Public, indexable jobs landing — Jobs.tsx reads anon job data
           (get_ranked_open_jobs, granted to anon) and renders guest

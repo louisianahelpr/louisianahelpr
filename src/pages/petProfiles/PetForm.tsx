@@ -384,6 +384,21 @@ export function PetForm({
                   During a declared emergency, Helpr volunteers can see your
                   pet and offer transport to a safe location.
                 </p>
+                {/* Hurricane transport is a safety promise — the toggle must
+                    never imply the pet IS registered. Nothing persists until
+                    handleSave runs, and closing the sheet discards the flag,
+                    so surface the unsaved state persistently (a toast the user
+                    scrolls past is not good enough for this one). */}
+                {form.is_evacuation_registered !==
+                  (initialValues?.is_evacuation_registered ?? false) && (
+                  <p
+                    className="text-ds-11 mt-1 leading-snug font-medium"
+                    style={{ color: "hsl(var(--burnt-sienna))" }}
+                  >
+                    Not saved yet — tap “{initialValues ? "Save changes" : "Add pet"}”
+                    below to {form.is_evacuation_registered ? "register" : "unregister"} this pet.
+                  </p>
+                )}
               </div>
               <button
                 type="button"
@@ -393,7 +408,8 @@ export function PetForm({
                   const next = !form.is_evacuation_registered;
                   set("is_evacuation_registered", next);
                   if (next) {
-                    toast("Registered — your pet will be visible to transport volunteers during an emergency", {
+                    // Honest copy: this only records an intent in the form.
+                    toast("Not registered yet — save this pet to finish registering", {
                       icon: "🛟",
                     });
                   }

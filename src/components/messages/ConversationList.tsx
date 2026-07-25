@@ -245,47 +245,21 @@ export function ConversationList({
   );
 
   // Empty inbox (loaded, no error, zero threads). When there's nothing
-  // to list, the "0 threads" count chip and the redundant secondary
-  // "Conversations / All threads" header are pure noise stacked above
-  // the empty-state card — both are hidden so the empty state reads as
-  // one clean panel.
+  // to list, the redundant secondary "Conversations / All threads"
+  // header is pure noise stacked above the empty-state card — it's
+  // hidden so the empty state reads as one clean panel.
   const isEmpty = !loading && !loadError && conversations.length === 0;
-
-  // Show the thread count ONLY once a load has resolved with real
-  // threads. During the first load `loading` is true while
-  // `conversations` is still [], so keying the chip off `!isEmpty` would
-  // flash "0 threads" before the list arrives, then snap to "N threads"
-  // — the screen-jump the user reported. Gating on `!loading` keeps the
-  // title card stable: no count during the skeleton, the real count after.
-  // We intentionally do NOT gate on `loadError`: a transient refresh
-  // failure still leaves the existing threads rendered (the error state
-  // only takes over when `conversations.length === 0`), so the count must
-  // stay to match what's on screen.
-  const showThreadCount = !loading && conversations.length > 0;
 
   // Pull-to-refresh: swiping down on the list re-runs loadConversations.
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: async () => { if (userId) await loadConversations(userId); },
   });
 
-  // The "Messages" section name now lives in the top bar (Instagram/Facebook
-  // pattern — passed as `title` to DashboardHeader below), so the title card
-  // holds only the count chip. Count is gated on `showThreadCount`
-  // (!loading && length > 0) so it never flashes "0 threads" during the
-  // skeleton load. When there's no chip we drop the whole title card
-  // (undefined) rather than float an empty frosted card above the panel.
-  const titleCard = showThreadCount ? (
-    <p
-      className="truncate font-sans font-semibold uppercase leading-none"
-      style={{
-        fontSize: "0.62rem",
-        letterSpacing: "0.16em",
-        color: "hsl(var(--olivewood) / 0.8)",
-      }}
-    >
-      {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
-    </p>
-  ) : undefined;
+  // No title card: the "Messages" section name lives in the top bar
+  // (Instagram/Facebook pattern — passed as `title` to DashboardHeader
+  // below), and the "N threads" chip that used to be the card's only
+  // content just restated the thread list directly beneath it. Same
+  // call as My Posts / My Jobs, which dropped their count box too.
 
   const listBody = (
     <>
@@ -616,7 +590,12 @@ export function ConversationList({
   }
 
   return (
-    <PageScaffold header={<DashboardHeader title="Messages" />} titleCard={titleCard}>
+    // No "N threads" chip above the list: the list directly below IS the
+    // count, and the empty state already says there's nothing — the same
+    // redundant count line removed from Activity, /jobs, and the browse
+    // toolbar. The desktop split's bar keeps its UNREAD pill, which is real
+    // information you can't get by glancing at the list.
+    <PageScaffold header={<DashboardHeader title="Messages" />}>
       {listBody}
     </PageScaffold>
   );

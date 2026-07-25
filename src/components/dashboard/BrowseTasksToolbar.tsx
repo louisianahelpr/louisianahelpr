@@ -184,19 +184,10 @@ export function BrowseTasksToolbar({
                 surface and "Browse jobs" on the other. */}
             {filters.hasFilters ? "Filtered results" : "Browse jobs"}
           </h1>
-          {/* Subtitle hidden when 0 jobs — the empty-state card
-              below already says "Nothing nearby just yet" in a much
-              more prominent way. Showing "0 jobs" here too is
-              redundant noise. */}
-          {filters.filteredJobs.length > 0 && (
-            <span
-              className="font-serif italic mt-0.5 text-ds-11"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              {filters.filteredJobs.length}{" "}
-              {filters.filteredJobs.length === 1 ? "job" : "jobs"}
-            </span>
-          )}
+          {/* No "N jobs" count line under the title: the feed directly
+              below IS the count, and the empty state already says
+              "Nothing nearby just yet" far more clearly. Matches the
+              /jobs public board, which dropped the same line. */}
         </div>
         <div className="flex items-center gap-1">
               {/* Clear-all lives with the filter/chip rows below, not here —

@@ -70,8 +70,13 @@ const Footer = () => (
             "Helpr" + italic burnt-sienna "· LA" tail). */}
         <div className="sm:col-span-12 md:col-span-4 space-y-3">
           <HelprMark to="/" size="md" hideEmblem />
-          <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">
-            Hire a Helpr or find local work. For everyday jobs, big and small.
+          {/* Break after the first sentence so the tagline wraps predictably
+              into two short lines instead of one long one that pushes the
+              link columns around. */}
+          <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-xs leading-relaxed">
+            Hire a Helpr or find local work.
+            <br />
+            For everyday jobs, big and small.
           </p>
         </div>
 
@@ -83,7 +88,26 @@ const Footer = () => (
           >
             Company
           </h3>
+          {/* The footer is the site's full index, so it carries everything the
+              top nav does (How it works, Jobs, Business) PLUS the secondary
+              destinations the nav has no room for. Without these two, a visitor
+              who scrolled past the nav had no path back to Jobs, and the page
+              lost internal links to a key SEO destination. */}
+          {/* Single column, matching Legal and Follow. This list is longer
+              than its neighbours now that How it works + Jobs are here, but
+              uneven column LENGTHS are normal in a footer — three different
+              list treatments side by side is what looks unfinished. */}
           <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
+            <li>
+              <Link to="/#how-it-works" className="link-standard">
+                How it works
+              </Link>
+            </li>
+            <li>
+              <Link to="/jobs" className="link-standard">
+                Jobs
+              </Link>
+            </li>
             <li>
               <Link to="/for-business" className="link-standard">
                 Business

@@ -18,7 +18,7 @@ export const AUTH_PREFIXES = [
   // content full-bleed instead of to the right of the rail. NOTE: /family is
   // deliberately excluded — its public /family/accept/:token invite sub-route
   // shares the prefix and would surface the authed rail to logged-out invitees.
-  "/gift-card", "/str-settings", "/home-history", "/work-record",
+  "/gift-card", "/str-settings", "/home-history", "/work-record", "/data-rights",
   "/benefits", "/analytics", "/pets",
   // /family DOES get the authed desktop rail so wayfinding persists from
   // /dashboard → /family instead of dropping the rail entirely. The

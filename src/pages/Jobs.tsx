@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ArrowRight, Search, SlidersHorizontal, X, Lock, Briefcase } from "lucide-react";
+import { Search, SlidersHorizontal, X, Briefcase } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import BackButton from "@/components/BackButton";
@@ -253,10 +253,6 @@ const Jobs = () => {
               <h1 className="text-page-title leading-tight truncate">
                 Browse jobs
               </h1>
-              <span className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                <span className="font-semibold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>{filtered.length}</span>{" "}
-                {filtered.length === 1 ? "job" : "jobs"} open
-              </span>
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <Button
@@ -374,11 +370,11 @@ const Jobs = () => {
               ))}
             </div>
           ) : jobsError && jobs.length === 0 ? (
-            <div className="max-w-2xl mx-auto">
+            <div>
               <ErrorState onRetry={() => refetch()} />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="max-w-2xl mx-auto">
+            <div>
               <EmptyState
                 variant="inline"
                 icon={(search || selectedCategory) ? Search : Briefcase}
@@ -479,40 +475,9 @@ const Jobs = () => {
             </div>
           )}
 
-          {/* CTA */}
-          <div className="text-center mt-12 space-y-4">
-            <div
-              className="rounded-ds-lg p-8 max-w-2xl mx-auto space-y-4"
-              style={{
-                background:
-                  "linear-gradient(135deg, hsl(var(--bark) / 0.08) 0%, hsl(var(--burnt-sienna) / 0.07) 100%)",
-                border: "1px solid hsl(var(--bark) / 0.14)",
-              }}
-            >
-              <Lock className="w-8 h-8 mx-auto" style={{ color: "hsl(var(--burnt-sienna))" }} />
-              <h3
-                className="font-display italic font-bold text-ds-20 tracking-[-0.025em]"
-                style={{ color: "hsl(var(--ink-deep))" }}
-              >
-                Join the Helpr community
-              </h3>
-              <p
-                className="font-serif italic text-ds-13 leading-relaxed"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                Sign up to apply for jobs, message posters, and start earning — or post your own job and find help today.
-              </p>
-              <Button
-                variant="bark"
-                size="lg"
-                onClick={() => navigate("/signup")}
-                className="group rounded-ds-md px-8"
-              >
-                Get started
-                <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </div>
-          </div>
+          {/* No sign-up CTA band here — "Get started" is already pinned in the
+              top nav on every guest page, so repeating it at the bottom of the
+              board was a second copy of the same action. */}
         </div>
       </div>
 

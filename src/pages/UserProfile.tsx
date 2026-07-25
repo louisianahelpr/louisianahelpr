@@ -386,25 +386,28 @@ const UserProfile = () => {
 
             {/* Career milestones — earned badges based on job count, rating,
                 and credential tier. Shows next-milestone progress on own profile.
-                credential_tier: 2 = verified license (license_status=verified).
                 Sits with identity in the masthead because it's a persistent
-                trust-signal about the person, not about a specific interaction. */}
-            {(() => {
-              const credentialTier = (data as any)?.credentialTier ??
-                (profile as any)?.license_status === "verified" ? 2 : 0;
-              const milestoneStats = {
+                trust-signal about the person, not about a specific interaction.
+
+                credentialTier (0-3; 2 = verified trade license) now comes from
+                the get_user_credential_tier RPC via useUserProfileData, and is
+                0 when that RPC errors or isn't deployed. It used to be computed
+                inline as
+                  `data?.credentialTier ?? profile?.license_status === "verified" ? 2 : 0`
+                — `??` binds tighter than `?:`, so that parsed as
+                `(undefined ?? false) ? 2 : 0` and was permanently 0. It also
+                read a `license_status` column that neither get_safe_profiles
+                nor the fallback select ever returns, so no precedence fix alone
+                could have made it non-zero. */}
+            <CareerMilestones
+              stats={{
                 completedJobs: stats.completedJobs,
                 avgRating: stats.avgRating,
                 repeatHirePercent: data?.repeatHirePercent ?? 0,
-                credentialTier,
-              };
-              return (
-                <CareerMilestones
-                  stats={milestoneStats}
-                  showProgress={isOwnProfile}
-                />
-              );
-            })()}
+                credentialTier: data?.credentialTier ?? 0,
+              }}
+              showProgress={isOwnProfile}
+            />
           </div>
 
           {/* ── RIGHT COLUMN (activity + reviews) ──

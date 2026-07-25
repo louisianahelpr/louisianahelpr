@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import PageHeader from "@/components/PageHeader";
 import NotificationPanel from "@/components/NotificationPanel";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -36,7 +37,11 @@ export default function StrSettings() {
   const queryClient = useQueryClient();
 
   // ── Fetch connections ────────────────────────────────────────────────────
-  const { data: connections = [], isLoading } = useQuery({
+  // isError/isFetching are load-bearing, not decoration: on a failed fetch
+  // `connections` falls back to [] and the page would otherwise render
+  // "No calendars connected yet" — telling a host their calendars are gone
+  // and inviting them to re-add a duplicate feed. Error must read as error.
+  const { data: connections = [], isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["str-calendar-connections", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
@@ -246,6 +251,16 @@ export default function StrSettings() {
             {isLoading ? (
               <div className="flex justify-center py-8">
                 <HelprSpinner size={24} />
+              </div>
+            ) : isError ? (
+              <div className="flex">
+                <ErrorState
+                  variant="inline"
+                  title="Couldn't load your calendars."
+                  body="Your connected calendars are still saved — we just couldn't reach them. Tap Try again before adding one, so you don't end up with a duplicate."
+                  onRetry={() => void refetch()}
+                  retryDisabled={isFetching}
+                />
               </div>
             ) : connections.length === 0 ? (
               <div className="rounded-ds-md" style={cardStyle}>

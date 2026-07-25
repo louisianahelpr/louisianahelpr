@@ -7,25 +7,64 @@ import { useEffect, useRef, useState } from "react";
  * enters the viewport. No cards, no glass panel, no icons — giant
  * Bodoni numerals anchor each step. Sits directly on parchment to match
  * the hero's editorial poster feel. Honors prefers-reduced-motion.
+ *
+ * Two-sided: Helpr is a marketplace where the SAME account both posts
+ * jobs and works them, so the steps switch between the poster journey
+ * and the helpr journey via the segmented control above the cards.
+ * Without it the page read as "this is only for hiring."
  */
-const STEPS = [
-  {
-    title: "Post the job",
-    desc: "Tell us what you need, set your budget, pick a date. Takes about a minute.",
-  },
-  {
-    title: "Pick your Helpr",
-    desc: "Local applicants come to you. Compare profiles, ratings, and reviews.",
-  },
-  {
-    title: "Pay when it's done",
-    desc: "Funds sit safe in escrow until you confirm the work is done.",
-  },
-];
+type Side = "hire" | "work";
+
+const SIDE_LABELS: Record<Side, string> = {
+  hire: "I need help",
+  work: "I want to work",
+};
+
+const STEPS: Record<Side, { title: string; desc: string }[]> = {
+  hire: [
+    {
+      title: "Post the job",
+      desc: "Tell us what you need, set your budget, pick a date. Takes about a minute.",
+    },
+    {
+      title: "Pick your Helpr",
+      desc: "Local applicants come to you. Compare profiles, ratings, and reviews.",
+    },
+    {
+      title: "Pay when it's done",
+      desc: "Funds sit safe in escrow until you confirm the work is done.",
+    },
+  ],
+  // Helpr-side copy is anchored to the real flow, not aspiration:
+  //   1. Browse is radius-filtered in miles (JobFilters.tsx `radiusOptions`)
+  //      and applying never triggers the ID gate (useApplyFlow.ts), with the
+  //      take-home breakdown shown in the apply dialog before you commit.
+  //   2. The ID-verification gate fires when a helpr ACCEPTS their first job
+  //      (useOfferHandlers.ts `handleHelperResponse`).
+  //   3. The poster funds escrow up front; release-payout transfers to the
+  //      helpr's Stripe Connect account once the job is completed and clear
+  //      of disputes. No payout speed or fee % is claimed here on purpose —
+  //      both are variable (tiered commission, 24h hold) and would date fast.
+  work: [
+    {
+      title: "Find work nearby",
+      desc: "Browse jobs within a few miles of you, see your take-home, then apply.",
+    },
+    {
+      title: "Get picked",
+      desc: "The poster chooses you. Verify your ID once, then go do the work.",
+    },
+    {
+      title: "Get paid when it's done",
+      desc: "Their money's already in escrow. It's released to your bank once the work is confirmed.",
+    },
+  ],
+};
 
 const HowItWorksSection = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
+  const [side, setSide] = useState<Side>("hire");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -72,49 +111,97 @@ const HowItWorksSection = () => {
           >
             Three steps.
           </h2>
+
+          {/* Side segmented control — same shape/treatment as the billing-cycle
+              toggle on SubscriptionPage. Sits directly under the "Three steps."
+              masthead so the choice reads as part of the heading it modifies.
+              The left column is narrow (~184–272px across md→2xl), so the two
+              pills wrap onto separate lines there rather than overflowing. */}
+          <div
+            role="tablist"
+            aria-label="Which side of Helpr are you on"
+            className="mt-6 inline-flex flex-wrap items-center justify-center md:justify-start gap-1 p-1 rounded-2xl"
+            style={{
+              background: "hsl(var(--burnt-sienna) / 0.06)",
+              border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
+              boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+            }}
+          >
+            {(["hire", "work"] as const).map((s) => {
+              const active = side === s;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setSide(s)}
+                  className="h-9 sm:h-10 px-4 sm:px-5 rounded-xl font-sans font-semibold text-ds-13 whitespace-nowrap transition-[background,color,transform] duration-150 active:scale-[0.98]"
+                  style={{
+                    background: active ? "hsl(var(--bark))" : "transparent",
+                    color: active
+                      ? "hsl(var(--parchment))"
+                      : "hsl(var(--olivewood))",
+                    boxShadow: active
+                      ? "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)"
+                      : "none",
+                    letterSpacing: "-0.005em",
+                  }}
+                >
+                  {SIDE_LABELS[s]}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Right column — 3 steps, sequential fade-in. */}
-        <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-8 lg:gap-10">
-          {STEPS.map((step, i) => (
-            <div
-              key={step.title}
-              className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8"
-              style={{
-                opacity: inView ? 1 : 0,
-                transform: inView ? "translateY(0)" : "translateY(24px)",
-                transition: `opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms, transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms`,
-                willChange: "opacity, transform",
-                background: "hsl(var(--burnt-sienna) / 0.04)",
-                border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
-                boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
-              }}
-            >
-              <span
-                aria-hidden
-                className="block font-display font-black leading-none"
+        {/* Right column — 3 steps with sequential fade-in. */}
+        <div className="md:col-span-8 lg:col-span-9">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-8 lg:gap-10">
+            {/* Keyed by index, not title: switching sides swaps the copy in
+                the SAME three nodes instead of remounting them, so the
+                observer's staggered fade-in isn't re-armed (or skipped) on
+                every toggle. */}
+            {STEPS[side].map((step, i) => (
+              <div
+                key={i}
+                className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8"
                 style={{
-                  fontSize: "clamp(4rem, 6.5vw, 6rem)",
-                  color: "hsl(var(--burnt-sienna) / 0.35)",
-                  letterSpacing: "-0.04em",
+                  opacity: inView ? 1 : 0,
+                  transform: inView ? "translateY(0)" : "translateY(24px)",
+                  transition: `opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms, transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms`,
+                  willChange: "opacity, transform",
+                  background: "hsl(var(--burnt-sienna) / 0.04)",
+                  border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
+                  boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
                 }}
               >
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <h3
-                className="mt-4 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
-                style={{ color: "hsl(var(--ink-deep))" }}
-              >
-                {step.title}
-              </h3>
-              <p
-                className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:mx-0"
-                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-              >
-                {step.desc}
-              </p>
-            </div>
-          ))}
+                <span
+                  aria-hidden
+                  className="block font-display font-black leading-none"
+                  style={{
+                    fontSize: "clamp(4rem, 6.5vw, 6rem)",
+                    color: "hsl(var(--burnt-sienna) / 0.35)",
+                    letterSpacing: "-0.04em",
+                  }}
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <h3
+                  className="mt-4 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
+                  style={{ color: "hsl(var(--ink-deep))" }}
+                >
+                  {step.title}
+                </h3>
+                <p
+                  className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:mx-0"
+                  style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                >
+                  {step.desc}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

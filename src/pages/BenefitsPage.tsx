@@ -100,8 +100,14 @@ export default function BenefitsPage() {
   usePageTitle("Benefits & Perks — Helpr");
   const navigate = useNavigate();
 
-  const open = (url: string) =>
-    window.open(url, "_blank", "noopener noreferrer");
+  // Partner rows are real anchors, not buttons — see the render below. The
+  // previous `window.open(url, "_blank", "noopener noreferrer")` silently
+  // applied NEITHER flag: that third argument is a COMMA-delimited feature
+  // list, so "noopener noreferrer" parsed as one unrecognised token and the
+  // partner tab kept a live `window.opener` handle back to us
+  // (reverse-tabnabbing). Anchors with rel="noopener noreferrer" also restore
+  // middle-click / open-in-new-tab / hover-preview and make screen readers
+  // announce these as links instead of buttons.
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
@@ -139,10 +145,12 @@ export default function BenefitsPage() {
             {/* Items */}
             <div className="divide-y" style={{ borderColor: "hsl(var(--olivewood) / 0.10)" }}>
               {section.items.map((item) => (
-                <button
+                <a
                   key={item.name}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-full text-left px-5 py-4 flex items-start justify-between gap-3 active:opacity-70 transition-opacity"
-                  onClick={() => open(item.url)}
                 >
                   <div>
                     <p
@@ -161,8 +169,9 @@ export default function BenefitsPage() {
                   <ExternalLink
                     className="w-4 h-4 shrink-0 mt-0.5"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                    aria-hidden="true"
                   />
-                </button>
+                </a>
               ))}
             </div>
           </div>

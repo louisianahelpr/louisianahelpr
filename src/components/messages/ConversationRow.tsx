@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from "react";
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, KeyboardEvent, SetStateAction } from "react";
 import { Flag, Ban, Trash2, MoreVertical, BellOff, Bell, Pin, PinOff, Check } from "lucide-react";
 import {
   DropdownMenu,
@@ -225,6 +225,28 @@ const ConversationRowBase = ({
       onClick={selectMode ? onToggleSelect : undefined}
       role={selectMode ? "button" : undefined}
       aria-pressed={selectMode ? selected : undefined}
+      // The row wrapper can't be a real <button> — it CONTAINS buttons (the
+      // select checkbox, the open-thread hit area, the ⋮ menu trigger), and
+      // nesting interactive controls is invalid. So `role="button"` has to
+      // carry its own keyboard contract: focusable, and Enter/Space activate.
+      // Browsers only synthesize that for native <button>/<a>.
+      tabIndex={selectMode ? 0 : undefined}
+      onKeyDown={
+        selectMode
+          ? (e: KeyboardEvent<HTMLDivElement>) => {
+              // Only act when the wrapper ITSELF has focus. The inner native
+              // buttons already activate on Enter/Space, and their keydown
+              // bubbles up here — without this guard a key press on the
+              // checkbox would toggle twice (net no-op).
+              if (e.target !== e.currentTarget) return;
+              if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+                // Space would otherwise scroll the list.
+                e.preventDefault();
+                onToggleSelect?.();
+              }
+            }
+          : undefined
+      }
       style={{
         // Flat iOS-Messages row — no per-row card. The only fill is the
         // calm active tint on the desktop split (this thread is open in the

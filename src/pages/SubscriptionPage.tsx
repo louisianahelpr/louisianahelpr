@@ -26,7 +26,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Check, ChevronDown, Loader2, Sparkles } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { isNativePlatform } from "@/lib/nativeInit";

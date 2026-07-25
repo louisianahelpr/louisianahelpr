@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import FaqRow from "@/components/marketing/FaqRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -11,8 +12,12 @@ import { usePageMeta } from "@/hooks/usePageMeta";
  *
  * Four sections, all on the parchment paper (no glass panels, no card
  * graveyard):
- *   1. Editorial hero — matches the landing hero exactly (warm gold halo,
- *      Bodoni H1 with italic burnt-sienna accent, one bark-fill squircle CTA).
+ *   1. Compact page header — back button + normal-size page title, the same
+ *      row shape /jobs uses. /for-business is reached from the FOOTER, i.e.
+ *      it is a secondary destination, so the full-bleed marketing hero it
+ *      used to open with (display-eyebrow + clamp() Bodoni H1 + gold halo)
+ *      read as a second landing page. The hero's lede and its "Start a
+ *      business account" CTA are preserved directly under the title.
  *   2. Built for — left-column masthead + 4 industries in the right column,
  *      sequential IntersectionObserver fade-in (same 1100ms + 400ms stagger
  *      pattern as HowItWorksSection).
@@ -203,40 +208,26 @@ const useInViewOnce = () => {
 /* -------------------------------------------------------------------------- */
 
 /**
- * 1. Editorial hero — mirrors HeroSection.tsx: eyebrow, Bodoni H1 with
- * italic burnt-sienna accent, warm gold halo, subhead, one bark-fill
- * squircle CTA.
+ * 1. Compact page header — canonical BackButton to the LEFT of a normal-size
+ * page title, identical in shape to /jobs. Replaces the old full-bleed
+ * marketing hero (display eyebrow, clamp() Bodoni H1, gold halo); the lede
+ * and the primary CTA that lived in that hero are kept, just sized for a
+ * secondary page instead of a landing.
  */
-const BusinessHero = () => (
-  <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
-    <div className="relative z-10 w-full mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16">
-      <div className="relative flex flex-col items-center justify-center w-full">
-        <WarmHalo />
-        <span className="text-display-eyebrow relative z-10 mb-6 sm:mb-8">
-          For business
-        </span>
-        <h1
-          className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.25rem] sm:text-[4.75rem] md:text-[6rem] lg:text-[5.75rem] xl:text-[6.75rem]"
-          style={{
-            color: "hsl(var(--olivewood))",
-            letterSpacing: "-0.03em",
-          }}
-        >
-          The best help for Louisiana{" "}
-          <em
-            className="relative inline-block"
-            style={{
-              fontStyle: "italic",
-              color: "hsl(var(--burnt-sienna))",
-            }}
-          >
-            businesses.
-          </em>
-        </h1>
+const PageIntro = () => (
+  <section className="px-5 sm:px-8 lg:px-12">
+    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+      <div className="flex items-center gap-3 mt-2 md:mt-6 mb-6 md:mb-8">
+        <div className="shrink-0">
+          <BackButton />
+        </div>
+        <div className="flex flex-col leading-none min-w-0 flex-1">
+          <h1 className="text-page-title leading-tight truncate">Business</h1>
+        </div>
       </div>
 
       <p
-        className="max-w-xl lg:max-w-3xl text-ds-15 sm:text-ds-17 lg:text-ds-24 leading-relaxed text-balance"
+        className="max-w-xl lg:max-w-2xl text-ds-15 sm:text-ds-17 leading-relaxed text-balance"
         style={{
           fontFamily: "Montserrat, system-ui, sans-serif",
           fontWeight: 400,
@@ -249,18 +240,18 @@ const BusinessHero = () => (
 
       <Button
         asChild
-        size="xl"
-        className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
+        size="lg"
+        className="btn-grad-primary group mt-6 h-14 px-8 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
         style={{
           fontFamily: "Montserrat, system-ui, sans-serif",
           fontWeight: 600,
-          fontSize: "1.0625rem",
+          fontSize: "0.9375rem",
           lineHeight: 1,
           letterSpacing: "-0.005em",
           color: "hsl(var(--parchment))",
           border: "1px solid hsl(66 25% 19%)",
           boxShadow:
-            "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
+            "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 12px 30px -10px hsl(var(--bark) / 0.4)",
         }}
       >
         <Link to="/signup">

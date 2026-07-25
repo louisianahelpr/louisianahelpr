@@ -273,30 +273,6 @@ export default function SubscriptionPage() {
           >
             Pick the plan that fits how you use Helpr.
           </p>
-
-          <a
-            href="#plans"
-            className="group inline-flex items-center justify-center rounded-2xl transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 tracking-tight"
-            style={{
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              fontSize: "1.0625rem",
-              lineHeight: 1,
-              letterSpacing: "-0.005em",
-              color: "hsl(var(--parchment))",
-              background: "hsl(var(--bark))",
-              border: "1px solid hsl(66 25% 19%)",
-              boxShadow:
-                "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
-            }}
-          >
-            <Sparkles className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
-            See the plans
-            <ArrowRight
-              className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
-              strokeWidth={1.25}
-            />
-          </a>
         </div>
       </section>
 
@@ -309,48 +285,6 @@ export default function SubscriptionPage() {
         ref={tiersRef}
         className="relative px-5 sm:px-8 lg:px-12 pt-6 sm:pt-8 lg:pt-10 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
       >
-        {/* Billing-cycle segmented control — sits centered above the grid.
-            Small squircle, filter-chip weight (not a CTA). Bark fill on
-            active, transparent on inactive. */}
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mb-10 sm:mb-12 flex justify-center">
-          <div
-            role="tablist"
-            aria-label="Billing cycle"
-            className="inline-flex items-center gap-1 p-1 rounded-2xl"
-            style={{
-              background: "hsl(var(--burnt-sienna) / 0.06)",
-              border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
-              boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
-            }}
-          >
-            {(["monthly", "annual"] as const).map((cycle) => {
-              const active = billingCycle === cycle;
-              return (
-                <button
-                  key={cycle}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setBillingCycle(cycle)}
-                  className="h-9 sm:h-10 px-4 sm:px-5 rounded-xl font-sans font-semibold text-ds-13 transition-[background,color,transform] duration-150 active:scale-[0.98]"
-                  style={{
-                    background: active ? "hsl(var(--bark))" : "transparent",
-                    color: active
-                      ? "hsl(var(--parchment))"
-                      : "hsl(var(--olivewood))",
-                    boxShadow: active
-                      ? "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)"
-                      : "none",
-                    letterSpacing: "-0.005em",
-                  }}
-                >
-                  {cycle === "monthly" ? "Monthly" : "Annual"}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
           {/* Left masthead */}
           <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32">
@@ -372,6 +306,46 @@ export default function SubscriptionPage() {
               The same commission % applies to both sides — Helprs keep more of
               their payout, posters pay a lower service fee.
             </p>
+            {/* Billing-cycle segmented control — lives under the masthead so
+                the price toggle sits with the "Pick your plan" heading rather
+                than floating centered above the grid. Inline-flex inherits the
+                column's text-center (mobile) / md:text-left alignment. */}
+            <div
+              role="tablist"
+              aria-label="Billing cycle"
+              className="mt-6 inline-flex items-center gap-1 p-1 rounded-2xl"
+              style={{
+                background: "hsl(var(--burnt-sienna) / 0.06)",
+                border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
+                boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+              }}
+            >
+              {(["monthly", "annual"] as const).map((cycle) => {
+                const active = billingCycle === cycle;
+                return (
+                  <button
+                    key={cycle}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setBillingCycle(cycle)}
+                    className="h-9 sm:h-10 px-4 sm:px-5 rounded-xl font-sans font-semibold text-ds-13 transition-[background,color,transform] duration-150 active:scale-[0.98]"
+                    style={{
+                      background: active ? "hsl(var(--bark))" : "transparent",
+                      color: active
+                        ? "hsl(var(--parchment))"
+                        : "hsl(var(--olivewood))",
+                      boxShadow: active
+                        ? "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)"
+                        : "none",
+                      letterSpacing: "-0.005em",
+                    }}
+                  >
+                    {cycle === "monthly" ? "Monthly" : "Annual"}
+                  </button>
+                );
+              })}
+            </div>
             {currentTier !== "free" && (
               <button
                 type="button"

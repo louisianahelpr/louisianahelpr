@@ -107,7 +107,7 @@ const TIERS: readonly Tier[] = [
       "Custom onboarding",
       "Dedicated success manager",
     ],
-    ctaLabel: "Contact us",
+    ctaLabel: "Choose Enterprise",
   },
 ] as const;
 

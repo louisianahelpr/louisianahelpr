@@ -623,11 +623,10 @@ const Legal = () => {
         <div className="container mx-auto px-5 pb-16 sm:pb-24 lg:pb-32 pt-4">
           <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
             <div
-              className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5"
+              className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5 backdrop-blur-md"
               style={{
                 top: webBandStickyTop,
-                background: "hsl(var(--surface-band))",
-                borderBottom: "1px solid hsl(var(--bark) / 0.10)",
+                background: "hsl(var(--parchment) / 0.6)",
               }}
             >
               {tabBar}

@@ -396,7 +396,7 @@ const Jobs = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => { setSearch(""); setSelectedCategory(null); setPricingMode("all"); }}
-                      className="squircle rounded-full"
+                      className="squircle"
                     >
                       Clear filters
                     </Button>
@@ -405,7 +405,7 @@ const Jobs = () => {
                       variant="outline"
                       size="sm"
                       asChild
-                      className="squircle rounded-full"
+                      className="squircle"
                     >
                       <Link to="/signup">Sign up to get notified</Link>
                     </Button>

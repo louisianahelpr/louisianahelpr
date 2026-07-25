@@ -95,14 +95,6 @@ const Footer = () => (
               </Link>
             </li>
             <li>
-              <a
-                href="mailto:admin@louisianahelpr.com"
-                className="link-standard"
-              >
-                Contact
-              </a>
-            </li>
-            <li>
               <Link to="/help" className="link-standard">
                 Help Center
               </Link>
@@ -155,7 +147,7 @@ const Footer = () => (
               href={APP_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              className="group inline-flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
               aria-label="Download on the App Store (opens in a new tab)"
               title="Download on the App Store"
             >
@@ -169,7 +161,7 @@ const Footer = () => (
               href={FACEBOOK_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              className="group inline-flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
               aria-label="Follow us on Facebook (opens in a new tab)"
               title="Follow us on Facebook"
             >
@@ -183,7 +175,7 @@ const Footer = () => (
               href={INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 items-center justify-center rounded-[14px] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              className="group inline-flex h-11 w-11 items-center justify-center rounded-full text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
               style={{
                 background:
                   "linear-gradient(135deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)",

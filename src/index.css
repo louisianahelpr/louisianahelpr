@@ -635,6 +635,19 @@ body {
     max-width: min(94vw, 880px);
     margin-inline: auto;
   }
+  /* PageScaffold's "wide" pages (Dashboard/Messages/Activity) additionally
+     cap their inner content column at max-w-3xl (768px) via Tailwind — a
+     SECOND cap independent of the frame's own min(94vw,880px) above. Below
+     1024px that column-level cap was never lifted (the `ds-desktop-wide`
+     rule that does so is desktop-only, gated to `html.web-desktop`), so a
+     900px+ tablet viewport widened the outer frame but left the visible
+     content stranded ~36px narrower per side inside it — the frame grew,
+     the page didn't. The tablet-band frame cap above is already a sensible
+     ceiling on its own, so the inner column just needs to stop double-
+     capping itself; no new numeric cap is needed here. */
+  html.app-shell:not(.web-desktop) .app-shell-frame .ds-desktop-wide {
+    max-width: none;
+  }
 }
 
 /* ── Web-desktop (wide browser only — never native) ─────────────────────────

@@ -577,8 +577,25 @@ export default function SubscriptionPage() {
                           : ""}
                     </p>
 
-                    {/* Feature bullets */}
+                    {/* Feature bullets — paid tiers are a strict upgrade
+                        ladder (each includes everything the tier below it
+                        has), so lead with "Everything in <tier below>" the
+                        same way the in-app Membership tab does
+                        (tierConfig.tsx), instead of only listing this tier's
+                        own new perks and implying the rest are lost. */}
                     <ul className="mt-4 space-y-2 flex-1">
+                      {tier === "pro" && (
+                        <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
+                          <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.25} style={{ color: "hsl(var(--burnt-sienna))" }} />
+                          <span>Everything in Basic</span>
+                        </li>
+                      )}
+                      {tier === "elite" && (
+                        <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
+                          <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.25} style={{ color: "hsl(var(--burnt-sienna))" }} />
+                          <span>Everything in Pro</span>
+                        </li>
+                      )}
                       {perks.featureBullets.map((bullet) => (
                         <li
                           key={bullet}
@@ -811,8 +828,22 @@ export default function SubscriptionPage() {
                         {feature}
                       </th>
                       {CONSUMER_TIERS.map((tier) => {
-                        const has =
-                          TIER_PERKS[tier].featureBullets.includes(feature);
+                        // Tiers are a strict upgrade ladder (free < basic <
+                        // pro < elite) — every perk a lower paid tier has is
+                        // still included at every tier above it (instant
+                        // payouts/boost discount/early access/priority
+                        // placement/analytics all gate on ">= tier", and
+                        // tierConfig.tsx + LegalTab.tsx already advertise
+                        // "Everything in Basic"/"Everything in Pro"). So a
+                        // tier's checkmark must be true if EITHER its own
+                        // featureBullets list the perk OR any tier below it
+                        // in CONSUMER_TIERS does — not just its own list,
+                        // which would wrongly show higher tiers losing perks
+                        // their lower tiers already unlocked.
+                        const tierIndex = CONSUMER_TIERS.indexOf(tier);
+                        const has = CONSUMER_TIERS.slice(0, tierIndex + 1).some(
+                          (t) => TIER_PERKS[t].featureBullets.includes(feature),
+                        );
                         return (
                           <td
                             key={tier}

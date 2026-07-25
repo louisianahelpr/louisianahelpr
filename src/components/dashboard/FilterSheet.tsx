@@ -82,16 +82,13 @@ export function FilterSheet({
         <div className="flex justify-center pt-3 pb-1" aria-hidden>
           <span className="h-1 w-9 rounded-full bg-[hsl(var(--olivewood)/0.25)]" />
         </div>
-        <SheetHero
-          className="px-5 pt-2 pb-3"
-          eyebrow="Filters"
-          title="Refine your search"
-          subtitle={
-            activeFilterCount > 0
-              ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} active`
-              : "Narrow your results"
-          }
-        />
+        {/* Title ONLY — no eyebrow, no subtitle. This header used to stack
+            "FILTERS" / "Refine your search" / "Narrow your results", which is
+            the same sentence three times in three type sizes. Nothing is lost:
+            the active-filter count still shows as a badge on the Filters button
+            that opens this sheet, and an active filter still surfaces the
+            "Clear all" footer below. */}
+        <SheetHero className="px-5 pt-2 pb-3" title="Refine your search" />
 
         <div className="px-5 pb-4 space-y-5">
           {sections.map((s) => (

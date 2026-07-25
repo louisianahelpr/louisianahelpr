@@ -296,7 +296,7 @@ export function BrowseTasksFeed({
                 ? "No boosted jobs right now — try clearing the filter to see all open work."
                 : nearbyActive
                   ? `Try widening to ${nextMiles} mi, or clear the radius to see all open work across your parish.`
-                  : "Try widening your parish, raising your budget, or clearing a filter."
+                  : "Try a different category, a wider time window, or clearing a filter."
               : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
           }
           action={

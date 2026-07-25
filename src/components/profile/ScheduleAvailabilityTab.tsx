@@ -16,6 +16,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { ScheduleTab } from "@/components/profile/ScheduleTab";
 import { HelperAvailability } from "@/components/HelperAvailability";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { Switch } from "@/components/ui/switch";
 import { CalendarDays, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -147,18 +148,12 @@ export function ScheduleAvailabilityTab({
                   : "Signal you're ready to start a job today"}
               </p>
             </div>
-            <button
-              onClick={toggleAvailability}
+            <Switch
+              checked={isAvailable}
+              onCheckedChange={toggleAvailability}
               disabled={toggling}
-              className="relative w-12 h-6 rounded-full transition-colors duration-200"
-              style={{ background: isAvailable ? "hsl(var(--sage))" : "hsl(var(--olivewood) / 0.25)" }}
               aria-label={isAvailable ? "Turn off available now" : "Turn on available now"}
-            >
-              <span
-                className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200"
-                style={{ left: isAvailable ? "calc(100% - 1.375rem)" : "2px" }}
-              />
-            </button>
+            />
           </div>
 
           <div className="rounded-2xl liquid-glass p-5">

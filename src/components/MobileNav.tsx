@@ -6,7 +6,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRoute } from "@/lib/routePrefetch";
@@ -147,23 +146,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       navigate("/activity?tab=applied");
     };
 
-    // Profile — Multi-account placeholder. We don't have a switcher yet;
-    // surface a toast so the user knows the long-press registered and a
-    // feature is coming. Keeps the gesture discoverable without shipping
-    // half-built UI.
-    const switchAccountPlaceholder = () => {
-      close();
-      toast("Multi-account switching is coming soon.", {
-        description: "We're working on it — long-press Profile to switch when it lands.",
-      });
-    };
-
     return {
       browseFilters,
       markAllRead: markAllReadAction,
       goPosted,
       goApplied,
-      switchAccountPlaceholder,
     };
   }, [navigate, markAllRead]);
 
@@ -263,7 +250,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       }
     };
 
-    // Long-press → quick-action sheet. Only the five real tabs have an
+    // Long-press → quick-action sheet. Only the four feed/inbox tabs have an
     // action set; locked guest tabs fall through to the standard tap-handles-
     // it path. We dispatch into a single shared sheet (`quickActionTab` state)
     // and a `hapticMedium` lets the user know the long-press registered.
@@ -272,7 +259,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       "/my-posts",
       "/my-jobs",
       "/messages",
-      "/profile",
     ];
     const hasQuickActions = !locked && longPressableTabs.includes(path);
     const openQuickActions = () => {

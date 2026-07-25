@@ -69,17 +69,19 @@ const PostJob = () => {
 
       {/* Body column width matches PageHeader's "5xl" variant above so the
           title aligns with the form beneath it — see PageHeader's `width`
-          prop doc. The ENTRY step now shares that 5xl column (was
-          max-w-2xl, which stranded a ~245px dead band per side on desktop —
-          flagged by Cowork 2026-07-08); EntryChoice itself lays its
-          top-level cards into a lg:grid-cols-2 grid at that width so the
-          space is consumed, not gutter'd. min-h-[60vh] flex still
-          vertically centers to avoid the below-the-fold dead band the
-          earlier fix addressed. Form + checkout keep the same 5xl column
-          since they're dense. */}
+          prop doc. The ENTRY step's column now widens WITH the viewport
+          (max-w-lg → md:max-w-3xl → lg:max-w-5xl) instead of jumping
+          straight from a 512px column to 5xl only at lg: previously the
+          tablet / wide-phone band (768–1024px, no desktop rail) stranded
+          the entry cards in a 512px column with big dead gutters. At md the
+          column fills to 3xl and EntryChoice flips its cards to a
+          md:grid-cols-2 grid so the space is consumed, not gutter'd.
+          min-h-[60vh] flex still vertically centers to avoid the
+          below-the-fold dead band the earlier fix addressed. Form +
+          checkout keep the same 5xl column since they're dense. */}
       <div className="container mx-auto px-4 py-6">
         {form.step === "entry" ? (
-          <div className="max-w-lg lg:max-w-5xl mx-auto min-h-[60vh] flex flex-col justify-center space-y-6">
+          <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto min-h-[60vh] flex flex-col justify-center space-y-6">
             <EntryChoice form={form} />
           </div>
         ) : (

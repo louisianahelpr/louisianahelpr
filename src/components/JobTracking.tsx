@@ -467,7 +467,7 @@ export function JobTracking({
 
       {/* SOS confirmation sheet */}
       <Sheet open={sosOpen} onOpenChange={setSosOpen}>
-        <SheetContent side="bottom" className="pb-safe-nav">
+        <SheetContent side="bottom" className="pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           {/* Canonical sheet header — this was a bare SheetHeader/SheetTitle
               stack with no eyebrow and default type tokens, which read as a
               different designer's popup next to every other titled sheet. */}

@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Flag, Ban, Trash2, MoreVertical, BellOff, Bell, Pin, PinOff } from "lucide-react";
+import { Flag, Ban, Trash2, MoreVertical, BellOff, Bell, Pin, PinOff, Check } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +44,14 @@ interface ConversationRowProps {
    *  false — on mobile (screen-swap) no row is ever the persistent active
    *  one. */
   isActive?: boolean;
+  /** Multi-select mode — the row shows a leading checkbox, a tap toggles
+   *  its selection instead of opening the thread, and the per-row ⋮ menu
+   *  and swipe gestures are suppressed by the list. Defaults to false. */
+  selectMode?: boolean;
+  /** Whether this row is currently selected (select mode only). */
+  selected?: boolean;
+  /** Toggle this row's selection (select mode only). */
+  onToggleSelect?: () => void;
 }
 
 /**
@@ -123,6 +131,9 @@ const ConversationRowBase = ({
   isPinned,
   onTogglePin,
   isActive = false,
+  selectMode = false,
+  selected = false,
+  onToggleSelect,
 }: ConversationRowProps) => {
   // Relative time so the list reads as "active", not as a stack of
   // full dates.
@@ -197,27 +208,60 @@ const ConversationRowBase = ({
   })();
   return (
     <div
-      className="w-full text-left p-3 rounded-ds-md liquid-glass hover:shadow-md transition-shadow flex items-center gap-2.5"
+      className="relative w-full text-left px-3 py-2.5 flex items-center gap-2.5 transition-colors"
+      onClick={selectMode ? onToggleSelect : undefined}
+      role={selectMode ? "button" : undefined}
+      aria-pressed={selectMode ? selected : undefined}
       style={{
-        // liquid-glass alone (0.42 white) is near-invisible on the
-        // ~0.97-white conversations panel, so each thread blurred into the
-        // next. A near-opaque card surface + a stronger hairline border and
-        // lift give every thread a clearly readable, separated edge.
-        //
-        // Active (desktop split — this thread is open in the right pane):
-        // a bark-tinted surface + bark ring so the row reads as "selected"
-        // without changing its shape. Inert on mobile (isActive is false).
-        backgroundColor: isActive
-          ? "hsl(var(--bark) / 0.08)"
-          : "hsl(var(--card))",
-        border: isActive
-          ? "1px solid hsl(var(--bark) / 0.40)"
-          : "1px solid hsl(var(--olivewood) / 0.22)",
-        boxShadow: isActive
-          ? "0 1px 2px hsl(var(--bark) / 0.12), 0 6px 16px -4px hsl(var(--bark) / 0.18)"
-          : "0 1px 2px hsl(var(--olivewood) / 0.08), 0 6px 16px -4px hsl(var(--olivewood) / 0.12)",
+        // Flat iOS-Messages row — no per-row card. The only fill is the
+        // calm active tint on the desktop split (this thread is open in the
+        // right pane); transparent/inert on mobile (isActive is false).
+        // Row separation comes from the inset hairline divider below, not a
+        // card edge — so consecutive rows read as one continuous list.
+        backgroundColor: isActive ? "hsl(var(--bark) / 0.06)" : "transparent",
+        cursor: selectMode ? "pointer" : undefined,
       }}
     >
+      {/* Inset bottom hairline — begins at the text column (after the
+          avatar), the iOS list convention. Absolute so it never adds row
+          height. Hidden on the active (selected) row so its tint reads as
+          one clean block. */}
+      {!isActive && (
+        <span
+          aria-hidden="true"
+          className="absolute bottom-0 right-0 h-px"
+          style={{
+            // 0.75rem row padding + 2.75rem avatar (w-11) + 0.625rem gap.
+            left: "calc(0.75rem + 2.75rem + 0.625rem)",
+            background: "hsl(var(--olivewood) / 0.10)",
+          }}
+        />
+      )}
+      {/* Leading selection checkbox — multi-select mode only. Circular,
+          44px tap target; filled with bark when checked. */}
+      {selectMode && (
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={selected}
+          aria-label={selected ? "Deselect conversation" : "Select conversation"}
+          onClick={(e) => { e.stopPropagation(); onToggleSelect?.(); }}
+          className="shrink-0 min-h-[44px] min-w-[28px] inline-flex items-center justify-center self-center"
+        >
+          <span
+            className="w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+            style={
+              selected
+                ? { background: "hsl(var(--bark))", border: "1px solid hsl(var(--bark))" }
+                : { background: "transparent", border: "1.5px solid hsl(var(--olivewood) / 0.45)" }
+            }
+          >
+            {selected && (
+              <Check className="w-3.5 h-3.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={3} />
+            )}
+          </span>
+        </button>
+      )}
       {/* Avatar — uses real photo when available, otherwise a per-person
           deterministic warm gradient (hashed off the other user's id) so
           threads read as visually distinct at a glance rather than a stack
@@ -244,7 +288,12 @@ const ConversationRowBase = ({
         )}
       </div>
       <button
-        onClick={() => openConvo(c)}
+        onClick={(e) => {
+          // In select mode a tap toggles selection instead of opening the
+          // thread; stop it bubbling so the row's onClick doesn't re-toggle.
+          if (selectMode) { e.stopPropagation(); onToggleSelect?.(); return; }
+          openConvo(c);
+        }}
         className="flex-1 min-w-0 text-left self-center"
       >
         <div className="flex items-center justify-between gap-2">
@@ -374,6 +423,9 @@ const ConversationRowBase = ({
           style={{ background: "hsl(var(--burnt-sienna))" }}
         />
       )}
+      {/* Per-row overflow menu — suppressed in select mode so a tap
+          anywhere on the row toggles selection cleanly. */}
+      {!selectMode && (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -430,6 +482,7 @@ const ConversationRowBase = ({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      )}
     </div>
   );
 };

@@ -51,6 +51,11 @@ const Messages = () => {
   const [blockTarget, setBlockTarget] = useState<{ id: string; name: string } | null>(null);
   const [deleteConvoConfirm, setDeleteConvoConfirm] = useState<Conversation | null>(null);
   const [deleteMessageConfirm, setDeleteMessageConfirm] = useState<string | null>(null);
+  // Multi-select batch delete: the threads staged for the combined
+  // "Hide N conversations?" confirm, and a nonce bumped after a batch
+  // archive resolves so the inbox list drops out of select mode.
+  const [batchArchiveConfirm, setBatchArchiveConfirm] = useState<Conversation[] | null>(null);
+  const [selectionResetNonce, setSelectionResetNonce] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const keyboardInset = useKeyboardInset();
@@ -170,6 +175,29 @@ const Messages = () => {
     setDeleteConvoConfirm(null);
   };
 
+  // Batch variant of `archiveConversationLocal` — hides up to 3 selected
+  // threads at once. Same honest local archive per thread (nothing is
+  // deleted; each resurfaces on a new message), one combined haptic +
+  // toast, then bumps the reset nonce so the list exits select mode.
+  const confirmBatchArchive = () => {
+    if (!batchArchiveConfirm || !userId) return;
+    hapticHeavy();
+    for (const convo of batchArchiveConfirm) {
+      archiveConversation(userId, convo.jobId, convo.otherUserId);
+    }
+    const keys = new Set(
+      batchArchiveConfirm.map((c) => `${c.jobId}_${c.otherUserId}`),
+    );
+    setConversations((prev) =>
+      prev.filter((c) => !keys.has(`${c.jobId}_${c.otherUserId}`)),
+    );
+    hapticSuccess();
+    const n = batchArchiveConfirm.length;
+    toast.success(`${n} conversation${n === 1 ? "" : "s"} hidden from your inbox`);
+    setBatchArchiveConfirm(null);
+    setSelectionResetNonce((x) => x + 1);
+  };
+
   // Mute-state actions (toggle / snooze / unmute) — see
   // useThreadMuteActions. All optimistic with rollback; `patchMuteState`
   // keeps the list and the active-thread mirror coherent.
@@ -213,6 +241,8 @@ const Messages = () => {
       onToggleMute={handleToggleMute}
       onSnoozeMute={handleSnoozeMute}
       onUnmute={handleUnmute}
+      onBatchArchive={(convos) => setBatchArchiveConfirm(convos)}
+      resetSelectionNonce={selectionResetNonce}
       embedded={isWebDesktop}
       activeKey={
         activeConvo
@@ -354,6 +384,22 @@ const Messages = () => {
         primaryTone="sienna"
         primaryHaptic="warning"
         onPrimary={() => deleteConvoConfirm && archiveConversationLocal(deleteConvoConfirm)}
+        secondaryLabel="Cancel"
+      />
+
+      {/* Batch "hide conversations" confirmation — the multi-select
+          variant of the single-row hide above. Same honest local archive
+          (nothing deleted; each thread returns on a new message), one
+          combined confirm for all selected threads. */}
+      <BrandConfirmDialog
+        open={!!batchArchiveConfirm}
+        onOpenChange={(o) => { if (!o) setBatchArchiveConfirm(null); }}
+        title={`Hide ${batchArchiveConfirm?.length ?? 0} conversation${(batchArchiveConfirm?.length ?? 0) === 1 ? "" : "s"}?`}
+        description="This removes the selected conversations from your inbox. No messages are deleted, and a thread comes back if that person sends you a new message."
+        primaryLabel="Hide"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={confirmBatchArchive}
         secondaryLabel="Cancel"
       />
 

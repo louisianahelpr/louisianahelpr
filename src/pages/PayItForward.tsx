@@ -33,7 +33,7 @@ import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { PifCredit } from "./payItForward/types";
-import { AMOUNT_PRESETS, CATEGORIES, MAX_NOTE_LENGTH } from "./payItForward/constants";
+import { AMOUNT_PRESETS, MAX_NOTE_LENGTH } from "./payItForward/constants";
 import { CreditCard } from "./payItForward/CreditCard";
 import { EmptyState } from "./payItForward/EmptyState";
 
@@ -46,7 +46,7 @@ const MIN_GIFT = 10; // matches MIN_GIFT_CENTS in create-pif-donation
 export default function PayItForward() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  usePageTitle("Pay It Forward — Helpr");
+  usePageTitle("Gift Card — Helpr");
 
   const { user, isLoading: authLoading } = useCurrentUser();
   const myEmail = user?.email?.toLowerCase() ?? "";
@@ -62,7 +62,6 @@ export default function PayItForward() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Any");
   const [note, setNote] = useState("");
 
   const effectiveAmount = selectedAmount ?? (customAmount ? parseFloat(customAmount) : null);
@@ -74,8 +73,8 @@ export default function PayItForward() {
   useEffect(() => {
     const gift = searchParams.get("gift");
     if (gift === "success") {
-      toast.success("Gift on its way!", {
-        description: "We've emailed your recipient a link to claim their credit.",
+      toast.success("Gift card on its way!", {
+        description: "We've emailed your recipient a link to claim their gift card.",
         icon: "💚",
       });
     } else if (gift === "cancelled") {
@@ -118,9 +117,9 @@ export default function PayItForward() {
         if (!data?.ok) throw new Error("Couldn't claim this gift. Please try again.");
 
         hapticSuccess();
-        toast.success(data.already_claimed ? "This gift is already yours" : "Gift claimed!", {
+        toast.success(data.already_claimed ? "This gift card is already yours" : "Gift card claimed!", {
           description: data.already_claimed
-            ? "Find it under “Gifts sent to you” below."
+            ? "Find it under “Gift cards sent to you” below."
             : "It's ready to put toward your next job.",
           icon: "💚",
         });
@@ -128,7 +127,7 @@ export default function PayItForward() {
         await queryClient.invalidateQueries({ queryKey: ["pif-received"] });
       } catch (e) {
         report(e, { tags: { source: "PayItForward.claim" } });
-        errorToast("Couldn't claim gift", {
+        errorToast("Couldn't claim gift card", {
           description: e instanceof Error ? e.message : "Please try again.",
         });
       } finally {
@@ -222,30 +221,29 @@ export default function PayItForward() {
   // ── Donate mutation — launches Stripe Checkout, never writes the row ───────
   const donateMutation = useMutation({
     mutationFn: async () => {
-      if (!user?.id) throw new Error("Please sign in to send a gift.");
+      if (!user?.id) throw new Error("Please sign in to send a gift card.");
       const amt = effectiveAmount;
-      if (!amt || isNaN(amt) || amt < MIN_GIFT) throw new Error(`The smallest gift is $${MIN_GIFT}.`);
+      if (!amt || isNaN(amt) || amt < MIN_GIFT) throw new Error(`The smallest gift card is $${MIN_GIFT}.`);
       if (!emailValid) throw new Error("Enter a valid email for the person you're gifting.");
-      if (isSelfGift) throw new Error("You can't send a gift to yourself.");
+      if (isSelfGift) throw new Error("You can't send a gift card to yourself.");
 
       const { data, error } = await supabase.functions.invoke("create-pif-donation", {
         body: {
           amount: amt,
           recipient_email: trimmedRecipient,
-          category: selectedCategory,
           message: note.trim(),
         },
       });
       if (error) {
-        throw new Error(await functionErrorMessage(error, "Couldn't start your gift. Please try again."));
+        throw new Error(await functionErrorMessage(error, "Couldn't start your gift card. Please try again."));
       }
       if (data?.error) throw new Error(data.error);
-      if (!data?.url) throw new Error("Couldn't start your gift. Please try again.");
+      if (!data?.url) throw new Error("Couldn't start your gift card. Please try again.");
       window.location.href = data.url;
     },
     onError: (e) => {
       report(e, { tags: { source: "PayItForward.donate" } });
-      errorToast("Couldn't send gift", {
+      errorToast("Couldn't send gift card", {
         description: e instanceof Error ? e.message : "Please try again.",
       });
     },
@@ -272,9 +270,9 @@ export default function PayItForward() {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
-        eyebrow="Community giving"
-        title="Pay It Forward"
-        meta="Send a neighbor a Helpr credit"
+        eyebrow="Gift a Helpr"
+        title="Gift Card"
+        meta="Send someone you know a Helpr gift card"
         onBack={() => navigate(-1)}
         showBrand
         rightSlot={<NotificationPanel />}
@@ -298,7 +296,7 @@ export default function PayItForward() {
               style={{ borderColor: "hsl(var(--pif-green))", borderTopColor: "transparent" }}
             />
             <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--pif-ink))" }}>
-              Claiming your gift…
+              Claiming your gift card…
             </p>
           </div>
         )}
@@ -330,7 +328,7 @@ export default function PayItForward() {
                 className="font-serif italic text-ds-13 leading-relaxed"
                 style={{ color: "hsl(var(--ink-deep) / 0.75)" }}
               >
-                Prepay a Helpr credit for someone specific. Enter their email, choose an amount, and
+                Send a Helpr gift card to someone you know. Enter their email, choose an amount, and
                 we'll send them a link to claim it — they can put it toward any job they need done.
               </p>
             </div>
@@ -350,7 +348,7 @@ export default function PayItForward() {
                 className="font-serif italic uppercase"
                 style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
-                Send a gift
+                Send a gift card
               </p>
 
               {/* Recipient email */}
@@ -443,32 +441,6 @@ export default function PayItForward() {
                 </p>
               </div>
 
-              {/* Category */}
-              <div>
-                <p
-                  className="font-serif italic text-ds-12 mb-2"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Category suggestion — optional
-                </p>
-                <div className="flex gap-1.5 flex-wrap">
-                  {CATEGORIES.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className="py-1 px-2.5 rounded-full text-ds-12 font-sans font-medium transition-colors"
-                      style={{
-                        background: selectedCategory === cat ? "hsl(var(--bark) / 0.14)" : "hsl(var(--bark) / 0.04)",
-                        border: `0.5px solid hsl(var(--bark) / ${selectedCategory === cat ? "0.38" : "0.14"})`,
-                        color: "hsl(var(--bark))",
-                      }}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Personal note */}
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -520,7 +492,7 @@ export default function PayItForward() {
                 className="font-serif italic uppercase mb-3"
                 style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
-                Gifts sent to you
+                Gift cards sent to you
               </p>
               {loadingReceived ? (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
@@ -533,7 +505,7 @@ export default function PayItForward() {
                   ))}
                 </div>
               ) : myReceived.length === 0 ? (
-                <EmptyState message="When someone sends you a Helpr credit, it'll show up here." />
+                <EmptyState message="When someone sends you a Helpr gift card, it'll show up here." />
               ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                   {myReceived.map((credit) => (
@@ -554,7 +526,7 @@ export default function PayItForward() {
                 className="font-serif italic uppercase mb-3"
                 style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
-                Gifts you've sent
+                Gift cards you've sent
               </p>
               {loadingDonated ? (
                 <div
@@ -562,7 +534,7 @@ export default function PayItForward() {
                   style={{ background: "hsl(var(--olivewood) / 0.07)" }}
                 />
               ) : myDonated.length === 0 ? (
-                <EmptyState message="Gifts you send will appear here." />
+                <EmptyState message="Gift cards you send will appear here." />
               ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                   {myDonated.map((credit) => (

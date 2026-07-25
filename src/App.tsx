@@ -222,8 +222,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           plan shows Free); tapping Upgrade routes them to sign in first. */}
       <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<SubscriptionPage />)}</RouteErrorBoundary>} />
       <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* Pay It Forward — community credit marketplace */}
-      <Route path="/pay-it-forward" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
+      <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* Legacy /pay-it-forward → /gift-card (feature renamed). */}
+      <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />
       <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<ForBusiness />)}</RouteErrorBoundary>} />

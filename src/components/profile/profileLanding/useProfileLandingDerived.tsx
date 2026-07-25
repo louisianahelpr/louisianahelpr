@@ -198,12 +198,12 @@ export function useProfileLandingDerived({
           href: "/str-settings",
         },
         {
-          key: "pay-it-forward",
-          label: "Pay It Forward",
+          key: "gift-card",
+          label: "Gift Card",
           icon: <Heart className="w-5 h-5" />,
           desc: "Donate job credits for neighbors who need help",
           tint: "155 50% 30%",
-          href: "/pay-it-forward",
+          href: "/gift-card",
         },
         {
           key: "benefits",

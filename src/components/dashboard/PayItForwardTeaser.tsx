@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 
 interface PayItForwardTeaserProps {
-  /** Count of available credits in the user's parish. */
+  /** Count of available gift cards in the user's parish. */
   pifCount: number;
 }
 
 /**
- * Pay It Forward teaser — only rendered when credits exist in the user's
+ * Gift Card teaser — only rendered when gift cards exist in the user's
  * parish. Pure presentation lifted verbatim out of Dashboard's panel body.
  */
 const PayItForwardTeaser = ({ pifCount }: PayItForwardTeaserProps) => {
@@ -23,14 +23,14 @@ const PayItForwardTeaser = ({ pifCount }: PayItForwardTeaserProps) => {
         className="font-display italic font-semibold text-ds-14"
         style={{ color: "hsl(var(--pif-green))" }}
       >
-        {pifCount} neighbor{pifCount > 1 ? "s" : ""} paid it forward
+        {pifCount} Helpr gift card{pifCount > 1 ? "s" : ""} in your parish
       </p>
       <p
         className="font-serif italic text-ds-12 mt-0.5"
         style={{ color: "hsl(var(--pif-green-soft))" }}
       >
-        Free job credits available in your parish ·{" "}
-        <Link to="/pay-it-forward" className="underline">
+        Gift cards ready to claim ·{" "}
+        <Link to="/gift-card" className="underline">
           See them
         </Link>
       </p>

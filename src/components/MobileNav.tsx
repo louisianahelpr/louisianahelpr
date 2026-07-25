@@ -455,7 +455,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             background: "linear-gradient(to top, var(--nav-curtain-top), var(--nav-curtain-fade))",
           }}
         />
-        <div className="relative mx-3 mb-1.5 flex items-end gap-3.5 max-w-lg md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl md:mx-auto md:px-8 xl:px-12">
+        {/* mx-auto at ALL widths, not just md+. The pill is capped at max-w-lg
+            (512px); on a phone that exceeds the viewport so it fills edge-to-edge
+            (mx-auto is a no-op there), but between ~512px and md the old `mx-3` +
+            `md:mx-auto` left the capped pill pinned LEFT with a big dead gap on
+            the right (measured 140px at 664px). Centering always fixes that;
+            px-3 keeps the phone edge padding that mx-3 used to provide. */}
+        <div className="relative mx-auto mb-1.5 flex items-end gap-3.5 max-w-lg md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl px-3 md:px-8 xl:px-12">
           {/* Main nav pill — liquid glass. Shadow stack switches to the
               deeper "lifted" variant when the page is scrolled, so the bar
               reads as floating above content rather than glued to the

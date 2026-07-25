@@ -23,6 +23,7 @@ import type { Stats, DateRange } from "@/components/admin/dashboard/types";
 import { RANGE_PRESETS } from "@/components/admin/dashboard/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { report } from "@/lib/errorLogger";
 
 const AdminUsers = lazy(() => import("@/components/admin/AdminUsers"));
 const AdminJobs = lazy(() => import("@/components/admin/AdminJobs"));
@@ -138,6 +139,8 @@ const Admin = () => {
   const [customDays, setCustomDays] = useState<number>(14);
   const [statsLoading, setStatsLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [statsLoadError, setStatsLoadError] = useState(false);
+  const [unreadCountsError, setUnreadCountsError] = useState(false);
   // <AdminRoute> already gates this page on isAdmin; useCurrentUser here
   // supplies the shared loading flag (the redundant useAdminAuth redirect
   // hook has been removed).
@@ -157,6 +160,7 @@ const Admin = () => {
       { key: "subscriptions", table: "profiles", dateCol: "updated_at", filter: { subscription_tier: "not_null" } },
     ];
     const counts: Record<string, number> = {};
+    let hadError = false;
     await Promise.all(sections.map(async (s) => {
       const lastSeen = getSeenTimestamp(s.key);
       let query = supabase.from(s.table as any).select("id", { count: "exact", head: true });
@@ -170,10 +174,16 @@ const Admin = () => {
       if (s.notFilter) {
         for (const [col, val] of Object.entries(s.notFilter)) query = query.neq(col, val);
       }
-      const { count } = await query;
+      const { count, error } = await query;
+      if (error) {
+        hadError = true;
+        report(error, { tags: { source: `Admin.loadUnreadCounts.${s.key}` } });
+        return;
+      }
       if (count && count > 0) counts[s.key] = count;
     }));
     setUnreadCounts(counts);
+    setUnreadCountsError(hadError);
   }, []);
 
   const handleViewChange = useCallback((newView: string) => {
@@ -239,6 +249,28 @@ const Admin = () => {
         .neq("status", "cancelled")
         .gte("updated_at", quarterStart),
     ]);
+
+    // Surface any failed query instead of silently rendering a misleading
+    // "0" / healthy-looking fallback — a single bad query among the 18
+    // above must not be indistinguishable from a genuinely healthy
+    // platform. The other, successful queries still render normally.
+    const namedResults: [string, { error: any }][] = [
+      ["profiles", profilesRes], ["pending", pendingRes], ["reports", reportsRes], ["support", supportRes],
+      ["active", activeRes], ["completed", completedRes], ["disputes", disputesRes],
+      ["payments", paymentsRes], ["subs", subsRes], ["lateCancel", lateCancelRes],
+      ["newUsersInRange", newUsersInRangeRows], ["newUsersPrev", newUsersPrevRows],
+      ["revInRange", revInRangeRows], ["revPrev", revPrevRows],
+      ["completedInRange", completedInRangeRows], ["completedPrev", completedPrevRows],
+      ["activeJobsInRange", activeJobsInRangeRows], ["quarter", quarterRes],
+    ];
+    const failed = namedResults.filter(([, res]) => res.error);
+    if (failed.length > 0) {
+      for (const [name, res] of failed) {
+        report(res.error, { tags: { source: `Admin.loadStats.${name}` } });
+      }
+    }
+    setStatsLoadError(failed.length > 0);
+
     const paymentRows = paymentsRes.data || [];
     const cancelledPaidRows = lateCancelRes.data || [];
     const lateCancellationRevenue = cancelledPaidRows.filter((j: any) => j.cancellation_fee > 0).reduce((s, j) => {
@@ -442,6 +474,7 @@ const Admin = () => {
           setCustomDays={setCustomDays}
           rangeLabel={activeRangeLabel}
           prevLabel={activePrevLabel}
+          dataError={statsLoadError || unreadCountsError}
         />
       );
     }

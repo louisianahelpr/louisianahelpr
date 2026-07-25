@@ -22,13 +22,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        eyebrow={isPosted ? "History" : "Track record"}
         title={isPosted ? "Posted jobs" : "Completed jobs"}
-        meta={
-          isPosted
-            ? `${jobs.length} job${jobs.length === 1 ? "" : "s"} posted`
-            : `${jobs.length} job${jobs.length === 1 ? "" : "s"} delivered`
-        }
         onBack={onBack}
       />
       {jobs.length === 0 ? (

@@ -30,13 +30,17 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   const [copied, setCopied] = useState(false);
   const [cashingOut, setCashingOut] = useState(false);
 
-  const copyCode = () => {
+  const copyCode = async () => {
     if (!referralCode) return;
-    navigator.clipboard.writeText(referralCode);
-    setCopied(true);
-    hapticSuccess();
-    toast.success("Referral code copied!");
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(referralCode);
+      setCopied(true);
+      hapticSuccess();
+      toast.success("Referral code copied!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error(`Couldn't copy — your code is ${referralCode}`);
+    }
   };
 
   // Centralized share-body builder so the SMS shortcut, native share

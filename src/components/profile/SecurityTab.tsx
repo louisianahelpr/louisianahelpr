@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { getPublicResetPasswordUrl, getPublicSiteUrl } from "@/lib/authRedirects";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
+import { report } from "@/lib/errorLogger";
 
 interface LoginHistoryRow {
   id: string;
@@ -70,6 +71,11 @@ interface SecurityTabProps {
 }
 
 export function SecurityTab({ email, onBack }: SecurityTabProps) {
+  // Set when the login_history fetch itself fails, so the empty state can
+  // tell "genuinely no sessions" apart from "we couldn't load them" —
+  // previously both rendered the identical "No recent sessions" copy.
+  const [sessionsFetchFailed, setSessionsFetchFailed] = useState(false);
+
   // Recent sessions, grouped by device fingerprint. login_history is
   // append-only (one row per SIGNED_IN), so we collapse to the most
   // recent N device fingerprints rather than show every login.
@@ -84,9 +90,14 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       if (error) {
         // Non-blocking: a failed fetch shows an empty list (handled
         // below), not a red error state — sessions are informational
-        // and a transient read failure shouldn't shout.
+        // and a transient read failure shouldn't shout. Still report it
+        // so a real outage is visible to us, and flag it locally so the
+        // empty state can say so instead of implying "no sessions ever".
+        report(error, { tags: { source: "SecurityTab.sessions" } });
+        setSessionsFetchFailed(true);
         return [];
       }
+      setSessionsFetchFailed(false);
       const rows = (data as LoginHistoryRow[]) ?? [];
       const groups = new Map<string, SessionGroup>();
       rows.forEach((r) => {
@@ -198,9 +209,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   return (
     <div className="space-y-6">
       <ProfileTabHeader
-        eyebrow="Account"
         title="Security"
-        meta="Email, password, sign-in"
         onBack={onBack}
       />
 
@@ -394,7 +403,9 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           </div>
         ) : sessionGroups.length === 0 ? (
           <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            No recent sessions on record yet.
+            {sessionsFetchFailed
+              ? "Couldn't load session history — try again later."
+              : "No recent sessions on record yet."}
           </p>
         ) : (
           <div className="space-y-2">

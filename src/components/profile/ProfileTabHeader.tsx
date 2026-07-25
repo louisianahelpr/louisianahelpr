@@ -2,17 +2,16 @@ import BackButton from "@/components/BackButton";
 import type { ReactNode } from "react";
 
 interface ProfileTabHeaderProps {
-  eyebrow?: string;
   title: string;
-  meta?: ReactNode;
   onBack: () => void;
   rightSlot?: ReactNode;
 }
 
 export function ProfileTabHeader({ title, onBack, rightSlot }: ProfileTabHeaderProps) {
-  // `eyebrow` and `meta` are intentionally accepted but no longer rendered: the
-  // header now reads as a single clean title beside the back button, rather than
-  // a busy stack of eyebrow + title + subtitle lines.
+  // Deliberately a single clean title beside the back button — no eyebrow or
+  // subtitle line. The header previously accepted (but silently ignored)
+  // `eyebrow`/`meta` props after the declutter pass; those are now removed
+  // from the interface entirely so a caller can't pass copy that never renders.
   return (
     <div className="flex items-center gap-3 mb-3 shrink-0">
       <BackButton onClick={onBack} />

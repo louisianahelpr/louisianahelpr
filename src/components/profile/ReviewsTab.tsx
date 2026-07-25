@@ -88,9 +88,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        eyebrow="Reputation"
         title="My reviews"
-        meta={avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
         onBack={onBack}
       />
 

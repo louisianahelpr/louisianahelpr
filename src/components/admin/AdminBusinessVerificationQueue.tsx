@@ -176,12 +176,18 @@ const AdminBusinessVerificationQueue = () => {
             onChange={(e) => setRejectReason(e.target.value)}
             rows={3}
           />
+          {rejectReason.trim().length > 0 && rejectReason.trim().length < 10 && (
+            <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+              Please provide at least 10 characters so the owner knows what to fix.
+            </p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
+              disabled={rejectReason.trim().length < 10}
               onClick={() => {
                 if (rejectTarget) {
-                  decide(rejectTarget, "rejected", rejectReason.trim() || undefined);
+                  decide(rejectTarget, "rejected", rejectReason.trim());
                   setRejectTarget(null);
                 }
               }}

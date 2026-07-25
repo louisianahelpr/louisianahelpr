@@ -132,7 +132,11 @@ const AdminSupport = () => {
                       </p>
                     </div>
                   </div>
-                  <Badge variant={ticket.status === "pending" ? "destructive" : "secondary"} className="shrink-0 capitalize">
+                  {/* Calm "sienna" accent badge, not destructive: a pending
+                      support ticket isn't a danger/delete action — the mauve
+                      destructive color is reserved for genuinely destructive
+                      controls. */}
+                  <Badge variant={ticket.status === "pending" ? "sienna" : "secondary"} className="shrink-0 capitalize">
                     {ticket.status}
                   </Badge>
                 </div>

@@ -105,13 +105,7 @@ export function ScheduleAvailabilityTab({
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        eyebrow={isCalendar ? "Calendar" : "Hours"}
         title={isCalendar ? "My schedule" : "Availability"}
-        meta={
-          isCalendar
-            ? "Your upcoming jobs and bookings"
-            : "Tell posters when you can work"
-        }
         onBack={onBack}
       />
 

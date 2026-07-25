@@ -18,12 +18,16 @@ interface DashboardHomeProps {
   setCustomDays: (n: number) => void;
   rangeLabel: string;
   prevLabel: string;
+  // True when one or more of the parallel stats/badge-count queries failed.
+  // The other, successful numbers still render — this just flags that the
+  // picture may be incomplete, instead of silently showing misleading zeros.
+  dataError?: boolean;
 }
 
 export const DashboardHome = ({
   stats, statsLoading, onNavigate,
   dateRange, setDateRange, customDays, setCustomDays,
-  rangeLabel, prevLabel,
+  rangeLabel, prevLabel, dataError,
 }: DashboardHomeProps) => {
   const v = (val: number | string) => statsLoading ? "—" : val;
   const hasAlerts = stats.pendingApprovals > 0 || stats.disputedJobs > 0 || stats.openReports > 0 || stats.supportTickets > 0;
@@ -70,6 +74,13 @@ export const DashboardHome = ({
           {hasAlerts ? "There are items needing attention today." : "Everything looks calm on the platform."}
         </p>
       </div>
+
+      {dataError && (
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-ds-11 text-destructive">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span>Some stats may be outdated — a data request failed. Refresh to retry.</span>
+        </div>
+      )}
 
       {/* KPI Summary cards */}
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3">

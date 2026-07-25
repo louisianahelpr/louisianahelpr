@@ -135,9 +135,7 @@ export function ProfileEditForm({
     // a safe-area buffer so the last form field doesn't tuck under the bar.
     <div className="space-y-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6.5rem)" }}>
       <ProfileTabHeader
-        eyebrow="Identity"
         title="Edit profile"
-        meta="Photo, contact, and verification"
         onBack={onBack}
       />
 

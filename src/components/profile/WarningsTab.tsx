@@ -26,9 +26,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        eyebrow="Account standing"
         title="Warnings &amp; strikes"
-        meta="Your record and violation history"
         onBack={onBack}
       />
 

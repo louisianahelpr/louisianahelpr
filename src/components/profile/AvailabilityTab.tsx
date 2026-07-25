@@ -10,9 +10,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        eyebrow="Hours"
         title="Availability"
-        meta="Tell posters when you can work"
         onBack={onBack}
       />
 

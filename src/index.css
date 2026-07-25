@@ -607,19 +607,24 @@ body {
     background-color: hsl(20 12% 5%);
   }
   html.app-shell:not(.web-desktop) .app-shell-frame {
-    /* Desktop app-frame. Widened from 480 → 680 so the single-column UI
-       fills more of a desktop viewport AND viewport-keyed `sm:` layouts
-       (e.g. the Browse empty-state's side-by-side CTAs) stop overflowing
-       the frame and clipping text ("…neighbor" → "neigh▮"). Kept well
-       below a full-bleed width so job cards / headers don't stretch. */
-    max-width: 680px;
+    /* Tablet / mid-band app-frame. Evolution: 480 → 680 → responsive fill.
+       A flat 680px cap stranded a growing gray gutter across the 768–1023px
+       band (e.g. ~160px each side at a 1000px viewport) before the ≥1024px
+       web-desktop treatment takes over. We now fill the band with
+       `min(94vw, 880px)`: near-full-bleed up through ~936px viewport, then a
+       gentle 880px ceiling so the single-column UI never stretches
+       unreadably wide right before the desktop sidebar layout kicks in.
+       (max-width can't itself cause overflow; 94vw at 768 = 722 > the old
+       680, so inner content has strictly MORE room, not less.) */
+    max-width: min(94vw, 880px);
     margin-inline: auto;
     box-shadow:
       0 0 0 1px hsl(36 14% 70% / 0.55),
       0 24px 70px -20px hsl(64 16% 16% / 0.35);
   }
   html.app-shell:not(.web-desktop) .mobile-nav-frame {
-    max-width: 680px;
+    /* Keep the floating bottom-nav pill aligned to the frame width above. */
+    max-width: min(94vw, 880px);
     margin-inline: auto;
   }
 }

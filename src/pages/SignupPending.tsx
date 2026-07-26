@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
 import BackButton from "@/components/BackButton";
-import { friendlyAuthError } from "@/lib/authErrors";
 
 // How long to disable the resend button after each send. Supabase's own
 // rate limit is at least this strict on the server; this just sets user
@@ -73,12 +72,25 @@ const SignupPending = () => {
       email: email.trim(),
     });
     setResending(false);
+    // Anti-enumeration, and honest about it. This screen MUST behave the
+    // same whether or not the address has an unverified account, otherwise
+    // it becomes a free "does this person use Helpr?" oracle. Only the
+    // rate-limit case (a useful "slow down") is surfaced as a failure;
+    // "user not found" is deliberately reported as success-shaped.
+    //
+    // The neutral copy also fixes a dead end: an address the user never
+    // signed up with previously produced a confident "resent! check your
+    // inbox" for an email that was never going to arrive.
     if (error) {
-      toast.error(friendlyAuthError(error.message));
-    } else {
-      toast.success("Verification email resent! Check your inbox.");
-      setResendCooldown(RESEND_COOLDOWN_S);
+      const msg = (error.message ?? "").toLowerCase();
+      if (msg.includes("rate") || msg.includes("limit") || msg.includes("too many")) {
+        toast.error("Too many requests — try again in a minute.");
+        return;
+      }
+      // Fall through: success-shaped UX on every other error.
     }
+    toast.success(`If ${email.trim()} has an unverified account, a new link is on its way.`);
+    setResendCooldown(RESEND_COOLDOWN_S);
   };
 
   const stepIcon = (Icon: typeof MailCheck) => (

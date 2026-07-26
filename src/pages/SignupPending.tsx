@@ -152,7 +152,11 @@ const SignupPending = () => {
           </div>
         </div>
 
-        <div className="border-t pt-4" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
+        {/* Resend on the left, "already verified" on the right — one row of
+            escape hatches instead of two stacked lines, which also stops the
+            sign-in link reading as a footer detached from the card. */}
+        <div className="border-t pt-4 flex items-center justify-between gap-4 flex-wrap" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
+          <div className="min-w-0">
           {!showResend ? (
             <button
               onClick={() => setShowResend(true)}
@@ -213,17 +217,14 @@ const SignupPending = () => {
               </Link>
             </div>
           )}
+          </div>
+          <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Already verified?{" "}
+            <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+              Sign in
+            </Link>
+          </p>
         </div>
-
-        {/* Inside the card, like the "Already have an account? Log in" line
-            on Signup. Floating on the page background below the card it read
-            as unrelated page furniture rather than part of the flow. */}
-        <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          Already verified?{" "}
-          <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
-            Sign in
-          </Link>
-        </p>
       </div>
     </AuthShell>
   );

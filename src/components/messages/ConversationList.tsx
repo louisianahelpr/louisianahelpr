@@ -595,7 +595,13 @@ export function ConversationList({
     // redundant count line removed from Activity, /jobs, and the browse
     // toolbar. The desktop split's bar keeps its UNREAD pill, which is real
     // information you can't get by glancing at the list.
-    <PageScaffold header={<DashboardHeader title="Messages" />}>
+    // `titleAs="h1"` because this standalone inbox renders no other heading —
+    // the title card was dropped, so without this the whole mobile/native
+    // Messages screen has ZERO h1 (the desktop split in Messages.tsx already
+    // passes it; only this branch was missed). Phone web and the iOS app are
+    // the same surface, so that was the shipped app's inbox announcing no
+    // page heading to VoiceOver.
+    <PageScaffold header={<DashboardHeader titleAs="h1" title="Messages" />}>
       {listBody}
     </PageScaffold>
   );

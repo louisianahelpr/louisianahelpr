@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
+import BackButton from "@/components/BackButton";
 import { friendlyAuthError } from "@/lib/authErrors";
 
 // How long to disable the resend button after each send. Supabase's own
@@ -90,27 +91,32 @@ const SignupPending = () => {
   );
 
   return (
-    <AuthShell eyebrow="Almost there" maxWidth="md">
-      <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center">
-        <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
-          style={{ background: "hsl(var(--bark) / 0.1)" }}
-        >
-          <MailCheck className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-        </div>
-
-        <div className="space-y-2">
-          <span className="text-display-eyebrow">Verify your email</span>
-          <h1 className="text-page-title leading-tight mt-1">
-            Check your inbox.
+    /* Same shell as Login and Signup: heading INSIDE the card on a
+       [back] [title] row, wide centred column, no wordmark/eyebrow block
+       above it. This screen used to be the odd one out — a 448px card
+       under a big Helpr·LA lockup, in a flow whose other two screens are
+       1024px cards with their own headings. */
+    <AuthShell hideHeader hideBack centerColumn maxWidth="2xl">
+      <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="shrink-0"><BackButton to="/signup" /></div>
+          <h1
+            className="font-display italic font-bold leading-tight min-w-0 flex-1"
+            style={{
+              fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            Check your inbox
           </h1>
-          <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            We've sent a verification link to your email. Click it to confirm your account.
-          </p>
         </div>
+        <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          We've sent a verification link to your email. Click it to confirm your account.
+        </p>
 
-        <div className="border-t pt-6 space-y-4 text-left" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
-          <div className="flex items-start gap-3">
+        <div className="border-t pt-6 grid gap-4 sm:grid-cols-3 text-left" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
+          <div className="flex items-start gap-3 sm:flex-col sm:gap-2">
             {stepIcon(MailCheck)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Verify your email</p>
@@ -120,7 +126,7 @@ const SignupPending = () => {
             </div>
           </div>
 
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 sm:flex-col sm:gap-2">
             {stepIcon(LogIn)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>We'll sign you in</p>
@@ -130,7 +136,7 @@ const SignupPending = () => {
             </div>
           </div>
 
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 sm:flex-col sm:gap-2">
             {stepIcon(Sparkles)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>
@@ -145,7 +151,7 @@ const SignupPending = () => {
           {!showResend ? (
             <button
               onClick={() => setShowResend(true)}
-              className="text-ds-13 font-medium hover:underline flex items-center gap-1.5 mx-auto"
+              className="text-ds-13 font-medium hover:underline flex items-center gap-1.5"
               style={{ color: "hsl(var(--bark))" }}
             >
               <RefreshCw className="w-3.5 h-3.5" />

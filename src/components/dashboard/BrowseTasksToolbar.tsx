@@ -159,14 +159,20 @@ export function BrowseTasksToolbar({
         style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
       >
         <div className="flex flex-col leading-none">
-          <span
-            className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            {filters.hasFilters
-              ? `Filtered · ${filters.activeFilterCount} active`
-              : "Fresh today"}
-          </span>
+          {/* Only the FILTERED state survives here. "Fresh today" was a plain
+              eyebrow — "Browse jobs" sits directly below and says it, and it
+              over-claimed anyway, since the feed is every open job rather than
+              only today's. "Filtered · N active" is not a label though: it's
+              state feedback you can't get anywhere else on this row, so it
+              stays and simply renders nothing when no filter is on. */}
+          {filters.hasFilters && (
+            <span
+              className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+            >
+              {`Filtered · ${filters.activeFilterCount} active`}
+            </span>
+          )}
           {/* h1, not h2: this is the primary heading of the surfaces that
               render this toolbar (/browse guest board and /dashboard). Neither
               page renders any other h1, so demoting this to h2 left both with

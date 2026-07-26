@@ -279,6 +279,31 @@ export function IdentityHeader({
                     <span>{memberSinceLabel}</span>
                   </span>
                 )}
+            {/* Bio sits directly under the location / member-since line —
+                with the rest of WHO THIS PERSON IS. It had drifted below the
+                stat row, separating it from the name it describes.
+
+                No top rule. The divider that used to sit here was drawn when
+                the bio was a separate section further down; now that it's part
+                of the identity block, a line between the name and the bio
+                implied they were unrelated. */}
+            <div className="mt-2">
+              {profile?.bio?.trim() ? (
+                <p
+                  className="font-serif italic text-ds-13 leading-snug line-clamp-3"
+                  style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                >
+                  {profile.bio}
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onSelectTab("profile")}
+                  className="w-full text-left font-serif italic text-ds-13 leading-snug active:opacity-70 transition-opacity"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >+ Add a short bio so applicants know who they're hiring.</button>
+              )}
+            </div>
               </p>
             )}
             {/* Earned trust badges — only the EARNED ones render, so the
@@ -442,26 +467,6 @@ export function IdentityHeader({
           <ProfileStatsTrend helperId={profile.user_id} feeFallbackPercent={feeFallbackPercent} />
         )}
 
-        {/* Bio excerpt — surfaces the user's pitch on the landing page,
-            since this is what applicants see when deciding whether to apply.
-            Empty state nudges the user to write one. */}
-        <div className="mt-3.5 pt-3.5" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-          {profile?.bio?.trim() ? (
-            <p
-              className="font-serif italic text-ds-13 leading-snug line-clamp-3"
-              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-            >
-              {profile.bio}
-            </p>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onSelectTab("profile")}
-              className="w-full text-left font-serif italic text-ds-13 leading-snug active:opacity-70 transition-opacity"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >+ Add a short bio so applicants know who they're hiring.</button>
-          )}
-        </div>
 
         {/* ── Intro video ─────────────────────────────────────────────
             Own-profile only. If no video, a dashed-border CTA nudges

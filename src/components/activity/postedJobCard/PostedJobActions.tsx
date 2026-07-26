@@ -114,8 +114,11 @@ export function PostedJobActions({
             )}
             {/* Color-coded actions — each lever gets its own muted
                 hue so the row reads at a glance without shouting:
-                Boost = orange (visibility), Edit = gold/yellow,
-                Share = blue, Cancel = red. Applicants (above) stays
+                Share = blue, Boost = orange (visibility), Edit =
+                gold/yellow, Cancel = red. Order is Share, Boost, Edit,
+                Cancel — least destructive first, Cancel last so the
+                one irreversible action is furthest from the thumb's
+                resting position. Applicants (above) stays
                 the single solid-green primary, so these four sit
                 together as one secondary icon row — Boost included,
                 not promoted to a full-width near-primary. Tints are
@@ -127,6 +130,12 @@ export function PostedJobActions({
                   named (clearer than icon-only) while the color
                   tints still let the row read at a glance. */}
               <div className="grid grid-cols-4 gap-1.5">
+                <ShareJobButton
+                  job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
+                  layout="stack"
+                  className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
+                  style={{ background: "hsl(var(--info-tint) / 0.12)", color: "hsl(var(--info-ink))", border: "0.5px solid hsl(var(--info-tint) / 0.32)" }}
+                />
                 <Button
                   variant="outline" size="sm"
                   className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
@@ -146,12 +155,6 @@ export function PostedJobActions({
                   <Pencil className="w-4 h-4" />
                   <span className="text-[0.66rem] leading-none font-medium">Edit</span>
                 </Button>
-                <ShareJobButton
-                  job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-                  layout="stack"
-                  className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
-                  style={{ background: "hsl(var(--info-tint) / 0.12)", color: "hsl(var(--info-ink))", border: "0.5px solid hsl(var(--info-tint) / 0.32)" }}
-                />
                 <Button
                   variant="outline" size="sm"
                   className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"

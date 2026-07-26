@@ -353,6 +353,13 @@ export function SettingsSection({
               // surface under Auto/Dark mode. `--foreground` flips with the
               // theme so "Sign out" stays legible in both.
               color: "hsl(var(--foreground))",
+              // Border, matching Delete account below. The comment above this
+              // block always claimed the two were "the same pill" — but only
+              // Delete account had an outline, so Sign out was a bg-card fill
+              // on a card-coloured page: an invisible edge, findable only by
+              // its label. Bark at the same 0.32 alpha burnt-sienna uses, so
+              // the pair now genuinely matches and neither floats.
+              border: "1px solid hsl(var(--bark) / 0.32)",
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,
             }}

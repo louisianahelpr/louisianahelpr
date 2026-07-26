@@ -59,7 +59,14 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false
       to={guest ? "/signup" : `/user/${job.customer_id}`}
       className="relative block p-2.5 rounded-ds-md group glass-press transition-colors"
       style={{
-        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+        // `--surface-premium`, NOT a literal white. This was
+        // `hsla(0, 0%, 100%, 0.55)` — 55%-opaque pure white with no dark
+        // sibling — so in dark mode the "Posted by" tile painted as a bright
+        // silver panel sitting among otherwise dark tiles (caught on the iOS
+        // sim). That is the exact failure the token was introduced to fix; see
+        // the note above --surface-premium in index.css. This tile was just
+        // never migrated.
+        background: "var(--surface-premium)",
         backdropFilter: "blur(16px) saturate(150%)",
         WebkitBackdropFilter: "blur(16px) saturate(150%)",
         border: "0.5px solid hsl(var(--bark) / 0.18)",

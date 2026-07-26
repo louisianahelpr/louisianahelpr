@@ -423,13 +423,13 @@ const Login = () => {
           </Button>
           {/* Sits with the button whose action it governs, not stranded below
               the whole card. */}
-          <p className="text-ds-11 font-sans leading-relaxed text-center" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+          <p className="text-ds-11 font-sans leading-relaxed text-center text-balance" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
             By signing in you agree to our{" "}
             <Link to="/terms" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Terms</Link>
             {" · "}
             <Link to="/rules" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Rules</Link>
             {" · "}
-            <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy Policy</Link>
+            <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy</Link>
           </p>
         </form>
 

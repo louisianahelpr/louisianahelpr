@@ -38,6 +38,12 @@ interface AuthShellProps {
       `items-start` and pinned the card to the left edge). Callers that pass a
       brand pane are unaffected. */
   centerColumn?: boolean;
+  /** Overlay the back control INSIDE the card's top-left corner instead of
+      stacking it above the column. Once the heading moved into the card, a
+      bare arrow sitting above it had nothing to attach to — it floated on the
+      page background and read as unrelated chrome. Absolute, so it costs no
+      vertical space and the heading stays optically centred. */
+  backInCard?: boolean;
 }
 
 const widthMap = {
@@ -65,6 +71,7 @@ const AuthShell = ({
   maxWidth = "lg",
   desktopBrandPanel,
   centerColumn,
+  backInCard = false,
 }: AuthShellProps) => {
   const showCompactTopBar = compactHeader && !hideHeader;
   const showFullHeader = !compactHeader && !hideHeader;
@@ -139,7 +146,7 @@ const AuthShell = ({
             {desktopBrandPanel}
           </div>
         )}
-        <div className={`w-full ${widthMap[maxWidth]}`}>
+        <div className={`w-full ${widthMap[maxWidth]} ${backInCard ? "relative" : ""}`}>
           {showCompactTopBar ? (
             <div className="relative mb-4 flex items-center justify-center min-h-7">
               {!hideBack && <div className="absolute left-0">{backLink}</div>}
@@ -149,11 +156,15 @@ const AuthShell = ({
             !hideBack && align !== "center" && (
               // Hide the in-flow back button at lg+ when a brand pane is
               // rendered — the pinned top-left back button covers desktop.
-              // Gap is mb-2 (was mb-5): with the heading now living inside the
-              // card, a 20px gap left this arrow stranded in empty space above
-              // a tall card and it read as unrelated chrome rather than the
-              // card's own back control.
-              <div className={`mb-2 ${desktopBrandPanel ? "lg:hidden" : ""}`}>
+              // `backInCard` overlays it in the card's top-left corner (see the
+              // prop docs); otherwise it stacks above the column as before.
+              <div
+                className={
+                  backInCard
+                    ? "absolute left-3 sm:left-4 top-3 sm:top-4 z-20"
+                    : `mb-2 ${desktopBrandPanel ? "lg:hidden" : ""}`
+                }
+              >
                 {backLink}
               </div>
             )

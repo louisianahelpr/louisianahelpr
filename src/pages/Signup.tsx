@@ -349,7 +349,7 @@ const Signup = () => {
   // bottom of a 922px-tall window. One emblem now sits beside the heading at
   // every width.
   return (
-    <AuthShell hideHeader centerColumn maxWidth="2xl">
+    <AuthShell hideHeader centerColumn backInCard maxWidth="2xl">
       <div className="pb-8">
           {/* Liquid-glass card — matches the Login screen so the two auth
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}

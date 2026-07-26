@@ -958,7 +958,7 @@ export default function SubscriptionPage() {
             {BENEFITS.map((b, i) => (
               <div
                 key={b.title}
-                className="h-full flex flex-col text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 sm:min-h-[22rem] md:min-h-[17rem] lg:min-h-[24rem]"
+                className="h-full flex flex-col text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 sm:min-h-[15rem] md:min-h-[11rem] lg:min-h-[16rem]"
                 style={{
                   opacity: benefitsInView ? 1 : 0,
                   transform: benefitsInView
@@ -971,19 +971,15 @@ export default function SubscriptionPage() {
                   boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
                 }}
               >
-                <span
-                  aria-hidden
-                  className="block font-display font-black leading-none"
-                  style={{
-                    fontSize: "clamp(4rem, 6.5vw, 6rem)",
-                    color: "hsl(var(--burnt-sienna) / 0.35)",
-                    letterSpacing: "-0.04em",
-                  }}
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
+                {/* No 01/02/03 numeral. These three are parallel BENEFITS of
+                    membership — keep more, get seen, cancel anytime — not
+                    sequential steps, so numbering implied an order that doesn't
+                    exist (the same reason it was dropped from the business
+                    industry cards). It also consumed up to 6rem of each card's
+                    height for decoration. Numbering stays on the landing
+                    "Three steps." section, where the sequence is real. */}
                 <h3
-                  className="mt-4 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
+                  className="font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
                   style={{ color: "hsl(var(--ink-deep))" }}
                 >
                   {b.title}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Building2, Check, ChevronDown, Sparkles } from "lucide-react";
+import { ArrowRight, Building2, Check, ChevronDown, Crown, Sparkles, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -847,28 +847,40 @@ const PricingSection = () => {
                 })()}
               </div>
 
-              {/* The real "Verified Business" chip — same Building2 glyph and
-                  `tier-gold-soft` treatment as src/components/BusinessBadge.tsx,
-                  so what a visitor previews is what lands on the profile.
-                  Paid tiers only, per product decision.
+              {/* Per-tier badge preview, mirroring /subscription's. Crew, Team
+                  and Enterprise each get their own glyph so the three read as a
+                  ladder rather than one repeated chip — Users → Building2 →
+                  Crown, ascending like Star → Award → Crown does on membership.
+                  Starter has none, same as the Free membership tier.
 
-                  Reads "Can earn", not "Included", and that wording is load
-                  bearing: unlike the membership badges, which differ per tier,
-                  this is ONE badge shared by every business member, granted by
-                  `businesses.verification_status = 'verified'` (document upload
-                  + admin approval) rather than by the plan. Starter can earn the
-                  same chip for free. */}
+                  ⚠️ PREVIEW IS AHEAD OF THE PROFILE. There is no seat-tier badge
+                  on a profile yet: IdentityHeader renders from
+                  `subscription_tier`, so a Crew owner currently shows the
+                  consumer "Basic" chip (Crew now grants basic — see
+                  check-business-seat-subscription). Making these real means
+                  reading `businesses.seat_tier` in IdentityHeader and rendering
+                  Crew/Team/Enterprise there. Until that lands, this previews a
+                  badge the profile does not yet display. */}
               {tier.name !== "Starter" && (
                 <div className="mt-4 flex items-center gap-2">
                   <span
                     className="font-sans text-ds-11"
                     style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                   >
-                    Can earn:
+                    Your badge:
                   </span>
-                  <span className="inline-flex items-center rounded-full font-semibold tier-gold-soft text-ds-10 px-2 py-0.5 gap-1">
-                    <Building2 className="w-3 h-3 verified-gold" />
-                    Verified Business
+                  <span
+                    className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+                    style={{
+                      color: "hsl(var(--bark))",
+                      background: "hsl(var(--bark) / 0.10)",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    {tier.name === "Crew" && <Users className="w-2.5 h-2.5" />}
+                    {tier.name === "Team" && <Building2 className="w-2.5 h-2.5" />}
+                    {tier.name === "Enterprise" && <Crown className="w-2.5 h-2.5" />}
+                    {tier.name}
                   </span>
                 </div>
               )}

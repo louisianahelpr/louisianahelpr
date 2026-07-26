@@ -1,6 +1,6 @@
 import { memo, useCallback, type KeyboardEvent, type TouchEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck, ShieldCheck, Hourglass,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck, ShieldCheck,
 } from "lucide-react";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -422,11 +422,19 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         <div className="w-full px-3.5 pt-6 pb-2.5">
         {/* Title + price share the top row — price chip is vertically
             centered against the title so on a two-line title it sits in the
-            middle, not pinned to the first line. The location/date/time meta
-            spans the full card width below. */}
+            middle. The location/date/time meta spans the full card width
+            below. Titles are one line — see line-clamp-1 note. */}
         <div className="flex items-center justify-between gap-3">
           <h3
-            className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
+            // line-clamp-1, not a character cap: a fixed character count can't
+            // know the column width, so the same limit that fits one line in the
+            // wide single-column layout still wraps in the two-up grid, and an
+            // em-heavy title ("Assemble IKEA PAX wardrobe + dresser") wraps well
+            // before a digit-heavy one of equal length. Clamping to one LINE is
+            // the actual requirement, and it keeps every card the same height —
+            // reinforcing the equal-row-height fix rather than fighting it.
+            // `min-w-0` is what lets it shrink inside the flex row at all.
+            className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight line-clamp-1 min-w-0"
             style={{
               color: "hsl(var(--ink-deep))",
               letterSpacing: "-0.02em",

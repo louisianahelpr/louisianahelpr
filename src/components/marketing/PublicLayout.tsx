@@ -106,7 +106,17 @@ const PublicLayout = ({
     // element out with it. `clip` not `hidden`: it does NOT create a scroll
     // container, so sticky children still stick, and the fixed Navbar/mesh keep
     // the viewport as their containing block and are not clipped.
-    <div className="min-h-screen page-warmth pb-safe-nav relative flex flex-col overflow-x-clip">
+    /* Bottom padding is dock clearance + safe area, but WITHOUT the extra
+       `1rem` that Tailwind's `safe-nav` token adds. `<Footer>` is the last
+       child and carries its own internal padding, so that rem was a visible
+       dead band under the footer on every marketing page — 16px once
+       `--bottom-nav-h` collapsed to 0 (which it does here, since the dock
+       never renders on marketing routes).
+
+       Still expressed in terms of `--bottom-nav-h` rather than hardcoded to
+       zero: if a PublicLayout route ever does show the dock, the footer must
+       not slide underneath it. */
+    <div className="min-h-screen page-warmth pb-[calc(env(safe-area-inset-bottom,0px)+var(--bottom-nav-h,96px))] relative flex flex-col overflow-x-clip">
       {/* Global mesh behind every section — matches the landing surface. */}
       <div aria-hidden className="mesh-gradient-global" />
 

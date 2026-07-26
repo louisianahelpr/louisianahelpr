@@ -222,8 +222,14 @@ const Footer = () => (
 
       {/* Bottom row: copyright */}
       <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-[hsl(var(--olivewood))]/15">
-        <p className="text-ds-11 text-[hsl(var(--olivewood))]/80">
-          © {new Date().getFullYear()} Helpr LLC. All rights reserved. · Louisiana, USA
+        {/* "All rights reserved." dropped so this holds ONE line at 375px —
+            it wrapped to a stranded "USA" on phones. The phrase is vestigial:
+            under the Berne Convention copyright subsists without any notice
+            at all, so it carries no legal weight and costs a whole line on
+            the narrowest screens. `whitespace-nowrap` keeps it honest if the
+            year or wording ever grows. */}
+        <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 whitespace-nowrap">
+          © {new Date().getFullYear()} Helpr LLC · Louisiana, USA
         </p>
         <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 flex items-center gap-1.5">
           Made with{" "}

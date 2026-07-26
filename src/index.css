@@ -854,6 +854,31 @@ html.no-bottom-nav {
   --bottom-nav-h: 0px;
 }
 
+/* ── .helpr-emblem — the wrought-iron H mark ───────────────────────────────
+   The artwork is dark iron on a transparent ground, with brass fleur-de-lis
+   finials and a verdigris centre. On the light parchment canvas it reads
+   perfectly; on the dark canvas the iron sits at roughly the same value as
+   the background and the mark all but disappears.
+
+   Dark mode therefore LIFTS it rather than flattening it. `brightness(0)
+   invert(1)` would be the usual trick, but it would throw away the brass and
+   verdigris that make this a brand mark rather than a glyph — so instead the
+   whole image is brightened, with a small saturation bump so those hues
+   survive the lift, and the drop shadow flips from a dark-on-light lift to a
+   dark halo that separates the mark from the canvas.
+
+   Lives here rather than inline on the <img> because an inline `style` filter
+   always beats a stylesheet rule, so the dark override could never apply. */
+.helpr-emblem {
+  filter: drop-shadow(0 1px 1px rgba(46, 47, 34, 0.18))
+          drop-shadow(0 2px 6px rgba(46, 47, 34, 0.1));
+}
+
+[data-theme="dark"] .helpr-emblem {
+  filter: brightness(1.9) saturate(1.2)
+          drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
 /* ── .squircle — intentionally a NO-OP marker class ────────────────────────
    `.squircle` rides on ~25 components and, via `buttonVariants`, on virtually
    every Button in the app. It has never had a visual effect, and shouldn't.

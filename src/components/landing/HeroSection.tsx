@@ -225,7 +225,14 @@ const HeroSection = () => {
               lineHeight: 1,
               letterSpacing: "-0.005em",
               color: "hsl(var(--bark))",
-              background: "rgba(255, 255, 255, 0.45)",
+              // `--surface-premium`, not a literal white. At
+              // `rgba(255,255,255,0.45)` this secondary hero CTA painted as a
+              // washed-out grey slab on the dark canvas, right beside a
+              // correctly-tinted "Post a job" — the two primary actions on the
+              // landing page disagreeing about what surface they sit on.
+              // (`--bark` above is already theme-aware and lightens on dark,
+              // so only the background was wrong.)
+              background: "var(--surface-premium)",
               backgroundImage: "none",
               backdropFilter: "blur(20px) saturate(180%)",
               WebkitBackdropFilter: "blur(20px) saturate(180%)",

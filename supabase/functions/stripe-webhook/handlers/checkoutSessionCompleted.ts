@@ -77,8 +77,27 @@ export async function handleCheckoutSessionCompleted(
       .update(updateData)
       .eq("email", customerEmail);
 
-    if (error) logStep("ERROR updating profile", { error: error.message });
-    else logStep("Profile updated with tier", { email: customerEmail, tier, expires: subscriptionEnd });
+    if (error) {
+      logStep("ERROR updating profile", { error: error.message });
+      // A subscription payment captured but the tier wasn't applied. The
+      // customer.subscription.updated event serves as a fallback for new
+      // subscriptions, but a persistent DB failure could leave the user
+      // paying without Pro access. Alert ops so it can be reconciled.
+      postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Subscription — tier not applied after payment captured",
+        message: "A subscription checkout captured but the profiles UPDATE (subscription_tier) failed. The user paid but may not have access. customer.subscription.updated serves as a fallback; reconcile if the issue persists.",
+        fields: {
+          session_id: session.id,
+          email: customerEmail ?? "(missing)",
+          tier: tier ?? "(missing)",
+          db_error: error.message,
+        },
+      });
+    } else {
+      logStep("Profile updated with tier", { email: customerEmail, tier, expires: subscriptionEnd });
+    }
   }
 
   // Handle tip checkout completion
@@ -154,8 +173,25 @@ export async function handleCheckoutSessionCompleted(
           boost_auto_extended: false,
         })
         .eq("id", boostJobId);
-      if (boostError) logStep("ERROR applying boost", { error: boostError.message });
-      else logStep("Boost applied", { jobId: boostJobId, expires: expires.toISOString() });
+      if (boostError) {
+        logStep("ERROR applying boost", { error: boostError.message });
+        // A captured boost payment whose DB write failed means the user paid but
+        // the boost never activated. No retry (200 returned) → ops must reconcile.
+        postSlackOpsAlert({
+          kind: "custom",
+          severity: "critical",
+          title: "Job boost — activation failed after payment captured",
+          message: "A boost checkout captured but the jobs UPDATE (boosted_at/boost_expires_at) failed. The boost was paid for but never activated. Reconcile manually.",
+          fields: {
+            session_id: session.id,
+            job_id: String(boostJobId),
+            duration_hours: String(durationHours),
+            db_error: boostError.message,
+          },
+        });
+      } else {
+        logStep("Boost applied", { jobId: boostJobId, expires: expires.toISOString() });
+      }
     }
   }
 

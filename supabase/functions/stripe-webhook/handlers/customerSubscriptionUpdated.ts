@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { PRODUCT_TO_TIER } from "../constants.ts";
+import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 
 export async function handleCustomerSubscriptionUpdated(
   event: Stripe.Event,
@@ -34,7 +35,21 @@ export async function handleCustomerSubscriptionUpdated(
       .update({ subscription_tier: tier, subscription_expires_at: expiresAt })
       .eq("email", email);
 
-    if (error) logStep("ERROR updating profile", { error: error.message });
+    if (error) {
+      logStep("ERROR updating profile", { error: error.message });
+      postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Subscription renewal — tier not applied after payment captured",
+        message: "A customer.subscription.updated event (status=active) fired but the profiles UPDATE (subscription_tier) failed. The subscription renewed but the user may have lost Pro/Elite access. Reconcile manually.",
+        fields: {
+          email: email ?? "(missing)",
+          tier: tier ?? "(missing)",
+          subscription_id: subscription.id,
+          db_error: error.message,
+        },
+      });
+    }
   } else if (["canceled", "unpaid", "past_due", "paused"].includes(subscription.status)) {
     logStep("Subscription inactive", { email, status: subscription.status });
 
@@ -43,6 +58,20 @@ export async function handleCustomerSubscriptionUpdated(
       .update({ subscription_tier: null, subscription_expires_at: null })
       .eq("email", email);
 
-    if (error) logStep("ERROR clearing tier", { error: error.message });
+    if (error) {
+      logStep("ERROR clearing tier", { error: error.message });
+      postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Subscription cancellation — tier not cleared after status change",
+        message: `A customer.subscription.updated event (status=${subscription.status}) fired but the profiles UPDATE (subscription_tier → null) failed. The subscription may have been cancelled/lapsed but the user could retain tier access. Reconcile manually.`,
+        fields: {
+          email: email ?? "(missing)",
+          status: subscription.status,
+          subscription_id: subscription.id,
+          db_error: error.message,
+        },
+      });
+    }
   }
 }

@@ -42,6 +42,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // badges (new applicants on your posts; pending direct offers to you).
   // Count-only queries — deliberately not the heavy useActivityData hook.
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
+  // Signed-out visitors get no bottom dock (below), so nothing should reserve
+  // space for one. This class zeroes `--bottom-nav-h`, which feeds Tailwind's
+  // `safe-nav` token — collapsing the ~112px strip on all 22 `pb-safe-nav`
+  // pages at once. Toggled here because this component owns the decision to
+  // render the dock at all; keeping the two in one place stops them drifting.
+  useEffect(() => {
+    document.documentElement.classList.toggle("no-bottom-nav", isGuest);
+    return () => document.documentElement.classList.remove("no-bottom-nav");
+  }, [isGuest]);
+
   const [gateOpen, setGateOpen] = useState(false);
   // Long-press quick-action sheet — one sheet, with content keyed by which
   // tab was long-pressed. Keeps the markup compact instead of one sheet per
@@ -169,6 +179,19 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // desktop web hides the whole bar via CSS — `html.web-desktop
   // .mobile-nav-frame { display:none }` — so this only ever shows on a
   // phone/tablet browser or the native app, never the desktop rail.)
+
+  // Signed-out visitors get NO bottom nav — every destination behind it needs
+  // an account. This reverses the earlier "tease & convert" behaviour, where
+  // guests saw the full dock with locked tabs that opened a signup sheet; the
+  // dock is now a signed-in surface only. Guests are not stranded: the guest
+  // browse dashboard carries its own sticky header with Log in / Get started,
+  // and the marketing pages carry the Navbar.
+  //
+  // Everything below still branches on `isGuest` (tab remapping to
+  // /browse and /login, the lock icons, GateSheet). That is unreachable now
+  // rather than removed — reinstating the guest dock is a matter of deleting
+  // this guard, and GateSheet is still used elsewhere.
+  if (isGuest) return null;
 
   // Hide nav when in an active message conversation
   const params = new URLSearchParams(location.search);

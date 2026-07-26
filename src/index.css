@@ -834,6 +834,15 @@ html.web-desktop {
 }
 
 
+/* No bottom dock for signed-out visitors, so nothing needs to clear it.
+   `--bottom-nav-h` feeds Tailwind's `safe-nav` spacing token (see
+   tailwind.config.ts), so zeroing it here collapses the reserved strip on all
+   22 `pb-safe-nav` pages at once instead of per page. The class is toggled by
+   MobileNav, which owns the render decision. */
+html.no-bottom-nav {
+  --bottom-nav-h: 0px;
+}
+
 /* ── .squircle — intentionally a NO-OP marker class ────────────────────────
    `.squircle` rides on ~25 components and, via `buttonVariants`, on virtually
    every Button in the app. It has never had a visual effect, and shouldn't.

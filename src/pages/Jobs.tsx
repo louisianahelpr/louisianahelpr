@@ -275,7 +275,7 @@ const Jobs = () => {
           the iOS home-indicator safe area, with a 16px gap so the
           last action isn't kissing the dock. pb-32 was barely 2px
           short on notched phones. */}
-      <div className="pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)] md:pb-safe-nav px-5">
+      <div className="pb-safe-nav px-5">
         <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
           {/* Header — canonical BackButton sits to the LEFT of the title block
               (same row, chevron as lead-in), matching PageHeader everywhere.

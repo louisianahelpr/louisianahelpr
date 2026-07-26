@@ -11,8 +11,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 
 /**
  * PublicLayout — shared chrome for the public marketing / SEO surface
- * (landing, /jobs, /for-business, /help,
- * /discharge, /insurance-claim).
+ * (landing, /jobs, /for-business, /help).
  *
  * Gives every marketing page ONE consistent nav (the shared <Navbar>) and
  * ONE footer (<Footer>). The page's own content renders as {children}

@@ -453,7 +453,15 @@ export default function SubscriptionPage() {
                         headings sit on one baseline. */}
                     {isFeatured && (
                       <span
-                        className="absolute top-3 right-3 z-10 font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full"
+                        // Flush in the top-left corner, same shape language as
+                        // the category badge on a job card: square against the
+                        // two card edges it touches, rounded only where it meets
+                        // the card interior, with `rounded-tl-2xl` matching the
+                        // card's own corner so it reads as part of the card
+                        // rather than a sticker dropped on top. Still absolute,
+                        // so it costs the Pro card no layout height and all four
+                        // headings stay on one baseline.
+                        className="absolute top-0 left-0 z-10 font-sans text-[9px] font-bold uppercase pl-3 pr-2.5 py-1 rounded-tl-2xl rounded-br-lg leading-none"
                         style={{
                           background: "hsl(var(--burnt-sienna))",
                           color: "hsl(var(--parchment))",
@@ -467,10 +475,17 @@ export default function SubscriptionPage() {
                     {/* Tier name — big Bodoni. Strips the "Helpr " prefix
                         so tiers read as just "Basic / Pro / Elite" (Free
                         for the free tier). */}
+                    {/* No conditional margin. This used to add mt-3 whenever a
+                        chip sat above the title — but the "Current" chip is gone
+                        and "Recommended" is now absolutely positioned in the
+                        card corner, so nothing occupies that space any more. The
+                        margin survived as a 12px offset on exactly the Free and
+                        Pro cards, dropping their titles to 42px from the card top
+                        against 30px for Basic and Elite. Same font size on all
+                        four (measured 25.6px); it was purely the offset that made
+                        them look mismatched. */}
                     <h3
-                      className={`font-display font-bold leading-[1.05] tracking-tight ${
-                        isFeatured || isActive ? "mt-3" : ""
-                      }`}
+                      className="font-display font-bold leading-[1.05] tracking-tight"
                       style={{
                         fontSize: "clamp(1.6rem, 2.4vw, 2.15rem)",
                         letterSpacing: "-0.025em",
@@ -931,11 +946,19 @@ export default function SubscriptionPage() {
           </div>
 
           {/* Right — 3 benefits, sequential fade-in */}
-          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-8 lg:gap-10">
+          {/* Same shape as HowItWorksSection's 01/02/03 boxes, and the same
+              reason: from md up this column is 8/12, so three cards side by
+              side were ~150px each — "Keep more of every job." broke across
+              four lines and the body copy set two or three words to a line.
+              One per row at md gives each the full width; lg goes back to
+              three across. `items-stretch` + `h-full` + a per-breakpoint
+              `min-h` keep the three the same height as each other, since at md
+              each is its own row and stretch alone can't equalise them. */}
+          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3 items-stretch gap-10 sm:gap-8 lg:gap-10">
             {BENEFITS.map((b, i) => (
               <div
                 key={b.title}
-                className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8"
+                className="h-full flex flex-col text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 sm:min-h-[22rem] md:min-h-[17rem] lg:min-h-[24rem]"
                 style={{
                   opacity: benefitsInView ? 1 : 0,
                   transform: benefitsInView

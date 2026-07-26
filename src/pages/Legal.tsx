@@ -428,7 +428,7 @@ const Legal = () => {
           contentClassName="bg-premium-page"
         >
           <div className="px-5 pt-3">
-            <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
+            <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-3">
               {nativeHeaderRow}
               <div className="flex flex-wrap items-center gap-2">
                 {/* flex-wrap: search input + full-labeled tabs together can
@@ -469,10 +469,10 @@ const Legal = () => {
             /for-business, /subscription, /help, and /jobs. */}
         {webHeader}
 
-        <div className="container mx-auto px-5 pb-16 sm:pb-24 lg:pb-32">
-          <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
+        <div className="container mx-auto px-5 pb-0">
+          <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-3">
             <div
-              className="sticky z-30 -mx-5 px-5 pt-0 pb-4 backdrop-blur-md"
+              className="sticky z-30 -mx-5 px-5 pt-0 pb-0 backdrop-blur-md"
               style={{ top: webBandStickyTop }}
             >
               <div

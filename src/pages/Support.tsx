@@ -294,7 +294,7 @@ const Support = () => {
     <PublicLayout hideHomeLink>
       <PageIntro />
 
-      <section className="px-5 sm:px-8 lg:px-12 pt-2 sm:pt-4 lg:pt-6 pb-12 sm:pb-16 lg:pb-24">
+      <section className="px-5 sm:px-8 lg:px-12 pt-0 pb-8">
         <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-10 lg:gap-16 md:items-start">
 
           {/* Right column — the form (or its success state). */}

@@ -144,7 +144,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
   return (
     <Routes location={location}>
-      <Route path="/" element={<RouteErrorBoundary>{routeEl(<Index />)}</RouteErrorBoundary>} />
+      <Route path="/" element={<RouteErrorBoundary>{routeEl(<PageTransition><Index /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/login" element={<RouteErrorBoundary>{routeEl(<PageTransition><Login /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/signup" element={<RouteErrorBoundary>{routeEl(<PageTransition><Signup /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/signup-pending" element={<RouteErrorBoundary>{routeEl(<PageTransition><SignupPending /></PageTransition>)}</RouteErrorBoundary>} />
@@ -178,7 +178,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Authed users still get the same form as a Profile tab.
           No PageTransition — it renders inside PublicLayout, so the fixed-nav
           rule in the note directly below applies to it too. */}
-      <Route path="/support" element={<RouteErrorBoundary>{routeEl(<Support />)}</RouteErrorBoundary>} />
+      <Route path="/support" element={<RouteErrorBoundary>{routeEl(<PageTransition><Support /></PageTransition>)}</RouteErrorBoundary>} />
 
       {/* Marketing routes intentionally skip PageTransition — its
           motion.div sets `will-change: transform`, which establishes
@@ -188,7 +188,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Landing (/) also skips PageTransition for the same reason;
           this preserves the same fixed-nav behaviour on /legal,
           /for-business, /help, /subscription. */}
-      <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<Legal />)}</RouteErrorBoundary>} />
+      <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
       <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
       <Route path="/data-rights" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><DataRights /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -224,7 +224,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Public so the footer "Plans" link and marketing CTAs resolve for
           logged-out visitors. The page renders read-only for guests (current
           plan shows Free); tapping Upgrade routes them to sign in first. */}
-      <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<SubscriptionPage />)}</RouteErrorBoundary>} />
+      <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<PageTransition><SubscriptionPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
       <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -232,7 +232,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />
       <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<ForBusiness />)}</RouteErrorBoundary>} />
+      <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/analytics" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelperAnalytics /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -258,7 +258,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* The standalone How It Works page was folded into the landing section
           (poster/Helpr toggle) — keep old links landing on that anchor. */}
       <Route path="/how-it-works" element={<Navigate to="/#how-it-works" replace />} />
-      <Route path="/help" element={<RouteErrorBoundary>{routeEl(<HelpCenter />)}</RouteErrorBoundary>} />
+      <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Retired public discovery pages — redirect legacy links.
           Jobs are discovered via the landing strip + /jobs; parish/impact/
           pricing-guide standalone pages were removed. */}

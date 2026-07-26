@@ -12,10 +12,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import AuthShell from "@/components/auth/AuthShell";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
-import BuildStamp from "@/components/BuildStamp";
 import { queryKeys } from "@/lib/queryKeys";
 import { friendlyAuthError } from "@/lib/authErrors";
-import { safeInternalRedirect } from "@/lib/authRedirects";
 import {
   setLastAuthMethod,
 } from "@/lib/lastAuthMethod";
@@ -90,7 +88,6 @@ const Login = () => {
   // app's main tabs (My Posts, etc.) should never be the post-login landing;
   // the user explicitly wants "log in → home". Deep content links surface
   // their own in-app routing once the user is home.
-  const redirectTarget = safeInternalRedirect(searchParams.get("redirect"));
   const postLoginDest = "/dashboard";
   const queryClient = useQueryClient();
   usePageMeta({
@@ -276,16 +273,6 @@ const Login = () => {
           >
             Glad you're back.
           </h1>
-          <p
-            className="font-sans"
-            style={{
-              fontSize: "0.95rem",
-              color: "hsl(var(--olivewood) / 0.8)",
-              letterSpacing: "0.01em",
-            }}
-          >
-            {redirectTarget ? "Sign in to continue." : "Pick up right where you left off."}
-          </p>
         </div>
         {mfaChallenge ? (
           <div className="space-y-5">
@@ -446,9 +433,7 @@ const Login = () => {
             >
               Create an account
             </Link>
-          </p>
-          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Signing up a business?{" "}
+          {" · "}
             <Link
               to="/signup?type=business"
               className="font-semibold hover:underline"
@@ -456,10 +441,6 @@ const Login = () => {
             >
               Business sign-up
             </Link>
-            <br />
-            <span style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
-              Invite your team &amp; bill jobs to one card.
-            </span>
           </p>
         </div>
         </>
@@ -475,9 +456,6 @@ const Login = () => {
         <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy Policy</Link>
       </p>
 
-      <div className="mt-2">
-        <BuildStamp />
-      </div>
     </AuthShell>
   );
 };

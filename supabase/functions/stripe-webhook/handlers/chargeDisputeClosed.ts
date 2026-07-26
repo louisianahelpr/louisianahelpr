@@ -49,13 +49,40 @@ export async function handleChargeDisputeClosed(
       .maybeSingle();
 
     if (closedJob) {
-      await supabase
+      const { error: resolveUpdateErr } = await supabase
         .from("jobs")
         .update({
           dispute_status: finalDisputeStatus,
           dispute_resolved_at: new Date().toISOString(),
         })
         .eq("id", closedJob.id);
+
+      if (resolveUpdateErr) {
+        // A dropped write leaves dispute_status stuck at "stripe_chargeback"
+        // rather than "dispute_won"/"dispute_lost"/"warning_closed". On a won
+        // dispute this is especially harmful: the Slack alert below tells ops
+        // to release the helper's payout, but release-payout's dispute guard
+        // only allows dispute_status ∈ {resolved, auto_resolved}. With
+        // "stripe_chargeback" still set the payout remains permanently blocked
+        // until a human repairs the row manually — with no signal that the
+        // repair is even needed. Alert ops NOW (before throwing) so the
+        // critical-severity page has full context, then throw so the
+        // idempotency row is rolled back and Stripe retries.
+        await postSlackOpsAlert({
+          kind: outcome === "won" ? "dispute_won" : outcome === "lost" ? "dispute_lost" : "custom",
+          severity: "critical",
+          title: "Stripe dispute closed — OUTCOME NOT RECORDED (DB error)",
+          message: `Dispute ${closedDispute.id} closed as "${outcome}" but the jobs.dispute_status update failed. The job's dispute state is still "stripe_chargeback". Stripe will retry this webhook.`,
+          fields: {
+            "Dispute ID": closedDispute.id,
+            "Outcome": outcome,
+            "Job ID": String(closedJob.id),
+            "DB error": resolveUpdateErr.message.slice(0, 200),
+          },
+          link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
+        });
+        throw new Error(`Failed to record dispute outcome "${outcome}" for job ${closedJob.id}: ${resolveUpdateErr.message}`);
+      }
 
       if (outcome === "won") {
         // Funds are back on the platform balance. Notify admins to

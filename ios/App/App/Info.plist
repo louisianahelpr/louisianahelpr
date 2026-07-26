@@ -62,9 +62,7 @@
 	<string>Helpr needs camera access so you can take before and after job photos and upload verification documents.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Record voice notes to send in chat.</string>
-	<key>NSContactsUsageDescription</key>
-	<string>Helpr can access contacts only if you choose to invite a friend by phone or email.</string>
-	<key>NSFaceIDUsageDescription</key>
+<key>NSFaceIDUsageDescription</key>
 	<string>Helpr uses Face ID to confirm it's you before cashing out your earnings.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Helpr uses your location to show nearby jobs and confirm helpr arrival.</string>

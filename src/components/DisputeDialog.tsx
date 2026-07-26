@@ -176,11 +176,6 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
             </>
           }
           title="File a dispute."
-          subtitle={
-            <>
-              You've already requested a revision. Filing a dispute holds payment for <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>72 hours</strong> while an admin reviews.
-            </>
-          }
         />
         <div className="space-y-3.5">
           <div className="space-y-1.5">

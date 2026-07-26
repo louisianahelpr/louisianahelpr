@@ -212,7 +212,6 @@ function EnrollDialog({
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><Smartphone className="w-3 h-3" /> Authenticator app</>}
           title="Turn on two-step."
-          subtitle="Scan the code with Google Authenticator, 1Password, or any TOTP app, then enter the 6-digit code it shows."
         />
 
         {isLoading ? (
@@ -346,7 +345,6 @@ function DisableDialog({
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><ShieldCheck className="w-3 h-3" /> Two-step verification</>}
           title="Turn off two-step?"
-          subtitle="Enter a current code from your authenticator app to confirm. Your account will no longer ask for a code at sign-in."
         />
 
         <div className="space-y-1.5">

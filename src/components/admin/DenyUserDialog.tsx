@@ -96,7 +96,6 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
         <DialogHero
           eyebrow="Deny application"
           title={`Deny ${formatName(profile?.full_name)}`}
-          subtitle="This applicant will not be able to use Helpr with this account. They'll receive an email with your reason and can re-apply."
         />
         <div className="space-y-4">
           <p className="text-ds-11 text-muted-foreground">

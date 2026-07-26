@@ -84,7 +84,6 @@ export function ProUpgradeSheet({
               eyebrowStyle={{ color: accent }}
               title={title}
               titleStyle={{ fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)" }}
-              subtitle={body}
             />
           </div>
         </DialogHeader>

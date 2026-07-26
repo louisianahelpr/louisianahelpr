@@ -178,7 +178,6 @@ export function ApplyConfirmDialog({
           <AlertDialogHero
             eyebrow={isBidMode ? "You're bidding" : isInstantBook ? "You're booking" : "You're applying"}
             title={confirmApplyJob ? `"${confirmApplyJob.title}"` : isBidMode ? "Submit a bid" : isInstantBook ? "Book this job" : "Apply for this job"}
-            subtitle={confirmApplyJob ? undefined : "Are you sure you want to apply for this job?"}
           />
           {confirmApplyJob && (
             <div className="pt-3">

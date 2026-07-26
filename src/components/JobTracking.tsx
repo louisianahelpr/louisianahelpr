@@ -468,7 +468,6 @@ export function JobTracking({
           <SheetHero
             eyebrow="Live location"
             title="Share your location"
-            subtitle="Share your live location with a trusted contact? They'll get a link showing your current job."
           />
           <div className="mt-4 space-y-2">
             <Button

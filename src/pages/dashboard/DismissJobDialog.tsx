@@ -16,11 +16,6 @@ export function DismissJobDialog({ confirmDismissJobId, confirmDismissJob, onOpe
       <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg rounded-ds-sm p-4 sm:p-6">
         <AlertDialogHero
           title="Not interested?"
-          subtitle={
-            confirmDismissJob
-              ? <>Remove <span className="not-italic font-semibold text-foreground">"{confirmDismissJob.title}"</span> from your feed? You won't see it again.</>
-              : "Remove this job from your feed?"
-          }
         />
         <AlertDialogFooter className="flex-row justify-end gap-2 sm:gap-2">
           <AlertDialogCancel className="mt-0 h-9 px-3 text-ds-13">Keep it</AlertDialogCancel>

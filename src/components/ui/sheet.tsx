@@ -106,7 +106,19 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
             transform lives on an inner motion.div so the two don't fight
             over `transform` (Radix animates enter/exit, framer animates the
             live drag). */}
-        <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
+        {/* aria-describedby={undefined}: Radix warns once per open when a
+            Content has no `Description` and no explicit `aria-describedby`.
+            Every hero subtitle was removed app-wide (2026-07-25 "one main
+            title"), so that is the normal case now, not an oversight, and the
+            warning would fire on every sheet. Declaring `undefined` is Radix's
+            documented way to say "intentionally no description". `{...props}`
+            comes after, so a caller supplying its own still wins. */}
+        <SheetPrimitive.Content
+          ref={ref}
+          className={cn(sheetVariants({ side }), className)}
+          aria-describedby={undefined}
+          {...props}
+        >
           {enableDragDismiss ? (
             <motion.div
               // Only the downward direction pulls the sheet; an upward drag
@@ -196,14 +208,20 @@ SheetDescription.displayName = SheetPrimitive.Description.displayName;
  */
 const SheetHero = ({
   title,
-  subtitle,
   className,
   titleClassName,
   titleStyle,
 }: {
-  // `eyebrow`/`eyebrowClassName`/`eyebrowStyle` kept in the type for call-site
-  // compatibility but intentionally not rendered — 2026-07-25 app-wide
-  // eyebrow-removal decision (mirrors DialogHero).
+  // `eyebrow` and `subtitle` remain ACCEPTED but are not rendered — the
+  // 2026-07-25 "one main title" decision: a popup header shows its title and
+  // nothing stacked above or below it. Every call site has had the props
+  // stripped; they are kept in the type so a stray usage is a no-op rather
+  // than a build break, and so restoring either is a one-line change here
+  // instead of an edit across ~40 files.
+  //
+  // Copy a SIGHTED user must read — fee, tax, or payout disclosure — belongs
+  // in the dialog body. Four were relocated there rather than dropped:
+  // TipDialog, ReviewForm's tip prompt, InstantPayoutDialog, W9CollectionDialog.
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
@@ -220,17 +238,6 @@ const SheetHero = ({
     >
       {title}
     </SheetTitle>
-    {/* Rendered for assistive tech only — 2026-07-25 "one main title" decision.
-        The header must show a single title, with nothing stacked above or
-        below it. This is NOT deleted, for two reasons: it is the Radix
-        `Description` wired to the dialog's `aria-describedby` (dropping it
-        loses the screen-reader description and trips Radix's missing-
-        description warning), and it is a one-line restore. Copy that a SIGHTED
-        user must see — fee, tax, or payout disclosure — belongs in the dialog
-        body, not here. */}
-    {subtitle && (
-      <SheetDescription className="sr-only">{subtitle}</SheetDescription>
-    )}
   </SheetHeader>
 );
 SheetHero.displayName = "SheetHero";

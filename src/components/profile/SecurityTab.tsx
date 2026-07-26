@@ -225,7 +225,6 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={<><Mail className="w-3 h-3" /> Account</>}
             title="Change email address."
-            subtitle="A confirmation link will be sent to your new address before the change takes effect."
           />
 
           <div className="space-y-1.5">

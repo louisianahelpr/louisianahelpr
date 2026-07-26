@@ -209,11 +209,6 @@ export const DisputeTimelineDialog = ({
             </>
           }
           title="Timeline"
-          subtitle={
-            decidedAt
-              ? "An admin has reached a decision on this dispute."
-              : "An admin is reviewing this dispute. Add more evidence to strengthen your case."
-          }
         />
 
         {loading ? (

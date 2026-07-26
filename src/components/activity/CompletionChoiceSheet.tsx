@@ -185,7 +185,6 @@ export function CompletionChoiceSheet({
               className="mb-4"
               eyebrow="Wrapping up"
               title="How did it go?"
-              subtitle="Your choice determines what happens to payment."
             />
 
             <div className="space-y-3">

@@ -346,14 +346,6 @@ export const AppliedJobsTab = ({
           <SheetHero
             eyebrow="Withdraw"
             title="Withdraw application?"
-            subtitle={
-              <>
-                You won&apos;t be able to re-apply to{" "}
-                <span className="font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-                  "{withdrawTarget?.jobTitle}"
-                </span>.
-              </>
-            }
           />
 
           <fieldset className="mt-5 space-y-1.5" disabled={!!withdrawingAppId}>

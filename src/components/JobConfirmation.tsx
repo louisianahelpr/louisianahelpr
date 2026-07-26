@@ -182,7 +182,6 @@ export function JobConfirmation({
               </>
             }
             title="Commit to this job?"
-            subtitle="The other party will see you're locked in for the scheduled date."
           />
           <div className="space-y-3">
             <div

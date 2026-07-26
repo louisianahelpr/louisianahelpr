@@ -167,7 +167,6 @@ const AdminBusinessVerificationQueue = () => {
         <AlertDialogContent>
           <AlertDialogHero
             title="Reject business verification"
-            subtitle="The owner will be notified and can re-upload. Add a short reason so they know what to fix."
           />
           <Textarea
             aria-label="Business verification rejection reason"

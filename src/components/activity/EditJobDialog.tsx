@@ -244,7 +244,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <AlertDialogHero
           eyebrow="Editing your job"
           title="Save these changes?"
-          subtitle="Your job listing will update right away."
         />
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -262,7 +261,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <AlertDialogHero
           eyebrow="Editing your job"
           title="Discard your changes?"
-          subtitle="Your edits won't be saved to the job listing."
         />
         <AlertDialogFooter>
           <AlertDialogCancel>Keep editing</AlertDialogCancel>

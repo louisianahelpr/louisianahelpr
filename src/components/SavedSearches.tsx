@@ -204,7 +204,6 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
             </>
           }
           title="Saved searches"
-          subtitle="Save your filters and we'll send a push the moment a matching job posts."
         />
 
         <div className="space-y-2.5">

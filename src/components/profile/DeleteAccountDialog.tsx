@@ -66,7 +66,6 @@ export function DeleteAccountDialog({
           title={<><AlertTriangle className="w-5 h-5" /> Final confirmation</>}
           titleClassName="flex items-center justify-center gap-2 text-balance"
           titleStyle={{ color: "hsl(var(--burnt-sienna))" }}
-          subtitle={<>Type <strong className="not-italic font-sans" style={{ color: "hsl(var(--ink-deep))" }}>{CONFIRM_PHRASE}</strong> below to confirm. There is no undo.</>}
         />
         <Input
           autoFocus

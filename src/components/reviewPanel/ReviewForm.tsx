@@ -177,7 +177,6 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
         <DialogHero
           eyebrow="Your turn"
           title={`Rate ${revieweeName}.`}
-          subtitle="Reviews are how other neighbors decide who to trust."
         />
         <div className="space-y-3">
           {CATEGORY_ROWS.map((row) => (

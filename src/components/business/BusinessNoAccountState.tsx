@@ -81,7 +81,6 @@ export default function BusinessNoAccountState({ title }: { title: string }) {
           <DialogHero
             eyebrow="Helpr Business"
             title="Create your business account"
-            subtitle="You'll be the owner. You can invite teammates and manage seats once it's set up."
           />
           <div className="space-y-2">
             <Label htmlFor="business-name">Company name</Label>

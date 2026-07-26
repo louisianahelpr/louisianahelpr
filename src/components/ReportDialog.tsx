@@ -147,7 +147,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><ShieldAlert className="w-3 h-3" strokeWidth={2} aria-hidden="true" /> {eyebrow}</>}
           title={title}
-          subtitle={step !== "confirmation" ? "Tell us what's going on. Our trust team reviews every report." : undefined}
         />
 
         {step === "reason" && (

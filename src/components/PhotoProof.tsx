@@ -104,11 +104,6 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
               </>
             }
             title={`${type === "before" ? "Before" : "After"} photos`}
-            subtitle={
-              type === "before"
-                ? "Snap a few shots before you start so everyone has a baseline."
-                : "Show the finished work — required before payment can release."
-            }
           />
           <div className="space-y-3">
             {existingUrls.length > 0 && (

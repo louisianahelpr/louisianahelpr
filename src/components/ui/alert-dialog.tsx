@@ -37,6 +37,16 @@ const AlertDialogContent = React.forwardRef<
         "glass-modal fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-5 p-7 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className,
       )}
+      // Radix warns once per open when a Content has no `Description` and no
+      // explicit `aria-describedby`. Every hero subtitle was removed app-wide
+      // (2026-07-25 "one main title"), so that is now the normal case rather
+      // than an oversight, and the warning would fire on every dialog in the
+      // app. Declaring `undefined` is Radix's own documented way to say "this
+      // dialog intentionally has no description" and silences it.
+      //
+      // `{...props}` comes AFTER, so a dialog that does supply its own
+      // `aria-describedby` still wins.
+      aria-describedby={undefined}
       {...props}
     />
   </AlertDialogPortal>
@@ -81,14 +91,20 @@ AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayNam
  */
 const AlertDialogHero = ({
   title,
-  subtitle,
   className,
   titleClassName,
   titleStyle,
 }: {
-  // `eyebrow`/`eyebrowClassName`/`eyebrowStyle` kept in the type for call-site
-  // compatibility but intentionally not rendered — 2026-07-25 app-wide
-  // eyebrow-removal decision (mirrors DialogHero).
+  // `eyebrow` and `subtitle` remain ACCEPTED but are not rendered — the
+  // 2026-07-25 "one main title" decision: a popup header shows its title and
+  // nothing stacked above or below it. Every call site has had the props
+  // stripped; they are kept in the type so a stray usage is a no-op rather
+  // than a build break, and so restoring either is a one-line change here
+  // instead of an edit across ~40 files.
+  //
+  // Copy a SIGHTED user must read — fee, tax, or payout disclosure — belongs
+  // in the dialog body. Four were relocated there rather than dropped:
+  // TipDialog, ReviewForm's tip prompt, InstantPayoutDialog, W9CollectionDialog.
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
@@ -105,17 +121,6 @@ const AlertDialogHero = ({
     >
       {title}
     </AlertDialogTitle>
-    {/* Rendered for assistive tech only — 2026-07-25 "one main title" decision.
-        The header must show a single title, with nothing stacked above or
-        below it. This is NOT deleted, for two reasons: it is the Radix
-        `Description` wired to the dialog's `aria-describedby` (dropping it
-        loses the screen-reader description and trips Radix's missing-
-        description warning), and it is a one-line restore. Copy that a SIGHTED
-        user must see — fee, tax, or payout disclosure — belongs in the dialog
-        body, not here. */}
-    {subtitle && (
-      <AlertDialogDescription className="sr-only">{subtitle}</AlertDialogDescription>
-    )}
   </AlertDialogHeader>
 );
 AlertDialogHero.displayName = "AlertDialogHero";

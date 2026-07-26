@@ -71,7 +71,6 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             </>
           }
           title="Boost your job."
-          subtitle="24 hours of featured placement to reach more Helprs."
         />
         <div className="space-y-3">
           {/* Price card — parchment-gold pill recipe (matches Tip + Payout).

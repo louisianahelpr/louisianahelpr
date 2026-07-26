@@ -178,7 +178,9 @@ const SignupPending = () => {
         {/* Collapsed, the two links pair on one row. EXPANDED, the resend
             form needs the full width — pairing then left the form in half
             the card with the sign-in link stranded in the empty half. */}
-        <div className="border-t pt-4 flex items-center justify-between gap-3" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
+        {/* One row at sm+, stacked on a phone — three sentences don't share
+            327px, and side by side they ran off the edge. */}
+        <div className="border-t pt-4 space-y-2 text-center sm:space-y-0 sm:text-left sm:flex sm:items-center sm:justify-between sm:gap-3" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
           {prefillEmail && (
             <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Didn't get it?{" "}

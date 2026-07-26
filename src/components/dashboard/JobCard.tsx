@@ -456,10 +456,20 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
 
         {/* Meta row — category lives in the badge above, so this leads
             with location. */}
-        <div className="mt-2 flex items-center gap-x-2 flex-nowrap overflow-hidden text-[10.5px] text-muted-foreground leading-tight">
+        <div className="mt-2 flex flex-col gap-1 text-[10.5px] text-muted-foreground leading-tight">
+          {/* Row 1 — where + when. The expiry countdown deliberately does NOT
+              live here: this row is flex-nowrap, so every extra chip steals
+              width from the city, which has min-w-0 and collapses first. With
+              the countdown competing, cities rendered as "Hou…", "Gonz…",
+              "Brouss…" on a 402pt phone while cards without a countdown showed
+              "Shreveport" and "New Orleans" in full — i.e. the single most
+              important local-marketplace signal was the first thing dropped.
+              Urgency now gets its own row below, which is also what the
+              My Posts / My Jobs cards already do. */}
+          <div className="flex items-center gap-x-2 flex-nowrap overflow-hidden">
             <span className="flex items-center gap-1 min-w-0">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
-              <span className="truncate max-w-[110px] font-sans">{cityState}</span>
+              <span className="truncate max-w-[150px] font-sans">{cityState}</span>
             </span>
             {distanceLabel && (
               <span
@@ -514,15 +524,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 </>
               )}
             </span>
-            {expiryText && (
-              <>
-                <span className="opacity-30">·</span>
-                <span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
-                  <Timer className="w-2.5 h-2.5 shrink-0" />
-                  <span className="font-sans">{expiryText}</span>
-                </span>
-              </>
-            )}
             {ratingDisplay && (
               <>
                 <span className="opacity-30">·</span>
@@ -581,7 +582,21 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               </>
             )}
           </div>
+
+          {/* Row 2 — urgency, on its own line so it competes with nothing.
+              whitespace-nowrap keeps "1 day left" from breaking into
+              "1 day" / "left", which is what made card heights ragged when
+              this chip was still fighting for room on row 1. */}
+          {expiryText && (
+            <div
+              className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
+            >
+              <Timer className="w-2.5 h-2.5 shrink-0" />
+              <span className="font-sans whitespace-nowrap">{expiryText}</span>
+            </div>
+          )}
         </div>
+      </div>
 
       {/* Save lives in the job-detail view (open the card to save), so the
           feed card stays clean — no floating bookmark colliding with the

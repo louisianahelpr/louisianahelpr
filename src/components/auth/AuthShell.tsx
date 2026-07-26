@@ -100,7 +100,12 @@ const AuthShell = ({
           viewports so the page reads as intentional atmosphere rather
           than blank whitespace. Kept `pointer-events-none` + `aria-hidden`
           so it never intercepts input or announces to screen readers. */}
-      {desktopBrandPanel && (
+      {/* Ambient wash is NOT tied to the brand pane. It was gated behind
+          `desktopBrandPanel &&`, so dropping that pane from Login/Signup also
+          killed the page atmosphere and left a white card on a near-white
+          field — exactly the "blank whitespace" this was written to prevent.
+          Same coupling bug as `centerColumn`. */}
+      {(desktopBrandPanel || centerColumn) && (
         <div
           aria-hidden
           className="hidden lg:block pointer-events-none absolute inset-0 z-0"

@@ -253,7 +253,7 @@ const Login = () => {
 
   return (
     <AuthShell hideHeader centerColumn hideBack maxWidth="2xl">
-      <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6 lg:space-y-4">
+      <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6 lg:space-y-6">
         {/* Heading lives INSIDE the card, and the H emblem is gone entirely.
             Previously the emblem stacked above a heading that sat above the
             card — three separate bands of vertical space before a user reached
@@ -339,7 +339,13 @@ const Login = () => {
           </div>
         ) : (
         <>
-        <form onSubmit={handleLogin} className="space-y-3.5">
+        {/* Two columns at lg+: credentials left, social right. The card is
+            1024px, and a single-line email field stretched across all of it is
+            what read as wrong. Splitting the two sign-in METHODS uses the width
+            for something real instead of inflating one field. Stacks below lg,
+            unchanged. */}
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr] lg:gap-8 lg:items-stretch">
+        <form onSubmit={handleLogin} className="space-y-3.5 lg:space-y-5">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
             <div className="relative">
@@ -415,9 +421,41 @@ const Login = () => {
           >
             {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing in…</> : "Sign in"}
           </Button>
+          {/* Sits with the button whose action it governs, not stranded below
+              the whole card. */}
+          <p className="text-ds-11 font-sans leading-relaxed text-center" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            By signing in you agree to our{" "}
+            <Link to="/terms" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Terms</Link>
+            {" · "}
+            <Link to="/rules" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Rules</Link>
+            {" · "}
+            <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy Policy</Link>
+          </p>
         </form>
 
-        <div className="flex items-center gap-3">
+        {/* Vertical OR rule, lg+ only — the horizontal one inside the right
+            column still handles the stacked layout below lg. Its own grid
+            column so it sits between the two methods rather than inside
+            either. */}
+        <div className="hidden lg:flex flex-col items-center gap-3" aria-hidden>
+          <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
+          <span
+            className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
+            style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+          >
+            or
+          </span>
+          <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
+        </div>
+
+        {/* Vertically centred against the taller credentials column, so the
+            social buttons sit level with the form rather than hugging the top
+            with dead space beneath them. */}
+        <div className="space-y-4 lg:flex lg:flex-col lg:justify-center lg:gap-8 lg:space-y-0 lg:py-2">
+        {/* The OR rule only makes sense when the two methods are stacked. At
+            lg+ they sit side by side, so the columns themselves do the
+            separating. */}
+        <div className="flex items-center gap-3 lg:hidden">
           <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
           <span
             className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
@@ -429,45 +467,29 @@ const Login = () => {
         </div>
 
         <SocialAuthButtons mode="signin" />
-
+        {/* Creating an account is the alternative to BOTH sign-in methods, so
+            it closes the right column rather than floating under the card. */}
         <div className="space-y-1.5 pt-1">
-          {/* Two labelled lines, not one "A · B" run. As a single row the two
-              destinations read as interchangeable links; naming what each
-              account IS ("personal" vs "business") is what makes the choice
-              obvious at a glance. */}
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             New to Helpr?{" "}
-            <Link
-              to="/signup"
-              className="font-semibold hover:underline"
-              style={{ color: "hsl(var(--bark))" }}
-            >
+            <Link to="/signup" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
               Create a personal account
             </Link>
           </p>
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Setting up a company?{" "}
-            <Link
-              to="/signup?type=business"
-              className="font-semibold hover:underline"
-              style={{ color: "hsl(var(--bark))" }}
-            >
+            <Link to="/signup?type=business" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
               Create a business account
             </Link>
           </p>
         </div>
+        </div>
+        </div>
+
         </>
         )}
       </div>
 
-      <p className="text-center text-ds-11 font-sans leading-relaxed px-2 mt-2.5" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-        By signing in you agree to our{" "}
-        <Link to="/terms" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Terms</Link>
-        {" · "}
-        <Link to="/rules" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Rules</Link>
-        {" · "}
-        <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy Policy</Link>
-      </p>
 
     </AuthShell>
   );

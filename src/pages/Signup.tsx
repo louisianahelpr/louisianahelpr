@@ -387,7 +387,14 @@ const Signup = () => {
                 aligned to nothing. */}
             <div className="text-left space-y-1">
               <div className="flex items-center gap-3">
-                <div className="shrink-0"><BackButton to="/" /></div>
+                {/* On step 2 the arrow walks the FLOW back a step — leaving
+                    signup entirely from there silently discards the email and
+                    password already typed. Only step 1 exits to home. */}
+                <div className="shrink-0">
+                  {step === 2
+                    ? <BackButton onClick={() => { setStep2Errors({}); setStep(1); }} />
+                    : <BackButton to="/" />}
+                </div>
                 <h1
                   className="font-display italic font-bold leading-tight min-w-0 flex-1"
                   style={{

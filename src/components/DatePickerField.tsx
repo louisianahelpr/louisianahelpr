@@ -11,6 +11,9 @@ import { parseLocalDate } from "@/lib/dateUtils";
 const Calendar = lazy(() =>
   import("@/components/ui/calendar").then((m) => ({ default: m.Calendar })),
 );
+const DateWheelPicker = lazy(() =>
+  import("@/components/DateWheelPicker").then((m) => ({ default: m.DateWheelPicker })),
+);
 
 interface DatePickerFieldProps {
   /** ISO date string `YYYY-MM-DD` (matches existing form state) */
@@ -28,6 +31,12 @@ interface DatePickerFieldProps {
   placeholder?: string;
   id?: string;
   className?: string;
+  /**
+   * Swap the calendar grid for month/day/year scroll wheels. Opt-in: a grid
+   * is right for "which day next week", a wheel is right for a birthday,
+   * where the year is the field you actually have to travel in.
+   */
+  wheel?: boolean;
 }
 
 /**
@@ -43,6 +52,7 @@ export function DatePickerField({
   placeholder = "Select a date",
   id,
   className,
+  wheel = false,
 }: DatePickerFieldProps) {
   const [open, setOpen] = useState(false);
   const selected = value ? parseLocalDate(value) : undefined;
@@ -52,9 +62,12 @@ export function DatePickerField({
   const maxDate = max ? parseLocalDate(max) : undefined;
   maxDate?.setHours(0, 0, 0, 0);
 
+  // Weekday is shown for scheduling ("Thu, June 26" tells you it's a
+  // weekday) but is noise on a birthday, where nobody cares which day of
+  // the week they were born on.
   const formatted = selected
     ? selected.toLocaleDateString(undefined, {
-        weekday: "short",
+        ...(wheel ? {} : { weekday: "short" as const }),
         month: "long",
         day: "numeric",
         year: "numeric",
@@ -81,10 +94,26 @@ export function DatePickerField({
           <CalendarIcon className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 rounded-2xl" align="start" sideOffset={8}>
+      <PopoverContent
+        className="w-auto p-0 rounded-2xl"
+        align="start"
+        sideOffset={8}
+        // Radix focuses the first focusable child on open. Inside the wheel
+        // that is the topmost month row, and focusing it scrolls the column
+        // to the top — so every wheel opened a few rows off its own value.
+        onOpenAutoFocus={wheel ? (e) => e.preventDefault() : undefined}
+      >
         <Suspense
           fallback={<Skeleton className="h-[19rem] w-[17rem] rounded-2xl" aria-hidden />}
         >
+          {wheel && maxDate ? (
+            <DateWheelPicker
+              value={value}
+              onChange={onChange}
+              minDate={minDate}
+              maxDate={maxDate}
+            />
+          ) : (
           <Calendar
             mode="single"
             selected={selected}
@@ -105,6 +134,7 @@ export function DatePickerField({
             autoFocus
             className={cn("p-3 pointer-events-auto")}
           />
+          )}
         </Suspense>
       </PopoverContent>
     </Popover>

@@ -24,15 +24,15 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
   hire: [
     {
       title: "Post the job",
-      desc: "Tell us what you need, set your budget, pick a date. Takes about a minute.",
+      desc: "Tell us what you need, set a budget, and pick a date.",
     },
     {
       title: "Pick your Helpr",
-      desc: "Local applicants come to you. Compare profiles, ratings, and reviews.",
+      desc: "Local applicants come to you. Compare profiles and reviews.",
     },
     {
       title: "Pay when it's done",
-      desc: "Funds sit safe in escrow until you confirm the work is done.",
+      desc: "Funds sit safe in escrow until you confirm the work.",
     },
   ],
   // Helpr-side copy is anchored to the real flow, not aspiration:
@@ -48,15 +48,15 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
   work: [
     {
       title: "Find work nearby",
-      desc: "Browse jobs within a few miles of you, see your take-home, then apply.",
+      desc: "Browse jobs near you, see your take-home, then apply.",
     },
     {
       title: "Get picked",
-      desc: "The poster chooses you. Verify your ID once, then go do the work.",
+      desc: "The poster picks you. Verify your ID once, then work.",
     },
     {
       title: "Get paid when it's done",
-      desc: "Their money's already in escrow. It's released to your bank once the work is confirmed.",
+      desc: "Their money's already in escrow, released when you finish.",
     },
   ],
 };
@@ -100,7 +100,12 @@ const HowItWorksSection = () => {
         {/* Left column — masthead. Sticky at md+ so it stays anchored
             while the reader scrolls through the numbered steps. */}
         <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
-          <span className="text-display-eyebrow">How it works</span>
+          {/* No eyebrow. `.text-display-eyebrow` is `display:none` app-wide
+              since the eyebrow-removal decision, so the "How it works" label
+              that used to sit here was rendering as nothing — leaving the
+              section headed only "Three steps.", which never says what the
+              three steps are FOR. The heading below carries it instead, which
+              is also what the nav link pointing at #how-it-works is called. */}
           <h2
             className="mt-3 font-display font-bold text-balance leading-[1.05] max-w-[10ch] md:max-w-none mx-auto md:mx-0"
             style={{
@@ -109,7 +114,7 @@ const HowItWorksSection = () => {
               color: "hsl(var(--ink-deep))",
             }}
           >
-            Three steps.
+            How it works.
           </h2>
 
           {/* Side segmented control — same shape/treatment as the billing-cycle
@@ -183,7 +188,23 @@ const HowItWorksSection = () => {
             {STEPS[side].map((step, i) => (
               <div
                 key={i}
-                className="h-full flex flex-col text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 sm:min-h-[19rem] md:min-h-[15.75rem] lg:min-h-[21rem]"
+                // md lays the card out as a ROW — numeral on the left, title and copy
+                // to its right. That only makes sense at md, which is the one
+                // breakpoint where these are full-width stacked cards with a lot
+                // of horizontal room going spare beside a 6rem numeral. sm and lg
+                // are 3-up and narrow, so they stay stacked. The md min-height
+                // No md min-height. Every `desc` in STEPS is trimmed to set as
+                // exactly TWO lines at this width, so the three cards come out
+                // the same height on their own — in both toggle states. That is
+                // strictly better than a floor, which equalised them by padding
+                // the short ones with dead space.
+                //
+                // `md:min-h-0` is required, not redundant: Tailwind breakpoints
+                // are min-width, so `sm:min-h-[19rem]` keeps applying at md and
+                // was inflating a two-line row card to 304px. sm/lg keep their
+                // floors because those are the 3-up stacked layouts, where the
+                // cards genuinely need matching height.
+                className="h-full flex flex-col md:flex-row md:items-start md:gap-6 lg:flex-col lg:gap-0 text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 sm:min-h-[19rem] md:min-h-0 lg:min-h-[21rem]"
                 style={{
                   opacity: inView ? 1 : 0,
                   transform: inView ? "translateY(0)" : "translateY(24px)",
@@ -196,7 +217,7 @@ const HowItWorksSection = () => {
               >
                 <span
                   aria-hidden
-                  className="block font-display font-black leading-none"
+                  className="block shrink-0 font-display font-black leading-none"
                   style={{
                     fontSize: "clamp(4rem, 6.5vw, 6rem)",
                     color: "hsl(var(--burnt-sienna) / 0.35)",
@@ -205,8 +226,22 @@ const HowItWorksSection = () => {
                 >
                   {String(i + 1).padStart(2, "0")}
                 </span>
+                {/* `key={side}` remounts ONLY this text block when the toggle
+                    flips, so the new copy fades in instead of snapping. The card
+                    itself deliberately keeps `key={i}` (see the note above) —
+                    remounting the card would re-arm its staggered
+                    IntersectionObserver fade and make all three replay on every
+                    toggle. Scoping the remount to the text keeps that intact.
+                    `motion-safe:` so it's silent under prefers-reduced-motion.
+
+                    min-w-0 so the copy wraps inside the row rather than forcing
+                    the card wider than its grid cell. */}
+                <div
+                  key={side}
+                  className="min-w-0 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300"
+                >
                 <h3
-                  className="mt-4 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
+                  className="mt-4 md:mt-0 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
                   style={{ color: "hsl(var(--ink-deep))" }}
                 >
                   {step.title}
@@ -217,6 +252,7 @@ const HowItWorksSection = () => {
                 >
                   {step.desc}
                 </p>
+                </div>
               </div>
             ))}
           </div>

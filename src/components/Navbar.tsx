@@ -189,7 +189,14 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               <Button
                 asChild
                 size="sm"
-                className="hidden sm:inline-flex rounded-2xl btn-press h-9 px-4 !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                // h-11 (44px), matching the menu button beside it. It was h-9 (36px)
+                // and looked 8px short next to it — because the 44px tap-target
+                // floor in index.css targets `button` only, and this renders as
+                // an <a> via asChild, so it slipped under the minimum it was
+                // meant to have. Raising it fixes the mismatch AND closes a real
+                // touch-target gap on a primary CTA, rather than shrinking the
+                // menu button below the floor to meet it.
+                className="hidden sm:inline-flex rounded-2xl btn-press h-11 px-4 !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
                 style={{ color: "hsl(var(--parchment))" }}
               >
                 <Link
@@ -219,7 +226,14 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                 // back to 44 — a dead class that reads like it does something.
                 // Shrinking this would mean opting a primary nav control out of
                 // that guarantee on touch.
-                className="btn-press rounded-2xl shrink-0"
+                // !h-11/!w-11 = 44px, the smallest this can legally be. Two forces
+                // fight here: Button's size="icon" variant emits h-14 (56px),
+                // and index.css floors EVERY button at 44px min-height/min-width
+                // for the WCAG 2.5.8 tap target. Without an explicit size the
+                // 56px variant wins; anything below 44px is silently floored
+                // back up. 44 is therefore the only real choice, and `!` is
+                // needed to beat the variant.
+                className="btn-press rounded-2xl shrink-0 !h-11 !w-11"
                 style={{
                   background: "hsl(0 0% 100% / 0.2)",
                   border: "1px solid hsl(var(--olivewood) / 0.08)",

@@ -129,7 +129,7 @@ const Footer = () => (
         {/* Legal — md:col-span-2. Its three links (Terms / Rules / Privacy) are
             short enough to fit two columns, and giving the third back to Follow
             pulls that group left, off the far edge. md is 4/3/2/3. */}
-        <div className="sm:col-span-4 md:col-span-3">
+        <div className="sm:col-span-4 md:col-span-2">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
@@ -157,7 +157,7 @@ const Footer = () => (
 
         {/* Follow — App Store icon (download) + Facebook + Instagram (socials).
             Compact squircle chips, one row. */}
-        <div className="sm:col-span-4 md:col-span-2">
+        <div className="sm:col-span-4 md:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}

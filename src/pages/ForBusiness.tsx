@@ -664,7 +664,7 @@ const PricingSection = () => {
   // Pricing is the FIRST section now (it sits directly under the compact page
   // header), so the old pt-24/32/40 — sized to clear a full-height hero — left
   // a large dead band above the plans.
-  <section className="px-5 sm:px-8 lg:px-12 pt-2 sm:pt-4 lg:pt-6 pb-12 sm:pb-16 lg:pb-24">
+  <section className="px-5 sm:px-8 lg:px-12 pt-0 pb-12 sm:pb-16 lg:pb-24">
     <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
       <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
         <span className="text-display-eyebrow">Pricing</span>

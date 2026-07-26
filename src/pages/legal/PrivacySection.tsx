@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
-import { LAST_UPDATED } from "./legalSections";
 
 /* ───────────────────────  PRIVACY  ─────────────────────── */
 export const PrivacyContent = () => (
@@ -225,7 +224,7 @@ export const PrivacyContent = () => (
     </HideOnSearch>
 
     <HideOnSearch>
-      <PolicyFooter updated={LAST_UPDATED.privacy} />
+      <PolicyFooter />
     </HideOnSearch>
   </div>
 );

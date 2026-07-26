@@ -469,7 +469,7 @@ const Legal = () => {
             /for-business, /subscription, /help, and /jobs. */}
         {webHeader}
 
-        <div className="container mx-auto px-5 pb-0">
+        <div className="container mx-auto px-5 pb-8">
           <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-3">
             <div
               className="sticky z-30 -mx-5 px-5 pt-0 pb-0 backdrop-blur-md"

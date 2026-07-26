@@ -34,7 +34,11 @@ import { formatPhone } from "./signupHelpers";
  * error is a visually-adjacent but programmatically-orphaned paragraph.
  */
 function FieldError({ id, message }: { id: string; message?: string }) {
-  if (!message) return null;
+  // Bare "… is required" is suppressed: the red asterisk on the label and the
+  // red field border already say it, so printing it a third time is noise.
+  // Messages that TEACH something — "You must be at least 18 years old",
+  // "Enter a valid 10-digit phone number" — still render.
+  if (!message || /is required\.?$/i.test(message.trim())) return null;
   return (
     <p
       id={id}
@@ -187,7 +191,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <div className="shrink-0 flex flex-col items-center gap-1.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform">
             <div
-              className="relative w-24 h-24 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden"
+              className={`relative w-32 h-32 rounded-full border-2 border-dashed transition-colors flex items-center justify-center overflow-hidden ${fieldErrors.avatar ? "border-destructive" : "border-border group-hover:border-primary"}`}
               style={{
                 background:
                   "radial-gradient(circle at 50% 35%, hsl(var(--parchment)) 0%, hsl(var(--secondary) / 0.55) 100%)",
@@ -199,11 +203,11 @@ export function SignupStep2(props: SignupStep2Props) {
               {avatarPreview && avatarPreview.startsWith("blob:") ? (
                 <img loading="lazy" decoding="async" src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
-                <UserRound className="w-10 h-10 text-muted-foreground" strokeWidth={1.5} />
+                <UserRound className="w-12 h-12 text-muted-foreground" strokeWidth={1.5} />
               )}
             </div>
             <div
-              className="pointer-events-none absolute -bottom-1 -right-1 w-9 h-9 rounded-full flex items-center justify-center z-10"
+              className="pointer-events-none absolute -bottom-1 -right-1 w-11 h-11 rounded-full flex items-center justify-center z-10"
               style={{
                 background:
                   "linear-gradient(150deg, hsl(var(--bark) / 0.92) 0%, hsl(var(--bark)) 60%)",
@@ -249,39 +253,36 @@ export function SignupStep2(props: SignupStep2Props) {
             </div>
             <FieldError id="lastName-error" message={fieldErrors.lastName} />
           </div>
+          {/* Date of birth sits in the name column, spanning both
+              columns beneath First/Last — keeps every required identity
+              field beside the avatar instead of below it. */}
+          <div className="col-span-2 space-y-2">
+            <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+            {/* Single native date field — on iOS this opens the system wheel
+                picker (one tap), and `max` (today − 18y) keeps the wheel near a
+                plausible birth year and blocks under-18 dates at the UI layer;
+                validateAboutYouStep still re-checks age as the backstop. */}
+            {/* DatePickerField (the app's shared tap-to-open calendar pill)
+                instead of a raw <input type="date"> — the native control renders
+                as a blank, oversized box on iOS with no placeholder. */}
+            <DatePickerField
+              id="dob"
+              value={dateOfBirth}
+              onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }}
+              min={minDob}
+              max={maxDob}
+              placeholder="Select your date of birth"
+              className={`rounded-ds-md border-[hsl(var(--bark)/0.28)] dark:border-white/15${fieldErrors.dateOfBirth ? " border-destructive" : ""}`}
+            />
+            {fieldErrors.dateOfBirth
+              ? <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
+              : <p id="dob-help" className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>You must be at least 18 years old.</p>
+            }
+          </div>
           </div>
         </div>
-        {/* Date of birth sits above Phone: it is REQUIRED (red asterisk,
-            enforced in validateAboutYouStep), and a required field should
-            not come after optional ones. */}
         <div className="space-y-2">
-          <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
-          {/* Single native date field — on iOS this opens the system wheel
-              picker (one tap), and `max` (today − 18y) keeps the wheel near a
-              plausible birth year and blocks under-18 dates at the UI layer;
-              validateAboutYouStep still re-checks age as the backstop. */}
-          {/* DatePickerField (the app's shared tap-to-open calendar pill)
-              instead of a raw <input type="date"> — the native control renders
-              as a blank, oversized box on iOS with no placeholder. */}
-          <DatePickerField
-            id="dob"
-            value={dateOfBirth}
-            onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }}
-            min={minDob}
-            max={maxDob}
-            placeholder="Select your date of birth"
-            className={`rounded-ds-md border-[hsl(var(--bark)/0.28)] dark:border-white/15${fieldErrors.dateOfBirth ? " border-destructive" : ""}`}
-          />
-          {fieldErrors.dateOfBirth
-            ? <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
-            : <p id="dob-help" className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>You must be at least 18 years old.</p>
-          }
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Label htmlFor="phone" className={`${labelCls} !mb-0`}>Phone number</Label>
-            <PhoneWhyTooltip />
-          </div>
+          <Label htmlFor="phone" className={labelCls}>Phone number</Label>
           <div className="relative">
             {/* Country code badge — Helpr is Louisiana-only, so every
                 number is +1. Showing it inline makes the formatting
@@ -316,7 +317,7 @@ export function SignupStep2(props: SignupStep2Props) {
         <div className="space-y-2">
           <Label htmlFor="location" className={labelCls}>City</Label>
           <div className="relative">
-            <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`} />
+            <Input id="location" placeholder="e.g. Baton Rouge" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`} />
             {locationValid && !fieldErrors.location && (
               <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
             )}
@@ -350,10 +351,9 @@ export function SignupStep2(props: SignupStep2Props) {
           complete-signup edge function, which auto-approves new accounts
           without an ID and only requires one on denied-account resubmission. */}
 
+      {/* One back control only. The card's header row already carries a back
+          arrow, and two arrows on one screen is ambiguous. */}
       <div className="flex gap-3">
-        <Button variant="outline" size="lg" className="w-14 shrink-0 rounded-ds-md px-0" onClick={onBack} disabled={loading} aria-label="Back">
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
         <Button
           variant="bark"
           className="flex-1 rounded-ds-md"

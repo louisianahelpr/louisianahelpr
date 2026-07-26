@@ -235,10 +235,6 @@ const BUSINESS_FAQS = [
     q: "Is there a cancellation fee or long-term contract?",
     a: "No. Every paid plan is month-to-month, cancel anytime from the billing portal, and there's no cancellation fee. You keep access through the end of the billing period you already paid for.",
   },
-  {
-    q: "Can we require background-checked Helprs only?",
-    a: "Yes. Filter jobs to Verified Helprs only in your job settings and only ID-verified, background-checked Helprs can apply. Every Helpr on the platform is Stripe-ID verified by default.",
-  },
 ] as const;
 
 /* -------------------------------------------------------------------------- */

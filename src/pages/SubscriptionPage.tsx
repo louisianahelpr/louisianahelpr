@@ -606,7 +606,7 @@ export default function SubscriptionPage() {
                       ) : isFree ? (
                         <Link
                           to={user ? "/dashboard" : "/signup"}
-                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full sm:w-auto transition-all duration-200 hover:-translate-y-0.5"
+                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full transition-all duration-200 hover:-translate-y-0.5"
                           style={{
                             fontFamily: "Montserrat, system-ui, sans-serif",
                             fontWeight: 600,
@@ -636,7 +636,7 @@ export default function SubscriptionPage() {
                             )
                           }
                           disabled={upgrading}
-                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full sm:w-auto whitespace-nowrap transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full whitespace-nowrap transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
                           style={{
                             fontFamily: "Montserrat, system-ui, sans-serif",
                             fontWeight: 600,

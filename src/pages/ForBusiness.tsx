@@ -577,7 +577,33 @@ const TierComparison = () => {
  * behind it and takes the bark-fill squircle CTA. A collapsed
  * compare-all-features table sits directly below the grid.
  */
-const PricingSection = () => (
+/**
+ * Annual price for a tier, as the MONTHLY-EQUIVALENT figure — the same way
+ * /subscription presents membership annual pricing ("$8.33/mo" for Pro's
+ * $100/yr), so the two pages read alike and the number stays comparable to the
+ * monthly column beside it.
+ *
+ * Derived, not hardcoded, from the one convention used platform-wide: pay for
+ * 10 months, get 12. Crew $20/mo → $200/yr → $16.67/mo. Matches
+ * `annualPriceCents` in supabase/functions/_shared/businessSeatTiers.ts, which
+ * is what an annual checkout will actually charge.
+ */
+const annualFromMonthly = (price: string) => {
+  const monthly = Number(price.replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(monthly) || monthly <= 0) return null;
+  const yearly = monthly * 10;
+  return { monthlyEquivalent: yearly / 12, yearly };
+};
+
+const PricingSection = () => {
+  // Presentation only. The tier CTAs on this MARKETING page link to /signup —
+  // they do not open Stripe — so flipping this cannot start a checkout against
+  // the annual Prices, which don't exist yet (see `stripePriceIdAnnual`). The
+  // in-app seat checkout takes an explicit `interval` and hard-errors rather
+  // than silently billing monthly, so the two stay honest independently.
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+
+  return (
   // Pricing is the FIRST section now (it sits directly under the compact page
   // header), so the old pt-24/32/40 — sized to clear a full-height hero — left
   // a large dead band above the plans.
@@ -599,15 +625,68 @@ const PricingSection = () => (
           className="mt-4 font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         >
-          Simple monthly plans. Cancel anytime.
+          Simple plans. Cancel anytime.
         </p>
+
+        {/* Same segmented control as /subscription's billing toggle — same
+            shape, same tokens, same labels — so the two pricing surfaces read
+            as one system. flex-nowrap + the narrower md padding for the same
+            reason as the landing toggle: this left column is ~232px. */}
+        <div
+          role="tablist"
+          aria-label="Billing cycle"
+          className="mt-6 inline-flex flex-nowrap items-center justify-center md:justify-start gap-1 p-1 rounded-2xl"
+          style={{
+            background: "hsl(var(--burnt-sienna) / 0.06)",
+            border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
+            boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+          }}
+        >
+          {(["monthly", "annual"] as const).map((cycle) => {
+            const active = billingCycle === cycle;
+            return (
+              <button
+                key={cycle}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setBillingCycle(cycle)}
+                className="h-9 sm:h-10 px-4 sm:px-5 md:px-3 md:text-ds-12 lg:px-4 rounded-xl font-sans font-semibold text-ds-13 whitespace-nowrap transition-[background,color,transform] duration-150 active:scale-[0.98]"
+                style={{
+                  background: active ? "hsl(var(--bark))" : "transparent",
+                  color: active ? "hsl(var(--parchment))" : "hsl(var(--olivewood))",
+                  boxShadow: active
+                    ? "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)"
+                    : "none",
+                  letterSpacing: "-0.005em",
+                }}
+              >
+                {cycle === "monthly" ? "Monthly" : "Annual"}
+              </button>
+            );
+          })}
+        </div>
+        {billingCycle === "annual" && (
+          <p
+            className="mt-2 font-sans text-ds-12"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          >
+            Two months free, billed yearly.
+          </p>
+        )}
       </div>
 
-      <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-3 lg:gap-4">
+        {/* NO `md:grid-cols-3` here. There are FOUR plans, so three across
+            leaves Enterprise stranded alone on a second row. Two-up at
+            sm/md divides evenly (2x2) and lg fits all four in one row. The
+            industries grid above DOES use three across — it has nine cards,
+            which divides evenly there. Column counts have to match the item
+            count; the two grids share a class string but not a shape. */}
+        <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-5">
         {TIERS.map((tier) => (
           <div
             key={tier.name}
-            className="relative flex flex-col rounded-2xl px-5 py-7 sm:px-5 sm:py-8 lg:px-6 lg:py-8 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg"
+            className="relative h-full flex flex-col rounded-2xl px-5 py-7 sm:px-5 sm:py-8 lg:px-6 lg:py-8 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg"
             style={{
               background: "hsl(var(--burnt-sienna) / 0.04)",
               border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
@@ -645,26 +724,45 @@ const PricingSection = () => (
                   {tier.seats}
                 </p>
 
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span
-                    className="font-display font-black leading-none"
-                    style={{
-                      fontSize: "clamp(2.25rem, 3vw, 3rem)",
-                      letterSpacing: "-0.03em",
-                      color: "hsl(var(--ink-deep))",
-                    }}
-                  >
-                    {tier.price}
-                  </span>
-                  {tier.period && (
-                    <span
-                      className="font-sans text-ds-13"
-                      style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                    >
-                      {tier.period}
-                    </span>
-                  )}
-                </div>
+                {/* Annual renders the MONTHLY-EQUIVALENT with the yearly total
+                    underneath, matching /subscription. Free has no annual form,
+                    so `annualFromMonthly` returns null and it keeps showing
+                    "Free" in both states rather than "$0.00/mo". */}
+                {(() => {
+                  const annual = billingCycle === "annual" ? annualFromMonthly(tier.price) : null;
+                  return (
+                    <>
+                      <div className="mt-4 flex items-baseline gap-1">
+                        <span
+                          className="font-display font-black leading-none"
+                          style={{
+                            fontSize: "clamp(2.25rem, 3vw, 3rem)",
+                            letterSpacing: "-0.03em",
+                            color: "hsl(var(--ink-deep))",
+                          }}
+                        >
+                          {annual ? `$${annual.monthlyEquivalent.toFixed(2)}` : tier.price}
+                        </span>
+                        {tier.period && (
+                          <span
+                            className="font-sans text-ds-13"
+                            style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                          >
+                            {tier.period}
+                          </span>
+                        )}
+                      </div>
+                      {annual && (
+                        <p
+                          className="mt-1 font-sans text-ds-11"
+                          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                        >
+                          ${annual.yearly}/yr billed once
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
 
               <ul className="mt-6 space-y-2.5 flex-1">
@@ -769,7 +867,8 @@ const PricingSection = () => (
         grid so the button sits directly on top of what it reveals. */}
     <TierComparison />
   </section>
-);
+  );
+};
 
 /**
  * 4. Business FAQ — magazine layout matching PricingSection: left column-4

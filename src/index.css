@@ -72,6 +72,14 @@
   --bark:         70 20% 33%;   /* #5E6544 — deep olive */
   --olivewood:    64 16% 16%;   /* #2E2F22 — primary text + dark ground */
   --burnt-sienna: 19 75% 35%;   /* #984216 — warm accent / emphasis */
+  /* Accent used as TEXT on a raised surface. Identical to --burnt-sienna in
+     light mode; the dark value is lifted because the accent sits on
+     --surface-premium there, where plain --burnt-sienna measures only ~3.3:1
+     (e.g. JobPrice's "YOU EARN" label, which is 9.6px — small text needing
+     the full 4.5:1, not the 3:1 large-text allowance). Kept separate from
+     --burnt-sienna so raising it for legibility does not shift the brand
+     accent everywhere it is used as a fill, border, or icon. */
+  --accent-ink:   19 75% 35%;
   --stormy-sky:   198 12% 38%;  /* darkened to meet WCAG AA 4.5:1 for muted-foreground */
   --gold-warm:    38 60% 48%;   /* #C28B2E — antique gold (matches the
                                     wrought-iron logo's fleur-de-lis finials).
@@ -293,6 +301,9 @@
   --bark:         72 22% 52%;   /* deep olive lightened for legibility */
   --olivewood:    36 15% 80%;   /* primary text — near-white warm */
   --burnt-sienna: 19 65% 52%;   /* warm accent — slightly brighter on dark */
+  --accent-ink:   19 70% 66%;   /* accent-as-text on a raised dark surface —
+                                    lifted from 52% so 9.6px labels clear
+                                    4.5:1 (52% measured ~3.3:1) */
   --stormy-sky:   198 14% 60%;  /* muted-foreground — lightened for dark bg */
   --gold-warm:    38 55% 56%;   /* antique gold — slightly brighter */
 

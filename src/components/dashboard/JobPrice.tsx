@@ -236,8 +236,12 @@ export function JobPrice({
       }}
     >
       <p
+        // --accent-ink, not --burnt-sienna: this label is 9.6px on the raised
+        // --surface-premium tile, where the plain accent measured ~3.3:1 in
+        // dark mode against a 4.5:1 requirement (small text gets no large-text
+        // allowance). --accent-ink is the same colour in light mode.
         className="text-[0.6rem] font-serif italic uppercase tracking-[0.18em] flex items-center gap-1"
-        style={{ color: "hsl(var(--burnt-sienna))" }}
+        style={{ color: "hsl(var(--accent-ink))" }}
       >
         <DollarSign className="w-3 h-3" /> {isBidMode ? "Open to bids" : showBudget ? "Budget" : "You earn"}
       </p>

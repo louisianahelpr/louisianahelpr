@@ -456,7 +456,7 @@ const Login = () => {
         {/* Vertically centred against the taller credentials column, so the
             social buttons sit level with the form rather than hugging the top
             with dead space beneath them. */}
-        <div className="space-y-4 lg:flex lg:flex-col lg:justify-center lg:gap-10 lg:space-y-0">
+        <div className="space-y-4 lg:flex lg:flex-col lg:justify-center lg:gap-6 lg:space-y-0">
         {/* The OR rule only makes sense when the two methods are stacked. At
             lg+ they sit side by side, so the columns themselves do the
             separating. */}
@@ -474,7 +474,7 @@ const Login = () => {
         <SocialAuthButtons mode="signin" />
         {/* Creating an account is the alternative to BOTH sign-in methods, so
             it closes the right column rather than floating under the card. */}
-        <div className="space-y-1.5 pt-1">
+        <div className="space-y-1.5">
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             New to Helpr?{" "}
             <Link to="/signup" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>

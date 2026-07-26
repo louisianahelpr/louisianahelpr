@@ -131,8 +131,8 @@ function validate(draft: Draft, identified: boolean): Partial<Record<FieldKey, s
  * secondary destination reached from a footer/legal link, not a landing.
  */
 const PageIntro = () => (
-  <section className="px-5 sm:px-8 lg:px-12">
-    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+  <section className="container mx-auto px-5">
+    <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
       <div className="flex items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8">
         <div className="shrink-0">
           <BackButton />
@@ -294,15 +294,15 @@ const Support = () => {
     <PublicLayout hideHomeLink>
       <PageIntro />
 
-      <section className="px-5 sm:px-8 lg:px-12 pt-0 pb-8">
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-10 lg:gap-16 md:items-start">
+      <section className="container mx-auto px-5 pt-0 pb-8">
+        <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
 
           {/* Right column — the form (or its success state). */}
           {/* Full 12 columns now that the left masthead is gone — at
               col-span-8 the form stayed in the first two-thirds of the grid
               and stranded an empty right third. Capped + centred so it
               doesn't stretch across the whole 90rem container. */}
-          <div className="md:col-span-12 w-full max-w-5xl mx-auto">
+          <div className="w-full">
             {sent ? (
               <div
                 className="rounded-2xl px-6 py-12 flex flex-col items-center text-center gap-4 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-300"
@@ -538,20 +538,6 @@ const Support = () => {
                     carries a `*` in its own label, so the line restated
                     information the form was showing three inches above it. */}
 
-                <p
-                  className="font-sans text-ds-11 leading-relaxed text-center"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                >
-                  We only use what you send here to answer you. Read the{" "}
-                  <Link
-                    to="/privacy"
-                    className="font-semibold underline"
-                    style={{ color: "hsl(var(--bark))" }}
-                  >
-                    Privacy Policy
-                  </Link>
-                  .
-                </p>
               </form>
             )}
           </div>

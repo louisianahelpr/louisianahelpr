@@ -44,7 +44,7 @@ export function SocialAuthButtons({
     // Stacked, full-width buttons each with a visible text label. Apple's
     // HIG requires a properly labeled "Sign in with Apple" button — never
     // icon-only — so both providers render their mark beside the label.
-    <div className="flex flex-col gap-2.5 lg:gap-5">
+    <div className="flex flex-col gap-2.5 lg:gap-6">
       <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} />
       <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} />
     </div>

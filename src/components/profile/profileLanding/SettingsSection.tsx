@@ -103,32 +103,51 @@ export function SettingsSection({
                       <div className="min-w-0">
                         <p className="text-ds-13 font-semibold text-foreground leading-tight flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span>{item.label}</span>
-                          {item.needsAction && (
-                            <span className="text-ds-10 font-bold uppercase tracking-wider text-destructive">
-                              Action needed
-                            </span>
-                          )}
-                          {/* Soft amber completeness pill — distinct from the
-                              louder "Action needed" red text so a payout
-                              blocker still stands out next to a friendly
-                              "Add a photo" nudge. Uses burnt-sienna at low
-                              opacity so it reads as warm-warning, not
-                              destructive. */}
-                          {!item.needsAction && item.incompleteLabel && (
-                            <span
-                              className="inline-flex items-center gap-1 text-ds-10 font-bold rounded-full px-1.5 py-0.5"
-                              style={{
-                                background: "hsl(var(--burnt-sienna) / 0.12)",
-                                color: "hsl(var(--burnt-sienna))",
-                                letterSpacing: "0.04em",
-                              }}
-                            >
-                              <AlertTriangle className="w-2.5 h-2.5" strokeWidth={2.5} />
-                              {item.incompleteLabel}
-                            </span>
-                          )}
+                          {/* ONE chip recipe for both attention states —
+                              same shape, icon and metrics; only the hue
+                              changes. "Action needed" used to be bare red
+                              uppercase text while "Verify credentials" was a
+                              rounded sienna pill, so two rows in the SAME
+                              list signalled "this needs you" in two visually
+                              unrelated ways.
+
+                              Severity is still encoded, just in colour alone:
+                              destructive red for a hard blocker (no payout
+                              account = you cannot get paid), warm sienna for
+                              a soft nudge (add a photo). Encoding severity in
+                              shape AND colour is what made them read as
+                              different components rather than two levels of
+                              one thing. */}
+                          {(item.needsAction || item.incompleteLabel) && (() => {
+                            const blocking = !!item.needsAction;
+                            const tint = blocking
+                              ? "var(--destructive)"
+                              : "var(--burnt-sienna)";
+                            return (
+                              <span
+                                className="inline-flex items-center gap-1 text-ds-10 font-bold rounded-full px-1.5 py-0.5"
+                                style={{
+                                  background: `hsl(${tint} / 0.12)`,
+                                  color: `hsl(${tint})`,
+                                  letterSpacing: "0.04em",
+                                }}
+                              >
+                                <AlertTriangle className="w-2.5 h-2.5" strokeWidth={2.5} />
+                                {blocking ? "Action needed" : item.incompleteLabel}
+                              </span>
+                            );
+                          })()}
                         </p>
-                        <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">{item.desc}</p>
+                        {/* line-clamp-2, not truncate. `truncate` sets
+                            white-space:nowrap, so these descriptions could
+                            never wrap and five of them were cut mid-word at
+                            375px ("Manage jobs for a family mem…", "Calendar,
+                            upcoming jobs & we…", "Auto-post cleanings on
+                            Airbnb…"). The description is the only thing
+                            explaining what the row does, so losing its second
+                            half defeats the point. Clamping at 2 keeps the
+                            row height bounded. */}
+                        <p className="text-ds-11 text-muted-foreground mt-0.5 line-clamp-2">{item.desc}</p>
                       </div>
                     </div>
                     <span className="w-5 flex items-center justify-center shrink-0">
@@ -221,7 +240,7 @@ export function SettingsSection({
                       <p className="text-ds-13 font-semibold text-foreground leading-tight">
                         Senior mode
                       </p>
-                      <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">
+                      <p className="text-ds-11 text-muted-foreground mt-0.5 line-clamp-2">
                         Larger text and bigger tap targets
                       </p>
                     </div>

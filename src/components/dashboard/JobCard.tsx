@@ -4,11 +4,11 @@ import {
 } from "lucide-react";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
-import { formatDistanceToNow, differenceInHours } from "date-fns";
+import { differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
-import { formatJobDate } from "@/lib/dateUtils";
+import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { formatPrice } from "@/lib/format";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { getCity } from "@/lib/locationUtils";
@@ -205,7 +205,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     ? null
     : isExpired
       ? "Expired"
-      : formatDistanceToNow(expiresAt, { addSuffix: false }) + " left";
+      : formatTimeLeft(expiresAt);
   const isExpiringSoon = showExpiry && (isExpired || (hoursToExpiry !== null && hoursToExpiry < 24));
 
   // Stagger entry via CSS animation-delay — avoids pulling framer-motion into

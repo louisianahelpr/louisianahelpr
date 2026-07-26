@@ -32,6 +32,41 @@ export function formatJobDate(dateStr: string): string {
 }
 
 /**
+ * Render "how much longer" the canonical way every countdown should:
+ * "5 days left" · "22 hours left" · "9 minutes left".
+ *
+ * Use this for ANY remaining-time chip — never
+ * `formatDistanceToNow(d, { addSuffix: false }) + " left"`. date-fns'
+ * distance formatter is built for prose ("posted about 3 hours ago") and is
+ * deliberately fuzzy, so that expression produced a different SHAPE of
+ * sentence depending only on the remainder: the same expiry chip read
+ * "5 days left" on one card and "about 22 hours left" on the next, with
+ * "almost 2 days left" and "less than a minute left" also in the mix.
+ * Browse, My Posts and My Jobs all render this chip, so the inconsistency
+ * was visible side by side.
+ *
+ * Units are FLOORED, never rounded up: a deadline must never advertise more
+ * time than actually remains (23h59m reads "23 hours left", not "1 day").
+ * The caller owns the expired case — both card families already print their
+ * own "Expired" copy — so a non-positive remainder returns "Expired" only as
+ * a defensive fallback.
+ */
+export function formatTimeLeft(expiry: Date, now: Date = new Date()): string {
+  const totalMinutes = Math.floor((expiry.getTime() - now.getTime()) / 60_000);
+  if (totalMinutes <= 0) return "Expired";
+
+  const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"} left`;
+
+  const days = Math.floor(totalMinutes / 1440);
+  if (days >= 1) return plural(days, "day");
+
+  const hours = Math.floor(totalMinutes / 60);
+  if (hours >= 1) return plural(hours, "hour");
+
+  return plural(totalMinutes, "minute");
+}
+
+/**
  * Today's date as a local "YYYY-MM-DD" string.
  *
  * Use this anywhere you compare against a DATE column or set a date

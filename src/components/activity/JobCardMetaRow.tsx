@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { Calendar, Clock, MapPin, Timer } from "lucide-react";
-import { differenceInHours, formatDistanceToNow } from "date-fns";
-import { formatJobDate } from "@/lib/dateUtils";
+import { differenceInHours } from "date-fns";
+import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { getCity } from "@/lib/locationUtils";
 
 interface JobCardMetaRowProps {
@@ -79,9 +79,7 @@ export function JobCardMetaRow({
             const expiry = new Date(expiresAt);
             const expired = expiry <= new Date();
             const expiringSoon = differenceInHours(expiry, new Date()) < 24;
-            const text = expired
-              ? "Expired"
-              : formatDistanceToNow(expiry, { addSuffix: false }) + " left";
+            const text = expired ? "Expired" : formatTimeLeft(expiry);
             return (
               <span
                 className={`flex items-center gap-1 ${expiringSoon ? "text-destructive font-medium" : ""}`}

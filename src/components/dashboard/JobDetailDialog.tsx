@@ -398,7 +398,7 @@ const JobDetailDialog = ({
             cancellation rate) stay at their guest defaults (0 / null) and their
             lines simply hide, so the only real difference remains the footer
             CTA below. */}
-        <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} />
+        <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} guest={guest} />
 
         <ApplicantQueueBanner guest={guest} applicationCount={applicationCount} viewerAppPosition={viewerAppPosition} />
 

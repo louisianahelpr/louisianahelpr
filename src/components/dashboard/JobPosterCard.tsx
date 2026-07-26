@@ -15,6 +15,9 @@ interface JobPosterCardProps {
    *  floor isn't met. When present, surfaced inline near the name so
    *  the helpr can read it without leaving the job dialog. */
   cancellationRate?: number | null;
+  /** Logged-out viewer. Sends the tile to /signup instead of a profile that
+   *  guests can't open anyway. */
+  guest?: boolean;
 }
 
 /**
@@ -24,7 +27,16 @@ interface JobPosterCardProps {
  *
  * Extracted verbatim from JobDetailDialog.tsx.
  */
-export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCardProps) {
+export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false }: JobPosterCardProps) {
+  // Nothing to show. The guest /jobs feed comes from `get_ranked_open_jobs`,
+  // whose RETURNS TABLE has no `customer_id` — so this tile rendered with a
+  // blank name, a "U" fallback avatar, and a link to a literal `/user/` with no
+  // id. An empty shell pointing at a dead route is worse than no tile, so it is
+  // omitted entirely rather than dressed up. (/jobs/:id reads
+  // `open_jobs_browse`, which DOES return customer_id, so the tile still shows
+  // there with real content.)
+  if (!job.customer_id) return null;
+
   const posterBadges = computeBadges({
     avgRating: job.posterAvgRating || 0,
     reviewCount: job.posterReviewCount || 0,
@@ -42,7 +54,9 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
 
   return (
     <Link
-      to={`/user/${job.customer_id}`}
+      // Guests can't open a profile — /user/:id is behind auth — so the tap
+      // goes where it can actually lead somewhere.
+      to={guest ? "/signup" : `/user/${job.customer_id}`}
       className="relative block p-2.5 rounded-ds-md group glass-press transition-colors"
       style={{
         backgroundColor: "hsla(0, 0%, 100%, 0.55)",

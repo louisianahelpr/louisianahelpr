@@ -310,8 +310,17 @@ const Jobs = () => {
                 {/* olivewood/55 rather than `text-muted-foreground`: the muted
                     token is a desaturated blue-grey that all but disappears
                     against this field's translucent near-white fill. */}
+                {/* z-10 is load-bearing, not decoration. This icon precedes the
+                    input in DOM order, and `.glass-field` gives the input a
+                    translucent fill plus `backdrop-filter: blur(4px)` — which
+                    establishes a stacking context and paints the field OVER the
+                    icon. The icon was rendering as a blurred smudge behind the
+                    glass, reading as "the icon is missing / in the wrong place"
+                    when it was actually just underneath. The clear (X) button
+                    needs no such fix: it comes after the input, so it already
+                    paints on top. */}
                 <Search
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 w-4 h-4 pointer-events-none"
                   style={{ color: "hsl(var(--olivewood) / 0.55)" }}
                 />
                 <input
@@ -324,14 +333,16 @@ const Jobs = () => {
                   autoFocus
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  // A pill, not a squircle: `.squircle` resolves to
-                  // superellipse(4), whose near-flat corners read as an
-                  // outright rectangle on a 40px-tall field. `rounded-full`
-                  // also trips the `.squircle:where(.rounded-full)` reset in
-                  // index.css, so the corner-shape stays `round`.
+                  // rounded-ds-md, matching the Search/Filters icon buttons
+                  // beside it and the chips in the sheet below — one corner
+                  // radius across the whole toolbar. This was briefly a pill,
+                  // but only to dodge `.squircle` rendering superellipse(4) as
+                  // a hard rectangle; that implementation was reverted, so
+                  // `rounded-ds-md` is a proper rounded corner again and the
+                  // pill was left as an odd shape out.
                   // focus:ring-inset — an outset ring on a wide input paints
                   // outside the row's edge and clips against the page gutter.
-                  className="w-full h-10 pl-10 pr-9 text-ds-13 rounded-full glass-field border border-[hsl(var(--bark)/0.22)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/40 transition-shadow placeholder:text-muted-foreground"
+                  className="w-full h-10 pl-10 pr-9 text-ds-13 rounded-ds-md glass-field border border-[hsl(var(--bark)/0.22)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/40 transition-shadow placeholder:text-muted-foreground"
                 />
                 <button
                   type="button"

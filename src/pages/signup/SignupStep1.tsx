@@ -262,13 +262,23 @@ export function SignupStep1({
               : "1px solid transparent",
         }}
       >
+        {/* aria-labelledby, NOT the wrapping <label htmlFor>. Radix renders
+            Checkbox as <button role="checkbox"> with empty content, and
+            Chrome's accessible-name computation returns nothing for it — the
+            accessibility tree showed all three consent boxes as an unnamed
+            `checkbox`, so a screen-reader user was agreeing to the Terms while
+            hearing only "checkbox, not checked". Pointing at the description
+            span names them from the same copy sighted users read, links
+            included. */}
         <Checkbox
           id="policies"
+          aria-labelledby="policies-label"
           checked={acceptedPolicies}
           onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
         <span
+          id="policies-label"
           className="text-ds-11 leading-relaxed font-sans"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
@@ -296,11 +306,13 @@ export function SignupStep1({
       >
         <Checkbox
           id="age-confirm"
+          aria-labelledby="age-confirm-label"
           checked={ageConfirmed}
           onCheckedChange={(checked) => setAgeConfirmed(checked === true)}
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
         <span
+          id="age-confirm-label"
           className="text-ds-11 leading-relaxed font-sans"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
@@ -319,11 +331,13 @@ export function SignupStep1({
       >
         <Checkbox
           id="marketing-consent"
+          aria-labelledby="marketing-consent-label"
           checked={marketingConsent}
           onCheckedChange={(checked) => setMarketingConsent(checked === true)}
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
         <span
+          id="marketing-consent-label"
           className="text-ds-11 leading-relaxed font-sans"
           style={{ color: "hsl(var(--olivewood) / 0.7)" }}
         >

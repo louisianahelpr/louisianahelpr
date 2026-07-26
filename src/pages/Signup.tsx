@@ -9,7 +9,6 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
-import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
 import HelprMark from "@/components/HelprMark";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -345,14 +344,25 @@ const Signup = () => {
         : { title: "Welcome, neighbor.", subtitle: "Create your account to get started." }
       : { title: "Tell us about you.", subtitle: "A few basics so neighbors know who they're working with." };
 
+  // No `desktopBrandPanel`: AuthBrandPane is only the H emblem, and it stacked
+  // ABOVE the form at lg+ while the heading row carried its own emblem below —
+  // two marks, plus a tall vertical stack that pushed the Google button off the
+  // bottom of a 922px-tall window. One emblem now sits beside the heading at
+  // every width.
   return (
-    <AuthShell hideHeader desktopBrandPanel={<AuthBrandPane />}>
-      <div className="text-center mb-4 space-y-1.5">
-        {/* The H emblem is redundant on desktop — the AuthBrandPane hero
-            above already renders it. Hide at lg+ so the two don't stack. */}
-        <div className="flex justify-center mb-2 lg:hidden">
+    <AuthShell hideHeader centerColumn>
+      {/* Emblem sits BESIDE the heading, not stacked above it. Stacking cost
+          a full emblem-height + margin of vertical space in a view that was
+          already overflowing — the Google button was clipped off the bottom at
+          922px tall. Running them as a row reclaims that height and reads as
+          one lockup. Text goes left-aligned when the emblem is present and
+          re-centres at lg+, where the emblem is hidden (AuthBrandPane already
+          renders it there, so the two would otherwise stack). */}
+      <div className="mb-4 flex items-center justify-center gap-3">
+        <div className="shrink-0">
           <HelprMark to={null} size="md" emblemOnly />
         </div>
+        <div className="space-y-1 min-w-0 text-left">
         <h1
           className="font-display italic font-bold leading-tight"
           style={{
@@ -373,6 +383,7 @@ const Signup = () => {
         >
           {stepHeading.subtitle}
         </p>
+        </div>
       </div>
       <div className="pb-8">
           {/* Liquid-glass card — matches the Login screen so the two auth

@@ -30,6 +30,14 @@ interface AuthShellProps {
       Mobile is unchanged — the pane is `hidden` below lg. Passing
       `null`/undefined preserves the original narrow-centered layout. */
   desktopBrandPanel?: ReactNode;
+  /** Horizontally centre the form column and vertically centre it at lg+.
+      Defaults to `!!desktopBrandPanel`, which is how this behaviour used to
+      be derived. Split into its own prop because the two are unrelated: a
+      screen can want a centred column WITHOUT a brand pane (Signup now folds
+      its emblem into the heading row, and without this it snapped to
+      `items-start` and pinned the card to the left edge). Callers that pass a
+      brand pane are unaffected. */
+  centerColumn?: boolean;
 }
 
 const widthMap = {
@@ -53,10 +61,13 @@ const AuthShell = ({
   align = "start",
   maxWidth = "lg",
   desktopBrandPanel,
+  centerColumn,
 }: AuthShellProps) => {
   const showCompactTopBar = compactHeader && !hideHeader;
   const showFullHeader = !compactHeader && !hideHeader;
   const alignClass = align === "center" ? "items-center" : "items-start";
+  // Defaults to the old derivation so every existing caller renders identically.
+  const centered = centerColumn ?? !!desktopBrandPanel;
   // Back returns to WHERE YOU CAME FROM. Auth pages are reached from all over
   // — a job card on /jobs, a gated tab, the nav CTA — so a hard-coded target
   // sent people somewhere they had never been. It previously forced "/" on web
@@ -115,7 +126,7 @@ const AuthShell = ({
           {backLink}
         </div>
       )}
-      <div className={`relative z-10 flex flex-col ${desktopBrandPanel ? "items-center" : alignClass} ${desktopBrandPanel ? "lg:justify-center" : ""} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12 lg:pt-6"}`}>
+      <div className={`relative z-10 flex flex-col ${centered ? "items-center" : alignClass} ${centered ? "lg:justify-center" : ""} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12 lg:pt-6"}`}>
         {/* Brand mark hero — desktop-only. Sits as a sibling INSIDE the
             same vertically-centered flex column as the form so hero +
             form read as one composed unit centered on the viewport

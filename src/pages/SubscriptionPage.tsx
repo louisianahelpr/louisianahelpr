@@ -593,7 +593,11 @@ export default function SubscriptionPage() {
                     <div className="mt-6">
                       {isActive ? (
                         <div
-                          className="inline-flex items-center gap-1.5 h-11 px-5 rounded-2xl font-sans font-semibold text-ds-13"
+                          // Matches the Upgrade CTAs exactly — same height ramp, padding, radius and
+                        // full-bleed width. It sits in the same slot on the Free card, so at
+                        // h-11/px-5/auto-width it read as a different, smaller control and
+                        // knocked that card's button row out of line with the other three.
+                        className="w-full inline-flex items-center justify-center gap-1.5 h-11 sm:h-12 px-6 rounded-2xl font-sans font-semibold text-ds-13"
                           style={{
                             background: "hsl(var(--bark) / 0.08)",
                             color: "hsl(var(--bark))",

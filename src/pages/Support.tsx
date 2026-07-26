@@ -298,7 +298,11 @@ const Support = () => {
         <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-10 lg:gap-16 md:items-start">
 
           {/* Right column — the form (or its success state). */}
-          <div className="md:col-span-8 lg:col-span-9">
+          {/* Full 12 columns now that the left masthead is gone — at
+              col-span-8 the form stayed in the first two-thirds of the grid
+              and stranded an empty right third. Capped + centred so it
+              doesn't stretch across the whole 90rem container. */}
+          <div className="md:col-span-12 w-full max-w-3xl mx-auto">
             {sent ? (
               <div
                 className="rounded-2xl px-6 py-12 flex flex-col items-center text-center gap-4 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-300"

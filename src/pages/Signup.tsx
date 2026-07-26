@@ -9,6 +9,7 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
+import BackButton from "@/components/BackButton";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
@@ -354,27 +355,34 @@ const Signup = () => {
   // bottom of a 922px-tall window. One emblem now sits beside the heading at
   // every width.
   return (
-    <AuthShell hideHeader centerColumn backInCard maxWidth="2xl">
+    <AuthShell hideHeader centerColumn hideBack maxWidth="2xl">
       <div className="pb-8">
           {/* Liquid-glass card — matches the Login screen so the two auth
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}
-          <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-4">
+          <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
             {/* Heading INSIDE the card, no H emblem — identical treatment to
                 Login. The emblem stacked above a heading that sat above the
                 card meant three bands of vertical space before the email
                 field, and it clipped the Google button off a 922px window.
                 The card is now the whole composition. */}
-            <div className="text-left space-y-1 pl-12 sm:pl-14">
-              <h1
-                className="font-display italic font-bold leading-tight"
-                style={{
-                  fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.03em",
-                }}
-              >
-                {stepHeading.title}
-              </h1>
+            {/* [back] [title] on ONE row, identical to Login. The arrow used
+                to be absolutely positioned in the card corner with the heading
+                indented pl-12/pl-14 to clear it, which left the heading
+                aligned to nothing. */}
+            <div className="text-left space-y-1">
+              <div className="flex items-center gap-3">
+                <div className="shrink-0"><BackButton to="/" /></div>
+                <h1
+                  className="font-display italic font-bold leading-tight min-w-0 flex-1"
+                  style={{
+                    fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.03em",
+                  }}
+                >
+                  {stepHeading.title}
+                </h1>
+              </div>
               {stepHeading.subtitle && (
                 <p
                   className="font-sans"

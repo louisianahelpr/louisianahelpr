@@ -144,17 +144,15 @@ export function SignupStep2(props: SignupStep2Props) {
 
       {/* Section 2: Your name + personal details */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="text-display-eyebrow" style={{ fontSize: "0.7rem", letterSpacing: "0.1em", opacity: 0.85 }}>Your details</span>
-        </div>
-        {/* Avatar sits INLINE beside the name fields. Centred above the
-            form it was a 158px band — a 112px circle plus a two-line
-            caption — putting an OPTIONAL field first on the screen. */}
-        <div className="flex items-center gap-4">
-          <div className="shrink-0 flex flex-col items-center gap-1.5">
+        {/* Photo owns its own row above the names. Inline beside them it
+            pushed First/Last to x=273 while every field below started at
+            x=129 — a visible step down the form's left edge. */}
+        <div className="space-y-2">
+          <Label htmlFor="avatar" className={labelCls}>Profile photo <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+          <div className="flex flex-col items-start gap-1.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform">
             <div
-              className={`relative w-32 h-32 rounded-full border-2 border-dashed transition-colors flex items-center justify-center overflow-hidden ${fieldErrors.avatar ? "border-destructive" : "border-border group-hover:border-primary"}`}
+              className={`relative w-20 h-20 rounded-full border-2 border-dashed transition-colors flex items-center justify-center overflow-hidden ${fieldErrors.avatar ? "border-destructive" : "border-border group-hover:border-primary"}`}
               style={{
                 background:
                   "radial-gradient(circle at 50% 35%, hsl(var(--parchment)) 0%, hsl(var(--secondary) / 0.55) 100%)",
@@ -166,28 +164,28 @@ export function SignupStep2(props: SignupStep2Props) {
               {avatarPreview && avatarPreview.startsWith("blob:") ? (
                 <img loading="lazy" decoding="async" src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
-                <UserRound className="w-12 h-12 text-muted-foreground" strokeWidth={1.5} />
+                <UserRound className="w-8 h-8 text-muted-foreground" strokeWidth={1.5} />
               )}
             </div>
             <div
-              className="pointer-events-none absolute -bottom-1 -right-1 w-11 h-11 rounded-full flex items-center justify-center z-10"
+              className="pointer-events-none absolute -bottom-0.5 -right-0.5 w-8 h-8 rounded-full flex items-center justify-center z-10"
               style={{
                 background:
                   "linear-gradient(150deg, hsl(var(--bark) / 0.92) 0%, hsl(var(--bark)) 60%)",
                 color: "hsl(var(--parchment))",
                 boxShadow:
-                  "0 0 0 3px hsl(var(--parchment)), " +
+                  "0 0 0 2.5px hsl(var(--parchment)), " +
                   "inset 0 1px 1px hsl(var(--parchment) / 0.25), " +
                   "0 8px 18px -4px hsl(var(--bark) / 0.55)",
               }}
             >
-              <Camera className="w-4 h-4" strokeWidth={2.25} />
+              <Camera className="w-3.5 h-3.5" strokeWidth={2.25} />
             </div>
             <input
+              id="avatar"
               type="file"
               accept="image/*"
               className="hidden"
-              aria-label="Profile photo"
               aria-invalid={!!fieldErrors.avatar}
               aria-describedby={fieldErrors.avatar ? "avatar-error" : undefined}
               onChange={(e) => { onAvatarChange(e); clearFieldError?.("avatar"); }}
@@ -195,7 +193,8 @@ export function SignupStep2(props: SignupStep2Props) {
           </label>
           <FieldError id="avatar-error" message={fieldErrors.avatar} />
           </div>
-          <div className="grid grid-cols-2 gap-3 flex-1 min-w-0">
+        </div>
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
             <div className="relative">
@@ -215,7 +214,6 @@ export function SignupStep2(props: SignupStep2Props) {
               )}
             </div>
             <FieldError id="lastName-error" message={fieldErrors.lastName} />
-          </div>
           </div>
         </div>
         {/* Date of birth pairs half-width with Phone: it keeps one left
@@ -240,10 +238,7 @@ export function SignupStep2(props: SignupStep2Props) {
               placeholder="Select your date of birth"
               className={`rounded-ds-md border-[hsl(var(--bark)/0.28)] dark:border-white/15${fieldErrors.dateOfBirth ? " border-destructive" : ""}`}
             />
-            {fieldErrors.dateOfBirth
-              ? <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
-              : <p id="dob-help" className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>You must be at least 18 years old.</p>
-            }
+            <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="phone" className={labelCls}>Phone number</Label>

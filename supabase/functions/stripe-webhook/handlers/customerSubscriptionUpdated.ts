@@ -37,7 +37,7 @@ export async function handleCustomerSubscriptionUpdated(
 
     if (error) {
       logStep("ERROR updating profile", { error: error.message });
-      postSlackOpsAlert({
+      await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
         title: "Subscription renewal — tier not applied after payment captured",
@@ -60,7 +60,7 @@ export async function handleCustomerSubscriptionUpdated(
 
     if (error) {
       logStep("ERROR clearing tier", { error: error.message });
-      postSlackOpsAlert({
+      await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
         title: "Subscription cancellation — tier not cleared after status change",

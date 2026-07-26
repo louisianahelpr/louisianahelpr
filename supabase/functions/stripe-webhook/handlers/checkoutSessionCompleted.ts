@@ -83,7 +83,7 @@ export async function handleCheckoutSessionCompleted(
       // customer.subscription.updated event serves as a fallback for new
       // subscriptions, but a persistent DB failure could leave the user
       // paying without Pro access. Alert ops so it can be reconciled.
-      postSlackOpsAlert({
+      await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
         title: "Subscription — tier not applied after payment captured",
@@ -177,7 +177,7 @@ export async function handleCheckoutSessionCompleted(
         logStep("ERROR applying boost", { error: boostError.message });
         // A captured boost payment whose DB write failed means the user paid but
         // the boost never activated. No retry (200 returned) → ops must reconcile.
-        postSlackOpsAlert({
+        await postSlackOpsAlert({
           kind: "custom",
           severity: "critical",
           title: "Job boost — activation failed after payment captured",

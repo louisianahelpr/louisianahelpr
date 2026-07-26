@@ -14,12 +14,26 @@ const RESEND_COOLDOWN_S = 60;
 // matches the brief and is gentle enough that an inbox tab open in the
 // background doesn't burn battery.
 const VERIFY_POLL_INTERVAL_MS = 5000;
+// Survives a reload of this screen; cleared once verification lands.
+const PENDING_EMAIL_KEY = "helpr.pendingSignupEmail";
 
 const SignupPending = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  // Prefill the email from router state if Signup passed it via navigate()
-  const prefillEmail: string = (location.state as { email?: string } | null)?.email ?? "";
+  // The address arrives in router state (Signup does navigate(..., { state }))
+  // which lives in the history entry and is LOST on reload — and "keep this
+  // page open" makes reloading a very natural thing to do while waiting. Mirror
+  // it into sessionStorage so a refresh, or coming back to the tab, still knows
+  // who we're waiting on. sessionStorage (not local) so it dies with the tab
+  // rather than lingering on a shared machine.
+  const routerEmail: string = (location.state as { email?: string } | null)?.email ?? "";
+  const [prefillEmail] = useState<string>(() => {
+    if (routerEmail) {
+      try { sessionStorage.setItem(PENDING_EMAIL_KEY, routerEmail); } catch { /* private mode */ }
+      return routerEmail;
+    }
+    try { return sessionStorage.getItem(PENDING_EMAIL_KEY) ?? ""; } catch { return ""; }
+  });
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
   // Counts down 60s after each successful resend so the button doesn't
@@ -38,6 +52,7 @@ const SignupPending = () => {
       if (cancelled || error) return;
       const sessionUser = data.session?.user;
       if (sessionUser?.email_confirmed_at) {
+        try { sessionStorage.removeItem(PENDING_EMAIL_KEY); } catch { /* private mode */ }
         toast.success("Email verified — taking you in.");
         navigate("/complete-profile", { replace: true });
       }

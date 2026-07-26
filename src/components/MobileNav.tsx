@@ -47,10 +47,22 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // `safe-nav` token — collapsing the ~112px strip on all 22 `pb-safe-nav`
   // pages at once. Toggled here because this component owns the decision to
   // render the dock at all; keeping the two in one place stops them drifting.
+  // Mirrors EVERY early return below that suppresses the dock, not just the
+  // guest one. This used to track `isGuest` alone, but the dock also returns
+  // null on `noNavPages` and on any route outside `authPages` — which includes
+  // all the marketing pages. So a SIGNED-IN visitor on "/" got no dock and
+  // still paid its clearance: measured 112px of dead space under the landing
+  // footer. Keep this expression in sync with the guards below; they are
+  // adjacent on purpose.
+  const dockHidden =
+    isGuest ||
+    noNavPages.some((p) => location.pathname.startsWith(p)) ||
+    !authPages.some((p) => location.pathname.startsWith(p));
+
   useEffect(() => {
-    document.documentElement.classList.toggle("no-bottom-nav", isGuest);
+    document.documentElement.classList.toggle("no-bottom-nav", dockHidden);
     return () => document.documentElement.classList.remove("no-bottom-nav");
-  }, [isGuest]);
+  }, [dockHidden]);
 
   const [gateOpen, setGateOpen] = useState(false);
   // Long-press quick-action sheet — one sheet, with content keyed by which
@@ -164,6 +176,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [navigate, markAllRead]);
 
+  // NOTE: `dockHidden` above must stay in sync with these two guards + the
+  // `isGuest` one below — it is what collapses `--bottom-nav-h` so pages
+  // don't reserve clearance for a dock that never renders.
   if (noNavPages.some((p) => location.pathname.startsWith(p))) return null;
   if (!authPages.some((p) => location.pathname.startsWith(p))) return null;
 

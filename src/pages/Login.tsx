@@ -283,7 +283,7 @@ const Login = () => {
               letterSpacing: "-0.03em",
             }}
           >
-            Glad you're back.
+            Sign in
           </h1>
         </div>
         {mfaChallenge ? (

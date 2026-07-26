@@ -12,12 +12,34 @@ export async function handleTransferReversed(
   const transfer = event.data.object as Stripe.Transfer;
   logStep("Transfer REVERSED", { id: transfer.id, amount: transfer.amount });
 
-  const { data: reversedLedger } = await supabase
+  const { data: reversedLedger, error: ledgerUpdateErr } = await supabase
     .from("payout_transfers")
     .update({ status: "reversed", reversed_at: new Date().toISOString() })
     .eq("stripe_transfer_id", transfer.id)
     .select("job_id")
     .maybeSingle();
+
+  if (ledgerUpdateErr) {
+    // Without a successful ledger flip the freeze block below is never entered
+    // (reversedLedger is null on error), so the job stays "released" with no
+    // hard-block markers and the Slack alert fires at "warning" severity rather
+    // than "critical". Alert ops NOW before throwing so the critical-severity
+    // page has full context, then throw so the idempotency row is rolled back
+    // and Stripe retries once the DB recovers.
+    await postSlackOpsAlert({
+      kind: "payout_reversed",
+      severity: "critical",
+      title: "Helpr payout reversed — LEDGER UPDATE FAILED, job NOT frozen",
+      message: `Stripe transfer ${transfer.id} was reversed but the payout_transfers status flip to 'reversed' failed (DB error). The job freeze was skipped — the job may remain in 'released' state. Stripe will retry this webhook.`,
+      fields: {
+        "Transfer ID": transfer.id,
+        "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
+        "Destination": String(transfer.destination ?? "—"),
+        "DB error": ledgerUpdateErr.message.slice(0, 200),
+      },
+    });
+    throw new Error(`payout_transfers status flip failed for reversed transfer ${transfer.id}: ${ledgerUpdateErr.message}`);
+  }
 
   // transfer.created optimistically flipped the job to "released". A reversal
   // clawed those funds BACK out of the helper's account, so "released" is now a

@@ -345,7 +345,7 @@ const Login = () => {
             for something real instead of inflating one field. Stacks below lg,
             unchanged. */}
         <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr] lg:gap-8 lg:items-stretch">
-        <form onSubmit={handleLogin} className="space-y-3.5 lg:space-y-5">
+        <form onSubmit={handleLogin} className="space-y-3.5 lg:space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
             <div className="relative">
@@ -451,7 +451,7 @@ const Login = () => {
         {/* Vertically centred against the taller credentials column, so the
             social buttons sit level with the form rather than hugging the top
             with dead space beneath them. */}
-        <div className="space-y-4 lg:flex lg:flex-col lg:justify-center lg:gap-8 lg:space-y-0 lg:py-2">
+        <div className="space-y-4 lg:flex lg:flex-col lg:justify-center lg:gap-10 lg:space-y-0">
         {/* The OR rule only makes sense when the two methods are stacked. At
             lg+ they sit side by side, so the columns themselves do the
             separating. */}

@@ -7,6 +7,7 @@ import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
 import { Mail, Loader2, Check } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
+import BackButton from "@/components/BackButton";
 import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
 import HelprMark from "@/components/HelprMark";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -91,36 +92,27 @@ const ForgotPassword = () => {
   };
 
   return (
-    <AuthShell hideHeader backTo="/login" desktopBrandPanel={<AuthBrandPane />}>
-      {!sent && (
-        <div className="text-center mb-8 space-y-2">
-          {/* Redundant on desktop — AuthBrandPane hero already shows H. */}
-          <div className="flex justify-center mb-3 lg:hidden">
-            <HelprMark to={null} size="md" emblemOnly />
-          </div>
-          <h1
-            className="font-display italic font-bold leading-tight"
-            style={{
-              fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.03em",
-            }}
-          >
-            We'll send you a link.
-          </h1>
-          <p
-            className="font-sans"
-            style={{
-              fontSize: "0.95rem",
-              color: "hsl(var(--olivewood) / 0.8)",
-              letterSpacing: "0.01em",
-            }}
-          >
-            Enter the email tied to your account and check your inbox.
-          </p>
-        </div>
-      )}
-      <div className="liquid-glass p-6 sm:p-8 space-y-6">
+    <AuthShell hideHeader backTo="/login"  centerColumn hideBack maxWidth="2xl">
+      <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
+        {!sent && (
+          <>
+            {/* Same [back] [title] header row as Login: heading INSIDE the
+                card, no emblem, one left edge down the card. */}
+            <div className="flex items-center gap-3">
+              <div className="shrink-0"><BackButton to="/login" /></div>
+              <h1
+                className="font-display italic font-bold leading-tight min-w-0 flex-1"
+                style={{
+                  fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
+                  color: "hsl(var(--ink-deep))",
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                Password reset
+              </h1>
+            </div>
+          </>
+        )}
         {sent ? (
           <div className="text-center space-y-4">
             <div

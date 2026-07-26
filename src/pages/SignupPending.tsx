@@ -216,27 +216,30 @@ const SignupPending = () => {
                     ? `Resend in ${resendCooldown}s…`
                     : "Resend verification email"}
               </Button>
-              {/* Wrong-address escape hatch — sends the user back to the
-                  signup form to re-enter the email, which is the only
-                  practical fix when the auth row was created against a
-                  typo address. Sits below resend so it isn't the first
-                  option a user reaches for, but is reachable when needed. */}
-              <Link
-                to="/signup"
-                className="block text-center text-ds-11 font-sans hover:underline pt-1 inline-flex items-center justify-center gap-1"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                <ArrowLeft className="w-4 h-4" aria-hidden /> Wrong address? Start over
-              </Link>
             </div>
           )}
           </div>
-          <p className={`text-ds-13 font-sans shrink-0${showResend ? " text-right" : ""}`} style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Already verified?{" "}
-            <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
-              Sign in
-            </Link>
-          </p>
+          <div className={showResend ? "flex items-center justify-between gap-4 flex-wrap" : "contents"}>
+            {/* Wrong-address escape hatch — re-entering the address is the
+                only practical fix once the auth row exists against a typo.
+                Shown only while the resend panel is open, paired with the
+                sign-in line so the two ways out of this screen sit together
+                in the same sentence shape as everything else here. */}
+            {showResend && (
+              <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                Wrong address?{" "}
+                <Link to="/signup" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+                  Start over
+                </Link>
+              </p>
+            )}
+            <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Already verified?{" "}
+              <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+                Sign in
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </AuthShell>

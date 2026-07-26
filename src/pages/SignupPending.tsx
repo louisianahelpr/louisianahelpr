@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { MailCheck, LogIn, Sparkles, Loader2, Check, ArrowLeft } from "lucide-react";
+import { MailCheck, LogIn, Sparkles, Loader2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,8 +116,16 @@ const SignupPending = () => {
             Check your inbox
           </h1>
         </div>
+        {/* Name the ADDRESS. It's the one fact this screen exists to
+            convey — how someone catches "jane@gmial.com" without opening
+            the resend panel to look. Falls back to the generic sentence on
+            a cold load, where router state carries no email. */}
         <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          We've sent a verification link to your email. Click it to confirm your account.
+          We've sent a verification link to{" "}
+          {prefillEmail
+            ? <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{prefillEmail}</span>
+            : "your email"}
+          . Click it to confirm your account.
         </p>
 
         <div className="border-t pt-6 grid gap-4 sm:grid-cols-3 text-left" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
@@ -125,7 +133,7 @@ const SignupPending = () => {
             {stepIcon(MailCheck)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Verify your email</p>
-              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Click the link in your inbox to confirm your email address.
               </p>
             </div>
@@ -135,8 +143,8 @@ const SignupPending = () => {
             {stepIcon(LogIn)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>We'll sign you in</p>
-              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Keep this page open — the moment you confirm, we take you straight in. No need to log back in.
+              <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                Keep this page open — the moment you confirm in this browser, we take you straight in. Confirmed on your phone? Sign in below.
               </p>
             </div>
           </div>
@@ -145,7 +153,7 @@ const SignupPending = () => {
             {stepIcon(Sparkles)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>
-              <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 You're all set — post and accept jobs the moment you're in.
               </p>
             </div>
@@ -159,7 +167,7 @@ const SignupPending = () => {
             form needs the full width — pairing then left the form in half
             the card with the sign-in link stranded in the empty half. */}
         <div
-          className={`border-t pt-4 ${showResend ? "space-y-4" : "flex items-center justify-between gap-4 flex-wrap"}`}
+          className={`border-t pt-4 ${showResend ? "space-y-4" : "flex items-center justify-between gap-3"}`}
           style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}
         >
           <div className={showResend ? "" : "min-w-0"}>
@@ -181,9 +189,22 @@ const SignupPending = () => {
             </p>
           ) : (
             <div className="space-y-3">
-              <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {prefillEmail ? "Confirm your email to resend the verification link:" : "Enter your email to resend the verification link:"}
-              </p>
+              {/* Label + a way OUT of the panel — opening it is one tap and
+                  was previously a one-way door: nothing here closed it again. */}
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  {prefillEmail ? "Confirm your email to resend the verification link:" : "Enter your email to resend the verification link:"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowResend(false)}
+                  aria-label="Close resend form"
+                  className="shrink-0 w-8 h-8 -mr-1 rounded-full flex items-center justify-center transition-colors hover:bg-[hsl(var(--olivewood)/0.08)]"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  <X className="w-4 h-4" strokeWidth={2} />
+                </button>
+              </div>
               <div className="relative">
                 <Input
                   type="email"
@@ -219,7 +240,7 @@ const SignupPending = () => {
             </div>
           )}
           </div>
-          <div className={showResend ? "flex items-center justify-between gap-4 flex-wrap" : "contents"}>
+          <div className={showResend ? "flex items-center justify-between gap-3" : "contents"}>
             {/* Wrong-address escape hatch — re-entering the address is the
                 only practical fix once the auth row exists against a typo.
                 Shown only while the resend panel is open, paired with the
@@ -234,7 +255,7 @@ const SignupPending = () => {
               </p>
             )}
             <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Already verified?{" "}
+              Verified?{" "}
               <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
                 Sign in
               </Link>

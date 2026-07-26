@@ -69,7 +69,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     multiTech: false,
     verifiedBusiness: false,
     dedicatedSupport: false,
-    tagline: "Get started, no commitment",
+    tagline: "No commitment",
     ctaLabel: "Current plan",
     featureBullets: ["Access to all open jobs", "Basic applicant visibility"],
   },
@@ -90,7 +90,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     multiTech: false,
     verifiedBusiness: false,
     dedicatedSupport: false,
-    tagline: "Get paid faster, save on boosts",
+    tagline: "Faster payouts",
     ctaLabel: "Upgrade",
     featureBullets: [
       "Helpr Badge",
@@ -111,7 +111,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     multiTech: false,
     verifiedBusiness: false,
     dedicatedSupport: false,
-    tagline: "For helpers serious about earning",
+    tagline: "For serious earners",
     ctaLabel: "Upgrade",
     featureBullets: [
       "Priority Placement",
@@ -132,7 +132,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     multiTech: false,
     verifiedBusiness: false,
     dedicatedSupport: true,
-    tagline: "Top helpers. Maximum visibility.",
+    tagline: "Maximum visibility",
     ctaLabel: "Upgrade",
     featureBullets: [
       "Featured Crown Badge",
@@ -158,7 +158,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     multiTech: true,
     verifiedBusiness: true,
     dedicatedSupport: true,
-    tagline: "For companies, contractors, and crews",
+    tagline: "Teams and crews",
     ctaLabel: "See seat plans",
     featureBullets: [
       "Manage a team of technicians",

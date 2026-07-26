@@ -31,7 +31,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Check, ChevronDown, Loader2 } from "lucide-react";
+import { ArrowRight, Award, Check, ChevronDown, Crown, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -98,6 +98,51 @@ const BENEFITS: Array<{ title: string; desc: string }> = [
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────
+
+/**
+ * The subscription badge as it ACTUALLY renders on a profile in the app —
+ * same colours, sizing, letter-spacing and icon as
+ * src/components/profile/profileLanding/IdentityHeader.tsx. Duplicated
+ * deliberately rather than imported: that badge is embedded in a name row and
+ * takes profile state this public page doesn't have. If the treatment there
+ * changes, change it here too — the point of this element is that what a
+ * visitor previews is what they actually get.
+ *
+ * Free returns null: it has no badge, and a placeholder would imply one.
+ */
+const TierBadgePreview = ({ tier }: { tier: string }) => {
+  if (tier === "basic") {
+    return (
+      <span
+        className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+        style={{ color: "hsl(var(--bark))", background: "hsl(var(--bark) / 0.10)", letterSpacing: "0.08em" }}
+      >
+        <Star className="w-2.5 h-2.5" /> Basic
+      </span>
+    );
+  }
+  if (tier === "pro") {
+    return (
+      <span
+        className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+        style={{ color: "hsl(var(--burnt-sienna))", background: "hsl(var(--burnt-sienna) / 0.12)", letterSpacing: "0.08em" }}
+      >
+        <Award className="w-2.5 h-2.5" /> Pro
+      </span>
+    );
+  }
+  if (tier === "elite") {
+    return (
+      <span
+        className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+        style={{ color: "hsl(var(--gold-warm))", background: "hsl(var(--gold-warm) / 0.14)", letterSpacing: "0.08em" }}
+      >
+        <Crown className="w-2.5 h-2.5" /> Elite
+      </span>
+    );
+  }
+  return null;
+};
 
 export default function SubscriptionPage() {
   usePageMeta({
@@ -394,36 +439,29 @@ export default function SubscriptionPage() {
                         : "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
                     }}
                   >
-                    {/* Chip row — Recommended / Current only. Removed
-                        the eyebrow tier-name (duplicated the H3 below). */}
-                    {(isFeatured || isActive) && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {isFeatured && (
-                          <span
-                            className="font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full"
-                            style={{
-                              background: "hsl(var(--burnt-sienna))",
-                              color: "hsl(var(--parchment))",
-                              letterSpacing: "0.14em",
-                            }}
-                          >
-                            Recommended
-                          </span>
-                        )}
-                        {isActive && (
-                          <span
-                            className="font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"
-                            style={{
-                              background: "hsl(var(--bark) / 0.12)",
-                              color: "hsl(var(--bark))",
-                              letterSpacing: "0.12em",
-                            }}
-                          >
-                            <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
-                            Current
-                          </span>
-                        )}
-                      </div>
+                    {/* Recommended only. The "Current" chip that used to sit
+                        beside it is gone: the card already ends in a "Current
+                        plan" button saying the same thing, and on this PUBLIC
+                        page a signed-out visitor has no plan at all — labelling
+                        Free as their "current" one is simply untrue for the
+                        majority of the people who see it. */}
+                    {/* Absolutely positioned, NOT in the flow. In-flow it added
+                        a row only the Pro card had, pushing that card's title
+                        down and its type scale out of step with the other
+                        three. Pinned to the card's top-right corner it labels
+                        the card without changing its layout, so all four
+                        headings sit on one baseline. */}
+                    {isFeatured && (
+                      <span
+                        className="absolute top-3 right-3 z-10 font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full"
+                        style={{
+                          background: "hsl(var(--burnt-sienna))",
+                          color: "hsl(var(--parchment))",
+                          letterSpacing: "0.14em",
+                        }}
+                      >
+                        Recommended
+                      </span>
                     )}
 
                     {/* Tier name — big Bodoni. Strips the "Helpr " prefix
@@ -444,7 +482,12 @@ export default function SubscriptionPage() {
 
                     {/* Tagline — italic */}
                     <p
-                      className="mt-2 font-serif italic text-ds-13 sm:text-ds-15 leading-relaxed"
+                      // One line. These taglines are 3-5 words, but "Top helpers. Maximum
+                      // visibility." wrapped at this card width while its
+                      // neighbours didn't — so one card carried an extra line and
+                      // pushed its price, fee line and CTA out of step with the
+                      // other three.
+                      className="mt-2 font-serif italic text-ds-13 sm:text-ds-15 leading-relaxed line-clamp-1"
                       style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                     >
                       {perks.tagline}
@@ -471,17 +514,10 @@ export default function SubscriptionPage() {
                                 $0
                               </span>
                             </div>
-                            {/* Caption line matches the annual-equivalent
-                                caption on paid tiers so all 4 tier cards
-                                share the same vertical rhythm — otherwise
-                                $0 sits higher than $5 / $10 / $15 and the
-                                row of prices reads uneven. */}
-                            <p
-                              className="mt-1.5 font-sans uppercase text-[10px] font-semibold tracking-[0.14em]"
-                              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                            >
-                              Free forever · no card required
-                            </p>
+                            {/* The "Free forever · no card required" line lived here. Removed:
+                                the tier is already titled "Free" with a "$0" price
+                                directly above, so it restated the two largest
+                                elements on the card in the smallest type. */}
                           </>
                         );
                       }
@@ -510,20 +546,14 @@ export default function SubscriptionPage() {
                               {isAnnual ? "/yr" : "/mo"}
                             </span>
                           </div>
-                          {/* ONE typographic treatment for this sub-line in
-                              both billing states. It used to render as small
-                              uppercase sans on annual and serif italic on
-                              monthly — the same sentence in two different
-                              fonts depending on a toggle. Serif italic matches
-                              the tagline above it and the rest of the card. */}
+                          {/* The "or $X/mo billed annually" line that used to sit
+                              here is gone — the billing toggle above already
+                              states which cycle you're looking at, and the price
+                              beside it already carries /mo or /yr, so the line
+                              restated the toggle on all four cards. The savings
+                              chip stays: that's the one thing the toggle does
+                              NOT say. */}
                           <div className="mt-1 flex items-center gap-2 flex-wrap">
-                            <p
-                              className="font-serif italic text-ds-12"
-                              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                            >
-                              or ${priceInfo.annualMonthlyEquivalent}/mo billed
-                              annually
-                            </p>
                             {isAnnual && (
                               <span
                                 className="font-sans text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full"
@@ -553,6 +583,22 @@ export default function SubscriptionPage() {
                           ? " (standard)"
                           : ""}
                     </p>
+
+                    {/* What the badge looks like once you're on the plan,
+                        rendered with the real in-app treatment rather than
+                        described in words — the perk is visible before you pay
+                        for it. */}
+                    {tier !== "free" && (
+                      <div className="mt-3 flex items-center gap-2">
+                        <span
+                          className="font-sans text-ds-11"
+                          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                        >
+                          Your badge:
+                        </span>
+                        <TierBadgePreview tier={tier} />
+                      </div>
+                    )}
 
                     {/* Feature bullets — paid tiers are a strict upgrade
                         ladder (each includes everything the tier below it

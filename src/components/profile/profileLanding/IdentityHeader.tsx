@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import {
   MapPin, ChevronRight as ChevronRightIcon, ChevronDown,
-  BadgeCheck, Camera, Crown, QrCode, Video, Play,
+  Award, BadgeCheck, Camera, Crown, QrCode, Video, Play,
   Star, Share2, Edit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -206,14 +206,18 @@ export function IdentityHeader({
               )}
               {tier === "pro" && (
                 <span
-                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                   style={{
                     color: "hsl(var(--burnt-sienna))",
                     background: "hsl(var(--burnt-sienna) / 0.12)",
                     letterSpacing: "0.08em",
                   }}
                 >
-                  Pro
+                  {/* Pro was the only rung without a glyph — Basic has a Star and
+                      Elite a Crown, so a bare word read as a different kind of
+                      chip rather than the middle of one ladder. Award sits
+                      naturally between the two. */}
+                  <Award className="w-2.5 h-2.5" /> Pro
                 </span>
               )}
               {tier === "elite" && (

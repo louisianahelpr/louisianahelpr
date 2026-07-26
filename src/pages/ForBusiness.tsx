@@ -6,6 +6,11 @@ import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import FaqRow from "@/components/marketing/FaqRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
+
+/** The baseline every discount is quoted against — the Free membership rate,
+ *  read from the same source /subscription uses so the two can't drift. */
+const STANDARD_FEE_PERCENT = TIER_PERKS.free.platformFeePercent;
 
 /**
  * /for-business — editorial-poster remodel.
@@ -86,6 +91,34 @@ const INDUSTRIES = [
 type Tier = {
   name: string;
   seats: string;
+  /**
+   * Platform-fee % this seat plan carries. Mirrors the MEMBERSHIP ladder
+   * one-for-one — Starter 12 (the standard rate), Crew 11, Team 10,
+   * Enterprise 8 — so a business reads the same descending scale a helper
+   * sees on /subscription rather than a second, unrelated pricing story.
+   *
+   * ⚠️ DISPLAY IS AHEAD OF BILLING. Buying a seat plan currently writes
+   * `seat_tier` and does NOT touch `subscription_tier`, so nothing in the fee
+   * path resolves these rates yet — a Crew customer is still charged the
+   * standard 12%. Verified against prod: 0 profiles have
+   * subscription_tier='business', and no code path sets it. These figures must
+   * be made real (grant the tier on an active paid seat subscription, the way
+   * the consumer checkout does) BEFORE launch, or the page is advertising a
+   * discount nobody receives.
+   */
+  feePercent: number;
+  /**
+   * Minutes of early access to brand-new jobs, on the SAME ladder as the fee
+   * above and for the same reason — Starter 0 (standard), Crew 5, Team 10,
+   * Enterprise 20 (immediate). Mirrors `earlyAccessDelayMs` in
+   * src/lib/earlyAccess.ts, where Free/Basic/Pro/Elite are 0/5/10/20.
+   *
+   * Same caveat as `feePercent`: this is what the ladder SHOULD be, but a seat
+   * purchase writes `seat_tier` and never `subscription_tier`, so
+   * `earlyAccessDelayMs` sees no tier and gives a seat customer the standard
+   * 0-minute head start today. Must be wired before launch.
+   */
+  earlyAccessMinutes: number;
   price: string;
   period?: string;
   featured?: boolean;
@@ -97,6 +130,8 @@ const TIERS: readonly Tier[] = [
   {
     name: "Starter",
     seats: "1 seat",
+    feePercent: 12,
+    earlyAccessMinutes: 0,
     price: "Free",
     features: ["Post jobs", "Browse Helprs", "Chat with applicants"],
     ctaLabel: "Start free",
@@ -104,6 +139,8 @@ const TIERS: readonly Tier[] = [
   {
     name: "Crew",
     seats: "2 seats",
+    feePercent: 11,
+    earlyAccessMinutes: 5,
     price: "$20",
     period: "/mo",
     features: [
@@ -117,6 +154,8 @@ const TIERS: readonly Tier[] = [
   {
     name: "Team",
     seats: "3 seats",
+    feePercent: 10,
+    earlyAccessMinutes: 10,
     price: "$30",
     period: "/mo",
     featured: true,
@@ -132,6 +171,8 @@ const TIERS: readonly Tier[] = [
   {
     name: "Enterprise",
     seats: "4+ seats",
+    feePercent: 8,
+    earlyAccessMinutes: 20,
     price: "$40",
     period: "/mo",
     features: [
@@ -760,6 +801,27 @@ const PricingSection = () => {
                           ${annual.yearly}/yr billed once
                         </p>
                       )}
+                      {/* Same line, same wording, same colour as the fee line on
+                          /subscription, so the two pricing pages read as one
+                          scale instead of two. STANDARD_FEE_PERCENT is the Free
+                          rate, so "save N%" is always measured against it. */}
+                      <p
+                        className="mt-3 font-sans text-ds-13 font-semibold"
+                        style={{ color: "hsl(var(--burnt-sienna))" }}
+                      >
+                        {tier.feePercent}% platform fee
+                        {tier.feePercent < STANDARD_FEE_PERCENT
+                          ? ` — save ${STANDARD_FEE_PERCENT - tier.feePercent}%`
+                          : " (standard)"}
+                      </p>
+                      <p
+                        className="mt-1 font-sans text-ds-11"
+                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                      >
+                        {tier.earlyAccessMinutes > 0
+                          ? `${tier.earlyAccessMinutes}-min early access to new jobs`
+                          : "Standard job visibility"}
+                      </p>
                     </>
                   );
                 })()}

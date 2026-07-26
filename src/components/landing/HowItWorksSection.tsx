@@ -117,6 +117,20 @@ const HowItWorksSection = () => {
             How it works.
           </h2>
 
+          {/* Sits between the heading and the side toggle it describes, so the
+              sentence reads straight into the control: "…whichever side you're
+              on" → [I need help | I want to work], echoing that group's own
+              aria-label ("Which side of Helpr are you on"). Covers BOTH
+              sides, since the same line stays on screen whichever side is
+              selected. Same type treatment as the /subscription and
+              /for-business section subheads. */}
+          <p
+            className="mt-4 font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            The same three steps, whichever side you're on.
+          </p>
+
           {/* Side segmented control — same shape/treatment as the billing-cycle
               toggle on SubscriptionPage. Sits directly under the "Three steps."
               masthead so the choice reads as part of the heading it modifies.

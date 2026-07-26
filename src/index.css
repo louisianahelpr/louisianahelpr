@@ -1646,17 +1646,19 @@ button,
   -webkit-backdrop-filter: blur(4px);
 }
 
-/* Fields with a leading icon must NOT blur their backdrop.
-   The icon is absolutely positioned over the field but painted before it,
-   so it lands in the field's backdrop and Chrome blurs it into a grey blob
-   — the mail, lock, search and phone icons were all illegible. z-index does
-   not lift it out (verified); only paint order or dropping the blur does.
-   `pl-10`/`pl-9` IS the leading-icon convention in this codebase — the extra
-   left padding exists precisely to make room for that icon — so keying on it
-   targets exactly the broken case and leaves the glass intact everywhere the
-   field has nothing on top of it. */
-.glass-field.pl-10,
-.glass-field.pl-9 {
+/* A field with anything overlaid on it must NOT blur its backdrop.
+   An adornment (the mail, lock, search or phone icon, the "+1" prefix) is
+   absolutely positioned OVER the field but painted before it, so it lands
+   in the field's backdrop and Chrome blurs it into a grey blob. z-index
+   does not lift it out — verified at every value; only paint order or
+   dropping the blur does.
+
+   Keyed on STRUCTURE, not on a padding class: any wrapper that holds both
+   an absolutely-positioned adornment and a glass field opts that field out.
+   A padding-based rule (`.pl-10`) covered today's files but would quietly
+   stop working the first time someone indented a field differently. */
+.relative:has(> .absolute) > .glass-field,
+.relative:has(> .absolute) .glass-field {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }

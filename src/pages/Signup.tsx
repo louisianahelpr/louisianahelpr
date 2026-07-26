@@ -363,7 +363,7 @@ const Signup = () => {
   // every width.
   return (
     <AuthShell hideHeader centerColumn hideBack maxWidth="2xl">
-      <div className="pb-8">
+      <div>
           {/* Liquid-glass card — matches the Login screen so the two auth
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}
           <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">

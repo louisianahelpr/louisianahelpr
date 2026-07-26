@@ -174,58 +174,6 @@ export function SignupStep2(props: SignupStep2Props) {
 
   return (
     <div className="space-y-6">
-      {/* Account-type context banner — mirrors Step 1's treatment so both
-          steps read as one consistent flow. Business path uses the same
-          bark-toned card as Step 1; personal path shows a neutral callout
-          so neither path feels unfinished. */}
-      {isBusinessSignup ? (
-        <div
-          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
-          style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
-        >
-          <Building2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
-          <div className="space-y-2 flex-1">
-            <div className="space-y-0.5">
-              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                Business account
-              </p>
-              <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                You'll be the owner. Invite 1 teammate free — add more anytime.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="companyName" className={labelCls}>Company name <span aria-hidden="true" className="text-destructive">*</span></Label>
-              <Input
-                id="companyName"
-                placeholder="Acme Property Management"
-                value={companyName}
-                onChange={(e) => { setCompanyName(e.target.value); clearFieldError?.("companyName"); }}
-                required
-                aria-required="true"
-                aria-invalid={!!fieldErrors.companyName}
-                aria-describedby={fieldErrors.companyName ? "companyName-error" : undefined}
-                className={`${inputCls}${fieldErrors.companyName ? " border-destructive" : ""}`}
-              />
-              <FieldError id="companyName-error" message={fieldErrors.companyName} />
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div
-          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
-          style={{ background: "hsl(var(--olivewood) / 0.05)", border: "1px solid hsl(var(--olivewood) / 0.12)" }}
-        >
-          <UserCircle2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-          <div className="space-y-0.5">
-            <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-              Personal account
-            </p>
-            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              A clear photo and real name help neighbors trust and hire you.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Section 1: Your photo (top of page — most personal first) */}
       <section className="space-y-2.5">
@@ -272,7 +220,11 @@ export function SignupStep2(props: SignupStep2Props) {
             />
           </label>
           <p className="text-ds-11 text-muted-foreground text-center max-w-[260px] leading-relaxed">
-            <span className="font-semibold text-[hsl(var(--ink-deep))]">Add a profile photo</span> <span className="text-[hsl(var(--olivewood)/0.8)]">(optional)</span> — a clear photo of your face helps neighbors trust who they're working with. You can add it later. JPG or PNG, up to 5MB.
+            {/* Practical facts only. The "Personal account" banner directly
+                above already makes the trust argument ("A clear photo and real
+                name help neighbors trust and hire you"), so repeating it here
+                said the same thing twice on one screen. */}
+            <span className="font-semibold text-[hsl(var(--ink-deep))]">Add a profile photo</span> — you can add it later. JPG or PNG, up to 5MB.
           </p>
           <FieldError id="avatar-error" message={fieldErrors.avatar} />
         </div>
@@ -285,7 +237,7 @@ export function SignupStep2(props: SignupStep2Props) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="firstName" className={labelCls}>First name</Label>
+            <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
             <div className="relative">
               <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required aria-required="true" autoComplete="given-name" autoCapitalize="words" aria-invalid={!!fieldErrors.firstName} aria-describedby={fieldErrors.firstName ? "firstName-error" : undefined} className={`${inputCls}${firstNameValid && !fieldErrors.firstName ? " pr-10" : ""}${fieldErrors.firstName ? " border-destructive" : ""}`} />
               {firstNameValid && !fieldErrors.firstName && (
@@ -295,7 +247,7 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="firstName-error" message={fieldErrors.firstName} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName" className={labelCls}>Last name</Label>
+            <Label htmlFor="lastName" className={labelCls}>Last name <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
             <div className="relative">
               <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required aria-required="true" autoComplete="family-name" autoCapitalize="words" aria-invalid={!!fieldErrors.lastName} aria-describedby={fieldErrors.lastName ? "lastName-error" : undefined} className={`${inputCls}${lastNameValid && !fieldErrors.lastName ? " pr-10" : ""}${fieldErrors.lastName ? " border-destructive" : ""}`} />
               {lastNameValid && !fieldErrors.lastName && (

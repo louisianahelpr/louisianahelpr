@@ -1263,8 +1263,7 @@ on the way to their first success.
   just the primary marketing pages.** All render with correct global chrome, meta/OG
   tags, and a working CTA at four breakpoints on both surfaces: `/community`
   (`Community.tsx`) + community thanks, `/wrapped` (`HelprWrapped.tsx` year-in-
-  review), `/insurance-claim` (`InsuranceClaim.tsx`), `/discharge`
-  (`DischargeConcierge.tsx`), `/enterprise`, `/impact`, `/become-a-partner`,
+  review), `/enterprise`, `/impact`, `/become-a-partner`,
   `/local-guide`, `/how-it-works`, `/for-business`, and the programmatic
   `/parish/:slug` + `/parishes` parish pages (each parish slug resolves, no
   broken/empty template, canonical/meta correct for SEO). A vertical page that

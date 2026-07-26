@@ -247,9 +247,11 @@ const AdminPayoutBatches = () => {
       {/* Tabs — Ready vs Hold for Review. Held batches sit in their own
           queue so they don't sneak into a bulk select. */}
       {batches.length > 0 && (
-        <div className="flex gap-1.5 border-b border-border">
+        <div role="tablist" aria-label="Payout queue" className="flex gap-1.5 border-b border-border">
           <button
             type="button"
+            role="tab"
+            aria-selected={tab === "ready"}
             onClick={() => { setTab("ready"); clearSelection(); }}
             className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
               tab === "ready" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
@@ -262,6 +264,8 @@ const AdminPayoutBatches = () => {
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={tab === "hold"}
             onClick={() => { setTab("hold"); clearSelection(); }}
             className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
               tab === "hold" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"

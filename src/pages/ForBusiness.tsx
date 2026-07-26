@@ -117,6 +117,12 @@ type Tier = {
    * purchase writes `seat_tier` and never `subscription_tier`, so
    * `earlyAccessDelayMs` sees no tier and gives a seat customer the standard
    * 0-minute head start today. Must be wired before launch.
+   *
+   * Surfaced as a FEATURE BULLET on each paid tier (worded exactly as
+   * /subscription words it), not as a standalone line under the price — it is
+   * a perk like any other, and a loose line there competed with the fee figure.
+   * Starter gets no bullet: 0 minutes is the standard everyone already has, and
+   * listing "0-min early access" would read as a feature.
    */
   earlyAccessMinutes: number;
   price: string;
@@ -145,6 +151,7 @@ const TIERS: readonly Tier[] = [
     period: "/mo",
     features: [
       "Everything in Starter, plus:",
+      "5-min early access",
       "1 extra team seat",
       "Recurring jobs",
       "Receipts export",
@@ -161,6 +168,7 @@ const TIERS: readonly Tier[] = [
     featured: true,
     features: [
       "Everything in Crew, plus:",
+      "10-min early access",
       "Per-property billing splits",
       "Saved recurring schedules",
       "Team spend tracking & roles",
@@ -177,6 +185,7 @@ const TIERS: readonly Tier[] = [
     period: "/mo",
     features: [
       "Everything in Team, plus:",
+      "20-min early access",
       "SSO",
       "Custom onboarding",
       "Dedicated success manager",
@@ -449,9 +458,14 @@ const TierComparison = () => {
     return ordered;
   }, []);
 
+  // Wrapper mirrors the pricing grid (4/8 at md, 3/9 at lg) with an empty left
+  // cell, so the button centres under the CARD COLUMN rather than the whole
+  // section — the masthead owns the left third, so plain `justify-center` put
+  // it well left of the cards it belongs to. Same shape as /subscription's.
   return (
-    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mt-12 sm:mt-16">
-      <div className="flex justify-center">
+    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-12 md:gap-10 lg:gap-16">
+      <div className="hidden md:block md:col-span-4 lg:col-span-3" aria-hidden />
+      <div className="md:col-span-8 lg:col-span-9 flex justify-center">
         <button
           type="button"
           onClick={() => setShowCompare((s) => !s)}
@@ -533,7 +547,7 @@ const TierComparison = () => {
                             letterSpacing: "0.14em",
                           }}
                         >
-                          Most popular
+                          Recommended
                         </span>
                       )}
                     </div>
@@ -666,7 +680,8 @@ const PricingSection = () => {
           className="mt-4 font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         >
-          Simple plans. Cancel anytime.
+          Any Louisiana business can sign up — no minimum size, no contract. Add
+          seats as the team grows, drop them when it shrinks, cancel anytime.
         </p>
 
         {/* Same segmented control as /subscription's billing toggle — same
@@ -736,27 +751,41 @@ const PricingSection = () => {
           >
             {tier.featured && <WarmHalo />}
 
+              {/* Direct child of the CARD, not of the padded content wrapper.
+                  Nested in there, `top-0` resolved to that wrapper's top edge —
+                  below the card's py-7 — so the chip sat straight on top of the
+                  tier name. Anchored to the card it pins to the real corner.
+                  z-20 clears the WarmHalo (z-0) behind the featured card.
+
+                  Reads "Recommended", the same word /subscription uses, so the
+                  two pricing pages label the same idea identically. Chosen over
+                  "Most popular" deliberately: that is a claim about usage data,
+                  and pre-launch there are no users to support it. A
+                  recommendation is ours to make and is true whenever we make
+                  it.
+                  Otherwise identical to "Recommended" on /subscription: square
+                  against the two edges it touches, `rounded-tl-2xl` picking up
+                  the card's own corner, absolute so it costs the featured card
+                  no height and all four titles stay level. */}
+              {tier.featured && (
+                <span
+                  className="absolute top-0 left-0 z-20 text-[9px] font-bold uppercase tracking-widest pl-3 pr-2.5 py-1 rounded-tl-2xl rounded-br-lg leading-none"
+                  style={{
+                    background: "hsl(var(--burnt-sienna))",
+                    color: "hsl(var(--parchment))",
+                  }}
+                >
+                  Recommended
+                </span>
+              )}
             <div className="relative z-10 flex flex-col h-full">
               <div>
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <h3
-                    className="font-display font-bold text-ds-20 sm:text-ds-24 tracking-tight"
-                    style={{ color: "hsl(var(--ink-deep))" }}
-                  >
-                    {tier.name}
-                  </h3>
-                  {tier.featured && (
-                    <span
-                      className="text-[9px] font-bold uppercase tracking-widest rounded-full px-2 py-0.5"
-                      style={{
-                        background: "hsl(var(--burnt-sienna))",
-                        color: "hsl(var(--parchment))",
-                      }}
-                    >
-                      Most popular
-                    </span>
-                  )}
-                </div>
+                <h3
+                  className="font-display font-bold text-ds-20 sm:text-ds-24 tracking-tight"
+                  style={{ color: "hsl(var(--ink-deep))" }}
+                >
+                  {tier.name}
+                </h3>
 
                 <p
                   className="mt-1 font-sans text-ds-11 uppercase tracking-widest"
@@ -782,23 +811,30 @@ const PricingSection = () => {
                             color: "hsl(var(--ink-deep))",
                           }}
                         >
-                          {annual ? `$${annual.monthlyEquivalent.toFixed(2)}` : tier.price}
+                          {annual ? `$${annual.yearly}` : tier.price}
                         </span>
                         {tier.period && (
                           <span
                             className="font-sans text-ds-13"
                             style={{ color: "hsl(var(--olivewood) / 0.75)" }}
                           >
-                            {tier.period}
+                            {annual ? "/yr" : tier.period}
                           </span>
                         )}
                       </div>
+                      {/* Annual headlines the figure you are actually CHARGED —
+                          $200/yr, billed once — with the monthly equivalent
+                          demoted beneath it for comparison against the monthly
+                          column. It was the other way round, which put a number
+                          nobody is ever billed ($16.67) in the largest type on
+                          the card. /subscription likewise switches its unit to
+                          "/yr" on this toggle. */}
                       {annual && (
                         <p
                           className="mt-1 font-sans text-ds-11"
                           style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                         >
-                          ${annual.yearly}/yr billed once
+                          ${annual.monthlyEquivalent.toFixed(2)}/mo equivalent
                         </p>
                       )}
                       {/* Same line, same wording, same colour as the fee line on
@@ -814,14 +850,7 @@ const PricingSection = () => {
                           ? ` — save ${STANDARD_FEE_PERCENT - tier.feePercent}%`
                           : " (standard)"}
                       </p>
-                      <p
-                        className="mt-1 font-sans text-ds-11"
-                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                      >
-                        {tier.earlyAccessMinutes > 0
-                          ? `${tier.earlyAccessMinutes}-min early access to new jobs`
-                          : "Standard job visibility"}
-                      </p>
+
                     </>
                   );
                 })()}

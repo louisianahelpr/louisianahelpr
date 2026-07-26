@@ -652,7 +652,15 @@ export default function SubscriptionPage() {
 
                     {/* CTA */}
                     <div className="mt-6">
-                      {isActive ? (
+                      {/* `&& user`: "Current plan" only makes sense for someone
+                          who HAS one. This is a public page, and `currentTier`
+                          defaults to "free", so a signed-out visitor saw the
+                          Free card claim to be their current plan — untrue, and
+                          a dead end, since that branch renders an inert <div>.
+                          Guests now fall through to the `isFree` branch below,
+                          which already reads "Start free" and links to /signup,
+                          matching Starter on /for-business. */}
+                      {isActive && user ? (
                         <div
                           // Matches the Upgrade CTAs exactly — same height ramp, padding, radius and
                         // full-bleed width. It sits in the same slot on the Free card, so at
@@ -708,15 +716,16 @@ export default function SubscriptionPage() {
                             fontSize: "0.9375rem",
                             letterSpacing: "-0.005em",
                             color: "hsl(var(--parchment))",
-                            background: isFeatured
-                              ? "hsl(var(--burnt-sienna))"
-                              : "hsl(var(--bark))",
-                            border: isFeatured
-                              ? "1px solid hsl(var(--burnt-sienna))"
-                              : "1px solid hsl(66 25% 19%)",
-                            boxShadow: isFeatured
-                              ? "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--burnt-sienna) / 0.35)"
-                              : "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
+                            // Bark for every tier, featured or not. The featured
+                            // card used burnt-sienna, so /subscription's primary
+                            // CTA and /for-business's (Team, which is bark) were
+                            // different colours for the same action on two
+                            // pricing pages. The card is already marked out by
+                            // its halo and corner chip; the button doesn't need
+                            // to differ too.
+                            background: "hsl(var(--bark))",
+                            border: "1px solid hsl(66 25% 19%)",
+                            boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
                           }}
                         >
                           {upgrading && (

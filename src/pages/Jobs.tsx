@@ -126,14 +126,16 @@ const Jobs = () => {
   // Mirror the open job into the URL (?job=<id>) so a jump to a sub-route from
   // inside the dialog — e.g. the Helper Pro "Learn more" → /subscription —
   // returns to the open job on Back, instead of dropping onto the bare feed.
+  // Tapping a card sends a logged-out visitor to /signup rather than opening
+  // the read-only preview. `?job=` is carried through so signup can bounce them
+  // back to the job they were actually interested in.
+  //
+  // The preview dialog is NOT dead code: a direct link (/jobs?job=<id>, shared
+  // or from search) still restores it below, and /jobs/:id remains a public,
+  // indexable route. Only the in-feed tap changed.
   const openDetailJob = useCallback((job: EnrichedJob) => {
-    setDetailJob(job);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("job", job.id);
-      return next;
-    }, { replace: true });
-  }, [setSearchParams]);
+    navigate(`/signup?job=${job.id}`);
+  }, [navigate]);
 
   const closeDetailJob = useCallback(() => {
     setDetailJob(null);

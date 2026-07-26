@@ -57,12 +57,19 @@ const AuthShell = ({
   const showCompactTopBar = compactHeader && !hideHeader;
   const showFullHeader = !compactHeader && !hideHeader;
   const alignClass = align === "center" ? "items-center" : "items-start";
-  const resolvedBackTo = backTo ?? (isNativePlatform ? "/browse" : "/");
-
-  // Use the standard frosted circular BackButton so back navigation looks
-  // identical across auth pages and the rest of the app. Preserve the
-  // resolved target (home on web, /browse on native, or an explicit `backTo`).
-  const backLink = <BackButton to={resolvedBackTo} />;
+  // Back returns to WHERE YOU CAME FROM. Auth pages are reached from all over
+  // — a job card on /jobs, a gated tab, the nav CTA — so a hard-coded target
+  // sent people somewhere they had never been. It previously forced "/" on web
+  // (or /browse on native), which became obvious once guest job cards started
+  // routing to /signup: backing out of signup dumped you on the landing page
+  // instead of the job board you were browsing.
+  //
+  // Passing `to={backTo}` — undefined unless a caller sets it — lets BackButton
+  // use its own history-back path, which already falls back to "/" when there
+  // is no history to pop (a cold launch or a direct link). On native, "/" is
+  // the NativeRedirect that lands on /browse, so the old native default is
+  // preserved without hard-coding it here. An explicit `backTo` still wins.
+  const backLink = <BackButton to={backTo} />;
 
   return (
     <div className="min-h-screen bg-premium-page relative overflow-hidden">

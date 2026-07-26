@@ -252,7 +252,7 @@ export function SignupStep1({
       <label
         key={nudgeKey}
         htmlFor="policies"
-        className={`flex items-center gap-3 px-1.5 py-2 min-h-[44px] rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !acceptedPolicies ? "animate-attention-nudge" : ""}`}
+        className={`flex items-center gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !acceptedPolicies ? "animate-attention-nudge" : ""}`}
         style={{
           // Transparent default border keeps the layout stable when the
           // burnt-sienna nudge border appears (no jump on the shake).
@@ -296,7 +296,7 @@ export function SignupStep1({
       <label
         key={`age-${nudgeKey}`}
         htmlFor="age-confirm"
-        className={`flex items-center gap-3 px-1.5 py-2 min-h-[44px] rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !ageConfirmed ? "animate-attention-nudge" : ""}`}
+        className={`flex items-center gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !ageConfirmed ? "animate-attention-nudge" : ""}`}
         style={{
           border:
             nudgeKey > 0 && !ageConfirmed
@@ -327,7 +327,7 @@ export function SignupStep1({
           mail (auth, receipts, disputes) is exempt and always sends. */}
       <label
         htmlFor="marketing-consent"
-        className="flex items-center gap-3 px-1.5 py-2 min-h-[44px] rounded-ds-md cursor-pointer"
+        className="flex items-center gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer"
       >
         <Checkbox
           id="marketing-consent"

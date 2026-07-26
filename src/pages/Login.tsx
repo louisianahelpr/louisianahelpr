@@ -261,7 +261,7 @@ const Login = () => {
 
   return (
     <AuthShell hideHeader centerColumn backInCard maxWidth="2xl">
-      <div className="liquid-glass px-6 sm:px-8 py-8 lg:py-5 space-y-6 lg:space-y-4">
+      <div className="liquid-glass px-6 sm:px-10 lg:px-56 py-8 lg:py-5 space-y-6 lg:space-y-4">
         {/* Heading lives INSIDE the card, and the H emblem is gone entirely.
             Previously the emblem stacked above a heading that sat above the
             card — three separate bands of vertical space before a user reached

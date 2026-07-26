@@ -296,68 +296,6 @@ const Support = () => {
 
       <section className="px-5 sm:px-8 lg:px-12 pt-2 sm:pt-4 lg:pt-6 pb-12 sm:pb-16 lg:pb-24">
         <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-10 lg:gap-16 md:items-start">
-          {/* Left masthead — same shape as /for-business and /help. */}
-          <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
-            <span className="text-display-eyebrow">Support</span>
-            <h2
-              className="mt-3 font-display font-bold text-balance leading-[1.05] max-w-[10ch] md:max-w-none mx-auto md:mx-0"
-              style={{
-                fontSize: "clamp(2.25rem, 3.4vw, 3.25rem)",
-                letterSpacing: "-0.025em",
-                color: "hsl(var(--ink-deep))",
-              }}
-            >
-              Talk to{" "}
-              <em
-                className="inline-block"
-                style={{ fontStyle: "italic", color: "hsl(var(--burnt-sienna))" }}
-              >
-                a human.
-              </em>
-            </h2>
-            <p
-              className="mt-4 font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
-              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-            >
-              You don&apos;t need an account to reach us. Send a message and
-              we&apos;ll reply by email — usually within one business day.
-            </p>
-
-            {/* Self-serve first, same affordance the in-app support tab offers. */}
-            <Link
-              to="/help"
-              className="mt-6 inline-flex items-center gap-3 rounded-2xl px-4 py-3 w-full max-w-xs mx-auto md:mx-0 text-left transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg"
-              style={PANEL_STYLE}
-            >
-              <span
-                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                style={{
-                  background: "hsl(var(--burnt-sienna) / 0.12)",
-                  color: "hsl(var(--burnt-sienna))",
-                }}
-              >
-                <BookOpen className="w-4 h-4" strokeWidth={1.75} />
-              </span>
-              <span className="flex-1 min-w-0">
-                <span
-                  className="block font-sans font-semibold text-ds-13 leading-tight"
-                  style={{ color: "hsl(var(--ink-deep))" }}
-                >
-                  Browse the Help Center
-                </span>
-                <span
-                  className="block font-sans text-ds-11 leading-snug mt-0.5"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Answers about jobs, payments, and accounts
-                </span>
-              </span>
-              <ChevronRight
-                className="w-4 h-4 shrink-0"
-                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
-              />
-            </Link>
-          </div>
 
           {/* Right column — the form (or its success state). */}
           <div className="md:col-span-8 lg:col-span-9">
@@ -592,23 +530,9 @@ const Support = () => {
                   )}
                 </Button>
 
-                {/* A disabled submit with no explanation is a dead end — the
-                    visitor can see the button is off but not why. Errors
-                    themselves only appear per-field on blur, so this line
-                    names what's still outstanding. */}
-                {!isValid && !identityPending && (
-                  <p
-                    aria-live="polite"
-                    className="font-sans text-ds-11 leading-relaxed text-center"
-                    style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                  >
-                    Still needed:{" "}
-                    {(Object.keys(errors) as FieldKey[])
-                      .map((key) => FIELD_NOUNS[key])
-                      .join(", ")}
-                    .
-                  </p>
-                )}
+                {/* No "Still needed: …" recap. Every required field already
+                    carries a `*` in its own label, so the line restated
+                    information the form was showing three inches above it. */}
 
                 <p
                   className="font-sans text-ds-11 leading-relaxed text-center"

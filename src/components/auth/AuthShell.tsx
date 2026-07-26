@@ -57,7 +57,7 @@ const widthMap = {
   // Widest rung — the auth cards now carry their heading INSIDE the card, so
   // the card is the whole composition and a 576px column left it reading as a
   // narrow strip on a 1200+ viewport.
-  "2xl": "max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-3xl",
+  "2xl": "max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-4xl",
 };
 
 const AuthShell = ({

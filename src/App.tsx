@@ -18,7 +18,6 @@ import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
 // It's only ever visible when the network drops (rare), so lazy-loading is safe.
 const OfflineBanner = lazy(() => import("@/components/OfflineBanner"));
 import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
-import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
 import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility";
@@ -326,7 +325,29 @@ const SpeedInsightsRouted = () => {
 };
 
 const SessionManager = () => {
-  useSessionTimeout();
+  // Idle sign-out is DISABLED (pre-launch testing — it was logging testers
+  // out mid-audit). To restore it, re-add `useSessionTimeout();` here; the
+  // hook and its tests are deliberately left in place so this is a one-line
+  // revert.
+  //
+  // Before restoring it, note it was wrong twice over. `useSessionTimeout`
+  // forced a full signOut() after 30 minutes without a DOM event:
+  //
+  //  1. It is not a security control. A client-side timer is defeated by
+  //     moving a finger, and an attacker holding the unlocked device does
+  //     exactly that — so it only ever fired on legitimate users who paused
+  //     to read. Session lifetime is server-enforced by Supabase Auth (JWT
+  //     expiry + refresh-token rotation); that is where the policy belongs.
+  //  2. This hook is mounted app-wide, and phone web IS the native iOS app.
+  //     A backgrounded phone trivially idles past 30 minutes, so a user who
+  //     put the app down — or who tapped a "you've been hired" push an hour
+  //     later — was dumped on /login with their token erased.
+  //
+  // It had already been patched once for logging out active users
+  // (eb97aec0, "stop logging out active users on AppShell pages") because
+  // scroll inside AppShell's inner container never reached the window
+  // listener. That was the same bug class: the timer cannot actually tell
+  // idle from busy.
   useLoginTracking();
   useNativePushSetup();
   const dynamicTypeScale = useDynamicTypeSync();

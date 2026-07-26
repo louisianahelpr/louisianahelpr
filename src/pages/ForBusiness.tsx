@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Check, ChevronDown, Sparkles } from "lucide-react";
+import { ArrowRight, Building2, Check, ChevronDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -822,21 +822,12 @@ const PricingSection = () => {
                           </span>
                         )}
                       </div>
-                      {/* Annual headlines the figure you are actually CHARGED —
-                          $200/yr, billed once — with the monthly equivalent
-                          demoted beneath it for comparison against the monthly
-                          column. It was the other way round, which put a number
-                          nobody is ever billed ($16.67) in the largest type on
-                          the card. /subscription likewise switches its unit to
-                          "/yr" on this toggle. */}
-                      {annual && (
-                        <p
-                          className="mt-1 font-sans text-ds-11"
-                          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                        >
-                          ${annual.monthlyEquivalent.toFixed(2)}/mo equivalent
-                        </p>
-                      )}
+                      {/* Annual shows the figure you are actually CHARGED —
+                          $200 with "/yr" — and nothing else. A
+                          "$16.67/mo equivalent" line sat here briefly and was
+                          removed: annual is ONE payment, so any per-month figure
+                          beside it invites reading it as a monthly charge. The
+                          saving is already stated once, in the masthead. */}
                       {/* Same line, same wording, same colour as the fee line on
                           /subscription, so the two pricing pages read as one
                           scale instead of two. STANDARD_FEE_PERCENT is the Free
@@ -855,6 +846,32 @@ const PricingSection = () => {
                   );
                 })()}
               </div>
+
+              {/* The real "Verified Business" chip — same Building2 glyph and
+                  `tier-gold-soft` treatment as src/components/BusinessBadge.tsx,
+                  so what a visitor previews is what lands on the profile.
+                  Paid tiers only, per product decision.
+
+                  Reads "Can earn", not "Included", and that wording is load
+                  bearing: unlike the membership badges, which differ per tier,
+                  this is ONE badge shared by every business member, granted by
+                  `businesses.verification_status = 'verified'` (document upload
+                  + admin approval) rather than by the plan. Starter can earn the
+                  same chip for free. */}
+              {tier.name !== "Starter" && (
+                <div className="mt-4 flex items-center gap-2">
+                  <span
+                    className="font-sans text-ds-11"
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
+                    Can earn:
+                  </span>
+                  <span className="inline-flex items-center rounded-full font-semibold tier-gold-soft text-ds-10 px-2 py-0.5 gap-1">
+                    <Building2 className="w-3 h-3 verified-gold" />
+                    Verified Business
+                  </span>
+                </div>
+              )}
 
               <ul className="mt-6 space-y-2.5 flex-1">
                 {tier.features.map((feature) => {

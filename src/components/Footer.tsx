@@ -126,7 +126,9 @@ const Footer = () => (
           </ul>
         </div>
 
-        {/* Legal */}
+        {/* Legal — md:col-span-2. Its three links (Terms / Rules / Privacy) are
+            short enough to fit two columns, and giving the third back to Follow
+            pulls that group left, off the far edge. md is 4/3/2/3. */}
         <div className="sm:col-span-4 md:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
@@ -166,12 +168,17 @@ const Footer = () => (
               airier, less pinched than the previous rounded-2xl chips.
               Apple black, Facebook blue, Instagram gradient are kept for
               instant brand recognition. */}
+          {/* shrink-0 on each icon below. They are `inline-flex` children of this
+              flex row, so they were flex-shrinking below their `w-11`: measured
+              24px wide against 44px tall, i.e. rendering as ovals rather than
+              the circles `rounded-full` implies. Height was never the problem —
+              width was being taken away. */}
           <div className="flex items-center gap-2.5">
             <a
               href={APP_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
               aria-label="Download on the App Store (opens in a new tab)"
               title="Download on the App Store"
             >
@@ -185,7 +192,7 @@ const Footer = () => (
               href={FACEBOOK_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
               aria-label="Follow us on Facebook (opens in a new tab)"
               title="Follow us on Facebook"
             >
@@ -199,7 +206,7 @@ const Footer = () => (
               href={INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 items-center justify-center rounded-full text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
               style={{
                 background:
                   "linear-gradient(135deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)",

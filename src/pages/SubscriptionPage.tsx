@@ -741,8 +741,13 @@ export default function SubscriptionPage() {
             table it reveals — parking it up in the masthead grouped it nicely
             with the billing switch but broke the disclosure: the table opens
             a full grid-height away, so the click read as doing nothing. */}
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mt-12 sm:mt-16">
-          <div className="flex justify-center">
+        {/* Mirrors the pricing grid above (4/8 at md, 3/9 at lg) with an empty
+            left cell, so the button centres under the CARD COLUMN rather than
+            under the whole section. Centred on the full width it sat well left
+            of the cards, since the masthead occupies the left third. */}
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-12 md:gap-10 lg:gap-16">
+          <div className="hidden md:block md:col-span-4 lg:col-span-3" aria-hidden />
+          <div className="md:col-span-8 lg:col-span-9 flex justify-center">
             <button
               type="button"
               onClick={() => setShowCompare((s) => !s)}
@@ -985,7 +990,13 @@ export default function SubscriptionPage() {
                   {b.title}
                 </h3>
                 <p
-                  className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:mx-0"
+                  // max-w-xs was sized for the 3-up layout, where the card is ~300px
+                    // wide anyway. Now that md stacks these full-width, that cap
+                    // stopped the copy dead ~320px in and left the rest of the
+                    // card empty. Released at md, restored at lg where the cards
+                    // narrow again and a 20rem measure is the right reading
+                    // length rather than a limit.
+                    className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:max-w-none md:mx-0 lg:max-w-xs"
                   style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                 >
                   {b.desc}

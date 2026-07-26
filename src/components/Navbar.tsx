@@ -212,7 +212,14 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               <Button
                 variant="ghost"
                 size="icon"
-                className="btn-press rounded-2xl h-9 w-9"
+                // Cannot be made smaller than 44px: index.css enforces
+                // `button:not([role=checkbox|radio|switch]) { min-height:44px;
+                // min-width:44px }` app-wide for the WCAG 2.5.8 / 44pt tap
+                // target. An `!h-9` here computes to 36px and is then floored
+                // back to 44 — a dead class that reads like it does something.
+                // Shrinking this would mean opting a primary nav control out of
+                // that guarantee on touch.
+                className="btn-press rounded-2xl shrink-0"
                 style={{
                   background: "hsl(0 0% 100% / 0.2)",
                   border: "1px solid hsl(var(--olivewood) / 0.08)",

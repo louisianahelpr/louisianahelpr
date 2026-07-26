@@ -182,27 +182,7 @@ const SignupPending = () => {
           className="border-t pt-4 space-y-4"
           style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}
         >
-          <div>
-          {!showResend ? (
-            /* Same shape as "Already verified? Sign in" — a plain sentence
-               whose last word is the control. The icon + all-bark-text
-               version read as a different class of thing sitting opposite
-               its own twin. */
-            <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Didn't get it?{" "}
-              <button
-                type="button"
-                onClick={() => setShowResend(true)}
-                /* align-baseline: a <button> is inline-BLOCK, so without it
-                   this sentence sits 13px above its two <a>-based twins on
-                   the same row. */
-                className="font-semibold hover:underline align-baseline"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                Resend
-              </button>
-            </p>
-          ) : (
+          {showResend && (
             <div className="space-y-3">
               {/* Label + a way OUT of the panel — opening it is one tap and
                   was previously a one-way door: nothing here closed it again. */}
@@ -254,14 +234,36 @@ const SignupPending = () => {
               </Button>
             </div>
           )}
-          </div>
+          {/* All three escape hatches on ONE line. The resend trigger joins
+              them when collapsed and is replaced by its own panel above when
+              open, so the row never changes position. */}
           <div className="flex items-center justify-between gap-3">
+            {!showResend && (
+              <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                Didn't get it?{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowResend(true)}
+                  /* min-h-0/h-auto: the global 44px tap-target rule makes
+                     this inline button's PARAGRAPH 44px tall, so items-center
+                     centred a 44px box against two 19px ones and the text sat
+                     13px high. It reads as body copy here, not a tap target —
+                     the whole sentence row is comfortably reachable. The !
+                     is required: the global rule is
+                     `button:not([role=checkbox]):not([role=radio]):not([role=switch])`,
+                     whose three :not() args outrank a plain utility class.
+                     WCAG 2.5.8 exempts controls inline in a sentence, which
+                     is exactly what this is (same as the <a>s beside it). */
+                  className="font-semibold hover:underline align-baseline !min-h-0 !h-auto"
+                  style={{ color: "hsl(var(--bark))" }}
+                >
+                  Resend
+                </button>
+              </p>
+            )}
             {/* Wrong-address escape hatch — re-entering the address is the
-                only practical fix once the auth row exists against a typo.
-                Shown only while the resend panel is open, paired with the
-                sign-in line so the two ways out of this screen sit together
-                in the same sentence shape as everything else here. */}
-            <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                only practical fix once the auth row exists against a typo. */}
+            <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Wrong address?{" "}
               <Link to="/signup" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
                 Start over

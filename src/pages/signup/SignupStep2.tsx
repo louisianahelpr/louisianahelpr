@@ -147,9 +147,9 @@ export function SignupStep2(props: SignupStep2Props) {
         {/* Photo owns its own row above the names. Inline beside them it
             pushed First/Last to x=273 while every field below started at
             x=129 — a visible step down the form's left edge. */}
-        <div className="space-y-2">
+        <div className="space-y-2 text-center pb-3">
           <Label htmlFor="avatar" className={labelCls}>Profile photo <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
-          <div className="flex flex-col items-start gap-1.5">
+          <div className="flex flex-col items-center gap-1.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform">
             <div
               className={`relative w-20 h-20 rounded-full border-2 border-dashed transition-colors flex items-center justify-center overflow-hidden ${fieldErrors.avatar ? "border-destructive" : "border-border group-hover:border-primary"}`}
@@ -230,6 +230,7 @@ export function SignupStep2(props: SignupStep2Props) {
                 instead of a raw <input type="date"> — the native control renders
                 as a blank, oversized box on iOS with no placeholder. */}
             <DatePickerField
+              wheel
               id="dob"
               value={dateOfBirth}
               onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }}

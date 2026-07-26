@@ -1646,6 +1646,21 @@ button,
   -webkit-backdrop-filter: blur(4px);
 }
 
+/* Fields with a leading icon must NOT blur their backdrop.
+   The icon is absolutely positioned over the field but painted before it,
+   so it lands in the field's backdrop and Chrome blurs it into a grey blob
+   — the mail, lock, search and phone icons were all illegible. z-index does
+   not lift it out (verified); only paint order or dropping the blur does.
+   `pl-10`/`pl-9` IS the leading-icon convention in this codebase — the extra
+   left padding exists precisely to make room for that icon — so keying on it
+   targets exactly the broken case and leaves the glass intact everywhere the
+   field has nothing on top of it. */
+.glass-field.pl-10,
+.glass-field.pl-9 {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 /* ─────────────────────────────────────────────────────────────────
    GLOBAL liquid-glass for `bg-card` surfaces
    ─────────────────────────────────────────────────────────────────

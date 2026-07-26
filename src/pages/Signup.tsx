@@ -353,13 +353,13 @@ const Signup = () => {
       <div className="pb-8">
           {/* Liquid-glass card — matches the Login screen so the two auth
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}
-          <div className="liquid-glass px-6 sm:px-10 lg:px-56 py-5 space-y-4">
+          <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-4">
             {/* Heading INSIDE the card, no H emblem — identical treatment to
                 Login. The emblem stacked above a heading that sat above the
                 card meant three bands of vertical space before the email
                 field, and it clipped the Google button off a 922px window.
                 The card is now the whole composition. */}
-            <div className="text-center space-y-1">
+            <div className="text-left space-y-1 pl-12 sm:pl-14">
               <h1
                 className="font-display italic font-bold leading-tight"
                 style={{

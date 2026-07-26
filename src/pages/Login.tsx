@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, Mail, Lock, Check, Clock, ShieldCheck } from "lucide-react";
+import { Loader2, Eye, EyeOff, Mail, Lock, Check, ShieldCheck } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
@@ -17,9 +17,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { friendlyAuthError } from "@/lib/authErrors";
 import { safeInternalRedirect } from "@/lib/authRedirects";
 import {
-  getLastAuthMethod,
   setLastAuthMethod,
-  authMethodLabel,
 } from "@/lib/lastAuthMethod";
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -118,10 +116,6 @@ const Login = () => {
   const [mfaVerifying, setMfaVerifying] = useState(false);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
-  // Quiet last-method hint — only shown when we have a non-error reading
-  // (initial first-ever login still surfaces no hint). useMemo keeps this
-  // stable across re-renders so the dismissal animation never re-triggers.
-  const lastMethod = useMemo(() => getLastAuthMethod(), []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,7 +255,7 @@ const Login = () => {
 
   return (
     <AuthShell hideHeader centerColumn backInCard maxWidth="2xl">
-      <div className="liquid-glass px-6 sm:px-10 lg:px-56 py-8 lg:py-5 space-y-6 lg:space-y-4">
+      <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6 lg:space-y-4">
         {/* Heading lives INSIDE the card, and the H emblem is gone entirely.
             Previously the emblem stacked above a heading that sat above the
             card — three separate bands of vertical space before a user reached
@@ -271,7 +265,7 @@ const Login = () => {
             column properly. The mark still appears in the top-left back-nav
             and throughout the app; an auth screen does not need to re-announce
             the brand three times. */}
-        <div className="text-center space-y-1">
+        <div className="text-left space-y-1 pl-12 sm:pl-14">
           <h1
             className="font-display italic font-bold leading-tight"
             style={{
@@ -351,34 +345,6 @@ const Login = () => {
           </div>
         ) : (
         <>
-        {lastMethod && (
-          // Quiet hint that helps returning users pick the right button
-          // without revealing anything sensitive — just nudges them toward
-          // the method they used last time.
-          <div
-            className="flex items-center gap-2 rounded-ds-md px-3 py-2 text-ds-11 font-sans"
-            style={{
-              background: "hsl(var(--bark) / 0.06)",
-              color: "hsl(var(--olivewood) / 0.85)",
-              border: "1px solid hsl(var(--bark) / 0.12)",
-            }}
-            aria-live="polite"
-          >
-            <Clock
-              className="w-3.5 h-3.5 shrink-0"
-              strokeWidth={1.75}
-              style={{ color: "hsl(var(--bark))" }}
-              aria-hidden
-            />
-            <span>
-              Last time you used{" "}
-              <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                {authMethodLabel(lastMethod)}
-              </span>
-              .
-            </span>
-          </div>
-        )}
         <form onSubmit={handleLogin} className="space-y-3.5">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>

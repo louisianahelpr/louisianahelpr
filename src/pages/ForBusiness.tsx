@@ -1073,7 +1073,7 @@ const BusinessFaqSection = () => (
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ClosingSection = () => (
-  <section className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
+  <section className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-8">
     <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex flex-col items-center text-center">
       {/* Trust band — Montserrat semibold caps, separated by gold-warm dots. */}
       <div

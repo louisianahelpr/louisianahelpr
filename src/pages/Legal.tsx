@@ -183,7 +183,7 @@ const Legal = () => {
   const webHeader = (
     <section className="container mx-auto px-5">
       <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
-        <div className="flex items-center gap-3 mt-6 mb-6 md:mt-7 md:mb-8">
+        <div className="flex items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8">
           <div data-print-hide className="shrink-0">
 {/* to="/" — NOT bare history-back. These are top-nav / footer
                 destinations reachable from anywhere, so `navigate(-1)` sent

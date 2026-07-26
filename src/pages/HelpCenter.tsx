@@ -487,7 +487,7 @@ const HelpCenter = () => {
       <section
         id="faq"
         aria-labelledby="faq-heading"
-        className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
+        className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-8 scroll-mt-24"
       >
         <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16">
           {/* Left column — masthead */}

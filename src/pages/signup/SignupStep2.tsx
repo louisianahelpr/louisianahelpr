@@ -150,7 +150,7 @@ export function SignupStep2(props: SignupStep2Props) {
         {/* Avatar sits INLINE beside the name fields. Centred above the
             form it was a 158px band — a 112px circle plus a two-line
             caption — putting an OPTIONAL field first on the screen. */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-center gap-4">
           <div className="shrink-0 flex flex-col items-center gap-1.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform">
             <div

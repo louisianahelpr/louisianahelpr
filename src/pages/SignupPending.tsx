@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { MailCheck, LogIn, Sparkles, Loader2, RefreshCw, Check, ArrowLeft } from "lucide-react";
+import { MailCheck, LogIn, Sparkles, Loader2, Check, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -155,17 +155,30 @@ const SignupPending = () => {
         {/* Resend on the left, "already verified" on the right — one row of
             escape hatches instead of two stacked lines, which also stops the
             sign-in link reading as a footer detached from the card. */}
-        <div className="border-t pt-4 flex items-center justify-between gap-4 flex-wrap" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
-          <div className="min-w-0">
+        {/* Collapsed, the two links pair on one row. EXPANDED, the resend
+            form needs the full width — pairing then left the form in half
+            the card with the sign-in link stranded in the empty half. */}
+        <div
+          className={`border-t pt-4 ${showResend ? "space-y-4" : "flex items-center justify-between gap-4 flex-wrap"}`}
+          style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}
+        >
+          <div className={showResend ? "" : "min-w-0"}>
           {!showResend ? (
-            <button
-              onClick={() => setShowResend(true)}
-              className="text-ds-13 font-medium hover:underline flex items-center gap-1.5"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Didn't receive the email?
-            </button>
+            /* Same shape as "Already verified? Sign in" — a plain sentence
+               whose last word is the control. The icon + all-bark-text
+               version read as a different class of thing sitting opposite
+               its own twin. */
+            <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Didn't receive the email?{" "}
+              <button
+                type="button"
+                onClick={() => setShowResend(true)}
+                className="font-semibold hover:underline"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                Resend
+              </button>
+            </p>
           ) : (
             <div className="space-y-3">
               <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -218,7 +231,7 @@ const SignupPending = () => {
             </div>
           )}
           </div>
-          <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className={`text-ds-13 font-sans shrink-0${showResend ? " text-right" : ""}`} style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Already verified?{" "}
             <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
               Sign in

@@ -259,7 +259,7 @@ export function SignupStep2(props: SignupStep2Props) {
         </div>
         <div className="space-y-2">
           <div className="flex items-center gap-1.5">
-            <Label htmlFor="phone" className={labelCls}>Phone number <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.8)]">(optional)</span></Label>
+            <Label htmlFor="phone" className={labelCls}>Phone number</Label>
             <PhoneWhyTooltip />
           </div>
           <div className="relative">
@@ -294,7 +294,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <FieldError id="phone-error" message={fieldErrors.phone} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="dob" className={labelCls}>Date of birth <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.8)]">(optional)</span></Label>
+          <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
           {/* Single native date field — on iOS this opens the system wheel
               picker (one tap), and `max` (today − 18y) keeps the wheel near a
               plausible birth year and blocks under-18 dates at the UI layer;
@@ -317,7 +317,7 @@ export function SignupStep2(props: SignupStep2Props) {
           }
         </div>
         <div className="space-y-2">
-          <Label htmlFor="location" className={labelCls}>City <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.8)]">(optional)</span></Label>
+          <Label htmlFor="location" className={labelCls}>City</Label>
           <div className="relative">
             <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`} />
             {locationValid && !fieldErrors.location && (
@@ -327,7 +327,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <FieldError id="location-error" message={fieldErrors.location} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="bio" className={labelCls}>About you <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.8)]">(optional)</span></Label>
+          <Label htmlFor="bio" className={labelCls}>About you</Label>
           <Textarea
             id="bio"
             placeholder="Tell us a bit about yourself — whether you're looking for work or need help around the house…"

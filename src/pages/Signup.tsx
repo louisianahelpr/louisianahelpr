@@ -120,7 +120,12 @@ const Signup = () => {
     if (phone.trim() && phone.replace(/\D/g, "").length < 10) {
       errors.phone = "Enter a valid 10-digit phone number";
     }
-    if (dateOfBirth && ageFromDob(dateOfBirth) < 18) {
+    // DOB is REQUIRED (it carries a red asterisk on the label, so the
+    // validator must actually enforce it — a marker the form doesn't honour is
+    // worse than no marker). Age is still checked when a value is present.
+    if (!dateOfBirth) {
+      errors.dateOfBirth = "Date of birth is required";
+    } else if (ageFromDob(dateOfBirth) < 18) {
       errors.dateOfBirth = "You must be at least 18 years old to sign up";
     }
     // Bio is optional — but if the user starts one, keep the 20-char floor so

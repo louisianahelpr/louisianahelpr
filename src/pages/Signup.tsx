@@ -334,13 +334,18 @@ const Signup = () => {
     "rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]";
   const labelCls = "text-ds-13 font-sans font-medium";
 
-  // Short, single-line titles that mirror the Login screen's heading,
-  // each paired with a brief subtitle (kept, per request, but trimmed).
-  const stepHeading =
+  // Subtitles only where they carry information. The business path keeps one
+  // because "Invite your team and bill jobs to one card." is a real value
+  // proposition at the moment of commitment. The personal path drops its
+  // "Create your account to get started." — the email/password form directly
+  // below already says that, the same reason Login's
+  // "Pick up right where you left off." was removed. `subtitle` is optional;
+  // the header renders the <p> only when one is present.
+  const stepHeading: { title: string; subtitle?: string } =
     step === 1
       ? isBusinessSignup
         ? { title: "Set up your business.", subtitle: "Invite your team and bill jobs to one card." }
-        : { title: "Welcome, neighbor.", subtitle: "Create your account to get started." }
+        : { title: "Welcome, neighbor." }
       : { title: "Tell us about you.", subtitle: "A few basics so neighbors know who they're working with." };
 
   // No `desktopBrandPanel`: AuthBrandPane is only the H emblem, and it stacked
@@ -370,16 +375,18 @@ const Signup = () => {
               >
                 {stepHeading.title}
               </h1>
-              <p
-                className="font-sans"
-                style={{
-                  fontSize: "0.95rem",
-                  color: "hsl(var(--olivewood) / 0.8)",
-                  letterSpacing: "0.01em",
-                }}
-              >
-                {stepHeading.subtitle}
-              </p>
+              {stepHeading.subtitle && (
+                <p
+                  className="font-sans"
+                  style={{
+                    fontSize: "0.95rem",
+                    color: "hsl(var(--olivewood) / 0.8)",
+                    letterSpacing: "0.01em",
+                  }}
+                >
+                  {stepHeading.subtitle}
+                </p>
+              )}
             </div>
             {/* Dev-only step jumper — visible in dev builds so you can click through every signup screen without making an account. Hidden in production. */}
             {import.meta.env.DEV && (

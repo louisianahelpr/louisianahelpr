@@ -424,6 +424,10 @@ const Login = () => {
         <SocialAuthButtons mode="signin" />
 
         <div className="space-y-1.5 pt-1">
+          {/* Two labelled lines, not one "A · B" run. As a single row the two
+              destinations read as interchangeable links; naming what each
+              account IS ("personal" vs "business") is what makes the choice
+              obvious at a glance. */}
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             New to Helpr?{" "}
             <Link
@@ -431,15 +435,17 @@ const Login = () => {
               className="font-semibold hover:underline"
               style={{ color: "hsl(var(--bark))" }}
             >
-              Create an account
+              Create a personal account
             </Link>
-          {" · "}
+          </p>
+          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Setting up a company?{" "}
             <Link
               to="/signup?type=business"
               className="font-semibold hover:underline"
               style={{ color: "hsl(var(--bark))" }}
             >
-              Business sign-up
+              Create a business account
             </Link>
           </p>
         </div>

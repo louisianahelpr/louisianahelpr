@@ -99,7 +99,12 @@ const SignupPending = () => {
     <AuthShell hideHeader hideBack centerColumn maxWidth="2xl">
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
         <div className="flex items-center gap-3">
-          <div className="shrink-0"><BackButton to="/signup" /></div>
+          {/* Home, not /signup. The account already EXISTS by the time this
+              screen renders — sending the arrow back to the signup form
+              invites a duplicate attempt on an address that is already
+              registered. The wrong-address case has its own explicit
+              "Start over" link inside the resend panel. */}
+          <div className="shrink-0"><BackButton to="/" /></div>
           <h1
             className="font-display italic font-bold leading-tight min-w-0 flex-1"
             style={{
@@ -211,12 +216,6 @@ const SignupPending = () => {
         </div>
       </div>
 
-      <p className="text-center text-ds-11 font-sans pt-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        Already verified?{" "}
-        <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
-          Sign in
-        </Link>
-      </p>
     </AuthShell>
   );
 };

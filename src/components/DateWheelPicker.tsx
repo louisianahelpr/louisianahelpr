@@ -43,7 +43,15 @@ function WheelColumn({ labels, values, value, onChange, ariaLabel, className }: 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const target = index * ITEM_H;
+    // Position from the ROW'S OWN offsetTop, never from index * ITEM_H.
+    // The arithmetic version silently drifts the moment a row's real height
+    // differs from the constant by even a pixel (inherited button padding
+    // once made rows 44px, which opened the month and day columns two rows
+    // off their own value while the year column happened to look fine
+    // because its value sat at scrollTop 0).
+    const row = el.querySelectorAll<HTMLElement>("[role=option]")[index];
+    if (!row) return;
+    const target = row.offsetTop - (el.clientHeight - row.offsetHeight) / 2;
     if (Math.abs(el.scrollTop - target) < 1) return;
     programmatic.current = true;
     // The popover mounts with an animation, so on the first pass the column
@@ -63,8 +71,17 @@ function WheelColumn({ labels, values, value, onChange, ariaLabel, className }: 
     settleTimer.current = window.setTimeout(() => {
       const el = ref.current;
       if (!el) return;
-      const i = Math.min(values.length - 1, Math.max(0, Math.round(el.scrollTop / ITEM_H)));
-      if (values[i] !== value) onChange(values[i]);
+      // Whichever row's centre is nearest the column's centre wins — again
+      // measured, not derived from a row-height constant.
+      const mid = el.scrollTop + el.clientHeight / 2;
+      const rows = el.querySelectorAll<HTMLElement>("[role=option]");
+      let best = 0;
+      let bestDist = Infinity;
+      rows.forEach((row, i) => {
+        const dist = Math.abs(row.offsetTop + row.offsetHeight / 2 - mid);
+        if (dist < bestDist) { bestDist = dist; best = i; }
+      });
+      if (values[best] !== value) onChange(values[best]);
     }, 90);
   };
 

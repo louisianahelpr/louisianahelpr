@@ -1,7 +1,10 @@
 import { ShieldCheck } from "lucide-react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
-import { formatPrice } from "@/lib/format";
+// formatPriceExact: this component IS the arithmetic — budget, fee, urgent
+// bonus, take-home. Whole-dollar rounding is right for a headline price and
+// wrong for the lines that justify it, where the column has to add up.
+import { formatPriceExact as formatPrice } from "@/lib/format";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home card shown at the top of

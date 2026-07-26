@@ -9,7 +9,9 @@ import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, Clock, ArrowR
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
-import { formatPrice } from "@/lib/format";
+// formatPriceExact, not formatPrice: this block shows the fee arithmetic,
+// and whole-dollar rounding made the lines stop adding up.
+import { formatPriceExact as formatPrice } from "@/lib/format";
 
 type CancellationDialogProps = {
   jobId: string;

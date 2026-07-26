@@ -91,8 +91,6 @@ const Jobs = lazy(() => import("./pages/Jobs"));
 const JobDetail = lazy(() => import("./pages/JobDetail"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 
-const DischargeConcierge = lazy(() => import("./pages/DischargeConcierge"));
-const InsuranceClaim = lazy(() => import("./pages/InsuranceClaim"));
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
 const HelperAnalytics = lazy(() => import("./pages/HelperAnalytics"));
 const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
@@ -241,8 +239,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/business/onboarding" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessOnboarding /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/reports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessReports /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Public vertical landing pages */}
-      <Route path="/discharge" element={<RouteErrorBoundary>{routeEl(<PageTransition><DischargeConcierge /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/insurance-claim" element={<RouteErrorBoundary>{routeEl(<PageTransition><InsuranceClaim /></PageTransition>)}</RouteErrorBoundary>} />
 
       <Route path="/home-history" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HomeHistory /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/work-record" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><WorkRecord /></ProtectedRoute>)}</RouteErrorBoundary>} />

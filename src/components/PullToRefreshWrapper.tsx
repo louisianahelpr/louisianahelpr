@@ -30,7 +30,7 @@ const PullToRefreshWrapper = forwardRef<HTMLDivElement, PullToRefreshWrapperProp
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center transition-all"
             style={{
-              backgroundColor: "hsla(0, 0%, 100%, 0.65)",
+              background: "var(--surface-premium)",
               border: `0.5px solid ${canTrigger || refreshing ? "hsl(var(--bark) / 0.30)" : "hsl(var(--olivewood) / 0.14)"}`,
               boxShadow:
                 "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +

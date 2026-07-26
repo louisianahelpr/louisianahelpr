@@ -347,7 +347,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ds-sm font-mono tabular-nums text-[15px] font-semibold transition-colors hover:bg-secondary/40"
                   style={{
                     color: "hsl(var(--ink-deep))",
-                    background: "hsla(0, 0%, 100%, 0.6)",
+                    background: "var(--surface-premium)",
                     border: "0.5px solid hsl(var(--olivewood) / 0.2)",
                     letterSpacing: "0.04em",
                   }}

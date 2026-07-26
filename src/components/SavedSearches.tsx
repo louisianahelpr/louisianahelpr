@@ -274,7 +274,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center"
                 style={{
-                  backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                  background: "var(--surface-premium)",
                   border: "1px solid hsl(var(--olivewood) / 0.10)",
                 }}
               >
@@ -308,7 +308,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center"
                 style={{
-                  backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                  background: "var(--surface-premium)",
                   border: "1px solid hsl(var(--olivewood) / 0.10)",
                   boxShadow:
                     "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +

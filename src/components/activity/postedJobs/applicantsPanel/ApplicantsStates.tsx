@@ -16,7 +16,7 @@ export function ApplicantsLoadingState() {
           key={i}
           className="rounded-ds-md p-3.5 flex items-start gap-3"
           style={{
-            backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+            background: "var(--surface-premium)",
             backdropFilter: "blur(16px)",
             WebkitBackdropFilter: "blur(16px)",
             border: "0.5px solid hsl(var(--bark) / 0.18)",

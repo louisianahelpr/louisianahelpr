@@ -213,7 +213,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                           boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
                         }
                       : {
-                          background: "hsla(0, 0%, 100%, 0.55)",
+                          background: "var(--surface-premium)",
                           color: "hsl(var(--ink-deep))",
                           border: "0.5px solid hsl(var(--olivewood) / 0.18)",
                         }
@@ -271,7 +271,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                   className="w-16 h-16 rounded-ds-sm flex flex-col items-center justify-center gap-0.5 transition-opacity hover:opacity-80 active:scale-95"
                   style={{
                     border: "1px dashed hsl(var(--olivewood) / 0.3)",
-                    background: "hsla(0,0%,100%,0.45)",
+                    background: "var(--surface-premium)",
                   }}
                 >
                   <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} />

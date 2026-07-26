@@ -284,7 +284,30 @@ export function ConversationList({
                   {selectedKeys.size}/{MAX_SELECT} selected
                 </span>
               ) : (
-                <span aria-hidden="true" />
+                /* Section heading, matching ActivityHeader's <h2> on My Posts
+                   / My Jobs exactly (same font, size, colour, tracking) —
+                   those render the active filter's label and fall back to
+                   "All", which is the right word here since the inbox has no
+                   filter tabs.
+
+                   This slot used to be an empty `<span aria-hidden>`, so the
+                   Messages toolbar was the ONE title card in the app with a
+                   blank left half: "Select" and the search icon floated on the
+                   right against nothing. Against the dark theme especially, it
+                   read as a component that had failed to load rather than a
+                   deliberate layout. The slot is clearly meant to hold
+                   something — select mode already fills it with the
+                   "N/3 selected" count. */
+                <h2
+                  className="font-display italic font-bold leading-tight truncate"
+                  style={{
+                    fontSize: "1.25rem",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.018em",
+                  }}
+                >
+                  All
+                </h2>
               )}
               <div className="flex items-center gap-1 shrink-0">
                 {!selectMode && (

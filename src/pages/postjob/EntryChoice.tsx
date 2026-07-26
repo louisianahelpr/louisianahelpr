@@ -181,7 +181,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                       type="button"
                       onClick={() => handleRepost(job.id)}
                       aria-label={`Repost ${job.title}`}
-                      className="w-full rounded-xl text-left p-2.5 flex items-center gap-3 active:scale-[0.98] transition-all"
+                      className="w-full rounded-ds-md text-left p-2.5 flex items-center gap-3 active:scale-[0.98] transition-all"
                       style={{
                         background: "hsl(var(--parchment) / 0.7)",
                         border: "0.5px solid hsl(var(--olivewood) / 0.22)",
@@ -272,7 +272,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                   type="button"
                   onClick={() => form.useTemplate(() => form.applyTemplateFields(sample))}
                   aria-label={`Use template: ${sample.title}`}
-                  className="w-full min-w-0 rounded-xl text-left p-3 active:scale-[0.97] transition-all"
+                  className="w-full min-w-0 rounded-ds-md text-left p-3 active:scale-[0.97] transition-all"
                   style={{
                     background: "hsl(var(--parchment) / 0.7)",
                     border: "0.5px solid hsl(var(--olivewood) / 0.22)",

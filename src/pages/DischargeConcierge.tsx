@@ -146,7 +146,7 @@ const DischargeConcierge = () => {
             ].map(({ icon: Icon, title, body }) => (
               <div
                 key={title}
-                className="liquid-glass p-4 space-y-2 rounded-xl"
+                className="liquid-glass p-4 space-y-2 rounded-2xl"
               >
                 <div
                   className="w-9 h-9 rounded-ds-md flex items-center justify-center"
@@ -301,7 +301,7 @@ const DischargeConcierge = () => {
           ].map(({ icon: Icon, label, body }) => (
             <div
               key={label}
-              className="flex items-start gap-3 p-3 rounded-xl"
+              className="flex items-start gap-3 p-3 rounded-2xl"
               style={{
                 background: "hsl(var(--sage) / 0.08)",
                 border: "1px solid hsl(var(--sage) / 0.18)",

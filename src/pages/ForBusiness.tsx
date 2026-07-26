@@ -658,6 +658,12 @@ const PricingSection = () => {
   // than silently billing monthly, so the two stay honest independently.
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
 
+  // Same staggered reveal the industries section above uses, and the same one
+  // /subscription gives its tier grid. Pricing was the only card grid across
+  // the two pages that appeared instantly while everything around it faded in,
+  // so scrolling between them felt like two different sites.
+  const { ref: pricingRef, inView: pricingInView } = useInViewOnce();
+
   return (
   // Pricing is the FIRST section now (it sits directly under the compact page
   // header), so the old pt-24/32/40 — sized to clear a full-height hero — left
@@ -674,7 +680,12 @@ const PricingSection = () => {
             color: "hsl(var(--ink-deep))",
           }}
         >
-          Team seats.
+          {/* Identical to /subscription's heading, deliberately — same concept,
+              same words, so the two pricing pages don't invent separate
+              vocabularies. Was "Team seats.", which collided with "Team", one
+              of the four tier names on this very page, so it read as that
+              tier's seats rather than the section as a whole. */}
+          Pick your plan.
         </h2>
         <p
           className="mt-4 font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
@@ -738,12 +749,18 @@ const PricingSection = () => {
             industries grid above DOES use three across — it has nine cards,
             which divides evenly there. Column counts have to match the item
             count; the two grids share a class string but not a shape. */}
-        <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-5">
-        {TIERS.map((tier) => (
+        <div ref={pricingRef} className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-5">
+        {TIERS.map((tier, i) => (
           <div
             key={tier.name}
             className="relative h-full flex flex-col rounded-2xl px-5 py-7 sm:px-5 sm:py-8 lg:px-6 lg:py-8 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg"
             style={{
+              // 1100ms fade + 400ms-per-card stagger — identical timing to the
+              // industries grid above and to /subscription's tier grid.
+              opacity: pricingInView ? 1 : 0,
+              transform: pricingInView ? "translateY(0)" : "translateY(24px)",
+              transition: `opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms, transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 400}ms`,
+              willChange: "opacity, transform",
               background: "hsl(var(--burnt-sienna) / 0.04)",
               border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
               boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",

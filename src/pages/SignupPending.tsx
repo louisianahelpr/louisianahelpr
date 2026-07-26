@@ -179,21 +179,24 @@ const SignupPending = () => {
             form needs the full width — pairing then left the form in half
             the card with the sign-in link stranded in the empty half. */}
         <div
-          className={`border-t pt-4 ${showResend ? "space-y-4" : "flex items-center justify-between gap-3"}`}
+          className="border-t pt-4 space-y-4"
           style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}
         >
-          <div className={showResend ? "" : "min-w-0"}>
+          <div>
           {!showResend ? (
             /* Same shape as "Already verified? Sign in" — a plain sentence
                whose last word is the control. The icon + all-bark-text
                version read as a different class of thing sitting opposite
                its own twin. */
             <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Didn't receive the email?{" "}
+              Didn't get it?{" "}
               <button
                 type="button"
                 onClick={() => setShowResend(true)}
-                className="font-semibold hover:underline"
+                /* align-baseline: a <button> is inline-BLOCK, so without it
+                   this sentence sits 13px above its two <a>-based twins on
+                   the same row. */
+                className="font-semibold hover:underline align-baseline"
                 style={{ color: "hsl(var(--bark))" }}
               >
                 Resend
@@ -252,20 +255,18 @@ const SignupPending = () => {
             </div>
           )}
           </div>
-          <div className={showResend ? "flex items-center justify-between gap-3" : "contents"}>
+          <div className="flex items-center justify-between gap-3">
             {/* Wrong-address escape hatch — re-entering the address is the
                 only practical fix once the auth row exists against a typo.
                 Shown only while the resend panel is open, paired with the
                 sign-in line so the two ways out of this screen sit together
                 in the same sentence shape as everything else here. */}
-            {showResend && (
-              <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Wrong address?{" "}
-                <Link to="/signup" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
-                  Start over
-                </Link>
-              </p>
-            )}
+            <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Wrong address?{" "}
+              <Link to="/signup" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+                Start over
+              </Link>
+            </p>
             <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Verified?{" "}
               <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>

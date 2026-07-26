@@ -224,7 +224,7 @@ const HelpCenter = () => {
           with the topic / FAQ columns. */}
       <section className="px-5 sm:px-8 lg:px-12">
         <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-          <div className="flex items-center gap-3 mt-2 md:mt-6 mb-6 md:mb-8">
+          <div className="flex items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8">
             <div className="shrink-0">
               <BackButton />
             </div>

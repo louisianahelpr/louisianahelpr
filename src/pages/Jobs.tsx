@@ -290,7 +290,7 @@ const Jobs = () => {
               phones the field wraps to its own full-width line BELOW the
               title+buttons row (order-4); from `md` up it slides inline
               between them (md:order-3) at a fixed 18rem. */}
-          <div className="flex flex-wrap items-center gap-3 mt-2 md:mt-6 mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-400">
+          <div className="flex flex-wrap items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-400">
             <div className="shrink-0 order-1">
 {/* to="/" — NOT bare history-back. These are top-nav / footer
                   destinations reachable from anywhere, so `navigate(-1)` sent

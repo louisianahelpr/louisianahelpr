@@ -133,7 +133,7 @@ function validate(draft: Draft, identified: boolean): Partial<Record<FieldKey, s
 const PageIntro = () => (
   <section className="px-5 sm:px-8 lg:px-12">
     <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-      <div className="flex items-center gap-3 mt-2 md:mt-6 mb-6 md:mb-8">
+      <div className="flex items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8">
         <div className="shrink-0">
           <BackButton />
         </div>
@@ -302,7 +302,7 @@ const Support = () => {
               col-span-8 the form stayed in the first two-thirds of the grid
               and stranded an empty right third. Capped + centred so it
               doesn't stretch across the whole 90rem container. */}
-          <div className="md:col-span-12 w-full max-w-3xl mx-auto">
+          <div className="md:col-span-12 w-full max-w-5xl mx-auto">
             {sent ? (
               <div
                 className="rounded-2xl px-6 py-12 flex flex-col items-center text-center gap-4 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-300"
@@ -395,7 +395,7 @@ const Support = () => {
                         value={draft.name}
                         onChange={(e) => set("name", e.target.value)}
                         onBlur={() => markTouched("name")}
-                        placeholder="Jane Boudreaux"
+                        placeholder="Jane Doe"
                         aria-invalid={!!showError("name")}
                         aria-describedby={showError("name") ? "support-name-error" : undefined}
                         className="mt-1.5"

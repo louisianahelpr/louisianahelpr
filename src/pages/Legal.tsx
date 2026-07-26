@@ -18,7 +18,6 @@ import {
   PAGE_TITLES,
   PAGE_DESCRIPTIONS,
   PAGE_CANONICALS,
-  TAB_TAGLINES,
   TAB_LABELS,
   TAB_ICONS,
   TAB_ORIGIN_LABELS,
@@ -184,7 +183,7 @@ const Legal = () => {
   const webHeader = (
     <section className="container mx-auto px-5">
       <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
-        <div className="flex items-center gap-3 mt-2 md:mt-6 mb-6 md:mb-8">
+        <div className="flex items-center gap-3 mt-6 mb-6 md:mt-7 md:mb-8">
           <div data-print-hide className="shrink-0">
 {/* to="/" — NOT bare history-back. These are top-nav / footer
                 destinations reachable from anywhere, so `navigate(-1)` sent
@@ -195,9 +194,13 @@ const Legal = () => {
               <BackButton to="/" />
           </div>
           <div className="flex flex-col leading-none min-w-0 flex-1">
-            <h1 className="text-page-title leading-tight truncate">
-              {webTitle(tab)}
-            </h1>
+            {/* Static "Legal" — the h1 does NOT swap with the tab. This is one
+                page with three tabs, and the tab band directly below already
+                says which policy you're reading, so retitling the page on every
+                toggle made the header flicker between three names for the same
+                destination. The per-policy names still drive the DOCUMENT title
+                and canonical via usePageMeta, which is what SEO reads. */}
+            <h1 className="text-page-title leading-tight truncate">Legal</h1>
           </div>
           <span
             className="shrink-0 text-ds-11 font-sans tabular-nums"
@@ -333,17 +336,10 @@ const Legal = () => {
     </div>
   );
 
-  // Per-tab editorial tagline + the three policy panels. Shared by both
-  // layouts; the bottom safe-area padding lets the long body scroll fully past
-  // the floating dock + FAB on iPhone without clipping the last paragraph.
-  const tagline = (
-    <p
-      className="px-1 font-serif italic leading-snug text-ds-15"
-      style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-    >
-      {TAB_TAGLINES[tab]}
-    </p>
-  );
+  // The per-tab editorial tagline ("The agreement you accept when you use
+  // Helpr." etc.) was removed on all three tabs at the owner's request — the
+  // page title already names the policy, and the "short version" panel
+  // immediately below summarises it, so the line restated both.
 
   // Smooth cross-tab transition — each panel fades + slides in on mount.
   // Radix TabsContent unmounts inactive tabs, so switching tabs remounts
@@ -399,7 +395,6 @@ const Legal = () => {
           </>
         ) : (
           <>
-            {tagline}
             {panels}
           </>
         )}
@@ -477,7 +472,7 @@ const Legal = () => {
         <div className="container mx-auto px-5 pb-16 sm:pb-24 lg:pb-32">
           <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-4">
             <div
-              className="sticky z-30 -mx-5 px-5 pt-2 pb-2.5 backdrop-blur-md"
+              className="sticky z-30 -mx-5 px-5 pt-0 pb-4 backdrop-blur-md"
               style={{ top: webBandStickyTop }}
             >
               <div

@@ -175,12 +175,19 @@ export function SignupStep2(props: SignupStep2Props) {
   return (
     <div className="space-y-6">
 
-      {/* Section 1: Your photo (top of page — most personal first) */}
-      <section className="space-y-2.5">
-        <div className="flex flex-col items-center gap-2.5">
+      {/* Section 2: Your name + personal details */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-display-eyebrow" style={{ fontSize: "0.7rem", letterSpacing: "0.1em", opacity: 0.85 }}>Your details</span>
+        </div>
+        {/* Avatar sits INLINE beside the name fields. Centred above the
+            form it was a 158px band — a 112px circle plus a two-line
+            caption — putting an OPTIONAL field first on the screen. */}
+        <div className="flex items-start gap-4">
+          <div className="shrink-0 flex flex-col items-center gap-1.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform">
             <div
-              className="relative w-28 h-28 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden"
+              className="relative w-24 h-24 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden"
               style={{
                 background:
                   "radial-gradient(circle at 50% 35%, hsl(var(--parchment)) 0%, hsl(var(--secondary) / 0.55) 100%)",
@@ -196,7 +203,7 @@ export function SignupStep2(props: SignupStep2Props) {
               )}
             </div>
             <div
-              className="pointer-events-none absolute -bottom-1 -right-1 w-11 h-11 rounded-full flex items-center justify-center z-10"
+              className="pointer-events-none absolute -bottom-1 -right-1 w-9 h-9 rounded-full flex items-center justify-center z-10"
               style={{
                 background:
                   "linear-gradient(150deg, hsl(var(--bark) / 0.92) 0%, hsl(var(--bark)) 60%)",
@@ -207,7 +214,7 @@ export function SignupStep2(props: SignupStep2Props) {
                   "0 8px 18px -4px hsl(var(--bark) / 0.55)",
               }}
             >
-              <Camera className="w-5 h-5" strokeWidth={2.25} />
+              <Camera className="w-4 h-4" strokeWidth={2.25} />
             </div>
             <input
               type="file"
@@ -219,23 +226,9 @@ export function SignupStep2(props: SignupStep2Props) {
               onChange={(e) => { onAvatarChange(e); clearFieldError?.("avatar"); }}
             />
           </label>
-          <p className="text-ds-11 text-muted-foreground text-center max-w-[260px] leading-relaxed">
-            {/* Practical facts only. The "Personal account" banner directly
-                above already makes the trust argument ("A clear photo and real
-                name help neighbors trust and hire you"), so repeating it here
-                said the same thing twice on one screen. */}
-            <span className="font-semibold text-[hsl(var(--ink-deep))]">Add a profile photo</span> — you can add it later. JPG or PNG, up to 5MB.
-          </p>
           <FieldError id="avatar-error" message={fieldErrors.avatar} />
-        </div>
-      </section>
-
-      {/* Section 2: Your name + personal details */}
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="text-display-eyebrow" style={{ fontSize: "0.7rem", letterSpacing: "0.1em", opacity: 0.85 }}>Your details</span>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+          </div>
+          <div className="grid grid-cols-2 gap-3 flex-1 min-w-0">
           <div className="space-y-2">
             <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
             <div className="relative">
@@ -256,10 +249,37 @@ export function SignupStep2(props: SignupStep2Props) {
             </div>
             <FieldError id="lastName-error" message={fieldErrors.lastName} />
           </div>
+          </div>
+        </div>
+        {/* Date of birth sits above Phone: it is REQUIRED (red asterisk,
+            enforced in validateAboutYouStep), and a required field should
+            not come after optional ones. */}
+        <div className="space-y-2">
+          <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+          {/* Single native date field — on iOS this opens the system wheel
+              picker (one tap), and `max` (today − 18y) keeps the wheel near a
+              plausible birth year and blocks under-18 dates at the UI layer;
+              validateAboutYouStep still re-checks age as the backstop. */}
+          {/* DatePickerField (the app's shared tap-to-open calendar pill)
+              instead of a raw <input type="date"> — the native control renders
+              as a blank, oversized box on iOS with no placeholder. */}
+          <DatePickerField
+            id="dob"
+            value={dateOfBirth}
+            onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }}
+            min={minDob}
+            max={maxDob}
+            placeholder="Select your date of birth"
+            className={`rounded-ds-md border-[hsl(var(--bark)/0.28)] dark:border-white/15${fieldErrors.dateOfBirth ? " border-destructive" : ""}`}
+          />
+          {fieldErrors.dateOfBirth
+            ? <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
+            : <p id="dob-help" className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>You must be at least 18 years old.</p>
+          }
         </div>
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Label htmlFor="phone" className={labelCls}>Phone number</Label>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Label htmlFor="phone" className={`${labelCls} !mb-0`}>Phone number</Label>
             <PhoneWhyTooltip />
           </div>
           <div className="relative">
@@ -292,29 +312,6 @@ export function SignupStep2(props: SignupStep2Props) {
             )}
           </div>
           <FieldError id="phone-error" message={fieldErrors.phone} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
-          {/* Single native date field — on iOS this opens the system wheel
-              picker (one tap), and `max` (today − 18y) keeps the wheel near a
-              plausible birth year and blocks under-18 dates at the UI layer;
-              validateAboutYouStep still re-checks age as the backstop. */}
-          {/* DatePickerField (the app's shared tap-to-open calendar pill)
-              instead of a raw <input type="date"> — the native control renders
-              as a blank, oversized box on iOS with no placeholder. */}
-          <DatePickerField
-            id="dob"
-            value={dateOfBirth}
-            onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }}
-            min={minDob}
-            max={maxDob}
-            placeholder="Select your date of birth"
-            className={`rounded-ds-md border-[hsl(var(--bark)/0.28)] dark:border-white/15${fieldErrors.dateOfBirth ? " border-destructive" : ""}`}
-          />
-          {fieldErrors.dateOfBirth
-            ? <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
-            : <p id="dob-help" className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>You must be at least 18 years old.</p>
-          }
         </div>
         <div className="space-y-2">
           <Label htmlFor="location" className={labelCls}>City</Label>

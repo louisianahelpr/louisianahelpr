@@ -110,6 +110,10 @@ const Signup = () => {
   const validateAboutYouStep = async () => {
     const errors: Record<string, string> = {};
 
+    // Profile photo is REQUIRED — it carries a red asterisk, so the validator
+    // has to enforce it. Note this adds real signup friction: a photo is a
+    // bigger ask than a name, and it now blocks account creation.
+    if (!avatarFile) errors.avatar = "A profile photo is required";
     if (isBusinessSignup && !companyName.trim()) errors.companyName = "Company name is required";
     if (!firstName.trim()) errors.firstName = "First name is required";
     if (!lastName.trim()) errors.lastName = "Last name is required";

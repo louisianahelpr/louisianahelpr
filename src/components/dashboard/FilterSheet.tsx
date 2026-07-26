@@ -55,7 +55,7 @@ interface FilterSheetProps {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+      <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">
         {title}
       </p>
       {children}
@@ -79,7 +79,7 @@ export function FilterSheet({
         className="rounded-t-2xl max-h-[85dvh] overflow-y-auto overscroll-contain p-0 gap-0"
       >
         {/* Grab handle — the familiar "this sheet drags down" affordance. */}
-        <div className="flex justify-center pt-3 pb-1" aria-hidden>
+        <div className="flex justify-center pt-2.5 pb-0.5" aria-hidden>
           <span className="h-1 w-9 rounded-full bg-[hsl(var(--olivewood)/0.25)]" />
         </div>
         {/* Title ONLY — no eyebrow, no subtitle. This header used to stack
@@ -88,9 +88,9 @@ export function FilterSheet({
             the active-filter count still shows as a badge on the Filters button
             that opens this sheet, and an active filter still surfaces the
             "Clear all" footer below. */}
-        <SheetHero className="px-5 pt-2 pb-3" title="Refine your search" />
+        <SheetHero className="px-5 pt-1 pb-2.5" title="Refine your search" />
 
-        <div className="px-5 pb-4 space-y-5">
+        <div className="px-5 pb-4 space-y-4">
           {sections.map((s) => (
             <Section key={s.key} title={s.title}>
               {s.content}

@@ -485,7 +485,7 @@ const Jobs = () => {
                           }
                         }}
                         aria-label={`View details for ${job.title}`}
-                        className="block w-full text-left rounded-2xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-in fade-in slide-in-from-bottom-2 duration-300"
+                        className="block w-full h-full text-left rounded-2xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-in fade-in slide-in-from-bottom-2 duration-300"
                         style={
                           flatIndex < MAX_STAGGER_CARDS
                             ? { animationDelay: `${flatIndex * 40}ms`, animationFillMode: "both" }

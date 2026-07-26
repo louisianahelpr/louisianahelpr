@@ -288,14 +288,21 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   return (
     <div
       style={{ animationDelay: entryDelay, animationFillMode: "both" }}
-      className="motion-safe:animate-fade-in group relative rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      // h-full: the card is a grid item in both feeds (guest /jobs and the
+      // authed browse grid). CSS Grid stretches the ITEM to the tallest in its
+      // row, but the card sized to its own content instead, so a two-line title
+      // left its neighbour visibly shorter and rows looked ragged. h-full makes
+      // the card actually fill the cell it was already given. In a non-stretch
+      // parent (auto height) this resolves to auto, so single-card contexts are
+      // unaffected.
+      className="motion-safe:animate-fade-in group relative h-full rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       {...interactiveProps}
     >
       {/* Clipped inner surface — rounds the rail, body, and guest CTA to
           the card shape. The category tab + rail both live inside this clip
           so they share the card's rounded top-left corner and read as one
           continuous shape. */}
-      <div className="relative rounded-2xl overflow-hidden">
+      <div className="relative h-full rounded-2xl overflow-hidden">
         {/* Category rail — vertical color stripe down the left edge. The
             tab below sits flush on top of it (same left edge) so the tab's
             flat left side flows straight into the rail with no gap. */}

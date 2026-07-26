@@ -269,7 +269,12 @@ const Login = () => {
             which left the heading aligned to nothing — 89px from the card edge
             while every field below sat at 33px. In-flow beats absolute here. */}
         <div className="flex items-center gap-3">
-          <div className="shrink-0"><BackButton /></div>
+          {/* to="/" — NOT bare history-back. Without an explicit target
+              BackButton falls through to history.back(), so arriving at
+              /login FROM /forgot-password made Back bounce you straight back
+              into password reset. Sign-in is a top-level destination reached
+              from all over; it needs one predictable parent. */}
+          <div className="shrink-0"><BackButton to="/" /></div>
           <h1
             className="font-display italic font-bold leading-tight min-w-0 flex-1"
             style={{

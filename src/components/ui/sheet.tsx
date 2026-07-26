@@ -151,13 +151,21 @@ const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
     style={{
       top,
       right,
-      background: "hsla(0, 0%, 100%, 0.65)",
+      // `--surface-premium`, NOT a literal white. This was
+      // `hsla(0, 0%, 100%, 0.65)` with no dark sibling, while the icon colour
+      // (`--olivewood`) IS theme-aware and flips to near-white on dark. The
+      // result in dark mode was a near-white glyph on a near-white circle —
+      // the close button on EVERY sheet in the app was barely legible, and it
+      // also read as a bright blob against the dark sheet body behind it.
+      background: "var(--surface-premium)",
       border: "1px solid hsl(var(--olivewood) / 0.18)",
       color: "hsl(var(--olivewood))",
       backdropFilter: "blur(10px) saturate(150%)",
       WebkitBackdropFilter: "blur(10px) saturate(150%)",
       boxShadow:
-        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+        // Inset highlight scaled back from 0.55 → 0.28: at full strength it
+        // painted a bright rim on the dark-mode surface.
+        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.28), " +
         "0 1px 2px hsl(var(--olivewood) / 0.06), " +
         "0 4px 10px -4px hsl(var(--olivewood) / 0.10)",
     }}

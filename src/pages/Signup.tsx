@@ -46,7 +46,14 @@ const Signup = () => {
   const [searchParams] = useSearchParams();
   const isBusinessSignup = searchParams.get("type") === "business";
   const [companyName, setCompanyName] = useState("");
-  const [step, setStep] = useState(1);
+  // Dev-only: seed the step from `?step=2` so the flow can be inspected
+  // without the old on-page PREVIEW band, which showed testers a control
+  // real users never see. Production always starts at step 1.
+  const [step, setStep] = useState(() => {
+    if (!import.meta.env.DEV) return 1;
+    const n = Number(new URLSearchParams(window.location.search).get("step"));
+    return n === 2 ? 2 : 1;
+  });
   const [loading, setLoading] = useState(false);
 
   // Step 1 fields
@@ -345,9 +352,9 @@ const Signup = () => {
   const stepHeading: { title: string; subtitle?: string } =
     step === 1
       ? isBusinessSignup
-        ? { title: "Set up your business.", subtitle: "Invite your team and bill jobs to one card." }
-        : { title: "Welcome, neighbor." }
-      : { title: "Tell us about you.", subtitle: "A few basics so neighbors know who they're working with." };
+        ? { title: "Create business account", subtitle: "Invite your team and bill jobs to one card." }
+        : { title: "Create account" }
+      : { title: "About you" };
 
   // No `desktopBrandPanel`: AuthBrandPane is only the H emblem, and it stacked
   // ABOVE the form at lg+ while the heading row carried its own emblem below —
@@ -396,30 +403,6 @@ const Signup = () => {
                 </p>
               )}
             </div>
-            {/* Dev-only step jumper — visible in dev builds so you can click through every signup screen without making an account. Hidden in production. */}
-            {import.meta.env.DEV && (
-              <div className="rounded-ds-sm border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-ds-11">
-                <span className="text-primary font-semibold uppercase tracking-wider">Preview</span>
-                <span className="text-muted-foreground">Jump to step:</span>
-                {[1, 2].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setStep(n)}
-                    className={`w-6 h-6 rounded-md text-ds-11 font-semibold transition-colors ${
-                      step === n
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card text-foreground"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-                <Link to="/signup-pending" className="ml-auto text-primary hover:underline">
-                  Pending →
-                </Link>
-              </div>
-            )}
 
         {/* Step 2: About you + ID */}
         {step === 2 && (

@@ -101,19 +101,19 @@ const AccountBanned = () => {
         )}
 
         <div className="border-t pt-6 space-y-3" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
-          <h2
-            className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            Think this is a mistake?
-          </h2>
           <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             If you believe your account was suspended in error, contact our support team with your account email and we'll review your case.
           </p>
         </div>
 
         <div className="flex flex-col gap-3">
-          <a href="mailto:admin@louisianahelpr.com?subject=Account%20Suspension%20Appeal">
+          {/* /support, not a `mailto:` — inside the native app a mailto has no
+              handler, so on the ONE screen where the user has no other route
+              to a human, the appeal button did nothing at all. /support is a
+              public route (not behind ProtectedRoute), so a suspended account
+              can still reach it, and the form identifies them from their
+              session so support gets the account without them typing it. */}
+          <Link to="/support?topic=message&subject=Account%20suspension%20appeal">
             <Button
               variant="bark"
               className="w-full rounded-ds-md"
@@ -122,7 +122,7 @@ const AccountBanned = () => {
               <Mail className="w-4 h-4 mr-2" />
               Contact support
             </Button>
-          </a>
+          </Link>
           <Link to="/rules">
             <Button variant="ghost" className="w-full rounded-ds-md" size="sm">
               Review Platform Rules

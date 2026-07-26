@@ -1,5 +1,5 @@
 import { deriveEscrowStepFromJob } from "@/components/payment/EscrowProgressBar";
-import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { AppliedApp, Job } from "../activityConstants";
 
@@ -27,13 +27,14 @@ export function deriveAppliedJobCardState(
   const isFullyDone = isCompleted && helperReviewedJobIds.has(app.job_id);
   const isExpanded = expandedJobId === app.job_id;
 
-  // Payout calc
-  const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-  const perHelper = job.budget / helpers;
+  // Payout calc — one shared definition (`helperEarnings.ts`) so this card, the
+  // Earnings tab and /work-record can't drift. A group job's budget and urgent
+  // fee are split across the roster there (#114). The fallback % here stays the
+  // LEGACY constant rather than the helper's tier rate: this card renders jobs
+  // that may not have reached escrow yet, so it must not restate an old row at
+  // today's subscription rate.
   const commissionPercent = job.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
-  const commission = (perHelper * commissionPercent) / 100;
-  // Urgent fee splits across the roster like the budget (#114).
-  const payout = perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers;
+  const payout = helperTakeHomeDollars(job, HELPER_FEE_LEGACY_FALLBACK_PERCENT);
 
   const isMinimalCard = isRejected || isCancelled;
 

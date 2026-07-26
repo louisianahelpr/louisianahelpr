@@ -106,7 +106,19 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
             transform lives on an inner motion.div so the two don't fight
             over `transform` (Radix animates enter/exit, framer animates the
             live drag). */}
-        <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
+        {/* aria-describedby={undefined}: Radix warns once per open when a
+            Content has no `Description` and no explicit `aria-describedby`.
+            Every hero subtitle was removed app-wide (2026-07-25 "one main
+            title"), so that is the normal case now, not an oversight, and the
+            warning would fire on every sheet. Declaring `undefined` is Radix's
+            documented way to say "intentionally no description". `{...props}`
+            comes after, so a caller supplying its own still wins. */}
+        <SheetPrimitive.Content
+          ref={ref}
+          className={cn(sheetVariants({ side }), className)}
+          aria-describedby={undefined}
+          {...props}
+        >
           {enableDragDismiss ? (
             <motion.div
               // Only the downward direction pulls the sheet; an upward drag
@@ -195,15 +207,21 @@ SheetDescription.displayName = SheetPrimitive.Description.displayName;
  *   <SheetHero eyebrow="Filters" title="Refine your search" subtitle="…" />
  */
 const SheetHero = ({
-  eyebrow,
   title,
-  subtitle,
   className,
   titleClassName,
   titleStyle,
-  eyebrowClassName,
-  eyebrowStyle,
 }: {
+  // `eyebrow` and `subtitle` remain ACCEPTED but are not rendered — the
+  // 2026-07-25 "one main title" decision: a popup header shows its title and
+  // nothing stacked above or below it. Every call site has had the props
+  // stripped; they are kept in the type so a stray usage is a no-op rather
+  // than a build break, and so restoring either is a one-line change here
+  // instead of an edit across ~40 files.
+  //
+  // Copy a SIGHTED user must read — fee, tax, or payout disclosure — belongs
+  // in the dialog body. Four were relocated there rather than dropped:
+  // TipDialog, ReviewForm's tip prompt, InstantPayoutDialog, W9CollectionDialog.
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
@@ -214,28 +232,12 @@ const SheetHero = ({
   eyebrowStyle?: React.CSSProperties;
 }) => (
   <SheetHeader className={cn("space-y-0 text-left pr-12", className)}>
-    {eyebrow && (
-      <span
-        className={cn("font-serif italic uppercase block", eyebrowClassName)}
-        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em", ...eyebrowStyle }}
-      >
-        {eyebrow}
-      </span>
-    )}
     <SheetTitle
       className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
       style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}
     >
       {title}
     </SheetTitle>
-    {subtitle && (
-      <SheetDescription
-        className="font-serif italic leading-relaxed pt-1.5"
-        style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.85)" }}
-      >
-        {subtitle}
-      </SheetDescription>
-    )}
   </SheetHeader>
 );
 SheetHero.displayName = "SheetHero";

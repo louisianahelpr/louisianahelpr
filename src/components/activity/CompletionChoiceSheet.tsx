@@ -185,7 +185,6 @@ export function CompletionChoiceSheet({
               className="mb-4"
               eyebrow="Wrapping up"
               title="How did it go?"
-              subtitle="Your choice determines what happens to payment."
             />
 
             <div className="space-y-3">
@@ -270,14 +269,8 @@ export function CompletionChoiceSheet({
                     right of the title stack rather than as a separate
                     header row. */}
                 <div className="flex-1 min-w-0">
-                  <span
-                    className="font-serif italic uppercase block"
-                    style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-                  >
-                    Request revision
-                  </span>
                   <SheetTitle
-                    className="font-display italic font-bold leading-tight mt-0.5"
+                    className="font-display italic font-bold leading-tight"
                     style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
                   >
                     What needs to be fixed?
@@ -396,8 +389,6 @@ export function CompletionChoiceSheet({
                           backgroundImage: "none",
                           border: "1px solid hsl(var(--amber-solid))",
                           color: "white",
-                          fontFamily: "Montserrat, system-ui, sans-serif",
-                          fontWeight: 600,
                         }
                       : undefined
                   }

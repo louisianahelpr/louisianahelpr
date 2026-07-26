@@ -1,7 +1,7 @@
 import { AlertTriangle, Shield, CheckCircle2 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatJobDate } from "@/lib/format";
+import { formatTimestamp } from "@/lib/format";
 
 type Violation = {
   id: string;
@@ -26,9 +26,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        eyebrow="Account standing"
         title="Warnings &amp; strikes"
-        meta="Your record and violation history"
         onBack={onBack}
       />
 
@@ -67,7 +65,6 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
             const renderHero = (
               icon: typeof Shield,
               tone: "destructive" | "orange" | "amber" | "primary",
-              eyebrow: string,
               title: string,
               body: string,
             ) => {
@@ -83,9 +80,6 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                   <div className={`w-14 h-14 rounded-full bg-card mx-auto flex items-center justify-center`}>
                     <Icon className={`w-7 h-7 ${palette.icon}`} />
                   </div>
-                  <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                    {eyebrow}
-                  </p>
                   <h2 className="font-display italic font-bold leading-tight text-headline-hero" style={{ color: palette.title, letterSpacing: "-0.02em" }}>
                     {title}
                   </h2>
@@ -95,13 +89,13 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                 </div>
               );
             };
-            if (hasBan) return renderHero(Shield, "destructive", "Status", "Account banned", "Permanently banned due to policy violations.");
-            if (hasSuspension) return renderHero(AlertTriangle, "orange", "Status", "Suspended", "Your account is under temporary suspension.");
+            if (hasBan) return renderHero(Shield, "destructive", "Account banned", "Permanently banned due to policy violations.");
+            if (hasSuspension) return renderHero(AlertTriangle, "orange", "Suspended", "Your account is under temporary suspension.");
             if (strikeCount > 0) return renderHero(
-              AlertTriangle, "amber", "Status", `Strike ${strikeCount}/2`,
+              AlertTriangle, "amber", `Strike ${strikeCount}/2`,
               strikeCount === 1 ? "One warning on file. A second strike may lead to suspension." : "Final warning. Another violation will result in a permanent ban."
             );
-            return renderHero(CheckCircle2, "primary", "Status", "Good standing", "No warnings or violations on record. Keep it up.");
+            return renderHero(CheckCircle2, "primary", "Good standing", "No warnings or violations on record. Keep it up.");
           })()}
 
           {/* Violation history — only when there's actual history. With
@@ -111,9 +105,6 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
               card; we skip the whole History block in that case. */}
           {violations.length > 0 && (
             <div className="space-y-2 pt-2">
-              <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                History
-              </p>
               {violations.map((v) => (
                 <div key={v.id} className="rounded-ds-md liquid-glass p-4 space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-center justify-between gap-2">
@@ -130,7 +121,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                       </span>
                     </div>
                     <span className="font-serif italic whitespace-nowrap shrink-0" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                      {v.created_at ? formatJobDate(v.created_at) : "—"}
+                      {v.created_at ? formatTimestamp(v.created_at) : "—"}
                     </span>
                   </div>
                   {v.description && (

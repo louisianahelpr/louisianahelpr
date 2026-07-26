@@ -108,6 +108,7 @@ const UserProfile = () => {
     stats,
     loadingMoreReviews,
     reviewsHasMore,
+    reviewsTotalCount,
     loadMoreReviews,
     postedJobs,
     workedJobs,
@@ -168,7 +169,7 @@ const UserProfile = () => {
       <>
         <PageHeader
           showBrand
-          width="5xl"
+          width="container-lg-5xl-6xl"
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -177,7 +178,7 @@ const UserProfile = () => {
         <div className="container mx-auto px-5 py-6">
           <div className="max-w-2xl mx-auto space-y-5">
             <div className="rounded-2xl liquid-glass p-5 text-center space-y-3">
-              <div className="w-24 h-24 rounded-ds-pill squircle bg-muted animate-pulse mx-auto" />
+              <div className="w-24 h-24 rounded-[26px] squircle bg-muted animate-pulse mx-auto" />
               <div className="h-6 w-40 bg-muted animate-pulse mx-auto rounded" />
               <div className="h-4 w-24 bg-muted animate-pulse mx-auto rounded" />
               <div className="h-4 w-64 bg-muted animate-pulse mx-auto rounded" />
@@ -201,7 +202,7 @@ const UserProfile = () => {
       <>
         <PageHeader
           showBrand
-          width="5xl"
+          width="container-lg-5xl-6xl"
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -209,7 +210,7 @@ const UserProfile = () => {
         />
         <div className="container mx-auto px-5 py-6">
           <div className="max-w-2xl mx-auto flex">
-            <ErrorState onRetry={() => refetch()} />
+            <ErrorState variant="inline" onRetry={() => refetch()} />
           </div>
         </div>
       </>
@@ -221,7 +222,7 @@ const UserProfile = () => {
       <>
         <PageHeader
           showBrand
-          width="5xl"
+          width="container-lg-5xl-6xl"
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -232,7 +233,6 @@ const UserProfile = () => {
             <EmptyState
               variant="inline"
               icon={UserX}
-              eyebrow="Profile unavailable"
               title="User not found"
               body="This profile may have been removed, or the link is no longer valid."
               action={
@@ -253,7 +253,12 @@ const UserProfile = () => {
 
   // Save or update the reviewee's public response to a review they received.
   const handleSaveResponse = async (reviewId: string) => {
-    if (!responseText.trim()) return;
+    // Tapping Save on an empty textarea used to do nothing at all — no toast,
+    // no state change, no reason given. Say why instead of dead-ending.
+    if (!responseText.trim()) {
+      toast.error("Write a response first.");
+      return;
+    }
     setSavingResponse(true);
     try {
       const { error } = await (supabase.rpc as any)("respond_to_review", {
@@ -290,7 +295,12 @@ const UserProfile = () => {
     <>
       <PageHeader
         showBrand
-        width="lg"
+        // Same width in EVERY state (loading / error / empty / loaded): this
+        // used to be "5xl" while loading and "lg" once data landed, so the
+        // title jumped hundreds of pixels the moment the query resolved. The
+        // value mirrors the loaded body below — `container mx-auto px-5` >
+        // `max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto`.
+        width="container-lg-5xl-6xl"
         eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
         title={isOwnProfile ? "Profile Review" : "Profile"}
         meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -386,25 +396,28 @@ const UserProfile = () => {
 
             {/* Career milestones — earned badges based on job count, rating,
                 and credential tier. Shows next-milestone progress on own profile.
-                credential_tier: 2 = verified license (license_status=verified).
                 Sits with identity in the masthead because it's a persistent
-                trust-signal about the person, not about a specific interaction. */}
-            {(() => {
-              const credentialTier = (data as any)?.credentialTier ??
-                (profile as any)?.license_status === "verified" ? 2 : 0;
-              const milestoneStats = {
+                trust-signal about the person, not about a specific interaction.
+
+                credentialTier (0-3; 2 = verified trade license) now comes from
+                the get_user_credential_tier RPC via useUserProfileData, and is
+                0 when that RPC errors or isn't deployed. It used to be computed
+                inline as
+                  `data?.credentialTier ?? profile?.license_status === "verified" ? 2 : 0`
+                — `??` binds tighter than `?:`, so that parsed as
+                `(undefined ?? false) ? 2 : 0` and was permanently 0. It also
+                read a `license_status` column that neither get_safe_profiles
+                nor the fallback select ever returns, so no precedence fix alone
+                could have made it non-zero. */}
+            <CareerMilestones
+              stats={{
                 completedJobs: stats.completedJobs,
                 avgRating: stats.avgRating,
                 repeatHirePercent: data?.repeatHirePercent ?? 0,
-                credentialTier,
-              };
-              return (
-                <CareerMilestones
-                  stats={milestoneStats}
-                  showProgress={isOwnProfile}
-                />
-              );
-            })()}
+                credentialTier: data?.credentialTier ?? 0,
+              }}
+              showProgress={isOwnProfile}
+            />
           </div>
 
           {/* ── RIGHT COLUMN (activity + reviews) ──
@@ -435,7 +448,13 @@ const UserProfile = () => {
             {/* Stats */}
             <ProfileStatsGrid
               stats={stats}
-              postedJobsCount={postedJobs.length}
+              // postedTotalCount, NOT postedJobs.length — the `postedJobs`
+              // fetch carries a .limit(20), so the stat read "20 Posted" for
+              // anyone with more than 20 jobs. The exact count is already
+              // fetched on this same load (count: exact, head: true) and was
+              // simply never wired up. The list below still shows 20; the
+              // number above it is now true.
+              postedJobsCount={postedTotalCount}
               workedJobsCount={completedWorkedJobs.length}
               isOwnProfile={isOwnProfile}
               showReviews={showReviews}
@@ -525,6 +544,7 @@ const UserProfile = () => {
                 onSaveResponse={handleSaveResponse}
                 savingResponse={savingResponse}
                 reviewsHasMore={reviewsHasMore}
+                reviewsTotalCount={reviewsTotalCount}
                 loadMoreReviews={loadMoreReviews}
                 loadingMoreReviews={loadingMoreReviews}
               />
@@ -537,7 +557,7 @@ const UserProfile = () => {
             {showWorkedJobs && <JobsList jobs={completedWorkedJobs} variant="worked" />}
 
             {profile.hourly_rate && (
-              <div className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">
+              <div className="rounded-2xl liquid-glass p-5 flex items-center gap-3">
                 <Clock className="w-5 h-5 text-primary" />
                 <div>
                   <p className="text-ds-13 font-semibold text-foreground">${profile.hourly_rate}/hr</p>

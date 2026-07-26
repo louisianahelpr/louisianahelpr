@@ -14,6 +14,18 @@ import {
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
+import {
+  main,
+  container,
+  logo,
+  h1,
+  text,
+  subtext,
+  linkStyle,
+  button,
+  footer,
+} from './styles.ts'
+
 interface SignupEmailProps {
   siteName: string
   siteUrl: string
@@ -63,13 +75,3 @@ export const SignupEmail = ({
 )
 
 export default SignupEmail
-
-const main = { backgroundColor: '#ffffff', fontFamily: "'DM Sans', Arial, sans-serif" }
-const container = { padding: '32px 28px', maxWidth: '480px' }
-const logo = { fontSize: '28px', fontWeight: 'bold' as const, color: 'hsl(158, 45%, 42%)', margin: '0 0 24px', fontFamily: "'Fraunces', Georgia, serif" }
-const h1 = { fontSize: '24px', fontWeight: 'bold' as const, color: 'hsl(160, 10%, 12%)', margin: '0 0 16px' }
-const text = { fontSize: '15px', color: 'hsl(160, 6%, 50%)', lineHeight: '1.6', margin: '0 0 20px' }
-const subtext = { fontSize: '13px', color: 'hsl(160, 6%, 50%)', lineHeight: '1.5', margin: '24px 0 0', padding: '16px 0 0', borderTop: '1px solid hsl(150, 12%, 90%)' }
-const linkStyle = { color: 'hsl(158, 45%, 42%)', textDecoration: 'underline' }
-const button = { backgroundColor: 'hsl(158, 45%, 42%)', color: '#ffffff', fontSize: '15px', borderRadius: '12px', padding: '14px 28px', textDecoration: 'none', fontWeight: '600' as const }
-const footer = { fontSize: '12px', color: '#999999', margin: '24px 0 0' }

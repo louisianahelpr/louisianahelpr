@@ -109,7 +109,7 @@ const Index = () => {
     description:
       "Hire a Helpr or find local work in Louisiana. For everyday jobs, big and small — post or apply in minutes across New Orleans, Baton Rouge & beyond.",
     keywords:
-      "Louisiana helprs, local help, cleaning services Louisiana, yard work New Orleans, moving help Baton Rouge, errands Shreveport, handyman Lafayette, task marketplace, trusted neighbors, home services Louisiana",
+      "Louisiana helprs, local help, cleaning services Louisiana, yard work New Orleans, moving help Baton Rouge, errands Shreveport, handyman Lafayette, job marketplace, trusted neighbors, home services Louisiana",
     canonical: SITE_URL,
     ogTitle: "Helpr — Louisiana's Local Job Partner",
     ogDescription:

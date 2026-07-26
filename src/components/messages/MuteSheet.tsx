@@ -63,7 +63,6 @@ export function MuteSheet({
           }
           eyebrowClassName="inline-flex items-center gap-1.5"
           title="Mute notifications"
-          subtitle={`New messages from ${convo.otherUserName} won't notify you, but you'll still see them in your inbox.`}
         />
         {isMuted && (
           <div

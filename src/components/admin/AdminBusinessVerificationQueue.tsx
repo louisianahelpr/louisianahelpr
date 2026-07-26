@@ -167,7 +167,6 @@ const AdminBusinessVerificationQueue = () => {
         <AlertDialogContent>
           <AlertDialogHero
             title="Reject business verification"
-            subtitle="The owner will be notified and can re-upload. Add a short reason so they know what to fix."
           />
           <Textarea
             aria-label="Business verification rejection reason"
@@ -176,12 +175,18 @@ const AdminBusinessVerificationQueue = () => {
             onChange={(e) => setRejectReason(e.target.value)}
             rows={3}
           />
+          {rejectReason.trim().length > 0 && rejectReason.trim().length < 10 && (
+            <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+              Please provide at least 10 characters so the owner knows what to fix.
+            </p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
+              disabled={rejectReason.trim().length < 10}
               onClick={() => {
                 if (rejectTarget) {
-                  decide(rejectTarget, "rejected", rejectReason.trim() || undefined);
+                  decide(rejectTarget, "rejected", rejectReason.trim());
                   setRejectTarget(null);
                 }
               }}

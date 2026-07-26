@@ -12,10 +12,13 @@ const prefetchers: Record<string, () => Promise<unknown>> = {
   "/my-posts": () => import("@/pages/Activity"),
   "/my-jobs": () => import("@/pages/Activity"),
   "/messages": () => import("@/pages/Messages"),
-  // /support /schedule /availability /saved-helpers now redirect into
-  // the Profile tab system — prefetch the Profile chunk instead so the
-  // shell is ready when the redirect lands.
-  "/support": () => import("@/pages/Profile"),
+  // /support is its own public page now (it used to redirect into the
+  // Profile tab system, so this key pointed at the Profile chunk — which
+  // meant hovering the link warmed a chunk the route never renders).
+  "/support": () => import("@/pages/Support"),
+  // /schedule /availability /saved-helpers still redirect into the Profile
+  // tab system — prefetch the Profile chunk so the shell is ready when the
+  // redirect lands.
   "/schedule": () => import("@/pages/Profile"),
   "/availability": () => import("@/pages/Profile"),
   "/saved-helpers": () => import("@/pages/Profile"),

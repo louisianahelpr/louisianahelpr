@@ -108,13 +108,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
 
   return (
     <div className="mt-3.5 pt-3.5" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-      <div className="flex items-center justify-between mb-2">
-        <p
-          className="font-serif italic uppercase text-ds-9"
-          style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-        >
-          Your skills
-        </p>
+      <div className="flex items-center justify-end mb-2">
         {!atMax && (
           <button
             type="button"

@@ -59,26 +59,55 @@ const Footer = () => (
     }}
   >
     <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] pt-6 md:pt-8 pb-2">
-      <div className="grid gap-6 md:gap-8 md:grid-cols-12">
+      {/* Columns go side-by-side from sm (640px), not md (768px). At tablet
+          widths the old md-only grid stacked brand + Company + Legal + Follow
+          into ONE tall column, which made the footer dominate the page. From
+          640px the brand takes the full row and the three link groups sit
+          4/4/4 beside each other; md+ keeps the original 4/3/3/2 layout. */}
+      <div className="grid gap-6 md:gap-8 sm:grid-cols-12">
         {/* Brand — uses the shared HelprMark component so the wordmark
             here matches the top nav exactly (H emblem + non-italic
             "Helpr" + italic burnt-sienna "· LA" tail). */}
-        <div className="md:col-span-4 space-y-3">
+        <div className="sm:col-span-12 md:col-span-4 space-y-3">
           <HelprMark to="/" size="md" hideEmblem />
-          <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">
-            Hire a Helpr or find local work. For everyday jobs, big and small.
+          {/* Break after the first sentence so the tagline wraps predictably
+              into two short lines instead of one long one that pushes the
+              link columns around. */}
+          <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-xs leading-relaxed">
+            Hire a Helpr or find local work.
+            <br />
+            For everyday jobs, big and small.
           </p>
         </div>
 
         {/* Company */}
-        <div className="md:col-span-3">
+        <div className="sm:col-span-4 md:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
           >
             Company
           </h3>
+          {/* The footer is the site's full index, so it carries everything the
+              top nav does (How it works, Jobs, Business) PLUS the secondary
+              destinations the nav has no room for. Without these two, a visitor
+              who scrolled past the nav had no path back to Jobs, and the page
+              lost internal links to a key SEO destination. */}
+          {/* Single column, matching Legal and Follow. This list is longer
+              than its neighbours now that How it works + Jobs are here, but
+              uneven column LENGTHS are normal in a footer — three different
+              list treatments side by side is what looks unfinished. */}
           <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
+            <li>
+              <Link to="/#how-it-works" className="link-standard">
+                How it works
+              </Link>
+            </li>
+            <li>
+              <Link to="/jobs" className="link-standard">
+                Jobs
+              </Link>
+            </li>
             <li>
               <Link to="/for-business" className="link-standard">
                 Business
@@ -90,14 +119,6 @@ const Footer = () => (
               </Link>
             </li>
             <li>
-              <a
-                href="mailto:admin@louisianahelpr.com"
-                className="link-standard"
-              >
-                Contact
-              </a>
-            </li>
-            <li>
               <Link to="/help" className="link-standard">
                 Help Center
               </Link>
@@ -105,8 +126,10 @@ const Footer = () => (
           </ul>
         </div>
 
-        {/* Legal */}
-        <div className="md:col-span-3">
+        {/* Legal — md:col-span-2. Its three links (Terms / Rules / Privacy) are
+            short enough to fit two columns, and giving the third back to Follow
+            pulls that group left, off the far edge. md is 4/3/2/3. */}
+        <div className="sm:col-span-4 md:col-span-2">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
@@ -134,7 +157,7 @@ const Footer = () => (
 
         {/* Follow — App Store icon (download) + Facebook + Instagram (socials).
             Compact squircle chips, one row. */}
-        <div className="md:col-span-2">
+        <div className="sm:col-span-4 md:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--heritage-gold))" }}
@@ -145,12 +168,17 @@ const Footer = () => (
               airier, less pinched than the previous rounded-2xl chips.
               Apple black, Facebook blue, Instagram gradient are kept for
               instant brand recognition. */}
+          {/* shrink-0 on each icon below. They are `inline-flex` children of this
+              flex row, so they were flex-shrinking below their `w-11`: measured
+              24px wide against 44px tall, i.e. rendering as ovals rather than
+              the circles `rounded-full` implies. Height was never the problem —
+              width was being taken away. */}
           <div className="flex items-center gap-2.5">
             <a
               href={APP_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
               aria-label="Download on the App Store (opens in a new tab)"
               title="Download on the App Store"
             >
@@ -164,7 +192,7 @@ const Footer = () => (
               href={FACEBOOK_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 items-center justify-center rounded-[14px] bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
               aria-label="Follow us on Facebook (opens in a new tab)"
               title="Follow us on Facebook"
             >
@@ -178,7 +206,7 @@ const Footer = () => (
               href={INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 items-center justify-center rounded-[14px] text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
+              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5"
               style={{
                 background:
                   "linear-gradient(135deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)",

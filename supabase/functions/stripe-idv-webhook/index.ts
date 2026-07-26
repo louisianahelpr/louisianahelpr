@@ -79,7 +79,7 @@ serve(async (req) => {
     // silently drops every IDV event, breaking the entire identity-verification
     // pipeline with no visible signal — same alerting pattern as stripe-webhook.
     console.error("[stripe-idv-webhook] Signature verification failed:", err);
-    postSlackOpsAlert({
+    await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Stripe IDV webhook signature failed",

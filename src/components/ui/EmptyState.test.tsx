@@ -32,10 +32,10 @@ describe("EmptyState", () => {
         eyebrow="e"
         title="t"
         body="b"
-        action={<button>Browse tasks</button>}
+        action={<button>Browse jobs</button>}
       />,
     );
-    expect(screen.getByRole("button", { name: "Browse tasks" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Browse jobs" })).toBeInTheDocument();
   });
 
   it("renders no action element when none is supplied", () => {

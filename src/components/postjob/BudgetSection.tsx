@@ -105,7 +105,6 @@ export function BudgetSection({
   return (
     <SectionCard
       stepNumber={stepNumber}
-      eyebrow="Money"
       title="Budget"
       icon={DollarSign}
       complete={budgetComplete}

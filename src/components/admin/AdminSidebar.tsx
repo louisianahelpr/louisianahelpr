@@ -4,6 +4,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Shield, Home, LogOut, Pin, PinOff } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -92,20 +93,33 @@ const AdminSidebar = ({
           <item.icon className="w-4 h-4" />
           {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
           {!collapsed && (
-            <button
-              type="button"
+            // role="button" span, NOT a nested <button>: SidebarMenuButton
+            // already renders a <button>, and <button> inside <button> is
+            // invalid HTML (fires validateDOMNesting and confuses AT). A
+            // labelled role=button span is valid nested markup and stays
+            // keyboard-operable via onKeyDown; stopPropagation keeps a pin
+            // toggle from also selecting the row.
+            <span
+              role="button"
+              tabIndex={0}
               onClick={(e) => togglePin(item.id, e)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  togglePin(item.id, e as unknown as React.MouseEvent);
+                }
+              }}
               aria-label={isPinned ? `Unpin ${item.label}` : `Pin ${item.label}`}
               title={isPinned ? "Unpin" : "Pin to top"}
               className={cn(
-                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-md transition-opacity",
+                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-md transition-opacity cursor-pointer",
                 isPinned
                   ? "opacity-100 text-primary hover:bg-primary/10"
                   : "opacity-0 group-hover/item:opacity-60 hover:opacity-100 text-muted-foreground hover:bg-muted",
               )}
             >
               {isPinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
-            </button>
+            </span>
           )}
           {badge !== undefined && (
             <span className={cn(
@@ -140,17 +154,6 @@ const AdminSidebar = ({
                 style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
               >
                 Helpr Admin
-              </p>
-              <p
-                className="font-serif italic uppercase leading-tight"
-                style={{
-                  fontSize: "0.58rem",
-                  color: "hsl(var(--burnt-sienna))",
-                  letterSpacing: "0.18em",
-                  marginTop: "1px",
-                }}
-              >
-                Operations
               </p>
             </div>
           )}
@@ -216,7 +219,25 @@ const AdminSidebar = ({
         })}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-2">
+      <SidebarFooter className="border-t border-sidebar-border p-2 gap-1">
+        {/* Back to the normal app — the admin console previously had no exit
+            except Log out, stranding admins in the console (couldn't reach
+            home / post / messages / profile without signing out). This returns
+            to the app shell WITHOUT logging out. */}
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "justify-start gap-2",
+            collapsed && "justify-center px-0"
+          )}
+        >
+          <Link to="/dashboard" aria-label="Back to the app">
+            <Home className="w-4 h-4" />
+            {!collapsed && <span>Back to app</span>}
+          </Link>
+        </Button>
         <Button
           variant="ghost"
           size="sm"

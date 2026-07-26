@@ -9,6 +9,14 @@ import type { UpcomingJob } from "@/components/dashboard/DashboardStatusBanners"
 
 interface DashboardHeaderProps {
   title?: string;
+  /**
+   * Element used for `title`. Defaults to `span` because most consumers
+   * (Dashboard, Profile, PostJob) already render their own `<h1>` in the body —
+   * promoting this unconditionally would give those pages TWO h1s. Screens
+   * whose ONLY page title is this header (Activity, Messages — both measured at
+   * zero h1) pass `titleAs="h1"` so they get exactly one.
+   */
+  titleAs?: "span" | "h1";
   onMenuClick?: () => void;
   /** Nearest accepted / in-progress job — shows the live status pill. */
   inProgressJob?: UpcomingJob | null;
@@ -16,7 +24,8 @@ interface DashboardHeaderProps {
   onViewInProgress?: () => void;
 }
 
-const DashboardHeader = ({ title, onMenuClick, inProgressJob, onViewInProgress }: DashboardHeaderProps) => {
+const DashboardHeader = ({ title, titleAs = "span", onMenuClick, inProgressJob, onViewInProgress }: DashboardHeaderProps) => {
+  const TitleTag = titleAs;
   const navigate = useNavigate();
   const { isAdmin } = useCurrentUser();
 
@@ -30,7 +39,7 @@ const DashboardHeader = ({ title, onMenuClick, inProgressJob, onViewInProgress }
       <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
         <div className="flex items-center gap-2 min-w-0">
           {title ? (
-            <span className="font-display font-bold text-foreground text-ds-15 truncate">{title}</span>
+            <TitleTag className="font-display font-bold text-foreground text-ds-15 truncate m-0">{title}</TitleTag>
           ) : (
             <HelprMark to="/dashboard" size="md" hideEmblem />
           )}

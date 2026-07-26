@@ -289,7 +289,6 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
             </>
           }
           title="Earnings Export"
-          subtitle="Download by parish & tax status. Hand straight to your CPA."
         />
 
         <div className="space-y-4 py-2">

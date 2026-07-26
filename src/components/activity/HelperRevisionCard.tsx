@@ -210,8 +210,6 @@ export function HelperRevisionCard({
             backgroundImage: "none",
             border: "1px solid hsl(var(--amber-solid))",
             color: "white",
-            fontFamily: "Montserrat, system-ui, sans-serif",
-            fontWeight: 600,
             boxShadow: "0 1px 2px hsl(var(--amber-solid) / 0.18), 0 4px 12px -4px hsl(var(--amber-solid) / 0.28)",
           }}
         >

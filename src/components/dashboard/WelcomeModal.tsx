@@ -59,7 +59,6 @@ export function WelcomeModal({ open, onDismiss }: Props) {
           <DialogHero
             eyebrow="Louisiana's neighbor-to-neighbor marketplace"
             title="Welcome to Helpr"
-            subtitle={<>Post a job <em>or</em> earn helping — no setup needed.</>}
           />
         </div>
 

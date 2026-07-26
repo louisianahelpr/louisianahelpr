@@ -17,16 +17,24 @@ export function InviteForm({ myUserId }: { myUserId: string }) {
   const [contact, setContact] = useState("");
   const [relationship, setRelationship] = useState("child");
   const [showForm, setShowForm] = useState(false);
+  // The generated invite link is only ever shown once — keep it on screen
+  // (not just in a toast) so a failed clipboard write can't lose the token.
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const inviteMut = useMutation({
     mutationFn: async () => {
       const token = crypto.randomUUID();
-      // Look up the care recipient by email (case-insensitive)
+      // Exact-match lookup, NOT `.ilike`: in a LIKE/ILIKE pattern `%` and `_`
+      // are wildcards, so an input like "admin%" would match somebody else's
+      // account and mint a care_relationships row pointing at it. Auth stores
+      // emails lowercased (every profiles.email row is already lower-case), so
+      // lowercasing the input preserves the case-insensitive behaviour without
+      // exposing any wildcard surface.
       const lookupRes = await supabase
         .from("profiles")
         .select("user_id")
-        .ilike("email", contact.trim())
+        .eq("email", contact.trim().toLowerCase())
         .maybeSingle();
       if (lookupRes.error) throw lookupRes.error;
 
@@ -50,41 +58,106 @@ export function InviteForm({ myUserId }: { myUserId: string }) {
       if (res.error) throw res.error;
       return token;
     },
-    onSuccess: (token) => {
+    onSuccess: async (token) => {
       hapticSuccess();
       const url = `${window.location.origin}/family/accept/${token}`;
-      void navigator.clipboard.writeText(url).then(() => {
-        toast.success("Invite sent — link copied to clipboard!");
-      });
+      // Nothing is emailed here — we only create a pending invite row and hand
+      // the caller a link, so the copy must not claim the invite was "sent".
+      // The clipboard API rejects outright in a non-secure context and in some
+      // Capacitor WebViews; the old un-caught `.then()` meant that rejection
+      // showed NO toast at all and the one-time token vanished. Await it in a
+      // try/catch and succeed loudly either way.
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      } catch {
+        // Deliberately never log the URL — it carries the invite token.
+        report(new Error("Clipboard write failed for family invite link"), {
+          severity: "info",
+          tags: { source: "FamilyDashboard.invite.clipboard" },
+        });
+      }
+      setInviteUrl(url);
+      toast.success(
+        copied ? "Invite link created — copied to clipboard" : "Invite link created — copy it below",
+        { description: "Send them the link. The invite stays pending until they open it and approve." },
+      );
       setContact("");
       setShowForm(false);
       void qc.invalidateQueries({ queryKey: ["care_relationships", myUserId] });
     },
     onError: (err: Error) => {
       report(err, { severity: "warning", tags: { source: "FamilyDashboard.invite" } });
-      toast.error(err.message || "Couldn't send invite — try again.");
+      toast.error(err.message || "Couldn't create the invite — try again.");
     },
   });
 
+  // Persistent copy of the freshly-minted invite link. Stays until dismissed
+  // so the token survives a clipboard failure (or a toast the user missed).
+  const linkPanel = inviteUrl ? (
+    <div
+      className="rounded-ds-md p-3 space-y-2"
+      style={{
+        background: "hsl(var(--ivory-sand))",
+        border: "0.5px solid hsl(var(--sand) / 0.6)",
+      }}
+    >
+      <p className="text-ds-12 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+        Invite link — send this to them
+      </p>
+      <p
+        className="text-ds-11 break-all select-all"
+        style={{ color: "hsl(var(--olivewood))" }}
+      >
+        {inviteUrl}
+      </p>
+      <div className="flex gap-2">
+        <Button
+          variant="ghost"
+          className="h-9 flex-1 text-ds-12"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(inviteUrl);
+              toast.success("Link copied");
+            } catch {
+              toast.error("Couldn't copy — select the link above and copy it manually.");
+            }
+          }}
+        >
+          Copy link
+        </Button>
+        <Button variant="ghost" className="h-9 flex-1 text-ds-12" onClick={() => setInviteUrl(null)}>
+          Done
+        </Button>
+      </div>
+    </div>
+  ) : null;
+
   if (!showForm) {
     return (
-      <button
-        onClick={() => { hapticLight(); setShowForm(true); }}
-        className="w-full flex items-center gap-2.5 h-12 px-4 rounded-ds-md text-ds-14 font-sans font-medium active:scale-[0.98] transition-all"
-        style={{
-          background: "hsl(var(--bark) / 0.06)",
-          border: "0.5px dashed hsl(var(--bark) / 0.3)",
-          color: "hsl(var(--bark))",
-        }}
-      >
-        <UserPlus className="w-4 h-4" />
-        Add a family member
-        <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
-      </button>
+      <div className="space-y-2">
+        {linkPanel}
+        <button
+          onClick={() => { hapticLight(); setShowForm(true); }}
+          className="w-full flex items-center gap-2.5 h-12 px-4 rounded-ds-md text-ds-14 font-sans font-medium active:scale-[0.98] transition-all"
+          style={{
+            background: "hsl(var(--bark) / 0.06)",
+            border: "0.5px dashed hsl(var(--bark) / 0.3)",
+            color: "hsl(var(--bark))",
+          }}
+        >
+          <UserPlus className="w-4 h-4" />
+          Add a family member
+          <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+        </button>
+      </div>
     );
   }
 
   return (
+    <div className="space-y-2">
+    {linkPanel}
     <div
       className="rounded-ds-md p-4 space-y-3"
       style={{
@@ -142,9 +215,10 @@ export function InviteForm({ myUserId }: { myUserId: string }) {
           onClick={() => inviteMut.mutate()}
           disabled={!contact.trim() || inviteMut.isPending}
         >
-          {inviteMut.isPending ? "Sending…" : "Send invite"}
+          {inviteMut.isPending ? "Creating…" : "Create invite link"}
         </Button>
       </div>
+    </div>
     </div>
   );
 }

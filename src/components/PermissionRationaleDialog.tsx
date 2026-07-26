@@ -65,7 +65,6 @@ export function PermissionRationaleDialog() {
         <AlertDialogHero
           eyebrow={eyebrow}
           title={copy.title}
-          subtitle={copy.body}
         />
         <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
           <AlertDialogCancel

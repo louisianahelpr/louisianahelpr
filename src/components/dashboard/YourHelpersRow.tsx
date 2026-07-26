@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,6 +6,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { queryKeys } from "@/lib/queryKeys";
+import { report } from "@/lib/errorLogger";
 
 /**
  * Your Helprs — a horizontal quick-rebook strip on the Dashboard.
@@ -32,7 +34,7 @@ export function YourHelpersRow() {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
 
-  const { data: helpers } = useQuery({
+  const { data: helpers, error, isError } = useQuery({
     queryKey: queryKeys.savedHelpers.byUser(user?.id),
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_my_saved_helpers");
@@ -42,6 +44,13 @@ export function YourHelpersRow() {
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
+
+  // This strip renders nothing on failure (it's a decorative quick-rebook
+  // shortcut, not critical data) — but a fetch failure must still be
+  // findable, never silently indistinguishable from "no saved helprs."
+  useEffect(() => {
+    if (isError) report(error, { tags: { source: "YourHelpersRow.get_my_saved_helpers" } });
+  }, [isError, error]);
 
   if (!helpers || helpers.length === 0) return null;
 

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Search, X, ArrowRight, ChevronDown } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import FaqRow from "@/components/marketing/FaqRow";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -13,8 +15,14 @@ import {
  * Help Center — editorial remodel matching the landing hero + HIW style.
  *
  * Structure:
- *   1. Editorial hero  — warm ambient halo, Bodoni H1 with italic accent,
- *      large squircle search pill (client-side filters into FAQ list).
+ *   1. Compact page header — canonical BackButton to the LEFT of a
+ *      normal-size "Help Center" title (same row shape as /jobs), the
+ *      one-line lede, then the squircle search pill + popular-search
+ *      chips. /help is a FOOTER destination, so the full-bleed hero it
+ *      used to open with (display eyebrow, clamp() Bodoni H1 "How can we
+ *      help?", warm halo) read as a second landing page. The search box
+ *      and its chips are unchanged — they still drive the same
+ *      client-side filter over FAQ_SECTIONS.
  *   2. Browse by topic — left masthead + right magazine grid, giant
  *      burnt-sienna Bodoni numerals per topic, sequential IO fade-in.
  *   3. Quick answers   — left masthead + right hairline-divider accordion,
@@ -209,53 +217,27 @@ const HelpCenter = () => {
   };
 
   return (
-    <PublicLayout>
-      {/* ───────────────────────────── 1. Editorial hero ─────────────────────── */}
-      {/* overflow-hidden is required because the WarmHalo below uses
-          -inset-16/24/32 which at lg pushes 8rem past this section's
-          horizontal edges. Without a clip, that overshoot caused a
-          48px html-level horizontal scrollbar at 1440. */}
-      <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24">
-        <div className="relative z-10 mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-12">
-          {/* Warm ambient halo behind the H1 — same gold-warm → burnt-sienna
-              radial pattern as the landing hero, so the two pages read as
-              cut from the same paper. */}
-          <div className="relative flex items-center justify-center w-full">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -inset-16 sm:-inset-24 lg:-inset-32 -z-0"
-              style={{
-                background:
-                  "radial-gradient(50% 50% at 50% 50%, hsl(var(--gold-warm) / 0.24) 0%, hsl(var(--burnt-sienna) / 0.10) 40%, transparent 75%)",
-                filter: "blur(32px)",
-              }}
-            />
-            <div className="relative z-10 flex flex-col items-center gap-5 sm:gap-6">
-              <span className="text-display-eyebrow">Help Center</span>
-              <h1
-                className="font-display font-black leading-[1.0] text-balance break-words text-[2.75rem] sm:text-[4rem] md:text-[5rem] lg:text-[5.5rem] xl:text-[6.25rem]"
-                style={{
-                  color: "hsl(var(--olivewood))",
-                  letterSpacing: "-0.03em",
-                }}
-              >
-                How can we{" "}
-                <em
-                  className="relative inline-block"
-                  style={{
-                    fontStyle: "italic",
-                    color: "hsl(var(--burnt-sienna))",
-                  }}
-                >
-                  help?
-                </em>
+    <PublicLayout hideHomeLink>
+      {/* ─────────────────────── 1. Compact page header ───────────────────── */}
+      {/* Back button LEFT of a normal-size title, same row shape as /jobs.
+          Container + padding match every section below so the title lines up
+          with the topic / FAQ columns. */}
+      <section className="px-5 sm:px-8 lg:px-12">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+          <div className="flex items-center gap-3 mt-2 md:mt-6 mb-6 md:mb-8">
+            <div className="shrink-0">
+              <BackButton />
+            </div>
+            <div className="flex flex-col leading-none min-w-0 flex-1">
+              <h1 className="text-page-title leading-tight truncate">
+                Help Center
               </h1>
             </div>
           </div>
 
-          {/* One-line subhead — the two audiences we serve, in one flowing line. */}
+          {/* One-line lede — the two audiences we serve, in one flowing line. */}
           <p
-            className="max-w-xl lg:max-w-3xl text-ds-15 sm:text-ds-17 lg:text-ds-20 leading-relaxed text-balance"
+            className="max-w-xl lg:max-w-2xl text-ds-15 sm:text-ds-17 leading-relaxed text-balance"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 400,
@@ -266,9 +248,30 @@ const HelpCenter = () => {
             Answers, guides, and support — for posters and Helprs alike.
           </p>
 
-          {/* Large squircle search pill — client-side filter drives the FAQ
-              list below. Olivewood outline on parchment; no glass. */}
-          <div className="w-full max-w-2xl">
+          {/* The FAQ can't answer everything, and until /support existed the
+              only escape hatch on this page was a `mailto:` buried in the
+              zero-results state — i.e. reachable only by failing a search.
+              This is the always-visible way out to a human, and it works
+              logged-out and inside the native app. */}
+          <p
+            className="mt-3 font-sans text-ds-13 leading-relaxed"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            Can&apos;t find it?{" "}
+            <Link
+              to="/support"
+              className="font-semibold underline"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+            >
+              Contact support
+            </Link>{" "}
+            — no account needed.
+          </p>
+
+          {/* Squircle search pill — client-side filter drives the FAQ list
+              below. Olivewood outline on parchment; no glass. Preserved
+              verbatim from the old hero, just relocated under the header. */}
+          <div className="w-full max-w-2xl mt-6">
             <div
               className="flex items-center gap-3 rounded-2xl px-5 py-4 sm:px-6 sm:py-5 transition-shadow focus-within:shadow-md"
               style={{
@@ -318,7 +321,7 @@ const HelpCenter = () => {
                 typing; clicking a pill drives the same client-side
                 filter as typing the term into the input. */}
             {!searching && (
-              <div className="mt-5 flex flex-col items-center gap-2.5">
+              <div className="mt-5 flex flex-col items-start gap-2.5">
                 <span
                   className="font-sans font-medium uppercase text-[0.62rem]"
                   style={{
@@ -328,7 +331,7 @@ const HelpCenter = () => {
                 >
                   Popular searches
                 </span>
-                <div className="flex flex-wrap items-center justify-center gap-2">
+                <div className="flex flex-wrap items-center justify-start gap-2">
                   {POPULAR_SEARCHES.map((term) => (
                     <button
                       key={term}
@@ -353,14 +356,17 @@ const HelpCenter = () => {
       </section>
 
       {/* ───────────────────────── 2. Browse by topic ────────────────────────── */}
+      {/* Tightened pt-* — this is the first section under the compact page
+          header now that the full-height hero is gone; the old pt-24 left a
+          rail-deep empty band below the search box. */}
       {!searching && (
         <section
           id="topics"
           ref={topicsRef}
           aria-labelledby="topics-heading"
-          className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
+          className="px-5 sm:px-8 lg:px-12 pt-10 sm:pt-12 lg:pt-16 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
         >
-          <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16">
+          <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16">
             {/* Left column — masthead */}
             <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
               <span className="text-display-eyebrow">Topics</span>
@@ -483,7 +489,7 @@ const HelpCenter = () => {
         aria-labelledby="faq-heading"
         className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
       >
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16">
           {/* Left column — masthead */}
           <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
             <span className="text-display-eyebrow">FAQ</span>
@@ -534,14 +540,18 @@ const HelpCenter = () => {
                   className="mt-3 font-serif italic text-ds-15 leading-relaxed"
                   style={{ color: "hsl(var(--olivewood) / 0.9)" }}
                 >
+                  {/* /support, not a raw mailto: — a mailto needs a configured
+                      mail client and does nothing at all inside the native app,
+                      so the one contact affordance on a dead-end search was
+                      dead too for a chunk of visitors. */}
                   Try a different word, or{" "}
-                  <a
-                    href="mailto:admin@louisianahelpr.com"
+                  <Link
+                    to="/support"
                     className="font-semibold underline"
                     style={{ color: "hsl(var(--burnt-sienna))" }}
                   >
-                    email our team
-                  </a>
+                    message our team
+                  </Link>
                   .
                 </p>
               </div>

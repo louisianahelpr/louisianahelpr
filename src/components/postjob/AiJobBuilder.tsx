@@ -67,9 +67,8 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
 
   return (
     // Brand-aligned: liquid-glass surface (was dashed border + bg-muted/30),
-    // Sparkles icon in a sienna-tinted circle, font-display italic title +
-    // eyebrow. Reads as a premium value-add instead of a developer-debug
-    // widget.
+    // Sparkles icon in a sienna-tinted circle, font-display italic title.
+    // Reads as a premium value-add instead of a developer-debug widget.
     <div className="rounded-2xl liquid-glass overflow-hidden">
       <button
         type="button"
@@ -81,10 +80,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
           <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} />
         </div>
         <div className="flex-1 min-w-0 break-words">
-          <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-            Faster start
-          </p>
-          <p className="font-display italic font-bold mt-0.5" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+          <p className="font-display italic font-bold" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
             Try the AI Job Builder
           </p>
           <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

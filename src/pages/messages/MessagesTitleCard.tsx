@@ -1,3 +1,4 @@
+import { threadCountSummary } from "@/components/messages/threadCountLabel";
 import type { Conversation } from "@/components/messages/types";
 
 /**
@@ -13,37 +14,19 @@ export const MessagesTitleCard = ({
 }: {
   conversations: Conversation[];
   loading: boolean;
-}) => (
-  // Constrained to the list-rail width (340px, matching Messages.tsx's
-  // left column) so the thread count + unread pill sit over the list
-  // column instead of floating out across the empty thread pane. Bar
-  // itself still spans both panes for background/border continuity.
-  <div className="flex items-center justify-between gap-3 w-[340px]">
-    <div className="flex flex-col leading-none min-w-0">
-      {/* Section name lives in the top bar now (Instagram/Facebook pattern);
-          this desktop bar keeps only the thread count on the left and the
-          unread pill on the right so the wide bar isn't dead space. */}
-      {!loading && conversations.length > 0 ? (
-        <p
-          className="truncate font-sans font-semibold uppercase leading-none"
-          style={{
-            fontSize: "0.62rem",
-            letterSpacing: "0.16em",
-            color: "hsl(var(--olivewood) / 0.8)",
-          }}
-        >
-          {conversations.length}{" "}
-          {conversations.length === 1 ? "thread" : "threads"}
-        </p>
-      ) : null}
-    </div>
-    {(() => {
-      const totalUnread = conversations.reduce(
-        (sum, c) => sum + (c.unread || 0),
-        0,
-      );
-      if (loading || totalUnread === 0) return null;
-      return (
+}) => {
+  // Only the unread total — the "N threads" count was dropped app-wide as
+  // redundant (the thread list right below IS the count, same reasoning as
+  // Activity, /jobs, and the browse toolbar). Unread is genuinely different:
+  // you can't get it by glancing at the list.
+  const { unreadLabel } = threadCountSummary(conversations, loading);
+  return (
+    // Constrained to the list-rail width (340px, matching Messages.tsx's
+    // left column) so the unread pill sits over the list column instead of
+    // floating out across the empty thread pane. Bar itself still spans both
+    // panes for background/border continuity.
+    <div className="flex items-center justify-end gap-3 w-[340px]">
+      {unreadLabel ? (
         <span
           className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-sans font-bold uppercase"
           style={{
@@ -54,9 +37,9 @@ export const MessagesTitleCard = ({
             boxShadow: "0 1px 3px hsl(var(--burnt-sienna) / 0.35)",
           }}
         >
-          {totalUnread} unread
+          {unreadLabel}
         </span>
-      );
-    })()}
-  </div>
-);
+      ) : null}
+    </div>
+  );
+};

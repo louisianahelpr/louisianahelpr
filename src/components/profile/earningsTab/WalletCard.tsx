@@ -60,9 +60,6 @@ export function WalletCard({
             <Wallet className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-              Balance
-            </p>
             <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
               Wallet
             </h2>
@@ -71,7 +68,7 @@ export function WalletCard({
         <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.8)" }}>
           Connect your payout account to see your live balance.
         </p>
-        <Button size="sm" onClick={onNavigatePayment}>Set up payouts</Button>
+        <Button variant="bark" size="sm" className="w-full" onClick={onNavigatePayment}>Set up payouts</Button>
       </div>
     );
   }
@@ -83,13 +80,11 @@ export function WalletCard({
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <Wallet className="w-4 h-4 text-primary" />
           </div>
-          <div>
-            <p className="font-serif italic uppercase flex items-center gap-1.5" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-              Balance <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary not-italic" style={{ letterSpacing: "0.05em" }}>LIVE</span>
-            </p>
+          <div className="flex items-center gap-2">
             <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
               Wallet
             </h2>
+            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary" style={{ letterSpacing: "0.05em" }}>LIVE</span>
           </div>
         </div>
         <button

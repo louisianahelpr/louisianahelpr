@@ -1,7 +1,10 @@
 import { ShieldCheck } from "lucide-react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
-import { formatPrice } from "@/lib/format";
+// formatPriceExact: this component IS the arithmetic — budget, fee, urgent
+// bonus, take-home. Whole-dollar rounding is right for a headline price and
+// wrong for the lines that justify it, where the column has to add up.
+import { formatPriceExact as formatPrice } from "@/lib/format";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home card shown at the top of
@@ -37,12 +40,6 @@ export function ApplyEarningsBreakdown({
           "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22)",
       }}
     >
-      <p
-        className="font-serif italic uppercase mb-1.5"
-        style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-      >
-        You earn
-      </p>
       <div className="space-y-1 text-[0.78rem]">
         <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           <span className="font-serif italic">Budget{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>

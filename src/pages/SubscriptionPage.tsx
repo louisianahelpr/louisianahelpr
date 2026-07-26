@@ -2,9 +2,14 @@
  * SubscriptionPage — /subscription (editorial remodel 2026-07-11).
  *
  * Full editorial-magazine layout matching the landing style:
- *  1. Editorial hero — eyebrow / big Bodoni H1 with italic burnt-sienna
- *     accent / warm ambient halo / one Bodoni-italic subhead / single
- *     rounded-2xl bark-fill pill CTA that anchors to the tiers section.
+ *  1. Compact page header — canonical BackButton to the LEFT of a
+ *     normal-size "Membership" page title, the same row shape /jobs uses.
+ *     /subscription is a FOOTER destination, so the full-bleed hero it used
+ *     to open with (display eyebrow, clamp() Bodoni H1 "Get more from every
+ *     job.", warm halo) read as a second landing page. Its subhead ("Pick
+ *     the plan that fits how you use Helpr.") was dropped as redundant —
+ *     the plans masthead a few hundred pixels below already says "Pick your
+ *     plan."
  *  2. Tiers — magazine two-column (masthead left, tier grid right), all
  *     four consumer tiers side-by-side, no accordion. Pro carries a warm
  *     halo behind it and reads as the recommended pick. Sequential
@@ -26,8 +31,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Check, ChevronDown, Loader2, Sparkles } from "lucide-react";
+import { ArrowRight, Award, Check, ChevronDown, Crown, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
+import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,6 +98,51 @@ const BENEFITS: Array<{ title: string; desc: string }> = [
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────
+
+/**
+ * The subscription badge as it ACTUALLY renders on a profile in the app —
+ * same colours, sizing, letter-spacing and icon as
+ * src/components/profile/profileLanding/IdentityHeader.tsx. Duplicated
+ * deliberately rather than imported: that badge is embedded in a name row and
+ * takes profile state this public page doesn't have. If the treatment there
+ * changes, change it here too — the point of this element is that what a
+ * visitor previews is what they actually get.
+ *
+ * Free returns null: it has no badge, and a placeholder would imply one.
+ */
+const TierBadgePreview = ({ tier }: { tier: string }) => {
+  if (tier === "basic") {
+    return (
+      <span
+        className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+        style={{ color: "hsl(var(--bark))", background: "hsl(var(--bark) / 0.10)", letterSpacing: "0.08em" }}
+      >
+        <Star className="w-2.5 h-2.5" /> Basic
+      </span>
+    );
+  }
+  if (tier === "pro") {
+    return (
+      <span
+        className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+        style={{ color: "hsl(var(--burnt-sienna))", background: "hsl(var(--burnt-sienna) / 0.12)", letterSpacing: "0.08em" }}
+      >
+        <Award className="w-2.5 h-2.5" /> Pro
+      </span>
+    );
+  }
+  if (tier === "elite") {
+    return (
+      <span
+        className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+        style={{ color: "hsl(var(--gold-warm))", background: "hsl(var(--gold-warm) / 0.14)", letterSpacing: "0.08em" }}
+      >
+        <Crown className="w-2.5 h-2.5" /> Elite
+      </span>
+    );
+  }
+  return null;
+};
 
 export default function SubscriptionPage() {
   usePageMeta({
@@ -224,134 +275,41 @@ export default function SubscriptionPage() {
 
   const inner = (
     <>
-      {/* ── 1. Editorial hero ───────────────────────────────────────────── */}
-      {/* pb-* tightened — the hero used to close with pb-24 and the plans
-          section opened with pt-24, producing ~200px of visible gap on
-          desktop. Now hero ends tight and plans opens tight; the natural
-          gap between the two comes from the CTA + section separator. */}
-      <section className="relative overflow-hidden px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-6 sm:pb-8 lg:pb-10">
-        <div className="relative z-10 mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl flex flex-col items-center text-center gap-8 sm:gap-10 lg:gap-12">
-          <span className="text-display-eyebrow">Membership</span>
-
-          <div className="relative flex items-center justify-center w-full">
-            {/* Warm ambient halo behind the H1 — same recipe as the landing hero. */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -inset-16 sm:-inset-24 lg:-inset-32 -z-0"
-              style={{
-                background:
-                  "radial-gradient(50% 50% at 50% 50%, hsl(var(--gold-warm) / 0.24) 0%, hsl(var(--burnt-sienna) / 0.10) 40%, transparent 75%)",
-                filter: "blur(32px)",
-              }}
-            />
-            <h1
-              className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.25rem] sm:text-[4.5rem] md:text-[5.75rem] lg:text-[6rem] xl:text-[7rem]"
-              style={{
-                color: "hsl(var(--olivewood))",
-                letterSpacing: "-0.03em",
-              }}
-            >
-              Get more from every{" "}
-              <em
-                className="relative inline-block"
-                style={{
-                  fontStyle: "italic",
-                  color: "hsl(var(--burnt-sienna))",
-                }}
-              >
-                job.
-              </em>
-            </h1>
+      {/* ── 1. Compact page header ──────────────────────────────────────── */}
+      {/* Back button LEFT of a normal-size title, same row shape as /jobs.
+          The container/padding match the sections below so the title lines
+          up with the plans grid. */}
+      <section className="px-5 sm:px-8 lg:px-12">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+          <div className="flex items-center gap-3 mt-2 md:mt-6 mb-2 md:mb-4">
+            <div className="shrink-0">
+{/* to="/" — NOT bare history-back. These are top-nav / footer
+                  destinations reachable from anywhere, so `navigate(-1)` sent
+                  you to whatever you happened to view last: opening Terms, then
+                  Jobs, then pressing Back landed on Terms. A top-level page
+                  needs one predictable parent, and consistently the same one
+                  across all of them. */}
+              <BackButton to="/" />
+            </div>
+            <div className="flex flex-col leading-none min-w-0 flex-1">
+              <h1 className="text-page-title leading-tight truncate">
+                Membership
+              </h1>
+            </div>
           </div>
-
-          <p
-            className="max-w-xl lg:max-w-3xl text-ds-15 sm:text-ds-17 lg:text-ds-24 leading-relaxed text-balance font-serif italic"
-            style={{
-              color: "hsl(var(--stormy-sky))",
-              letterSpacing: "-0.005em",
-            }}
-          >
-            Pick the plan that fits how you use Helpr.
-          </p>
-
-          <a
-            href="#plans"
-            className="group inline-flex items-center justify-center rounded-2xl transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 tracking-tight"
-            style={{
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              fontSize: "1.0625rem",
-              lineHeight: 1,
-              letterSpacing: "-0.005em",
-              color: "hsl(var(--parchment))",
-              background: "hsl(var(--bark))",
-              border: "1px solid hsl(66 25% 19%)",
-              boxShadow:
-                "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
-            }}
-          >
-            <Sparkles className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
-            See the plans
-            <ArrowRight
-              className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
-              strokeWidth={1.25}
-            />
-          </a>
         </div>
       </section>
 
       {/* ── 2. Plans / tiers ────────────────────────────────────────────── */}
-      {/* Tightened pt-* — the pt-24 desktop gap between the hero CTA and
-          this section left ~200px of visible empty space, reading as a
-          layout gap. */}
+      {/* Tight pt-* — this section opens directly under the compact page
+          header, so a large top pad would read as a dead band rather than
+          as section separation. */}
       <section
         id="plans"
         ref={tiersRef}
         className="relative px-5 sm:px-8 lg:px-12 pt-6 sm:pt-8 lg:pt-10 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
       >
-        {/* Billing-cycle segmented control — sits centered above the grid.
-            Small squircle, filter-chip weight (not a CTA). Bark fill on
-            active, transparent on inactive. */}
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl mb-10 sm:mb-12 flex justify-center">
-          <div
-            role="tablist"
-            aria-label="Billing cycle"
-            className="inline-flex items-center gap-1 p-1 rounded-2xl"
-            style={{
-              background: "hsl(var(--burnt-sienna) / 0.06)",
-              border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
-              boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
-            }}
-          >
-            {(["monthly", "annual"] as const).map((cycle) => {
-              const active = billingCycle === cycle;
-              return (
-                <button
-                  key={cycle}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setBillingCycle(cycle)}
-                  className="h-9 sm:h-10 px-4 sm:px-5 rounded-xl font-sans font-semibold text-ds-13 transition-[background,color,transform] duration-150 active:scale-[0.98]"
-                  style={{
-                    background: active ? "hsl(var(--bark))" : "transparent",
-                    color: active
-                      ? "hsl(var(--parchment))"
-                      : "hsl(var(--olivewood))",
-                    boxShadow: active
-                      ? "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)"
-                      : "none",
-                    letterSpacing: "-0.005em",
-                  }}
-                >
-                  {cycle === "monthly" ? "Monthly" : "Annual"}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
           {/* Left masthead */}
           <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32">
             <span className="text-display-eyebrow">Plans</span>
@@ -369,9 +327,49 @@ export default function SubscriptionPage() {
               className="mt-4 font-serif italic text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
-              The same commission % applies to both sides — helpers keep more of
+              The same commission % applies to both sides — Helprs keep more of
               their payout, posters pay a lower service fee.
             </p>
+            {/* Billing-cycle segmented control — lives under the masthead so
+                the price toggle sits with the "Pick your plan" heading rather
+                than floating centered above the grid. Inline-flex inherits the
+                column's text-center (mobile) / md:text-left alignment. */}
+            <div
+              role="tablist"
+              aria-label="Billing cycle"
+              className="mt-6 inline-flex items-center gap-1 p-1 rounded-2xl"
+              style={{
+                background: "hsl(var(--burnt-sienna) / 0.06)",
+                border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
+                boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+              }}
+            >
+              {(["monthly", "annual"] as const).map((cycle) => {
+                const active = billingCycle === cycle;
+                return (
+                  <button
+                    key={cycle}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setBillingCycle(cycle)}
+                    className="h-9 sm:h-10 px-4 sm:px-5 rounded-xl font-sans font-semibold text-ds-13 transition-[background,color,transform] duration-150 active:scale-[0.98]"
+                    style={{
+                      background: active ? "hsl(var(--bark))" : "transparent",
+                      color: active
+                        ? "hsl(var(--parchment))"
+                        : "hsl(var(--olivewood))",
+                      boxShadow: active
+                        ? "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)"
+                        : "none",
+                      letterSpacing: "-0.005em",
+                    }}
+                  >
+                    {cycle === "monthly" ? "Monthly" : "Annual"}
+                  </button>
+                );
+              })}
+            </div>
             {currentTier !== "free" && (
               <button
                 type="button"
@@ -387,8 +385,10 @@ export default function SubscriptionPage() {
             )}
           </div>
 
-          {/* Right — tier grid */}
-          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-6 lg:gap-8">
+          {/* Right — tier grid. Four across at lg, matching /for-business's
+              seat-plan grid so the two pricing pages read the same way
+              (2x2 stacking below lg). */}
+          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-5">
             {CONSUMER_TIERS.map((tier, i) => {
               const perks = TIER_PERKS[tier];
               const isActive = tier === currentTier;
@@ -439,45 +439,53 @@ export default function SubscriptionPage() {
                         : "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
                     }}
                   >
-                    {/* Chip row — Recommended / Current only. Removed
-                        the eyebrow tier-name (duplicated the H3 below). */}
-                    {(isFeatured || isActive) && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {isFeatured && (
-                          <span
-                            className="font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full"
-                            style={{
-                              background: "hsl(var(--burnt-sienna))",
-                              color: "hsl(var(--parchment))",
-                              letterSpacing: "0.14em",
-                            }}
-                          >
-                            Recommended
-                          </span>
-                        )}
-                        {isActive && (
-                          <span
-                            className="font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"
-                            style={{
-                              background: "hsl(var(--bark) / 0.12)",
-                              color: "hsl(var(--bark))",
-                              letterSpacing: "0.12em",
-                            }}
-                          >
-                            <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
-                            Current
-                          </span>
-                        )}
-                      </div>
+                    {/* Recommended only. The "Current" chip that used to sit
+                        beside it is gone: the card already ends in a "Current
+                        plan" button saying the same thing, and on this PUBLIC
+                        page a signed-out visitor has no plan at all — labelling
+                        Free as their "current" one is simply untrue for the
+                        majority of the people who see it. */}
+                    {/* Absolutely positioned, NOT in the flow. In-flow it added
+                        a row only the Pro card had, pushing that card's title
+                        down and its type scale out of step with the other
+                        three. Pinned to the card's top-right corner it labels
+                        the card without changing its layout, so all four
+                        headings sit on one baseline. */}
+                    {isFeatured && (
+                      <span
+                        // Flush in the top-left corner, same shape language as
+                        // the category badge on a job card: square against the
+                        // two card edges it touches, rounded only where it meets
+                        // the card interior, with `rounded-tl-2xl` matching the
+                        // card's own corner so it reads as part of the card
+                        // rather than a sticker dropped on top. Still absolute,
+                        // so it costs the Pro card no layout height and all four
+                        // headings stay on one baseline.
+                        className="absolute top-0 left-0 z-10 font-sans text-[9px] font-bold uppercase pl-3 pr-2.5 py-1 rounded-tl-2xl rounded-br-lg leading-none"
+                        style={{
+                          background: "hsl(var(--burnt-sienna))",
+                          color: "hsl(var(--parchment))",
+                          letterSpacing: "0.14em",
+                        }}
+                      >
+                        Recommended
+                      </span>
                     )}
 
                     {/* Tier name — big Bodoni. Strips the "Helpr " prefix
                         so tiers read as just "Basic / Pro / Elite" (Free
                         for the free tier). */}
+                    {/* No conditional margin. This used to add mt-3 whenever a
+                        chip sat above the title — but the "Current" chip is gone
+                        and "Recommended" is now absolutely positioned in the
+                        card corner, so nothing occupies that space any more. The
+                        margin survived as a 12px offset on exactly the Free and
+                        Pro cards, dropping their titles to 42px from the card top
+                        against 30px for Basic and Elite. Same font size on all
+                        four (measured 25.6px); it was purely the offset that made
+                        them look mismatched. */}
                     <h3
-                      className={`font-display font-bold leading-[1.05] tracking-tight ${
-                        isFeatured || isActive ? "mt-3" : ""
-                      }`}
+                      className="font-display font-bold leading-[1.05] tracking-tight"
                       style={{
                         fontSize: "clamp(1.6rem, 2.4vw, 2.15rem)",
                         letterSpacing: "-0.025em",
@@ -489,7 +497,12 @@ export default function SubscriptionPage() {
 
                     {/* Tagline — italic */}
                     <p
-                      className="mt-2 font-serif italic text-ds-13 sm:text-ds-15 leading-relaxed"
+                      // One line. These taglines are 3-5 words, but "Top helpers. Maximum
+                      // visibility." wrapped at this card width while its
+                      // neighbours didn't — so one card carried an extra line and
+                      // pushed its price, fee line and CTA out of step with the
+                      // other three.
+                      className="mt-2 font-serif italic text-ds-13 sm:text-ds-15 leading-relaxed line-clamp-1"
                       style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                     >
                       {perks.tagline}
@@ -516,17 +529,10 @@ export default function SubscriptionPage() {
                                 $0
                               </span>
                             </div>
-                            {/* Caption line matches the annual-equivalent
-                                caption on paid tiers so all 4 tier cards
-                                share the same vertical rhythm — otherwise
-                                $0 sits higher than $5 / $10 / $15 and the
-                                row of prices reads uneven. */}
-                            <p
-                              className="mt-1.5 font-sans uppercase text-[10px] font-semibold tracking-[0.14em]"
-                              style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                            >
-                              Free forever · no card required
-                            </p>
+                            {/* The "Free forever · no card required" line lived here. Removed:
+                                the tier is already titled "Free" with a "$0" price
+                                directly above, so it restated the two largest
+                                elements on the card in the smallest type. */}
                           </>
                         );
                       }
@@ -555,17 +561,15 @@ export default function SubscriptionPage() {
                               {isAnnual ? "/yr" : "/mo"}
                             </span>
                           </div>
-                          {isAnnual ? (
-                            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                              <p
-                                className="font-sans uppercase text-[10px] font-semibold tracking-[0.14em]"
-                                style={{
-                                  color: "hsl(var(--olivewood) / 0.75)",
-                                }}
-                              >
-                                or ${priceInfo.annualMonthlyEquivalent}/mo
-                                billed annually
-                              </p>
+                          {/* The "or $X/mo billed annually" line that used to sit
+                              here is gone — the billing toggle above already
+                              states which cycle you're looking at, and the price
+                              beside it already carries /mo or /yr, so the line
+                              restated the toggle on all four cards. The savings
+                              chip stays: that's the one thing the toggle does
+                              NOT say. */}
+                          <div className="mt-1 flex items-center gap-2 flex-wrap">
+                            {isAnnual && (
                               <span
                                 className="font-sans text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full"
                                 style={{
@@ -576,16 +580,8 @@ export default function SubscriptionPage() {
                               >
                                 {priceInfo.annualSave}
                               </span>
-                            </div>
-                          ) : (
-                            <p
-                              className="mt-1 font-serif italic text-ds-12"
-                              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                            >
-                              or ${priceInfo.annualMonthlyEquivalent}/mo billed
-                              annually
-                            </p>
-                          )}
+                            )}
+                          </div>
                         </>
                       );
                     })()}
@@ -603,8 +599,41 @@ export default function SubscriptionPage() {
                           : ""}
                     </p>
 
-                    {/* Feature bullets */}
+                    {/* What the badge looks like once you're on the plan,
+                        rendered with the real in-app treatment rather than
+                        described in words — the perk is visible before you pay
+                        for it. */}
+                    {tier !== "free" && (
+                      <div className="mt-3 flex items-center gap-2">
+                        <span
+                          className="font-sans text-ds-11"
+                          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                        >
+                          Your badge:
+                        </span>
+                        <TierBadgePreview tier={tier} />
+                      </div>
+                    )}
+
+                    {/* Feature bullets — paid tiers are a strict upgrade
+                        ladder (each includes everything the tier below it
+                        has), so lead with "Everything in <tier below>" the
+                        same way the in-app Membership tab does
+                        (tierConfig.tsx), instead of only listing this tier's
+                        own new perks and implying the rest are lost. */}
                     <ul className="mt-4 space-y-2 flex-1">
+                      {tier === "pro" && (
+                        <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
+                          <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.25} style={{ color: "hsl(var(--burnt-sienna))" }} />
+                          <span>Everything in Basic</span>
+                        </li>
+                      )}
+                      {tier === "elite" && (
+                        <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
+                          <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.25} style={{ color: "hsl(var(--burnt-sienna))" }} />
+                          <span>Everything in Pro</span>
+                        </li>
+                      )}
                       {perks.featureBullets.map((bullet) => (
                         <li
                           key={bullet}
@@ -623,9 +652,21 @@ export default function SubscriptionPage() {
 
                     {/* CTA */}
                     <div className="mt-6">
-                      {isActive ? (
+                      {/* `&& user`: "Current plan" only makes sense for someone
+                          who HAS one. This is a public page, and `currentTier`
+                          defaults to "free", so a signed-out visitor saw the
+                          Free card claim to be their current plan — untrue, and
+                          a dead end, since that branch renders an inert <div>.
+                          Guests now fall through to the `isFree` branch below,
+                          which already reads "Start free" and links to /signup,
+                          matching Starter on /for-business. */}
+                      {isActive && user ? (
                         <div
-                          className="inline-flex items-center gap-1.5 h-11 px-5 rounded-2xl font-sans font-semibold text-ds-13"
+                          // Matches the Upgrade CTAs exactly — same height ramp, padding, radius and
+                        // full-bleed width. It sits in the same slot on the Free card, so at
+                        // h-11/px-5/auto-width it read as a different, smaller control and
+                        // knocked that card's button row out of line with the other three.
+                        className="w-full inline-flex items-center justify-center gap-1.5 h-11 sm:h-12 px-6 rounded-2xl font-sans font-semibold text-ds-13"
                           style={{
                             background: "hsl(var(--bark) / 0.08)",
                             color: "hsl(var(--bark))",
@@ -638,7 +679,7 @@ export default function SubscriptionPage() {
                       ) : isFree ? (
                         <Link
                           to={user ? "/dashboard" : "/signup"}
-                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full sm:w-auto transition-all duration-200 hover:-translate-y-0.5"
+                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full transition-all duration-200 hover:-translate-y-0.5"
                           style={{
                             fontFamily: "Montserrat, system-ui, sans-serif",
                             fontWeight: 600,
@@ -668,22 +709,23 @@ export default function SubscriptionPage() {
                             )
                           }
                           disabled={upgrading}
-                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full sm:w-auto whitespace-nowrap transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full whitespace-nowrap transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
                           style={{
                             fontFamily: "Montserrat, system-ui, sans-serif",
                             fontWeight: 600,
                             fontSize: "0.9375rem",
                             letterSpacing: "-0.005em",
                             color: "hsl(var(--parchment))",
-                            background: isFeatured
-                              ? "hsl(var(--burnt-sienna))"
-                              : "hsl(var(--bark))",
-                            border: isFeatured
-                              ? "1px solid hsl(var(--burnt-sienna))"
-                              : "1px solid hsl(66 25% 19%)",
-                            boxShadow: isFeatured
-                              ? "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--burnt-sienna) / 0.35)"
-                              : "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
+                            // Bark for every tier, featured or not. The featured
+                            // card used burnt-sienna, so /subscription's primary
+                            // CTA and /for-business's (Team, which is bark) were
+                            // different colours for the same action on two
+                            // pricing pages. The card is already marked out by
+                            // its halo and corner chip; the button doesn't need
+                            // to differ too.
+                            background: "hsl(var(--bark))",
+                            border: "1px solid hsl(66 25% 19%)",
+                            boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
                           }}
                         >
                           {upgrading && (
@@ -704,12 +746,17 @@ export default function SubscriptionPage() {
           </div>
         </div>
 
-        {/* Compare-features toggle + table. Ghost button collapses/expands
-            the full feature matrix — kept collapsed by default so the
-            primary conversion (tier cards + CTAs) stays above the fold on
-            typical viewports. */}
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl mt-12 sm:mt-16">
-          <div className="flex justify-center">
+        {/* Compare-features disclosure. The toggle sits DIRECTLY above the
+            table it reveals — parking it up in the masthead grouped it nicely
+            with the billing switch but broke the disclosure: the table opens
+            a full grid-height away, so the click read as doing nothing. */}
+        {/* Mirrors the pricing grid above (4/8 at md, 3/9 at lg) with an empty
+            left cell, so the button centres under the CARD COLUMN rather than
+            under the whole section. Centred on the full width it sat well left
+            of the cards, since the masthead occupies the left third. */}
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-12 md:gap-10 lg:gap-16">
+          <div className="hidden md:block md:col-span-4 lg:col-span-3" aria-hidden />
+          <div className="md:col-span-8 lg:col-span-9 flex justify-center">
             <button
               type="button"
               onClick={() => setShowCompare((s) => !s)}
@@ -837,8 +884,22 @@ export default function SubscriptionPage() {
                         {feature}
                       </th>
                       {CONSUMER_TIERS.map((tier) => {
-                        const has =
-                          TIER_PERKS[tier].featureBullets.includes(feature);
+                        // Tiers are a strict upgrade ladder (free < basic <
+                        // pro < elite) — every perk a lower paid tier has is
+                        // still included at every tier above it (instant
+                        // payouts/boost discount/early access/priority
+                        // placement/analytics all gate on ">= tier", and
+                        // tierConfig.tsx + LegalTab.tsx already advertise
+                        // "Everything in Basic"/"Everything in Pro"). So a
+                        // tier's checkmark must be true if EITHER its own
+                        // featureBullets list the perk OR any tier below it
+                        // in CONSUMER_TIERS does — not just its own list,
+                        // which would wrongly show higher tiers losing perks
+                        // their lower tiers already unlocked.
+                        const tierIndex = CONSUMER_TIERS.indexOf(tier);
+                        const has = CONSUMER_TIERS.slice(0, tierIndex + 1).some(
+                          (t) => TIER_PERKS[t].featureBullets.includes(feature),
+                        );
                         return (
                           <td
                             key={tier}
@@ -882,7 +943,7 @@ export default function SubscriptionPage() {
         ref={benefitsRef}
         className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-24"
       >
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-center">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-center">
           {/* Left masthead */}
           <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
             <span className="text-display-eyebrow">Why upgrade</span>
@@ -899,11 +960,19 @@ export default function SubscriptionPage() {
           </div>
 
           {/* Right — 3 benefits, sequential fade-in */}
-          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-8 lg:gap-10">
+          {/* Same shape as HowItWorksSection's 01/02/03 boxes, and the same
+              reason: from md up this column is 8/12, so three cards side by
+              side were ~150px each — "Keep more of every job." broke across
+              four lines and the body copy set two or three words to a line.
+              One per row at md gives each the full width; lg goes back to
+              three across. `items-stretch` + `h-full` + a per-breakpoint
+              `min-h` keep the three the same height as each other, since at md
+              each is its own row and stretch alone can't equalise them. */}
+          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3 items-stretch gap-10 sm:gap-8 lg:gap-10">
             {BENEFITS.map((b, i) => (
               <div
                 key={b.title}
-                className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8"
+                className="h-full flex flex-col text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 sm:min-h-[15rem] md:min-h-[11rem] lg:min-h-[16rem]"
                 style={{
                   opacity: benefitsInView ? 1 : 0,
                   transform: benefitsInView
@@ -916,25 +985,27 @@ export default function SubscriptionPage() {
                   boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
                 }}
               >
-                <span
-                  aria-hidden
-                  className="block font-display font-black leading-none"
-                  style={{
-                    fontSize: "clamp(4rem, 6.5vw, 6rem)",
-                    color: "hsl(var(--burnt-sienna) / 0.35)",
-                    letterSpacing: "-0.04em",
-                  }}
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
+                {/* No 01/02/03 numeral. These three are parallel BENEFITS of
+                    membership — keep more, get seen, cancel anytime — not
+                    sequential steps, so numbering implied an order that doesn't
+                    exist (the same reason it was dropped from the business
+                    industry cards). It also consumed up to 6rem of each card's
+                    height for decoration. Numbering stays on the landing
+                    "Three steps." section, where the sequence is real. */}
                 <h3
-                  className="mt-4 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
+                  className="font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
                   style={{ color: "hsl(var(--ink-deep))" }}
                 >
                   {b.title}
                 </h3>
                 <p
-                  className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:mx-0"
+                  // max-w-xs was sized for the 3-up layout, where the card is ~300px
+                    // wide anyway. Now that md stacks these full-width, that cap
+                    // stopped the copy dead ~320px in and left the rest of the
+                    // card empty. Released at md, restored at lg where the cards
+                    // narrow again and a 20rem measure is the right reading
+                    // length rather than a limit.
+                    className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:max-w-none md:mx-0 lg:max-w-xs"
                   style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                 >
                   {b.desc}
@@ -952,11 +1023,22 @@ export default function SubscriptionPage() {
   );
 
   // Native: bare document-scroll shell (the app supplies its own nav).
-  // Web: shared marketing chrome (top nav + footer).
+  // pt-safe-top is required now that the page opens with a compact header
+  // instead of the old pt-24/32/40 hero — without it the title row sits
+  // under the status bar / notch on device.
+  // Web: shared marketing chrome (top nav + footer). hideHomeLink because the
+  // compact header already carries the canonical BackButton; PublicLayout's
+  // mobile-only "Back to home" link would stack a second one above it.
   if (isNativePlatform) {
     return (
-      <div className="min-h-screen bg-premium-page pb-safe-nav">{inner}</div>
+      <div className="min-h-screen bg-premium-page pt-safe-top pb-safe-nav">
+        {inner}
+      </div>
     );
   }
-  return <PublicLayout showCtaBand={false}>{inner}</PublicLayout>;
+  return (
+    <PublicLayout showCtaBand={false} hideHomeLink>
+      {inner}
+    </PublicLayout>
+  );
 }

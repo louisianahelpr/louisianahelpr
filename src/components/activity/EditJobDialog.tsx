@@ -230,9 +230,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               backgroundImage: "none",
               border: "1px solid hsl(var(--bark))",
               color: "hsl(var(--parchment))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
               boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
             }}
           >
@@ -247,7 +244,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <AlertDialogHero
           eyebrow="Editing your job"
           title="Save these changes?"
-          subtitle="Your job listing will update right away."
         />
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -265,7 +261,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <AlertDialogHero
           eyebrow="Editing your job"
           title="Discard your changes?"
-          subtitle="Your edits won't be saved to the job listing."
         />
         <AlertDialogFooter>
           <AlertDialogCancel>Keep editing</AlertDialogCancel>

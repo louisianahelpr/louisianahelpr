@@ -9,8 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Briefcase } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
-import { VirtualList } from "@/components/VirtualList";
-import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { type Application, type AppliedApp, type Job } from "./activityConstants";
 import { AppliedJobCard } from "./AppliedJobCard";
 import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
@@ -55,7 +53,7 @@ interface AppliedJobsTabProps {
   onViewDispute: (job: Job) => void;
   onRefresh: () => void;
   /** When true, render items grouped into collapsible Active /
-   *  Completed / Closed sections instead of a flat virtualized list.
+   *  Completed / Closed sections instead of a flat list.
    *  Driven by the page-level "All" status filter. The page's outer
    *  header (ActivityHeader) is the sole source of truth for filter +
    *  search in both modes. */
@@ -71,10 +69,6 @@ export const AppliedJobsTab = ({
   groupByStatus = false,
 }: AppliedJobsTabProps) => {
   const navigate = useNavigate();
-  // Wide browser desktop only (never native / phone-web): swap the
-  // window-virtualized flat list for a plain two-column grid so the
-  // per-status views match the sectioned view's desktop layout.
-  const isWebDesktop = useIsWebDesktop();
   const [disputeResponse, setDisputeResponse] = useState("");
   const [respondingJobId, setRespondingJobId] = useState<string | null>(null);
   const [submittingResponse, setSubmittingResponse] = useState(false);
@@ -207,7 +201,7 @@ export const AppliedJobsTab = ({
   }, []);
 
   // One source of truth for the per-row render so both the flat
-  // VirtualList view and the grouped Sectioned view paint identical
+  // list view and the grouped Sectioned view paint identical
   // cards.
   const renderAppliedCard = (app: AppliedApp) => (
     <AppliedJobCard
@@ -307,21 +301,22 @@ export const AppliedJobsTab = ({
       renderItem={renderAppliedCard}
       labels={{ cancelled: "Closed" }}
     />
-  ) : isWebDesktop ? (
-    <div className="ds-activity-grid">
+  ) : (
+    // Flat (single-status) list rendered in normal document flow — the
+    // same layout primitive the grouped Sectioned view uses (space-y-3 +
+    // ds-activity-grid, single column on phone / two columns on wide
+    // browser desktop). It intentionally is NOT window-virtualized: the
+    // Activity panel scrolls inside its own container (PullToRefreshWrapper),
+    // not the window, so a window virtualizer both mismatched the scroll
+    // source and forced an explicit absolute list height that re-measured
+    // from a fixed estimate on every remount — which is what made switching
+    // "All" ↔ a single status visibly jump. Normal flow keeps the two views
+    // structurally identical, so toggling between them stays stable.
+    <div className="space-y-3 ds-activity-grid">
       {apps.map((app) => (
         <div key={app.id}>{renderAppliedCard(app)}</div>
       ))}
     </div>
-  ) : (
-    <VirtualList
-      items={apps}
-      getKey={(app) => app.id}
-      estimateSize={260}
-      overscan={4}
-      itemClassName="pb-3"
-      renderItem={renderAppliedCard}
-    />
   );
 
   return (
@@ -351,14 +346,6 @@ export const AppliedJobsTab = ({
           <SheetHero
             eyebrow="Withdraw"
             title="Withdraw application?"
-            subtitle={
-              <>
-                You won&apos;t be able to re-apply to{" "}
-                <span className="font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-                  "{withdrawTarget?.jobTitle}"
-                </span>.
-              </>
-            }
           />
 
           <fieldset className="mt-5 space-y-1.5" disabled={!!withdrawingAppId}>

@@ -211,12 +211,6 @@ export function BulkInviteDialog({
           }
           eyebrowClassName="inline-flex items-center gap-1.5"
           title="Bulk invite by CSV"
-          subtitle={
-            <>
-              Drop a CSV with <code className="font-mono text-xs">email,role</code> columns. Roles
-              can be viewer, poster, approver, or admin (defaults to poster).
-            </>
-          }
         />
 
         {rows.length === 0 ? (
@@ -273,7 +267,7 @@ export function BulkInviteDialog({
                       {r.email}
                     </td>
                     <td className="py-2">
-                      <Badge variant="secondary" className="text-ds-10">
+                      <Badge variant="sienna" className="text-ds-10">
                         {ROLE_LABEL[r.role]}
                       </Badge>
                     </td>

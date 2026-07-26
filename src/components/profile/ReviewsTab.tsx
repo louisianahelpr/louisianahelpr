@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { Star, Info, ArrowDownAZ, ArrowUpAZ, CalendarClock } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { formatJobDate } from "@/lib/format";
+import { formatTimestamp } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
@@ -87,54 +88,16 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        eyebrow="Reputation"
         title="My reviews"
-        meta={avgRating ? `${avgRating.toFixed(1)} average from ${reviewCount} review${reviewCount !== 1 ? "s" : ""}` : "No reviews yet"}
         onBack={onBack}
       />
 
-      {/* Zero-state hero — same shell as the populated hero so the
-          page has visual anchor weight even before the first review
-          lands. Sets expectations rather than dropping the user
-          straight into "no reviews yet". */}
-      {reviewCount === 0 && (
-        <div className="rounded-2xl liquid-glass px-5 py-4 flex items-center gap-4">
-          <div className="shrink-0 text-center">
-            <p
-              className="font-display italic font-bold tabular-nums leading-none"
-              style={{ fontSize: "2.25rem", color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "-0.03em" }}
-            >
-              —
-            </p>
-            <p
-              className="font-serif italic mt-1 text-[0.68rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              out of 5
-            </p>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-0.5 mb-1.5">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <Star
-                  key={n}
-                  className="w-4 h-4"
-                  style={{
-                    color: "hsl(var(--olivewood) / 0.25)",
-                    fill: "transparent",
-                  }}
-                />
-              ))}
-            </div>
-            <p
-              className="font-serif italic text-[0.85rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              No rating yet — your first review sets the baseline.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* No zero-state hero. It rendered an empty "— out of 5" card saying
+          "No rating yet…" directly above the EmptyState below, which says
+          "No reviews yet" and explains the same thing again — two headings
+          narrating one emptiness, simultaneously on screen. The EmptyState
+          (with its illustration and the how-reviews-work popover) is the
+          better of the two, so it carries the zero case alone. */}
 
       {/* Hero summary — big rating number + stars + count. Anchors the
           page so the reader has the at-a-glance signal before they scroll
@@ -288,10 +251,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
           {/* Sort pills — Newest by default, with Highest/Lowest for
               triage when the feed has volume (e.g. responding to the
               worst recent review). */}
-          <div className="flex items-center justify-between gap-2 px-1">
-            <span className="font-serif italic uppercase text-[0.62rem]" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-              All reviews · {reviews.length}
-            </span>
+          <div className="flex items-center justify-end gap-2 px-1">
             <Popover>
               <PopoverTrigger asChild>
                 <button
@@ -352,7 +312,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   </span>
                 </div>
                 <span className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-                  {formatJobDate(review.created_at)}
+                  {formatTimestamp(review.created_at)}
                 </span>
               </div>
               {(review.punctuality || review.quality || review.communication) && (
@@ -390,17 +350,14 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
             </div>
           ))}
           {hasMore && (
-            <button
+            <Button
+              variant="outline"
               onClick={onLoadMore}
               disabled={loadingMore}
-              className="w-full py-3 text-ds-13 font-medium rounded-ds-md border disabled:opacity-50 mt-2"
-              style={{
-                borderColor: "hsl(var(--olivewood) / 0.2)",
-                color: "hsl(var(--olivewood))",
-              }}
+              className="w-full mt-2"
             >
               {loadingMore ? "Loading…" : "Load more reviews"}
-            </button>
+            </Button>
           )}
         </div>
       )}

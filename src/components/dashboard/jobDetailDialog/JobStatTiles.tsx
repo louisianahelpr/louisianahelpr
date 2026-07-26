@@ -1,5 +1,5 @@
 import { type ElementType } from "react";
-import { MapPin, Calendar, Clock, Timer } from "lucide-react";
+import { MapPin, Calendar, Clock, Hourglass, Timer } from "lucide-react";
 import { getCity } from "@/lib/locationUtils";
 import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
@@ -17,8 +17,14 @@ interface JobStatTilesProps {
    payout. Where + Date are clickable: Where opens Google Maps,
    Date opens Google Calendar. */
 export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStatTilesProps) => {
+  // auto-rows-fr + the last-child span keeps the final tile from sitting as a
+  // lone full-width slab. With an ODD tile count (5 here: Where, Date, Time,
+  // Estimated, Closes) a plain 2-col grid strands the last one; spanning it
+  // across both columns is the deliberate, balanced version of what was
+  // happening by accident, and auto-rows-fr keeps every row the same height so
+  // the block reads as one unit.
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-2 auto-rows-fr gap-2 [&>*:last-child:nth-child(odd)]:col-span-2">
       {(() => {
         const dateNeeded = parseLocalDate(job.date_needed);
         const dateValid = !isNaN(dateNeeded.getTime());
@@ -77,7 +83,13 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           // "Estimated —" read as a bug rather than "no estimate given".
           ...(job.estimated_hours != null
             ? [{
-                Icon: Clock,
+                // Hourglass, not Clock. Clock sits directly beside this on the
+                // "Time" tile, so two identical glyphs were labelling two
+                // different things — a clock time (5:00 PM) and a duration
+                // (4 hrs). Three distinct time concepts now read distinctly:
+                // Clock = when it starts, Hourglass = how long it takes,
+                // Timer = how long until the listing closes.
+                Icon: Hourglass,
                 label: "Estimated",
                 value: `${job.estimated_hours} ${Number(job.estimated_hours) === 1 ? "hr" : "hrs"}`,
                 sub: null,

@@ -1279,8 +1279,14 @@ async function transferToHelper(
     });
     console.log(`Transferred $${amount.toFixed(2)} to helper ${helperId} (transfer: ${transfer.id})`);
 
-    // Ledger row mirrors release-payout so every payout path reconciles the
-    // same way (stripe-webhook flips status to 'paid' on transfer.paid).
+    // Insert as "paid" immediately — same pattern as release-payout and
+    // process-scheduled-payouts. The transfer.created webhook fires within
+    // milliseconds of stripe.transfers.create() returning. If the row is
+    // inserted as "pending" and the webhook fires first, its UPDATE finds no
+    // matching row and is a no-op; the row then lands as "pending" with no
+    // future event ever re-firing to flip it to "paid", leaving it stuck in
+    // the ledger indefinitely. Inserting "paid" upfront makes the webhook
+    // UPDATE harmless — it overwrites the already-terminal value.
     const { error: ledgerErr } = await supabaseAdmin
       .from("payout_transfers")
       .insert({
@@ -1290,7 +1296,8 @@ async function transferToHelper(
         stripe_account_id: helperProfile.stripe_account_id,
         amount_cents: Math.round(amount * 100),
         platform_fee_cents: Math.round(platformFeeAmount * 100),
-        status: "pending",
+        status: "paid",
+        paid_at: new Date().toISOString(),
         initiated_by: "admin",
         initiated_by_user_id: initiatedByUserId,
         metadata: { source: "admin_release_dispute" },

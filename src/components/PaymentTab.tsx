@@ -111,15 +111,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
 
   return (
     <div className="space-y-5">
-      {/* Section headers are quiet eyebrow labels (matching the Edit
-          Profile sections) rather than icon-circle + eyebrow + bold
-          h2 stacks — the page had three competing title treatments
-          and read as cluttered. The tab header ("Payment settings")
-          is the one real title now. */}
       <section className="space-y-2">
-        <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-          Payout account
-        </p>
         <div className="rounded-2xl liquid-glass p-5">
           <PayoutSetupForm />
         </div>
@@ -140,12 +132,6 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
           d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
         return (
           <section className="space-y-2">
-            <p
-              className="font-serif italic uppercase px-1"
-              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-            >
-              Recent activity
-            </p>
             <div className="rounded-2xl liquid-glass p-4">
               <div className="flex items-start gap-3">
                 <span
@@ -189,9 +175,6 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
       })()}
 
       <section className="space-y-2">
-        <p className="font-serif italic uppercase px-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-          Payment summary
-        </p>
         <div className="rounded-2xl liquid-glass p-5">
           {hasNoActivity ? (
             /* One empty state — no scope toggle, no dual $0.00 columns,

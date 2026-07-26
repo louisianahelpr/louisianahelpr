@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Clock } from "lucide-react";
 
 /** Nearest accepted / in-progress job where the user is the helper. */
@@ -26,6 +26,7 @@ const DashboardStatusBanners = ({
   isPendingReview,
   onPendingClick,
 }: DashboardStatusBannersProps) => {
+  const reducedMotion = useReducedMotion();
   return (
     <>
       {/* Progressive-activation banner — a pending user can browse,
@@ -34,8 +35,8 @@ const DashboardStatusBanners = ({
           (/account-pending) where they can track review status. */}
       {isPendingReview && (
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={reducedMotion ? false : { opacity: 0, y: -8 }}
+          animate={reducedMotion ? {} : { opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           className="liquid-glass shrink-0 px-4 py-3 flex items-start gap-3"
           style={{

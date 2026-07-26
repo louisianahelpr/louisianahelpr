@@ -14,7 +14,21 @@ export const categories = [
   { value: "other", label: "Other" },
 ];
 
-export const TITLE_MAX = 100;
+// 32, down from 100. A job card gives the title ONE line (line-clamp-1) in a
+// ~254px column at the tightest breakpoint — the two-up grid — sharing that row
+// with the price chip. Measured against the card's own italic display face:
+// 40 still clipped real titles at 35-37 chars, and 32 is where they stop
+// clipping ("Board windows ahead of the storm" is exactly 32 and fits).
+//
+// Enforced at the INPUT, where the poster sees a live n/32 counter and can
+// choose their own wording, rather than silently cutting their words later on
+// the board. line-clamp-1 stays only as a safety net for rows posted before
+// this cap existed.
+//
+// If this proves too tight in practice, the lever is card LAYOUT, not the cap:
+// the title currently yields ~90px of its row to the price chip, so moving the
+// price into the meta line below would buy back roughly a third more room.
+export const TITLE_MAX = 32;
 export const DESCRIPTION_MAX = 1000;
 
 // Categories where credential-tier requirements make sense (trade work).

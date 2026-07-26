@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { motion, useMotionValue, useTransform, animate, type PanInfo } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate, useReducedMotion, type PanInfo } from "framer-motion";
 import { CHIP_SWIPE_THRESHOLD } from "./constants";
 
 /**
@@ -22,6 +22,7 @@ export function SwipeableFilterChip({
   onClear: () => void;
   ariaLabel: string;
 }) {
+  const reducedMotion = useReducedMotion();
   const x = useMotionValue(0);
   // Visual hint: the chip fades and tilts a touch as it crosses the
   // commit threshold so the user feels the action arrive before it
@@ -33,7 +34,7 @@ export function SwipeableFilterChip({
       onClear();
       return;
     }
-    animate(x, 0, { type: "spring", stiffness: 500, damping: 30 });
+    if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "spring", stiffness: 500, damping: 30 }); }
   };
 
   return (

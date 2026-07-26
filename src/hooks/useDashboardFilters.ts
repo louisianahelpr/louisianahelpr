@@ -65,11 +65,16 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
   const [expiresWithin, setExpiresWithin] = useState("");
   const [matchAvailability, setMatchAvailability] = useState(false);
   const [boostedOnly, setBoostedOnly] = useState(false);
+  const [urgentOnly, setUrgentOnly] = useState(false);
 
   const nearbyMiles = parseNearbyFilter(locationFilter);
   const userLoc = useUserLocation(nearbyMiles !== null);
 
-  const activeFilterCount = [selectedCategory, minBudget, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : ""].filter(Boolean).length;
+  // Budget is ONE filter even though it occupies two state slots: the sheet's
+  // budget bands ("$50 – $150") write min AND max together, so counting them
+  // separately made a single tapped chip report "2 filters active" in the
+  // badge, the sheet subtitle, and the "Filtered · N active" eyebrow.
+  const activeFilterCount = [selectedCategory, minBudget || maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : "", urgentOnly ? "on" : ""].filter(Boolean).length;
   const hasFilters = activeFilterCount > 0 || !!searchQuery;
 
   const clearFilters = () => {
@@ -81,6 +86,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     setExpiresWithin("");
     setMatchAvailability(false);
     setBoostedOnly(false);
+    setUrgentOnly(false);
   };
 
   // Smart-sort proximity input — reuse the helper's coords ONLY when the
@@ -126,6 +132,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       // empty values are kept (better to show than silently hide).
       if (job.date_needed && job.date_needed.slice(0, 10) < todayLocalDate) return false;
       if (boostedOnly && !job.isBoosted) return false;
+      if (urgentOnly && !job.is_urgent) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         if (!job.title.toLowerCase().includes(q) && !job.description.toLowerCase().includes(q)) return false;
@@ -220,7 +227,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
         default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-    }), [allJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, earlyAccessExempt, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
+    }), [allJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, earlyAccessExempt, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
 
   const nearbyJobs = useMemo(() => {
     const userLocation = profile?.location?.toLowerCase() || "";
@@ -241,6 +248,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     expiresWithin, setExpiresWithin,
     matchAvailability, setMatchAvailability,
     boostedOnly, setBoostedOnly,
+    urgentOnly, setUrgentOnly,
     activeFilterCount, hasFilters, clearFilters,
     filteredJobs, nearbyJobs,
     userLoc, nearbyMiles,

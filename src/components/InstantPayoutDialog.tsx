@@ -86,9 +86,17 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             </>
           }
           title="Cash out instantly."
-          subtitle="In your debit card in ~30 minutes."
         />
 
+        {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
+            title": headers show a title and nothing else). Not dropped —
+            this is a payout-timing statement, which a sighted
+            user has to be able to read. The `subtitle` prop is gone from the
+            hero above rather than left sr-only, so screen readers hear it
+            once, here, instead of twice. */}
+        <p className="font-serif italic leading-relaxed text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+          In your debit card in ~30 minutes.
+        </p>
         {loading ? (
           <div className="py-8 flex justify-center">
             <HelprSpinner size={32} delay={0} />
@@ -119,12 +127,6 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
                   "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22)",
               }}
             >
-              <p
-                className="font-serif italic uppercase mb-1"
-                style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Breakdown
-              </p>
               <div className="flex justify-between text-[0.8rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <span className="font-serif italic">Available balance</span>
                 <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>{fmt(quote.gross_cents)}</span>

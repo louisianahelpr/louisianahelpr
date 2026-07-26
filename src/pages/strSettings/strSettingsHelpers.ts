@@ -16,6 +16,14 @@ export function formatSyncTime(ts: string | null): string {
 
 // ---------------------------------------------------------------------------
 // Styles (matching SubscriptionPage / StrSettings design language)
+//
+// DELIBERATE deviation from the app's `rounded-2xl liquid-glass p-5` card
+// convention: /str-settings shares SubscriptionPage's premium-surface
+// treatment (burnt-sienna wash over --surface-premium, bark hairline) so the
+// two paid-feature screens read as one product tier. `liquid-glass`'s flat
+// white fill would flatten that gradient away. Radius/padding stay on the
+// call sites because several of these containers are edge-to-edge (their rows
+// own the padding) — see StrSettings.tsx and ConnectionCard.tsx.
 // ---------------------------------------------------------------------------
 export const cardStyle: React.CSSProperties = {
   background:

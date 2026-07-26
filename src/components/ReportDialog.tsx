@@ -147,17 +147,10 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><ShieldAlert className="w-3 h-3" strokeWidth={2} aria-hidden="true" /> {eyebrow}</>}
           title={title}
-          subtitle={step !== "confirmation" ? "Tell us what's going on. Our trust team reviews every report." : undefined}
         />
 
         {step === "reason" && (
           <div className="space-y-2">
-            <p
-              className="font-serif italic uppercase text-[0.6rem]"
-              style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.16em" }}
-            >
-              Why are you reporting this?
-            </p>
             <div className="grid grid-cols-2 gap-1.5">
               {reasons.map(({ label, Icon }, i) => {
                 const active = reason === label;
@@ -289,9 +282,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                         backgroundImage: "none",
                         border: "1px solid hsl(var(--bark))",
                         color: "hsl(var(--parchment))",
-                        fontFamily: "Montserrat, system-ui, sans-serif",
-                        fontWeight: 600,
-                        letterSpacing: "0.01em",
                         boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
                       }
                     : undefined
@@ -383,9 +373,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                   backgroundImage: "none",
                   border: "1px solid hsl(var(--bark))",
                   color: "hsl(var(--parchment))",
-                  fontFamily: "Montserrat, system-ui, sans-serif",
-                  fontWeight: 600,
-                  letterSpacing: "0.01em",
                   boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
                 }}
               >

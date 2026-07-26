@@ -112,11 +112,16 @@
   --success-foreground: 0 0% 100%;
   --warning: 33 26% 53%;
   --warning-foreground: 0 0% 100%;
-  --error: 0 13% 48%;
+  /* Real red (was the muted `0 13% 48%` that read as mauve/dusty-rose).
+     Retuned 2026-07-25 per "nothing should be mauve" to a saturated warm red
+     aligned with the vetted `--cancel` pair (hue ~6). White foreground keeps
+     AA on the solid fill. Applies to every destructive/error button, badge,
+     and text token app-wide. */
+  --error: 6 64% 46%;
   --error-foreground: 0 0% 100%;
   --info: 78 9% 53%;
   --info-foreground: 0 0% 100%;
-  --destructive: 0 13% 48%;
+  --destructive: 6 64% 46%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:         var(--parchment);
   --sidebar-foreground:         var(--olivewood);
@@ -313,11 +318,14 @@
   --success-foreground:   0 0% 100%;
   --warning:              33 26% 60%;
   --warning-foreground:   0 0% 100%;
-  --error:                0 18% 55%;
+  /* Real red for dark mode (was the muted mauve `0 18% 55%`). Slightly
+     lighter/brighter than the light-mode red so it reads on the dark canvas
+     while keeping white-foreground contrast. See the light-mode note. */
+  --error:                6 60% 52%;
   --error-foreground:     0 0% 100%;
   --info:                 78 12% 55%;
   --info-foreground:      0 0% 100%;
-  --destructive:          0 18% 55%;
+  --destructive:          6 60% 52%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:   var(--parchment);
   --sidebar-foreground:   var(--olivewood);
@@ -607,20 +615,38 @@ body {
     background-color: hsl(20 12% 5%);
   }
   html.app-shell:not(.web-desktop) .app-shell-frame {
-    /* Desktop app-frame. Widened from 480 → 680 so the single-column UI
-       fills more of a desktop viewport AND viewport-keyed `sm:` layouts
-       (e.g. the Browse empty-state's side-by-side CTAs) stop overflowing
-       the frame and clipping text ("…neighbor" → "neigh▮"). Kept well
-       below a full-bleed width so job cards / headers don't stretch. */
-    max-width: 680px;
+    /* Tablet / mid-band app-frame. Evolution: 480 → 680 → responsive fill.
+       A flat 680px cap stranded a growing gray gutter across the 768–1023px
+       band (e.g. ~160px each side at a 1000px viewport) before the ≥1024px
+       web-desktop treatment takes over. We now fill the band with
+       `min(94vw, 880px)`: near-full-bleed up through ~936px viewport, then a
+       gentle 880px ceiling so the single-column UI never stretches
+       unreadably wide right before the desktop sidebar layout kicks in.
+       (max-width can't itself cause overflow; 94vw at 768 = 722 > the old
+       680, so inner content has strictly MORE room, not less.) */
+    max-width: min(94vw, 880px);
     margin-inline: auto;
     box-shadow:
       0 0 0 1px hsl(36 14% 70% / 0.55),
       0 24px 70px -20px hsl(64 16% 16% / 0.35);
   }
   html.app-shell:not(.web-desktop) .mobile-nav-frame {
-    max-width: 680px;
+    /* Keep the floating bottom-nav pill aligned to the frame width above. */
+    max-width: min(94vw, 880px);
     margin-inline: auto;
+  }
+  /* PageScaffold's "wide" pages (Dashboard/Messages/Activity) additionally
+     cap their inner content column at max-w-3xl (768px) via Tailwind — a
+     SECOND cap independent of the frame's own min(94vw,880px) above. Below
+     1024px that column-level cap was never lifted (the `ds-desktop-wide`
+     rule that does so is desktop-only, gated to `html.web-desktop`), so a
+     900px+ tablet viewport widened the outer frame but left the visible
+     content stranded ~36px narrower per side inside it — the frame grew,
+     the page didn't. The tablet-band frame cap above is already a sensible
+     ceiling on its own, so the inner column just needs to stop double-
+     capping itself; no new numeric cap is needed here. */
+  html.app-shell:not(.web-desktop) .app-shell-frame .ds-desktop-wide {
+    max-width: none;
   }
 }
 
@@ -804,6 +830,65 @@ html.web-desktop {
     outline-offset: 3px;
     border-radius: 3px;
     text-decoration-color: currentColor;
+  }
+}
+
+
+/* No bottom dock for signed-out visitors, so nothing needs to clear it.
+   `--bottom-nav-h` feeds Tailwind's `safe-nav` spacing token (see
+   tailwind.config.ts), so zeroing it here collapses the reserved strip on all
+   22 `pb-safe-nav` pages at once instead of per page. The class is toggled by
+   MobileNav, which owns the render decision. */
+html.no-bottom-nav {
+  --bottom-nav-h: 0px;
+}
+
+/* ── .squircle — intentionally a NO-OP marker class ────────────────────────
+   `.squircle` rides on ~25 components and, via `buttonVariants`, on virtually
+   every Button in the app. It has never had a visual effect, and shouldn't.
+
+   Commit 0523faca gave it a real implementation via `corner-shape:
+   superellipse(4)` and that was a mistake — nobody asked for it, and it
+   squared off the nav CTA, every filter chip and the search field in one go.
+   Reverted the same day. Don't try again; here's why no value works:
+
+   `corner-shape: superellipse(k)` only moves one way — k=2 IS `round`, and
+   every k above 2 makes the corner SQUARER, approaching a hard 90° as k→∞.
+   Measured at a fixed 14px radius, corner cut depth:
+
+       square             0.00px   (hard 90°)
+       superellipse(4)    0.25px   ← what shipped: 14% of round ⇒ reads square
+       superellipse(3)    0.75px
+       superellipse(2.4)  1.25px   ← retune attempt: still reads square
+       round (= s(2))     1.75px   ← what we ship
+
+   A real Apple continuous corner is TWO changes: flatter through the diagonal
+   AND a larger radius (~1.53x the edge span), so it starts bending earlier.
+   Ship the flattening alone and you get a rectangle. Both were then rendered
+   head-to-head as 130px swatches — round vs s(2.5)/s(3)/s(4) at 1x, 1.6x and
+   2x radius — and plain `round` was chosen over all of them.
+
+   If softer corners are ever genuinely wanted, the lever is `border-radius` on
+   the design tokens, not `corner-shape`.
+
+   Kept in `@layer components` so it lands before Tailwind's utilities. Tailwind
+   v3 content-purges custom `@layer components` CSS, so this rule survives only
+   because the literal string `squircle` appears in the scanned source
+   (including the `buttonVariants` base string) — renaming the class without
+   updating call sites would silently drop it rather than error. */
+@layer components {
+  /* `round` — i.e. `.squircle` is a NO-OP marker class, and stays one. Chosen
+     head-to-head: the candidates were rendered as 130px swatches side by side
+     (round, s(2.5), s(3) and s(4), each at 1x / 1.6x / 2x radius) and plain
+     `round` was picked over every superellipse variant. Each element keeps
+     whatever `border-radius` its own Tailwind class gives it.
+
+     Do not "finish" this. See the block above for why no superellipse value
+     wins here. Left as an explicit declaration rather than an empty rule so
+     the intent survives — an empty ruleset reads as an oversight and invites
+     the same re-implementation. */
+  .squircle {
+    corner-shape: round;
   }
 }
 
@@ -1226,7 +1311,13 @@ button,
    numbers and category eyebrows. Reads like an architect's drawing label or
    the date line in a journal rather than a web tagline. */
 .text-display-eyebrow {
-  display: inline-block;
+  /* Eyebrow kickers removed app-wide (2026-07-25 decision: "all eyebrows
+     gone"). This utility was used exclusively for the small burnt-sienna
+     uppercase kicker above titles on the marketing/status pages, in
+     EmptyState, and in ErrorState — hiding it here retires every one of those
+     in a single place. The type rules are kept (commented) so the label is a
+     one-line restore if ever wanted. */
+  display: none;
   font-family: "EB Garamond", Georgia, Cambria, serif;
   font-style: italic;
   font-size: 0.78rem;
@@ -2322,6 +2413,12 @@ button,
   nav,
   header[role="banner"],
   [data-print-hide],
+  /* The authed sticky top bar (wordmark + NotificationPanel). Every shell
+     that renders one — PageHeader, DashboardHeader, BusinessLayout,
+     DashboardGuest, GuestBrowseSkeleton — marks it with `.glass-header` and
+     none of them set role="banner", so without this the app bar printed on
+     top of documents like /work-record and /legal. */
+  .glass-header,
   .app-bottom-nav,
   .bottom-nav,
   [data-bottom-nav],

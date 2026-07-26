@@ -155,7 +155,6 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus 
             background: "hsl(var(--gold-warm) / 0.22)",
             border: "1px solid hsl(var(--gold-warm) / 0.55)",
             color: "hsl(var(--ink-deep))",
-            fontWeight: 600,
           }}
           onClick={() => handlePick(qr)}
           aria-label={`Send "${qr.label}"`}

@@ -114,7 +114,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
 
   const { startISO, endISO, days } = useMemo(() => buildWindow(), []);
 
-  const { data: jobs = [], isLoading } = useQuery<StripJob[]>({
+  const { data: jobs = [], isLoading, isError } = useQuery<StripJob[]>({
     queryKey: queryKeys.helperSchedule.forWindow(helperId, startISO, endISO),
     queryFn: async () => {
       // Filter at the DB level — RLS already restricts SELECT on these
@@ -178,6 +178,12 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
   // 7-day grid is busy chrome that demoralises rather than informs — the
   // EarningsForecastCard's empty state above already nudges them to
   // browse.
+  // On a hard error `jobs` stays [] → the block below would falsely tell the
+  // helper "No jobs scheduled this week" when they may have scheduled work.
+  // Hide the strip instead of asserting an empty schedule (their jobs still
+  // appear on the dashboard/Activity); react-query retries transient failures.
+  if (isError) return null;
+
   if (jobs.length === 0) {
     return (
       <div className="rounded-2xl liquid-glass p-5">
@@ -192,16 +198,6 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
             />
           </div>
           <div className="flex-1 min-w-0">
-            <p
-              className="font-serif italic uppercase"
-              style={{
-                fontSize: "0.6rem",
-                color: "hsl(var(--burnt-sienna))",
-                letterSpacing: "0.18em",
-              }}
-            >
-              Next 7 days
-            </p>
             <h3
               className="font-display italic font-bold leading-tight"
               style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}
@@ -217,7 +213,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
             <Button
               variant="bark"
               size="sm"
-              className="mt-2 h-8 text-ds-11"
+              className="mt-2"
               onClick={() => navigate("/dashboard")}
             >
               Browse jobs
@@ -240,16 +236,6 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
         className="rounded-2xl liquid-glass p-4"
       >
         <div className="mb-3">
-          <p
-            className="font-serif italic uppercase"
-            style={{
-              fontSize: "0.6rem",
-              color: "hsl(var(--burnt-sienna))",
-              letterSpacing: "0.18em",
-            }}
-          >
-            Next 7 days
-          </p>
           <h3
             className="font-display italic font-bold leading-tight"
             style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}

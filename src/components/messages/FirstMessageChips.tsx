@@ -64,11 +64,22 @@ export function FirstMessageChips({ viewerRole, onPick, className }: FirstMessag
           onClick={() => handlePick(text)}
           className={cn(
             "inline-flex items-center min-h-[44px] rounded-ds-md px-3.5 py-2 text-sm transition-colors",
-            "bg-[hsl(var(--parchment))] text-[hsl(var(--ink-deep))]",
-            "border border-[hsl(var(--olivewood))]",
-            "hover:bg-[hsl(var(--ivory-sand))]",
+            // State variants only. Hover/focus have no inline-style
+            // equivalent, so they stay as Tailwind arbitrary-value classes
+            // — the same split MessageActionSheet's ActionRow uses (resting
+            // colors inline, `focus-visible:ring-[...]` as a class).
+            //
+            // The resting background has to stay a class too, precisely
+            // BECAUSE of the hover: an inline `background` outranks any
+            // non-!important class rule, so moving it into `style` would
+            // silently kill `hover:bg-[hsl(var(--ivory-sand))]`.
+            "bg-[hsl(var(--parchment))] hover:bg-[hsl(var(--ivory-sand))]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]",
           )}
+          style={{
+            color: "hsl(var(--ink-deep))",
+            border: "1px solid hsl(var(--olivewood))",
+          }}
         >
           {text}
         </button>

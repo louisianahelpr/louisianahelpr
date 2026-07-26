@@ -36,6 +36,28 @@ export interface BusinessSeatTier {
    * are LIVE recurring Prices that charge the canonical amount shown above.
    */
   stripePriceId: string | null;
+  /**
+   * Whole-cent price of the ANNUAL plan, billed once per year. Follows the same
+   * pay-10-months-get-12 convention the consumer tiers already use (Pro is
+   * $10/mo or $100/yr — see `annualPrice` in src/lib/subscriptionTiers.ts), so
+   * Crew $20/mo → $200/yr, Team $30/mo → $300/yr, Enterprise $40/mo → $400/yr.
+   * 0 for Free.
+   */
+  annualPriceCents: number;
+  /**
+   * Stripe Price ID for the ANNUAL plan.
+   *
+   * NULL UNTIL THE PRICES EXIST. Stripe Prices can only be created in the
+   * Stripe dashboard/API, not from here, so these stay null until a human makes
+   * three yearly recurring Prices against the SAME products as the monthly IDs
+   * above, at the `annualPriceCents` amounts. Either paste the IDs in here, or
+   * set STRIPE_PRICE_SEAT_<TIER>_ANNUAL and leave these null — the getter below
+   * prefers the env var. No other code change is needed either way.
+   *
+   * While null, requesting an annual checkout returns a clear error instead of
+   * silently charging the monthly price — see create-business-seat-checkout.
+   */
+  stripePriceIdAnnual: string | null;
 }
 
 export const BUSINESS_SEAT_TIERS: readonly BusinessSeatTier[] = [
@@ -47,6 +69,8 @@ export const BUSINESS_SEAT_TIERS: readonly BusinessSeatTier[] = [
     priceCents: 0,
     featured: false,
     stripePriceId: null, // Free — no Stripe checkout.
+    annualPriceCents: 0,
+    stripePriceIdAnnual: null,
   },
   {
     key: "crew",
@@ -56,6 +80,8 @@ export const BUSINESS_SEAT_TIERS: readonly BusinessSeatTier[] = [
     priceCents: 2000,
     featured: false,
     stripePriceId: "price_1TpvLSKp2H4b7tECkJALCpxj", // LIVE $20/mo (created 2026-07-05; retired old $10 price_1TQKGY…).
+    annualPriceCents: 20000, // $200/yr — $20 x 10, two months free.
+    stripePriceIdAnnual: null, // TODO(owner): create a $200/yr Price, or set STRIPE_PRICE_SEAT_CREW_ANNUAL.
   },
   {
     key: "team",
@@ -65,6 +91,8 @@ export const BUSINESS_SEAT_TIERS: readonly BusinessSeatTier[] = [
     priceCents: 3000,
     featured: true,
     stripePriceId: "price_1TpvLdKp2H4b7tECODF3U9RJ", // LIVE $30/mo (created 2026-07-05; retired old $20 price_1TQKGZ…).
+    annualPriceCents: 30000, // $300/yr — $30 x 10, two months free.
+    stripePriceIdAnnual: null, // TODO(owner): create a $300/yr Price, or set STRIPE_PRICE_SEAT_TEAM_ANNUAL.
   },
   {
     key: "enterprise",
@@ -74,6 +102,8 @@ export const BUSINESS_SEAT_TIERS: readonly BusinessSeatTier[] = [
     priceCents: 4000,
     featured: false,
     stripePriceId: "price_1TQKGaKp2H4b7tECp6ZNxarR", // LIVE $40/mo — already at the canonical amount, unchanged.
+    annualPriceCents: 40000, // $400/yr — $40 x 10, two months free.
+    stripePriceIdAnnual: null, // TODO(owner): create a $400/yr Price, or set STRIPE_PRICE_SEAT_ENTERPRISE_ANNUAL.
   },
 ] as const;
 
@@ -91,6 +121,12 @@ const SEAT_ENV_KEY: Record<string, string> = {
   crew: "STRIPE_PRICE_SEAT_CREW",
   team: "STRIPE_PRICE_SEAT_TEAM",
   enterprise: "STRIPE_PRICE_SEAT_ENTERPRISE",
+};
+
+const SEAT_ENV_KEY_ANNUAL: Record<string, string> = {
+  crew: "STRIPE_PRICE_SEAT_CREW_ANNUAL",
+  team: "STRIPE_PRICE_SEAT_TEAM_ANNUAL",
+  enterprise: "STRIPE_PRICE_SEAT_ENTERPRISE_ANNUAL",
 };
 
 /**
@@ -114,3 +150,31 @@ export const BUSINESS_SEAT_TIER_TO_PRICE: Record<string, string> = (() => {
   }
   return result;
 })();
+
+/**
+ * tier key → ANNUAL Stripe Price ID, for the paid tiers. Same lazy-getter shape
+ * as the monthly map, but the value may legitimately be `undefined` today: the
+ * annual Prices do not exist yet, so a tier resolves only once its
+ * STRIPE_PRICE_SEAT_<TIER>_ANNUAL env var is set or its `stripePriceIdAnnual`
+ * is filled in. Callers MUST treat undefined as "annual not available" and say
+ * so, never fall back to the monthly Price — that would bill someone $20 for
+ * what the UI offered as a $200 yearly plan.
+ */
+export const BUSINESS_SEAT_TIER_TO_PRICE_ANNUAL: Record<string, string | undefined> = (() => {
+  const result = {} as Record<string, string | undefined>;
+  for (const t of BUSINESS_SEAT_TIERS) {
+    if (t.stripePriceId === null) continue; // Free tier has no checkout at all.
+    const envKey = SEAT_ENV_KEY_ANNUAL[t.key];
+    Object.defineProperty(result, t.key, {
+      enumerable: true,
+      get() { return (envKey ? readEnv(envKey) : undefined) ?? t.stripePriceIdAnnual ?? undefined; },
+    });
+  }
+  return result;
+})();
+
+/** True when every paid tier has an annual Price resolvable — i.e. the
+ *  monthly/annual toggle can safely be shown. */
+export const ANNUAL_SEAT_PRICING_AVAILABLE = (): boolean =>
+  BUSINESS_SEAT_TIERS.filter((t) => t.stripePriceId !== null)
+    .every((t) => !!BUSINESS_SEAT_TIER_TO_PRICE_ANNUAL[t.key]);

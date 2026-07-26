@@ -21,7 +21,6 @@ export const CancelSurveyDialog = ({
         <DialogHero
           eyebrow="Before you go"
           title="Thinking of cancelling?"
-          subtitle="Quick — what's holding you back? It helps us improve, and we might be able to fix it."
         />
         <div className="space-y-2">
           {[

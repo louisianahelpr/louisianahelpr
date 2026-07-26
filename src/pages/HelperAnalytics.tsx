@@ -121,7 +121,7 @@ function buildKpis(a: Analytics | undefined) {
       ? {
           label: "On-time",
           value: `${a.onTimeRate}%`,
-          sub: `${a.timingJobCount} timed jobs`,
+          sub: `${a.timingJobCount} timed job${a.timingJobCount === 1 ? "" : "s"}`,
           icon: <Clock className="w-4 h-4" />,
         }
       : a?.repeatHirePercent !== null && a?.repeatHirePercent !== undefined

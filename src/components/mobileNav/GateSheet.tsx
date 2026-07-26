@@ -32,7 +32,6 @@ export const GateSheet = ({ open, onOpenChange }: GateSheetProps) => {
         <SheetHero
           eyebrow="Join Helpr"
           title="Create your free account"
-          subtitle="Join Helpr to post jobs, message Helprs, and track your activity. It only takes a minute."
         />
         <div className="flex flex-col gap-3 mt-6">
           <Button

@@ -91,7 +91,7 @@ describe("PayoutCelebration", () => {
     render(<PayoutCelebration payouts={[makePayout({ amount_cents: 7500 })]} />);
 
     expect(screen.getByRole("status")).toBeInTheDocument();
-    expect(screen.getByText(/You earned \$75\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/You earned \$75/)).toBeInTheDocument();
     expect(screen.getByText(/From Mow the lawn/)).toBeInTheDocument();
 
     // Marker advanced to the paid_at timestamp.
@@ -124,10 +124,10 @@ describe("PayoutCelebration", () => {
       />,
     );
 
-    // 40 + 60 + 25 = $125.00, single card (one status node).
+    // 40 + 60 + 25 = $125, single card (one status node).
     const cards = screen.getAllByRole("status");
     expect(cards).toHaveLength(1);
-    expect(screen.getByText(/You earned \$125\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/You earned \$125/)).toBeInTheDocument();
     // Headline mentions the most recent job (Fix fence) and the count.
     expect(screen.getByText(/Across 3 jobs · latest: Fix fence/)).toBeInTheDocument();
 

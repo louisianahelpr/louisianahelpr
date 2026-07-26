@@ -6,7 +6,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRoute } from "@/lib/routePrefetch";
@@ -43,6 +42,16 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // badges (new applicants on your posts; pending direct offers to you).
   // Count-only queries — deliberately not the heavy useActivityData hook.
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
+  // Signed-out visitors get no bottom dock (below), so nothing should reserve
+  // space for one. This class zeroes `--bottom-nav-h`, which feeds Tailwind's
+  // `safe-nav` token — collapsing the ~112px strip on all 22 `pb-safe-nav`
+  // pages at once. Toggled here because this component owns the decision to
+  // render the dock at all; keeping the two in one place stops them drifting.
+  useEffect(() => {
+    document.documentElement.classList.toggle("no-bottom-nav", isGuest);
+    return () => document.documentElement.classList.remove("no-bottom-nav");
+  }, [isGuest]);
+
   const [gateOpen, setGateOpen] = useState(false);
   // Long-press quick-action sheet — one sheet, with content keyed by which
   // tab was long-pressed. Keeps the markup compact instead of one sheet per
@@ -147,23 +156,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       navigate("/activity?tab=applied");
     };
 
-    // Profile — Multi-account placeholder. We don't have a switcher yet;
-    // surface a toast so the user knows the long-press registered and a
-    // feature is coming. Keeps the gesture discoverable without shipping
-    // half-built UI.
-    const switchAccountPlaceholder = () => {
-      close();
-      toast("Multi-account switching is coming soon.", {
-        description: "We're working on it — long-press Profile to switch when it lands.",
-      });
-    };
-
     return {
       browseFilters,
       markAllRead: markAllReadAction,
       goPosted,
       goApplied,
-      switchAccountPlaceholder,
     };
   }, [navigate, markAllRead]);
 
@@ -182,6 +179,19 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // desktop web hides the whole bar via CSS — `html.web-desktop
   // .mobile-nav-frame { display:none }` — so this only ever shows on a
   // phone/tablet browser or the native app, never the desktop rail.)
+
+  // Signed-out visitors get NO bottom nav — every destination behind it needs
+  // an account. This reverses the earlier "tease & convert" behaviour, where
+  // guests saw the full dock with locked tabs that opened a signup sheet; the
+  // dock is now a signed-in surface only. Guests are not stranded: the guest
+  // browse dashboard carries its own sticky header with Log in / Get started,
+  // and the marketing pages carry the Navbar.
+  //
+  // Everything below still branches on `isGuest` (tab remapping to
+  // /browse and /login, the lock icons, GateSheet). That is unreachable now
+  // rather than removed — reinstating the guest dock is a matter of deleting
+  // this guard, and GateSheet is still used elsewhere.
+  if (isGuest) return null;
 
   // Hide nav when in an active message conversation
   const params = new URLSearchParams(location.search);
@@ -263,7 +273,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       }
     };
 
-    // Long-press → quick-action sheet. Only the five real tabs have an
+    // Long-press → quick-action sheet. Only the four feed/inbox tabs have an
     // action set; locked guest tabs fall through to the standard tap-handles-
     // it path. We dispatch into a single shared sheet (`quickActionTab` state)
     // and a `hapticMedium` lets the user know the long-press registered.
@@ -272,7 +282,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       "/my-posts",
       "/my-jobs",
       "/messages",
-      "/profile",
     ];
     const hasQuickActions = !locked && longPressableTabs.includes(path);
     const openQuickActions = () => {
@@ -455,7 +464,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             background: "linear-gradient(to top, var(--nav-curtain-top), var(--nav-curtain-fade))",
           }}
         />
-        <div className="relative mx-3 mb-1.5 flex items-end gap-3.5 max-w-lg md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl md:mx-auto md:px-8 xl:px-12">
+        {/* mx-auto at ALL widths, not just md+. The pill is capped at max-w-lg
+            (512px); on a phone that exceeds the viewport so it fills edge-to-edge
+            (mx-auto is a no-op there), but between ~512px and md the old `mx-3` +
+            `md:mx-auto` left the capped pill pinned LEFT with a big dead gap on
+            the right (measured 140px at 664px). Centering always fixes that;
+            px-3 keeps the phone edge padding that mx-3 used to provide. */}
+        <div className="relative mx-auto mb-1.5 flex items-end gap-3.5 max-w-lg md:max-w-xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl px-3 md:px-8 xl:px-12">
           {/* Main nav pill — liquid glass. Shadow stack switches to the
               deeper "lifted" variant when the page is scrolled, so the bar
               reads as floating above content rather than glued to the

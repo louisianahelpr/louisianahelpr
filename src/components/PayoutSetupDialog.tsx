@@ -33,7 +33,6 @@ export default function PayoutSetupDialog({ open, onOpenChange }: Props) {
         </div>
         <AlertDialogHero
           title="Set up payouts to apply"
-          subtitle="Before you can apply to your first job, you'll need to connect a payout account so we can send you your earnings. It takes about 2 minutes — just once. After that, you're set for every future job and can edit your details anytime in your profile."
         />
         <AlertDialogFooter>
           <AlertDialogCancel>Maybe later</AlertDialogCancel>

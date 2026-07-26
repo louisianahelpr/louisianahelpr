@@ -177,7 +177,6 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
         <DialogHero
           eyebrow="Your turn"
           title={`Rate ${revieweeName}.`}
-          subtitle="Reviews are how other neighbors decide who to trust."
         />
         <div className="space-y-3">
           {CATEGORY_ROWS.map((row) => (
@@ -196,13 +195,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           >
             Only the Overall rating is needed — the rest are optional. You can skip them and still post your review.
           </p>
-          <p
-            className="font-serif italic uppercase pt-1"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Tap any that fit
-          </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 pt-1">
             {quickOptions.map((opt) => {
               const selected = feedback.includes(opt);
               return (
@@ -314,9 +307,6 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
               backgroundImage: "none",
               border: canSubmit ? "1px solid hsl(var(--bark))" : undefined,
               color: canSubmit ? "hsl(var(--parchment))" : undefined,
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
               boxShadow: canSubmit ? "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)" : undefined,
             }}
           >
@@ -344,8 +334,17 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           <DialogHero
             eyebrow="Five stars — nice"
             title={`Send ${revieweeName} a tip?`}
-            subtitle="Goes straight to the Helpr — no platform cut. Most posters tip 10–15% for great work."
           />
+          {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
+              title": headers show a title and nothing else). Not dropped —
+              this is a fee disclosure, which a sighted
+              user has to be able to read. The `subtitle` prop is gone from the
+              hero above rather than left sr-only, so screen readers hear it
+              once, here, instead of twice. */}
+          <p className="font-serif italic leading-relaxed text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            Goes straight to the Helpr — no platform cut. Most posters tip 10–15%
+            for great work.
+          </p>
           <DialogFooter className="!gap-2">
             <Button
               variant="ghost"

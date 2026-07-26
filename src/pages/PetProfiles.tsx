@@ -15,7 +15,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
-import { Plus, Siren, PawPrint } from "lucide-react";
+import { Plus, PawPrint } from "lucide-react";
 import type { PetProfile } from "./petProfiles/types";
 import { PetForm } from "./petProfiles/PetForm";
 import { PetCard } from "./petProfiles/PetCard";
@@ -135,14 +135,17 @@ const PetProfiles = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
+      {/* No `showBrand`: /pets is a Profile sub-page, not a top-level
+          destination. The Helpr wordmark (which links to /dashboard) made it
+          read as standalone and competed with the back-to-Profile chevron.
+          The back button + title now carry the navigation context. */}
       <PageHeader
-        eyebrow="Your animals"
         title="My Pets"
         meta="Care details your Helpr should know"
         onBack={() => navigate("/profile")}
-        showBrand
         rightSlot={<NotificationPanel />}
-        width="2xl"
+        // Mirrors the body ladder below (max-w-lg → lg:5xl → xl:6xl, px-5 → lg:px-8).
+        width="lg-5xl-6xl"
       />
 
       <div className="max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto px-5 lg:px-8 pt-4">
@@ -208,8 +211,6 @@ const PetProfiles = () => {
             </Button>
           )}
 
-          {/* Evacuation promo */}
-          <EvacPromo />
         </div>
 
         {/* ─── Desktop (lg+): split-column ─────────────────────────────── */}
@@ -223,8 +224,8 @@ const PetProfiles = () => {
                 style={{ borderColor: "hsl(var(--olivewood) / 0.10)" }}
               >
                 <p
-                  className="font-serif italic uppercase text-ds-9"
-                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                  className="font-display italic font-bold text-ds-14"
+                  style={{ color: "hsl(var(--ink-deep))" }}
                 >
                   Your pets
                 </p>
@@ -292,9 +293,6 @@ const PetProfiles = () => {
               )}
             </div>
 
-            {/* Evacuation promo lives under the rail on desktop so both
-                columns share the same rhythm. */}
-            <EvacPromo />
           </aside>
 
           {/* Right pane — active pet detail, inline create form, or empty */}
@@ -393,36 +391,5 @@ const PetProfiles = () => {
     </div>
   );
 };
-
-// ─── Shared evacuation promo — same node on mobile + desktop ─────────────────
-function EvacPromo() {
-  return (
-    <div
-      className="rounded-ds-lg overflow-hidden px-4 py-3 flex items-start gap-3"
-      style={{
-        background:
-          "linear-gradient(135deg, hsl(var(--burnt-sienna) / 0.08), hsl(var(--bark) / 0.06))",
-        border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
-      }}
-    >
-      <Siren
-        className="w-5 h-5 shrink-0 mt-0.5"
-        style={{ color: "hsl(var(--burnt-sienna))" }}
-      />
-      <div>
-        <p className="text-ds-13 font-semibold leading-tight" style={{ color: "hsl(var(--ink-deep))" }}>
-          Hurricane Season Active
-        </p>
-        <p className="text-ds-11 text-muted-foreground leading-snug mt-0.5">
-          Register your pets for evacuation transport. During a declared emergency, Helpr volunteers
-          can help move your pets to safety.{" "}
-          <a href="/evacuation" className="font-semibold underline" style={{ color: "hsl(var(--burnt-sienna))" }}>
-            Learn more
-          </a>
-        </p>
-      </div>
-    </div>
-  );
-}
 
 export default PetProfiles;

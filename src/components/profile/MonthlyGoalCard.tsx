@@ -2,13 +2,19 @@ import { useState, useEffect, useCallback } from "react";
 import { Target, Flame, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { formatPrice } from "@/lib/format";
 
 interface MonthlyGoalCardProps {
   /** All completed jobs with their date and net payout */
   completedJobs: Array<{ created_at: string; netPayout: number }>;
 }
 
-const GOAL_KEY = "helpr_earnings_goal";
+// MUST match the key `useEarningsGoal` uses in HelperAnalytics.tsx — this
+// card and the Analytics page's MonthlyGoalCard are two independent UIs for
+// the SAME goal. They used to read/write different storage keys (this one
+// had an underscore, Analytics used a colon), so a goal set on one screen
+// silently didn't show on the other. One key, one goal, everywhere.
+const GOAL_KEY = "helpr:earnings_goal";
 
 function getMonthlyEarnings(
   jobs: Array<{ created_at: string; netPayout: number }>
@@ -80,7 +86,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
     if (hitGoal && !celebrated && goal != null) {
       setCelebrated(true);
       toast.success(
-        `🎉 Goal hit! You've earned $${thisMonthEarnings.toFixed(0)} this month!`,
+        `🎉 Goal hit! You've earned $${formatPrice(thisMonthEarnings)} this month!`,
         { duration: 5000 }
       );
     }
@@ -116,28 +122,34 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
     >
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Target
-            className="w-4 h-4"
-            style={{ color: "hsl(var(--sage))" }}
-          />
-          <span
-            className="text-ds-13 font-semibold"
-            style={{ color: "hsl(var(--ink-deep))" }}
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: "hsl(var(--sage) / 0.12)" }}
           >
-            {monthName} goal
-          </span>
-          {streak >= 2 && (
-            <span
-              className="flex items-center gap-0.5 text-ds-11 font-medium px-1.5 py-0.5 rounded-full"
-              style={{
-                background: "hsl(var(--heritage-gold) / 0.12)",
-                color: "hsl(var(--heritage-gold))",
-              }}
-            >
-              <Flame className="w-3 h-3" /> {streak}mo
-            </span>
-          )}
+            <Target className="w-4 h-4" style={{ color: "hsl(var(--sage))" }} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h2
+                className="font-display italic font-bold leading-tight"
+                style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}
+              >
+                {monthName}
+              </h2>
+              {streak >= 2 && (
+                <span
+                  className="flex items-center gap-0.5 text-ds-11 font-medium px-1.5 py-0.5 rounded-full not-italic"
+                  style={{
+                    background: "hsl(var(--heritage-gold) / 0.12)",
+                    color: "hsl(var(--heritage-gold))",
+                  }}
+                >
+                  <Flame className="w-3 h-3" /> {streak}mo
+                </span>
+              )}
+            </div>
+          </div>
         </div>
         {!editing && (
           <button
@@ -205,10 +217,10 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
                   : "hsl(var(--ink-deep))",
               }}
             >
-              ${thisMonthEarnings.toFixed(2)}
+              ${formatPrice(thisMonthEarnings)}
             </span>
             <span className="text-ds-12 text-muted-foreground">
-              of ${goal.toFixed(0)} goal
+              of ${formatPrice(goal)} goal
             </span>
           </div>
 
@@ -230,8 +242,8 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
 
           <p className="text-ds-11 text-muted-foreground">
             {hitGoal
-              ? `Goal reached! $${(thisMonthEarnings - goal).toFixed(2)} over`
-              : `$${(goal - thisMonthEarnings).toFixed(2)} to go`}
+              ? `Goal reached! $${formatPrice(thisMonthEarnings - goal)} over`
+              : `$${formatPrice(goal - thisMonthEarnings)} to go`}
           </p>
         </div>
       ) : (
@@ -239,7 +251,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
         <Button
           variant="bark"
           size="sm"
-          className="w-full text-ds-12"
+          className="w-full"
           onClick={() => {
             setDraft("");
             setEditing(true);

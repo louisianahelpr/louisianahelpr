@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Pin, Search, X } from "lucide-react";
+import { MessageSquare, Pin, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -57,6 +57,14 @@ interface ConversationListProps {
   /** `${jobId}_${otherUserId}` of the open thread — used to highlight the
    *  active row in the embedded (desktop split) layout. */
   activeKey?: string | null;
+  /** Batch-hide the selected threads (multi-select delete). Reuses the
+   *  same honest local-archive semantics as the single-row delete — the
+   *  parent opens ONE combined confirm dialog and, on confirm, archives
+   *  each. Never a hard delete. */
+  onBatchArchive: (convos: Conversation[]) => void;
+  /** Bumped by the parent after a batch archive resolves — clears the
+   *  in-list selection and exits select mode. */
+  resetSelectionNonce?: number;
 }
 
 // Sort comparator (descending by lastAt) — pulled out so the pinned /
@@ -90,9 +98,18 @@ export function ConversationList({
   onUnmute,
   embedded = false,
   activeKey = null,
+  onBatchArchive,
+  resetSelectionNonce = 0,
 }: ConversationListProps) {
   const navigate = useNavigate();
   const [showAllConvos, setShowAllConvos] = useState(false);
+  // Multi-select delete mode. `selectMode` swaps each row into a
+  // checkbox toggle (opening is suppressed) and reveals a bottom action
+  // bar; `selectedKeys` holds up to MAX_SELECT `${jobId}_${otherUserId}`
+  // keys. Reset from the parent via `resetSelectionNonce` after a batch
+  // archive resolves.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   // In-list search: an expandable field (mirrors the Activity tabs'
   // search pattern) that client-filters the already-loaded threads by
   // the other person's name and the last-message snippet. No new query —
@@ -161,6 +178,63 @@ export function ConversationList({
     setDeleteConvoConfirm(convo);
   };
 
+  // Cap the selection so batch-delete stays a deliberate, small action.
+  const MAX_SELECT = 3;
+  const convoKey = (c: Conversation) => `${c.jobId}_${c.otherUserId}`;
+
+  // Enter select mode from the toolbar. Close any open search so the two
+  // modes never overlap.
+  const enterSelectMode = () => {
+    hapticLight();
+    setSearchOpen(false);
+    setSearchQuery("");
+    setSelectMode(true);
+    setSelectedKeys(new Set());
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedKeys(new Set());
+  };
+
+  // Toggle one row's selection, enforcing the 3-thread cap with a toast
+  // when a fourth is attempted. Reads `selectedKeys` from the closure so
+  // the cap check stays out of the state updater (no double toast under
+  // StrictMode's double-invoked reducers).
+  const toggleSelect = (c: Conversation) => {
+    const key = convoKey(c);
+    const already = selectedKeys.has(key);
+    if (!already && selectedKeys.size >= MAX_SELECT) {
+      toast(`You can select up to ${MAX_SELECT} conversations.`);
+      return;
+    }
+    hapticLight();
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  // Hand the selected threads up to the parent, which owns the combined
+  // confirm dialog + the honest local-archive. Selection is cleared via
+  // `resetSelectionNonce` only after that confirm resolves.
+  const handleBatchDelete = () => {
+    const selected = filteredConversations.filter((c) =>
+      selectedKeys.has(convoKey(c)),
+    );
+    if (selected.length === 0) return;
+    onBatchArchive(selected);
+  };
+
+  // Parent bumps `resetSelectionNonce` after a batch archive resolves —
+  // clear the selection and drop out of select mode.
+  useEffect(() => {
+    if (resetSelectionNonce > 0) exitSelectMode();
+    // Only react to the nonce changing (exitSelectMode is stable).
+  }, [resetSelectionNonce]);
+
   // The current pinned key-set for the rendered conversations. Kept
   // outside the render loop so SwipeableConversationRow's `isPinned`
   // prop is a stable Set lookup, not a per-row sessionStorage read.
@@ -171,103 +245,79 @@ export function ConversationList({
   );
 
   // Empty inbox (loaded, no error, zero threads). When there's nothing
-  // to list, the "0 threads" count chip and the redundant secondary
-  // "Conversations / All threads" header are pure noise stacked above
-  // the empty-state card — both are hidden so the empty state reads as
-  // one clean panel.
+  // to list, the redundant secondary "Conversations / All threads"
+  // header is pure noise stacked above the empty-state card — it's
+  // hidden so the empty state reads as one clean panel.
   const isEmpty = !loading && !loadError && conversations.length === 0;
-
-  // Show the thread count ONLY once a load has resolved with real
-  // threads. During the first load `loading` is true while
-  // `conversations` is still [], so keying the chip off `!isEmpty` would
-  // flash "0 threads" before the list arrives, then snap to "N threads"
-  // — the screen-jump the user reported. Gating on `!loading` keeps the
-  // title card stable: no count during the skeleton, the real count after.
-  // We intentionally do NOT gate on `loadError`: a transient refresh
-  // failure still leaves the existing threads rendered (the error state
-  // only takes over when `conversations.length === 0`), so the count must
-  // stay to match what's on screen.
-  const showThreadCount = !loading && conversations.length > 0;
 
   // Pull-to-refresh: swiping down on the list re-runs loadConversations.
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: async () => { if (userId) await loadConversations(userId); },
   });
 
-  // The "Messages" section name now lives in the top bar (Instagram/Facebook
-  // pattern — passed as `title` to DashboardHeader below), so the title card
-  // holds only the count chip. Count is gated on `showThreadCount`
-  // (!loading && length > 0) so it never flashes "0 threads" during the
-  // skeleton load. When there's no chip we drop the whole title card
-  // (undefined) rather than float an empty frosted card above the panel.
-  const titleCard = showThreadCount ? (
-    <p
-      className="truncate font-sans font-semibold uppercase leading-none"
-      style={{
-        fontSize: "0.62rem",
-        letterSpacing: "0.16em",
-        color: "hsl(var(--olivewood) / 0.8)",
-      }}
-    >
-      {conversations.length} {conversations.length === 1 ? "thread" : "threads"}
-    </p>
-  ) : undefined;
+  // No title card: the "Messages" section name lives in the top bar
+  // (Instagram/Facebook pattern — passed as `title` to DashboardHeader
+  // below), and the "N threads" chip that used to be the card's only
+  // content just restated the thread list directly beneath it. Same
+  // call as My Posts / My Jobs, which dropped their count box too.
 
   const listBody = (
     <>
-          {/* Inner header — eyebrow + title row mirroring the
-              Posts/Jobs bottom-box header pattern. Hidden on an empty
-              inbox so the empty state reads as a single clean panel. */}
+          {/* Thin list toolbar — iOS shows only the nav title over the
+              list, so the old "Conversations" eyebrow + "All threads"
+              serif heading are gone (an app-wide decision to drop these
+              eyebrow kickers). What remains is a Select + Search toolbar;
+              in select mode it swaps to a live "N/3 selected" count.
+              Hidden on an empty inbox so the empty state reads as one
+              clean panel. */}
           {!isEmpty && (
             <div
-              className="shrink-0 flex items-center justify-between gap-3 px-4 py-3"
+              className="shrink-0 flex items-center justify-between gap-3 px-4 py-2"
               style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
             >
-              {/* On the desktop split the shared title card already reads
-                  "Messages", so this eyebrow + "All threads" heading would
-                  just stack a second redundant header directly under it.
-                  Hide the text block when embedded — the row collapses to a
-                  thin search toolbar over the list. Mobile keeps the full
-                  header (it's the only title on that screen). */}
-              {!embedded ? (
-                <div className="flex flex-col leading-none">
-                  <span
-                    className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
-                    style={{ color: "hsl(var(--burnt-sienna))" }}
-                  >
-                    Conversations
-                  </span>
-                  <h2
-                    className="font-display italic font-bold leading-tight mt-2"
-                    style={{
-                      fontSize: "1.25rem",
-                      color: "hsl(var(--ink-deep))",
-                      letterSpacing: "-0.018em",
-                    }}
-                  >
-                    All threads
-                  </h2>
-                </div>
+              {selectMode ? (
+                <span
+                  className="font-sans font-semibold uppercase leading-none"
+                  style={{ fontSize: "0.68rem", letterSpacing: "0.1em", color: "hsl(var(--olivewood) / 0.85)" }}
+                  aria-live="polite"
+                >
+                  {selectedKeys.size}/{MAX_SELECT} selected
+                </span>
               ) : (
                 <span aria-hidden="true" />
               )}
-              {/* Search toggle — expands the field below this header row,
-                  matching the Activity tabs' search pattern. Tinted active
-                  while open or while a query is set so the affordance reads
-                  as "filtering". 44px tap target. */}
-              <button
-                onClick={() => { hapticLight(); setSearchOpen((o) => !o); }}
-                aria-label="Search conversations"
-                aria-expanded={searchOpen}
-                className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-md transition-colors btn-press shrink-0"
-                style={
-                  searchOpen || searchQuery
-                    ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))" }
-                    : { color: "hsl(var(--olivewood) / 0.8)" }
-                }
-              >
-                <Search className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                {!selectMode && (
+                  <>
+                    {/* Select — enters multi-select delete mode. */}
+                    <button
+                      onClick={enterSelectMode}
+                      aria-label="Select conversations"
+                      className="min-h-[44px] px-2 inline-flex items-center text-ds-13 font-medium btn-press"
+                      style={{ color: "hsl(var(--bark))" }}
+                    >
+                      Select
+                    </button>
+                    {/* Search toggle — expands the field below this row,
+                        matching the Activity tabs' search pattern. Tinted
+                        active while open or while a query is set. 44px tap
+                        target. */}
+                    <button
+                      onClick={() => { hapticLight(); setSearchOpen((o) => !o); }}
+                      aria-label="Search conversations"
+                      aria-expanded={searchOpen}
+                      className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-md transition-colors btn-press shrink-0"
+                      style={
+                        searchOpen || searchQuery
+                          ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))" }
+                          : { color: "hsl(var(--olivewood) / 0.8)" }
+                      }
+                    >
+                      <Search className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           )}
 
@@ -276,7 +326,7 @@ export function ConversationList({
               snippet + job title), so no debounce. */}
           {!isEmpty && searchOpen && (
             <div
-              className="shrink-0 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200"
+              className="shrink-0 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200"
               style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
             >
               <div className="relative px-4 py-3">
@@ -385,61 +435,69 @@ export function ConversationList({
                   <VirtualList
                     items={visibleConvos}
                     getKey={(c) => `${c.jobId}_${c.otherUserId}`}
-                    estimateSize={104}
+                    estimateSize={80}
                     overscan={6}
-                    itemClassName="pb-2"
                     renderItem={(c) => {
+                      const key = `${c.jobId}_${c.otherUserId}`;
                       const pinned = pinnedSetForRender.has(
                         pinnedKey(c.jobId, c.otherUserId),
                       );
                       // In the desktop split, highlight the row whose thread
                       // is open in the right pane so the inbox tracks the
                       // selection. No-op on mobile (activeKey stays null).
-                      const isActive =
-                        !!activeKey &&
-                        activeKey === `${c.jobId}_${c.otherUserId}`;
-                      return (
+                      const isActive = !!activeKey && activeKey === key;
+                      const selected = selectedKeys.has(key);
+                      const row = (
+                        <div className="relative">
+                          {/* Tiny pin chip — peeks over the top-right
+                              corner of the avatar so a pinned row reads at a
+                              glance. Hidden when not pinned, and while
+                              selecting (the checkbox takes that corner). */}
+                          {pinned && !selectMode && (
+                            <span
+                              aria-label="Pinned"
+                              className="absolute top-2 left-2 z-10 inline-flex items-center justify-center w-4 h-4 rounded-full pointer-events-none"
+                              style={{
+                                background: "hsl(var(--gold-warm) / 0.9)",
+                                boxShadow:
+                                  "0 1px 3px hsl(var(--gold-warm) / 0.45)",
+                              }}
+                            >
+                              <Pin
+                                className="w-2.5 h-2.5"
+                                style={{ color: "hsl(var(--parchment))" }}
+                                strokeWidth={2.4}
+                              />
+                            </span>
+                          )}
+                          <ConversationRow
+                            convo={c}
+                            currentUserId={userId}
+                            openConvo={openConvo}
+                            setReportTarget={setReportTarget}
+                            setBlockTarget={setBlockTarget}
+                            setDeleteConvoConfirm={setDeleteConvoConfirm}
+                            onToggleMute={onToggleMute}
+                            onOpenMuteSheet={setMuteSheetConvo}
+                            isPinned={pinned}
+                            onTogglePin={() => handleTogglePin(c)}
+                            isActive={isActive}
+                            selectMode={selectMode}
+                            selected={selected}
+                            onToggleSelect={() => toggleSelect(c)}
+                          />
+                        </div>
+                      );
+                      // Swipe gestures (archive / pin) are inert in select
+                      // mode — render the bare row so a drag can't fire an
+                      // archive mid-selection.
+                      return selectMode ? row : (
                         <SwipeableConversationRow
                           isPinned={pinned}
                           onArchive={() => handleArchive(c)}
                           onTogglePin={() => handleTogglePin(c)}
                         >
-                          <div className="relative">
-                            {/* Tiny pin chip — peeks over the top-right
-                                corner of the avatar so a pinned row reads
-                                at a glance without changing the row's
-                                shape. Hidden when not pinned. */}
-                            {pinned && (
-                              <span
-                                aria-label="Pinned"
-                                className="absolute top-2 left-2 z-10 inline-flex items-center justify-center w-4 h-4 rounded-full pointer-events-none"
-                                style={{
-                                  background: "hsl(var(--gold-warm) / 0.9)",
-                                  boxShadow:
-                                    "0 1px 3px hsl(var(--gold-warm) / 0.45)",
-                                }}
-                              >
-                                <Pin
-                                  className="w-2.5 h-2.5"
-                                  style={{ color: "hsl(var(--parchment))" }}
-                                  strokeWidth={2.4}
-                                />
-                              </span>
-                            )}
-                            <ConversationRow
-                              convo={c}
-                              currentUserId={userId}
-                              openConvo={openConvo}
-                              setReportTarget={setReportTarget}
-                              setBlockTarget={setBlockTarget}
-                              setDeleteConvoConfirm={setDeleteConvoConfirm}
-                              onToggleMute={onToggleMute}
-                              onOpenMuteSheet={setMuteSheetConvo}
-                              isPinned={pinned}
-                              onTogglePin={() => handleTogglePin(c)}
-                              isActive={isActive}
-                            />
-                          </div>
+                          {row}
                         </SwipeableConversationRow>
                       );
                     }}
@@ -470,6 +528,47 @@ export function ConversationList({
           </PullToRefreshWrapper>
           )}
 
+          {/* Sticky bottom action bar — multi-select delete. A shrink-0
+              child at the bottom of the list pane; on mobile it clears the
+              floating nav dock via the safe-area + nav reserve so its
+              buttons never hide behind the dock. Reuses the honest local
+              archive (via the parent's combined confirm) — never a hard
+              delete. */}
+          {selectMode && !isEmpty && (
+            <div
+              className="shrink-0 flex items-center justify-between gap-3 px-4 pt-3"
+              style={{
+                borderTop: "1px solid hsl(var(--olivewood) / 0.12)",
+                background: "hsl(var(--card))",
+                paddingBottom: embedded
+                  ? "0.75rem"
+                  : "calc(env(safe-area-inset-bottom, 0px) + 88px)",
+              }}
+            >
+              <button
+                onClick={exitSelectMode}
+                className="min-h-[44px] px-3 inline-flex items-center text-ds-13 font-medium btn-press rounded-ds-md"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBatchDelete}
+                disabled={selectedKeys.size === 0}
+                aria-label={`Delete ${selectedKeys.size} selected conversation${selectedKeys.size === 1 ? "" : "s"}`}
+                className="min-h-[44px] px-4 inline-flex items-center gap-2 text-ds-13 font-semibold btn-press rounded-ds-md transition-opacity disabled:opacity-40 disabled:pointer-events-none"
+                style={{
+                  background: "hsl(var(--burnt-sienna))",
+                  color: "hsl(var(--parchment))",
+                  boxShadow: "0 1px 2px hsl(var(--burnt-sienna) / 0.25)",
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete{selectedKeys.size > 0 ? ` (${selectedKeys.size})` : ""}
+              </button>
+            </div>
+          )}
+
       {/* Snooze picker — opened from any conversation row's "Mute"
           action. Lives at the list level (rather than inside each row)
           so a single sheet instance handles every row. */}
@@ -491,7 +590,18 @@ export function ConversationList({
   }
 
   return (
-    <PageScaffold header={<DashboardHeader title="Messages" />} titleCard={titleCard}>
+    // No "N threads" chip above the list: the list directly below IS the
+    // count, and the empty state already says there's nothing — the same
+    // redundant count line removed from Activity, /jobs, and the browse
+    // toolbar. The desktop split's bar keeps its UNREAD pill, which is real
+    // information you can't get by glancing at the list.
+    // `titleAs="h1"` because this standalone inbox renders no other heading —
+    // the title card was dropped, so without this the whole mobile/native
+    // Messages screen has ZERO h1 (the desktop split in Messages.tsx already
+    // passes it; only this branch was missed). Phone web and the iOS app are
+    // the same surface, so that was the shipped app's inbox announcing no
+    // page heading to VoiceOver.
+    <PageScaffold header={<DashboardHeader titleAs="h1" title="Messages" />}>
       {listBody}
     </PageScaffold>
   );

@@ -1,4 +1,4 @@
-import { formatJobDate, formatPrice } from "@/lib/format";
+import { formatTimestamp, formatPrice } from "@/lib/format";
 import { payoutStatusLabel } from "@/lib/statusLabels";
 import type { PayoutLedgerRow } from "./types";
 
@@ -9,16 +9,13 @@ interface RecentTransfersProps {
 export function RecentTransfers({ payoutLedger }: RecentTransfersProps) {
   return (
     <div>
-      <p className="font-serif italic uppercase mb-1" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-        Payouts
-      </p>
       <h2 className="font-display italic font-bold leading-tight mb-3 text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
         Recent transfers
       </h2>
       <div className="space-y-2.5">
         {payoutLedger.map((t) => {
           const jobTitle = (t.jobs as { title?: string } | null)?.title ?? "Job";
-          const date = formatJobDate(t.created_at);
+          const date = formatTimestamp(t.created_at);
           const amount = formatPrice(t.amount_cents / 100);
           const fee = formatPrice(t.platform_fee_cents / 100);
           const tone =

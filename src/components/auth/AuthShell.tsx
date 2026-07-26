@@ -57,12 +57,19 @@ const AuthShell = ({
   const showCompactTopBar = compactHeader && !hideHeader;
   const showFullHeader = !compactHeader && !hideHeader;
   const alignClass = align === "center" ? "items-center" : "items-start";
-  const resolvedBackTo = backTo ?? (isNativePlatform ? "/browse" : "/");
-
-  // Use the standard frosted circular BackButton so back navigation looks
-  // identical across auth pages and the rest of the app. Preserve the
-  // resolved target (home on web, /browse on native, or an explicit `backTo`).
-  const backLink = <BackButton to={resolvedBackTo} />;
+  // Back returns to WHERE YOU CAME FROM. Auth pages are reached from all over
+  // — a job card on /jobs, a gated tab, the nav CTA — so a hard-coded target
+  // sent people somewhere they had never been. It previously forced "/" on web
+  // (or /browse on native), which became obvious once guest job cards started
+  // routing to /signup: backing out of signup dumped you on the landing page
+  // instead of the job board you were browsing.
+  //
+  // Passing `to={backTo}` — undefined unless a caller sets it — lets BackButton
+  // use its own history-back path, which already falls back to "/" when there
+  // is no history to pop (a cold launch or a direct link). On native, "/" is
+  // the NativeRedirect that lands on /browse, so the old native default is
+  // preserved without hard-coding it here. An explicit `backTo` still wins.
+  const backLink = <BackButton to={backTo} />;
 
   return (
     <div className="min-h-screen bg-premium-page relative overflow-hidden">
@@ -108,7 +115,7 @@ const AuthShell = ({
           {backLink}
         </div>
       )}
-      <div className={`relative z-10 flex flex-col ${alignClass} ${desktopBrandPanel ? "lg:items-center lg:justify-center" : ""} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12 lg:pt-6"}`}>
+      <div className={`relative z-10 flex flex-col ${desktopBrandPanel ? "items-center" : alignClass} ${desktopBrandPanel ? "lg:justify-center" : ""} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12 lg:pt-6"}`}>
         {/* Brand mark hero — desktop-only. Sits as a sibling INSIDE the
             same vertically-centered flex column as the form so hero +
             form read as one composed unit centered on the viewport

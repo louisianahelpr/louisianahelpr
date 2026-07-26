@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { formatPrice } from "@/lib/format";
-import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { toast } from "@/hooks/use-toast";
 import { EarningsExport } from "@/components/EarningsExport";
@@ -101,16 +101,12 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
   const completedJobs = earningsJobs.filter((j) => j.status === "completed");
   const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
-  const totalEarnings = completedJobs.reduce((sum, j) => {
-    const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
-    const perHelper = j.budget / helpers;
-    const commissionPercent = j.helper_fee_percent ?? helperFeeFallbackPct;
-    const commission = (perHelper * commissionPercent) / 100;
-    // The urgent fee is collected from the poster ONCE and split across the
-    // roster like the budget (#114) — so a group helper's share is the netted
-    // urgent divided by the same helper count, keeping shown == transferred.
-    return sum + (perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers);
-  }, 0);
+  // Take-home per job comes from the one shared definition in
+  // `helperEarnings.ts`, which keeps this tab's long-standing behaviour: the
+  // budget AND the urgent fee are collected from the poster ONCE and split
+  // across a group job's roster (#114), so a group helper sees only their share
+  // — shown == transferred.
+  const totalEarnings = sumHelperTakeHomeDollars(completedJobs, helperFeeFallbackPct);
   const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
 
   const availableTotal = (stripeData?.available ?? []).reduce((s, b) => s + b.amount, 0);
@@ -165,9 +161,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   return (
     <div className="space-y-5">
       <ProfileTabHeader
-        eyebrow="Wallet"
         title="My earnings"
-        meta="Payouts, tips, and tax exports"
         onBack={onBack}
         rightSlot={
           <EarningsToolsMenu
@@ -256,20 +250,14 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         {/* Monthly earning goal — localStorage-backed; no DB migration needed */}
         {!loading && (
           <MonthlyGoalCard
-            completedJobs={completedJobs.map((j) => {
-              const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
-              const perHelper = j.budget / helpers;
-              const commissionPercent = j.helper_fee_percent ?? helperFeeFallbackPct;
-              const commission = (perHelper * commissionPercent) / 100;
-              // Urgent fee splits across the roster like the budget (#114).
-              const netPayout = perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers;
-              return {
-                // prefer helper_completed_at so the month bucket matches when
-                // the job was actually done, not when it was posted
-                created_at: j.helper_completed_at ?? j.created_at,
-                netPayout,
-              };
-            })}
+            completedJobs={completedJobs.map((j) => ({
+              // prefer helper_completed_at so the month bucket matches when
+              // the job was actually done, not when it was posted
+              created_at: j.helper_completed_at ?? j.created_at,
+              // Same shared take-home definition (and same group split) as the
+              // tab total above, so the goal ring and the Total tile agree.
+              netPayout: helperTakeHomeDollars(j, helperFeeFallbackPct),
+            }))}
           />
         )}
 
@@ -277,7 +265,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         {!loading && (
           <div className="grid grid-cols-3 gap-2">
             {[
-              { icon: TrendingUp, label: "Total", value: `$${formatPrice(totalEarnings)}`, sub: `${completedJobs.length} jobs` },
+              { icon: TrendingUp, label: "Total", value: `$${formatPrice(totalEarnings)}`, sub: `${completedJobs.length} job${completedJobs.length === 1 ? "" : "s"}` },
               { icon: Gift, label: "Tips", value: `$${formatPrice(totalTips)}`, sub: `${tips.length} tips` },
               { icon: Briefcase, label: "Active", value: String(inProgressJobs.length), sub: "in progress" },
             ].map(({ icon: Icon, label, value, sub }) => (
@@ -331,6 +319,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         page={PAGE}
         onLoadMore={() => setHistoryVisible((n) => n + PAGE)}
         onBrowseJobs={() => navigate("/dashboard")}
+        feeFallbackPct={helperFeeFallbackPct}
       />
 
       {/* Muted legal/tax disclosure — bottom of page */}

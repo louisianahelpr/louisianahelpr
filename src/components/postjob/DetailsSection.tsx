@@ -53,7 +53,6 @@ export function DetailsSection({
   return (
     <SectionCard
       stepNumber={stepNumber}
-      eyebrow="About the job"
       title="Details"
       icon={Briefcase}
       complete={detailsComplete}

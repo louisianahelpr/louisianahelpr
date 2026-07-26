@@ -18,7 +18,6 @@ import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
 // It's only ever visible when the network drops (rare), so lazy-loading is safe.
 const OfflineBanner = lazy(() => import("@/components/OfflineBanner"));
 import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
-import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
 import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility";
@@ -108,10 +107,10 @@ const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
+const Support = lazy(() => import("./pages/Support"));
 const HomeHistory = lazy(() => import("./pages/HomeHistory"));
 const WorkRecord = lazy(() => import("./pages/WorkRecord"));
 const PetProfiles = lazy(() => import("./pages/PetProfiles"));
-const EvacuationMode = lazy(() => import("./pages/EvacuationMode"));
 const BenefitsPage = lazy(() => import("./pages/BenefitsPage"));
 
 // Lazy load less-critical global components
@@ -144,7 +143,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
   return (
     <Routes location={location}>
-      <Route path="/" element={<RouteErrorBoundary>{routeEl(<Index />)}</RouteErrorBoundary>} />
+      <Route path="/" element={<RouteErrorBoundary>{routeEl(<PageTransition><Index /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/login" element={<RouteErrorBoundary>{routeEl(<PageTransition><Login /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/signup" element={<RouteErrorBoundary>{routeEl(<PageTransition><Signup /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/signup-pending" element={<RouteErrorBoundary>{routeEl(<PageTransition><SignupPending /></PageTransition>)}</RouteErrorBoundary>} />
@@ -170,12 +169,15 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* /support is linked from the public marketing footer, so it must
-          resolve WITHOUT auth. The old target (/profile?tab=support) forced
-          a sign-in. /help (HelpCenter) is the public contact surface — email,
-          hours, FAQ — reachable by guests and signed-in users alike. Authed
-          users still get the in-app support tab from inside Profile. */}
-      <Route path="/support" element={<Navigate to="/help" replace />} />
+      {/* /support is linked from the footer, the legal pages, and /data-rights,
+          so it must resolve WITHOUT auth. It used to redirect to /help — a
+          static FAQ whose only contact affordance was a raw `mailto:` (which
+          does nothing inside the native app). It now renders a real contact
+          form that works signed-out AND signed-in (prefilled from the profile).
+          Authed users still get the same form as a Profile tab.
+          No PageTransition — it renders inside PublicLayout, so the fixed-nav
+          rule in the note directly below applies to it too. */}
+      <Route path="/support" element={<RouteErrorBoundary>{routeEl(<PageTransition><Support /></PageTransition>)}</RouteErrorBoundary>} />
 
       {/* Marketing routes intentionally skip PageTransition — its
           motion.div sets `will-change: transform`, which establishes
@@ -185,10 +187,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Landing (/) also skips PageTransition for the same reason;
           this preserves the same fixed-nav behaviour on /legal,
           /for-business, /help, /subscription. */}
-      <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<Legal />)}</RouteErrorBoundary>} />
+      <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
       <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
-      <Route path="/data-rights" element={<RouteErrorBoundary>{routeEl(<PageTransition><DataRights /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/data-rights" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><DataRights /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
 
       {/* Public, indexable jobs landing — Jobs.tsx reads anon job data
           (get_ranked_open_jobs, granted to anon) and renders guest
@@ -221,13 +223,15 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Public so the footer "Plans" link and marketing CTAs resolve for
           logged-out visitors. The page renders read-only for guests (current
           plan shows Free); tapping Upgrade routes them to sign in first. */}
-      <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<SubscriptionPage />)}</RouteErrorBoundary>} />
+      <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<PageTransition><SubscriptionPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* Pay It Forward — community credit marketplace */}
-      <Route path="/pay-it-forward" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
+      <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* Legacy /pay-it-forward → /gift-card (feature renamed). */}
+      <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />
       <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<ForBusiness />)}</RouteErrorBoundary>} />
+      <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/analytics" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelperAnalytics /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -253,7 +257,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* The standalone How It Works page was folded into the landing section
           (poster/Helpr toggle) — keep old links landing on that anchor. */}
       <Route path="/how-it-works" element={<Navigate to="/#how-it-works" replace />} />
-      <Route path="/help" element={<RouteErrorBoundary>{routeEl(<HelpCenter />)}</RouteErrorBoundary>} />
+      <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Retired public discovery pages — redirect legacy links.
           Jobs are discovered via the landing strip + /jobs; parish/impact/
           pricing-guide standalone pages were removed. */}
@@ -267,9 +271,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/wrapped" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelprWrapped /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Benefits marketplace — partner perks for helpers */}
       <Route path="/benefits" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BenefitsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* Pet care — manage pet profiles, vet notes, and evacuation mode */}
+      {/* Pet care — manage pet profiles and vet notes */}
       <Route path="/pets" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PetProfiles /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/evacuation" element={<RouteErrorBoundary>{routeEl(<PageTransition><EvacuationMode /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* /evacuation page removed — redirect old bookmarks/links to pets. */}
+      <Route path="/evacuation" element={<Navigate to="/pets" replace />} />
       {/* Legacy paths surfaced by 404s in error_logs (external links, old
           bookmarks, search-engine indexes) — redirect to their modern
           equivalents instead of dumping users on the NotFound page. */}
@@ -320,7 +325,29 @@ const SpeedInsightsRouted = () => {
 };
 
 const SessionManager = () => {
-  useSessionTimeout();
+  // Idle sign-out is DISABLED (pre-launch testing — it was logging testers
+  // out mid-audit). To restore it, re-add `useSessionTimeout();` here; the
+  // hook and its tests are deliberately left in place so this is a one-line
+  // revert.
+  //
+  // Before restoring it, note it was wrong twice over. `useSessionTimeout`
+  // forced a full signOut() after 30 minutes without a DOM event:
+  //
+  //  1. It is not a security control. A client-side timer is defeated by
+  //     moving a finger, and an attacker holding the unlocked device does
+  //     exactly that — so it only ever fired on legitimate users who paused
+  //     to read. Session lifetime is server-enforced by Supabase Auth (JWT
+  //     expiry + refresh-token rotation); that is where the policy belongs.
+  //  2. This hook is mounted app-wide, and phone web IS the native iOS app.
+  //     A backgrounded phone trivially idles past 30 minutes, so a user who
+  //     put the app down — or who tapped a "you've been hired" push an hour
+  //     later — was dumped on /login with their token erased.
+  //
+  // It had already been patched once for logging out active users
+  // (eb97aec0, "stop logging out active users on AppShell pages") because
+  // scroll inside AppShell's inner container never reached the window
+  // listener. That was the same bug class: the timer cannot actually tell
+  // idle from busy.
   useLoginTracking();
   useNativePushSetup();
   const dynamicTypeScale = useDynamicTypeSync();

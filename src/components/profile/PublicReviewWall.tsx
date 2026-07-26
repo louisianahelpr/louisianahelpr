@@ -210,7 +210,7 @@ export function PublicReviewWall({
   const condensed = variant === "condensed";
   const limit = condensed ? CONDENSED_LIMIT : DEFAULT_LIMIT;
 
-  const { data, isLoading } = useQuery<ResolvedReview[]>({
+  const { data, isLoading, isError } = useQuery<ResolvedReview[]>({
     queryKey: queryKeys.publicReviewWall.byHelper(helperId, limit),
     enabled: !!helperId,
     // Reviews don't change minute-by-minute; a 5-min cache keeps the
@@ -288,6 +288,12 @@ export function PublicReviewWall({
       </div>
     );
   }
+
+  // On a hard error `data` is undefined → the block below would falsely render
+  // "No reviews yet" on a PUBLIC profile, making a helper with real reviews look
+  // unreviewed (a trust/conversion harm). Hide the wall instead of claiming zero;
+  // the numeric star average on the profile still carries the signal.
+  if (isError) return null;
 
   const reviews = data ?? [];
 

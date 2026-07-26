@@ -21,7 +21,7 @@ export const PosterReputationCard = ({
       : null;
 
   return (
-    <div className="rounded-ds-md liquid-glass p-4 space-y-2">
+    <div className="rounded-2xl liquid-glass p-5 space-y-2">
       <p
         className="text-[10px] uppercase tracking-wide font-semibold"
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}

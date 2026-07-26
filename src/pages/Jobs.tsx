@@ -290,7 +290,13 @@ const Jobs = () => {
               between them (md:order-3) at a fixed 18rem. */}
           <div className="flex flex-wrap items-center gap-3 mt-2 md:mt-6 mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-400">
             <div className="shrink-0 order-1">
-              <BackButton />
+{/* to="/" — NOT bare history-back. These are top-nav / footer
+                  destinations reachable from anywhere, so `navigate(-1)` sent
+                  you to whatever you happened to view last: opening Terms, then
+                  Jobs, then pressing Back landed on Terms. A top-level page
+                  needs one predictable parent, and consistently the same one
+                  across all of them. */}
+              <BackButton to="/" />
             </div>
 
             <div className="flex flex-col leading-none min-w-0 flex-1 order-2">

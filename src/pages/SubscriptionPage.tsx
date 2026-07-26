@@ -238,7 +238,13 @@ export default function SubscriptionPage() {
         <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
           <div className="flex items-center gap-3 mt-2 md:mt-6 mb-2 md:mb-4">
             <div className="shrink-0">
-              <BackButton />
+{/* to="/" — NOT bare history-back. These are top-nav / footer
+                  destinations reachable from anywhere, so `navigate(-1)` sent
+                  you to whatever you happened to view last: opening Terms, then
+                  Jobs, then pressing Back landed on Terms. A top-level page
+                  needs one predictable parent, and consistently the same one
+                  across all of them. */}
+              <BackButton to="/" />
             </div>
             <div className="flex flex-col leading-none min-w-0 flex-1">
               <h1 className="text-page-title leading-tight truncate">

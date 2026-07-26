@@ -182,16 +182,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // /jobs page reads). It varies per job (2h vs 8h changes whether a helpr
   // even considers it), which is exactly what the expiry countdown it
   // replaces did NOT do.
-  const estHours = Number(job.estimated_hours ?? 0);
-  const durationLabel =
-    Number.isFinite(estHours) && estHours > 0
-      ? estHours < 1
-        ? `~${Math.round(estHours * 60)}m`
-        // 4 → "~4h", 2.5 → "~2.5h". Trailing ".0" from a numeric column
-        // ("4.00") would read like a typo at 10.5px.
-        : `~${Number.isInteger(estHours) ? estHours : Number(estHours.toFixed(1))}h`
-      : null;
-
+  //
+  // The date/time group deliberately shows WHEN THE JOB IS — `date_needed` and
+  // `start_time`. An estimated-duration chip ("~6h") briefly lived in this slot
+  // while every seeded job had a NULL `start_time` and the row looked empty;
+  // that was solving the symptom. Duration still has a home on the job detail
+  // (JobStatTiles' "Estimated" tile) — the card answers "when", not "how long".
   // Expiry — an URGENCY signal, not a permanent meta line.
   //
   // Every job is created with the same 14-day window, so an unconditional
@@ -507,18 +503,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                       <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
                     </span>
                   )}
-                </>
-              )}
-              {durationLabel && (
-                <>
-                  <span className="opacity-30">·</span>
-                  <span
-                    className="flex items-center gap-1"
-                    aria-label={`Estimated ${estHours} ${estHours === 1 ? "hour" : "hours"} of work`}
-                  >
-                    <Hourglass className="w-2.5 h-2.5 shrink-0" aria-hidden />
-                    <span className="font-sans whitespace-nowrap">{durationLabel}</span>
-                  </span>
                 </>
               )}
             </span>

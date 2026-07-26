@@ -115,12 +115,17 @@ const HowItWorksSection = () => {
           {/* Side segmented control — same shape/treatment as the billing-cycle
               toggle on SubscriptionPage. Sits directly under the "Three steps."
               masthead so the choice reads as part of the heading it modifies.
-              The left column is narrow (~184–272px across md→2xl), so the two
-              pills wrap onto separate lines there rather than overflowing. */}
+              One line, always (`flex-nowrap`). It used to wrap: measured at
+              840px the pair needs 264px while the left column is 232px, so the
+              pills stacked. Fixed by tightening them inside the narrow md
+              column only — px-3 and one type step down — which recovers the
+              32px without shortening the labels or moving the masthead off the
+              left. Below md the column is full width and at lg it widens, so
+              both keep the roomier px-4/px-5 sizing. */}
           <div
             role="tablist"
             aria-label="Which side of Helpr are you on"
-            className="mt-6 inline-flex flex-wrap items-center justify-center md:justify-start gap-1 p-1 rounded-2xl"
+            className="mt-6 inline-flex flex-nowrap items-center justify-center md:justify-start gap-1 p-1 rounded-2xl"
             style={{
               background: "hsl(var(--burnt-sienna) / 0.06)",
               border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
@@ -136,7 +141,7 @@ const HowItWorksSection = () => {
                   role="tab"
                   aria-selected={active}
                   onClick={() => setSide(s)}
-                  className="h-9 sm:h-10 px-4 sm:px-5 rounded-xl font-sans font-semibold text-ds-13 whitespace-nowrap transition-[background,color,transform] duration-150 active:scale-[0.98]"
+                  className="h-9 sm:h-10 px-4 sm:px-5 md:px-3 md:text-ds-12 lg:px-4 rounded-xl font-sans font-semibold text-ds-13 whitespace-nowrap transition-[background,color,transform] duration-150 active:scale-[0.98]"
                   style={{
                     background: active ? "hsl(var(--bark))" : "transparent",
                     color: active
@@ -157,7 +162,20 @@ const HowItWorksSection = () => {
 
         {/* Right column — 3 steps with sequential fade-in. */}
         <div className="md:col-span-8 lg:col-span-9">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-8 lg:gap-10">
+          {/* `md:grid-cols-1` between sm and lg on purpose. From md up this
+              column is only 8/12 wide, so three cards side by side were ~150px
+              each — narrow enough that "Post the job" broke across two lines and
+              the body copy set two or three words to a line. One per row at md
+              gives each the full ~500px; lg is wide enough to go back to three.
+
+              Heights are held by an explicit `min-h`, NOT by `items-stretch`
+              alone. Stretch only equalises within a ROW, and at md each card is
+              its own row (grid-cols-1) — so the three drifted apart, and the
+              block jumped when the side toggle swapped in longer copy ("I want
+              to work" ran 247px against 225px). The floor is set per breakpoint
+              because the card width, and so the wrap height, changes with the
+              column count. */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3 items-stretch gap-10 sm:gap-8 lg:gap-10">
             {/* Keyed by index, not title: switching sides swaps the copy in
                 the SAME three nodes instead of remounting them, so the
                 observer's staggered fade-in isn't re-armed (or skipped) on
@@ -165,7 +183,7 @@ const HowItWorksSection = () => {
             {STEPS[side].map((step, i) => (
               <div
                 key={i}
-                className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8"
+                className="h-full flex flex-col text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 sm:min-h-[19rem] md:min-h-[15.75rem] lg:min-h-[21rem]"
                 style={{
                   opacity: inView ? 1 : 0,
                   transform: inView ? "translateY(0)" : "translateY(24px)",

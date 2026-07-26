@@ -325,7 +325,7 @@ const BuiltForSection = () => {
             industries can be added to INDUSTRIES without the section
             ballooning. `h-full` on both the fade wrapper and the card keeps
             every box the same height regardless of pitch length. */}
-        <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-5">
+        <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-3 lg:gap-4">
           {INDUSTRIES.map((industry, i) => (
             // Outer wrapper carries the entry fade-in (opacity + translateY),
             // inner box carries the hover elevation. Splitting them avoids the
@@ -342,7 +342,7 @@ const BuiltForSection = () => {
               }}
             >
             <div
-              className="h-full text-center md:text-left rounded-2xl px-5 py-7 sm:px-5 sm:py-8 lg:px-6 lg:py-8 flex flex-col transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg"
+              className="h-full text-center md:text-left rounded-2xl px-4 py-5 sm:px-4 sm:py-5 lg:px-5 lg:py-6 flex flex-col transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.04)",
                 border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
@@ -350,13 +350,13 @@ const BuiltForSection = () => {
               }}
             >
               <h3
-                className="font-display font-bold text-ds-20 sm:text-ds-24 tracking-tight leading-tight"
+                className="font-display font-bold text-ds-16 sm:text-ds-18 tracking-tight leading-tight"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 {industry.name}
               </h3>
               <p
-                className="mt-3 font-sans text-ds-13 leading-snug"
+                className="mt-1.5 font-sans text-ds-12 leading-snug"
                 style={{ color: "hsl(var(--olivewood) / 0.85)" }}
               >
                 {industry.pitch}
@@ -603,7 +603,7 @@ const PricingSection = () => (
         </p>
       </div>
 
-      <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-5">
+      <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-3 lg:gap-4">
         {TIERS.map((tier) => (
           <div
             key={tier.name}

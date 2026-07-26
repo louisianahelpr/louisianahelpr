@@ -509,7 +509,7 @@ export default function PayItForward() {
                 className="w-full rounded-ds-sm font-display italic font-semibold"
                 style={{
                   background: canDonate ? "hsl(var(--pif-green))" : "hsl(var(--bark) / 0.15)",
-                  color: canDonate ? "#fff" : "hsl(var(--bark) / 0.5)",
+                  color: canDonate ? "hsl(var(--parchment))" : "hsl(var(--bark) / 0.5)",
                   border: "none",
                 }}
               >

@@ -184,7 +184,7 @@ const InsuranceClaim = () => {
             ].map(({ step, icon: Icon, title, bullets, accent }) => (
               <div
                 key={step}
-                className="liquid-glass rounded-xl p-4 lg:p-5"
+                className="liquid-glass rounded-2xl p-4 lg:p-5"
               >
                 <div className="flex items-start gap-4">
                   <div className="flex flex-col items-center gap-1.5 shrink-0">
@@ -336,7 +336,7 @@ const InsuranceClaim = () => {
           ].map(({ icon: Icon, label, body }) => (
             <div
               key={label}
-              className="flex items-start gap-3 p-3 rounded-xl"
+              className="flex items-start gap-3 p-3 rounded-2xl"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.06)",
                 border: "1px solid hsl(var(--burnt-sienna) / 0.14)",

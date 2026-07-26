@@ -358,7 +358,7 @@ export function IdentityHeader({
           <button
             type="button"
             onClick={() => { hapticLight(); onSelectTab("reviews"); }}
-            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-xl px-1 py-2 active:scale-95 transition-transform"
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform"
             style={{ background: "hsl(var(--bark) / 0.06)" }}
           >
             <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -386,7 +386,7 @@ export function IdentityHeader({
                 dialogTitle: "Share your profile",
               });
             }}
-            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-xl px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
             style={{ background: "hsl(var(--bark) / 0.06)" }}
           >
             <Share2 className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
@@ -399,7 +399,7 @@ export function IdentityHeader({
             type="button"
             aria-label="Edit profile"
             onClick={() => { hapticLight(); onSelectTab("profile"); }}
-            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-xl px-1 py-2 active:scale-95 transition-transform"
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform"
             style={{ background: "hsl(var(--bark) / 0.06)" }}
           >
             <Edit className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
@@ -413,7 +413,7 @@ export function IdentityHeader({
             aria-label="My QR code"
             disabled={!profile?.user_id}
             onClick={() => { hapticLight(); setQrOpen(true); }}
-            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-xl px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
             style={{ background: "hsl(var(--bark) / 0.06)" }}
           >
             <QrCode className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
@@ -513,7 +513,7 @@ export function IdentityHeader({
             // halve the card height (it was the largest profile-screen
             // element on first paint).
             <div
-              className="rounded-xl flex items-center gap-3 p-3"
+              className="rounded-2xl flex items-center gap-3 p-3"
               style={{
                 border: "1.5px dashed hsl(var(--olivewood) / 0.30)",
                 background: "hsl(var(--parchment) / 0.4)",

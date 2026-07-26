@@ -214,8 +214,17 @@ const SignupPending = () => {
             </div>
           )}
         </div>
-      </div>
 
+        {/* Inside the card, like the "Already have an account? Log in" line
+            on Signup. Floating on the page background below the card it read
+            as unrelated page furniture rather than part of the flow. */}
+        <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          Already verified?{" "}
+          <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+            Sign in
+          </Link>
+        </p>
+      </div>
     </AuthShell>
   );
 };

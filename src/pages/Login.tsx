@@ -11,6 +11,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import AuthShell from "@/components/auth/AuthShell";
+import BackButton from "@/components/BackButton";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { queryKeys } from "@/lib/queryKeys";
 import { friendlyAuthError } from "@/lib/authErrors";
@@ -251,7 +252,7 @@ const Login = () => {
   };
 
   return (
-    <AuthShell hideHeader centerColumn backInCard maxWidth="2xl">
+    <AuthShell hideHeader centerColumn hideBack maxWidth="2xl">
       <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6 lg:space-y-4">
         {/* Heading lives INSIDE the card, and the H emblem is gone entirely.
             Previously the emblem stacked above a heading that sat above the
@@ -262,9 +263,15 @@ const Login = () => {
             column properly. The mark still appears in the top-left back-nav
             and throughout the app; an auth screen does not need to re-announce
             the brand three times. */}
-        <div className="text-left space-y-1 pl-12 sm:pl-14">
+        {/* [back] [title] on ONE row, the same header shape /legal, /support
+            and /jobs use. Previously the arrow was absolutely positioned in the
+            card corner and the heading was indented pl-12/pl-14 to clear it,
+            which left the heading aligned to nothing — 89px from the card edge
+            while every field below sat at 33px. In-flow beats absolute here. */}
+        <div className="flex items-center gap-3">
+          <div className="shrink-0"><BackButton /></div>
           <h1
-            className="font-display italic font-bold leading-tight"
+            className="font-display italic font-bold leading-tight min-w-0 flex-1"
             style={{
               fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
               color: "hsl(var(--ink-deep))",

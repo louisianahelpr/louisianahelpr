@@ -11,8 +11,6 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import AuthShell from "@/components/auth/AuthShell";
-import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
-import HelprMark from "@/components/HelprMark";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import BuildStamp from "@/components/BuildStamp";
 import { queryKeys } from "@/lib/queryKeys";
@@ -262,38 +260,39 @@ const Login = () => {
   };
 
   return (
-    <AuthShell hideHeader desktopBrandPanel={<AuthBrandPane />}>
-      <div className="text-center mb-6 lg:mb-4 space-y-2">
-        {/* The H emblem is redundant on desktop when the AuthBrandPane
-            hero above already carries the full wordmark. Hide it at lg+
-            so the form column is short enough to fit below the hero
-            without vertical scroll at a 900px viewport. */}
-        <div className="flex justify-center mb-3 lg:hidden">
-          <HelprMark to={null} size="md" emblemOnly />
-        </div>
-        <h1
-          className="font-display italic font-bold leading-tight"
-          style={{
-            fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
-            color: "hsl(var(--ink-deep))",
-            letterSpacing: "-0.03em",
-          }}
-        >
-          Glad you're back.
-        </h1>
-        <p
-          className="font-sans"
-          style={{
-            fontSize: "0.95rem",
-            color: "hsl(var(--olivewood) / 0.8)",
-            letterSpacing: "0.01em",
-          }}
-        >
-          {redirectTarget ? "Sign in to continue." : "Pick up right where you left off."}
-        </p>
-      </div>
-
+    <AuthShell hideHeader centerColumn maxWidth="2xl">
       <div className="liquid-glass px-6 sm:px-8 py-8 lg:py-5 space-y-6 lg:space-y-4">
+        {/* Heading lives INSIDE the card, and the H emblem is gone entirely.
+            Previously the emblem stacked above a heading that sat above the
+            card — three separate bands of vertical space before a user reached
+            the email field, which is what left the form floating in the middle
+            of a tall window with dead bands top and bottom. Folding the
+            heading in makes the card the whole composition, so it fills the
+            column properly. The mark still appears in the top-left back-nav
+            and throughout the app; an auth screen does not need to re-announce
+            the brand three times. */}
+        <div className="text-center space-y-1">
+          <h1
+            className="font-display italic font-bold leading-tight"
+            style={{
+              fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            Glad you're back.
+          </h1>
+          <p
+            className="font-sans"
+            style={{
+              fontSize: "0.95rem",
+              color: "hsl(var(--olivewood) / 0.8)",
+              letterSpacing: "0.01em",
+            }}
+          >
+            {redirectTarget ? "Sign in to continue." : "Pick up right where you left off."}
+          </p>
+        </div>
         {mfaChallenge ? (
           <div className="space-y-5">
             <div className="flex flex-col items-center text-center gap-2">

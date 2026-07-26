@@ -48,7 +48,10 @@ const widthMap = {
   // strip on 1440+ viewports (matches the "wider centered card" audit
   // direction the user picked for the ambient-bg auth pages).
   lg: "max-w-md sm:max-w-lg lg:max-w-xl",
-  "2xl": "max-w-md sm:max-w-lg md:max-w-2xl",
+  // Widest rung — the auth cards now carry their heading INSIDE the card, so
+  // the card is the whole composition and a 576px column left it reading as a
+  // narrow strip on a 1200+ viewport.
+  "2xl": "max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-3xl",
 };
 
 const AuthShell = ({
@@ -146,7 +149,11 @@ const AuthShell = ({
             !hideBack && align !== "center" && (
               // Hide the in-flow back button at lg+ when a brand pane is
               // rendered — the pinned top-left back button covers desktop.
-              <div className={`mb-5 ${desktopBrandPanel ? "lg:hidden" : ""}`}>
+              // Gap is mb-2 (was mb-5): with the heading now living inside the
+              // card, a 20px gap left this arrow stranded in empty space above
+              // a tall card and it read as unrelated chrome rather than the
+              // card's own back control.
+              <div className={`mb-2 ${desktopBrandPanel ? "lg:hidden" : ""}`}>
                 {backLink}
               </div>
             )

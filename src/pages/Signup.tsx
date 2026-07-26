@@ -9,7 +9,6 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
-import HelprMark from "@/components/HelprMark";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
@@ -350,45 +349,38 @@ const Signup = () => {
   // bottom of a 922px-tall window. One emblem now sits beside the heading at
   // every width.
   return (
-    <AuthShell hideHeader centerColumn>
-      {/* Emblem sits BESIDE the heading, not stacked above it. Stacking cost
-          a full emblem-height + margin of vertical space in a view that was
-          already overflowing — the Google button was clipped off the bottom at
-          922px tall. Running them as a row reclaims that height and reads as
-          one lockup. Text goes left-aligned when the emblem is present and
-          re-centres at lg+, where the emblem is hidden (AuthBrandPane already
-          renders it there, so the two would otherwise stack). */}
-      <div className="mb-4 flex items-center justify-center gap-3">
-        <div className="shrink-0">
-          <HelprMark to={null} size="md" emblemOnly />
-        </div>
-        <div className="space-y-1 min-w-0 text-left">
-        <h1
-          className="font-display italic font-bold leading-tight"
-          style={{
-            fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
-            color: "hsl(var(--ink-deep))",
-            letterSpacing: "-0.03em",
-          }}
-        >
-          {stepHeading.title}
-        </h1>
-        <p
-          className="font-sans"
-          style={{
-            fontSize: "0.95rem",
-            color: "hsl(var(--olivewood) / 0.8)",
-            letterSpacing: "0.01em",
-          }}
-        >
-          {stepHeading.subtitle}
-        </p>
-        </div>
-      </div>
+    <AuthShell hideHeader centerColumn maxWidth="2xl">
       <div className="pb-8">
           {/* Liquid-glass card — matches the Login screen so the two auth
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}
           <div className="liquid-glass px-6 sm:px-8 py-5 space-y-4">
+            {/* Heading INSIDE the card, no H emblem — identical treatment to
+                Login. The emblem stacked above a heading that sat above the
+                card meant three bands of vertical space before the email
+                field, and it clipped the Google button off a 922px window.
+                The card is now the whole composition. */}
+            <div className="text-center space-y-1">
+              <h1
+                className="font-display italic font-bold leading-tight"
+                style={{
+                  fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
+                  color: "hsl(var(--ink-deep))",
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                {stepHeading.title}
+              </h1>
+              <p
+                className="font-sans"
+                style={{
+                  fontSize: "0.95rem",
+                  color: "hsl(var(--olivewood) / 0.8)",
+                  letterSpacing: "0.01em",
+                }}
+              >
+                {stepHeading.subtitle}
+              </p>
+            </div>
             {/* Dev-only step jumper — visible in dev builds so you can click through every signup screen without making an account. Hidden in production. */}
             {import.meta.env.DEV && (
               <div className="rounded-ds-sm border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-ds-11">

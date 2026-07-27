@@ -55,7 +55,7 @@ serve(async (req) => {
       .from("profiles")
       .select("background_check_status")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     // A dropped error here defaults bgcStatus to "none" and lets the checkout
     // proceed even when the user may be "pending" or "verified" — bypassing the

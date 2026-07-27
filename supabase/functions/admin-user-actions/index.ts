@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
 
     const { data: profile, error: profileErr } = await admin.from('profiles')
       .select('full_name, email, user_id, role')
-      .eq('user_id', targetUserId).single()
+      .eq('user_id', targetUserId).maybeSingle()
 
     // A dropped error here maps a transient DB failure to "User email not found"
     // (404), hiding the real cause from admins trying to perform account actions.

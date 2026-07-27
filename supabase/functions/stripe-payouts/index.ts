@@ -43,18 +43,24 @@ serve(async (req) => {
     if (userErr || !userData?.user) throw new Error("Not authenticated");
     const user = userData.user;
 
-    // Look up Stripe Connect account from profile
+    // Look up Stripe Connect account from profile.
+    // maybeSingle: zero rows → { data: null, error: null } (valid "not connected"
+    // state); only a real DB failure sets error. This keeps the profileErr guard
+    // from firing on expected missing-profile cases while still catching transient
+    // read failures. Return 500 directly so callers can retry — the outer catch
+    // converts everything to 400 which would be wrong for a server-side fault.
     const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
       .select("stripe_account_id")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
-    // A dropped error here silently returns { connected: false } to the UI —
-    // a helper who already onboarded sees "no payout account" on every transient
-    // DB blip, with no way to tell the difference from a genuine missing account.
     if (profileErr) {
-      throw new Error("Could not load your payout account right now. Please try again in a moment.");
+      console.error("[stripe-payouts] profile read failed:", profileErr);
+      return new Response(
+        JSON.stringify({ error: "Could not load your payout account right now. Please try again in a moment." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
+      );
     }
     const accountId = profile?.stripe_account_id;
 

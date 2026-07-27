@@ -30,7 +30,7 @@ serve(async (req) => {
       .from("profiles")
       .select("idv_status, idv_session_id, full_name, role")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     // A dropped error here silently bypasses the "already verified" guard below
     // and — critically — can overwrite idv_status:"verified" with "pending" if

@@ -42,11 +42,34 @@ export async function handleChargeDisputeClosed(
     : "warning_closed";
 
   if (closedPiId) {
-    const { data: closedJob } = await supabase
+    const { data: closedJob, error: closedJobErr } = await supabase
       .from("jobs")
       .select("id, customer_id, helper_id, title, payment_status")
       .eq("stripe_payment_intent_id", closedPiId)
       .maybeSingle();
+
+    if (closedJobErr) {
+      // A DB failure here means the dispute outcome cannot be recorded.
+      // On a "won" dispute this is especially harmful: the Slack alert below
+      // tells ops to release the blocked payout, but dispute_status stays
+      // "stripe_chargeback" — which blocks release-payout indefinitely with
+      // no further signal. Throw so the idempotency row is rolled back and
+      // Stripe retries once the DB recovers.
+      await postSlackOpsAlert({
+        kind: outcome === "won" ? "dispute_won" : outcome === "lost" ? "dispute_lost" : "custom",
+        severity: "critical",
+        title: `Stripe dispute closed (${outcome}) — outcome NOT RECORDED (job lookup DB error)`,
+        message: `Dispute ${closedDispute.id} closed as "${outcome}" but the job lookup failed with a DB error — dispute_status and dispute_resolved_at NOT updated. Stripe will retry this webhook. If retries exhaust, manually update the job row.`,
+        fields: {
+          "Dispute ID": closedDispute.id,
+          "Payment Intent": closedPiId ?? "—",
+          "Outcome": outcome,
+          "DB error": closedJobErr.message.slice(0, 200),
+        },
+        link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
+      });
+      throw new Error(`Job lookup failed for closed dispute PI ${closedPiId}: ${closedJobErr.message}`);
+    }
 
     if (closedJob) {
       const { error: resolveUpdateErr } = await supabase

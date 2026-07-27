@@ -142,7 +142,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
           // of the misleading "no saved helprs yet" empty state.
           <ErrorState
             variant="inline"
-            eyebrow={wasOffline ? "You're offline" : "Something went wrong"}
+            eyebrow={wasOffline ? "You're offline" : "Hiccup on our end"}
             title={
               wasOffline
                 ? "We can't reach the network."

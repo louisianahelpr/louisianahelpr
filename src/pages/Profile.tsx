@@ -352,7 +352,7 @@ const ProfilePage = () => {
         if (activeErr) throw activeErr;
         if (activeJobs && activeJobs.length > 0) {
           toast.error(
-            "You have an active job or funds in escrow. Finish or cancel your open jobs and let any payments settle before deleting your account.",
+            "You have an active task or a payment in progress. Wrap up your open tasks and let any payments settle first.",
           );
           setDeletingAccount(false);
           return;

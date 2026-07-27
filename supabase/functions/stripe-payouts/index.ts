@@ -44,12 +44,18 @@ serve(async (req) => {
     const user = userData.user;
 
     // Look up Stripe Connect account from profile
-    const { data: profile } = await supabaseAdmin
+    const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
       .select("stripe_account_id")
       .eq("user_id", user.id)
       .single();
 
+    // A dropped error here silently returns { connected: false } to the UI —
+    // a helper who already onboarded sees "no payout account" on every transient
+    // DB blip, with no way to tell the difference from a genuine missing account.
+    if (profileErr) {
+      throw new Error("Could not load your payout account right now. Please try again in a moment.");
+    }
     const accountId = profile?.stripe_account_id;
 
     const empty: PayoutSummary = {

@@ -26,11 +26,18 @@ serve(async (req) => {
     const user = userData.user;
     if (!user) throw new Error("Not authenticated");
 
-    const { data: profile } = await supabaseAdmin
+    const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
       .select("idv_status, idv_session_id, full_name, role")
       .eq("user_id", user.id)
       .single();
+
+    // A dropped error here silently bypasses the "already verified" guard below
+    // and — critically — can overwrite idv_status:"verified" with "pending" if
+    // the SELECT fails but the subsequent UPDATE succeeds (brief DB read fault).
+    if (profileErr) {
+      throw new Error("Could not load your account right now. Please try again.");
+    }
 
     // Already verified — short-circuit
     if (profile?.idv_status === "verified") {

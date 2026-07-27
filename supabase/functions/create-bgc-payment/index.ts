@@ -51,11 +51,18 @@ serve(async (req) => {
 
     // Don't let a helper pay twice. Block if a check is already in progress or
     // already passed.
-    const { data: profile } = await supabaseAdmin
+    const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
       .select("background_check_status")
       .eq("user_id", user.id)
       .single();
+
+    // A dropped error here defaults bgcStatus to "none" and lets the checkout
+    // proceed even when the user may be "pending" or "verified" — bypassing the
+    // duplicate-payment guards below on a transient DB read failure.
+    if (profileErr) {
+      return fail(500, "Could not verify your account status. Please try again in a moment.");
+    }
     const bgcStatus = (profile?.background_check_status ?? "none") as string;
     if (bgcStatus === "pending") {
       return fail(409, "Your background check is already in progress.");

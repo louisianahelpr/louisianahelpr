@@ -97,10 +97,17 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { data: profile } = await admin.from('profiles')
+    const { data: profile, error: profileErr } = await admin.from('profiles')
       .select('full_name, email, user_id, role')
       .eq('user_id', targetUserId).single()
 
+    // A dropped error here maps a transient DB failure to "User email not found"
+    // (404), hiding the real cause from admins trying to perform account actions.
+    if (profileErr) {
+      return new Response(JSON.stringify({ error: 'Could not load user profile. Please try again.' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
     if (!profile?.email) {
       return new Response(JSON.stringify({ error: 'User email not found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -56,7 +56,7 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
     },
     {
       title: "Get paid when it's done",
-      desc: "Their money's already in escrow, released when you finish.",
+      desc: "Their payment is held securely — released to you once you're done.",
     },
   ],
 };

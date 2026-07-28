@@ -266,7 +266,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <div className="grid grid-cols-3 gap-2">
             {[
               { icon: TrendingUp, label: "Total", value: `$${formatPrice(totalEarnings)}`, sub: `${completedJobs.length} job${completedJobs.length === 1 ? "" : "s"}` },
-              { icon: Gift, label: "Tips", value: `$${formatPrice(totalTips)}`, sub: `${tips.length} tips` },
+              { icon: Gift, label: "Tips", value: `$${formatPrice(totalTips)}`, sub: `${tips.length} tip${tips.length === 1 ? "" : "s"}` },
               { icon: Briefcase, label: "Active", value: String(inProgressJobs.length), sub: "in progress" },
             ].map(({ icon: Icon, label, value, sub }) => (
               <div key={label} className="rounded-ds-md liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">

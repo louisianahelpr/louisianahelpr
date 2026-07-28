@@ -7,7 +7,7 @@ import { track } from "@/lib/analytics";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatShortDate } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 
 interface EntryChoiceProps {
@@ -24,7 +24,7 @@ function shortRelativeDate(iso: string): string {
   if (days === 1) return "yesterday";
   if (days < 7) return `${days}d ago`;
   // Long enough ago — show a month + day.
-  return then.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return formatShortDate(then);
 }
 
 /**

@@ -52,10 +52,12 @@ export async function handleTransferCreated(
       // Flip the job to "released". For scheduled payouts this is a backup
       // confirmation (process-scheduled-payouts already flipped it); for
       // admin dispute releases it is the authoritative flip.
-      const { error: jobUpdateErr } = await supabase
+      const { data: updatedJob, error: jobUpdateErr } = await supabase
         .from("jobs")
         .update({ payment_status: "released" })
-        .eq("id", transferJobId);
+        .eq("id", transferJobId)
+        .select("id")
+        .maybeSingle();
       if (jobUpdateErr) {
         // Log loudly but don't throw: the job flip is belt-and-suspenders here —
         // all transfer-initiating code paths (release-payout, process-scheduled-payouts,
@@ -64,6 +66,12 @@ export async function handleTransferCreated(
         // initiating path already set it correctly, so no money↔state divergence.
         logStep("ERROR updating job payment_status to released", {
           error: jobUpdateErr.message,
+          jobId: transferJobId,
+        });
+      } else if (!updatedJob) {
+        // Zero rows matched — the job doesn't exist for this ledger entry.
+        // Belt-and-suspenders path: log for auditability but don't throw.
+        logStep("WARN job update matched 0 rows — job missing for ledger entry", {
           jobId: transferJobId,
         });
       } else {

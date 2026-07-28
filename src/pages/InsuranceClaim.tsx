@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
 import PublicLayout from "@/components/marketing/PublicLayout";
+import { isNativePlatform } from "@/lib/nativeInit";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 type DamageChip =
@@ -75,10 +76,21 @@ const InsuranceClaim = () => {
 
   return (
     <PublicLayout>
-      <PageHeader
-        eyebrow="Insurance"
-        title="Claim Concierge"
-      />
+      {/* PageHeader is the in-app top bar (brand + BACK + right slot). On web it
+          stacks under PublicLayout's marketing nav AND its "Back to home" link,
+          producing two back buttons 35px apart at 375px. Native-only, with an
+          inline title on web — the pattern DataRights.tsx:113 already
+          established for exactly this bug. */}
+      {isNativePlatform ? (
+        <PageHeader
+          eyebrow="Insurance"
+          title="Claim Concierge"
+        />
+      ) : (
+        <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-8">
+          <h1 className="text-page-title leading-tight">Claim Concierge</h1>
+        </div>
+      )}
 
       <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 lg:px-8 pb-12 space-y-8">
 
@@ -172,7 +184,7 @@ const InsuranceClaim = () => {
             ].map(({ step, icon: Icon, title, bullets, accent }) => (
               <div
                 key={step}
-                className="liquid-glass rounded-xl p-4 lg:p-5"
+                className="liquid-glass rounded-2xl p-4 lg:p-5"
               >
                 <div className="flex items-start gap-4">
                   <div className="flex flex-col items-center gap-1.5 shrink-0">
@@ -324,7 +336,7 @@ const InsuranceClaim = () => {
           ].map(({ icon: Icon, label, body }) => (
             <div
               key={label}
-              className="flex items-start gap-3 p-3 rounded-xl"
+              className="flex items-start gap-3 p-3 rounded-2xl"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.06)",
                 border: "1px solid hsl(var(--burnt-sienna) / 0.14)",

@@ -30,14 +30,32 @@ export async function handleChargeRefunded(
     (latestRefund?.metadata as Record<string, string> | null)?.reason === "duplicate_onboarding_fee";
 
   if (refundPiId && isFullRefund && !isOnboardingFeeCorrection) {
-    const { data: refundedJob } = await supabase
+    const { data: refundedJob, error: jobLookupErr } = await supabase
       .from("jobs")
       .select("id, customer_id, title")
       .eq("stripe_payment_intent_id", refundPiId)
       .maybeSingle();
 
+    if (jobLookupErr) {
+      // Throw so the outer handler rolls back the idempotency row and returns
+      // 500 — letting Stripe retry once the DB recovers. A silent early return
+      // here would mark the event as processed (200 OK) even though the job's
+      // payment_status was never updated, permanently stranding it.
+      throw new Error(`Job lookup failed for refund PI ${refundPiId}: ${jobLookupErr.message}`);
+    }
+
     if (refundedJob) {
-      await supabase.from("jobs").update({ payment_status: "refunded" }).eq("id", refundedJob.id);
+      const { error: updateErr } = await supabase
+        .from("jobs")
+        .update({ payment_status: "refunded" })
+        .eq("id", refundedJob.id);
+      if (updateErr) {
+        // Same fail-closed contract as the lookup: a dropped update here would
+        // leave the job in its pre-refund state (e.g. "escrow") while Stripe
+        // has already returned the funds — a money↔state divergence that can
+        // only be detected by manual reconciliation. Throw so Stripe retries.
+        throw new Error(`Failed to mark job ${refundedJob.id} as refunded: ${updateErr.message}`);
+      }
       await supabase.from("notifications").insert({
         user_id: refundedJob.customer_id,
         title: "💸 Refund processed",

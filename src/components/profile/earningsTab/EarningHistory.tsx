@@ -4,8 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { formatPrice, formatShortDate } from "@/lib/format";
-import { netUrgentFeeDollars } from "@/lib/stripeFees";
-import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
+import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import type { Job } from "./types";
 
 interface EarningHistoryProps {
@@ -16,6 +15,16 @@ interface EarningHistoryProps {
   page: number;
   onLoadMore: () => void;
   onBrowseJobs: () => void;
+  /**
+   * Fee % to apply when a job row's `helper_fee_percent` is NULL (legacy rows
+   * predating the column). Passed in from EarningsTab rather than imported,
+   * because it is TIER-DERIVED — a Free helper is 12%, not the historical flat
+   * 10. This component used to import HELPER_FEE_LEGACY_FALLBACK_PERCENT
+   * directly while the tab's Total tile used the tier rate, so on any legacy
+   * row the per-job payouts listed here and the total they roll up into were
+   * computed at different fee rates and did not add up. One rate, one source.
+   */
+  feeFallbackPct: number;
 }
 
 export function EarningHistory({
@@ -26,6 +35,7 @@ export function EarningHistory({
   page,
   onLoadMore,
   onBrowseJobs,
+  feeFallbackPct,
 }: EarningHistoryProps) {
   if (loading) {
     // Content-shaped skeleton: section eyebrow + heading, plus three
@@ -62,9 +72,6 @@ export function EarningHistory({
 
   return (
     <div>
-      <p className="font-serif italic uppercase mb-1" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-        History
-      </p>
       <h2 className="font-display italic font-bold leading-tight mb-3 text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
         Earning history
       </h2>
@@ -107,12 +114,12 @@ export function EarningHistory({
       ) : (
         <div className="space-y-3">
           {earningsJobs.slice(0, historyVisible).map((job) => {
-            const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-            const perHelper = job.budget / helpers;
-            const commissionPercent = job.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
-            const commission = (perHelper * commissionPercent) / 100;
-            // Urgent fee splits across the roster like the budget (#114).
-            const payout = job.status === "completed" ? perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers : null;
+            // Same shared take-home definition as the tab's Total tile (group
+            // budget + urgent fee split across the roster, #114), so a row can
+            // never disagree with the number it rolls up into.
+            const payout = job.status === "completed"
+              ? helperTakeHomeDollars(job, feeFallbackPct)
+              : null;
             const jobTips = tips.filter((t) => t.job_id === job.id);
             const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
             return (

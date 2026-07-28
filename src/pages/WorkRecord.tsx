@@ -23,9 +23,11 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { shareNative } from "@/lib/nativeShare";
+import { formatShortDate } from "@/lib/format";
 import HelprMark from "@/components/HelprMark";
 import type { Database } from "@/integrations/supabase/types";
-import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
+import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -37,25 +39,18 @@ interface WorkRecordData {
     created_at: string;
   };
   completedJobs: Job[];
-  /** Helper's platform fee % derived from their subscription tier at fetch time. */
-  feePercent: number;
+  /**
+   * LAST-RESORT fee % for legacy rows that carry neither a stamped
+   * `platform_fee_amount` nor a frozen `helper_fee_percent`. Derived from the
+   * helper's subscription tier at fetch time. Never applied to a job that
+   * recorded its own fee — see `helperEarnings.ts`.
+   */
+  feeFallbackPercent: number;
   totalEarnings: number;
   avgRating: number | null;
   reviewCount: number;
   topCategories: string[];
   dateRange: { first: string; last: string } | null;
-}
-
-/**
- * Resolve the helper's platform fee % from their subscription tier. Uses the
- * canonical `TIER_PERKS.platformFeePercent` so /profile?tab=earnings,
- * /analytics, and this page all use the SAME fee ladder (12/10/8/6). An
- * unknown tier defaults to free (12%). Do NOT hardcode a fee here — the
- * ladder is set in one place and this reads it.
- */
-function helperFeePercent(tier: string | null | undefined): number {
-  const key = (tier ?? "free") as SubscriptionTier;
-  return (TIER_PERKS[key] ?? TIER_PERKS.free).platformFeePercent;
 }
 
 function formatMonthYear(dateStr: string): string {
@@ -80,12 +75,13 @@ const WorkRecord = () => {
     queryFn: async (): Promise<WorkRecordData> => {
       if (!userId) throw new Error("Not authenticated");
 
-      // Fetch profile + the helper's subscription_tier so total earnings
-      // uses the RIGHT fee % (12/10/8/6). Previously hardcoded to 10% — a
-      // Free helper saw their earnings computed under Pro's fee.
+      // Fetch profile + the helper's subscription tier. The tier rate is ONLY
+      // the fallback for legacy rows with no recorded fee — expiry is read too
+      // so a lapsed paid tier reverts to the free rate, exactly as
+      // /wrapped and /profile resolve it.
       const profileRes = await supabase
         .from("profiles")
-        .select("full_name, approval_status, idv_status, created_at, subscription_tier")
+        .select("full_name, approval_status, idv_status, created_at, subscription_tier, subscription_expires_at")
         .eq("user_id", userId)
         .single();
       const profileRow = unwrap(profileRes) as {
@@ -94,6 +90,7 @@ const WorkRecord = () => {
         idv_status: string | null;
         created_at: string;
         subscription_tier: string | null;
+        subscription_expires_at: string | null;
       };
       const profile = {
         full_name: profileRow.full_name,
@@ -101,7 +98,10 @@ const WorkRecord = () => {
         idv_status: profileRow.idv_status,
         created_at: profileRow.created_at,
       };
-      const feePercent = helperFeePercent(profileRow.subscription_tier);
+      const feeFallbackPercent = tierFeePercent(
+        profileRow.subscription_tier,
+        profileRow.subscription_expires_at,
+      );
 
       // Fetch completed jobs where this user was the helper
       const jobsRes = await supabase
@@ -125,12 +125,14 @@ const WorkRecord = () => {
           ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviewCount) * 10) / 10
           : null;
 
-      // Calculate total earnings (budget × (1 − feePercent/100)); feePercent
-      // derives from the helper's actual subscription tier above.
-      const totalEarnings = completedJobs.reduce((sum, j) => {
-        const budget = j.budget ?? 0;
-        return sum + budget * (1 - feePercent / 100);
-      }, 0);
+      // Total earnings, resolved PER JOB by the shared helper: the fee stamped
+      // at payout wins, then the % frozen on the row, then (legacy rows only)
+      // the tier rate — plus the net urgent bonus the helper was actually
+      // paid, and a group job's budget divided across its roster. This is an
+      // official employment/earnings document, so it must report what each job
+      // really paid, not today's tier applied backwards or a group job's full
+      // budget when only 1/N of it was transferred.
+      const totalEarnings = sumHelperTakeHomeDollars(completedJobs, feeFallbackPercent);
 
       // Top categories by frequency
       const catCounts = new Map<string, number>();
@@ -158,7 +160,7 @@ const WorkRecord = () => {
       return {
         profile,
         completedJobs,
-        feePercent,
+        feeFallbackPercent,
         totalEarnings,
         avgRating,
         reviewCount,
@@ -172,11 +174,38 @@ const WorkRecord = () => {
   const loading = isLoading && !data;
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
+  // There is NO public work-record route or share token: /work-record is
+  // ProtectedRoute-wrapped and always renders the VIEWER's own record, so the
+  // old `${origin}/work-record` link sent the recipient to their own record —
+  // or a login wall — never the sharer's. Rather than invent a token/route,
+  // share the record's verifiable claims as self-contained text plus the same
+  // verification address the document footer prints, and point the link at the
+  // Helpr homepage (a page that really does exist and really is about Helpr).
+  //
+  // The dollar figure is deliberately NOT in the share text: a share sheet can
+  // land anywhere, and the original text disclosed only a job count. Anyone who
+  // needs income verification uses Print (→ Save as PDF), which carries the
+  // full document.
   async function handleShare() {
+    if (!data) return;
+    const jobs = data.completedJobs.length;
+    const period = data.dateRange
+      ? ` (${formatMonthYear(data.dateRange.first)} – ${formatMonthYear(data.dateRange.last)})`
+      : "";
+    const lines = [
+      `Helpr Work Record — ${data.profile.full_name ?? "Helpr Member"}`,
+      `${jobs} job${jobs === 1 ? "" : "s"} completed on Helpr${period}`,
+      data.avgRating !== null
+        ? `${data.avgRating.toFixed(1)}★ average across ${data.reviewCount} review${data.reviewCount === 1 ? "" : "s"}`
+        : null,
+      data.profile.idv_status === "verified" ? "ID verified by Helpr" : null,
+      "Verify this record: admin@louisianahelpr.com",
+    ].filter((l): l is string => !!l);
+
     await shareNative({
       title: "My Helpr Work Record",
-      text: `Check out my verified work history on Helpr — ${data?.completedJobs.length ?? 0} jobs completed.`,
-      url: `${window.location.origin}/work-record`,
+      text: lines.join("\n"),
+      url: window.location.origin,
       dialogTitle: "Share my Helpr Work Record",
     });
   }
@@ -186,10 +215,11 @@ const WorkRecord = () => {
       <PageHeader
         title="Work Record"
         eyebrow="Employment & Earnings"
-        meta="Your verified Helpr work history"
         onBack={() => navigate("/profile")}
         showBrand
         rightSlot={<NotificationPanel />}
+        // Mirrors the body container below (max-w-5xl, px-4 → lg:px-8 → xl:px-12).
+        width="5xl-p4"
       />
 
       <div className="mx-auto max-w-5xl px-4 lg:px-8 xl:px-12 pb-10 space-y-5 mt-2">
@@ -201,15 +231,22 @@ const WorkRecord = () => {
 
         {isError && !loading && (
           <ErrorState
+            variant="inline"
             title="Couldn't load your work record"
-            body="Check your connection and try again."
             onRetry={() => refetch()}
           />
         )}
 
         {!loading && !isError && data && (
           <>
-            {/* Official Document Card */}
+            {/* Official Document Card.
+                DELIBERATE deviation from the `rounded-2xl liquid-glass p-5`
+                card convention: this is the printed letterhead surface shared
+                with /home-history, /benefits and /str-settings (parchment fill,
+                olivewood hairline, section dividers that bleed edge-to-edge),
+                not an app content card — `liquid-glass`'s white fill + backdrop
+                blur + p-5 would break both the document look and the section
+                geometry. */}
             <div
               className="rounded-ds-lg overflow-hidden print:shadow-none"
               style={{
@@ -390,7 +427,9 @@ const WorkRecord = () => {
                       <span className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground text-right">Date</span>
                     </div>
                     {recentJobs.map((job, idx) => {
-                      const earned = (job.budget ?? 0) * (1 - (data?.feePercent ?? 12) / 100);
+                      // Same per-job resolution as the Total Earnings figure
+                      // above, so a row can never disagree with the summary.
+                      const earned = helperTakeHomeDollars(job, data.feeFallbackPercent);
                       const label = categoryLabels[job.category ?? "other"] ?? "Other";
                       return (
                         <div
@@ -410,7 +449,7 @@ const WorkRecord = () => {
                             {formatCurrency(earned)}
                           </span>
                           <span className="text-ds-11 text-muted-foreground tabular-nums shrink-0 text-right">
-                            {new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            {formatShortDate(job.created_at)}
                           </span>
                         </div>
                       );
@@ -455,8 +494,12 @@ const WorkRecord = () => {
               </div>
             </div>
 
-            {/* Share CTA */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            {/* Share CTA. `data-print-hide` (the app-wide print-chrome hook —
+                see the @media print block in index.css) keeps the Share/Print
+                controls off the saved PDF: this record is printed as an
+                income/employment document, and an interactive button row on
+                page 1 undercuts that. */}
+            <div data-print-hide className="flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
                 onClick={() => { void handleShare(); }}
@@ -468,7 +511,7 @@ const WorkRecord = () => {
                 }}
               >
                 <Share2 className="w-4 h-4" />
-                Share my Helpr Work Record
+                Share summary
               </button>
               <button
                 type="button"

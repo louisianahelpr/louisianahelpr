@@ -15,6 +15,9 @@ interface JobPosterCardProps {
    *  floor isn't met. When present, surfaced inline near the name so
    *  the helpr can read it without leaving the job dialog. */
   cancellationRate?: number | null;
+  /** Logged-out viewer. Sends the tile to /signup instead of a profile that
+   *  guests can't open anyway. */
+  guest?: boolean;
 }
 
 /**
@@ -24,7 +27,16 @@ interface JobPosterCardProps {
  *
  * Extracted verbatim from JobDetailDialog.tsx.
  */
-export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCardProps) {
+export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false }: JobPosterCardProps) {
+  // Nothing to show. The guest /jobs feed comes from `get_ranked_open_jobs`,
+  // whose RETURNS TABLE has no `customer_id` — so this tile rendered with a
+  // blank name, a "U" fallback avatar, and a link to a literal `/user/` with no
+  // id. An empty shell pointing at a dead route is worse than no tile, so it is
+  // omitted entirely rather than dressed up. (/jobs/:id reads
+  // `open_jobs_browse`, which DOES return customer_id, so the tile still shows
+  // there with real content.)
+  if (!job.customer_id) return null;
+
   const posterBadges = computeBadges({
     avgRating: job.posterAvgRating || 0,
     reviewCount: job.posterReviewCount || 0,
@@ -42,10 +54,19 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate }: JobPosterCa
 
   return (
     <Link
-      to={`/user/${job.customer_id}`}
+      // Guests can't open a profile — /user/:id is behind auth — so the tap
+      // goes where it can actually lead somewhere.
+      to={guest ? "/signup" : `/user/${job.customer_id}`}
       className="relative block p-2.5 rounded-ds-md group glass-press transition-colors"
       style={{
-        backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+        // `--surface-premium`, NOT a literal white. This was
+        // `hsla(0, 0%, 100%, 0.55)` — 55%-opaque pure white with no dark
+        // sibling — so in dark mode the "Posted by" tile painted as a bright
+        // silver panel sitting among otherwise dark tiles (caught on the iOS
+        // sim). That is the exact failure the token was introduced to fix; see
+        // the note above --surface-premium in index.css. This tile was just
+        // never migrated.
+        background: "var(--surface-premium)",
         backdropFilter: "blur(16px) saturate(150%)",
         WebkitBackdropFilter: "blur(16px) saturate(150%)",
         border: "0.5px solid hsl(var(--bark) / 0.18)",

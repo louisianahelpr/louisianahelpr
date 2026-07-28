@@ -39,6 +39,16 @@ export interface UseJobFormEffectsParams {
     urgentFee: string;
     isGroupJob: boolean;
     helpersNeeded: string;
+    credentialTier: number;
+    pricingMode: string;
+    bidCeiling: string;
+    bidDeadline: string;
+    bidsSealed: boolean;
+    includeMaterials: boolean;
+    materialsNote: string;
+    department: string;
+    requiresW9: boolean;
+    offerToHelperId: string | null;
   }) => void;
   // Setters
   setPlatformFee: (v: number | null) => void;
@@ -82,6 +92,16 @@ export interface UseJobFormEffectsParams {
   urgentFee: string;
   isGroupJob: boolean;
   helpersNeeded: string;
+  credentialTier: number;
+  pricingMode: string;
+  bidCeiling: string;
+  bidDeadline: string;
+  bidsSealed: boolean;
+  includeMaterials: boolean;
+  materialsNote: string;
+  department: string;
+  requiresW9: boolean;
+  offerToHelperId: string | null;
 }
 
 export function useJobFormEffects(params: UseJobFormEffectsParams) {
@@ -129,6 +149,16 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     urgentFee,
     isGroupJob,
     helpersNeeded,
+    credentialTier,
+    pricingMode,
+    bidCeiling,
+    bidDeadline,
+    bidsSealed,
+    includeMaterials,
+    materialsNote,
+    department,
+    requiresW9,
+    offerToHelperId,
   } = params;
 
   useEffect(() => {
@@ -272,9 +302,9 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
   const autoSave = useCallback(() => {
     const location = `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`;
     if (title || description || streetAddress || budget) {
-      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded });
+      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, credentialTier, pricingMode, bidCeiling, bidDeadline, bidsSealed, includeMaterials, materialsNote, department, requiresW9, offerToHelperId });
     }
-  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, saveDraft]);
+  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, credentialTier, pricingMode, bidCeiling, bidDeadline, bidsSealed, includeMaterials, materialsNote, department, requiresW9, offerToHelperId, saveDraft]);
 
   useEffect(() => {
     const timer = setTimeout(autoSave, 2000);

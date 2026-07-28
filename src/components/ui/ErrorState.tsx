@@ -32,7 +32,7 @@ interface ErrorStateProps {
  * Like EmptyState, the caller supplies the flex wrapper that sizes it.
  */
 export function ErrorState({
-  eyebrow = "Something went wrong",
+  eyebrow = "Hiccup on our end",
   title = "We couldn't load this.",
   // Default body avoids blaming the user's connection — many of the
   // failures we see in error_logs are server-side (RLS regressions, RPC

@@ -34,6 +34,13 @@ export const toEnrichedJob = (job: PublicJob): EnrichedJob => ({
   budget: job.budget,
   date_needed: job.date_needed,
   start_time: job.start_time,
+  // `numeric` over PostgREST can arrive as "4.00"; EnrichedJob types this as
+  // number | null (it mirrors the jobs table Row), so normalize here rather
+  // than making the card defend against a string.
+  estimated_hours:
+    job.estimated_hours == null || Number.isNaN(Number(job.estimated_hours))
+      ? null
+      : Number(job.estimated_hours),
   location: job.location,
   customer_id: "",
   status: "open",

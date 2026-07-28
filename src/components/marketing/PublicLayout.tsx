@@ -41,6 +41,13 @@ interface PublicLayoutProps {
    * other page keeps the spacer so content starts below the nav.
    */
   noNavSpacer?: boolean;
+  /**
+   * Suppress the mobile-only "Back to home" link. Pages that render the
+   * canonical in-content `<BackButton />` next to their H1 opt in, otherwise
+   * two back affordances stack on top of each other at <lg. Default false,
+   * so every other public page keeps the link exactly as before.
+   */
+  hideHomeLink?: boolean;
 }
 
 const PublicLayout = ({
@@ -51,6 +58,7 @@ const PublicLayout = ({
   ctaLabel = "Get started",
   ctaTo = "/signup",
   noNavSpacer = false,
+  hideHomeLink = false,
 }: PublicLayoutProps) => {
   // Session-only auth (no profile round-trip) so the CTA band mirrors the
   // Navbar: an authenticated visitor sees "Open app" instead of the
@@ -90,7 +98,25 @@ const PublicLayout = ({
   }
 
   return (
-    <div className="min-h-screen page-warmth pb-safe-nav relative flex flex-col">
+    // overflow-x-clip: structural guarantee for CLAUDE.md's "every page must FIT
+    // THE SCREEN — no horizontal overflow" rule. Decorative ambient halos
+    // (WarmHalo's `-inset-16 sm:-inset-24 lg:-inset-32`) intentionally bleed past
+    // their parent, which was widening the scroll area at 375px (/for-business
+    // overflowed 42px, /subscription 4px) and dragging every `w-full` fixed
+    // element out with it. `clip` not `hidden`: it does NOT create a scroll
+    // container, so sticky children still stick, and the fixed Navbar/mesh keep
+    // the viewport as their containing block and are not clipped.
+    /* Bottom padding is dock clearance + safe area, but WITHOUT the extra
+       `1rem` that Tailwind's `safe-nav` token adds. `<Footer>` is the last
+       child and carries its own internal padding, so that rem was a visible
+       dead band under the footer on every marketing page — 16px once
+       `--bottom-nav-h` collapsed to 0 (which it does here, since the dock
+       never renders on marketing routes).
+
+       Still expressed in terms of `--bottom-nav-h` rather than hardcoded to
+       zero: if a PublicLayout route ever does show the dock, the footer must
+       not slide underneath it. */
+    <div className="min-h-screen page-warmth pb-[calc(env(safe-area-inset-bottom,0px)+var(--bottom-nav-h,96px))] relative flex flex-col overflow-x-clip">
       {/* Global mesh behind every section — matches the landing surface. */}
       <div aria-hidden className="mesh-gradient-global" />
 
@@ -123,7 +149,7 @@ const PublicLayout = ({
           hides the Helpr wordmark inside the drawer). Hidden at lg+
           because the Helpr·LA wordmark in the top nav is already a home
           link there and this text would just duplicate it. */}
-      {!noNavSpacer && location.pathname !== "/" && (
+      {!noNavSpacer && !hideHomeLink && location.pathname !== "/" && (
         <div className="px-5 sm:px-8 lg:px-12 pt-4 lg:hidden">
           <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
             <Link

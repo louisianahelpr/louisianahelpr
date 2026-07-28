@@ -78,6 +78,7 @@ export function MessageBubble({
   m,
   mine,
   showReadReceipt,
+  grouped = false,
   activeConvo,
   retryMessage,
   setLightboxPhoto,
@@ -91,6 +92,11 @@ export function MessageBubble({
    *  message — gates the "Read"/"Delivered" indicator so it appears once
    *  at the bottom (iMessage-style) rather than on every bubble. */
   showReadReceipt: boolean;
+  /** True when the previous timeline row is a message from the same
+   *  sender — tightens the gap above so a run of consecutive bubbles
+   *  reads as one group (iOS convention), with a larger gap on sender
+   *  change. */
+  grouped?: boolean;
   activeConvo: Conversation;
   retryMessage: (clientId: string) => void;
   setLightboxPhoto: (url: string | null) => void;
@@ -116,10 +122,14 @@ export function MessageBubble({
     <div
       data-msg-id={m.id}
       className={`flex flex-col ${mine ? "items-end" : "items-start"}`}
+      // Inline margin so it wins over the timeline's `space-y-3`: a run of
+      // consecutive same-sender bubbles tightens to a hairline gap; a
+      // sender change keeps the full spacing.
+      style={{ marginTop: grouped ? "0.125rem" : undefined }}
     >
       <div
         {...pressHandlers}
-        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 transition-opacity ${
+        className={`max-w-[75%] rounded-[18px] px-4 py-2.5 text-ds-13 group relative space-y-2 transition-opacity ${
           mine ? "rounded-br-md" : "rounded-bl-md"
         } ${isSending ? "opacity-60" : ""}`}
         style={mine ? {

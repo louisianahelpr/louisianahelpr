@@ -18,27 +18,6 @@ type UseDashboardSideQueriesArgs = {
 export function useDashboardSideQueries({ userId, userParish, allJobs }: UseDashboardSideQueriesArgs) {
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
 
-  // Top saved search (most-recently-created) — surfaced on the greeting
-  // when there are 0 jobs nearby, so the empty state feels intentional
-  // ("we're watching for X") rather than confusing. Cached via React
-  // Query so it isn't re-fetched on every Dashboard mount.
-  const { data: topSavedSearch = null } = useQuery({
-    queryKey: queryKeys.dashboard.savedSearches(userId),
-    queryFn: async () => {
-      const data = unwrap(await supabase
-        .from("saved_searches")
-        .select("name")
-        .eq("user_id", userId!)
-        .eq("notify_enabled", true)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle());
-      return data ? { name: data.name } : null;
-    },
-    enabled: !!userId,
-    staleTime: 60 * 1000,
-  });
-
   // Pay It Forward — count of available credits in the user's parish.
   // Shown as a teaser banner above the community teaser when > 0.
   // PGRST202-safe: table may not be on prod yet between merge + db push.
@@ -141,7 +120,6 @@ export function useDashboardSideQueries({ userId, userParish, allJobs }: UseDash
   });
 
   return {
-    topSavedSearch,
     pifCount,
     upcomingJob,
     savedJobIds,

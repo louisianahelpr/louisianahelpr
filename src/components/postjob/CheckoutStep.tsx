@@ -14,6 +14,7 @@ import {
   BookOpen,
   DollarSign,
   ShieldCheck,
+  Loader2,
 } from "lucide-react";
 import type { HelprActivity } from "@/hooks/useHelprActivity";
 import { EscrowExplainer } from "@/components/payment/EscrowExplainer";
@@ -443,7 +444,13 @@ export function CheckoutStep({
           onClick={onSubmit}
           disabled={saving || uploading || !confirmed}
         >
-          {confirmed ? <CreditCard className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+          {saving || uploading ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />
+          ) : confirmed ? (
+            <CreditCard className="w-4 h-4 mr-2" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 mr-2" />
+          )}
           {uploadProgress
             ? `Uploading photo ${uploadProgress.done + 1} of ${uploadProgress.total}…`
             : uploading

@@ -714,7 +714,7 @@ history during a failed `ALTER DATABASE` for vault GUCs.
   5MB cap, MIME whitelist (JPG/PNG/WEBP/HEIC/PDF), EXIF stripping
   on upload, RLS-enforced path convention `<jobId>/<senderId>/<uuid>-<safeName>`,
   signed URLs for display.
-- [ ] Push notifications via Capacitor on iOS for new messages and status changes
+- [x] Push notifications via Capacitor on iOS for new messages and status changes
 
 ### Business accounts
 - [ ] `BusinessTeam` seat management, role-based permissions, invoicing

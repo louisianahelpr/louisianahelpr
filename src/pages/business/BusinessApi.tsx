@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import BusinessLayout from "@/components/business/BusinessLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
-import { formatJobDate } from "@/lib/format";
+import { formatTimestamp } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,7 @@ interface WebhookRow {
 const isPostgrestError = (e: unknown): e is { code?: string; message?: string } =>
   typeof e === "object" && e !== null && "code" in e;
 
-const fmtDate = (s: string | null): string => (s ? formatJobDate(s) : "Never");
+const fmtDate = (s: string | null): string => (s ? formatTimestamp(s) : "Never");
 
 const BusinessApi = () => {
   usePageTitle("API & Webhooks — Helpr Business");
@@ -323,7 +323,7 @@ const BusinessApi = () => {
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
                     <span className="font-semibold text-ds-13 truncate">{k.name}</span>
                     {k.revoked_at && <Badge variant="destructive" className="text-ds-10">Revoked</Badge>}
-                    {!k.revoked_at && <Badge variant="secondary" className="text-ds-10">Active</Badge>}
+                    {!k.revoked_at && <Badge variant="sienna" className="text-ds-10">Active</Badge>}
                   </div>
                   <p className="text-ds-11 text-muted-foreground">
                     helpr_live_…{k.key_last4 ?? "????"} · Created {fmtDate(k.created_at)} · Last used {fmtDate(k.last_used_at)}

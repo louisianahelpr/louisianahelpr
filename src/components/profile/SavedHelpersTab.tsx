@@ -53,15 +53,12 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
     handleRemove,
     filtered,
     activeSortLabel,
-    metaText,
   } = useSavedHelpers({ user, business });
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
       <ProfileTabHeader
-        eyebrow="Your shortlist"
         title="Saved Helprs"
-        meta={metaText}
         onBack={onBack}
       />
 
@@ -145,7 +142,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
           // of the misleading "no saved helprs yet" empty state.
           <ErrorState
             variant="inline"
-            eyebrow={wasOffline ? "You're offline" : "Something went wrong"}
+            eyebrow={wasOffline ? "You're offline" : "Hiccup on our end"}
             title={
               wasOffline
                 ? "We can't reach the network."
@@ -178,7 +175,6 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 <EmptyStateIllustration variant="saved" />
               ) : undefined
             }
-            eyebrow={helpers.length === 0 ? "Nothing saved" : "No matches"}
             title={helpers.length === 0 ? "No saved Helprs yet." : "Nothing matches that search."}
             body={
               helpers.length === 0

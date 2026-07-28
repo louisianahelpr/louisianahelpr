@@ -26,9 +26,6 @@ export function PhotoNameSection({
 }: PhotoNameSectionProps) {
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-4">
-      <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-        Photo &amp; name
-      </p>
       <div className="flex items-center gap-4">
         {/* Avatar always shows the actual photo (previously hidden behind
             a full-coverage Camera overlay at opacity-100 on mobile).
@@ -53,7 +50,7 @@ export function PhotoNameSection({
             </div>
           )}
           <label
-            className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+            className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
             style={{
               background: "hsl(var(--bark))",
               border: "2px solid hsl(var(--parchment))",

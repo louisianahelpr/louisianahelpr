@@ -116,19 +116,35 @@ this list tight; project-specific trivia belongs in code comments, not here.
   `channelNonce()` (`src/lib/realtimeChannel.ts`) — Supabase dedupes channels
   by name, so a reused name silently drops the second subscription.
 - **Commit directly to `main`.** No feature branch / PR ceremony is required —
-  commit straight to `main`. But the gate is NON-NEGOTIABLE and moves earlier:
-  run `npm run typecheck && npm run lint && npm run build` (all three must pass,
-  and `npx vitest run` when touching tested code) BEFORE every commit — never
-  commit red. This matters more here, not less: `main` auto-deploys migrations to
-  prod (`db-deploy.yml`) and is what cuts the app build, so a broken commit to
-  `main` ships to prod with nothing in between. Two things to know: (1) `main`
-  has branch protection (required Playwright/CodeQL/Vitest checks + PR), but
-  `enforce_admins` is FALSE — the owner account bypasses it, so a direct
-  `git push origin main` succeeds without changing any GitHub setting. The
-  flip side: those required CI checks DON'T run on a direct admin push, so the
-  local `typecheck && lint && build` (+ vitest) gate above is the ONLY thing
-  standing between a bad commit and prod — run it every time, no exceptions.
-  (2) Since there's no PR, run the review agents (`code-reviewer`,
+  commit straight to `main`. The gate is still mandatory, but as of 2026-07-25
+  most of it runs in CI, so locally you only need:
+
+      npm run typecheck        # ~16s incremental; plus `npx vitest run` when
+                               # touching tested code
+
+  Everything else is already automated on the way out: **lint** runs on every
+  commit via the husky `pre-commit` hook (`lint-staged` → `eslint --fix`), and
+  **lint + typecheck + build + test** all run again in CI on every push to
+  `main` via `.github/workflows/test.yml`. Running the full
+  `typecheck && lint && build` locally costs ~3 minutes to re-prove what those
+  two already prove — do it only when you have reason to distrust them (e.g.
+  you changed the build config itself).
+
+  Why this changed, and what to re-check if it ever regresses: this file used to
+  say the local gate was the ONLY thing between a bad commit and prod, on the
+  grounds that required checks don't run on a direct admin push. The premise was
+  half right. `main` has branch protection (required Playwright/CodeQL/Vitest
+  checks + PR) with `enforce_admins` FALSE, so a direct `git push origin main`
+  does bypass the *merge* gate — but a workflow with `on: push: branches: [main]`
+  still fires on that push. The real problem was that `test.yml` had been
+  **disabled manually** and hadn't run since 2026-04-26, which is what made the
+  local gate load-bearing. It was re-enabled (`gh workflow enable Test`) and
+  verified running on a direct push. So: if commits start reaching prod red,
+  check `gh workflow list --all` for `disabled_manually` BEFORE assuming the
+  local gate is the only option — a disabled workflow looks identical to a
+  missing one in the YAML.
+
+  Since there's no PR, still run the review agents (`code-reviewer`,
   `silent-failure-hunter`, `security-auditor`) against the working diff before
   committing money/auth/data-model changes, so losing the PR gate doesn't lose
   the review.

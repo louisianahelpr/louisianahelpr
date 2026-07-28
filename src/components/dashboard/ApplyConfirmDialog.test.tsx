@@ -80,9 +80,6 @@ describe("ApplyConfirmDialog", () => {
   it("shows a generic prompt when no job is resolved", () => {
     render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: null })} />);
     expect(screen.getByText("Apply for this job")).toBeInTheDocument();
-    expect(
-      screen.getByText("Are you sure you want to apply for this job?"),
-    ).toBeInTheDocument();
   });
 
   it("calls setApplyMessage as the pitch is typed", () => {

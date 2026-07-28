@@ -46,11 +46,21 @@ const DialogContent = React.forwardRef<
         "glass-modal fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg max-h-[88dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 p-5 sm:p-7 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className,
       )}
+      // Radix warns once per open when a Content has no `Description` and no
+      // explicit `aria-describedby`. Every hero subtitle was removed app-wide
+      // (2026-07-25 "one main title"), so that is now the normal case rather
+      // than an oversight, and the warning would fire on every dialog in the
+      // app. Declaring `undefined` is Radix's own documented way to say "this
+      // dialog intentionally has no description" and silences it.
+      //
+      // `{...props}` comes AFTER, so a dialog that does supply its own
+      // `aria-describedby` still wins.
+      aria-describedby={undefined}
       {...props}
     >
       {children}
       <DialogPrimitive.Close
-        className="absolute right-4 top-4 w-8 h-8 p-0 box-border rounded-full btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+        className="absolute right-3 top-3 w-11 h-11 p-0 box-border rounded-full btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
       >
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
@@ -110,55 +120,37 @@ DialogDescription.displayName = DialogPrimitive.Description.displayName;
  * long name needs it, without forking the structure.
  */
 const DialogHero = ({
-  eyebrow,
   title,
-  subtitle,
   className,
   titleClassName,
   titleStyle,
-  eyebrowClassName,
-  eyebrowStyle,
 }: {
+  // `eyebrow` and `subtitle` remain ACCEPTED but are not rendered — the
+  // 2026-07-25 "one main title" decision: a popup header shows its title and
+  // nothing stacked above or below it. Every call site has had the props
+  // stripped; they are kept in the type so a stray usage is a no-op rather
+  // than a build break, and so restoring either is a one-line change here
+  // instead of an edit across ~40 files.
+  //
+  // Copy a SIGHTED user must read — fee, tax, or payout disclosure — belongs
+  // in the dialog body. Four were relocated there rather than dropped:
+  // TipDialog, ReviewForm's tip prompt, InstantPayoutDialog, W9CollectionDialog.
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   className?: string;
   titleClassName?: string;
   titleStyle?: React.CSSProperties;
-  // eyebrowClassName/eyebrowStyle let a caller recolor the eyebrow without
-  // forking the header — e.g. job dialogs tint it with the job's category
-  // color while every other dialog keeps the canonical burnt-sienna.
   eyebrowClassName?: string;
   eyebrowStyle?: React.CSSProperties;
 }) => (
   <DialogHeader className={cn("space-y-0 text-left", className)}>
-    {eyebrow && (
-      <span
-        className={cn("font-serif italic uppercase block", eyebrowClassName)}
-        /* WCAG AA: full burnt-sienna on parchment measures 5.88:1;
-           the previous / 0.78 alpha dropped it to 3.84:1 which fails
-           AA at 9.92px. Alpha removed globally so every DialogHero
-           eyebrow across the app clears AA in one edit. Chrome-drove
-           the NotificationPanel 2026-07-08. */
-        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em", ...eyebrowStyle }}
-      >
-        {eyebrow}
-      </span>
-    )}
     <DialogTitle
       className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
       style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}
     >
       {title}
     </DialogTitle>
-    {subtitle && (
-      <p
-        className="font-serif italic leading-relaxed pt-1.5"
-        style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.85)" }}
-      >
-        {subtitle}
-      </p>
-    )}
   </DialogHeader>
 );
 DialogHero.displayName = "DialogHero";

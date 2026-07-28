@@ -80,6 +80,10 @@ export function SignupStep1({
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const passwordValid = password.length >= 8 && /[A-Z]/.test(password) && /\d/.test(password);
   const emailSuggestion = emailValid ? suggestEmailCorrection(email) : null;
+  // Shared by the field border and the message below it, so a field can never
+  // show one without the other.
+  const emailError = (email.length > 0 && !emailValid) || (attempted && !email.trim());
+  const passwordError = (password.length > 0 && !passwordValid) || (attempted && !password);
 
   const handleContinue = () => {
     setAttempted(true);
@@ -154,18 +158,22 @@ export function SignupStep1({
               email-verification (the click-the-link step after signup)
               already catches typos. The double field was 2014-era
               friction that costs activations without preventing errors. */}
-          <Label htmlFor="email" className={labelCls}>Email</Label>
+          <Label htmlFor="email" className={labelCls}>Email <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
-            <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" className={`${inputCls} pl-10 ${emailValid ? "pr-10" : ""}`} />
+            <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" aria-invalid={emailError}
+              className={`${inputCls} pl-10 ${emailValid ? "pr-10" : ""} ${emailError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
             {emailValid && (
               <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
             )}
           </div>
-          {((email.length > 0 && !emailValid) || (attempted && !email.trim())) && (
+          {/* No "Email is required" line — the red asterisk on the label and
+              the red field border already say it. The FORMAT error is kept:
+              a typo'd address is not self-evident from a border alone. */}
+          {emailError && email.trim() && (
             <p className="inline-flex items-center gap-1 text-ds-11 text-destructive">
               <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
-              {email.trim() ? "Enter a valid email address" : "Email is required"}
+              Enter a valid email address
             </p>
           )}
           {emailSuggestion && (
@@ -180,10 +188,11 @@ export function SignupStep1({
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password" className={labelCls}>Password</Label>
+          <Label htmlFor="password" className={labelCls}>Password <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
-            <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={8} className={`${inputCls} pl-10 pr-10`} autoComplete="new-password" />
+            <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={8} aria-invalid={passwordError}
+              className={`${inputCls} pl-10 pr-10 ${passwordError ? "!border-destructive focus-visible:!border-destructive" : ""}`} autoComplete="new-password" />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -252,7 +261,7 @@ export function SignupStep1({
       <label
         key={nudgeKey}
         htmlFor="policies"
-        className={`flex items-start gap-3 px-1.5 py-2 min-h-[44px] rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !acceptedPolicies ? "animate-attention-nudge" : ""}`}
+        className={`flex items-center gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !acceptedPolicies ? "animate-attention-nudge" : ""}`}
         style={{
           // Transparent default border keeps the layout stable when the
           // burnt-sienna nudge border appears (no jump on the shake).
@@ -262,13 +271,23 @@ export function SignupStep1({
               : "1px solid transparent",
         }}
       >
+        {/* aria-labelledby, NOT the wrapping <label htmlFor>. Radix renders
+            Checkbox as <button role="checkbox"> with empty content, and
+            Chrome's accessible-name computation returns nothing for it — the
+            accessibility tree showed all three consent boxes as an unnamed
+            `checkbox`, so a screen-reader user was agreeing to the Terms while
+            hearing only "checkbox, not checked". Pointing at the description
+            span names them from the same copy sighted users read, links
+            included. */}
         <Checkbox
           id="policies"
+          aria-labelledby="policies-label"
           checked={acceptedPolicies}
           onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
         <span
+          id="policies-label"
           className="text-ds-11 leading-relaxed font-sans"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
@@ -286,7 +305,7 @@ export function SignupStep1({
       <label
         key={`age-${nudgeKey}`}
         htmlFor="age-confirm"
-        className={`flex items-start gap-3 px-1.5 py-2 min-h-[44px] rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !ageConfirmed ? "animate-attention-nudge" : ""}`}
+        className={`flex items-center gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !ageConfirmed ? "animate-attention-nudge" : ""}`}
         style={{
           border:
             nudgeKey > 0 && !ageConfirmed
@@ -296,11 +315,13 @@ export function SignupStep1({
       >
         <Checkbox
           id="age-confirm"
+          aria-labelledby="age-confirm-label"
           checked={ageConfirmed}
           onCheckedChange={(checked) => setAgeConfirmed(checked === true)}
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
         <span
+          id="age-confirm-label"
           className="text-ds-11 leading-relaxed font-sans"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
@@ -315,15 +336,17 @@ export function SignupStep1({
           mail (auth, receipts, disputes) is exempt and always sends. */}
       <label
         htmlFor="marketing-consent"
-        className="flex items-start gap-3 px-1.5 py-2 min-h-[44px] rounded-ds-md cursor-pointer"
+        className="flex items-center gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer"
       >
         <Checkbox
           id="marketing-consent"
+          aria-labelledby="marketing-consent-label"
           checked={marketingConsent}
           onCheckedChange={(checked) => setMarketingConsent(checked === true)}
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
         <span
+          id="marketing-consent-label"
           className="text-ds-11 leading-relaxed font-sans"
           style={{ color: "hsl(var(--olivewood) / 0.7)" }}
         >

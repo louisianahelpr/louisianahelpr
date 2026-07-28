@@ -1,4 +1,5 @@
 import { QrCode, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -44,8 +45,9 @@ export function QrCodeModal({ profile, qrOpen, setQrOpen, qrDataUrl }: QrCodeMod
           <p className="text-ds-12 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Share with your poster so they can verify you at the door.
           </p>
-          <button
+          <Button
             type="button"
+            variant="bark"
             onClick={async () => {
               if (!profile?.user_id) return;
               await shareNative({
@@ -55,15 +57,11 @@ export function QrCodeModal({ profile, qrOpen, setQrOpen, qrDataUrl }: QrCodeMod
                 dialogTitle: "Share QR Link",
               });
             }}
-            className="w-full rounded-ds-md py-3 inline-flex items-center justify-center gap-2 font-semibold text-sm active:scale-[0.99] transition-all"
-            style={{
-              background: "hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-            }}
+            className="w-full"
           >
             <Share2 className="w-4 h-4" />
             Share QR Link
-          </button>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

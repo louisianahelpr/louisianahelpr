@@ -29,11 +29,19 @@ export const ProfileStatsGrid = ({
   const activeSection = showReviews ? "reviews" : showPostedJobs ? "posted" : showWorkedJobs ? "worked" : null;
   const hasSelection = activeSection !== null && !isOwnProfile;
 
+  // Radius now matches the `rounded-2xl` card convention, but these three
+  // deliberately keep `border bg-card p-3` instead of `liquid-glass p-5`:
+  // they're compact 3-across toggle tiles whose selected state IS the border
+  // colour, and `.liquid-glass` re-declares the `border` shorthand after
+  // Tailwind's utilities — it would override `border-primary/30` and erase
+  // the selection affordance. p-5 would also blow the 3-column grid out on
+  // phones.
+
   const reviewBtn = (
     <button
       key="reviews"
       onClick={onToggleReviews}
-      className={`rounded-ds-md border bg-card p-3 text-center transition-all cursor-pointer hover:border-primary/30 hover:shadow-sm ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+      className={`rounded-2xl border bg-card p-3 text-center transition-all cursor-pointer hover:border-primary/30 hover:shadow-sm ${showReviews ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
     >
       <div className="flex items-center justify-center gap-1">
         <Star className="w-3.5 h-3.5 text-primary fill-primary" />
@@ -43,15 +51,18 @@ export const ProfileStatsGrid = ({
     </button>
   );
 
+  // `disabled` rather than a guarded no-op onClick: with nothing to expand,
+  // the tile used to stay keyboard-focusable and tappable while doing
+  // nothing — an affordance that leads nowhere. Disabling removes it from
+  // the tab order and lets assistive tech say so. Deliberately no
+  // `disabled:opacity-*`: these are stat tiles first, toggles second, so the
+  // number must stay just as legible at zero.
   const postedBtn = (
     <button
       key="posted"
-      onClick={() => {
-        if (postedJobsCount > 0) {
-          onTogglePosted();
-        }
-      }}
-      className={`rounded-ds-md border bg-card p-3 text-center transition-all ${postedJobsCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showPostedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+      disabled={postedJobsCount === 0}
+      onClick={onTogglePosted}
+      className={`rounded-2xl border bg-card p-3 text-center transition-all ${postedJobsCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showPostedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
     >
       <div className="flex items-center justify-center gap-1">
         <ClipboardList className="w-3.5 h-3.5 text-primary" />
@@ -61,15 +72,13 @@ export const ProfileStatsGrid = ({
     </button>
   );
 
+  // Same treatment as postedBtn above — identical inert-focusable defect.
   const workedBtn = (
     <button
       key="worked"
-      onClick={() => {
-        if (workedJobsCount > 0) {
-          onToggleWorked();
-        }
-      }}
-      className={`rounded-ds-md border bg-card p-3 text-center transition-all ${workedJobsCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showWorkedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
+      disabled={workedJobsCount === 0}
+      onClick={onToggleWorked}
+      className={`rounded-2xl border bg-card p-3 text-center transition-all ${workedJobsCount > 0 ? "cursor-pointer hover:border-primary/30 hover:shadow-sm" : ""} ${showWorkedJobs ? "border-primary/30 ring-1 ring-primary/10" : "border-border"}`}
     >
       <div className="flex items-center justify-center gap-1">
         <Hammer className="w-3.5 h-3.5 text-primary" />

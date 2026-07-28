@@ -1,10 +1,12 @@
 import { useState, useRef } from "react";
 import {
   MapPin, ChevronRight as ChevronRightIcon, ChevronDown,
-  BadgeCheck, Camera, Crown, QrCode, Video, Play,
+  Award, BadgeCheck, Building2, Camera, Crown, QrCode, Users, Video, Play,
   Star, Share2, Edit,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
+import { useBusinessSeatTier } from "@/hooks/useBusinessSeatTier";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -69,6 +71,10 @@ export function IdentityHeader({
   handleVideoUpload,
   setQrOpen,
 }: IdentityHeaderProps) {
+  // Crew/Team/Enterprise badge for a business member — see the note at the
+  // render site for why it outranks the consumer tier chip.
+  const seatTier = useBusinessSeatTier(userId);
+
   // Recent work + reviews collapse into one disclosure so the hero
   // stays compact — they can make the card very tall on an
   // established profile.
@@ -191,7 +197,34 @@ export function IdentityHeader({
                   Basic = neutral bark (gold is reserved for the earned
                   Pro/Elite prestige, per HelperBadges), Pro = sienna,
                   Elite = gold-warm. */}
-              {tier === "basic" && (
+              {/* Seat badge takes PRECEDENCE over the consumer one below. A seat
+                  plan grants basic/pro/elite (see the mapping in
+                  check-business-seat-subscription) purely to move the fee and
+                  early-access rungs — so without this a Crew owner showed up on
+                  their own profile as a consumer "Basic" subscriber: a plan they
+                  never bought, under a name that means nothing to a business.
+                  Now Crew/Team/Enterprise render instead, matching the badge
+                  previewed on /for-business. Glyphs ascend Users → Building2 →
+                  Crown, the same shape as Star → Award → Crown on the consumer
+                  ladder. `starter` returns null from the hook, so free business
+                  accounts fall through and keep whatever consumer tier they
+                  actually hold. */}
+              {seatTier ? (
+                <span
+                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
+                  style={{
+                    color: "hsl(var(--bark))",
+                    background: "hsl(var(--bark) / 0.10)",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  {seatTier === "crew" && <Users className="w-2.5 h-2.5" />}
+                  {seatTier === "team" && <Building2 className="w-2.5 h-2.5" />}
+                  {seatTier === "enterprise" && <Crown className="w-2.5 h-2.5" />}
+                  {seatTier}
+                </span>
+              ) : null}
+              {!seatTier && tier === "basic" && (
                 <span
                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                   style={{
@@ -203,19 +236,23 @@ export function IdentityHeader({
                   <Star className="w-2.5 h-2.5" /> Basic
                 </span>
               )}
-              {tier === "pro" && (
+              {!seatTier && tier === "pro" && (
                 <span
-                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                   style={{
                     color: "hsl(var(--burnt-sienna))",
                     background: "hsl(var(--burnt-sienna) / 0.12)",
                     letterSpacing: "0.08em",
                   }}
                 >
-                  Pro
+                  {/* Pro was the only rung without a glyph — Basic has a Star and
+                      Elite a Crown, so a bare word read as a different kind of
+                      chip rather than the middle of one ladder. Award sits
+                      naturally between the two. */}
+                  <Award className="w-2.5 h-2.5" /> Pro
                 </span>
               )}
-              {tier === "elite" && (
+              {!seatTier && tier === "elite" && (
                 <span
                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                   style={{
@@ -242,6 +279,31 @@ export function IdentityHeader({
                     <span>{memberSinceLabel}</span>
                   </span>
                 )}
+            {/* Bio sits directly under the location / member-since line —
+                with the rest of WHO THIS PERSON IS. It had drifted below the
+                stat row, separating it from the name it describes.
+
+                No top rule. The divider that used to sit here was drawn when
+                the bio was a separate section further down; now that it's part
+                of the identity block, a line between the name and the bio
+                implied they were unrelated. */}
+            <div className="mt-2">
+              {profile?.bio?.trim() ? (
+                <p
+                  className="font-serif italic text-ds-13 leading-snug line-clamp-3"
+                  style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                >
+                  {profile.bio}
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onSelectTab("profile")}
+                  className="w-full text-left font-serif italic text-ds-13 leading-snug active:opacity-70 transition-opacity"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >+ Add a short bio so applicants know who they're hiring.</button>
+              )}
+            </div>
               </p>
             )}
             {/* Earned trust badges — only the EARNED ones render, so the
@@ -296,7 +358,7 @@ export function IdentityHeader({
           <button
             type="button"
             onClick={() => { hapticLight(); onSelectTab("reviews"); }}
-            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-xl px-1 py-2 active:scale-95 transition-transform"
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform"
             style={{ background: "hsl(var(--bark) / 0.06)" }}
           >
             <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -324,7 +386,7 @@ export function IdentityHeader({
                 dialogTitle: "Share your profile",
               });
             }}
-            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-xl px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
             style={{ background: "hsl(var(--bark) / 0.06)" }}
           >
             <Share2 className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
@@ -337,7 +399,7 @@ export function IdentityHeader({
             type="button"
             aria-label="Edit profile"
             onClick={() => { hapticLight(); onSelectTab("profile"); }}
-            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-xl px-1 py-2 active:scale-95 transition-transform"
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform"
             style={{ background: "hsl(var(--bark) / 0.06)" }}
           >
             <Edit className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
@@ -351,7 +413,7 @@ export function IdentityHeader({
             aria-label="My QR code"
             disabled={!profile?.user_id}
             onClick={() => { hapticLight(); setQrOpen(true); }}
-            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-xl px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
             style={{ background: "hsl(var(--bark) / 0.06)" }}
           >
             <QrCode className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
@@ -405,26 +467,6 @@ export function IdentityHeader({
           <ProfileStatsTrend helperId={profile.user_id} feeFallbackPercent={feeFallbackPercent} />
         )}
 
-        {/* Bio excerpt — surfaces the user's pitch on the landing page,
-            since this is what applicants see when deciding whether to apply.
-            Empty state nudges the user to write one. */}
-        <div className="mt-3.5 pt-3.5" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-          {profile?.bio?.trim() ? (
-            <p
-              className="font-serif italic text-ds-13 leading-snug line-clamp-3"
-              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-            >
-              {profile.bio}
-            </p>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onSelectTab("profile")}
-              className="w-full text-left font-serif italic text-ds-13 leading-snug active:opacity-70 transition-opacity"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >+ Add a short bio so applicants know who they're hiring.</button>
-          )}
-        </div>
 
         {/* ── Intro video ─────────────────────────────────────────────
             Own-profile only. If no video, a dashed-border CTA nudges
@@ -471,7 +513,7 @@ export function IdentityHeader({
             // halve the card height (it was the largest profile-screen
             // element on first paint).
             <div
-              className="rounded-xl flex items-center gap-3 p-3"
+              className="rounded-2xl flex items-center gap-3 p-3"
               style={{
                 border: "1.5px dashed hsl(var(--olivewood) / 0.30)",
                 background: "hsl(var(--parchment) / 0.4)",
@@ -489,18 +531,16 @@ export function IdentityHeader({
               >
                 Record a 60-second intro video
               </p>
-              <button
+              <Button
                 type="button"
+                variant="bark"
+                size="sm"
                 onClick={() => videoInputRef.current?.click()}
                 disabled={videoUploading}
-                className="shrink-0 h-9 px-3.5 rounded-full text-ds-12 font-sans font-semibold disabled:opacity-60 active:scale-95 transition-all"
-                style={{
-                  background: "hsl(var(--burnt-sienna))",
-                  color: "hsl(var(--parchment))",
-                }}
+                className="shrink-0"
               >
                 {videoUploading ? "Uploading…" : "Upload"}
-              </button>
+              </Button>
             </div>
           )}
           {/* Hidden file input — shared by the CTA and the "Re-record" link. */}
@@ -562,9 +602,6 @@ export function IdentityHeader({
                   <div className="mt-3 space-y-3">
                     {portfolioUrls.length > 0 && (
                       <div>
-                        <p className="font-serif italic uppercase text-ds-9 mb-2" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                          Recent work
-                        </p>
                         {/* Horizontal scroll with scroll-snap so each
                             thumbnail snaps cleanly on touch-fling even
                             at 320 px (iPhone SE). snap-x mandatory +

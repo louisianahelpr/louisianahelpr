@@ -48,12 +48,12 @@ test.describe("customer post-job happy path", () => {
       disableRules: ["aria-hidden-focus", "color-contrast"],
     });
 
-    // The hero's "Post a Request" CTA links to /signup for anonymous
+    // The hero's "Post a job" CTA links to /signup for anonymous
     // visitors (and /post-job for authed users — `goToPostJob` in
     // HeroSection.tsx routes by session state). On mobile, the Navbar's
     // "Get started" desktop CTA is hidden behind a hamburger sheet, so
     // we drive the always-visible hero CTA instead.
-    const postRequest = page.getByRole("link", { name: /post a request/i }).first();
+    const postRequest = page.getByRole("link", { name: /post a job/i }).first();
     await postRequest.waitFor({ timeout: 10_000 });
     await postRequest.click();
 

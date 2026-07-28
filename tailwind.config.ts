@@ -141,7 +141,13 @@ export default {
         // Bottom clearance for content above the floating MobileNav dock + FAB
         // (96px dock/FAB height + 1rem breathing room) plus the iOS safe-area
         // inset. Consumed via `pb-safe-nav` on full-scroll pages.
-        "safe-nav": "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)",
+        //
+        // The dock height is a VARIABLE, not a literal, so it can collapse to 0
+        // in the one case where no dock is rendered: signed-out visitors. 22
+        // files use `pb-safe-nav`; without this they would each reserve ~112px
+        // of empty space below the last element on every guest page. See
+        // `html.no-bottom-nav` in index.css.
+        "safe-nav": "calc(env(safe-area-inset-bottom, 0px) + var(--bottom-nav-h, 96px) + 1rem)",
       },
       transitionTimingFunction: {
         "ds-out": "cubic-bezier(0.22, 1, 0.36, 1)",

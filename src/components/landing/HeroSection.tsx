@@ -147,7 +147,15 @@ const HeroSection = () => {
           />
           <h1
             ref={headlineRef}
-            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[5rem] md:text-[6.5rem] lg:text-[6rem] xl:text-[7.25rem] hero-h1-settle"
+            // Strictly increasing: 56 → 72 → 88 → 96 → 116px. It used to run
+            // 56 → 80 → 104 → 96 → 116, i.e. `md` was BIGGER than `lg`, so the
+            // 768–1023px band rendered the hero larger than a full desktop
+            // does — 12.4vw there against 9.4vw at `lg` and 9.1vw at `xl`. On a
+            // ~840px window (a half-screen browser, a small laptop, an iPad
+            // landscape) the headline swelled ~30% out of proportion and then
+            // visibly SHRANK as you widened past 1024. Only `sm` and `md` moved;
+            // `lg`/`xl` — the sizes on a normal desktop — are untouched.
+            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6rem] xl:text-[7.25rem] hero-h1-settle"
             style={{
               color: "hsl(var(--olivewood))",
               letterSpacing: "-0.03em",
@@ -186,7 +194,7 @@ const HeroSection = () => {
           <Button
             asChild
             size="xl"
-            className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
+            className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,
@@ -209,7 +217,7 @@ const HeroSection = () => {
             asChild
             size="xl"
             variant="outline"
-            className="group h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-all duration-200 hover:-translate-y-0.5"
+            className="group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-all duration-200 hover:-translate-y-0.5"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,
@@ -217,7 +225,14 @@ const HeroSection = () => {
               lineHeight: 1,
               letterSpacing: "-0.005em",
               color: "hsl(var(--bark))",
-              background: "rgba(255, 255, 255, 0.45)",
+              // `--surface-premium`, not a literal white. At
+              // `rgba(255,255,255,0.45)` this secondary hero CTA painted as a
+              // washed-out grey slab on the dark canvas, right beside a
+              // correctly-tinted "Post a job" — the two primary actions on the
+              // landing page disagreeing about what surface they sit on.
+              // (`--bark` above is already theme-aware and lightens on dark,
+              // so only the background was wrong.)
+              background: "var(--surface-premium)",
               backgroundImage: "none",
               backdropFilter: "blur(20px) saturate(180%)",
               WebkitBackdropFilter: "blur(20px) saturate(180%)",
@@ -243,7 +258,7 @@ const HeroSection = () => {
         style={{ opacity: scrollHintOpacity }}
       >
         <ChevronDown
-          className="w-5 h-5 animate-bounce"
+          className="w-5 h-5 motion-safe:animate-bounce"
           strokeWidth={1.75}
           style={{ color: "hsl(var(--olivewood) / 0.55)" }}
         />

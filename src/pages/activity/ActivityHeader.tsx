@@ -51,12 +51,10 @@ export function ActivityHeader({
         style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
       >
             <div className="flex flex-col leading-none min-w-0">
-              <span
-                className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
-              >
-                {tab === "posted" ? "Posted jobs" : "Applied jobs"}
-              </span>
+              {/* No eyebrow. The page is already titled "My Posts" (or "My
+                  Jobs") immediately above this card, so "POSTED JOBS" restated
+                  it in smaller type — the same stacked-label pattern removed
+                  from the dialogs and the landing section. */}
               <h2
                 className="font-display italic font-bold leading-tight mt-1 truncate"
                 style={{
@@ -165,7 +163,7 @@ export function ActivityHeader({
           matching the Dashboard search pattern. */}
       {searchOpen && (
         <div
-          className="shrink-0 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200"
+          className="shrink-0 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200"
           style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
         >
           <div className="relative px-4 py-3">

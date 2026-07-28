@@ -28,6 +28,16 @@ export interface JobDraft {
   urgentFee?: string;
   isGroupJob?: boolean;
   helpersNeeded?: string;
+  credentialTier?: number;
+  pricingMode?: string;
+  bidCeiling?: string;
+  bidDeadline?: string;
+  bidsSealed?: boolean;
+  includeMaterials?: boolean;
+  materialsNote?: string;
+  department?: string;
+  requiresW9?: boolean;
+  offerToHelperId?: string | null;
   savedAt: number;
 }
 

@@ -13,9 +13,14 @@ interface BackButtonProps {
  * In-content back button placed to the left of a page's H1.
  *
  * Per project convention, back buttons live in the main content area,
- * never in the sticky top navbar. Matches the frosted-glass affordance
- * used by ProfileTabHeader so the back action looks consistent across
- * Profile tabs, Legal, DataRights, and any other in-content header.
+ * never in the sticky top navbar.
+ *
+ * Deliberately a BARE arrow — no filled circle, border, or shadow. The
+ * previous frosted-glass pill gave a plain navigation control more visual
+ * weight than the page title sitting next to it, reading as a primary action
+ * (iOS uses a bare chevron for the same reason). The 40px box is kept for the
+ * tap target even though nothing is painted around the icon, and hover paints
+ * a faint wash so the hit area is still discoverable on pointer devices.
  */
 const BackButton = ({ to, className, onClick }: BackButtonProps) => {
   const navigate = useNavigate();
@@ -31,20 +36,10 @@ const BackButton = ({ to, className, onClick }: BackButtonProps) => {
       type="button"
       onClick={handleClick}
       aria-label="Go back"
-      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-[0.94] hover:opacity-80 shrink-0 mt-0.5 ${className ?? ""}`}
-      style={{
-        background: "hsla(0, 0%, 100%, 0.65)",
-        border: "1px solid hsl(var(--olivewood) / 0.18)",
-        color: "hsl(var(--olivewood))",
-        backdropFilter: "blur(10px) saturate(150%)",
-        WebkitBackdropFilter: "blur(10px) saturate(150%)",
-        boxShadow:
-          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-          "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-          "0 4px 10px -4px hsl(var(--olivewood) / 0.10)",
-      }}
+      className={`w-10 h-10 -ml-2 rounded-full flex items-center justify-center transition-colors active:scale-[0.94] hover:bg-[hsl(var(--olivewood)/0.08)] shrink-0 ${className ?? ""}`}
+      style={{ color: "hsl(var(--olivewood))" }}
     >
-      <ArrowLeft className="w-4 h-4" strokeWidth={2.25} />
+      <ArrowLeft className="w-5 h-5" strokeWidth={2.25} />
     </button>
   );
 };

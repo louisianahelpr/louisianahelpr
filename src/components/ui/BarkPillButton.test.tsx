@@ -4,8 +4,8 @@ import { BarkPillButton } from "./BarkPillButton";
 
 describe("BarkPillButton", () => {
   it("renders its children inside a button", () => {
-    render(<BarkPillButton>Browse tasks</BarkPillButton>);
-    expect(screen.getByRole("button", { name: "Browse tasks" })).toBeInTheDocument();
+    render(<BarkPillButton>Browse jobs</BarkPillButton>);
+    expect(screen.getByRole("button", { name: "Browse jobs" })).toBeInTheDocument();
   });
 
   it("forwards onClick", () => {

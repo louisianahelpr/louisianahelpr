@@ -2,6 +2,7 @@ import { TIER_COLORS } from "../adminAnalyticsConstants";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { SUB_PRICE, type Job, type Profile, type Tip } from "./types";
+import { formatCategory } from "@/lib/format";
 
 // Pure metric computation for the admin analytics dashboard. Extracted VERBATIM
 // from AdminAnalytics.tsx — no hooks, no state, no side effects. Given the raw
@@ -174,7 +175,7 @@ export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[])
   const categoryMap: Record<string, number> = {};
   const categoryRevenueMap: Record<string, number> = {};
   allJobs.forEach(j => {
-    const cat = j.category?.replace("_", " ") || "other";
+    const cat = j.category ? formatCategory(j.category) : "other";
     categoryMap[cat] = (categoryMap[cat] || 0) + 1;
     if (j.status === "completed") {
       categoryRevenueMap[cat] = (categoryRevenueMap[cat] || 0) + (j.budget || 0);

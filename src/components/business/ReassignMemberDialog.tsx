@@ -102,13 +102,6 @@ export function ReassignMemberDialog({
         <DialogHero
           eyebrow="Remove teammate"
           title={`Remove ${fromDisplay}?`}
-          subtitle={
-            inflightCount === null
-              ? "Checking their open posts…"
-              : inflightCount === 0
-                ? "They have no in-flight posts. You can remove them safely."
-                : `They have ${inflightCount} in-flight post${inflightCount === 1 ? "" : "s"}. Pick a teammate to take ownership.`
-          }
         />
 
         {inflightCount !== null && inflightCount > 0 && (

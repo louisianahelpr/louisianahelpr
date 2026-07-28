@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,22 +6,17 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, Mail, Lock, Check, Clock, ShieldCheck } from "lucide-react";
+import { Loader2, Eye, EyeOff, Mail, Lock, Check, ShieldCheck } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import AuthShell from "@/components/auth/AuthShell";
-import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
-import HelprMark from "@/components/HelprMark";
+import BackButton from "@/components/BackButton";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
-import BuildStamp from "@/components/BuildStamp";
 import { queryKeys } from "@/lib/queryKeys";
 import { friendlyAuthError } from "@/lib/authErrors";
-import { safeInternalRedirect } from "@/lib/authRedirects";
 import {
-  getLastAuthMethod,
   setLastAuthMethod,
-  authMethodLabel,
 } from "@/lib/lastAuthMethod";
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -94,7 +89,6 @@ const Login = () => {
   // app's main tabs (My Posts, etc.) should never be the post-login landing;
   // the user explicitly wants "log in → home". Deep content links surface
   // their own in-app routing once the user is home.
-  const redirectTarget = safeInternalRedirect(searchParams.get("redirect"));
   const postLoginDest = "/dashboard";
   const queryClient = useQueryClient();
   usePageMeta({
@@ -120,10 +114,6 @@ const Login = () => {
   const [mfaVerifying, setMfaVerifying] = useState(false);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
-  // Quiet last-method hint — only shown when we have a non-error reading
-  // (initial first-ever login still surfaces no hint). useMemo keeps this
-  // stable across re-renders so the dismissal animation never re-triggers.
-  const lastMethod = useMemo(() => getLastAuthMethod(), []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -262,38 +252,40 @@ const Login = () => {
   };
 
   return (
-    <AuthShell hideHeader desktopBrandPanel={<AuthBrandPane />}>
-      <div className="text-center mb-6 lg:mb-4 space-y-2">
-        {/* The H emblem is redundant on desktop when the AuthBrandPane
-            hero above already carries the full wordmark. Hide it at lg+
-            so the form column is short enough to fit below the hero
-            without vertical scroll at a 900px viewport. */}
-        <div className="flex justify-center mb-3 lg:hidden">
-          <HelprMark to={null} size="md" emblemOnly />
+    <AuthShell hideHeader centerColumn hideBack maxWidth="2xl">
+      <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6 lg:space-y-6">
+        {/* Heading lives INSIDE the card, and the H emblem is gone entirely.
+            Previously the emblem stacked above a heading that sat above the
+            card — three separate bands of vertical space before a user reached
+            the email field, which is what left the form floating in the middle
+            of a tall window with dead bands top and bottom. Folding the
+            heading in makes the card the whole composition, so it fills the
+            column properly. The mark still appears in the top-left back-nav
+            and throughout the app; an auth screen does not need to re-announce
+            the brand three times. */}
+        {/* [back] [title] on ONE row, the same header shape /legal, /support
+            and /jobs use. Previously the arrow was absolutely positioned in the
+            card corner and the heading was indented pl-12/pl-14 to clear it,
+            which left the heading aligned to nothing — 89px from the card edge
+            while every field below sat at 33px. In-flow beats absolute here. */}
+        <div className="flex items-center gap-3">
+          {/* to="/" — NOT bare history-back. Without an explicit target
+              BackButton falls through to history.back(), so arriving at
+              /login FROM /forgot-password made Back bounce you straight back
+              into password reset. Sign-in is a top-level destination reached
+              from all over; it needs one predictable parent. */}
+          <div className="shrink-0"><BackButton to="/" /></div>
+          <h1
+            className="font-display italic font-bold leading-tight min-w-0 flex-1"
+            style={{
+              fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
+              color: "hsl(var(--ink-deep))",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            Sign in
+          </h1>
         </div>
-        <h1
-          className="font-display italic font-bold leading-tight"
-          style={{
-            fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
-            color: "hsl(var(--ink-deep))",
-            letterSpacing: "-0.03em",
-          }}
-        >
-          Glad you're back.
-        </h1>
-        <p
-          className="font-sans"
-          style={{
-            fontSize: "0.95rem",
-            color: "hsl(var(--olivewood) / 0.8)",
-            letterSpacing: "0.01em",
-          }}
-        >
-          {redirectTarget ? "Sign in to continue." : "Pick up right where you left off."}
-        </p>
-      </div>
-
-      <div className="liquid-glass px-6 sm:px-8 py-8 lg:py-5 space-y-6 lg:space-y-4">
         {mfaChallenge ? (
           <div className="space-y-5">
             <div className="flex flex-col items-center text-center gap-2">
@@ -352,35 +344,13 @@ const Login = () => {
           </div>
         ) : (
         <>
-        {lastMethod && (
-          // Quiet hint that helps returning users pick the right button
-          // without revealing anything sensitive — just nudges them toward
-          // the method they used last time.
-          <div
-            className="flex items-center gap-2 rounded-ds-md px-3 py-2 text-ds-11 font-sans"
-            style={{
-              background: "hsl(var(--bark) / 0.06)",
-              color: "hsl(var(--olivewood) / 0.85)",
-              border: "1px solid hsl(var(--bark) / 0.12)",
-            }}
-            aria-live="polite"
-          >
-            <Clock
-              className="w-3.5 h-3.5 shrink-0"
-              strokeWidth={1.75}
-              style={{ color: "hsl(var(--bark))" }}
-              aria-hidden
-            />
-            <span>
-              Last time you used{" "}
-              <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                {authMethodLabel(lastMethod)}
-              </span>
-              .
-            </span>
-          </div>
-        )}
-        <form onSubmit={handleLogin} className="space-y-3.5">
+        {/* Two columns at lg+: credentials left, social right. The card is
+            1024px, and a single-line email field stretched across all of it is
+            what read as wrong. Splitting the two sign-in METHODS uses the width
+            for something real instead of inflating one field. Stacks below lg,
+            unchanged. */}
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr] lg:gap-8 lg:items-stretch">
+        <form onSubmit={handleLogin} className="space-y-3.5 lg:space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
             <div className="relative">
@@ -456,9 +426,41 @@ const Login = () => {
           >
             {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing in…</> : "Sign in"}
           </Button>
+          {/* Sits with the button whose action it governs, not stranded below
+              the whole card. */}
+          <p className="text-ds-11 font-sans leading-relaxed text-center text-balance" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+            By signing in you agree to our{" "}
+            <Link to="/terms" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Terms</Link>
+            {" · "}
+            <Link to="/rules" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Rules</Link>
+            {" · "}
+            <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy</Link>
+          </p>
         </form>
 
-        <div className="flex items-center gap-3">
+        {/* Vertical OR rule, lg+ only — the horizontal one inside the right
+            column still handles the stacked layout below lg. Its own grid
+            column so it sits between the two methods rather than inside
+            either. */}
+        <div className="hidden lg:flex flex-col items-center gap-3" aria-hidden>
+          <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
+          <span
+            className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
+            style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+          >
+            or
+          </span>
+          <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
+        </div>
+
+        {/* Vertically centred against the taller credentials column, so the
+            social buttons sit level with the form rather than hugging the top
+            with dead space beneath them. */}
+        <div className="space-y-4 lg:flex lg:flex-col lg:justify-center lg:gap-6 lg:space-y-0">
+        {/* The OR rule only makes sense when the two methods are stacked. At
+            lg+ they sit side by side, so the columns themselves do the
+            separating. */}
+        <div className="flex items-center gap-3 lg:hidden">
           <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
           <span
             className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
@@ -470,49 +472,30 @@ const Login = () => {
         </div>
 
         <SocialAuthButtons mode="signin" />
-
-        <div className="space-y-1.5 pt-1">
+        {/* Creating an account is the alternative to BOTH sign-in methods, so
+            it closes the right column rather than floating under the card. */}
+        <div className="space-y-1.5">
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             New to Helpr?{" "}
-            <Link
-              to="/signup"
-              className="font-semibold hover:underline"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              Create an account
+            <Link to="/signup" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+              Create a personal account
             </Link>
           </p>
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Signing up a business?{" "}
-            <Link
-              to="/signup?type=business"
-              className="font-semibold hover:underline"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              Business sign-up
+            Setting up a company?{" "}
+            <Link to="/signup?type=business" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+              Create a business account
             </Link>
-            <br />
-            <span style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
-              Invite your team &amp; bill jobs to one card.
-            </span>
           </p>
         </div>
+        </div>
+        </div>
+
         </>
         )}
       </div>
 
-      <p className="text-center text-ds-11 font-sans leading-relaxed px-2 mt-2.5" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-        By signing in you agree to our{" "}
-        <Link to="/terms" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Terms</Link>
-        {" · "}
-        <Link to="/rules" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Rules</Link>
-        {" · "}
-        <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy Policy</Link>
-      </p>
 
-      <div className="mt-2">
-        <BuildStamp />
-      </div>
     </AuthShell>
   );
 };

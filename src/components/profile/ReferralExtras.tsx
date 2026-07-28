@@ -109,12 +109,6 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p
-            className="font-serif italic uppercase"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Scan to invite
-          </p>
           <h3
             className="font-display italic font-bold leading-tight"
             style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
@@ -142,12 +136,6 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
       <div className="rounded-2xl liquid-glass p-4">
         <div className="flex items-baseline justify-between gap-2 mb-3">
           <div>
-            <p
-              className="font-serif italic uppercase"
-              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-            >
-              Tier ladder
-            </p>
             <h3
               className="font-display italic font-bold leading-tight"
               style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}

@@ -66,28 +66,36 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     void openStripePortal();
   };
 
-  // Accept-pause path — fire-and-forget Slack alert that records the
-  // request. We do NOT actually mutate the subscription here (Stripe
-  // pauses are gated behind their billing portal and would require a
-  // separate backend endpoint that doesn't exist yet); the alert lets
-  // retention follow up manually. The toast is worded as a *request*,
-  // not a confirmed state change, so we never tell the user the pause
-  // took effect when nothing on the server has changed.
+  // Accept-pause path — awaited Slack alert that records the request. We
+  // do NOT actually mutate the subscription here (Stripe pauses are gated
+  // behind their billing portal and would require a separate backend
+  // endpoint that doesn't exist yet); the alert lets retention follow up
+  // manually. The toast reflects whether the alert actually sent — we
+  // never promise "we'll confirm by email" when nothing on the server
+  // (and no human) has actually been notified.
   const handleAcceptPause = async () => {
     setAcceptingPause(true);
+    let alertSent = false;
     try {
-      const { fireSlackAlert } = await import("@/lib/slackAlerts");
-      fireSlackAlert({
-        kind: "custom",
-        severity: "info",
-        title: "Subscription pause requested",
-        message: "User requested the 1-month-free pause offer instead of cancelling.",
-        fields: { tier: currentTier ?? "unknown" },
+      const { error } = await supabase.functions.invoke("slack-ops-alert", {
+        body: {
+          kind: "custom",
+          severity: "info",
+          title: "Subscription pause requested",
+          message: "User requested the 1-month-free pause offer instead of cancelling.",
+          fields: { tier: currentTier ?? "unknown" },
+        },
       });
-    } catch { /* best-effort analytics */ }
+      if (error) throw error;
+      alertSent = true;
+    } catch { /* handled below via alertSent */ }
     setAcceptingPause(false);
     setPauseOfferOpen(false);
-    toast.success("Pause request received — we'll confirm by email.");
+    if (alertSent) {
+      toast.success("Got it — we'll be in touch.");
+    } else {
+      toast.error("Something went wrong sending your request — try again or email support.");
+    }
   };
 
   const openStripePortal = async () => {
@@ -143,9 +151,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   return (
     <div className="flex flex-col min-h-full gap-4 pb-4">
       <ProfileTabHeader
-        eyebrow="Membership"
         title="My membership"
-        meta={currentTier && !isExpired ? `${currentTier[0].toUpperCase()}${currentTier.slice(1)} plan${expiresAt ? ` · renews ${expiresAt.toLocaleDateString([], { month: "short", day: "numeric" })}` : ""}` : isExpired ? "Plan expired — pick one to renew" : "Free plan · upgrade to unlock more"}
         onBack={onBack}
       />
 
@@ -161,12 +167,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             border: "0.5px solid hsl(var(--bark) / 0.22)",
           }}
         >
-          <span
-            className="font-serif italic uppercase"
-            style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Your plan
-          </span>
           <h2
             className="font-display italic font-bold leading-tight mt-0.5 text-headline-hero"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
@@ -230,12 +230,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               <TierIcon name={activeTierConfig.iconName} className="w-5 h-5" />
             </span>
             <div className="flex-1 min-w-0">
-              <span
-                className="font-serif italic uppercase"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Your plan
-              </span>
               <h2
                 className="font-display italic font-bold leading-tight mt-0.5 text-headline-hero"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
@@ -269,7 +263,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               onClick={refreshSubscription}
               disabled={refreshing}
               variant="ghost"
-              className="rounded-ds-md font-sans font-semibold"
+              className="rounded-ds-md"
               style={{ color: "hsl(var(--bark))" }}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
@@ -494,39 +488,25 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     </span>
                   )}
                   {!isActive && (
-                    <button
+                    <Button
+                      variant={isPro ? "bark" : "outline"}
+                      size="sm"
                       onClick={() =>
                         currentTier && !isExpired
                           ? handleManageSubscription()
                           : handleSubscribe(tier.id)
                       }
                       disabled={loadingCheckout === tier.id || loadingPortal}
-                      className="inline-flex items-center justify-center gap-1 px-2.5 min-h-[44px] rounded-full font-sans font-bold text-[0.7rem] transition active:scale-[0.96] disabled:opacity-60"
-                      style={
-                        isPro
-                          ? {
-                              background: "hsl(var(--bark))",
-                              color: "hsl(var(--parchment))",
-                              border: "1px solid hsl(70 22% 24%)",
-                              boxShadow:
-                                "inset 0 1px 0 0 rgba(255,255,255,0.12), 0 4px 10px -3px hsl(var(--bark) / 0.45)",
-                            }
-                          : {
-                              background: "hsla(0, 0%, 100%, 0.55)",
-                              color: "hsl(var(--ink-deep))",
-                              border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                            }
-                      }
                     >
                       {(loadingCheckout === tier.id || loadingPortal) && (
-                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <Loader2 className="animate-spin" />
                       )}
                       {currentTier && !isExpired
                         ? "Change"
                         : billingInterval === "one_time"
                           ? "Buy"
                           : "Subscribe"}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

@@ -9,7 +9,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
 import { getCategoryIcon } from "@/lib/categoryIcons";
-import { formatJobDate } from "@/lib/format";
+import { formatTimestamp } from "@/lib/format";
 import { categoryColors, categoryLabels } from "@/components/activity/activityConstants";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
@@ -23,7 +23,7 @@ interface CompletedJobWithHelper extends Job {
 }
 
 function formatDate(dateStr: string | null): string {
-  return dateStr ? formatJobDate(dateStr) : "Unknown date";
+  return dateStr ? formatTimestamp(dateStr) : "Unknown date";
 }
 
 function groupByYear(jobs: CompletedJobWithHelper[]): { year: number; jobs: CompletedJobWithHelper[] }[] {
@@ -105,10 +105,13 @@ const HomeHistory = () => {
       <PageHeader
         title="Home History"
         eyebrow="Your maintenance record"
-        meta="Every job you've had completed — your home's service history."
         onBack={() => navigate("/profile")}
         showBrand
         rightSlot={<NotificationPanel />}
+        // Mirrors the body container below (max-w-5xl, px-4 → lg:px-8 → xl:px-12).
+        // Without it the header defaulted to a 90rem container and the title sat
+        // outside the 5xl column it heads.
+        width="5xl-p4"
       />
 
       <div className="mx-auto max-w-5xl px-4 lg:px-8 xl:px-12 pb-10 space-y-8 mt-2">
@@ -120,8 +123,8 @@ const HomeHistory = () => {
 
         {isError && !loading && (
           <ErrorState
+            variant="inline"
             title="Couldn't load your home history"
-            body="Check your connection and try again."
             onRetry={() => refetch()}
           />
         )}
@@ -162,8 +165,8 @@ const HomeHistory = () => {
             {/* Year group header */}
             <div className="flex items-center gap-3 mb-3">
               <span
-                className="font-serif italic uppercase text-ds-9"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                className="font-display italic font-bold text-ds-13"
+                style={{ color: "hsl(var(--ink-deep))" }}
               >
                 {year}
               </span>
@@ -197,7 +200,14 @@ const HomeHistory = () => {
                         }}
                       />
 
-                      {/* Job card */}
+                      {/* Job card. DELIBERATE deviation from the
+                          `rounded-2xl liquid-glass p-5` card convention: this
+                          is the shared parchment "record" surface used by
+                          /work-record and /benefits (see the note on
+                          BenefitsPage's cardStyle). liquid-glass's opaque
+                          white fill would make these timeline entries read as
+                          app cards floating over the page rather than as
+                          entries on a single sheet. */}
                       <div
                         className="rounded-ds-lg p-4 space-y-2.5"
                         style={{

@@ -1,5 +1,5 @@
 import { memo, useState, useRef, useEffect } from "react";
-import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate, useReducedMotion, PanInfo } from "framer-motion";
 import { X } from "lucide-react";
 import JobCard from "./JobCard";
 import type { EnrichedJob } from "./types";
@@ -50,6 +50,7 @@ const SwipeableJobCard = ({
   onLongPress,
   recommended = false,
 }: SwipeableJobCardProps) => {
+  const reducedMotion = useReducedMotion();
   const x = useMotionValue(0);
   const backgroundOpacity = useTransform(x, [-150, -50, 0], [1, 0.6, 0]);
   const iconScale = useTransform(x, [-150, -80, 0], [1.2, 0.8, 0.5]);
@@ -60,19 +61,19 @@ const SwipeableJobCard = ({
   // When dismiss is cancelled (dialog closed without confirming), snap back
   useEffect(() => {
     if (!dismissPending && held) {
-      animate(x, 0, { type: "spring", stiffness: 500, damping: 30 });
+      if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "spring", stiffness: 500, damping: 30 }); }
       setHeld(false);
     }
-  }, [dismissPending, held]);
+  }, [dismissPending, held, reducedMotion]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.offset.x < SWIPE_THRESHOLD) {
       // Hold in swiped position, show confirm dialog
-      animate(x, -120, { type: "spring", stiffness: 500, damping: 30 });
+      if (reducedMotion) { x.set(-120); } else { animate(x, -120, { type: "spring", stiffness: 500, damping: 30 }); }
       setHeld(true);
       onDismiss(job.id);
     } else {
-      animate(x, 0, { type: "spring", stiffness: 500, damping: 30 });
+      if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "spring", stiffness: 500, damping: 30 }); }
     }
     setSwiping(false);
   };
@@ -105,7 +106,7 @@ const SwipeableJobCard = ({
           }}
         >
           <span
-            className="w-1.5 h-1.5 rounded-full animate-pulse"
+            className="w-1.5 h-1.5 rounded-full motion-safe:animate-pulse"
             style={{
               background: "hsl(var(--burnt-sienna))",
               boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.55)",

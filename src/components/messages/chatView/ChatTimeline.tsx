@@ -1,10 +1,44 @@
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, MessageSquare, Loader2, RotateCw } from "lucide-react";
 import { TypingIndicator } from "@/components/ChatPresence";
 import { MessageBubble } from "../MessageBubble";
 import type { Conversation, Message } from "../types";
 import type { TimelineItem } from "./types";
+
+/**
+ * Shape-matched placeholder bubbles shown while a newly-opened
+ * conversation's messages are still in flight — fills the same blank
+ * window the empty-thread / error states cover, so opening a thread
+ * never paints nothing. Mirrors `MessageThreadSkeleton`'s pattern
+ * (same `Skeleton` primitive, alternating widths) but shaped like chat
+ * bubbles instead of an inbox row.
+ */
+function ChatBubbleSkeleton() {
+  const rows: Array<{ mine: boolean; width: string }> = [
+    { mine: false, width: "58%" },
+    { mine: true, width: "38%" },
+    { mine: false, width: "70%" },
+    { mine: false, width: "44%" },
+  ];
+  return (
+    <div aria-hidden className="space-y-3 py-2">
+      {rows.map((row, i) => (
+        <div key={i} className={`flex ${row.mine ? "justify-end" : "justify-start"}`}>
+          <Skeleton
+            className="h-9 rounded-ds-md"
+            style={{
+              width: row.width,
+              maxWidth: "80%",
+              background: "hsl(var(--olivewood) / 0.12)",
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * The scrolling message thread body: the "load earlier" control, the
@@ -22,6 +56,7 @@ export function ChatTimeline({
   loadingMore,
   loadOlderMessages,
   chatLoadError,
+  chatLoading,
   onRetryLoad,
   isOtherTyping,
   bottomRef,
@@ -39,6 +74,10 @@ export function ChatTimeline({
   loadingMore: boolean;
   loadOlderMessages: () => void;
   chatLoadError: boolean;
+  /** True while a newly-opened conversation's messages are still being
+   *  fetched — renders `ChatBubbleSkeleton` instead of the blank window
+   *  or the misleading "Say hello." empty state. */
+  chatLoading: boolean;
   onRetryLoad: () => void;
   isOtherTyping: boolean;
   bottomRef: Ref<HTMLDivElement>;
@@ -70,10 +109,16 @@ export function ChatTimeline({
           </button>
         </div>
       )}
+      {/* Fetching a newly-opened conversation's messages — shape-matched
+          skeleton bubbles instead of a blank window. Takes precedence
+          over the error/empty states below (chatLoading and
+          chatLoadError are never true at the same time — see
+          useMessagesData.openConvo). */}
+      {chatLoading && !chatLoadError && <ChatBubbleSkeleton />}
       {/* Failed thread fetch — recoverable error state. Shown
           instead of the "Say hello." empty state so a network
           failure never masquerades as an empty conversation. */}
-      {chatLoadError && (
+      {!chatLoading && chatLoadError && (
         <div className="flex flex-col items-center text-center py-14 gap-3">
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -105,7 +150,7 @@ export function ChatTimeline({
           </Button>
         </div>
       )}
-      {!chatLoadError && timeline.length === 0 && (
+      {!chatLoading && !chatLoadError && timeline.length === 0 && (
         <div className="flex flex-col items-center text-center py-14 gap-3">
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -136,7 +181,7 @@ export function ChatTimeline({
           </div>
         </div>
       )}
-      {!chatLoadError && timeline.map((item) => {
+      {!chatLoading && !chatLoadError && timeline.map((item, i) => {
         if (item.type === "date") {
           // Section divider — quietly anchors the thread to the
           // calendar so scrolling back through long history reads
@@ -228,12 +273,21 @@ export function ChatTimeline({
             </div>
           );
         }
+        // Grouped when the previous timeline row is a non-system message
+        // from the same sender — tightens the inter-bubble gap (iOS run).
+        const prev = timeline[i - 1];
+        const grouped =
+          !!prev &&
+          prev.type === "message" &&
+          !prev.message.is_system &&
+          prev.message.sender_id === m.sender_id;
         return (
           <MessageBubble
             key={item.key}
             m={m}
             mine={m.sender_id === userId}
             showReadReceipt={m.id === lastOwnMessageId}
+            grouped={grouped}
             activeConvo={activeConvo}
             retryMessage={retryMessage}
             setLightboxPhoto={setLightboxPhoto}

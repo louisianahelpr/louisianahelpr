@@ -12,7 +12,7 @@ import {
   formatDollarsWhole,
 } from "@/lib/moneyLimits";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
-import { legalFmtMo, LAST_UPDATED } from "./legalSections";
+import { legalFmtMo } from "./legalSections";
 
 const ONBOARDING_FEE_DOLLARS = ONBOARDING_FEE_CENTS / 100;
 
@@ -279,7 +279,7 @@ export const TermsContent = () => (
     </PolicySection>
 
     <HideOnSearch>
-      <PolicyFooter updated={LAST_UPDATED.terms} />
+      <PolicyFooter />
     </HideOnSearch>
   </div>
 );

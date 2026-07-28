@@ -6,7 +6,7 @@ import { channelNonce } from "@/lib/realtimeChannel";
 import { useReducedMotion } from "@/lib/accessibility";
 import { Button } from "@/components/ui/button";
 import { CheckCheck, BellRing } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetHero, SheetTrigger } from "@/components/ui/sheet";
 import { isPushSupported, registerServiceWorker, showLocalNotification, getPushPermission } from "@/lib/pushNotifications";
 import { useRequestPushPermission } from "@/lib/nativePush";
 import { Capacitor } from "@capacitor/core";
@@ -203,21 +203,11 @@ const NotificationPanel = () => {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <SheetHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0 text-left sm:text-left space-y-3">
-          {/* Mirrors DialogHero's eyebrow → title stack (Sheets can't use
-              DialogHero directly). The pr-12 lane on the title reserves
-              room for the safe-area-aware close button (40px frosted
-              circle, top-right via the Sheet primitive). */}
-          <div className="space-y-0 pr-12">
-            <span
-              className="font-serif italic uppercase block text-[0.62rem] tracking-[0.18em]"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
-            >
-              Your inbox
-            </span>
-            <SheetTitle className="text-page-title text-left mt-0.5">
-              Notifications
-            </SheetTitle>
-          </div>
+          {/* Canonical sheet header (SheetHero bakes in the pr-12 lane for the
+              safe-area-aware close button). Was a hand-copied eyebrow→title
+              stack — one of four sheets whose inline title sizes had drifted
+              apart. SheetHero is the single source of truth. */}
+          <SheetHero eyebrow="Your inbox" title="Notifications" />
           {/* One controls row: filter pills on the left, the
               Mark-all-read / Enable-push actions on the right. Keeping
               them on a single justified line (rather than a standalone
@@ -305,6 +295,7 @@ const NotificationPanel = () => {
             // and re-opening the panel.
             <div className="px-4 pt-6 flex min-h-full">
               <ErrorState
+                variant="inline"
                 title="We couldn't load your notifications."
                 onRetry={loadNotifications}
               />
@@ -403,15 +394,23 @@ const NotificationPanel = () => {
                       static so the panel doesn't feel slow to open. */}
                   <AnimatePresence initial={false}>
                     {group.items.map((n) => (
-                      <motion.button
+                      <motion.div
                         key={n.id}
+                        role="button"
+                        tabIndex={0}
                         layout={!reducedMotion}
                         initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
                         animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                         exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
                         transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
                         onClick={() => handleClick(n)}
-                        className="w-full text-left px-4 py-3 transition-colors active:opacity-80"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleClick(n);
+                          }
+                        }}
+                        className="w-full text-left px-4 py-3 transition-colors active:opacity-80 cursor-pointer"
                         style={{
                           background: !n.read ? "hsl(var(--burnt-sienna) / 0.06)" : undefined,
                           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
@@ -505,7 +504,7 @@ const NotificationPanel = () => {
                             </p>
                           </div>
                         </div>
-                      </motion.button>
+                      </motion.div>
                     ))}
                   </AnimatePresence>
                 </section>

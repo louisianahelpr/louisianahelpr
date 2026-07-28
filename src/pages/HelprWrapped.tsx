@@ -6,13 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareNative } from "@/lib/nativeShare";
 import { report } from "@/lib/errorLogger";
 import { formatCategory, wrappedSeasonLabel } from "@/lib/format";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
-import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 
 const YEAR = new Date().getFullYear();
 // "Wrapped" in December, "so far" the rest of the year (see LH-39).
@@ -32,6 +33,9 @@ interface WrappedStats {
   reviewsGiven: number;
   reviewsReceived: number;
   approxHours: number;
+  /** True when at least one (but not every) stat query failed, so the
+   *  numbers below are an undercount rather than the whole year. */
+  incomplete: boolean;
 }
 
 async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
@@ -87,6 +91,24 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
     }
   }
 
+  // The four stat queries above are the page's whole substance — `profile`
+  // only supplies a fee-percent fallback. If EVERY one of them failed this
+  // isn't a quiet year, it's an outage: throw so React Query flags isError
+  // and the page can offer a retry instead of telling someone with a full
+  // year of history "No activity yet". If only some failed, hand back an
+  // `incomplete` flag so the render side can say the numbers are partial
+  // rather than presenting an undercount as the truth.
+  const coreErrors = [
+    postedRes.error,
+    completedRes.error,
+    reviewsGivenRes.error,
+    reviewsReceivedRes.error,
+  ].filter((e): e is NonNullable<typeof e> => !!e);
+
+  if (coreErrors.length === 4) {
+    throw new Error(coreErrors[0].message || "Couldn't load your Helpr year.");
+  }
+
   const posted = postedRes.data ?? [];
   const completed = completedRes.data ?? [];
   const reviewsGiven = reviewsGivenRes.data ?? [];
@@ -95,20 +117,17 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
   // Total spent = sum of budgets on posted jobs (proxy)
   const totalSpent = posted.reduce((acc, j) => acc + (j.budget ?? 0), 0);
   // Total earned = helper take-home (net of the platform fee), so the same
-  // $75 job reads the same here as on analytics/work-record/Earnings. Prefer
-  // the stamped platform_fee_amount; for legacy/seed rows without one, derive
-  // the fee from the helper's tier (matching every other earnings surface).
+  // $75 job reads the same here as on analytics/work-record/Earnings. The
+  // per-job resolution (stamped fee → frozen per-job % → tier rate, plus the
+  // net urgent bonus, divided across a group job's roster) lives in
+  // `helperEarnings.ts` so this page and /work-record can't drift apart again.
+  // The group split is why `helpers_needed, is_group_job` are selected above:
+  // a $300 job needing 3 helpers paid this helper ~$100, not $300.
   const feeFallbackPct = tierFeePercent(
     profileRes.data?.subscription_tier ?? null,
     profileRes.data?.subscription_expires_at ?? null,
   );
-  const totalEarned = completed.reduce((acc, j) => {
-    const budget = j.budget ?? 0;
-    // Nullish, not `||`: a genuinely-stamped $0 fee (a comped/promo job) must
-    // be trusted verbatim, not mistaken for an unstamped legacy row.
-    const fee = j.platform_fee_amount ?? (budget * (j.helper_fee_percent ?? feeFallbackPct)) / 100;
-    return acc + (budget - fee + netUrgentFeeDollars(j.urgent_fee));
-  }, 0);
+  const totalEarned = sumHelperTakeHomeDollars(completed, feeFallbackPct);
 
   // Unique people worked with — union of helper_ids from posted jobs (who accepted)
   // and customer_ids from completed helper jobs
@@ -146,6 +165,7 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
     reviewsGiven: reviewsGiven.length,
     reviewsReceived: reviewsReceived.length,
     approxHours,
+    incomplete: coreErrors.length > 0,
   };
 }
 
@@ -197,7 +217,7 @@ const HelprWrapped = () => {
     }
   }, [isReady, user, navigate]);
 
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["helpr-wrapped", user?.id, YEAR],
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
@@ -276,6 +296,12 @@ const HelprWrapped = () => {
 
   const hasActivity = statCards.length > 0;
 
+  // "No activity yet" is a claim about the user's year — only make it when
+  // we actually know. A hard failure (every stat query down), or a partial
+  // failure that left us with nothing to show, both render as a retryable
+  // error instead. `incomplete` alongside real cards is footnoted below.
+  const loadFailed = isError || (!!stats?.incomplete && !hasActivity);
+
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
@@ -309,12 +335,20 @@ const HelprWrapped = () => {
               className="w-10 h-10 mx-auto mb-3"
               style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }}
             />
-            <h1
+            {/* The canonical PageHeader above already names the year — it
+                renders the page's <h1> ("Your {SEASON.title}"). This card used
+                to repeat it ("Your {YEAR} on Helpr."), so two headings restated
+                each other on screen at once. It now leads INTO the stats grid
+                below instead of re-announcing the page, and stays an <h2> so
+                the heading order still descends from the page title. Season-
+                neutral on purpose: it has to read correctly under both "Your
+                {YEAR} Wrapped" (December) and "Your {YEAR} so far". */}
+            <h2
               className="text-ds-28 font-display italic font-bold leading-tight"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Your {YEAR} on Helpr.
-            </h1>
+              Here's how it added up.
+            </h2>
             <p
               className="mt-1 font-serif italic text-ds-13"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
@@ -335,6 +369,16 @@ const HelprWrapped = () => {
                   />
                 ))}
               </div>
+            ) : loadFailed ? (
+              <div className="flex py-2">
+                <ErrorState
+                  variant="inline"
+                  title={`Couldn't load your ${YEAR}.`}
+                  body="Your jobs, earnings and reviews are all still there — we just couldn't add them up right now. Tap Try again."
+                  onRetry={() => void refetch()}
+                  retryDisabled={isFetching}
+                />
+              </div>
             ) : !hasActivity ? (
               <div className="text-center py-6 space-y-2">
                 <p className="text-ds-15 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -345,10 +389,30 @@ const HelprWrapped = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2.5">
-                {statCards.map((card, i) => (
-                  <StatCard key={i} {...card} />
-                ))}
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-2.5">
+                  {statCards.map((card, i) => (
+                    <StatCard key={i} {...card} />
+                  ))}
+                </div>
+                {/* Part of the year failed to load — say so rather than let
+                    an undercount pass for the full picture. */}
+                {stats?.incomplete && (
+                  <p
+                    className="text-center text-ds-11 font-serif italic"
+                    style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}
+                  >
+                    Some of your {YEAR} didn't load, so these numbers may be low.{" "}
+                    <button
+                      type="button"
+                      onClick={() => void refetch()}
+                      disabled={isFetching}
+                      className="underline underline-offset-2 disabled:opacity-60"
+                    >
+                      Try again
+                    </button>
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -359,7 +423,7 @@ const HelprWrapped = () => {
               <Button
                 variant="hero"
                 size="lg"
-                className="w-full rounded-full squircle"
+                className="w-full squircle"
                 onClick={handleShare}
               >
                 <Share2 className="w-4 h-4 mr-2" />

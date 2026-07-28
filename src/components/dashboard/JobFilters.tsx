@@ -1,67 +1,51 @@
-import { Switch } from "@/components/ui/switch";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import {
-  X, MapPin, Clock, ChevronDown, ArrowUpRight,
-  ArrowUpDown, LayoutGrid, CalendarRange, Rocket, DollarSign,
-  type LucideIcon,
-} from "lucide-react";
+/**
+ * Job-filter control blocks — the shared building pieces every filter
+ * surface renders, and nothing else.
+ *
+ * This module intentionally exports NO filter component of its own. It used
+ * to also own an inline horizontal pill row (`JobFilters`, built on Radix
+ * Popover dropdowns); <FilterSheet> replaced that presentation on every
+ * surface, so the pill row and its popover machinery were removed and only
+ * the reusable content blocks below survive.
+ */
+import { X } from "lucide-react";
 import {
   categoryLabels, categoryColors,
 } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
-import { Slider } from "@/components/ui/slider";
+import { budgetChipLabel } from "@/components/dashboard/browseTasksToolbar/constants";
 import { hapticLight } from "@/lib/haptics";
 
 export { categoryLabels };
 
-interface JobFiltersProps {
-  searchQuery: string;
-  setSearchQuery: (v: string) => void;
-  selectedCategory: string | null;
-  setSelectedCategory: (v: string | null) => void;
-  minBudget: string;
-  setMinBudget: (v: string) => void;
-  maxBudget: string;
-  setMaxBudget: (v: string) => void;
-  locationFilter: string;
-  setLocationFilter: (v: string) => void;
-  sortBy: string;
-  setSortBy: (v: string) => void;
-  filtersOpen: boolean;
-  setFiltersOpen: (v: boolean) => void;
-  expiresWithin: string;
-  setExpiresWithin: (v: string) => void;
-  matchAvailability: boolean;
-  setMatchAvailability: (v: boolean) => void;
-  hasAvailability: boolean;
-  boostedOnly: boolean;
-  setBoostedOnly: (v: boolean) => void;
-  userLocStatus?: "idle" | "loading" | "ready" | "error";
-  userLocMessage?: string;
-}
-
+/**
+ * THE one chip recipe. Every option in the filter sheet — Sort, Category,
+ * Pricing, Distance, When — renders through this, at this size, in a wrapping
+ * row. Nothing may opt out with `w-full`, a `grid`, or its own height.
+ *
+ * The sheet previously ran three different control languages at once, which is
+ * what made it read as incoherent: Sort/Pricing were content-sized wrapping
+ * chips; Category was a sideways-scrolling `w-max` strip (so half its options
+ * were off-screen with no affordance); When/Distance were `grid-cols-4/5` with
+ * `w-full`, which stretched four short labels across the full sheet width and
+ * made "Any time" a 240px slab sitting directly above a 60px "Cleaning" chip.
+ * Same component, same purpose, three sizes.
+ *
+ * `whitespace-nowrap` because a two-part label ("Highest pay", "$150 – $300")
+ * must break BETWEEN chips, not inside one — the height is fixed, so an
+ * internal line break overflows the chip instead of growing it.
+ */
 const chipBase =
-  "inline-flex items-center gap-1 px-2.5 rounded-ds-md text-[10px] font-semibold tracking-tight transition-all duration-200 btn-press squircle border h-8";
+  "inline-flex items-center gap-1.5 px-3 rounded-ds-md text-[11px] font-semibold tracking-tight whitespace-nowrap transition-all duration-200 btn-press squircle border h-9";
+
+/** The one row layout, paired with `chipBase`. Wrapping and content-sized:
+ *  no empty grid cells at any option count, no hidden off-screen options, and
+ *  every chip is exactly as wide as its own label. */
+const chipRow = "flex flex-wrap gap-1.5";
 const chipActive =
   "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] border-[hsl(var(--bark)/0.38)]";
 const chipIdle =
   "bg-white/70 dark:bg-card/60 backdrop-blur text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90";
-
-// Solid surface used for popovers. Was previously a translucent
-// gradient that let the "Boosted only" pill bleed through — now an
-// opaque white/card surface so the popover always reads as a discrete
-// floating panel.
-const surfaceGradient =
-  "bg-background dark:bg-card";
-
-// Dropdown-trigger button used in the filter pill row. Sized to its
-// content so the icon + label both stay visible in the horizontal
-// scroll row instead of getting crushed to icon-only circles when the
-// flex container tries to share width across 5 chips on a narrow phone.
-const triggerBase =
-  "inline-flex items-center justify-between gap-1.5 h-9 pl-3 pr-2.5 rounded-ds-md text-[12px] font-semibold tracking-tight leading-none transition-all btn-press squircle border whitespace-nowrap shrink-0";
 
 const sortOptions = [
   // "Best match" (value "smart") is the default — a composite recency +
@@ -81,51 +65,74 @@ const expiresOptions = [
   { value: "7d", label: "7 days" },
 ];
 
-// Budget range-slider bounds. `minBudget`/`maxBudget` are plain dollar
-// strings ("" = no min / no cap), matching how they're stored in
-// useDashboardFilters and read by the feed.
-//   - the bottom thumb at $0 means "no minimum" → minBudget = ""
-//   - the top thumb at BUDGET_MAX ($500) means "$500+", i.e. no cap →
-//     maxBudget = "" (so a $900 job still matches)
-const BUDGET_MIN = 0;
-const BUDGET_MAX = 500;
-const BUDGET_STEP = 10;
+/**
+ * Budget presets, expressed in the SAME "" = unset dollar-string pair the
+ * feeds already read (`useDashboardFilters` and `useOpenJobsFeed` both do
+ * `budget < parseFloat(min)` / `budget > parseFloat(max)` and skip the test
+ * entirely when the string is empty). Nothing downstream changes.
+ *
+ * Why bands and not the old dual-thumb $0–$500 slider:
+ *   - two 10px thumbs at opposite ends of a track is the least thumb-friendly
+ *     control in the sheet, and the only one that isn't a chip;
+ *   - at rest the slider filled its whole track and read "$0 – $500+" — a
+ *     control that LOOKS maxed-out and active while filtering nothing;
+ *   - "$0 – $500+" plus a "Any budget" caption said the same thing twice;
+ *   - the $500 ceiling was arbitrary on a board where jobs run past it, and
+ *     `budgetToRange` silently clamped any stored max above $500 back down to
+ *     the top of the track — so a restored saved search capped at $800 drew
+ *     as "no cap" while still hiding every $801+ job.
+ *
+ * The top band is deliberately open-ended (`max: ""` → no cap), so no job is
+ * ever hidden by a ceiling the user didn't choose.
+ */
+export const BUDGET_BANDS = [
+  { key: "any", label: "Any", min: "", max: "" },
+  { key: "to50", label: "Up to $50", min: "", max: "50" },
+  { key: "50to150", label: "$50 – $150", min: "50", max: "150" },
+  { key: "150to300", label: "$150 – $300", min: "150", max: "300" },
+  { key: "300plus", label: "$300+", min: "300", max: "" },
+] as const;
 
-/** Read the current "" = unset string pair into slider [min, max] coords.
- *  Empty min → bottom of range; empty max (no cap) → top of range. */
-function budgetToRange(minBudget: string, maxBudget: string): [number, number] {
-  const lo = minBudget ? Math.max(BUDGET_MIN, Math.min(BUDGET_MAX, parseFloat(minBudget))) : BUDGET_MIN;
-  const hi = maxBudget ? Math.max(BUDGET_MIN, Math.min(BUDGET_MAX, parseFloat(maxBudget))) : BUDGET_MAX;
-  // Keep the handles ordered even if stored values somehow crossed.
-  return lo <= hi ? [lo, hi] : [hi, lo];
-}
-
-/** Human label for the live range, e.g. "$50 – $250" or "$0 – $500+". */
-function budgetRangeLabel(lo: number, hi: number): string {
-  const top = hi >= BUDGET_MAX ? `$${BUDGET_MAX}+` : `$${hi}`;
-  return `$${lo} – ${top}`;
+/**
+ * Which band the stored pair represents, or `null` when it matches none.
+ *
+ * `null` is reachable in real use: `SavedSearches` persists an arbitrary
+ * `max_budget` number and restores it straight into `maxBudget`, so a search
+ * saved under the old slider can hold e.g. 275. Rather than render every chip
+ * idle while a filter is quietly applied (exactly the "looks like it isn't
+ * filtering" bug we're fixing), `BudgetContent` surfaces that value as its own
+ * active, clearable chip.
+ */
+function matchBudgetBand(minBudget: string, maxBudget: string): string | null {
+  return BUDGET_BANDS.find((b) => b.min === minBudget && b.max === maxBudget)?.key ?? null;
 }
 
 // ---------------- Reusable filter content blocks ----------------
 //
-// These content blocks are also consumed by the shared <FilterSheet>
+// These content blocks are consumed by the shared <FilterSheet>
 // (src/components/dashboard/FilterSheet.tsx), which stacks them as
-// vertical sections inside a bottom sheet. They're exported so the two
-// presentations (this inline pill row + the bottom sheet) render the
-// exact same controls and stay visually identical.
+// vertical sections inside a bottom sheet. Every filter surface — the
+// signed-in browse toolbar and the signed-out /jobs board — builds its
+// sheet from these, so the controls can't drift apart between surfaces.
 
 export const SORT_OPTIONS = sortOptions;
-export const chipStyles = { chipBase, chipActive, chipIdle };
+export const chipStyles = { chipBase, chipActive, chipIdle, chipRow };
 
+// Wrapping chip row, not a 2-column grid: five options in `grid-cols-2` left a
+// lone half-width orphan on the last row. A content-sized wrap has no empty
+// cells by construction at any option count, and matches the chip idiom every
+// other row in the sheet already uses.
 export const SortContent = ({
   sortBy, setSortBy, onSelect,
 }: { sortBy: string; setSortBy: (v: string) => void; onSelect?: () => void }) => (
-  <div className="grid grid-cols-2 gap-1.5">
+  <div role="group" aria-label="Sort results" className={chipRow}>
     {sortOptions.map((opt) => (
       <button
         key={opt.value}
+        type="button"
+        aria-pressed={sortBy === opt.value}
         onClick={() => { hapticLight(); setSortBy(opt.value); onSelect?.(); }}
-        className={`${chipBase} w-full justify-center px-2 h-8 text-ds-11 ${sortBy === opt.value ? chipActive : chipIdle}`}
+        className={`${chipBase} ${sortBy === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
       </button>
@@ -136,10 +143,11 @@ export const SortContent = ({
 export const CategoryContent = ({
   selectedCategory, setSelectedCategory, onSelect,
 }: { selectedCategory: string | null; setSelectedCategory: (v: string | null) => void; onSelect?: () => void }) => (
-  // Single-line horizontal scroll — fits all 10 categories without
-  // wrapping onto a second/third row, no matter the viewport width.
-  <div className="-mx-2 px-2 overflow-x-auto scrollbar-hide">
-    <div className="flex items-center gap-1.5 pb-0.5 w-max">
+  // Wraps like every other row. It used to be a single-line horizontal scroll
+  // (`overflow-x-auto` + `w-max`), which hid roughly half the 12 categories
+  // off the right edge behind a scrollbar the sheet deliberately styles away
+  // (`scrollbar-hide`) — findable only by guessing it could be dragged.
+  <div role="group" aria-label="Filter by category" className={chipRow}>
       {Object.entries(categoryLabels).map(([key, label]) => {
         const isActive = selectedCategory === key;
         const titleColor = (categoryColors[key] || categoryColors.other).title;
@@ -147,19 +155,18 @@ export const CategoryContent = ({
           <button
             key={key}
             onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : key); onSelect?.(); }}
-            className={`${chipBase} shrink-0 ${isActive ? chipActive : chipIdle}`}
+            className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
           >
             <CategoryIcon
               category={key}
               aria-hidden
-              className={`w-2.5 h-2.5 ${isActive ? "" : titleColor}`}
+              className={`w-3 h-3 ${isActive ? "" : titleColor}`}
               strokeWidth={2.25}
             />
             {label}
           </button>
         );
       })}
-    </div>
   </div>
 );
 
@@ -177,16 +184,29 @@ export const NearbyContent = ({
   const current = locationFilter.startsWith("nearby:") ? parseFloat(locationFilter.slice(7)) : null;
   return (
     <div>
-      <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Nearby radius</p>
-      <div className="grid grid-cols-4 gap-1.5">
+      {/* No inner eyebrow — the FilterSheet section this renders into already
+          carries the "Distance" heading, and stacking a second "Nearby radius"
+          label under it was the sheet's only double-titled section. */}
+      <div role="group" aria-label="Filter by distance" className={chipRow}>
+        {/* Explicit "Any" so the unfiltered state is a lit chip rather than the
+            absence of one — same treatment as Budget and When. */}
+        <button
+          type="button"
+          aria-pressed={current === null}
+          onClick={() => { hapticLight(); setLocationFilter(""); onSelect?.(); }}
+          className={`${chipBase} ${current === null ? chipActive : chipIdle}`}
+        >
+          Any
+        </button>
         {radiusOptions.map((mi) => {
           const active = current === mi;
           return (
             <button
               key={mi}
               type="button"
+              aria-pressed={active}
               onClick={() => { hapticLight(); setLocationFilter(active ? "" : `nearby:${mi}`); onSelect?.(); }}
-              className={`${chipBase} w-full justify-center ${active ? chipActive : chipIdle}`}
+              className={`${chipBase} ${active ? chipActive : chipIdle}`}
             >
               {mi} mi
             </button>
@@ -209,12 +229,14 @@ export const NearbyContent = ({
 export const ExpiresContent = ({
   expiresWithin, setExpiresWithin, onSelect,
 }: { expiresWithin: string; setExpiresWithin: (v: string) => void; onSelect?: () => void }) => (
-  <div className="grid grid-cols-4 gap-1.5">
+  <div role="group" aria-label="Filter by expiry window" className={chipRow}>
     {expiresOptions.map((opt) => (
       <button
         key={opt.value}
+        type="button"
+        aria-pressed={expiresWithin === opt.value}
         onClick={() => { hapticLight(); setExpiresWithin(expiresWithin === opt.value ? "" : opt.value); onSelect?.(); }}
-        className={`${chipBase} w-full justify-center ${expiresWithin === opt.value ? chipActive : chipIdle}`}
+        className={`${chipBase} ${expiresWithin === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
       </button>
@@ -223,303 +245,52 @@ export const ExpiresContent = ({
 );
 
 export const BudgetContent = ({
-  minBudget, maxBudget, setMinBudget, setMaxBudget,
+  minBudget, maxBudget, setMinBudget, setMaxBudget, onSelect,
 }: {
   minBudget: string;
   maxBudget: string;
   setMinBudget: (v: string) => void;
   setMaxBudget: (v: string) => void;
+  onSelect?: () => void;
 }) => {
-  // Dual-handle range slider over $0–$500. Both handles map back onto the
-  // existing "" = unset string convention so nothing downstream changes:
-  //   - bottom thumb at $0   → minBudget = "" (no floor)
-  //   - top thumb at $500    → maxBudget = "" (no cap; "$500+")
-  const [lo, hi] = budgetToRange(minBudget, maxBudget);
-  const commit = (next: number[]) => {
-    const [nLo, nHi] = next;
-    setMinBudget(nLo <= BUDGET_MIN ? "" : String(nLo));
-    setMaxBudget(nHi >= BUDGET_MAX ? "" : String(nHi));
-  };
+  const activeBand = matchBudgetBand(minBudget, maxBudget);
+  // A stored pair that matches no preset (a saved search from the slider era)
+  // still filters the feed, so it gets its own lit, tap-to-clear chip instead
+  // of leaving the row looking untouched.
+  const hasCustomRange = activeBand === null && !!(minBudget || maxBudget);
   return (
-    <div className="px-1 pt-1 pb-0.5">
-      <div className="flex items-baseline justify-between mb-3">
-        <span className="text-ds-13 font-semibold tabular-nums text-[hsl(var(--ink-deep))]">
-          {budgetRangeLabel(lo, hi)}
-        </span>
-        <span className="text-ds-10 font-medium text-muted-foreground">
-          {hi >= BUDGET_MAX && lo <= BUDGET_MIN ? "Any budget" : "per job"}
-        </span>
-      </div>
-      <Slider
-        value={[lo, hi]}
-        min={BUDGET_MIN}
-        max={BUDGET_MAX}
-        step={BUDGET_STEP}
-        minStepsBetweenThumbs={1}
-        aria-label="Budget range"
-        onValueChange={(v) => { hapticLight(); commit(v); }}
-      />
-      <div className="flex justify-between mt-2 text-ds-10 font-medium text-muted-foreground">
-        <span>${BUDGET_MIN}</span>
-        <span>${BUDGET_MAX}+</span>
-      </div>
-    </div>
-  );
-};
-
-export const AvailabilityContent = ({
-  matchAvailability, setMatchAvailability, hasAvailability,
-}: {
-  matchAvailability: boolean; setMatchAvailability: (v: boolean) => void; hasAvailability: boolean;
-}) => {
-  const navigate = useNavigate();
-  return (
-    <div className="flex items-center justify-between gap-3 w-full">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        <Clock className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} />
-        <div className="min-w-0">
-          <p className="text-ds-11 font-semibold text-foreground leading-snug">Only my hours</p>
-          {!hasAvailability && (
-            <button
-              type="button"
-              onClick={() => navigate("/availability")}
-              className="inline-flex items-center gap-0.5 text-ds-10 font-semibold text-primary hover:text-primary/80 transition-colors btn-press"
-            >
-              Set hours
-              <ArrowUpRight className="w-2.5 h-2.5" />
-            </button>
-          )}
-        </div>
-      </div>
-      <Switch
-        checked={matchAvailability}
-        onCheckedChange={setMatchAvailability}
-        disabled={!hasAvailability}
-        aria-label="Match my availability"
-        className="shrink-0"
-      />
-    </div>
-  );
-};
-
-// ---------------- Mobile dropdown trigger ----------------
-
-interface DropdownProps {
-  icon: LucideIcon;
-  label: string;
-  active: boolean;
-  /** Function-as-children so the popover can hand its `close()` down
-      to the inner content. Selection handlers call `close()` and the
-      popover dismisses itself instead of lingering on top of the list. */
-  children: (close: () => void) => React.ReactNode;
-}
-
-const MobileDropdown = ({ icon: Icon, label, active, children }: DropdownProps) => {
-  const [open, setOpen] = useState(false);
-  return (
-  <Popover open={open} onOpenChange={setOpen}>
-    <PopoverTrigger asChild>
-      <button
-        className={`${triggerBase} ${
-          active
-            ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] border-[hsl(var(--bark)/0.38)]"
-            : "bg-white/80 dark:bg-card/70 backdrop-blur text-foreground border-border/60 hover:border-primary/50"
-        }`}
-      >
-        <span className="inline-flex items-center gap-1.5 min-w-0">
-          <Icon className={`w-3 h-3 shrink-0 text-[hsl(var(--bark))]`} strokeWidth={2.25} />
-          <span className="truncate">{label}</span>
-        </span>
-        <ChevronDown className="w-3 h-3 opacity-70 shrink-0" />
-      </button>
-    </PopoverTrigger>
-    <PopoverContent
-      align="start"
-      sideOffset={8}
-      collisionPadding={{ bottom: 96, top: 12, left: 12, right: 12 }}
-      className={`w-[min(92vw,340px)] rounded-2xl squircle border border-border/40 ring-1 ring-border/20 shadow-2xl ${surfaceGradient} p-0 overflow-hidden`}
-    >
-      <div
-        className="max-h-[min(60vh,calc(100dvh-9rem))] overflow-y-auto overscroll-contain p-3"
-        style={{
-          WebkitMaskImage:
-            "linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%)",
-          maskImage:
-            "linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%)",
-        }}
-      >
-        {children(() => setOpen(false))}
-      </div>
-    </PopoverContent>
-  </Popover>
-  );
-};
-
-// ---------------- Main component ----------------
-
-const JobFilters = ({
-  searchQuery: _searchQuery, setSearchQuery, selectedCategory, setSelectedCategory,
-  minBudget, setMinBudget, maxBudget, setMaxBudget, locationFilter, setLocationFilter,
-  sortBy, setSortBy, filtersOpen: _filtersOpen, setFiltersOpen: _setFiltersOpen,
-  expiresWithin, setExpiresWithin,
-  matchAvailability, setMatchAvailability, hasAvailability,
-  boostedOnly, setBoostedOnly,
-  userLocStatus, userLocMessage,
-}: JobFiltersProps) => {
-  const activeFilterCount = [
-    selectedCategory, minBudget, maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : "",
-  ].filter(Boolean).length;
-  const hasFilters = activeFilterCount > 0;
-
-  const clearFilters = () => {
-    setSearchQuery("");
-    setSelectedCategory(null);
-    setMinBudget("");
-    setMaxBudget("");
-    setLocationFilter("");
-    setExpiresWithin("");
-    setMatchAvailability(false);
-    setBoostedOnly(false);
-  };
-
-  const sortLabel = sortOptions.find((o) => o.value === sortBy)?.label ?? "Sort";
-  const categoryLabel = selectedCategory ? categoryLabels[selectedCategory] : "Category";
-  const nearbyMi = locationFilter.startsWith("nearby:") ? locationFilter.slice(7) : null;
-  const placeBudgetLabel = nearbyMi ? `${nearbyMi} mi` : "Nearby";
-  // Range-aware pill label: show "$X – $Y+" when either bound is set,
-  // otherwise the neutral "Budget" prompt.
-  const budgetLabel =
-    minBudget || maxBudget
-      ? budgetRangeLabel(...budgetToRange(minBudget, maxBudget))
-      : "Budget";
-
-  const whenLabel = expiresWithin
-    ? (expiresOptions.find((o) => o.value === expiresWithin)?.label ?? "When")
-    : matchAvailability
-      ? "My hours"
-      : "When";
-
-  // Single horizontal-scroll row of filter pills. Each pill is a popover
-  // trigger; tapping one drops the relevant filter content as a floating
-  // panel instead of expanding the page. Boosted lives in the same row
-  // as a toggle pill. Clear-all tucks in at the end when filters apply.
-  return (
-    <div className="px-3 py-2.5">
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-3 px-3">
-        <MobileDropdown icon={ArrowUpDown} label={sortLabel} active={sortBy !== "smart"}>
-          {(close) => (
-            <>
-              <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Sort by</p>
-              <SortContent sortBy={sortBy} setSortBy={setSortBy} onSelect={close} />
-            </>
-          )}
-        </MobileDropdown>
-
-        <MobileDropdown icon={LayoutGrid} label={categoryLabel} active={!!selectedCategory}>
-          {(close) => (
-            <>
-              <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Category</p>
-              <CategoryContent
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                onSelect={close}
-              />
-            </>
-          )}
-        </MobileDropdown>
-
-        <MobileDropdown icon={MapPin} label={placeBudgetLabel} active={!!locationFilter}>
-          {(close) => (
-            <NearbyContent
-              locationFilter={locationFilter}
-              setLocationFilter={setLocationFilter}
-              status={userLocStatus}
-              message={userLocMessage}
-              onSelect={close}
-            />
-          )}
-        </MobileDropdown>
-
-        <MobileDropdown icon={DollarSign} label={budgetLabel} active={!!minBudget || !!maxBudget}>
-          {() => (
-            <>
-              <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Budget range</p>
-              <BudgetContent
-                minBudget={minBudget}
-                maxBudget={maxBudget}
-                setMinBudget={setMinBudget}
-                setMaxBudget={setMaxBudget}
-              />
-            </>
-          )}
-        </MobileDropdown>
-
-        <MobileDropdown icon={CalendarRange} label={whenLabel} active={!!expiresWithin || matchAvailability}>
-          {(close) => (
-            <div className="space-y-3">
-              <div>
-                <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Expires within</p>
-                <ExpiresContent expiresWithin={expiresWithin} setExpiresWithin={setExpiresWithin} onSelect={close} />
-              </div>
-              <div>
-                <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-2">Match my availability</p>
-                <AvailabilityContent
-                  matchAvailability={matchAvailability}
-                  setMatchAvailability={setMatchAvailability}
-                  hasAvailability={hasAvailability}
-                />
-              </div>
-            </div>
-          )}
-        </MobileDropdown>
-
+    <div role="group" aria-label="Filter by budget" className="flex flex-wrap gap-1.5">
+      {BUDGET_BANDS.map((band) => {
+        const isActive = activeBand === band.key;
+        return (
+          <button
+            key={band.key}
+            type="button"
+            aria-pressed={isActive}
+            onClick={() => {
+              hapticLight();
+              setMinBudget(band.min);
+              setMaxBudget(band.max);
+              onSelect?.();
+            }}
+            className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
+          >
+            {band.label}
+          </button>
+        );
+      })}
+      {hasCustomRange && (
         <button
           type="button"
-          onClick={() => setBoostedOnly(!boostedOnly)}
-          aria-pressed={boostedOnly}
-          className={`${triggerBase} shrink-0`}
-          style={
-            boostedOnly
-              ? {
-                  background: "linear-gradient(90deg, hsl(var(--gold-warm) / 0.92), hsl(var(--burnt-sienna)))",
-                  borderColor: "hsl(var(--gold-warm) / 0.6)",
-                  color: "white",
-                  boxShadow: "0 4px 14px -4px hsl(var(--gold-warm) / 0.45)",
-                }
-              : undefined
-          }
+          aria-pressed
+          aria-label={`Clear custom budget filter (${budgetChipLabel(minBudget, maxBudget)})`}
+          onClick={() => { hapticLight(); setMinBudget(""); setMaxBudget(""); onSelect?.(); }}
+          className={`${chipBase} ${chipActive}`}
         >
-          <span className="inline-flex items-center gap-1.5 min-w-0">
-            <Rocket className="w-3 h-3 shrink-0" strokeWidth={2.25} />
-            <span className="truncate">Boosted</span>
-          </span>
+          {budgetChipLabel(minBudget, maxBudget)}
+          <X className="w-2.5 h-2.5" strokeWidth={2.5} aria-hidden />
         </button>
-
-        {hasFilters && (
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="shrink-0 inline-flex items-center gap-1 px-2.5 h-9 rounded-full text-[0.72rem] font-sans font-semibold tracking-wide active:opacity-70 transition-opacity"
-            style={{
-              color: "hsl(var(--burnt-sienna))",
-              background: "hsl(var(--burnt-sienna) / 0.10)",
-              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-            }}
-          >
-            <X className="w-3 h-3" strokeWidth={2.25} /> Clear
-            {activeFilterCount > 0 && (
-              <span
-                className="ml-0.5 px-1 py-0.5 rounded-full text-[8.5px] font-bold tabular-nums"
-                style={{ background: "hsl(var(--burnt-sienna) / 0.18)" }}
-              >
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 };
-
-export default JobFilters;

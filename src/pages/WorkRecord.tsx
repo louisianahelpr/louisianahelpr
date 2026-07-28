@@ -23,6 +23,7 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { shareNative } from "@/lib/nativeShare";
+import { formatShortDate } from "@/lib/format";
 import HelprMark from "@/components/HelprMark";
 import type { Database } from "@/integrations/supabase/types";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -448,7 +449,7 @@ const WorkRecord = () => {
                             {formatCurrency(earned)}
                           </span>
                           <span className="text-ds-11 text-muted-foreground tabular-nums shrink-0 text-right">
-                            {new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            {formatShortDate(job.created_at)}
                           </span>
                         </div>
                       );

@@ -16,7 +16,7 @@ export function ApplicantsLoadingState() {
           key={i}
           className="rounded-ds-md p-3.5 flex items-start gap-3"
           style={{
-            backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+            background: "var(--surface-premium)",
             backdropFilter: "blur(16px)",
             WebkitBackdropFilter: "blur(16px)",
             border: "0.5px solid hsl(var(--bark) / 0.18)",
@@ -45,7 +45,12 @@ export function ApplicantsErrorState({ onRetry }: { onRetry: () => void }) {
       <AlertCircle className="w-8 h-8 text-destructive" />
       <div className="space-y-1">
         <p className="font-semibold text-foreground text-ds-15">Couldn't load applicants</p>
-        <p className="text-ds-13 text-muted-foreground">Check your connection and try again.</p>
+        {/* Deliberately NOT "check your connection" — most failures here are
+            server-side, and blaming the user's wifi is a false diagnosis.
+            Matches the shared ErrorState's default copy. */}
+        <p className="text-ds-13 text-muted-foreground">
+          Tap Try again. If it sticks, our end is having a hiccup — not yours.
+        </p>
       </div>
       <Button
         variant="outline"

@@ -1,6 +1,6 @@
-import { Copy, Flag, Trash2 } from "lucide-react";
+import { Ban, Copy, Flag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { hapticLight } from "@/lib/haptics";
 import type { Message } from "./types";
 
@@ -13,6 +13,11 @@ interface MessageActionSheetProps {
   onClose: () => void;
   /** Open the existing report dialog for an inbound message. */
   onReport: (id: string) => void;
+  /** Open the existing BlockUserDialog for the thread's other participant.
+   *  Same handler the ChatHeader ⋮ menu uses — this sheet only surfaces a
+   *  second entry point so a user reacting to one bad message doesn't have
+   *  to back out to the header to block. Inbound messages only. */
+  onBlock: () => void;
   /** Open the existing delete confirm for the viewer's own message. */
   onDelete: (id: string) => void;
 }
@@ -26,8 +31,8 @@ const isPlainText = (content: string | null | undefined): content is string =>
 /**
  * Bottom action sheet for a long-press on a chat bubble. Surfaces the
  * actions a viewer can take on a message without the affordances having
- * to live inline on every row: Copy (plain-text only), plus Report
- * (inbound) or Delete (own).
+ * to live inline on every row: Copy (plain-text only), plus Report +
+ * Block (inbound) or Delete (own).
  *
  * Open/close is fully controlled by the parent — passing `message=null`
  * closes the sheet. Reuses the `@/components/ui/sheet` primitive so
@@ -39,6 +44,7 @@ export function MessageActionSheet({
   mine,
   onClose,
   onReport,
+  onBlock,
   onDelete,
 }: MessageActionSheetProps) {
   if (!message) return null;
@@ -63,6 +69,13 @@ export function MessageActionSheet({
     onClose();
   };
 
+  const handleBlock = () => {
+    onBlock();
+    // Close BEFORE the block dialog opens so the sheet isn't stacked
+    // underneath it (same ordering as handleDelete).
+    onClose();
+  };
+
   const handleDelete = () => {
     onDelete(message.id);
     // Close BEFORE the confirm dialog opens so the user doesn't see two
@@ -73,21 +86,15 @@ export function MessageActionSheet({
   return (
     <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
       <SheetContent side="bottom" className="rounded-t-2xl border-t-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
-        {/* Mirrors DialogHero's eyebrow → title stack for cohesion with every
-            other popup header in the app. Sheets can't use DialogHero
-            directly (it targets Dialog's X-button spacing) so the same
-            parts are composed inline. */}
-        <SheetHeader className="px-1 pb-2 space-y-0 text-left">
-          <span
-            className="font-serif italic uppercase block text-[0.62rem] tracking-[0.18em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            Message actions
-          </span>
-          <SheetTitle className="text-left font-display italic font-bold text-ds-15 mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
-            What next?
-          </SheetTitle>
-        </SheetHeader>
+        {/* SheetHero is the canonical sheet header (the Sheet-side twin of
+            DialogHero). This block used to compose the eyebrow → title parts
+            inline because SheetHero did not exist yet; hand-copying the tokens
+            is what let four sheets drift to four different title sizes. */}
+        <SheetHero
+          className="px-1 pb-2"
+          eyebrow="Message actions"
+          title="What next?"
+        />
         <div className="grid grid-cols-1 gap-1.5">
           {canCopy && (
             <ActionRow
@@ -104,12 +111,25 @@ export function MessageActionSheet({
               tone="danger"
             />
           ) : (
-            <ActionRow
-              icon={<Flag className="w-5 h-5" strokeWidth={2} />}
-              label="Report"
-              onClick={handleReport}
-              tone="danger"
-            />
+            /* Inbound message — the two safety actions, in the same order
+               and with the same weight as the ChatHeader ⋮ menu ("Report
+               user" then "Block user"). Block is wired to the identical
+               `setBlockTarget` → BlockUserDialog path the header uses; no
+               blocking logic is duplicated here. */
+            <>
+              <ActionRow
+                icon={<Flag className="w-5 h-5" strokeWidth={2} />}
+                label="Report"
+                onClick={handleReport}
+                tone="danger"
+              />
+              <ActionRow
+                icon={<Ban className="w-5 h-5" strokeWidth={2} />}
+                label="Block"
+                onClick={handleBlock}
+                tone="danger"
+              />
+            </>
           )}
         </div>
       </SheetContent>

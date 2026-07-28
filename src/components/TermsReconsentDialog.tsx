@@ -123,19 +123,6 @@ export function TermsReconsentDialog() {
         <AlertDialogHero
           eyebrow="We updated our terms"
           title="Please take a moment to re-agree"
-          subtitle={
-            <>
-              We've made a material update to our{" "}
-              <Link to="/terms" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
-                Terms
-              </Link>{" "}
-              and{" "}
-              <Link to="/privacy" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
-                Privacy Policy
-              </Link>
-              . Tap Agree below to continue using Helpr.
-            </>
-          }
         />
         <AlertDialogFooter>
           <AlertDialogAction

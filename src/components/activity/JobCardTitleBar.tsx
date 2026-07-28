@@ -22,13 +22,24 @@ export function JobCardTitleBar({ title, amount, amountTitle }: JobCardTitleBarP
       >
         {title}
       </h3>
+      {/* Same surface + ink as JobPrice's `chip` variant — the component
+          documented as "THE single money element". The comment below already
+          claimed an amount "reads identically everywhere", but it did not:
+          Browse rendered the net take-home as bark-on-bark/0.10 in a
+          rounded-ds-md tile, while this bar rendered the SAME net figure
+          (AppliedJobCard passes `payout`) as sienna-on-sienna/0.10 in a pill.
+          One number, two looks, side by side across Browse / My Posts /
+          My Jobs. Aligned to JobPrice rather than the reverse because
+          JobPrice also owns the job-detail payout tile, so it is the shape a
+          user sees most and the one the codebase treats as canonical. */}
       <span
-        className="inline-flex items-baseline font-display italic font-bold tabular-nums text-ds-13 px-2 py-0.5 rounded-full shrink-0 ml-3"
+        className="inline-flex items-baseline font-display font-bold tabular-nums text-ds-13 px-2 py-0.5 rounded-ds-md shrink-0 ml-3"
         title={amountTitle}
         style={{
-          background: "hsl(var(--burnt-sienna) / 0.10)",
-          color: "hsl(var(--burnt-sienna))",
-          letterSpacing: "-0.015em",
+          background: "hsl(var(--bark) / 0.10)",
+          border: "0.5px solid hsl(var(--bark) / 0.28)",
+          color: "hsl(var(--bark))",
+          letterSpacing: "-0.02em",
         }}
       >
         {/* Tight text "$" pulled to the digits — matches JobPrice, the canonical

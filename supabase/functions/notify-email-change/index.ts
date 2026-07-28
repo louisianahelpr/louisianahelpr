@@ -73,14 +73,14 @@ serve(async (req) => {
     }
 
     const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif">
+<body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
-  <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
-  <h1 style="font-size:24px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">Your email address was changed</h1>
-  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px">Someone signed in to your Helpr account and started changing your login email from <strong>${oldEmail}</strong> to <strong>${newEmail}</strong>. To finalize the change, the new address will need to confirm the request.</p>
-  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px"><strong>Was this you?</strong> No action needed — the confirmation link was sent to your new address.</p>
-  <p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 20px"><strong>Was this NOT you?</strong> Reset your password immediately and contact us at <a href="mailto:admin@louisianahelpr.com" style="color:hsl(158,45%,42%)">admin@louisianahelpr.com</a>.</p>
-  <p style="font-size:13px;color:hsl(160,6%,50%);line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">Questions? Contact us at admin@louisianahelpr.com.</p>
+  <p style="font-size:28px;font-weight:bold;color:#5E6544;margin:0 0 24px;font-family:'Bodoni Moda',Didot,'Times New Roman',Georgia,serif">Helpr</p>
+  <h1 style="font-size:24px;font-weight:bold;color:#23231A;margin:0 0 16px">Your email address was changed</h1>
+  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">Someone signed in to your Helpr account and started changing your login email from <strong>${oldEmail}</strong> to <strong>${newEmail}</strong>. To finalize the change, the new address will need to confirm the request.</p>
+  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px"><strong>Was this you?</strong> No action needed — the confirmation link was sent to your new address.</p>
+  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px"><strong>Was this NOT you?</strong> Reset your password immediately and contact us at <a href="mailto:admin@louisianahelpr.com" style="color:#984216">admin@louisianahelpr.com</a>.</p>
+  <p style="font-size:13px;color:#5E5F4E;line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid #E3E4DD">Questions? Contact us at admin@louisianahelpr.com.</p>
 </div>
 </body></html>`;
     const text = `Your Helpr account email is being changed from ${oldEmail} to ${newEmail}. If this was NOT you, reset your password and contact admin@louisianahelpr.com immediately.`;

@@ -64,7 +64,6 @@ export default function BusinessNoAccountState({ title }: { title: string }) {
       <EmptyState
         variant="inline"
         icon={Building2}
-        eyebrow="No business account"
         title="You're not part of a business"
         body="Create a business account to add teammates and manage jobs together under one account."
         action={
@@ -82,7 +81,6 @@ export default function BusinessNoAccountState({ title }: { title: string }) {
           <DialogHero
             eyebrow="Helpr Business"
             title="Create your business account"
-            subtitle="You'll be the owner. You can invite teammates and manage seats once it's set up."
           />
           <div className="space-y-2">
             <Label htmlFor="business-name">Company name</Label>

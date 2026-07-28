@@ -10,22 +10,22 @@ const SITE_URL = `https://${ROOT_DOMAIN}`
 
 function wrapEmail(content: string): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="background-color:#ffffff;font-family:'DM Sans',Arial,sans-serif;margin:0;padding:0">
+<body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:0">
 <div style="padding:32px 28px;max-width:480px;margin:0 auto">
-  <p style="font-size:28px;font-weight:bold;color:hsl(158,45%,42%);margin:0 0 24px;font-family:'Fraunces',Georgia,serif">Helpr</p>
+  <p style="font-size:28px;font-weight:bold;color:#5E6544;margin:0 0 24px;font-family:'Bodoni Moda',Didot,'Times New Roman',Georgia,serif">Helpr</p>
   ${content}
-  <p style="font-size:12px;color:hsl(160,6%,65%);margin:32px 0 0;padding:16px 0 0;border-top:1px solid hsl(150,12%,90%)">
+  <p style="font-size:12px;color:#6A6F5D;margin:32px 0 0;padding:16px 0 0;border-top:1px solid #E3E4DD">
     You're receiving this because you signed up at ${ROOT_DOMAIN}.
   </p>
 </div></body></html>`
 }
 
 function btn(text: string, href: string): string {
-  return `<a href="${href}" style="display:inline-block;background-color:hsl(158,45%,42%);color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">${text}</a>`
+  return `<a href="${href}" style="display:inline-block;background-color:#5E6544;color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">${text}</a>`
 }
 
-const p = (t: string) => `<p style="font-size:15px;color:hsl(160,6%,50%);line-height:1.6;margin:0 0 16px">${t}</p>`
-const h1 = (t: string) => `<h1 style="font-size:22px;font-weight:bold;color:hsl(160,10%,12%);margin:0 0 16px">${t}</h1>`
+const p = (t: string) => `<p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 16px">${t}</p>`
+const h1 = (t: string) => `<h1 style="font-size:22px;font-weight:bold;color:#23231A;margin:0 0 16px">${t}</h1>`
 
 // Welcome drip step 1: Welcome to Helpr (Day 1)
 function dripStep1(name: string) {
@@ -33,7 +33,7 @@ function dripStep1(name: string) {
   const html = wrapEmail(`
     ${h1("Welcome to Helpr!")}
     ${p(`Hey ${name || "there"} — your account is set up. Two things you can do today:`)}
-    <ul style="font-size:15px;color:hsl(160,6%,50%);line-height:1.8;padding-left:20px;margin:0 0 16px">
+    <ul style="font-size:15px;color:#5E5F4E;line-height:1.8;padding-left:20px;margin:0 0 16px">
       <li><strong>Post a task</strong> — describe what you need and set your budget</li>
       <li><strong>Browse jobs</strong> — find opportunities near you</li>
       <li><strong>Connect</strong> — message helprs or customers directly</li>
@@ -51,7 +51,7 @@ function dripStep2(name: string) {
   const html = wrapEmail(`
     ${h1("Explore what Helpr has to offer")}
     ${p(`Hey ${name || "there"}, now that you're set up, here's what you can do:`)}
-    <ul style="font-size:15px;color:hsl(160,6%,50%);line-height:1.8;padding-left:20px;margin:0 0 16px">
+    <ul style="font-size:15px;color:#5E5F4E;line-height:1.8;padding-left:20px;margin:0 0 16px">
       <li><strong>Post a task</strong> — describe what you need, set a budget, and get help fast</li>
       <li><strong>Browse jobs</strong> — find tasks near you and start earning</li>
       <li><strong>Chat directly</strong> — message before committing</li>
@@ -68,7 +68,7 @@ function dripStep3(name: string) {
   const html = wrapEmail(`
     ${h1("Tips from the community")}
     ${p(`Hey ${name || "there"} — four things the helprs who get rebooked do well:`)}
-    <ol style="font-size:15px;color:hsl(160,6%,50%);line-height:1.8;padding-left:20px;margin:0 0 16px">
+    <ol style="font-size:15px;color:#5E5F4E;line-height:1.8;padding-left:20px;margin:0 0 16px">
       <li><strong>Be specific</strong> — detailed descriptions attract better matches</li>
       <li><strong>Respond quickly</strong> — fast replies lead to faster help</li>
       <li><strong>Leave reviews</strong> — help the community grow by sharing feedback</li>
@@ -106,7 +106,7 @@ function adminDigestEmail(stats: {
 }) {
   const subject = `Helpr Weekly Digest — Week of ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
   const stat = (label: string, value: string | number) =>
-    `<tr><td style="padding:8px 0;font-size:15px;color:hsl(160,6%,50%);border-bottom:1px solid hsl(150,12%,92%)">${label}</td><td style="padding:8px 0;font-size:15px;font-weight:bold;color:hsl(160,10%,12%);text-align:right;border-bottom:1px solid hsl(150,12%,92%)">${value}</td></tr>`
+    `<tr><td style="padding:8px 0;font-size:15px;color:#5E5F4E;border-bottom:1px solid #E3E4DD">${label}</td><td style="padding:8px 0;font-size:15px;font-weight:bold;color:#23231A;text-align:right;border-bottom:1px solid #E3E4DD">${value}</td></tr>`
 
   const html = wrapEmail(`
     ${h1("📊 Weekly Digest")}

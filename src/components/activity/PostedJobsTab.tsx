@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import { SearchX, Wrench } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
-import { VirtualList } from "@/components/VirtualList";
-import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { type Job, type EnrichedApplication } from "./activityConstants";
 import { PostedJobCard } from "./PostedJobCard";
 import { ActivitySectionedView } from "@/pages/activity/ActivitySectionedView";
@@ -68,8 +66,8 @@ interface PostedJobsTabProps {
   /** Refetch the feed after an inline card mutation (e.g. dispute action). */
   onActionComplete: () => void;
   /** When true, render items grouped into collapsible Active /
-   *  Completed / Cancelled sections instead of a flat virtualized
-   *  list. Driven by the page-level "All" status filter. The page's
+   *  Completed / Cancelled sections instead of a flat list.
+   *  Driven by the page-level "All" status filter. The page's
    *  outer header (ActivityHeader) is the sole source of truth for
    *  filter + search in both modes. */
   groupByStatus?: boolean;
@@ -88,10 +86,6 @@ export const PostedJobsTab = ({
   onActionComplete, groupByStatus = false,
 }: PostedJobsTabProps) => {
   const navigate = useNavigate();
-  // Wide browser desktop only (never native / phone-web): swap the
-  // window-virtualized flat list for a plain two-column grid so the
-  // per-status views match the sectioned view's desktop layout.
-  const isWebDesktop = useIsWebDesktop();
 
   // Bulk-dismiss for cancelled posts — long-press a Cancelled card to
   // enter selection mode, then bulk-hide them from view. The hide is
@@ -127,7 +121,7 @@ export const PostedJobsTab = ({
   );
 
   // One source of truth for the per-row render so both the flat
-  // VirtualList view and the grouped Sectioned view paint identical
+  // list view and the grouped Sectioned view paint identical
   // cards. Cancelled cards get a long-press / checkbox wrapper that
   // drives the bulk-dismiss flow.
   const renderJobCard = (job: Job) => {
@@ -225,22 +219,22 @@ export const PostedJobsTab = ({
       title="No matches in this view"
       body="Nothing here fits that filter yet — try a different status from the filter button to see more."
     />
-  ) : isWebDesktop ? (
-    <div className="ds-activity-grid">
+  ) : (
+    // Flat (single-status) list rendered in normal document flow — the
+    // same layout primitive the grouped Sectioned view uses (space-y-3 +
+    // ds-activity-grid, single column on phone / two columns on wide
+    // browser desktop). It intentionally is NOT window-virtualized: the
+    // Activity panel scrolls inside its own container (PullToRefreshWrapper),
+    // not the window, so a window virtualizer both mismatched the scroll
+    // source and forced an explicit absolute list height that re-measured
+    // from a fixed estimate on every remount — which is what made switching
+    // "All" ↔ a single status visibly jump. Normal flow keeps the two views
+    // structurally identical, so toggling between them stays stable.
+    <div className="space-y-3 ds-activity-grid">
       {visibleJobs.map((job) => (
         <div key={job.id}>{renderJobCard(job)}</div>
       ))}
     </div>
-  ) : (
-    <VirtualList
-      items={visibleJobs}
-      getKey={(job) => job.id}
-      estimateSize={260}
-      overscan={4}
-      className="space-y-0"
-      itemClassName="pb-3"
-      renderItem={renderJobCard}
-    />
   );
 
   return (

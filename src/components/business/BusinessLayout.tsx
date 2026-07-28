@@ -70,7 +70,7 @@ interface Props {
  * route is already in DOCUMENT_SCROLL_ROUTES via the `/business` prefix
  * (see useAppShellViewport.ts). Do NOT introduce AppShell here.
  */
-const BusinessLayout = ({ eyebrow, title, meta, requiresVerification, children }: Props) => {
+const BusinessLayout = ({ title, meta, requiresVerification, children }: Props) => {
   const location = useLocation();
   const { business } = useMyBusiness();
 
@@ -130,12 +130,10 @@ const BusinessLayout = ({ eyebrow, title, meta, requiresVerification, children }
             <BackButton />
           </div>
           <div className="flex flex-col leading-none min-w-0">
-            <span
-              className="font-serif italic uppercase text-[0.62rem]"
-              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-            >
-              {eyebrow}
-            </span>
+            {/* Eyebrow render intentionally removed (2026-07-25 app-wide
+                eyebrow-removal decision) — same treatment as PageHeader. The
+                `eyebrow` prop is kept in Props for call-site compatibility but
+                no longer paints. */}
             <h1 className="text-page-title leading-tight mt-1">{title}</h1>
             {meta && (
               <p className="font-serif italic mt-1 text-[0.82rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

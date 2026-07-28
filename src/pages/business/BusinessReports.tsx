@@ -12,7 +12,8 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { FileText, Mail, Plus, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
-import { formatCategory } from "@/lib/format";
+import { formatCategory, formatTimestamp } from "@/lib/format";
+import { jobStatusLabel } from "@/lib/statusLabels";
 import { toast } from "sonner";
 
 type JsPDFWithAutoTable = import("jspdf").jsPDF & { lastAutoTable?: { finalY: number } };
@@ -219,9 +220,9 @@ const BusinessReports = () => {
       }
 
       const jobTableRows = jobs.slice(0, 50).map((j) => [
-        new Date(j.created_at).toLocaleDateString("en-US"),
+        formatTimestamp(j.created_at),
         (j.title ?? "").length > 32 ? (j.title ?? "").slice(0, 30) + "…" : (j.title ?? ""),
-        j.status ?? "",
+        jobStatusLabel(j.status),
         `$${Number(j.budget ?? 0).toFixed(2)}`,
       ]);
 

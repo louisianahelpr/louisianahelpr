@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn, formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
-import { jobStatusLabel } from "@/lib/statusLabels";
-import { formatCategory } from "@/lib/format";
+import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
+import { formatCategory, formatPrice, formatTimestamp } from "@/lib/format";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
 import { toneTextClasses, type Tone } from "@/components/admin/tones";
 
@@ -45,11 +45,11 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1 bg-secondary/50 rounded-ds-sm p-1">
+      <div role="group" aria-label="Filter by status" className="flex gap-1 bg-secondary/50 rounded-ds-sm p-1">
         {(["all", "pending", "approved", "denied"] as const).map(s => {
           const count = users.filter(u => s === "all" || u.approval_status === s).length;
           return (
-            <button key={s} onClick={() => setStatusFilter(s)}
+            <button key={s} onClick={() => setStatusFilter(s)} aria-pressed={statusFilter === s}
               className={`flex-1 px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${statusFilter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
               {s} ({count})
             </button>
@@ -94,11 +94,11 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1 bg-secondary/50 rounded-ds-sm p-1">
+      <div role="group" aria-label="Filter by tier" className="flex gap-1 bg-secondary/50 rounded-ds-sm p-1">
         {tiers.map(t => {
           const count = users.filter(u => t === "all" || (t === "free" ? !u.subscription_tier : u.subscription_tier === t)).length;
           return (
-            <button key={t} onClick={() => setTierFilter(t)}
+            <button key={t} onClick={() => setTierFilter(t)} aria-pressed={tierFilter === t}
               className={`flex-1 px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${tierFilter === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
               {t} ({count})
             </button>
@@ -144,7 +144,7 @@ export const CategoriesDrillDown = ({ data }: { data: { name: string; count: num
           </div>
           <div className="flex items-center gap-4 text-ds-13">
             <span className="text-muted-foreground">{cat.count} jobs</span>
-            <span className="font-semibold text-foreground">${cat.revenue.toFixed(2)} revenue</span>
+            <span className="font-semibold text-foreground">${formatPrice(cat.revenue)} revenue</span>
           </div>
         </div>
       ))}
@@ -158,14 +158,6 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
   const statuses = ["all", "escrow", "payout_pending", "released", "refunded"];
   const filtered = filter === "all" ? jobs : jobs.filter(j => j.payment_status === filter);
 
-  const statusLabel: Record<string, string> = {
-    escrow: "In Escrow",
-    payout_pending: "Payout Pending",
-    released: "Released",
-    refunded: "Refunded",
-    cancelled: "Cancelled",
-  };
-
   const statusTone: Record<string, Tone> = {
     escrow: "warning",
     payout_pending: "info",
@@ -177,19 +169,19 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1 flex-wrap bg-secondary/50 rounded-ds-sm p-1">
+      <div role="group" aria-label="Filter by payment status" className="flex gap-1 flex-wrap bg-secondary/50 rounded-ds-sm p-1">
         {statuses.map(s => (
-          <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-            {s === "all" ? `All (${jobs.length})` : `${statusLabel[s] || s} (${jobs.filter(j => j.payment_status === s).length})`}
+          <button key={s} onClick={() => setFilter(s)} aria-pressed={filter === s}
+            className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {s === "all" ? `All (${jobs.length})` : `${paymentStatusLabel(s)} (${jobs.filter(j => j.payment_status === s).length})`}
           </button>
         ))}
       </div>
 
       <div className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
-        <span className="text-ds-11 text-muted-foreground">Total for filter ({filtered.length} jobs)</span>
+        <span className="text-ds-11 text-muted-foreground">Total for filter ({filtered.length} job{filtered.length === 1 ? "" : "s"})</span>
         <span className="text-ds-17 font-bold text-foreground">
-          ${filtered.reduce((s, j) => s + (j.budget || 0), 0).toFixed(2)}
+          ${formatPrice(filtered.reduce((s, j) => s + (j.budget || 0), 0))}
         </span>
       </div>
 
@@ -199,17 +191,17 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-foreground text-ds-13 truncate">{j.title}</p>
-                <p className="text-ds-11 text-muted-foreground mt-0.5">{j.location} · {new Date(j.date_needed).toLocaleDateString()}</p>
+                <p className="text-ds-11 text-muted-foreground mt-0.5">{j.location} · {formatTimestamp(j.date_needed)}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <div className={cn("w-2 h-2 rounded-full", statusDot(j.payment_status || ""))} />
-                <span className="text-ds-11 text-muted-foreground capitalize">{statusLabel[j.payment_status || ""] || j.payment_status}</span>
+                <span className="text-ds-11 text-muted-foreground">{paymentStatusLabel(j.payment_status)}</span>
               </div>
             </div>
             <div className="flex gap-4 mt-2 text-ds-11 text-muted-foreground">
-              <span>Budget: ${j.budget}</span>
-              <span>Fee: ${j.platform_fee_amount || 0}</span>
-              <span>Payout: ${j.budget - (j.platform_fee_amount || 0)}</span>
+              <span>Budget: ${formatPrice(j.budget)}</span>
+              <span>Fee: ${formatPrice(j.platform_fee_amount || 0)}</span>
+              <span>Payout: ${formatPrice(j.budget - (j.platform_fee_amount || 0))}</span>
               {j.payout_scheduled_at && <span>Scheduled: {new Date(j.payout_scheduled_at).toLocaleString()}</span>}
             </div>
           </div>
@@ -232,9 +224,9 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1 flex-wrap bg-secondary/50 rounded-ds-sm p-1">
+      <div role="group" aria-label="Filter by job status" className="flex gap-1 flex-wrap bg-secondary/50 rounded-ds-sm p-1">
         {statusOptions.map(s => (
-          <button key={s} onClick={() => setFilter(s)}
+          <button key={s} onClick={() => setFilter(s)} aria-pressed={filter === s}
             className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {s === "all" ? `All (${jobs.length})` : `${jobStatusLabel(s)} (${jobs.filter(j => j.status === s).length})`}
           </button>

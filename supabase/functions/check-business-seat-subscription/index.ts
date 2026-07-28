@@ -101,6 +101,63 @@ serve(async (req) => {
       })
       .eq("id", ownedBiz.id);
 
+    // ── Grant the fee / early-access tier the seat plan pays for ──────────
+    //
+    // WHY THIS EXISTS. Buying a seat plan wrote `seat_tier` and nothing else,
+    // so nothing in the pricing path ever saw it: `posterFeePercentForTier`
+    // and `earlyAccessDelayMs` both read `profiles.subscription_tier`, which
+    // stayed null. Verified against prod before writing this — zero profiles
+    // had a business-ish tier and no code path set one — meaning a Crew
+    // customer paying $20/mo was still charged the standard 12% with a
+    // 0-minute head start, while /for-business advertised 11% and 5 minutes.
+    // The page promised something billing did not deliver.
+    //
+    // WHY THE MEMBERSHIP RUNGS AND NOT 'business'. `TIER_PERKS.business` is a
+    // flat 6%, but the seat plans are a LADDER (Crew 11 / Team 10 /
+    // Enterprise 8). Mapping onto basic/pro/elite makes every advertised
+    // number true with no new fee plumbing, because those rungs already carry
+    // exactly the fee AND early-access values the cards show:
+    //
+    //     crew       → basic   11% fee,  5-min early access
+    //     team       → pro     10% fee, 10-min early access
+    //     enterprise → elite    8% fee, 20-min early access
+    //     starter    → null    12% fee,  0-min (the standard, i.e. no grant)
+    //
+    // Granting 'business' instead would give every paid tier 6% — cheaper than
+    // any tier we advertise, including Enterprise.
+    //
+    // ⚠️ KNOWN SIDE EFFECT, deliberate and worth revisiting: SubscriptionTab
+    // routes on `subscription_tier`, so a seat owner now reads as a consumer
+    // Pro/Elite subscriber there rather than being sent to /for-business. The
+    // alternative — a separate business-fee lookup keyed on `seat_tier` —
+    // touches the fee path in several places; this keeps the money correct
+    // today with one write. Owner only: team members are not granted, since
+    // the seat plan is billed to the owner.
+    const SEAT_TIER_TO_SUBSCRIPTION: Record<string, string | null> = {
+      starter: null,
+      crew: "basic",
+      team: "pro",
+      enterprise: "elite",
+    };
+    const grantedTier = SEAT_TIER_TO_SUBSCRIPTION[activeTier] ?? null;
+
+    // Only touch the row when the subscription is genuinely active — a
+    // cancelled or past_due plan must fall back to the standard rate, which is
+    // what `grantedTier = null` does on the starter branch above.
+    const { error: grantError } = await supabaseAdmin
+      .from("profiles")
+      .update({ subscription_tier: grantedTier })
+      .eq("user_id", ownedBiz.owner_id);
+
+    // Never swallow this: a silent failure here means the customer keeps
+    // paying while quietly getting the free-tier rate.
+    if (grantError) {
+      console.error(
+        "[check-business-seat-subscription] failed to grant subscription_tier",
+        { businessId: ownedBiz.id, ownerId: ownedBiz.owner_id, activeTier, grantedTier, error: grantError },
+      );
+    }
+
     const seatLimit =
       activeTier === "enterprise" ? 15 :
       activeTier === "team" ? 10 :

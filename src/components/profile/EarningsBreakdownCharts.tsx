@@ -16,7 +16,7 @@
 // stays compact for brand-new helpers.
 
 import { useMemo } from "react";
-import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend,
@@ -58,17 +58,6 @@ const bucketFor = (skills: string | null | undefined): string => {
   return first.charAt(0).toUpperCase() + first.slice(1);
 };
 
-// Helper take-home math, mirroring the EarningsTab logic. Centralized
-// here so the pie + monthly-trend agree on what counts as "earned".
-const helperTakeHome = (job: Job, feeFallbackPercent: number): number => {
-  const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-  const perHelper = job.budget / helpers;
-  const commissionPercent = job.helper_fee_percent ?? feeFallbackPercent;
-  const commission = (perHelper * commissionPercent) / 100;
-  // Urgent fee splits across the roster like the budget (#114).
-  return perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers;
-};
-
 // Tail accessor for the per-job timestamp — prefers helper completion
 // stamp, falling back to created_at for older rows that predate it.
 const completionTime = (job: Job): number => {
@@ -88,7 +77,7 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
     const totals = new Map<string, number>();
     completed.forEach((j) => {
       const key = bucketFor((j as unknown as { skills?: string | null }).skills);
-      totals.set(key, (totals.get(key) ?? 0) + helperTakeHome(j, feeFallbackPercent));
+      totals.set(key, (totals.get(key) ?? 0) + helperTakeHomeDollars(j, feeFallbackPercent));
     });
     return Array.from(totals.entries())
       .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
@@ -108,7 +97,7 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
         const t = completionTime(j);
         const d = new Date(t);
         if (d.getFullYear() !== year) return;
-        monthly[d.getMonth()] += helperTakeHome(j, feeFallbackPercent);
+        monthly[d.getMonth()] += helperTakeHomeDollars(j, feeFallbackPercent);
       });
       const result: number[] = [];
       let running = 0;
@@ -152,12 +141,6 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
   return (
     <section className="space-y-3">
       <div>
-        <p
-          className="font-serif italic uppercase"
-          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-        >
-          Breakdown
-        </p>
         <h2
           className="font-display italic font-bold leading-tight text-headline-section"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
@@ -168,12 +151,6 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
 
       {hasPieData && (
         <div className="rounded-2xl liquid-glass p-4">
-          <p
-            className="font-serif italic uppercase mb-1"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            By category
-          </p>
           <div className="h-[180px] w-full">
             <ResponsiveContainer width="100%" height="100%" minHeight={180}>
               <PieChart>

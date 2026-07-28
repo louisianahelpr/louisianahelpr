@@ -337,7 +337,7 @@ export const RichMessageInput = ({
           {recorder.state === "recording" && (
             <span
               aria-hidden="true"
-              className="w-2 h-2 rounded-full animate-pulse shrink-0"
+              className="w-2 h-2 rounded-full motion-safe:animate-pulse shrink-0"
               style={{ background: "hsl(var(--burnt-sienna))", boxShadow: "0 0 4px hsl(var(--burnt-sienna) / 0.6)" }}
             />
           )}
@@ -447,7 +447,7 @@ export const RichMessageInput = ({
                 />
                 <span
                   aria-hidden="true"
-                  className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full animate-pulse"
+                  className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full motion-safe:animate-pulse"
                   style={{
                     background: "hsl(var(--burnt-sienna))",
                     boxShadow: "0 0 4px hsl(var(--burnt-sienna) / 0.6)",

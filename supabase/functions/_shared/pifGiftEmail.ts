@@ -55,22 +55,22 @@ export function renderPifGiftEmail(opts: PifGiftEmailOpts): { html: string; text
   const claimUrl = `${getAppUrl()}/pay-it-forward?claim=${encodeURIComponent(opts.claimToken)}`;
   const note = opts.message?.trim();
   const noteHtml = note
-    ? `<p style="font-size:15px;line-height:1.6;margin:0 0 24px;padding:14px 16px;background:hsl(158,45%,42%,0.08);border-radius:10px;color:hsl(160,10%,12%);font-style:italic;">“${htmlEscape(note)}”</p>`
+    ? `<p style="font-size:15px;line-height:1.6;margin:0 0 24px;padding:14px 16px;background:rgba(94,101,68,0.08);border-radius:10px;color:#2E2F22;font-style:italic;">“${htmlEscape(note)}”</p>`
     : "";
   const noteText = note ? `\n\n"${note}"\n` : "";
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
-<body style="background:#FAFAF8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:24px;color:hsl(160, 10%, 12%);">
-  <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:14px;padding:32px 28px;border:1px solid hsl(0,0%,92%);">
-    <p style="font-size:28px;line-height:1;margin:0 0 24px;font-weight:700;color:hsl(158, 45%, 42%);font-family:Georgia,serif;">Helpr</p>
+<body style="background:#F0F2F4;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px;color:#2E2F22;">
+  <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:14px;padding:32px 28px;border:1px solid #E3E4DD;">
+    <p style="font-size:28px;line-height:1;margin:0 0 24px;font-weight:700;color:#5E6544;font-family:'Bodoni Moda',Didot,'Times New Roman',Georgia,serif;">Helpr</p>
     <h1 style="font-size:22px;font-weight:700;margin:0 0 16px;line-height:1.3;">${donor} sent you a ${amount} Helpr credit</h1>
-    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:hsl(160,6%,40%);">
-      Someone wants to help you get something done. Your <strong style="color:hsl(160,10%,12%);">${amount} credit</strong> can go toward any job on Helpr — cleaning, yard work, handyman help, groceries, and more.
+    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#5E5F4E;">
+      Someone wants to help you get something done. Your <strong style="color:#2E2F22;">${amount} credit</strong> can go toward any job on Helpr — cleaning, yard work, handyman help, groceries, and more.
     </p>
     ${noteHtml}
-    <a href="${claimUrl}" style="display:inline-block;background:hsl(158, 45%, 42%);color:#fff;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:600;font-size:15px;">Claim your ${amount} credit</a>
-    <p style="font-size:12px;line-height:1.6;margin:32px 0 0;color:hsl(160,6%,55%);">
+    <a href="${claimUrl}" style="display:inline-block;background:#5E6544;color:#fff;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:600;font-size:15px;">Claim your ${amount} credit</a>
+    <p style="font-size:12px;line-height:1.6;margin:32px 0 0;color:#6A6F5D;">
       New to Helpr? The link will help you create an account and add the credit automatically. If you didn't expect this, you can ignore it.
     </p>
   </div>

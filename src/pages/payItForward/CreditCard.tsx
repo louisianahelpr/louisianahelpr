@@ -1,18 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "./StatusPill";
-import { formatCategory } from "@/lib/format";
+import { formatShortDate } from "@/lib/format";
 import type { PifCredit } from "./types";
 
 // ─── Credit card ──────────────────────────────────────────────────────────────
 export function CreditCard({
   credit,
   onRedeem,
-  redeeming,
   perspective = "received",
 }: {
   credit: PifCredit;
   onRedeem?: (id: string) => void;
-  redeeming?: boolean;
   /** "received" shows who it's from; "sent" shows who it went to. */
   perspective?: "received" | "sent";
 }) {
@@ -21,10 +19,24 @@ export function CreditCard({
     perspective === "sent"
       ? `to ${credit.recipient_email ?? "your recipient"}`
       : `from ${donorFirst}`;
+
+  // Gift cards expire (pif_credits.expires_at defaults to +90 days) and
+  // `redeem_pif_credit` hard-rejects a lapsed one. The row's `status` is NOT
+  // flipped by a background job, so a card can sit at "sent" with a date in
+  // the past — surfacing that as "Ready to use" with a live button walks the
+  // recipient into a server-side refusal. Derive expiry from the date and let
+  // the pill, the date line, and the button all agree.
+  const parsedExpiry = credit.expires_at ? new Date(credit.expires_at) : null;
+  const expiresAt = parsedExpiry && !isNaN(parsedExpiry.getTime()) ? parsedExpiry : null;
+  const isExpired = expiresAt !== null && expiresAt.getTime() < Date.now();
+  const effectiveStatus = isExpired ? "expired" : credit.status;
   // Directed gifts are redeemable while in the "sent" (paid, unredeemed) state;
   // the legacy pool used "available". Accept either so the button surfaces
   // correctly during the model transition.
-  const redeemable = credit.status === "sent" || credit.status === "available";
+  const redeemable =
+    !isExpired && (credit.status === "sent" || credit.status === "available");
+  // Moot once the money is spent — only unredeemed cards can still lapse.
+  const showExpiry = expiresAt !== null && credit.status !== "redeemed";
   return (
     <div
       className="rounded-ds-md p-4"
@@ -53,15 +65,20 @@ export function CreditCard({
             {subline}
           </p>
         </div>
-        <StatusPill status={credit.status} />
+        <StatusPill status={effectiveStatus} />
       </div>
 
-      {credit.category && credit.category !== "Any" && (
+      {showExpiry && (
         <p
           className="font-sans text-ds-11 font-semibold uppercase mb-2"
-          style={{ color: "hsl(var(--pif-green-soft))", letterSpacing: "0.06em" }}
+          style={{
+            color: isExpired
+              ? "hsl(var(--burnt-sienna))"
+              : "hsl(var(--pif-green-soft))",
+            letterSpacing: "0.06em",
+          }}
         >
-          For: {formatCategory(credit.category).toUpperCase()}
+          {isExpired ? "Expired" : "Expires"} {formatShortDate(expiresAt)}
         </p>
       )}
 
@@ -77,7 +94,6 @@ export function CreditCard({
       {onRedeem && redeemable && (
         <Button
           size="sm"
-          disabled={redeeming}
           onClick={() => onRedeem(credit.id)}
           className="w-full rounded-ds-sm font-display italic font-semibold text-ds-13"
           style={{
@@ -86,7 +102,7 @@ export function CreditCard({
             border: "none",
           }}
         >
-          {redeeming ? "Opening…" : "Use this gift"}
+          Use this gift
         </Button>
       )}
     </div>

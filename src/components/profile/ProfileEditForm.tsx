@@ -135,9 +135,7 @@ export function ProfileEditForm({
     // a safe-area buffer so the last form field doesn't tuck under the bar.
     <div className="space-y-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6.5rem)" }}>
       <ProfileTabHeader
-        eyebrow="Identity"
         title="Edit profile"
-        meta="Photo, contact, and verification"
         onBack={onBack}
       />
 
@@ -204,9 +202,6 @@ export function ProfileEditForm({
 
         {/* Contact section */}
         <div className="rounded-2xl liquid-glass p-5 space-y-4">
-          <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-            Contact
-          </p>
           <div className="space-y-3">
             <div>
               <Label htmlFor="phone" className="text-ds-11 mb-1.5 block">Phone</Label>
@@ -255,10 +250,7 @@ export function ProfileEditForm({
 
         {/* Bio section */}
         <div className="rounded-2xl liquid-glass p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-              About you
-            </p>
+          <div className="flex items-center justify-end">
             {/* "20" is a MINIMUM, not a cap — showing "108/20" once the
                 user is past it reads like an over-limit error. So:
                 "X/20" while short of the minimum, a check once met. */}
@@ -285,15 +277,10 @@ export function ProfileEditForm({
           </p>
         </div>
 
-        {/* ID Verification section — header simplified to the same
-            eyebrow-only pattern the other sections use (it used to
-            carry an icon circle + separate title, which read as a
-            different design). Status badge sits on the right. */}
+        {/* ID Verification section — the status badge sits on the right;
+            the body copy below identifies the section on its own. */}
         <div className="rounded-2xl liquid-glass p-5 space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-              ID verification
-            </p>
+          <div className="flex items-center justify-end gap-2">
             <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium not-italic ${idBadge.cls}`}>{idBadge.label}</span>
           </div>
           <div className="flex items-center gap-3">

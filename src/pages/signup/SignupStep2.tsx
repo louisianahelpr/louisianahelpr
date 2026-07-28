@@ -174,65 +174,20 @@ export function SignupStep2(props: SignupStep2Props) {
 
   return (
     <div className="space-y-6">
-      {/* Account-type context banner — mirrors Step 1's treatment so both
-          steps read as one consistent flow. Business path uses the same
-          bark-toned card as Step 1; personal path shows a neutral callout
-          so neither path feels unfinished. */}
-      {isBusinessSignup ? (
-        <div
-          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
-          style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
-        >
-          <Building2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
-          <div className="space-y-2 flex-1">
-            <div className="space-y-0.5">
-              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                Business account
-              </p>
-              <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                You'll be the owner. Invite 1 teammate free — add more anytime.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="companyName" className={labelCls}>Company name <span aria-hidden="true" className="text-destructive">*</span></Label>
-              <Input
-                id="companyName"
-                placeholder="Acme Property Management"
-                value={companyName}
-                onChange={(e) => { setCompanyName(e.target.value); clearFieldError?.("companyName"); }}
-                required
-                aria-required="true"
-                aria-invalid={!!fieldErrors.companyName}
-                aria-describedby={fieldErrors.companyName ? "companyName-error" : undefined}
-                className={`${inputCls}${fieldErrors.companyName ? " border-destructive" : ""}`}
-              />
-              <FieldError id="companyName-error" message={fieldErrors.companyName} />
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div
-          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
-          style={{ background: "hsl(var(--olivewood) / 0.05)", border: "1px solid hsl(var(--olivewood) / 0.12)" }}
-        >
-          <UserCircle2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-          <div className="space-y-0.5">
-            <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-              Personal account
-            </p>
-            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              A clear photo and real name help neighbors trust and hire you.
-            </p>
-          </div>
-        </div>
-      )}
 
-      {/* Section 1: Your photo (top of page — most personal first) */}
-      <section className="space-y-2.5">
-        <div className="flex flex-col items-center gap-2.5">
+      {/* Section 2: Your name + personal details */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-display-eyebrow" style={{ fontSize: "0.7rem", letterSpacing: "0.1em", opacity: 0.85 }}>Your details</span>
+        </div>
+        {/* Avatar sits INLINE beside the name fields. Centred above the
+            form it was a 158px band — a 112px circle plus a two-line
+            caption — putting an OPTIONAL field first on the screen. */}
+        <div className="flex items-start gap-4">
+          <div className="shrink-0 flex flex-col items-center gap-1.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform">
             <div
-              className="relative w-28 h-28 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden"
+              className="relative w-24 h-24 rounded-full border-2 border-dashed border-border group-hover:border-primary transition-colors flex items-center justify-center overflow-hidden"
               style={{
                 background:
                   "radial-gradient(circle at 50% 35%, hsl(var(--parchment)) 0%, hsl(var(--secondary) / 0.55) 100%)",
@@ -248,7 +203,7 @@ export function SignupStep2(props: SignupStep2Props) {
               )}
             </div>
             <div
-              className="pointer-events-none absolute -bottom-1 -right-1 w-11 h-11 rounded-full flex items-center justify-center z-10"
+              className="pointer-events-none absolute -bottom-1 -right-1 w-9 h-9 rounded-full flex items-center justify-center z-10"
               style={{
                 background:
                   "linear-gradient(150deg, hsl(var(--bark) / 0.92) 0%, hsl(var(--bark)) 60%)",
@@ -259,7 +214,7 @@ export function SignupStep2(props: SignupStep2Props) {
                   "0 8px 18px -4px hsl(var(--bark) / 0.55)",
               }}
             >
-              <Camera className="w-5 h-5" strokeWidth={2.25} />
+              <Camera className="w-4 h-4" strokeWidth={2.25} />
             </div>
             <input
               type="file"
@@ -271,21 +226,11 @@ export function SignupStep2(props: SignupStep2Props) {
               onChange={(e) => { onAvatarChange(e); clearFieldError?.("avatar"); }}
             />
           </label>
-          <p className="text-ds-11 text-muted-foreground text-center max-w-[260px] leading-relaxed">
-            <span className="font-semibold text-[hsl(var(--ink-deep))]">Add a profile photo</span> <span className="text-[hsl(var(--olivewood)/0.8)]">(optional)</span> — a clear photo of your face helps neighbors trust who they're working with. You can add it later. JPG or PNG, up to 5MB.
-          </p>
           <FieldError id="avatar-error" message={fieldErrors.avatar} />
-        </div>
-      </section>
-
-      {/* Section 2: Your name + personal details */}
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="text-display-eyebrow" style={{ fontSize: "0.7rem", letterSpacing: "0.1em", opacity: 0.85 }}>Your details</span>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+          </div>
+          <div className="grid grid-cols-2 gap-3 flex-1 min-w-0">
           <div className="space-y-2">
-            <Label htmlFor="firstName" className={labelCls}>First name</Label>
+            <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
             <div className="relative">
               <Input id="firstName" placeholder="Jane" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required aria-required="true" autoComplete="given-name" autoCapitalize="words" aria-invalid={!!fieldErrors.firstName} aria-describedby={fieldErrors.firstName ? "firstName-error" : undefined} className={`${inputCls}${firstNameValid && !fieldErrors.firstName ? " pr-10" : ""}${fieldErrors.firstName ? " border-destructive" : ""}`} />
               {firstNameValid && !fieldErrors.firstName && (
@@ -295,7 +240,7 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="firstName-error" message={fieldErrors.firstName} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName" className={labelCls}>Last name</Label>
+            <Label htmlFor="lastName" className={labelCls}>Last name <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
             <div className="relative">
               <Input id="lastName" placeholder="Doe" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required aria-required="true" autoComplete="family-name" autoCapitalize="words" aria-invalid={!!fieldErrors.lastName} aria-describedby={fieldErrors.lastName ? "lastName-error" : undefined} className={`${inputCls}${lastNameValid && !fieldErrors.lastName ? " pr-10" : ""}${fieldErrors.lastName ? " border-destructive" : ""}`} />
               {lastNameValid && !fieldErrors.lastName && (
@@ -304,10 +249,37 @@ export function SignupStep2(props: SignupStep2Props) {
             </div>
             <FieldError id="lastName-error" message={fieldErrors.lastName} />
           </div>
+          </div>
+        </div>
+        {/* Date of birth sits above Phone: it is REQUIRED (red asterisk,
+            enforced in validateAboutYouStep), and a required field should
+            not come after optional ones. */}
+        <div className="space-y-2">
+          <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+          {/* Single native date field — on iOS this opens the system wheel
+              picker (one tap), and `max` (today − 18y) keeps the wheel near a
+              plausible birth year and blocks under-18 dates at the UI layer;
+              validateAboutYouStep still re-checks age as the backstop. */}
+          {/* DatePickerField (the app's shared tap-to-open calendar pill)
+              instead of a raw <input type="date"> — the native control renders
+              as a blank, oversized box on iOS with no placeholder. */}
+          <DatePickerField
+            id="dob"
+            value={dateOfBirth}
+            onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }}
+            min={minDob}
+            max={maxDob}
+            placeholder="Select your date of birth"
+            className={`rounded-ds-md border-[hsl(var(--bark)/0.28)] dark:border-white/15${fieldErrors.dateOfBirth ? " border-destructive" : ""}`}
+          />
+          {fieldErrors.dateOfBirth
+            ? <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
+            : <p id="dob-help" className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>You must be at least 18 years old.</p>
+          }
         </div>
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Label htmlFor="phone" className={labelCls}>Phone number <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.8)]">(optional)</span></Label>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Label htmlFor="phone" className={`${labelCls} !mb-0`}>Phone number</Label>
             <PhoneWhyTooltip />
           </div>
           <div className="relative">
@@ -342,30 +314,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <FieldError id="phone-error" message={fieldErrors.phone} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="dob" className={labelCls}>Date of birth <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.8)]">(optional)</span></Label>
-          {/* Single native date field — on iOS this opens the system wheel
-              picker (one tap), and `max` (today − 18y) keeps the wheel near a
-              plausible birth year and blocks under-18 dates at the UI layer;
-              validateAboutYouStep still re-checks age as the backstop. */}
-          {/* DatePickerField (the app's shared tap-to-open calendar pill)
-              instead of a raw <input type="date"> — the native control renders
-              as a blank, oversized box on iOS with no placeholder. */}
-          <DatePickerField
-            id="dob"
-            value={dateOfBirth}
-            onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }}
-            min={minDob}
-            max={maxDob}
-            placeholder="Select your date of birth"
-            className={`rounded-ds-md border-[hsl(var(--bark)/0.28)] dark:border-white/15${fieldErrors.dateOfBirth ? " border-destructive" : ""}`}
-          />
-          {fieldErrors.dateOfBirth
-            ? <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
-            : <p id="dob-help" className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>You must be at least 18 years old.</p>
-          }
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="location" className={labelCls}>City <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.8)]">(optional)</span></Label>
+          <Label htmlFor="location" className={labelCls}>City</Label>
           <div className="relative">
             <Input id="location" placeholder="e.g. Baton Rouge, LA" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`} />
             {locationValid && !fieldErrors.location && (
@@ -375,7 +324,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <FieldError id="location-error" message={fieldErrors.location} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="bio" className={labelCls}>About you <span className="font-normal text-ds-11 text-[hsl(var(--olivewood)/0.8)]">(optional)</span></Label>
+          <Label htmlFor="bio" className={labelCls}>About you</Label>
           <Textarea
             id="bio"
             placeholder="Tell us a bit about yourself — whether you're looking for work or need help around the house…"

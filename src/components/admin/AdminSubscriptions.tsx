@@ -124,10 +124,11 @@ const AdminSubscriptions = () => {
             className="pl-10"
           />
         </div>
-        <div className="flex gap-1">
+        <div role="group" aria-label="Filter by subscription status" className="flex gap-1">
           {(["all", "active", "expired"] as const).map(f => (
             <button
               key={f}
+              aria-pressed={filter === f}
               onClick={() => setFilter(f)}
               className={`px-3 py-2 text-ds-13 rounded-ds-sm transition-colors ${
                 filter === f

@@ -42,9 +42,9 @@ describe("CancellationDialog fee breakdown", () => {
     pinEvening();
     render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(6), helperFeePercent: 8 })} />);
     expect(screen.getByText("Platform fee (8%)")).toBeInTheDocument();
-    // 25% of $100 = $25 fee; 8% platform cut = $2.00; helper gets $23.00.
-    expect(screen.getByText("−$2.00")).toBeInTheDocument();
-    expect(screen.getByText("$23.00")).toBeInTheDocument();
+    // 25% of $100 = $25 fee; 8% platform cut = $2; helper gets $23.
+    expect(screen.getByText("−$2")).toBeInTheDocument();
+    expect(screen.getByText("$23")).toBeInTheDocument();
   });
 
   it("falls back to 10% when helper_fee_percent is absent", () => {

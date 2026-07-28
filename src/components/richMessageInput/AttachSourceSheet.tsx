@@ -37,7 +37,7 @@ export const AttachSourceSheet = ({
             onClick={onPickCamera}
             className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-ds-md min-h-[88px] transition-colors hover:bg-secondary/40"
             style={{
-              background: "hsla(0, 0%, 100%, 0.65)",
+              background: "var(--surface-premium)",
               border: "0.5px solid hsl(var(--olivewood) / 0.14)",
             }}
           >
@@ -59,7 +59,7 @@ export const AttachSourceSheet = ({
             onClick={onPickLibrary}
             className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-ds-md min-h-[88px] transition-colors hover:bg-secondary/40"
             style={{
-              background: "hsla(0, 0%, 100%, 0.65)",
+              background: "var(--surface-premium)",
               border: "0.5px solid hsl(var(--olivewood) / 0.14)",
             }}
           >
@@ -81,7 +81,7 @@ export const AttachSourceSheet = ({
             onClick={onPickFiles}
             className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-ds-md min-h-[88px] transition-colors hover:bg-secondary/40"
             style={{
-              background: "hsla(0, 0%, 100%, 0.65)",
+              background: "var(--surface-premium)",
               border: "0.5px solid hsl(var(--olivewood) / 0.14)",
             }}
           >

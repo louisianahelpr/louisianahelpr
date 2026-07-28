@@ -16,6 +16,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { ScheduleTab } from "@/components/profile/ScheduleTab";
 import { HelperAvailability } from "@/components/HelperAvailability";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { Switch } from "@/components/ui/switch";
 import { CalendarDays, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -104,13 +105,7 @@ export function ScheduleAvailabilityTab({
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        eyebrow={isCalendar ? "Calendar" : "Hours"}
         title={isCalendar ? "My schedule" : "Availability"}
-        meta={
-          isCalendar
-            ? "Your upcoming jobs and bookings"
-            : "Tell posters when you can work"
-        }
         onBack={onBack}
       />
 
@@ -147,18 +142,12 @@ export function ScheduleAvailabilityTab({
                   : "Signal you're ready to start a job today"}
               </p>
             </div>
-            <button
-              onClick={toggleAvailability}
+            <Switch
+              checked={isAvailable}
+              onCheckedChange={toggleAvailability}
               disabled={toggling}
-              className="relative w-12 h-6 rounded-full transition-colors duration-200"
-              style={{ background: isAvailable ? "hsl(var(--sage))" : "hsl(var(--olivewood) / 0.25)" }}
               aria-label={isAvailable ? "Turn off available now" : "Turn on available now"}
-            >
-              <span
-                className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200"
-                style={{ left: isAvailable ? "calc(100% - 1.375rem)" : "2px" }}
-              />
-            </button>
+            />
           </div>
 
           <div className="rounded-2xl liquid-glass p-5">
@@ -204,6 +193,13 @@ function SubViewToggle({
               style={{
                 background: active ? "hsl(var(--bark))" : "transparent",
                 color: active ? "hsl(var(--parchment))" : "hsl(var(--olivewood))",
+                // Canonical glossy selected-control treatment (matches the
+                // Subscription billing pills): drop shadow + inset parchment
+                // top-highlight so the active segment reads as elevated,
+                // not a flat swatch.
+                boxShadow: active
+                  ? "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)"
+                  : undefined,
               }}
             >
               <Icon className="w-3.5 h-3.5" />

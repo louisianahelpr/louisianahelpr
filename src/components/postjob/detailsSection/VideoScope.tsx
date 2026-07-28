@@ -29,7 +29,7 @@ export function VideoScope({
               type="button"
               onClick={onClearVideo}
               aria-label="Remove video"
-              className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
+              className="absolute top-1 right-1 w-9 h-9 rounded-full flex items-center justify-center"
               style={{ background: "rgba(0,0,0,0.5)" }}
             >
               <X className="w-3.5 h-3.5 text-white" />

@@ -240,7 +240,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
             onClick={preset.onClick}
             className="shrink-0 inline-flex items-center rounded-full px-3 h-7 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
             style={{
-              background: "hsla(0, 0%, 100%, 0.65)",
+              background: "var(--surface-premium)",
               border: "1px solid hsl(var(--olivewood) / 0.18)",
               color: "hsl(var(--olivewood))",
             }}

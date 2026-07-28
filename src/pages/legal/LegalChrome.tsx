@@ -33,10 +33,7 @@ export const TldrCard = ({ items }: { items: string[] }) => {
   >
     <div className="flex items-center gap-2">
       <ListChecks className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
-      <span
-        className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
-        style={{ color: "hsl(var(--burnt-sienna))" }}
-      >
+      <span className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
         The short version
       </span>
     </div>
@@ -55,10 +52,11 @@ export const TldrCard = ({ items }: { items: string[] }) => {
   );
 };
 
-// Footer card closing every policy tab: a support link paired with the tab's
-// revision date (relocated here from the old header chip), so each policy ends
-// with a single quiet "ask + when this changed" line instead of bare text.
-export const PolicyFooter = ({ updated }: { updated: string }) => (
+// Footer card closing every policy tab: just the support link. The revision
+// date used to sit on the right of this row, but the page header already shows
+// "Updated <month>" beside the title, so it stated the same fact twice on one
+// screen.
+export const PolicyFooter = () => (
   <div
     data-print-hide
     className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
@@ -69,15 +67,13 @@ export const PolicyFooter = ({ updated }: { updated: string }) => (
   >
     <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
       Questions?{" "}
+      {/* /support, not /profile?tab=support: the legal pages are public, so
+          this link is followed by logged-OUT visitors far more often than by
+          signed-in ones, and the Profile tab forces a sign-in they may not
+          have. /support renders the same form for both. */}
       <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
         Contact support
       </Link>
     </p>
-    <span
-      className="shrink-0 text-ds-11 font-sans tabular-nums"
-      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-    >
-      Updated {updated}
-    </span>
   </div>
 );

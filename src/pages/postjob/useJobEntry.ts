@@ -3,6 +3,7 @@ import { track } from "@/lib/analytics";
 import type { AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 import type { SampleJob } from "@/data/sampleJobs";
 import type { JobDraft } from "@/hooks/useDraftJob";
+import type { PricingMode } from "@/components/postjob/BudgetSection";
 import type { Step } from "./postJobFormTypes";
 import { parseLocationIntoFields } from "./postJobFormHelpers";
 
@@ -16,6 +17,7 @@ import { parseLocationIntoFields } from "./postJobFormHelpers";
  */
 export interface UseJobEntryParams {
   draft: JobDraft;
+  hasDraft: boolean;
   setStep: (s: Step) => void;
   setDraftConsumed: (v: boolean) => void;
   setTitle: (v: string) => void;
@@ -37,11 +39,24 @@ export interface UseJobEntryParams {
   setHelpersNeeded: (v: string) => void;
   setOfferToHelperId: (v: string | null) => void;
   setOfferToHelperName: (v: string) => void;
+  setIsFlexibleSchedule: (v: boolean) => void;
+  setIsUrgent: (v: boolean) => void;
+  setUrgentFee: (v: string) => void;
+  setCredentialTier: (v: number) => void;
+  setPricingMode: (v: PricingMode) => void;
+  setBidCeiling: (v: string) => void;
+  setBidDeadline: (v: string) => void;
+  setBidsSealed: (v: boolean) => void;
+  setIncludeMaterials: (v: boolean) => void;
+  setMaterialsNote: (v: string) => void;
+  setDepartment: (v: string) => void;
+  setRequiresW9: (v: boolean) => void;
 }
 
 export function useJobEntry(params: UseJobEntryParams) {
   const {
     draft,
+    hasDraft,
     setStep,
     setDraftConsumed,
     setTitle,
@@ -63,6 +78,18 @@ export function useJobEntry(params: UseJobEntryParams) {
     setHelpersNeeded,
     setOfferToHelperId,
     setOfferToHelperName,
+    setIsFlexibleSchedule,
+    setIsUrgent,
+    setUrgentFee,
+    setCredentialTier,
+    setPricingMode,
+    setBidCeiling,
+    setBidDeadline,
+    setBidsSealed,
+    setIncludeMaterials,
+    setMaterialsNote,
+    setDepartment,
+    setRequiresW9,
   } = params;
 
   // Apply AI-generated fields to the form. Pure assignment — caller
@@ -101,6 +128,21 @@ export function useJobEntry(params: UseJobEntryParams) {
     setSpecialRequirements(draft.specialRequirements);
     setIsRecurring(draft.isRecurring); setRecurrenceInterval(draft.recurrenceInterval);
     setRecurrenceEndDate(draft.recurrenceEndDate);
+    if (draft.isFlexibleSchedule !== undefined) setIsFlexibleSchedule(draft.isFlexibleSchedule);
+    if (draft.isUrgent !== undefined) setIsUrgent(draft.isUrgent);
+    if (draft.urgentFee !== undefined) setUrgentFee(draft.urgentFee);
+    if (draft.isGroupJob !== undefined) setIsGroupJob(draft.isGroupJob);
+    if (draft.helpersNeeded !== undefined) setHelpersNeeded(draft.helpersNeeded);
+    if (draft.credentialTier !== undefined) setCredentialTier(draft.credentialTier);
+    if (draft.pricingMode !== undefined) setPricingMode(draft.pricingMode as PricingMode);
+    if (draft.bidCeiling !== undefined) setBidCeiling(draft.bidCeiling);
+    if (draft.bidDeadline !== undefined) setBidDeadline(draft.bidDeadline);
+    if (draft.bidsSealed !== undefined) setBidsSealed(draft.bidsSealed);
+    if (draft.includeMaterials !== undefined) setIncludeMaterials(draft.includeMaterials);
+    if (draft.materialsNote !== undefined) setMaterialsNote(draft.materialsNote);
+    if (draft.department !== undefined) setDepartment(draft.department);
+    if (draft.requiresW9 !== undefined) setRequiresW9(draft.requiresW9);
+    if (draft.offerToHelperId !== undefined) setOfferToHelperId(draft.offerToHelperId);
 
     setDraftConsumed(true);
     toast.success("Draft restored!");
@@ -110,8 +152,27 @@ export function useJobEntry(params: UseJobEntryParams) {
   // The entry screen offers three ways into the form so the page no longer
   // dumps the full multi-step form on the user at once.
 
-  /** "Start fresh" — current behavior, an empty form. */
+  /**
+   * "Start fresh" — an empty form. When an unfinished draft already exists,
+   * the 2s-debounced autosave (useDraftJob) will silently overwrite it as
+   * soon as the user types into the fresh form, so we warn first via a
+   * dismissible toast with an explicit "Start fresh" action — dismissing
+   * or ignoring the toast leaves the draft untouched.
+   */
   const startFresh = () => {
+    if (hasDraft) {
+      toast("You have an unfinished draft", {
+        description: "Starting fresh will overwrite it as you type.",
+        action: {
+          label: "Start fresh",
+          onClick: () => {
+            track("post_job_entry_choice", { choice: "start_fresh" });
+            setStep("form");
+          },
+        },
+      });
+      return;
+    }
     track("post_job_entry_choice", { choice: "start_fresh" });
     setStep("form");
   };
@@ -124,10 +185,9 @@ export function useJobEntry(params: UseJobEntryParams) {
   };
 
   /**
-   * "Use a template" — enter the form; the SampleJobTemplates row at the
-   * top of the empty form is the template picker. When a specific template
-   * is passed (from the entry screen's template cards) it's applied here so
-   * the user lands on a pre-filled form.
+   * "Use a template" — enter the form. When a specific template is passed
+   * (from the entry screen's template cards) it's applied here so the user
+   * lands on a pre-filled form.
    */
   const useTemplate = (apply?: () => void) => {
     track("post_job_entry_choice", { choice: "use_template" });
@@ -136,9 +196,8 @@ export function useJobEntry(params: UseJobEntryParams) {
   };
 
   /**
-   * Pre-fills the form from a sample-job template. Mirrors the field
-   * mapping in SampleJobTemplates so a template picked on the entry screen
-   * lands the user on an identical pre-filled form.
+   * Pre-fills the form from a sample-job template, so a template picked on
+   * the entry screen lands the user on an identical pre-filled form.
    */
   const applyTemplateFields = (sample: SampleJob) => {
     setCategory(sample.category);

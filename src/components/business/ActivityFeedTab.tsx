@@ -141,7 +141,7 @@ export function ActivityFeedTab({ businessId }: ActivityFeedTabProps) {
                   {formatDistanceToNow(new Date(e.event_at), { addSuffix: true })}
                 </span>
                 {e.department && (
-                  <Badge variant="secondary" className="text-ds-10">
+                  <Badge variant="sienna" className="text-ds-10">
                     {e.department}
                   </Badge>
                 )}

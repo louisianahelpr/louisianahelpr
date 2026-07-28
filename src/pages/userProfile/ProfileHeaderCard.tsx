@@ -119,7 +119,7 @@ export const ProfileHeaderCard = ({
             src={profile.avatar_url}
             alt={`${displayName} profile picture`}
             onError={() => setAvatarFailed(true)}
-            className="w-24 h-24 rounded-ds-pill squircle mx-auto object-cover"
+            className="w-24 h-24 rounded-[26px] squircle mx-auto object-cover"
             style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
           />
         ) : (
@@ -129,7 +129,12 @@ export const ProfileHeaderCard = ({
               // deterministic warm-palette gradient hashed off the
               // helper's user id so each profile has a recognizable
               // signature when no avatar has been uploaded.
-              "w-24 h-24 rounded-ds-pill squircle bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm flex items-center justify-center mx-auto text-ds-24 font-display italic font-bold",
+              // `rounded-[26px] squircle` is the app-wide avatar radius
+              // (IdentityHeader, PhotoNameSection). Was `rounded-ds-pill`,
+              // the 28px *pill* token — a pill radius stacked on squircle
+              // corner-smoothing, the same conflict as the old
+              // `rounded-full` + `squircle` pairing.
+              "w-24 h-24 rounded-[26px] squircle bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm flex items-center justify-center mx-auto text-ds-24 font-display italic font-bold",
               avatarGradientFor(userId),
             )}
             style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}

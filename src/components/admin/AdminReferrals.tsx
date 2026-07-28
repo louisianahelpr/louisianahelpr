@@ -275,7 +275,6 @@ const AdminReferrals = () => {
               <EmptyState
                 variant="inline"
                 icon={DollarSign}
-                eyebrow="No credits yet"
                 title="No credits awarded yet."
                 body="Referral bonuses post here as soon as a referred user finishes their first job."
               />
@@ -309,7 +308,6 @@ const AdminReferrals = () => {
             <EmptyState
               variant="inline"
               icon={Gift}
-              eyebrow={search ? "No matches" : "No codes yet"}
               title={search ? "Nothing matches that search." : "No referral codes yet."}
               body={
                 search
@@ -340,7 +338,7 @@ const AdminReferrals = () => {
                 {credits.some(c => c.referred_user_id === r.referred_id || c.referred_user_id === r.referrer_id) ? (
                   <Badge variant="default" className="text-ds-10">Bonus earned</Badge>
                 ) : (
-                  <Badge variant="secondary" className="text-ds-10">Awaiting first job</Badge>
+                  <Badge variant="sienna" className="text-ds-10">Awaiting first job</Badge>
                 )}
               </div>
             </div>
@@ -349,7 +347,6 @@ const AdminReferrals = () => {
             <EmptyState
               variant="inline"
               icon={Users}
-              eyebrow={search ? "No matches" : "No referrals yet"}
               title={search ? "Nothing matches that search." : "No referrals yet."}
               body={
                 search
@@ -384,7 +381,6 @@ const AdminReferrals = () => {
             <EmptyState
               variant="inline"
               icon={Banknote}
-              eyebrow={search ? "No matches" : "No credits yet"}
               title={search ? "Nothing matches that search." : "No credits issued yet."}
               body={
                 search

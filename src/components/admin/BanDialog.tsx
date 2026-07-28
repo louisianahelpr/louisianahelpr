@@ -244,7 +244,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         <div className="space-y-5">
           <div className="space-y-2">
             <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Action type</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div role="radiogroup" aria-label="Action type" className="grid grid-cols-3 gap-2">
               {(
                 [
                   { key: "warning", label: "Warning", icon: <AlertTriangle className="w-4 h-4" />, color: "border-accent/40 bg-accent/10" },
@@ -254,6 +254,8 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
               ).map((opt) => (
                 <button
                   key={opt.key}
+                  role="radio"
+                  aria-checked={banType === opt.key}
                   onClick={() => {
                     setBanType(opt.key);
                     // Reset duration when switching away from a ban to

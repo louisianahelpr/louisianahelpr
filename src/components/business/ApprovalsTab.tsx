@@ -216,7 +216,7 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
                 {j.customer_name || "A teammate"} · {formatDistanceToNow(new Date(j.created_at), { addSuffix: true })}
               </p>
               {j.department && (
-                <Badge variant="secondary" className="text-ds-10 mt-1.5">
+                <Badge variant="sienna" className="text-ds-10 mt-1.5">
                   {j.department}
                 </Badge>
               )}

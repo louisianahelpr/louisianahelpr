@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { formatJobDate } from "@/lib/format";
+import { formatTimestamp } from "@/lib/format";
 import { report } from "@/lib/errorLogger";
 
 export default function StrikeBanner() {
@@ -51,7 +51,7 @@ export default function StrikeBanner() {
           <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 text-ds-13">
             <ShieldAlert className="w-4 h-4 shrink-0" />
             <span className="flex-1">
-              <strong>Account suspended</strong> until {formatJobDate(until)}. You cannot post or accept jobs.
+              <strong>Account suspended</strong> until {formatTimestamp(until)}. You cannot post or accept jobs.
             </span>
             <Link to="/profile?tab=warnings" className="underline text-ds-11 whitespace-nowrap">Details</Link>
           </div>

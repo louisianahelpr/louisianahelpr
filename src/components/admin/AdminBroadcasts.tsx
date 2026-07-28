@@ -288,7 +288,6 @@ const AdminBroadcasts = () => {
         <EmptyState
           variant="inline"
           icon={Megaphone}
-          eyebrow="No broadcasts yet"
           title="Nothing scheduled."
           body="Tap New Broadcast above to push an in-app banner to every signed-in user."
         />

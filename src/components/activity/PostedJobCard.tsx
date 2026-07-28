@@ -11,10 +11,6 @@ import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
-import {
-  EscrowProgressBar,
-  deriveEscrowStepFromJob,
-} from "@/components/payment/EscrowProgressBar";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
@@ -75,10 +71,6 @@ function PostedJobCardInner({
   const meta = completedJobMeta[job.id];
   const isFullyCompleted = job.status === "completed" && meta?.tipped && meta?.reviewed;
   const isExpanded = expandedJobId === job.id;
-  // Escrow progress lives above the action area — context, not a CTA.
-  // Returns null for pre-paid / cancelled jobs so the bar hides cleanly
-  // when escrow doesn't apply.
-  const escrowStep = deriveEscrowStepFromJob(job);
   return (
           <JobCardShell
             expandable={isFullyCompleted}
@@ -90,16 +82,6 @@ function PostedJobCardInner({
             className="group relative scroll-mt-3"
           >
             <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} />
-
-            {/* Escrow progress — high-context status of the customer's
-                payment for this job. Sits above the action area (below
-                the title bar) so the poster reads it before any CTAs.
-                Hides itself when escrow does not apply. */}
-            {escrowStep && (
-              <div className="px-4 pt-3" onClick={(e) => e.stopPropagation()}>
-                <EscrowProgressBar currentStep={escrowStep} compact />
-              </div>
-            )}
 
             {/* Summary */}
             <div className="px-4 py-3 space-y-2.5">

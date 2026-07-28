@@ -208,7 +208,6 @@ const AdminCredentialQueue = () => {
         <AlertDialogContent>
           <AlertDialogHero
             title="Reject credential"
-            subtitle="The user will be notified and can re-upload. Add a short reason so they know what to fix."
           />
           <Textarea
             aria-label="Credential rejection reason"

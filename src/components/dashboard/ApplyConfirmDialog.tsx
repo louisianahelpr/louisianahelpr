@@ -178,8 +178,22 @@ export function ApplyConfirmDialog({
           <AlertDialogHero
             eyebrow={isBidMode ? "You're bidding" : isInstantBook ? "You're booking" : "You're applying"}
             title={confirmApplyJob ? `"${confirmApplyJob.title}"` : isBidMode ? "Submit a bid" : isInstantBook ? "Book this job" : "Apply for this job"}
-            subtitle={confirmApplyJob ? undefined : "Are you sure you want to apply for this job?"}
           />
+          {/* Restored into the body after the app-wide "one main title" sweep
+              stripped `subtitle` from every hero. Everywhere else that copy was
+              decorative; HERE it was the only sentence telling you what you are
+              confirming, and it renders exactly when there is no job context to
+              show a breakdown for — so the dialog became a title and two
+              buttons with nothing explaining the action. A regression test
+              already covered it, which is how it was caught. */}
+          {!confirmApplyJob && (
+            <p
+              className="pt-2 font-sans text-ds-13 leading-relaxed"
+              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              Are you sure you want to apply for this job?
+            </p>
+          )}
           {confirmApplyJob && (
             <div className="pt-3">
               <ApplyEarningsBreakdown confirmApplyJob={confirmApplyJob} platformFee={platformFee} />

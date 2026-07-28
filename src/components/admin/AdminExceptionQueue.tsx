@@ -212,7 +212,6 @@ const ExceptionQueueInner = () => {
         <AlertDialogContent>
           <AlertDialogHero
             title="Resolve exception"
-            subtitle="Optionally add a resolution note. The exception will be marked resolved and removed from the queue."
           />
           <Textarea
             aria-label="Resolution note"

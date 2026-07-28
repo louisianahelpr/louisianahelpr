@@ -64,3 +64,9 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # handler enforces auth itself.
   [functions.send-notification-email]
     verify_jwt = false
+  # Public contact form (/support). Deliberately unauthenticated — a logged-out
+  # visitor is exactly who it exists for — so verify_jwt MUST be false (the
+  # client sends the publishable key, which is not a JWT). Abuse control is the
+  # per-IP rate limit inside the handler, not the gateway.
+  [functions.contact-support]
+    verify_jwt = false

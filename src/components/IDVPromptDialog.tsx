@@ -109,7 +109,6 @@ export function IDVPromptDialog({
             </>
           }
           title={headline}
-          subtitle={description}
         />
 
         {/* Admin-review state — show Stripe's reason for transparency, but

@@ -4,11 +4,11 @@ import {
 } from "lucide-react";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
-import { formatDistanceToNow, differenceInHours } from "date-fns";
+import { differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
-import { formatJobDate } from "@/lib/dateUtils";
+import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { formatPrice } from "@/lib/format";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { getCity } from "@/lib/locationUtils";
@@ -176,13 +176,37 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       ? `${drivingMinutes} min`
       : `${Math.floor(drivingMinutes / 60)}h ${drivingMinutes % 60}m`;
 
-  // Expiry info
-  const expiryText = job.expires_at
-    ? new Date(job.expires_at) <= new Date()
+  // How long the work takes — jobs.estimated_hours, collected on every post
+  // and returned by BOTH feed sources (the `open_jobs_browse` view the
+  // signed-in dashboard reads and the `get_ranked_open_jobs` RPC the public
+  // /jobs page reads). It varies per job (2h vs 8h changes whether a helpr
+  // even considers it), which is exactly what the expiry countdown it
+  // replaces did NOT do.
+  //
+  // The date/time group deliberately shows WHEN THE JOB IS — `date_needed` and
+  // `start_time`. An estimated-duration chip ("~6h") briefly lived in this slot
+  // while every seeded job had a NULL `start_time` and the row looked empty;
+  // that was solving the symptom. Duration still has a home on the job detail
+  // (JobStatTiles' "Estimated" tile) — the card answers "when", not "how long".
+  // Expiry — an URGENCY signal, not a permanent meta line.
+  //
+  // Every job is created with the same 14-day window, so an unconditional
+  // countdown printed the identical string ("14 days left") on literally
+  // every card in the feed: zero decision value, and it consumed the one
+  // no-wrap meta slot a browsing helpr actually reads. It only becomes
+  // information once the window is genuinely closing — so it now renders
+  // inside a 48h horizon (or once expired) and stays silent before that.
+  // Under 24h it also goes destructive-red, the same tier as before.
+  const expiresAt = job.expires_at ? new Date(job.expires_at) : null;
+  const hoursToExpiry = expiresAt ? differenceInHours(expiresAt, new Date()) : null;
+  const isExpired = !!expiresAt && expiresAt <= new Date();
+  const showExpiry = !!expiresAt && (isExpired || (hoursToExpiry !== null && hoursToExpiry < 48));
+  const expiryText = !showExpiry || !expiresAt
+    ? null
+    : isExpired
       ? "Expired"
-      : formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }) + " left"
-    : null;
-  const isExpiringSoon = job.expires_at && differenceInHours(new Date(job.expires_at), new Date()) < 24;
+      : formatTimeLeft(expiresAt);
+  const isExpiringSoon = showExpiry && (isExpired || (hoursToExpiry !== null && hoursToExpiry < 24));
 
   // Stagger entry via CSS animation-delay — avoids pulling framer-motion into
   // the dashboard's hot list path (saves ~42KB on iOS cold start).
@@ -260,14 +284,21 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   return (
     <div
       style={{ animationDelay: entryDelay, animationFillMode: "both" }}
-      className="animate-fade-in group relative rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      // h-full: the card is a grid item in both feeds (guest /jobs and the
+      // authed browse grid). CSS Grid stretches the ITEM to the tallest in its
+      // row, but the card sized to its own content instead, so a two-line title
+      // left its neighbour visibly shorter and rows looked ragged. h-full makes
+      // the card actually fill the cell it was already given. In a non-stretch
+      // parent (auto height) this resolves to auto, so single-card contexts are
+      // unaffected.
+      className="motion-safe:animate-fade-in group relative h-full rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       {...interactiveProps}
     >
       {/* Clipped inner surface — rounds the rail, body, and guest CTA to
           the card shape. The category tab + rail both live inside this clip
           so they share the card's rounded top-left corner and read as one
           continuous shape. */}
-      <div className="relative rounded-2xl overflow-hidden">
+      <div className="relative h-full rounded-2xl overflow-hidden">
         {/* Category rail — vertical color stripe down the left edge. The
             tab below sits flush on top of it (same left edge) so the tab's
             flat left side flows straight into the rail with no gap. */}
@@ -297,7 +328,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               <span className="inline-flex items-center gap-1 ml-0.5" aria-label="New listing">
                 <span
                   aria-hidden
-                  className="w-1.5 h-1.5 rounded-full animate-pulse"
+                  className="w-1.5 h-1.5 rounded-full motion-safe:animate-pulse"
                   style={{
                     background: "hsl(var(--burnt-sienna))",
                     boxShadow: "0 0 0 2px hsl(var(--burnt-sienna) / 0.22), 0 0 6px hsl(var(--burnt-sienna) / 0.55)",
@@ -345,7 +376,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 className={`boosted-pulse ${corner}`}
                 aria-label="Boosted"
                 style={{
-                  color: "color-mix(in srgb, hsl(var(--gold-warm)) 60%, #000 40%)",
+                  color: "color-mix(in srgb, hsl(var(--gold-warm)) 60%, hsl(var(--ink-deep)) 40%)",
                   background: "hsl(var(--gold-warm) / 0.16)",
                   borderColor: "hsl(var(--gold-warm) / 0.5)",
                   letterSpacing: "0.05em",
@@ -391,11 +422,19 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         <div className="w-full px-3.5 pt-6 pb-2.5">
         {/* Title + price share the top row — price chip is vertically
             centered against the title so on a two-line title it sits in the
-            middle, not pinned to the first line. The location/date/time meta
-            spans the full card width below. */}
+            middle. The location/date/time meta spans the full card width
+            below. Titles are one line — see line-clamp-1 note. */}
         <div className="flex items-center justify-between gap-3">
           <h3
-            className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
+            // line-clamp-1, not a character cap: a fixed character count can't
+            // know the column width, so the same limit that fits one line in the
+            // wide single-column layout still wraps in the two-up grid, and an
+            // em-heavy title ("Assemble IKEA PAX wardrobe + dresser") wraps well
+            // before a digit-heavy one of equal length. Clamping to one LINE is
+            // the actual requirement, and it keeps every card the same height —
+            // reinforcing the equal-row-height fix rather than fighting it.
+            // `min-w-0` is what lets it shrink inside the flex row at all.
+            className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight line-clamp-1 min-w-0"
             style={{
               color: "hsl(var(--ink-deep))",
               letterSpacing: "-0.02em",
@@ -417,10 +456,20 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
 
         {/* Meta row — category lives in the badge above, so this leads
             with location. */}
-        <div className="mt-2 flex items-center gap-x-2 flex-nowrap overflow-hidden text-[10.5px] text-muted-foreground leading-tight">
+        <div className="mt-2 flex flex-col gap-1 text-[10.5px] text-muted-foreground leading-tight">
+          {/* Row 1 — where + when. The expiry countdown deliberately does NOT
+              live here: this row is flex-nowrap, so every extra chip steals
+              width from the city, which has min-w-0 and collapses first. With
+              the countdown competing, cities rendered as "Hou…", "Gonz…",
+              "Brouss…" on a 402pt phone while cards without a countdown showed
+              "Shreveport" and "New Orleans" in full — i.e. the single most
+              important local-marketplace signal was the first thing dropped.
+              Urgency now gets its own row below, which is also what the
+              My Posts / My Jobs cards already do. */}
+          <div className="flex items-center gap-x-2 flex-nowrap overflow-hidden">
             <span className="flex items-center gap-1 min-w-0">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
-              <span className="truncate max-w-[110px] font-sans">{cityState}</span>
+              <span className="truncate max-w-[150px] font-sans">{cityState}</span>
             </span>
             {distanceLabel && (
               <span
@@ -442,43 +491,39 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               </span>
             )}
             <span className="opacity-30">·</span>
-            {/* Date + time live in ONE no-wrap group so the time can never
-                drop to its own line on its own — the pair moves together.
-                "Due" is dropped — the date is self-evidently the day the work
-                must be done. The time chip only renders when a start_time is set. */}
-            {!job.date_needed && !job.start_time ? (
-              <span className="flex items-center gap-1">
-                <Calendar className="w-2.5 h-2.5 shrink-0" />
-                <span className="font-sans">Flexible</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-x-2">
-                {job.date_needed && (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-2.5 h-2.5 shrink-0" />
-                    <span className="font-sans whitespace-nowrap">
-                      {formatJobDate(job.date_needed)}
-                    </span>
-                  </span>
-                )}
-                {job.date_needed && job.start_time && <span className="opacity-30">·</span>}
-                {job.start_time && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-2.5 h-2.5 shrink-0" />
-                    <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
-                  </span>
-                )}
-              </span>
-            )}
-            {expiryText && (
-              <>
-                <span className="opacity-30">·</span>
-                <span className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
-                  <Timer className="w-2.5 h-2.5 shrink-0" />
-                  <span className="font-sans">{expiryText}</span>
+            {/* Date + time + duration live in ONE no-wrap group so the "when"
+                of a job can never be split across lines — the trio moves
+                together. "Due" is dropped — the date is self-evidently the day
+                the work must be done. The start-time chip only renders when a
+                start_time is set (most posts leave it blank); the duration
+                chip fills that slot from estimated_hours, which every post
+                collects, so the row always answers "how much of my day?". */}
+            <span className="inline-flex items-center gap-x-2">
+              {!job.date_needed && !job.start_time ? (
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-2.5 h-2.5 shrink-0" />
+                  <span className="font-sans">Flexible</span>
                 </span>
-              </>
-            )}
+              ) : (
+                <>
+                  {job.date_needed && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-2.5 h-2.5 shrink-0" />
+                      <span className="font-sans whitespace-nowrap">
+                        {formatJobDate(job.date_needed)}
+                      </span>
+                    </span>
+                  )}
+                  {job.date_needed && job.start_time && <span className="opacity-30">·</span>}
+                  {job.start_time && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5 shrink-0" />
+                      <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
+                    </span>
+                  )}
+                </>
+              )}
+            </span>
             {ratingDisplay && (
               <>
                 <span className="opacity-30">·</span>
@@ -537,7 +582,21 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               </>
             )}
           </div>
+
+          {/* Row 2 — urgency, on its own line so it competes with nothing.
+              whitespace-nowrap keeps "1 day left" from breaking into
+              "1 day" / "left", which is what made card heights ragged when
+              this chip was still fighting for room on row 1. */}
+          {expiryText && (
+            <div
+              className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
+            >
+              <Timer className="w-2.5 h-2.5 shrink-0" />
+              <span className="font-sans whitespace-nowrap">{expiryText}</span>
+            </div>
+          )}
         </div>
+      </div>
 
       {/* Save lives in the job-detail view (open the card to save), so the
           feed card stays clean — no floating bookmark colliding with the

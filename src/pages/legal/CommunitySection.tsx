@@ -4,7 +4,6 @@ import {
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
-import { LAST_UPDATED } from "./legalSections";
 
 /* ─────────────────────  COMMUNITY RULES  ───────────────────── */
 export const CommunityContent = () => (
@@ -314,7 +313,7 @@ export const CommunityContent = () => (
     </PolicySection>
 
     <HideOnSearch>
-      <PolicyFooter updated={LAST_UPDATED.community} />
+      <PolicyFooter />
     </HideOnSearch>
   </div>
 );

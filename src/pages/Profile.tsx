@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -352,7 +352,7 @@ const ProfilePage = () => {
         if (activeErr) throw activeErr;
         if (activeJobs && activeJobs.length > 0) {
           toast.error(
-            "You have an active job or funds in escrow. Finish or cancel your open jobs and let any payments settle before deleting your account.",
+            "You have an active task or a payment in progress. Wrap up your open tasks and let any payments settle first.",
           );
           setDeletingAccount(false);
           return;
@@ -401,33 +401,26 @@ const ProfilePage = () => {
     .join("")
     .toUpperCase()
     .slice(0, 2);
-  // Mirror the authoritative payout math in the release-payout edge
-  // function: a helper nets budget + net urgent_fee − platform_fee. The
-  // urgent bonus nets its own bundled Stripe processing cost so what's shown
-  // equals what the edge transfers. The 10% sales tax is a customer-side
-  // charge on the budget and is never deducted from the helper, so it must
-  // not appear here.
-  // For a real completed payout the edge function has stamped the exact
-  // platform_fee_amount, so we use it verbatim. Legacy/seed rows that never
-  // ran through payout have no stamped fee — falling those back to $0 would
-  // show gross budget as "earned" (the Cowork live-spider bug: a $75 job read
-  // $75 here but $66 on analytics/work-record). Mirror the other earnings
-  // surfaces by deriving the missing fee from the helper's tier.
+  // Take-home math (budget − per-job platform fee + net urgent bonus, divided
+  // across a group job's roster, mirroring the release-payout edge function)
+  // lives in `helperEarnings.ts` so this page, /wrapped, /work-record and the
+  // Earnings tab can never drift apart again. The tier rate is the LAST-RESORT
+  // fee for legacy rows that recorded neither a stamped `platform_fee_amount`
+  // nor a frozen `helper_fee_percent`.
   const helperFeeFallbackPct = tierFeePercent(
     profile?.subscription_tier ?? null,
     profile?.subscription_expires_at ?? null,
   );
-  const totalEarnings = earningsJobs.filter((j) => j.status === "completed").reduce((sum, j) => {
-    // Nullish, not `||`: a genuinely-stamped $0 fee (a comped/promo job) must
-    // be trusted verbatim, not mistaken for an unstamped legacy row.
-    const fee = j.platform_fee_amount ?? (j.budget * (j.helper_fee_percent ?? helperFeeFallbackPct)) / 100;
-    return sum + (j.budget - fee + netUrgentFeeDollars(j.urgent_fee));
-  }, 0);
+  const totalEarnings = sumHelperTakeHomeDollars(
+    earningsJobs.filter((j) => j.status === "completed"),
+    helperFeeFallbackPct,
+  );
 
-  // Last-6-weeks take-home series for the header sparkline teaser. Returns
-  // null when there isn't enough signal to draw a meaningful line, in
-  // which case ProfileLanding hides the teaser entirely.
-  const earningsSparkline = buildEarningsSparklineSeries(earningsJobs);
+  // Last-6-weeks take-home series for the header sparkline teaser. Shares the
+  // same per-job resolution as `totalEarnings` above (so the line and the
+  // number agree). Returns null when there isn't enough signal to draw a
+  // meaningful line, in which case ProfileLanding hides the teaser entirely.
+  const earningsSparkline = buildEarningsSparklineSeries(earningsJobs, helperFeeFallbackPct);
 
   return (
     <>

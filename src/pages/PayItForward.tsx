@@ -32,21 +32,25 @@ import PageHeader from "@/components/PageHeader";
 import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ErrorState } from "@/components/ui/ErrorState";
 import type { PifCredit } from "./payItForward/types";
-import { AMOUNT_PRESETS, CATEGORIES, MAX_NOTE_LENGTH } from "./payItForward/constants";
+import { AMOUNT_PRESETS, MAX_NOTE_LENGTH } from "./payItForward/constants";
 import { CreditCard } from "./payItForward/CreditCard";
 import { EmptyState } from "./payItForward/EmptyState";
 
 // Client-side shape check only — the edge function is the authority (it also
-// enforces the $10–$500 bounds and the self-gift block server-side).
+// enforces the bounds and the self-gift block server-side). We mirror the
+// bounds here so an out-of-range amount is caught in the form rather than
+// after a round trip to Stripe Checkout.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_GIFT = 10; // matches MIN_GIFT_CENTS in create-pif-donation
+const MIN_GIFT = 10; // matches MIN_GIFT_CENTS (1000) in create-pif-donation
+const MAX_GIFT = 500; // matches MAX_GIFT_CENTS (50000) in create-pif-donation
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function PayItForward() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  usePageTitle("Pay It Forward — Helpr");
+  usePageTitle("Gift Card — Helpr");
 
   const { user, isLoading: authLoading } = useCurrentUser();
   const myEmail = user?.email?.toLowerCase() ?? "";
@@ -62,7 +66,6 @@ export default function PayItForward() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Any");
   const [note, setNote] = useState("");
 
   const effectiveAmount = selectedAmount ?? (customAmount ? parseFloat(customAmount) : null);
@@ -74,8 +77,8 @@ export default function PayItForward() {
   useEffect(() => {
     const gift = searchParams.get("gift");
     if (gift === "success") {
-      toast.success("Gift on its way!", {
-        description: "We've emailed your recipient a link to claim their credit.",
+      toast.success("Gift card on its way!", {
+        description: "We've emailed your recipient a link to claim their gift card.",
         icon: "💚",
       });
     } else if (gift === "cancelled") {
@@ -118,9 +121,9 @@ export default function PayItForward() {
         if (!data?.ok) throw new Error("Couldn't claim this gift. Please try again.");
 
         hapticSuccess();
-        toast.success(data.already_claimed ? "This gift is already yours" : "Gift claimed!", {
+        toast.success(data.already_claimed ? "This gift card is already yours" : "Gift card claimed!", {
           description: data.already_claimed
-            ? "Find it under “Gifts sent to you” below."
+            ? "Find it under “Gift cards sent to you” below."
             : "It's ready to put toward your next job.",
           icon: "💚",
         });
@@ -128,7 +131,7 @@ export default function PayItForward() {
         await queryClient.invalidateQueries({ queryKey: ["pif-received"] });
       } catch (e) {
         report(e, { tags: { source: "PayItForward.claim" } });
-        errorToast("Couldn't claim gift", {
+        errorToast("Couldn't claim gift card", {
           description: e instanceof Error ? e.message : "Please try again.",
         });
       } finally {
@@ -141,7 +144,17 @@ export default function PayItForward() {
   }, [searchParams, setSearchParams, authLoading, user?.id, queryClient]);
 
   // ── Queries ───────────────────────────────────────────────────────────────
-  const { data: myDonated = [], isLoading: loadingDonated } = useQuery({
+  // isError is load-bearing on both lists: these are real, paid gift cards.
+  // A failed fetch collapses to [] and would otherwise render the "nothing
+  // here yet" empty state — telling someone their unredeemed money doesn't
+  // exist. A failure must read as a failure, with a way back.
+  const {
+    data: myDonated = [],
+    isLoading: loadingDonated,
+    isError: donatedFailed,
+    isFetching: donatedFetching,
+    refetch: refetchDonated,
+  } = useQuery({
     queryKey: ["pif-donated", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -156,6 +169,7 @@ export default function PayItForward() {
         return rows;
       } catch (e: unknown) {
         if (e instanceof Error && e.message.includes("PGRST202")) return [];
+        report(e, { severity: "warning", tags: { source: "PayItForward.donated" } });
         throw e;
       }
     },
@@ -165,7 +179,13 @@ export default function PayItForward() {
   // Gifts sent TO me — matched by resolved recipient_id OR my named email, since
   // a gift I haven't claimed yet has recipient_id = null but is visible to my
   // email via RLS. Newest first.
-  const { data: myReceived = [], isLoading: loadingReceived } = useQuery({
+  const {
+    data: myReceived = [],
+    isLoading: loadingReceived,
+    isError: receivedFailed,
+    isFetching: receivedFetching,
+    refetch: refetchReceived,
+  } = useQuery({
     queryKey: ["pif-received", user?.id, myEmail],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -213,6 +233,7 @@ export default function PayItForward() {
         return rows;
       } catch (e: unknown) {
         if (e instanceof Error && e.message.includes("PGRST202")) return [];
+        report(e, { severity: "warning", tags: { source: "PayItForward.received" } });
         throw e;
       }
     },
@@ -222,30 +243,30 @@ export default function PayItForward() {
   // ── Donate mutation — launches Stripe Checkout, never writes the row ───────
   const donateMutation = useMutation({
     mutationFn: async () => {
-      if (!user?.id) throw new Error("Please sign in to send a gift.");
+      if (!user?.id) throw new Error("Please sign in to send a gift card.");
       const amt = effectiveAmount;
-      if (!amt || isNaN(amt) || amt < MIN_GIFT) throw new Error(`The smallest gift is $${MIN_GIFT}.`);
+      if (!amt || isNaN(amt) || amt < MIN_GIFT) throw new Error(`The smallest gift card is $${MIN_GIFT}.`);
+      if (amt > MAX_GIFT) throw new Error(`The largest single gift card is $${MAX_GIFT}.`);
       if (!emailValid) throw new Error("Enter a valid email for the person you're gifting.");
-      if (isSelfGift) throw new Error("You can't send a gift to yourself.");
+      if (isSelfGift) throw new Error("You can't send a gift card to yourself.");
 
       const { data, error } = await supabase.functions.invoke("create-pif-donation", {
         body: {
           amount: amt,
           recipient_email: trimmedRecipient,
-          category: selectedCategory,
           message: note.trim(),
         },
       });
       if (error) {
-        throw new Error(await functionErrorMessage(error, "Couldn't start your gift. Please try again."));
+        throw new Error(await functionErrorMessage(error, "Couldn't start your gift card. Please try again."));
       }
       if (data?.error) throw new Error(data.error);
-      if (!data?.url) throw new Error("Couldn't start your gift. Please try again.");
+      if (!data?.url) throw new Error("Couldn't start your gift card. Please try again.");
       window.location.href = data.url;
     },
     onError: (e) => {
       report(e, { tags: { source: "PayItForward.donate" } });
-      errorToast("Couldn't send gift", {
+      errorToast("Couldn't send gift card", {
         description: e instanceof Error ? e.message : "Please try again.",
       });
     },
@@ -266,19 +287,27 @@ export default function PayItForward() {
     navigate(`/post-job?budget=${budget}&pif_credit=${creditId}`);
   };
 
+  const amountTooLarge = effectiveAmount != null && !isNaN(effectiveAmount) && effectiveAmount > MAX_GIFT;
+
   const canDonate =
-    !!effectiveAmount && effectiveAmount >= MIN_GIFT && !isNaN(effectiveAmount) && emailValid && !isSelfGift;
+    !!effectiveAmount &&
+    effectiveAmount >= MIN_GIFT &&
+    effectiveAmount <= MAX_GIFT &&
+    !isNaN(effectiveAmount) &&
+    emailValid &&
+    !isSelfGift;
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
-        eyebrow="Community giving"
-        title="Pay It Forward"
-        meta="Send a neighbor a Helpr credit"
+        eyebrow="Gift a Helpr"
+        title="Gift Card"
+        meta="Send someone you know a Helpr gift card"
         onBack={() => navigate(-1)}
         showBrand
         rightSlot={<NotificationPanel />}
-        width="2xl"
+        // Mirrors the body ladder below (max-w-2xl → lg:5xl → xl:7xl).
+        width="2xl-5xl-7xl"
       />
 
       <div className="max-w-2xl lg:max-w-5xl xl:max-w-7xl mx-auto px-5 lg:px-8 pt-4">
@@ -298,7 +327,7 @@ export default function PayItForward() {
               style={{ borderColor: "hsl(var(--pif-green))", borderTopColor: "transparent" }}
             />
             <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--pif-ink))" }}>
-              Claiming your gift…
+              Claiming your gift card…
             </p>
           </div>
         )}
@@ -330,7 +359,7 @@ export default function PayItForward() {
                 className="font-serif italic text-ds-13 leading-relaxed"
                 style={{ color: "hsl(var(--ink-deep) / 0.75)" }}
               >
-                Prepay a Helpr credit for someone specific. Enter their email, choose an amount, and
+                Send a Helpr gift card to someone you know. Enter their email, choose an amount, and
                 we'll send them a link to claim it — they can put it toward any job they need done.
               </p>
             </div>
@@ -346,13 +375,6 @@ export default function PayItForward() {
                 boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.6)",
               }}
             >
-              <p
-                className="font-serif italic uppercase"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Send a gift
-              </p>
-
               {/* Recipient email */}
               <div>
                 <p
@@ -422,51 +444,36 @@ export default function PayItForward() {
                     type="number"
                     aria-label="Custom gift amount in dollars"
                     min={MIN_GIFT}
+                    max={MAX_GIFT}
                     placeholder="Custom"
                     value={customAmount}
                     onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
                     className="flex-1 py-2 px-3 rounded-ds-sm text-ds-13 font-sans font-semibold text-center"
                     style={{
                       background: customAmount ? "hsl(var(--bark) / 0.10)" : "transparent",
-                      border: `1px solid hsl(var(--bark) / ${customAmount ? "0.40" : "0.18"})`,
+                      border: amountTooLarge
+                        ? "1px solid hsl(var(--burnt-sienna) / 0.55)"
+                        : `1px solid hsl(var(--bark) / ${customAmount ? "0.40" : "0.18"})`,
                       color: "hsl(var(--bark))",
                       outline: "none",
                       minWidth: 0,
                     }}
                   />
                 </div>
+                {amountTooLarge && (
+                  <p
+                    className="font-serif italic text-ds-11 mt-1.5"
+                    style={{ color: "hsl(var(--burnt-sienna))" }}
+                  >
+                    The largest single gift card is ${MAX_GIFT}.
+                  </p>
+                )}
                 <p
                   className="font-serif italic text-ds-11 mt-1.5"
                   style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                 >
-                  ${MIN_GIFT} minimum. A card-processing fee ({(STRIPE_PCT * 100).toFixed(1)}% + {STRIPE_FLAT_CENTS}¢) is added at checkout.
+                  ${MIN_GIFT}–${MAX_GIFT} per gift card. A card-processing fee ({(STRIPE_PCT * 100).toFixed(1)}% + {STRIPE_FLAT_CENTS}¢) is added at checkout.
                 </p>
-              </div>
-
-              {/* Category */}
-              <div>
-                <p
-                  className="font-serif italic text-ds-12 mb-2"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Category suggestion — optional
-                </p>
-                <div className="flex gap-1.5 flex-wrap">
-                  {CATEGORIES.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className="py-1 px-2.5 rounded-full text-ds-12 font-sans font-medium transition-colors"
-                      style={{
-                        background: selectedCategory === cat ? "hsl(var(--bark) / 0.14)" : "hsl(var(--bark) / 0.04)",
-                        border: `0.5px solid hsl(var(--bark) / ${selectedCategory === cat ? "0.38" : "0.14"})`,
-                        color: "hsl(var(--bark))",
-                      }}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* Personal note */}
@@ -502,7 +509,7 @@ export default function PayItForward() {
                 className="w-full rounded-ds-sm font-display italic font-semibold"
                 style={{
                   background: canDonate ? "hsl(var(--pif-green))" : "hsl(var(--bark) / 0.15)",
-                  color: canDonate ? "#fff" : "hsl(var(--bark) / 0.5)",
+                  color: canDonate ? "hsl(var(--parchment))" : "hsl(var(--bark) / 0.5)",
                   border: "none",
                 }}
               >
@@ -516,11 +523,8 @@ export default function PayItForward() {
           <section className="lg:col-span-7 xl:col-span-8 space-y-6 pb-8">
             {/* Gifts sent to you */}
             <div>
-              <p
-                className="font-serif italic uppercase mb-3"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Gifts sent to you
+              <p className="text-ds-13 font-sans font-semibold mb-3" style={{ color: "hsl(var(--ink-deep))" }}>
+                Gift cards sent to you
               </p>
               {loadingReceived ? (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
@@ -532,8 +536,18 @@ export default function PayItForward() {
                     />
                   ))}
                 </div>
+              ) : receivedFailed ? (
+                <div className="flex">
+                  <ErrorState
+                    variant="inline"
+                    title="Couldn't load your gift cards."
+                    body="Any gift card sent to you is still yours — we just couldn't reach it right now. Tap Try again."
+                    onRetry={() => void refetchReceived()}
+                    retryDisabled={receivedFetching}
+                  />
+                </div>
               ) : myReceived.length === 0 ? (
-                <EmptyState message="When someone sends you a Helpr credit, it'll show up here." />
+                <EmptyState message="When someone sends you a Helpr gift card, it'll show up here." />
               ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                   {myReceived.map((credit) => (
@@ -550,19 +564,26 @@ export default function PayItForward() {
 
             {/* Gifts you've sent */}
             <div>
-              <p
-                className="font-serif italic uppercase mb-3"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Gifts you've sent
+              <p className="text-ds-13 font-sans font-semibold mb-3" style={{ color: "hsl(var(--ink-deep))" }}>
+                Gift cards you've sent
               </p>
               {loadingDonated ? (
                 <div
                   className="rounded-ds-md h-16 animate-pulse"
                   style={{ background: "hsl(var(--olivewood) / 0.07)" }}
                 />
+              ) : donatedFailed ? (
+                <div className="flex">
+                  <ErrorState
+                    variant="inline"
+                    title="Couldn't load the gift cards you've sent."
+                    body="Nothing was lost — we just couldn't reach your gift history. Tap Try again."
+                    onRetry={() => void refetchDonated()}
+                    retryDisabled={donatedFetching}
+                  />
+                </div>
               ) : myDonated.length === 0 ? (
-                <EmptyState message="Gifts you send will appear here." />
+                <EmptyState message="Gift cards you send will appear here." />
               ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                   {myDonated.map((credit) => (

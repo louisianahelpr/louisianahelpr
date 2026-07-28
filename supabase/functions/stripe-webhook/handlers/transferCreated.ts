@@ -14,12 +14,25 @@ export async function handleTransferCreated(
   //    Most marketplace transfers settle as 'paid' immediately on
   //    creation, so flip directly to 'paid' here. transfer.failed /
   //    transfer.reversed below override if the path doesn't hold.
-  const { data: ledgerRow } = await supabase
+  const { data: ledgerRow, error: ledgerUpdateErr } = await supabase
     .from("payout_transfers")
     .update({ status: "paid", paid_at: new Date().toISOString() })
     .eq("stripe_transfer_id", transfer.id)
     .select("job_id, helper_id")
     .maybeSingle();
+
+  if (ledgerUpdateErr) {
+    // A failed update here leaves the row stuck at "pending" (or whatever the
+    // prior status was). In the normal path release-payout/process-scheduled-payouts
+    // already inserts the row as "paid", so this is usually a no-op confirmation.
+    // But if this webhook fires before that insert (a race), or the row was
+    // genuinely "pending", a silent failure permanently strands the ledger.
+    // Throw so the outer handler rolls back the idempotency row and returns 500,
+    // letting Stripe retry once the DB recovers.
+    throw new Error(
+      `Failed to update payout_transfers for transfer ${transfer.id}: ${ledgerUpdateErr.message}`,
+    );
+  }
 
   // 2. Find the helper and associated job.
   // Only flip payment_status to "released" for transfers that have a
@@ -39,8 +52,31 @@ export async function handleTransferCreated(
       // Flip the job to "released". For scheduled payouts this is a backup
       // confirmation (process-scheduled-payouts already flipped it); for
       // admin dispute releases it is the authoritative flip.
-      await supabase.from("jobs").update({ payment_status: "released" }).eq("id", transferJobId);
-      logStep("Job payment status set to released", { jobId: transferJobId });
+      const { data: updatedJob, error: jobUpdateErr } = await supabase
+        .from("jobs")
+        .update({ payment_status: "released" })
+        .eq("id", transferJobId)
+        .select("id")
+        .maybeSingle();
+      if (jobUpdateErr) {
+        // Log loudly but don't throw: the job flip is belt-and-suspenders here —
+        // all transfer-initiating code paths (release-payout, process-scheduled-payouts,
+        // admin_release_dispute) already flip the job before this webhook fires.
+        // A failed write here leaves the job in its prior state, but the
+        // initiating path already set it correctly, so no money↔state divergence.
+        logStep("ERROR updating job payment_status to released", {
+          error: jobUpdateErr.message,
+          jobId: transferJobId,
+        });
+      } else if (!updatedJob) {
+        // Zero rows matched — the job doesn't exist for this ledger entry.
+        // Belt-and-suspenders path: log for auditability but don't throw.
+        logStep("WARN job update matched 0 rows — job missing for ledger entry", {
+          jobId: transferJobId,
+        });
+      } else {
+        logStep("Job payment status set to released", { jobId: transferJobId });
+      }
     }
 
     // Do NOT send a "Payment sent!" notification here. Every transfer-initiating

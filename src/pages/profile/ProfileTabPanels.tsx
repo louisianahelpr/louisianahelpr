@@ -227,9 +227,7 @@ export const ProfileTabPanels = ({
       {tab === "payment" && (
         <div className="space-y-4">
           <ProfileTabHeader
-            eyebrow="Money"
             title="Payment settings"
-            meta="Payouts & earnings"
             onBack={() => setTab("landing")}
           />
           <Suspense fallback={<TabFallback />}>
@@ -285,9 +283,7 @@ export const ProfileTabPanels = ({
       {tab === "notifications" && (
         <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
           <ProfileTabHeader
-            eyebrow="Inbox"
             title="Notifications"
-            meta="Email, push, and SMS preferences"
             onBack={() => setTab("landing")}
           />
           <Suspense fallback={<TabFallback />}>
@@ -311,9 +307,7 @@ export const ProfileTabPanels = ({
       {tab === "referral" && user && (
         <div className="space-y-5">
           <ProfileTabHeader
-            eyebrow="Invite friends"
             title="Referral program"
-            meta="Earn credits when neighbors join"
             onBack={() => setTab("landing")}
           />
           <Suspense fallback={<TabFallback />}>
@@ -345,9 +339,7 @@ export const ProfileTabPanels = ({
       {tab === "credentials" && user && (
         <div className="space-y-4">
           <ProfileTabHeader
-            eyebrow="Trust"
             title="Licensed &amp; insured"
-            meta="Verify your professional credentials"
             onBack={() => setTab("landing")}
           />
           <Suspense fallback={<TabFallback />}>

@@ -220,6 +220,16 @@ export function usePostJobForm() {
     urgentFee,
     isGroupJob,
     helpersNeeded,
+    credentialTier,
+    pricingMode,
+    bidCeiling,
+    bidDeadline,
+    bidsSealed,
+    includeMaterials,
+    materialsNote,
+    department,
+    requiresW9,
+    offerToHelperId,
   });
 
   // Form-population operations (AI apply, entry-landing choices, template
@@ -235,6 +245,7 @@ export function usePostJobForm() {
     clearOffer,
   } = useJobEntry({
     draft,
+    hasDraft,
     setStep,
     setDraftConsumed,
     setTitle,
@@ -256,6 +267,18 @@ export function usePostJobForm() {
     setHelpersNeeded,
     setOfferToHelperId,
     setOfferToHelperName,
+    setIsFlexibleSchedule,
+    setIsUrgent,
+    setUrgentFee,
+    setCredentialTier,
+    setPricingMode,
+    setBidCeiling,
+    setBidDeadline,
+    setBidsSealed,
+    setIncludeMaterials,
+    setMaterialsNote,
+    setDepartment,
+    setRequiresW9,
   });
 
   // Review-gate + pre-submit checks + job-insert/payment flow. Extracted

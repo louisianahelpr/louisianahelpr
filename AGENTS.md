@@ -189,11 +189,13 @@ don't change generated types — skip the regen for those.
 
 Cowork has different sandbox permissions: Studio MCP for Supabase,
 Apple Developer access, GitHub Actions write. They CAN:
-- Apply migrations via `apply_migration` (Studio path)
 - Run `gh workflow run` to fire iOS builds
 - Modify Supabase function configs
 
 They CAN'T (without your help):
+- Apply migrations via MCP `apply_migration` — BANNED. Records the wrong
+  timestamp in `schema_migrations` and breaks automated deploys. Migrations
+  go through the normal file + PR → `db-deploy.yml` path only (see CLAUDE.md).
 - Read `/Users/lexilombas/Developer/louisianahelpr/` directly —
   ask them to write scripts you run from your sandbox.
 - Add GitHub repo secrets (Lexi must do via web UI).

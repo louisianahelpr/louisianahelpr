@@ -239,9 +239,13 @@ void hydrateStorage();
 
   // Shake-to-report: navigate to support pre-tagged as a bug report.
   // Works on iOS/Android via DeviceMotion; silent no-op when unsupported.
+  // `?topic=report` is what actually pre-tags it — /support reads it and
+  // opens with "Report Issue" already selected. (`?from=shake` alone never
+  // did: the route used to redirect to the /help FAQ, which ignored it, so
+  // the "pre-tagged" in this comment was aspirational until now.)
   initShakeToReport(() => {
     if (typeof window !== "undefined") {
-      window.location.href = "/support?from=shake";
+      window.location.href = "/support?topic=report&from=shake";
     }
   });
 })();

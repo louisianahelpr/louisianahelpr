@@ -74,34 +74,8 @@ export const TAB_ORIGIN_LABELS: Record<TabKey, string> = {
   privacy: "Privacy",
 };
 
-// ─── Per-tab table of contents ────────────────────────────────────────────────
-// Enumerates each `PolicySection`'s `anchorId` + human label for the desktop
-// TOC sidebar rendered on /legal at lg+ (hidden on mobile/tablet). Order and
-// labels mirror the section headings inside TermsContent / CommunityContent /
-// PrivacyContent verbatim — if a section is renamed or re-ordered there, bump
-// the matching entry here so the sidebar stays in sync.
-export const TAB_TOC: Record<TabKey, { id: string; label: string }[]> = {
-  terms: [
-    { id: "eligibility", label: "Eligibility & accounts" },
-    { id: "payment-escrow-fees", label: "Payment, escrow & fees" },
-    { id: "subscription-tiers", label: "Subscription tiers" },
-    { id: "liability", label: "Disclaimers & liability" },
-    { id: "tax-responsibilities", label: "Tax responsibilities" },
-  ],
-  community: [
-    { id: "posting-accepting", label: "Posting & accepting jobs" },
-    { id: "cancellations", label: "What you owe each other" },
-    { id: "escrow-release", label: "Getting paid" },
-    { id: "disputes", label: "When something goes wrong" },
-    { id: "strikes-bans", label: "Strikes & bans" },
-    { id: "money-taxes", label: "Money & taxes" },
-  ],
-  privacy: [
-    { id: "information-collected", label: "Information we collect" },
-    { id: "how-we-use", label: "How we use your information" },
-    { id: "information-sharing", label: "Information sharing" },
-    { id: "data-security", label: "Data security" },
-    { id: "data-retention", label: "Your rights" },
-    { id: "cookies-tracking", label: "Cookies & tracking" },
-  ],
-};
+// (No TAB_TOC. It fed the desktop "On this page" sidebar on /legal, which was
+// removed: it listed the same section headings that sat immediately to its
+// right — every PolicySection header is already on screen — so it duplicated
+// visible content and cost a 14rem column. Each policy's anchorIds still live
+// on the sections themselves for deep-linking.)

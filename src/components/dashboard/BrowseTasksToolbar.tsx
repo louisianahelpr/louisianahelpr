@@ -1,5 +1,5 @@
 import { startTransition, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Clock, MapPin, Search, SlidersHorizontal, X, List, Map as MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SavedSearches } from "@/components/SavedSearches";
@@ -39,6 +39,7 @@ export function BrowseTasksToolbar({
   hideViewToggle = false,
   onClearAllFilters,
 }: BrowseTasksToolbarProps) {
+  const reducedMotion = useReducedMotion();
   // Recent searches dropdown — shown only when the search input is
   // focused AND empty AND we have history to show. We snapshot the list
   // when the input opens, and refresh after each push so the dropdown
@@ -158,15 +159,25 @@ export function BrowseTasksToolbar({
         style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
       >
         <div className="flex flex-col leading-none">
-          <span
-            className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            {filters.hasFilters
-              ? `Filtered · ${filters.activeFilterCount} active`
-              : "Fresh today"}
-          </span>
-          <h2
+          {/* Only the FILTERED state survives here. "Fresh today" was a plain
+              eyebrow — "Browse jobs" sits directly below and says it, and it
+              over-claimed anyway, since the feed is every open job rather than
+              only today's. "Filtered · N active" is not a label though: it's
+              state feedback you can't get anywhere else on this row, so it
+              stays and simply renders nothing when no filter is on. */}
+          {filters.hasFilters && (
+            <span
+              className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+            >
+              {`Filtered · ${filters.activeFilterCount} active`}
+            </span>
+          )}
+          {/* h1, not h2: this is the primary heading of the surfaces that
+              render this toolbar (/browse guest board and /dashboard). Neither
+              page renders any other h1, so demoting this to h2 left both with
+              zero h1 and a broken heading order. */}
+          <h1
             className="font-display italic font-bold leading-tight mt-2"
             style={{
               fontSize: "1.25rem",
@@ -174,21 +185,15 @@ export function BrowseTasksToolbar({
               letterSpacing: "-0.018em",
             }}
           >
-            {filters.hasFilters ? "Filtered Results" : "Browse Jobs"}
-          </h2>
-          {/* Subtitle hidden when 0 jobs — the empty-state card
-              below already says "Nothing nearby just yet" in a much
-              more prominent way. Showing "0 jobs" here too is
-              redundant noise. */}
-          {filters.filteredJobs.length > 0 && (
-            <span
-              className="font-serif italic mt-0.5 text-ds-11"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              {filters.filteredJobs.length}{" "}
-              {filters.filteredJobs.length === 1 ? "job" : "jobs"}
-            </span>
-          )}
+            {/* Sentence case, matching the /jobs public board's "Browse jobs"
+                h1 — the same feature must not read "Browse Jobs" on one
+                surface and "Browse jobs" on the other. */}
+            {filters.hasFilters ? "Filtered results" : "Browse jobs"}
+          </h1>
+          {/* No "N jobs" count line under the title: the feed directly
+              below IS the count, and the empty state already says
+              "Nothing nearby just yet" far more clearly. Matches the
+              /jobs public board, which dropped the same line. */}
         </div>
         <div className="flex items-center gap-1">
               {/* Clear-all lives with the filter/chip rows below, not here —
@@ -223,11 +228,13 @@ export function BrowseTasksToolbar({
                   userId={user.id}
                   currentFilters={{
                     selectedCategory: filters.selectedCategory,
+                    minBudget: filters.minBudget,
                     maxBudget: filters.maxBudget,
                     locationFilter: filters.locationFilter,
                   }}
                   onApplySearch={(s) => {
                     filters.setSelectedCategory(s.category);
+                    filters.setMinBudget(s.min_budget ? String(s.min_budget) : "");
                     filters.setMaxBudget(s.max_budget ? String(s.max_budget) : "");
                     filters.setLocationFilter(s.location_keyword || "");
                   }}
@@ -303,9 +310,9 @@ export function BrowseTasksToolbar({
       <AnimatePresence>
         {filters.searchOpen && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            initial={reducedMotion ? false : { height: 0, opacity: 0 }}
+            animate={reducedMotion ? {} : { height: "auto", opacity: 1 }}
+            exit={reducedMotion ? {} : { height: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="overflow-hidden border-b border-border/30"
           >
@@ -436,14 +443,13 @@ export function BrowseTasksToolbar({
         }}
         sections={buildJobFilterSections({
           selectedCategory: filters.selectedCategory, setSelectedCategory: filters.setSelectedCategory,
-          minBudget: filters.minBudget, setMinBudget: filters.setMinBudget,
-          maxBudget: filters.maxBudget, setMaxBudget: filters.setMaxBudget,
           locationFilter: filters.locationFilter, setLocationFilter: filters.setLocationFilter,
           sortBy: filters.sortBy, setSortBy: filters.setSortBy,
           expiresWithin: filters.expiresWithin, setExpiresWithin: filters.setExpiresWithin,
           matchAvailability: filters.matchAvailability, setMatchAvailability: filters.setMatchAvailability,
           hasAvailability: helperAvailability.length > 0,
           boostedOnly: filters.boostedOnly, setBoostedOnly: filters.setBoostedOnly,
+          urgentOnly: filters.urgentOnly, setUrgentOnly: filters.setUrgentOnly,
           userLocStatus: filters.userLoc?.status,
           userLocMessage: filters.userLoc?.status === "error" ? filters.userLoc.message : undefined,
         })}

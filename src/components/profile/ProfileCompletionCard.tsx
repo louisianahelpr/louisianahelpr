@@ -209,7 +209,7 @@ export function ProfileCompletionCard({
             type="button"
             onClick={() => handleItemClick(item)}
             disabled={item.done}
-            className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-left transition-colors disabled:cursor-default enabled:active:bg-[hsl(var(--bark)/0.06)] enabled:hover:bg-[hsl(var(--bark)/0.04)]"
+            className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-ds-md text-left transition-colors disabled:cursor-default enabled:active:bg-[hsl(var(--bark)/0.06)] enabled:hover:bg-[hsl(var(--bark)/0.04)]"
           >
             {/* Status indicator */}
             <span

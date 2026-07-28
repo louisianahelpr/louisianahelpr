@@ -2,7 +2,6 @@ import {
   Filter,
   Inbox,
   Briefcase,
-  Users as UsersIcon,
   CheckCheck,
 } from "lucide-react";
 import {
@@ -14,14 +13,13 @@ import {
 } from "@/components/ui/sheet";
 import { QuickActionRow } from "./QuickActionRow";
 
-export type QuickActionTab = null | "/dashboard" | "/messages" | "/my-posts" | "/my-jobs" | "/profile";
+export type QuickActionTab = null | "/dashboard" | "/messages" | "/my-posts" | "/my-jobs";
 
 interface QuickActions {
   browseFilters: () => void;
   markAllRead: () => void;
   goPosted: () => void;
   goApplied: () => void;
-  switchAccountPlaceholder: () => void;
 }
 
 interface QuickActionSheetProps {
@@ -83,17 +81,6 @@ export const QuickActionSheet = ({ quickActionTab, onClose, quickActions }: Quic
           <div className="flex flex-col gap-2 mt-6">
             <QuickActionRow icon={Inbox} label="Posted jobs" onClick={quickActions.goPosted} />
             <QuickActionRow icon={Briefcase} label="Applied jobs" onClick={quickActions.goApplied} />
-          </div>
-        </>
-      )}
-      {quickActionTab === "/profile" && (
-        <>
-          <SheetHeader className="text-left">
-            <SheetTitle>Profile</SheetTitle>
-            <SheetDescription>Account quick actions.</SheetDescription>
-          </SheetHeader>
-          <div className="flex flex-col gap-2 mt-6">
-            <QuickActionRow icon={UsersIcon} label="Switch account" onClick={quickActions.switchAccountPlaceholder} />
           </div>
         </>
       )}

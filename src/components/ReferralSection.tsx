@@ -30,13 +30,17 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   const [copied, setCopied] = useState(false);
   const [cashingOut, setCashingOut] = useState(false);
 
-  const copyCode = () => {
+  const copyCode = async () => {
     if (!referralCode) return;
-    navigator.clipboard.writeText(referralCode);
-    setCopied(true);
-    hapticSuccess();
-    toast.success("Referral code copied!");
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(referralCode);
+      setCopied(true);
+      hapticSuccess();
+      toast.success("Referral code copied!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error(`Couldn't copy — your code is ${referralCode}`);
+    }
   };
 
   // Centralized share-body builder so the SMS shortcut, native share
@@ -145,7 +149,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
     // referral code and zeroed stats — show a recoverable error instead.
     return (
       <div className="h-full flex">
-        <ErrorState onRetry={() => { void refetch(); }} />
+        <ErrorState variant="inline" onRetry={() => { void refetch(); }} />
       </div>
     );
   }
@@ -219,9 +223,6 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       {unredeemedCredits > 0 && (
         <div className="rounded-2xl liquid-glass p-4 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-              Ready to withdraw
-            </p>
             <p className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
               Cash out credits
             </p>
@@ -250,9 +251,6 @@ const ReferralSection = ({ userId }: { userId: string }) => {
 
       {/* How it works */}
       <div className="rounded-2xl liquid-glass p-5">
-        <p className="font-serif italic uppercase mb-3" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-          How it works
-        </p>
         <div className="space-y-3">
           {[
             "Share your code with friends",

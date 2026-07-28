@@ -63,7 +63,6 @@ export function MuteSheet({
           }
           eyebrowClassName="inline-flex items-center gap-1.5"
           title="Mute notifications"
-          subtitle={`New messages from ${convo.otherUserName} won't notify you, but you'll still see them in your inbox.`}
         />
         {isMuted && (
           <div
@@ -91,7 +90,7 @@ export function MuteSheet({
               onClick={() => handlePick(preset)}
               className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-ds-md text-left transition-colors hover:bg-secondary/40 min-h-[48px]"
               style={{
-                background: "hsla(0, 0%, 100%, 0.65)",
+                background: "var(--surface-premium)",
                 border: "0.5px solid hsl(var(--olivewood) / 0.14)",
               }}
             >

@@ -35,7 +35,7 @@ export const RatingBreakdown = ({ reviews }: Props) => {
   const hasSubRatings = punctualityAvg !== null || qualityAvg !== null || communicationAvg !== null;
 
   return (
-    <div className="rounded-ds-md liquid-glass p-4 space-y-3">
+    <div className="rounded-2xl liquid-glass p-5 space-y-3">
       {/* Distribution chart */}
       <p
         className="text-[10px] uppercase tracking-wide font-semibold"

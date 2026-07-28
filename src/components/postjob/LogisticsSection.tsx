@@ -140,7 +140,6 @@ export function LogisticsSection({
   return (
     <SectionCard
       stepNumber={stepNumber}
-      eyebrow="When & where"
       title="Logistics"
       icon={MapPin}
       complete={logisticsComplete}

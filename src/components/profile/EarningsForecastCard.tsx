@@ -113,7 +113,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
 
   const { startISO, endISO, end } = useMemo(() => currentWeekRange(), []);
 
-  const { data, isLoading } = useQuery<ForecastData>({
+  const { data, isLoading, isError } = useQuery<ForecastData>({
     queryKey: queryKeys.earningsForecast.forWindow(helperId, startISO, endISO, feeFallbackPercent),
     queryFn: async () => {
       // Filter at the DB level — never fetch the entire helper history
@@ -157,6 +157,12 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
 
   if (!enabled) return null;
 
+  // On a hard query error `data` stays undefined, which the condition below
+  // would render as a PERMANENT skeleton (a stuck "loading forever" state).
+  // Hide the card instead — matches HelperStreakBadge's degrade-silently
+  // pattern for these secondary cosmetic cards; react-query still retries.
+  if (isError) return null;
+
   if (isLoading || !data) {
     return (
       <div
@@ -176,48 +182,38 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
   // this week — the helper has a clean slate, nudge them to browse.
   if (projectedTotal <= 0) {
     return (
-      <div className="rounded-2xl liquid-glass p-5">
-        <div className="flex items-start gap-3">
+      <div className="rounded-2xl liquid-glass p-5 space-y-3">
+        <div className="flex items-center gap-2.5">
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
             style={{ background: "hsl(var(--gold-warm) / 0.14)" }}
           >
             <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--gold-warm))" }} />
           </div>
-          <div className="flex-1 min-w-0">
-            <p
-              className="font-serif italic uppercase"
-              style={{
-                fontSize: "0.6rem",
-                color: "hsl(var(--burnt-sienna))",
-                letterSpacing: "0.18em",
-              }}
-            >
-              This week's projection
-            </p>
+          <div className="min-w-0">
             <h3
-              className="font-display italic font-bold leading-tight text-headline-card"
-              style={{ color: "hsl(var(--ink-deep))" }}
+              className="font-display italic font-bold leading-tight"
+              style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}
             >
               No jobs lined up yet
             </h3>
-            <p
-              className="font-serif italic mt-1"
-              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              Pick up a job before Sunday and we'll project your earnings here.
-            </p>
-            <Button
-              variant="bark"
-              size="sm"
-              className="mt-2 h-8 text-ds-11 gap-1.5"
-              onClick={() => navigate("/dashboard")}
-            >
-              <Briefcase className="w-3.5 h-3.5" />
-              Browse jobs
-            </Button>
           </div>
         </div>
+        <p
+          className="font-serif italic"
+          style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
+        >
+          Pick up a job before Sunday and we'll project your earnings here.
+        </p>
+        <Button
+          variant="bark"
+          size="sm"
+          className="w-full gap-1.5"
+          onClick={() => navigate("/dashboard")}
+        >
+          <Briefcase className="w-3.5 h-3.5" />
+          Browse jobs
+        </Button>
       </div>
     );
   }
@@ -227,43 +223,57 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
 
   return (
     <div className="rounded-2xl liquid-glass p-5">
-      <div className="flex items-start justify-between gap-2 mb-1.5">
-        <p
-          className="font-serif italic uppercase flex items-center gap-1.5"
-          style={{
-            fontSize: "0.6rem",
-            color: "hsl(var(--burnt-sienna))",
-            letterSpacing: "0.18em",
-          }}
+      <div className="flex items-center gap-2.5 mb-3">
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+          style={{ background: "hsl(var(--gold-warm) / 0.14)" }}
         >
-          This week's projection
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                aria-label="How this projection is calculated"
-                className="inline-flex items-center justify-center rounded-full hover:bg-secondary/60 transition-colors p-0.5 -m-0.5"
+          <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--gold-warm))" }} />
+        </div>
+        <div className="min-w-0">
+          <p
+            className="font-serif italic uppercase flex items-center gap-1.5"
+            style={{
+              fontSize: "0.62rem",
+              color: "hsl(var(--burnt-sienna))",
+              letterSpacing: "0.18em",
+            }}
+          >
+            This week's projection
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="How this projection is calculated"
+                  className="inline-flex items-center justify-center rounded-full hover:bg-secondary/60 transition-colors p-0.5 -m-0.5"
+                >
+                  <Info className="w-3 h-3 not-italic" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                className="w-72 text-ds-13 leading-relaxed font-sans not-italic"
               >
-                <Info className="w-3 h-3 not-italic" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent
-              align="start"
-              className="w-72 text-ds-13 leading-relaxed font-sans not-italic"
-            >
-              <p className="font-semibold text-foreground mb-1">
-                How this is calculated
-              </p>
-              <p className="text-muted-foreground">
-                We sum your net take (after the platform fee) on every job
-                you're accepted on or working through this week, plus
-                anything you've already completed since Monday. It assumes
-                every scheduled job actually completes — cancellations or
-                disputes will lower the real number.
-              </p>
-            </PopoverContent>
-          </Popover>
-        </p>
+                <p className="font-semibold text-foreground mb-1">
+                  How this is calculated
+                </p>
+                <p className="text-muted-foreground">
+                  We sum your net take (after the platform fee) on every job
+                  you're accepted on or working through this week, plus
+                  anything you've already completed since Monday. It assumes
+                  every scheduled job actually completes — cancellations or
+                  disputes will lower the real number.
+                </p>
+              </PopoverContent>
+            </Popover>
+          </p>
+          <h3
+            className="font-display italic font-bold leading-tight"
+            style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}
+          >
+            By Sunday
+          </h3>
+        </div>
       </div>
 
       <p
@@ -276,12 +286,6 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
         aria-label={`Projected ${formatUsd(projectedTotal)} by Sunday`}
       >
         {formatUsd(projectedTotal)}
-        <span
-          className="font-serif italic font-normal ml-1.5"
-          style={{ fontSize: "0.75rem", color: "hsl(var(--olivewood) / 0.8)" }}
-        >
-          by Sunday
-        </span>
       </p>
 
       <p

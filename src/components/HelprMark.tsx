@@ -48,14 +48,11 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnl
         srcSet={`${helprLogoSm} 96w, ${helprLogoMd} 256w`}
         sizes={size === "lg" ? "56px" : size === "md" ? "40px" : "32px"}
         alt="Helpr"
-        className={`${logoClass} w-auto select-none transition-transform duration-200 group-hover:scale-105`}
-        style={{
-          // Subtle drop shadow so the wrought iron lifts off the
-          // parchment / glass canvas instead of reading as a flat
-          // sticker. Soft Olivewood tint keeps it on-brand.
-          filter:
-            "drop-shadow(0 1px 1px rgba(46, 47, 34, 0.18)) drop-shadow(0 2px 6px rgba(46, 47, 34, 0.1))",
-        }}
+        // `.helpr-emblem` owns the filter (see index.css). It was an inline
+        // `style` here, which is exactly why the mark vanished on dark
+        // screens: an inline filter always wins over a stylesheet rule, so no
+        // `[data-theme="dark"]` override could ever take effect.
+        className={`helpr-emblem ${logoClass} w-auto select-none transition-transform duration-200 group-hover:scale-105`}
         draggable={false}
       />
       )}

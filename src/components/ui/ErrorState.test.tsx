@@ -5,7 +5,7 @@ import { ErrorState } from "./ErrorState";
 describe("ErrorState", () => {
   it("renders the default error copy", () => {
     render(<ErrorState />);
-    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+    expect(screen.getByText("Hiccup on our end")).toBeInTheDocument();
     expect(screen.getByText("We couldn't load this.")).toBeInTheDocument();
   });
 

@@ -83,7 +83,7 @@ export function EscrowExplainer({
           <button
             type="button"
             aria-label={triggerLabel}
-            className="inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center justify-center w-10 h-10 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             style={{ color: "hsl(var(--bark))" }}
           >
             <Info className="w-4 h-4" strokeWidth={2.25} aria-hidden />

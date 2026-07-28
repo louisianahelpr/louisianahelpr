@@ -104,11 +104,6 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
               </>
             }
             title={`${type === "before" ? "Before" : "After"} photos`}
-            subtitle={
-              type === "before"
-                ? "Snap a few shots before you start so everyone has a baseline."
-                : "Show the finished work — required before payment can release."
-            }
           />
           <div className="space-y-3">
             {existingUrls.length > 0 && (
@@ -222,9 +217,6 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                       backgroundImage: "none",
                       border: "1px solid hsl(var(--bark))",
                       color: "hsl(var(--parchment))",
-                      fontFamily: "Montserrat, system-ui, sans-serif",
-                      fontWeight: 600,
-                      letterSpacing: "0.01em",
                       boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
                     }
                   : undefined

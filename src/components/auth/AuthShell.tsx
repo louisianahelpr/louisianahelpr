@@ -30,6 +30,20 @@ interface AuthShellProps {
       Mobile is unchanged — the pane is `hidden` below lg. Passing
       `null`/undefined preserves the original narrow-centered layout. */
   desktopBrandPanel?: ReactNode;
+  /** Horizontally centre the form column and vertically centre it at lg+.
+      Defaults to `!!desktopBrandPanel`, which is how this behaviour used to
+      be derived. Split into its own prop because the two are unrelated: a
+      screen can want a centred column WITHOUT a brand pane (Signup now folds
+      its emblem into the heading row, and without this it snapped to
+      `items-start` and pinned the card to the left edge). Callers that pass a
+      brand pane are unaffected. */
+  centerColumn?: boolean;
+  /** Overlay the back control INSIDE the card's top-left corner instead of
+      stacking it above the column. Once the heading moved into the card, a
+      bare arrow sitting above it had nothing to attach to — it floated on the
+      page background and read as unrelated chrome. Absolute, so it costs no
+      vertical space and the heading stays optically centred. */
+  backInCard?: boolean;
 }
 
 const widthMap = {
@@ -40,7 +54,10 @@ const widthMap = {
   // strip on 1440+ viewports (matches the "wider centered card" audit
   // direction the user picked for the ambient-bg auth pages).
   lg: "max-w-md sm:max-w-lg lg:max-w-xl",
-  "2xl": "max-w-md sm:max-w-lg md:max-w-2xl",
+  // Widest rung — the auth cards now carry their heading INSIDE the card, so
+  // the card is the whole composition and a 576px column left it reading as a
+  // narrow strip on a 1200+ viewport.
+  "2xl": "max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-5xl",
 };
 
 const AuthShell = ({
@@ -53,16 +70,27 @@ const AuthShell = ({
   align = "start",
   maxWidth = "lg",
   desktopBrandPanel,
+  centerColumn,
+  backInCard = false,
 }: AuthShellProps) => {
   const showCompactTopBar = compactHeader && !hideHeader;
   const showFullHeader = !compactHeader && !hideHeader;
   const alignClass = align === "center" ? "items-center" : "items-start";
-  const resolvedBackTo = backTo ?? (isNativePlatform ? "/browse" : "/");
-
-  // Use the standard frosted circular BackButton so back navigation looks
-  // identical across auth pages and the rest of the app. Preserve the
-  // resolved target (home on web, /browse on native, or an explicit `backTo`).
-  const backLink = <BackButton to={resolvedBackTo} />;
+  // Defaults to the old derivation so every existing caller renders identically.
+  const centered = centerColumn ?? !!desktopBrandPanel;
+  // Back returns to WHERE YOU CAME FROM. Auth pages are reached from all over
+  // — a job card on /jobs, a gated tab, the nav CTA — so a hard-coded target
+  // sent people somewhere they had never been. It previously forced "/" on web
+  // (or /browse on native), which became obvious once guest job cards started
+  // routing to /signup: backing out of signup dumped you on the landing page
+  // instead of the job board you were browsing.
+  //
+  // Passing `to={backTo}` — undefined unless a caller sets it — lets BackButton
+  // use its own history-back path, which already falls back to "/" when there
+  // is no history to pop (a cold launch or a direct link). On native, "/" is
+  // the NativeRedirect that lands on /browse, so the old native default is
+  // preserved without hard-coding it here. An explicit `backTo` still wins.
+  const backLink = <BackButton to={backTo} />;
 
   return (
     <div className="min-h-screen bg-premium-page relative overflow-hidden">
@@ -72,7 +100,12 @@ const AuthShell = ({
           viewports so the page reads as intentional atmosphere rather
           than blank whitespace. Kept `pointer-events-none` + `aria-hidden`
           so it never intercepts input or announces to screen readers. */}
-      {desktopBrandPanel && (
+      {/* Ambient wash is NOT tied to the brand pane. It was gated behind
+          `desktopBrandPanel &&`, so dropping that pane from Login/Signup also
+          killed the page atmosphere and left a white card on a near-white
+          field — exactly the "blank whitespace" this was written to prevent.
+          Same coupling bug as `centerColumn`. */}
+      {(desktopBrandPanel || centerColumn) && (
         <div
           aria-hidden
           className="hidden lg:block pointer-events-none absolute inset-0 z-0"
@@ -108,7 +141,7 @@ const AuthShell = ({
           {backLink}
         </div>
       )}
-      <div className={`relative z-10 flex flex-col ${alignClass} ${desktopBrandPanel ? "lg:items-center lg:justify-center" : ""} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-12 lg:pt-6"}`}>
+      <div className={`relative z-10 flex flex-col ${centered ? "items-center" : alignClass} ${centered ? "lg:justify-center" : ""} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-8 lg:pt-6"}`}>
         {/* Brand mark hero — desktop-only. Sits as a sibling INSIDE the
             same vertically-centered flex column as the form so hero +
             form read as one composed unit centered on the viewport
@@ -118,7 +151,7 @@ const AuthShell = ({
             {desktopBrandPanel}
           </div>
         )}
-        <div className={`w-full ${widthMap[maxWidth]}`}>
+        <div className={`w-full ${widthMap[maxWidth]} ${backInCard ? "relative" : ""}`}>
           {showCompactTopBar ? (
             <div className="relative mb-4 flex items-center justify-center min-h-7">
               {!hideBack && <div className="absolute left-0">{backLink}</div>}
@@ -128,7 +161,15 @@ const AuthShell = ({
             !hideBack && align !== "center" && (
               // Hide the in-flow back button at lg+ when a brand pane is
               // rendered — the pinned top-left back button covers desktop.
-              <div className={`mb-5 ${desktopBrandPanel ? "lg:hidden" : ""}`}>
+              // `backInCard` overlays it in the card's top-left corner (see the
+              // prop docs); otherwise it stacks above the column as before.
+              <div
+                className={
+                  backInCard
+                    ? "absolute left-3 sm:left-4 top-3 sm:top-4 z-20"
+                    : `mb-2 ${desktopBrandPanel ? "lg:hidden" : ""}`
+                }
+              >
                 {backLink}
               </div>
             )

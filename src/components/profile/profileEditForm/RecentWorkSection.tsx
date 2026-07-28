@@ -24,10 +24,7 @@ export function RecentWorkSection({
 }: RecentWorkSectionProps) {
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <p className="font-serif italic uppercase" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-          Recent work
-        </p>
+      <div className="flex items-center justify-end gap-2">
         <span className="text-ds-11 text-muted-foreground">{portfolioUrls.length}/{MAX_PORTFOLIO}</span>
       </div>
       <p className="font-serif italic leading-snug -mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -48,7 +45,7 @@ export function RecentWorkSection({
               type="button"
               onClick={() => removePortfolioAt(i)}
               aria-label="Remove this photo"
-              className="absolute top-1 right-1 w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+              className="absolute top-0.5 right-0.5 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform"
               style={{
                 background: "hsla(0, 0%, 0%, 0.55)",
                 backdropFilter: "blur(6px)",

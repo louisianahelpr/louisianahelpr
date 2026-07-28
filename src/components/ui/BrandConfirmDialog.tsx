@@ -120,7 +120,6 @@ export function BrandConfirmDialog({
           className="text-center"
           title={title}
           titleClassName="text-center text-balance"
-          subtitle={description}
         />
 
         {callout && (

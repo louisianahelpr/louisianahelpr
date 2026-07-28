@@ -29,7 +29,6 @@ export const PauseOfferDialog = ({
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><PauseCircle className="w-3 h-3" /> Take a breather</>}
           title="Pause 1 month free instead?"
-          subtitle={`Keep your spot — request a one-month, no-charge pause on your ${currentTier ?? "plan"}. We'll confirm by email and your plan resumes after the pause. Cancel anytime if you've changed your mind.`}
         />
         <div
           className="rounded-ds-md p-3 mt-1 space-y-1"
@@ -73,8 +72,6 @@ export const PauseOfferDialog = ({
                 background: "hsl(var(--bark))",
                 color: "hsl(var(--parchment))",
                 border: "1px solid hsl(var(--bark))",
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
               }}
             >
               {acceptingPause ? (

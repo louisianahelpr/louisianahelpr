@@ -65,34 +65,8 @@ export function SettingsSection({
 
         {/* Unified list-of-rows navigation, grouped by section. */}
         {menuGroups.map((group) => {
-          const groupNeedsAction = group.items.some((i) => i.needsAction);
           return (
             <section key={group.title}>
-              <div className="flex items-center gap-2 px-1 mb-1.5">
-                <h2
-                  className="font-serif italic uppercase text-ds-9"
-                  style={{
-                    color: "hsl(var(--burnt-sienna))",
-                    letterSpacing: "0.18em",
-                  }}
-                >
-                  {group.title}
-                </h2>
-                {groupNeedsAction && (
-                  // Decorative red dot — purely a visual cue that one of
-                  // the rows below needs action. Each row that needs
-                  // action already renders the visible text "Action
-                  // needed" (see below), so the dot adds no information
-                  // for AT users. `aria-hidden` keeps it out of the a11y
-                  // tree and avoids the aria-prohibited-attr violation
-                  // that an `aria-label` on a generic <span> would
-                  // produce.
-                  <span
-                    aria-hidden="true"
-                    className="w-1.5 h-1.5 rounded-full bg-destructive"
-                  />
-                )}
-              </div>
               <div className="rounded-ds-lg liquid-glass overflow-hidden">
                 {group.items.map((item, idx) => (
                   <button
@@ -129,32 +103,51 @@ export function SettingsSection({
                       <div className="min-w-0">
                         <p className="text-ds-13 font-semibold text-foreground leading-tight flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span>{item.label}</span>
-                          {item.needsAction && (
-                            <span className="text-ds-10 font-bold uppercase tracking-wider text-destructive">
-                              Action needed
-                            </span>
-                          )}
-                          {/* Soft amber completeness pill — distinct from the
-                              louder "Action needed" red text so a payout
-                              blocker still stands out next to a friendly
-                              "Add a photo" nudge. Uses burnt-sienna at low
-                              opacity so it reads as warm-warning, not
-                              destructive. */}
-                          {!item.needsAction && item.incompleteLabel && (
-                            <span
-                              className="inline-flex items-center gap-1 text-ds-10 font-bold rounded-full px-1.5 py-0.5"
-                              style={{
-                                background: "hsl(var(--burnt-sienna) / 0.12)",
-                                color: "hsl(var(--burnt-sienna))",
-                                letterSpacing: "0.04em",
-                              }}
-                            >
-                              <AlertTriangle className="w-2.5 h-2.5" strokeWidth={2.5} />
-                              {item.incompleteLabel}
-                            </span>
-                          )}
+                          {/* ONE chip recipe for both attention states —
+                              same shape, icon and metrics; only the hue
+                              changes. "Action needed" used to be bare red
+                              uppercase text while "Verify credentials" was a
+                              rounded sienna pill, so two rows in the SAME
+                              list signalled "this needs you" in two visually
+                              unrelated ways.
+
+                              Severity is still encoded, just in colour alone:
+                              destructive red for a hard blocker (no payout
+                              account = you cannot get paid), warm sienna for
+                              a soft nudge (add a photo). Encoding severity in
+                              shape AND colour is what made them read as
+                              different components rather than two levels of
+                              one thing. */}
+                          {(item.needsAction || item.incompleteLabel) && (() => {
+                            const blocking = !!item.needsAction;
+                            const tint = blocking
+                              ? "var(--destructive)"
+                              : "var(--burnt-sienna)";
+                            return (
+                              <span
+                                className="inline-flex items-center gap-1 text-ds-10 font-bold rounded-full px-1.5 py-0.5"
+                                style={{
+                                  background: `hsl(${tint} / 0.12)`,
+                                  color: `hsl(${tint})`,
+                                  letterSpacing: "0.04em",
+                                }}
+                              >
+                                <AlertTriangle className="w-2.5 h-2.5" strokeWidth={2.5} />
+                                {blocking ? "Action needed" : item.incompleteLabel}
+                              </span>
+                            );
+                          })()}
                         </p>
-                        <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">{item.desc}</p>
+                        {/* line-clamp-2, not truncate. `truncate` sets
+                            white-space:nowrap, so these descriptions could
+                            never wrap and five of them were cut mid-word at
+                            375px ("Manage jobs for a family mem…", "Calendar,
+                            upcoming jobs & we…", "Auto-post cleanings on
+                            Airbnb…"). The description is the only thing
+                            explaining what the row does, so losing its second
+                            half defeats the point. Clamping at 2 keeps the
+                            row height bounded. */}
+                        <p className="text-ds-11 text-muted-foreground mt-0.5 line-clamp-2">{item.desc}</p>
                       </div>
                     </div>
                     <span className="w-5 flex items-center justify-center shrink-0">
@@ -172,14 +165,6 @@ export function SettingsSection({
             pair instead of an "Appearance" header followed, two cards
             later, by an unlabeled senior-mode toggle. */}
         <section>
-          <div className="flex items-center gap-2 px-1 mb-1.5">
-            <h2
-              className="font-serif italic uppercase text-ds-9"
-              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-            >
-              Display
-            </h2>
-          </div>
           <div className="space-y-2">
             {/* Color mode — Light / Auto / Dark segmented control */}
             <div className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3 flex flex-col gap-2">
@@ -255,7 +240,7 @@ export function SettingsSection({
                       <p className="text-ds-13 font-semibold text-foreground leading-tight">
                         Senior mode
                       </p>
-                      <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">
+                      <p className="text-ds-11 text-muted-foreground mt-0.5 line-clamp-2">
                         Larger text and bigger tap targets
                       </p>
                     </div>
@@ -382,7 +367,18 @@ export function SettingsSection({
             onClick={onRequestLogout}
             className="glass-press w-full rounded-ds-lg bg-card py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
             style={{
-              color: "hsl(var(--bark))",
+              // Theme-adaptive ink (was fixed `--bark`): brand bark is a dark
+              // brown that drops to near-invisible contrast on the dark `card`
+              // surface under Auto/Dark mode. `--foreground` flips with the
+              // theme so "Sign out" stays legible in both.
+              color: "hsl(var(--foreground))",
+              // Border, matching Delete account below. The comment above this
+              // block always claimed the two were "the same pill" — but only
+              // Delete account had an outline, so Sign out was a bg-card fill
+              // on a card-coloured page: an invisible edge, findable only by
+              // its label. Bark at the same 0.32 alpha burnt-sienna uses, so
+              // the pair now genuinely matches and neither floats.
+              border: "1px solid hsl(var(--bark) / 0.32)",
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,
             }}

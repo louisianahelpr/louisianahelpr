@@ -137,13 +137,13 @@ export function ApplicantsPanel({
   return (
     <>
       {/* Applicants full-screen comparison view */}
-      <div className="fixed inset-0 z-50 flex flex-col animate-in slide-in-from-right duration-200" style={{ background: "hsl(var(--parchment))" }}>
+      <div className="fixed inset-0 z-50 flex flex-col motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200" style={{ background: "hsl(var(--parchment))" }}>
         {/* Header */}
         <div
           className="flex items-center gap-2 px-4 py-3"
           style={{
             borderBottom: "0.5px solid hsl(var(--bark) / 0.12)",
-            background: "hsla(0, 0%, 100%, 0.72)",
+            background: "var(--surface-premium)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
           }}
@@ -231,7 +231,7 @@ export function ApplicantsPanel({
                       <div
                         className="rounded-ds-md p-3.5 space-y-2.5"
                         style={{
-                          backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                          background: "var(--surface-premium)",
                           backdropFilter: "blur(16px)",
                           WebkitBackdropFilter: "blur(16px)",
                           border: isTopPick
@@ -443,7 +443,7 @@ export function ApplicantsPanel({
                                         aria-label="Counter offer amount in dollars"
                                         className="w-20 text-ds-12 font-sans rounded px-2 py-0.5 outline-none"
                                         style={{
-                                          background: "hsla(0,0%,100%,0.65)",
+                                          background: "var(--surface-premium)",
                                           border: "0.5px solid hsl(var(--heritage-gold) / 0.45)",
                                           color: "hsl(var(--ink-deep))",
                                         }}
@@ -507,7 +507,7 @@ export function ApplicantsPanel({
                                   className="inline-flex items-center gap-0.5 mt-0.5 text-ds-11 font-semibold px-1.5 py-0.5 rounded-full"
                                   style={{ background: "hsl(var(--sage) / 0.12)", color: "hsl(var(--sage))" }}
                                 >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" aria-hidden="true" />
+                                  <span className="w-1.5 h-1.5 rounded-full bg-current motion-safe:animate-pulse" aria-hidden="true" />
                                   Available now
                                 </span>
                               ) : null;

@@ -9,8 +9,7 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
-import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
-import HelprMark from "@/components/HelprMark";
+import BackButton from "@/components/BackButton";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
@@ -47,7 +46,14 @@ const Signup = () => {
   const [searchParams] = useSearchParams();
   const isBusinessSignup = searchParams.get("type") === "business";
   const [companyName, setCompanyName] = useState("");
-  const [step, setStep] = useState(1);
+  // Dev-only: seed the step from `?step=2` so the flow can be inspected
+  // without the old on-page PREVIEW band, which showed testers a control
+  // real users never see. Production always starts at step 1.
+  const [step, setStep] = useState(() => {
+    if (!import.meta.env.DEV) return 1;
+    const n = Number(new URLSearchParams(window.location.search).get("step"));
+    return n === 2 ? 2 : 1;
+  });
   const [loading, setLoading] = useState(false);
 
   // Step 1 fields
@@ -104,6 +110,10 @@ const Signup = () => {
   const validateAboutYouStep = async () => {
     const errors: Record<string, string> = {};
 
+    // Profile photo is REQUIRED — it carries a red asterisk, so the validator
+    // has to enforce it. Note this adds real signup friction: a photo is a
+    // bigger ask than a name, and it now blocks account creation.
+    if (!avatarFile) errors.avatar = "A profile photo is required";
     if (isBusinessSignup && !companyName.trim()) errors.companyName = "Company name is required";
     if (!firstName.trim()) errors.firstName = "First name is required";
     if (!lastName.trim()) errors.lastName = "Last name is required";
@@ -114,7 +124,12 @@ const Signup = () => {
     if (phone.trim() && phone.replace(/\D/g, "").length < 10) {
       errors.phone = "Enter a valid 10-digit phone number";
     }
-    if (dateOfBirth && ageFromDob(dateOfBirth) < 18) {
+    // DOB is REQUIRED (it carries a red asterisk on the label, so the
+    // validator must actually enforce it — a marker the form doesn't honour is
+    // worse than no marker). Age is still checked when a value is present.
+    if (!dateOfBirth) {
+      errors.dateOfBirth = "Date of birth is required";
+    } else if (ageFromDob(dateOfBirth) < 18) {
       errors.dateOfBirth = "You must be at least 18 years old to sign up";
     }
     // Bio is optional — but if the user starts one, keep the 20-char floor so
@@ -336,72 +351,67 @@ const Signup = () => {
     "rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]";
   const labelCls = "text-ds-13 font-sans font-medium";
 
-  // Short, single-line titles that mirror the Login screen's heading,
-  // each paired with a brief subtitle (kept, per request, but trimmed).
-  const stepHeading =
+  // Subtitles only where they carry information. The business path keeps one
+  // because "Invite your team and bill jobs to one card." is a real value
+  // proposition at the moment of commitment. The personal path drops its
+  // "Create your account to get started." — the email/password form directly
+  // below already says that, the same reason Login's
+  // "Pick up right where you left off." was removed. `subtitle` is optional;
+  // the header renders the <p> only when one is present.
+  const stepHeading: { title: string; subtitle?: string } =
     step === 1
       ? isBusinessSignup
-        ? { title: "Set up your business.", subtitle: "Invite your team and bill jobs to one card." }
-        : { title: "Welcome, neighbor.", subtitle: "Create your account to get started." }
-      : { title: "Tell us about you.", subtitle: "A few basics so neighbors know who they're working with." };
+        ? { title: "Create business account", subtitle: "Invite your team and bill jobs to one card." }
+        : { title: "Create account" }
+      : { title: "About you" };
 
+  // No `desktopBrandPanel`: AuthBrandPane is only the H emblem, and it stacked
+  // ABOVE the form at lg+ while the heading row carried its own emblem below —
+  // two marks, plus a tall vertical stack that pushed the Google button off the
+  // bottom of a 922px-tall window. One emblem now sits beside the heading at
+  // every width.
   return (
-    <AuthShell hideHeader desktopBrandPanel={<AuthBrandPane />}>
-      <div className="text-center mb-4 space-y-1.5">
-        {/* The H emblem is redundant on desktop — the AuthBrandPane hero
-            above already renders it. Hide at lg+ so the two don't stack. */}
-        <div className="flex justify-center mb-2 lg:hidden">
-          <HelprMark to={null} size="md" emblemOnly />
-        </div>
-        <h1
-          className="font-display italic font-bold leading-tight"
-          style={{
-            fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
-            color: "hsl(var(--ink-deep))",
-            letterSpacing: "-0.03em",
-          }}
-        >
-          {stepHeading.title}
-        </h1>
-        <p
-          className="font-sans"
-          style={{
-            fontSize: "0.95rem",
-            color: "hsl(var(--olivewood) / 0.8)",
-            letterSpacing: "0.01em",
-          }}
-        >
-          {stepHeading.subtitle}
-        </p>
-      </div>
-      <div className="pb-8">
+    <AuthShell hideHeader centerColumn hideBack maxWidth="2xl">
+      <div>
           {/* Liquid-glass card — matches the Login screen so the two auth
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}
-          <div className="liquid-glass px-6 sm:px-8 py-5 space-y-4">
-            {/* Dev-only step jumper — visible in dev builds so you can click through every signup screen without making an account. Hidden in production. */}
-            {import.meta.env.DEV && (
-              <div className="rounded-ds-sm border border-dashed border-primary/40 bg-primary/5 p-2 flex items-center gap-2 text-ds-11">
-                <span className="text-primary font-semibold uppercase tracking-wider">Preview</span>
-                <span className="text-muted-foreground">Jump to step:</span>
-                {[1, 2].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setStep(n)}
-                    className={`w-6 h-6 rounded-md text-ds-11 font-semibold transition-colors ${
-                      step === n
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card text-foreground"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-                <Link to="/signup-pending" className="ml-auto text-primary hover:underline">
-                  Pending →
-                </Link>
+          <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
+            {/* Heading INSIDE the card, no H emblem — identical treatment to
+                Login. The emblem stacked above a heading that sat above the
+                card meant three bands of vertical space before the email
+                field, and it clipped the Google button off a 922px window.
+                The card is now the whole composition. */}
+            {/* [back] [title] on ONE row, identical to Login. The arrow used
+                to be absolutely positioned in the card corner with the heading
+                indented pl-12/pl-14 to clear it, which left the heading
+                aligned to nothing. */}
+            <div className="text-left space-y-1">
+              <div className="flex items-center gap-3">
+                <div className="shrink-0"><BackButton to="/" /></div>
+                <h1
+                  className="font-display italic font-bold leading-tight min-w-0 flex-1"
+                  style={{
+                    fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
+                    color: "hsl(var(--ink-deep))",
+                    letterSpacing: "-0.03em",
+                  }}
+                >
+                  {stepHeading.title}
+                </h1>
               </div>
-            )}
+              {stepHeading.subtitle && (
+                <p
+                  className="font-sans"
+                  style={{
+                    fontSize: "0.95rem",
+                    color: "hsl(var(--olivewood) / 0.8)",
+                    letterSpacing: "0.01em",
+                  }}
+                >
+                  {stepHeading.subtitle}
+                </p>
+              )}
+            </div>
 
         {/* Step 2: About you + ID */}
         {step === 2 && (

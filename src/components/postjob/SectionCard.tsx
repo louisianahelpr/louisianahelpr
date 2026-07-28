@@ -4,8 +4,6 @@ import { Check } from "lucide-react";
 interface SectionCardProps {
   /** 1-based chapter number shown in the corner marker. */
   stepNumber: number;
-  /** Small Garamond small-caps eyebrow above the title. */
-  eyebrow: string;
   /** Bodoni display title — the chapter name. */
   title: string;
   /** Section icon, rendered inside the chapter marker. */
@@ -19,12 +17,11 @@ interface SectionCardProps {
  * SectionCard — the shared "chapter" container for the three Post-a-Task
  * sections (Details / Logistics / Budget). Gives every section the same
  * contained panel, the same internal padding, and the same editorial
- * header: a numbered chapter marker + eyebrow + Bodoni title. This is
- * what turns the wall of fields into three unmistakable chapters.
+ * header: a numbered chapter marker + Bodoni title. This is what turns
+ * the wall of fields into three unmistakable chapters.
  */
 export function SectionCard({
   stepNumber,
-  eyebrow,
   title,
   icon: Icon,
   complete,
@@ -32,9 +29,9 @@ export function SectionCard({
 }: SectionCardProps) {
   return (
     <section className="rounded-2xl liquid-glass p-5 space-y-5 shadow-sm">
-      {/* Chapter header — numbered marker, eyebrow, Bodoni title. A
-          divider rule under it visually closes the header off from the
-          fields so the section reads as a chapter, not a field group. */}
+      {/* Chapter header — numbered marker, Bodoni title. A divider rule
+          under it visually closes the header off from the fields so the
+          section reads as a chapter, not a field group. */}
       <header
         className="flex items-center justify-between gap-3 pb-3.5"
         style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}
@@ -60,17 +57,8 @@ export function SectionCard({
             </span>
           </div>
           <div className="leading-none min-w-0">
-            <p
-              className="font-serif italic uppercase text-ds-9"
-              style={{
-                color: "hsl(var(--burnt-sienna))",
-                letterSpacing: "0.18em",
-              }}
-            >
-              {eyebrow}
-            </p>
             <h2
-              className="font-display italic font-bold mt-1"
+              className="font-display italic font-bold"
               style={{
                 fontSize: "1.15rem",
                 color: "hsl(var(--ink-deep))",

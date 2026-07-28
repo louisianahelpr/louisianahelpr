@@ -53,7 +53,9 @@ export function ActivityEmptyState({
   const isPosted = tab === "posted";
   const totalCount = isPosted ? postedJobsCount : appliedAppsCount;
   const isTrulyEmpty = totalCount === 0;
-  const eyebrow = isTrulyEmpty ? "Nothing yet" : "No matches";
+  // No eyebrow: "Nothing yet" / "No matches" said exactly what the title
+  // below it already says ("Nothing posted yet." / "No jobs in this view."),
+  // so it read as the same sentence twice in two type sizes.
   const title = isTrulyEmpty
     ? (isPosted ? "Nothing posted yet." : "No applications yet.")
     : "No jobs in this view.";
@@ -88,7 +90,6 @@ export function ActivityEmptyState({
     <div className="flex-1 min-h-full flex">
       <EmptyState
         icon={Icon}
-        eyebrow={eyebrow}
         title={title}
         body={body}
         action={

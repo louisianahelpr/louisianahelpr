@@ -119,9 +119,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
     <div className="space-y-4">
       {!hideHeader && (
         <ProfileTabHeader
-          eyebrow="Calendar"
           title="My schedule"
-          meta="Your upcoming jobs and bookings"
           onBack={onBack}
         />
       )}
@@ -216,14 +214,24 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                       "hover:bg-secondary text-foreground"
                     }`}
                     style={
-                      isBlocked && !isSelected && !isToday
+                      isSelected
                         ? {
-                            // Subtle diagonal hatch + grey backdrop —
-                            // signals "unavailable" without screaming.
-                            backgroundImage:
-                              "repeating-linear-gradient(135deg, transparent 0 4px, hsl(var(--olivewood) / 0.06) 4px 5px)",
+                            // Canonical glossy selected-control treatment
+                            // (matches the Subscription billing pills):
+                            // drop shadow + inset parchment top-highlight so
+                            // the picked day reads as elevated, not a flat
+                            // fill.
+                            boxShadow:
+                              "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)",
                           }
-                        : undefined
+                        : isBlocked && !isToday
+                          ? {
+                              // Subtle diagonal hatch + grey backdrop —
+                              // signals "unavailable" without screaming.
+                              backgroundImage:
+                                "repeating-linear-gradient(135deg, transparent 0 4px, hsl(var(--olivewood) / 0.06) 4px 5px)",
+                            }
+                          : undefined
                     }
                   >
                     {day}
@@ -281,9 +289,6 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
           {selectedDate && (
             <div className="space-y-3">
               <div>
-                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                  Selected day
-                </p>
                 <h3 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   {new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                 </h3>
@@ -318,9 +323,6 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
           {!selectedDate && (
             <div className="space-y-3">
               <div>
-                <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                  Coming up
-                </p>
                 <h3 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   Upcoming jobs
                 </h3>

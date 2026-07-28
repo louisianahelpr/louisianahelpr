@@ -11,7 +11,7 @@
  * Not in AppShell — long-form content, document-scroll.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -51,10 +51,16 @@ export default function FamilyDashboard() {
     enabled: !!userId,
   });
 
-  // Collect all counterpart user IDs to batch-fetch profile stubs
+  // Collect all counterpart user IDs to batch-fetch profile stubs.
+  // Deduped: the same person can appear on both sides of a pair of
+  // relationships, and a duplicate id would otherwise be sent twice in the
+  // .in() filter AND change the React Query key — splitting the cache for
+  // what is the same request.
   const counterpartIds = [
-    ...(relQuery.data?.asCaregiver.map((r) => r.care_recipient_id) ?? []),
-    ...(relQuery.data?.asRecipient.map((r) => r.caregiver_id) ?? []),
+    ...new Set([
+      ...(relQuery.data?.asCaregiver.map((r) => r.care_recipient_id) ?? []),
+      ...(relQuery.data?.asRecipient.map((r) => r.caregiver_id) ?? []),
+    ]),
   ];
 
   const profilesQuery = useQuery({
@@ -66,6 +72,23 @@ export default function FamilyDashboard() {
   const profileMap = Object.fromEntries(
     (profilesQuery.data ?? []).map((p) => [p.user_id, p])
   );
+
+  // Never drop the Supabase error. On failure every card falls back to the
+  // generic "Your family member" label — which looks like a profile with no
+  // name rather than a lookup that failed. Report it, and (below) say so.
+  useEffect(() => {
+    if (profilesQuery.isError) {
+      report(profilesQuery.error, {
+        severity: "warning",
+        tags: { source: "FamilyDashboard.profile_stubs" },
+        context: { user_id: userId, counterpart_count: counterpartIds.length },
+      });
+    }
+    // Report once per distinct failure, not on every render.
+  }, [profilesQuery.isError, profilesQuery.error, userId, counterpartIds.length]);
+
+  // Names are missing AND there are people whose names we should have shown.
+  const namesFailed = profilesQuery.isError && counterpartIds.length > 0;
 
   const qc = useQueryClient();
 
@@ -111,7 +134,12 @@ export default function FamilyDashboard() {
   return (
     <>
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Family & care" onBack={() => navigate(-1)} width="lg" showBrand rightSlot={<NotificationPanel />} />
+      {/* No `showBrand`: /family is a Profile sub-page. The back chevron
+          anchors to /profile (its parent) rather than the misleading Helpr
+          wordmark that read as a top-level destination. */}
+      {/* width mirrors the body container below, gutters included — a fixed
+          "lg" pinned the title to a 32rem column the body outgrows at md+. */}
+      <PageHeader title="Family & care" onBack={() => navigate("/profile")} width="lg-2xl-5xl-6xl-tight" rightSlot={<NotificationPanel />} />
 
       {/* Split-column desktop layout: on mobile/tablet this stacks as a
           single column exactly as before. At lg+ it becomes a two-column
@@ -119,12 +147,33 @@ export default function FamilyDashboard() {
           left, and the invite form + about-panel are pulled into a
           sticky action pane on the right. Outer container widens to
           max-w-5xl/6xl to give the two columns real breathing room. */}
-      <div className="max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto px-4 pt-4 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 xl:gap-12 items-start">
+      <div className="max-w-lg md:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 md:px-6 lg:px-4 pt-4 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 xl:gap-12 items-start">
 
         {/* ── LEFT COLUMN — members lists ──
             Primary reading content: who you manage, and (if applicable)
             who manages jobs on your behalf. */}
         <div className="lg:col-span-7 space-y-6 min-w-0">
+
+          {/* Name lookup failed — the relationships below are real and intact,
+              but every card is showing a placeholder label. Say that plainly
+              rather than let "Your family member" read as a nameless profile. */}
+          {namesFailed && (
+            <p
+              className="text-ds-12 font-serif italic px-1"
+              style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}
+            >
+              Couldn't load names right now, so the cards below show a placeholder.
+              Everyone's access is unchanged.{" "}
+              <button
+                type="button"
+                onClick={() => void profilesQuery.refetch()}
+                disabled={profilesQuery.isFetching}
+                className="underline underline-offset-2 disabled:opacity-60"
+              >
+                Try again
+              </button>
+            </p>
+          )}
 
           {/* ── Caregiver section — always shown so the user can see the
               empty state even if they aren't managing anyone yet. The
@@ -152,7 +201,8 @@ export default function FamilyDashboard() {
                   variant="inline"
                   title="Couldn't load your family connections."
                   body="Tap Try again to reload who you're managing jobs for."
-                  onRetry={() => relQuery.refetch()}
+                  onRetry={() => void relQuery.refetch()}
+                  retryDisabled={relQuery.isFetching}
                 />
               )}
 

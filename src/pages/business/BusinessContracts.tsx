@@ -275,7 +275,7 @@ const BusinessContracts = () => {
           <h2 className="font-semibold flex items-center gap-2">
             <CalendarClock className="w-4 h-4" /> Active schedules
           </h2>
-          <Badge variant="secondary" className="text-ds-11">{templates.length}</Badge>
+          <Badge variant="sienna" className="text-ds-11">{templates.length}</Badge>
         </div>
         {tLoading ? (
           <div className="py-6 flex justify-center"><HelprSpinner size={24} /></div>

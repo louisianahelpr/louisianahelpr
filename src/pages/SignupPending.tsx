@@ -110,13 +110,6 @@ const SignupPending = () => {
         </div>
 
         <div className="border-t pt-6 space-y-4 text-left" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
-          <h2
-            className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em] text-center"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            What happens next?
-          </h2>
-
           <div className="flex items-start gap-3">
             {stepIcon(MailCheck)}
             <div>

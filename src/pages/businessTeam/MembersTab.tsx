@@ -248,7 +248,7 @@ const MembersTab = ({
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium truncate">{m.full_name || m.email || "Team member"}</p>
                       {m.role === "owner" && (
-                        <Badge variant="secondary" className="text-ds-11 gap-1">
+                        <Badge variant="sienna" className="text-ds-11 gap-1">
                           <Crown className="w-3 h-3" /> Owner
                         </Badge>
                       )}

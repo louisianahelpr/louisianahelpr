@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import PageHeader from "@/components/PageHeader";
 import NotificationPanel from "@/components/NotificationPanel";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -22,7 +24,7 @@ import type { AddFormState, StrConnection } from "./strSettings/types";
 import { cardStyle } from "./strSettings/strSettingsHelpers";
 import { EmptyConnections } from "./strSettings/EmptyConnections";
 import { ConnectionCard } from "./strSettings/ConnectionCard";
-import { AddCalendarForm } from "./strSettings/AddCalendarForm";
+import { AddCalendarForm, validateCleaningBudget } from "./strSettings/AddCalendarForm";
 
 // ---------------------------------------------------------------------------
 // Main page
@@ -32,11 +34,18 @@ export default function StrSettings() {
   const [addOpen, setAddOpen] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  // Connection pending removal — gates the destructive action behind a
+  // branded confirm, same as PetProfiles and FamilyDashboard do for theirs.
+  const [connToRemove, setConnToRemove] = useState<StrConnection | null>(null);
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
 
   // ── Fetch connections ────────────────────────────────────────────────────
-  const { data: connections = [], isLoading } = useQuery({
+  // isError/isFetching are load-bearing, not decoration: on a failed fetch
+  // `connections` falls back to [] and the page would otherwise render
+  // "No calendars connected yet" — telling a host their calendars are gone
+  // and inviting them to re-add a duplicate feed. Error must read as error.
+  const { data: connections = [], isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["str-calendar-connections", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
@@ -56,7 +65,16 @@ export default function StrSettings() {
     mutationFn: async (form: AddFormState) => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      const budget = parseFloat(form.cleaning_budget) || 80;
+      // This budget is the flat dollar amount every auto-posted cleaning job
+      // will be created with, so it must be the host's OWN number. The old
+      // `parseFloat(...) || 80` silently turned "", "abc" or "0" into $80 and
+      // accepted "5" despite the input advertising a $10 minimum — a host
+      // could end up committing to a price they never chose. Refuse the save
+      // with the same message the form shows instead.
+      const budgetCheck = validateCleaningBudget(form.cleaning_budget);
+      if (form.auto_create_cleaning && budgetCheck.error) {
+        throw new Error(budgetCheck.error);
+      }
 
       const { data, error } = await supabase
         .from("str_calendar_connections")
@@ -67,7 +85,10 @@ export default function StrSettings() {
           property_name: form.property_name.trim() || null,
           property_address: form.property_address.trim() || null,
           auto_create_cleaning: form.auto_create_cleaning,
-          cleaning_budget: budget,
+          // Omitted (→ column default) only when auto-create is OFF and the
+          // hidden field holds nothing usable; never overwritten with a
+          // made-up number when the host did type one.
+          ...(budgetCheck.value !== null ? { cleaning_budget: budgetCheck.value } : {}),
           cleaning_notes: form.cleaning_notes.trim() || null,
         })
         .select("id")
@@ -170,12 +191,13 @@ export default function StrSettings() {
       <PageHeader
         title="Host Automation"
         meta="Auto-post cleaning jobs on guest checkout"
-        width="5xl"
+        // Mirrors the body ladder below, gutters included.
+        width="lg-2xl-5xl-6xl"
         showBrand
         rightSlot={<NotificationPanel />}
       />
 
-      <div className="max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto px-4 lg:px-8 mt-2 pb-8">
+      <div className="max-w-lg md:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 md:px-6 lg:px-8 mt-2 pb-8">
 
         {/* Explanation card (mobile: stacked above list; desktop: sticky in left rail) */}
         <div className="lg:hidden mb-4 rounded-ds-md p-4" style={cardStyle}>
@@ -247,6 +269,16 @@ export default function StrSettings() {
               <div className="flex justify-center py-8">
                 <HelprSpinner size={24} />
               </div>
+            ) : isError ? (
+              <div className="flex">
+                <ErrorState
+                  variant="inline"
+                  title="Couldn't load your calendars."
+                  body="Your connected calendars are still saved — we just couldn't reach them. Tap Try again before adding one, so you don't end up with a duplicate."
+                  onRetry={() => void refetch()}
+                  retryDisabled={isFetching}
+                />
+              </div>
             ) : connections.length === 0 ? (
               <div className="rounded-ds-md" style={cardStyle}>
                 <EmptyConnections />
@@ -258,7 +290,7 @@ export default function StrSettings() {
                     key={conn.id}
                     conn={conn}
                     onSync={handleSync}
-                    onRemove={(id) => { setRemovingId(id); removeConnection(id); }}
+                    onRequestRemove={setConnToRemove}
                     syncing={syncingId === conn.id}
                     removing={removingId === conn.id}
                   />
@@ -315,6 +347,35 @@ export default function StrSettings() {
           </section>
         </div>
       </div>
+
+      {/* Removing is a soft-delete (`is_active: false`) and there is no
+          archived view, so from the host's side it is permanent — the confirm
+          copy says so rather than implying it can be undone. Confirming closes
+          this dialog; the card's own trash button takes over the pending
+          spinner while the mutation runs. */}
+      <BrandConfirmDialog
+        open={connToRemove !== null}
+        onOpenChange={(open) => { if (!open) setConnToRemove(null); }}
+        title={
+          connToRemove
+            ? `Remove ${connToRemove.property_name || "this calendar"}?`
+            : "Remove this calendar?"
+        }
+        description="Helpr will stop syncing it and won't post any more cleaning jobs from it. Cleaning jobs already posted stay exactly as they are."
+        callout={{
+          text: "This can't be undone — you'd have to paste the calendar URL in again to reconnect.",
+        }}
+        primaryLabel="Remove"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => {
+          if (!connToRemove) return;
+          setRemovingId(connToRemove.id);
+          removeConnection(connToRemove.id);
+          setConnToRemove(null);
+        }}
+        secondaryLabel="Keep calendar"
+      />
     </div>
   );
 }

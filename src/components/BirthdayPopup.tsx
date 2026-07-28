@@ -124,7 +124,6 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                   className="text-center space-y-0"
                   eyebrow="From the Helpr family"
                   title={`Happy birthday, ${firstName}.`}
-                  subtitle="Wishing you a great one. Thanks for being part of the Louisiana Helpr community."
                   titleStyle={{ fontSize: "clamp(1.5rem, 2.5vw + 0.4rem, 1.85rem)", letterSpacing: "-0.025em" }}
                 />
                 <button

@@ -96,6 +96,10 @@ const AdminSettings = () => {
       toast.error("Min build must be a non-negative integer");
       return;
     }
+    if (n > 999_999) {
+      toast.error("Min build must be no greater than 999,999");
+      return;
+    }
     setSavingMinBuild(true);
     const { error } = await (supabase.from as any)("platform_settings")
       .update({ min_supported_build: n })

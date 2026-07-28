@@ -63,13 +63,6 @@ const AccountDenied = () => {
         )}
 
         <div className="border-t pt-6 space-y-4 text-left" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
-          <h2
-            className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em] text-center"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            What can you do?
-          </h2>
-
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-ds-md flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "hsl(var(--bark) / 0.1)" }}>
               <RefreshCw className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />

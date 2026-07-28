@@ -145,7 +145,6 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
         <SheetHero
           eyebrow="Your feedback"
           title="How are we doing?"
-          subtitle="How likely are you to recommend Helpr to a friend?"
         />
 
         <div className="mt-5 space-y-4">

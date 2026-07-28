@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
 import PublicLayout from "@/components/marketing/PublicLayout";
+import { isNativePlatform } from "@/lib/nativeInit";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
 type NeedChip =
@@ -52,7 +53,7 @@ const DischargeConcierge = () => {
   usePageMeta({
     title: "Healthcare Discharge Concierge — Louisiana Helpr",
     description:
-      "Coming home from the hospital? Find verified local helpers for transport, home prep, meals, and errands — same-day, Louisiana-wide.",
+      "Coming home from the hospital? Find verified local Helprs for transport, home prep, meals, and errands — same-day, Louisiana-wide.",
     canonical: "https://www.louisianahelpr.com/discharge",
     ogTitle: "Coming home from the hospital? Louisiana Helpr has you covered.",
     ogDescription:
@@ -68,10 +69,19 @@ const DischargeConcierge = () => {
 
   return (
     <PublicLayout>
-      <PageHeader
-        eyebrow="Healthcare"
-        title="Discharge Concierge"
-      />
+      {/* Native-only: on web PageHeader's back button stacked under
+          PublicLayout's "Back to home", giving two back affordances 35px apart
+          at 375px. Mirrors DataRights.tsx:113. */}
+      {isNativePlatform ? (
+        <PageHeader
+          eyebrow="Healthcare"
+          title="Discharge Concierge"
+        />
+      ) : (
+        <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-8">
+          <h1 className="text-page-title leading-tight">Discharge Concierge</h1>
+        </div>
+      )}
 
       <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 lg:px-8 pb-12 space-y-8">
 
@@ -113,7 +123,7 @@ const DischargeConcierge = () => {
             style={{ color: "hsl(var(--olivewood))" }}
           >
             Leaving the hospital is stressful enough. Louisiana Helpr connects
-            you with ID-verified local helpers for transport, home prep, meals,
+            you with ID-verified local Helprs for transport, home prep, meals,
             and everyday errands — often within the hour.
           </p>
         </div>
@@ -146,7 +156,7 @@ const DischargeConcierge = () => {
             ].map(({ icon: Icon, title, body }) => (
               <div
                 key={title}
-                className="liquid-glass p-4 space-y-2 rounded-xl"
+                className="liquid-glass p-4 space-y-2 rounded-2xl"
               >
                 <div
                   className="w-9 h-9 rounded-ds-md flex items-center justify-center"
@@ -290,7 +300,7 @@ const DischargeConcierge = () => {
             },
             {
               icon: ShieldCheck,
-              label: "ID-verified helpers",
+              label: "ID-verified Helprs",
               body: "Every Helpr clears Stripe identity verification.",
             },
             {
@@ -301,7 +311,7 @@ const DischargeConcierge = () => {
           ].map(({ icon: Icon, label, body }) => (
             <div
               key={label}
-              className="flex items-start gap-3 p-3 rounded-xl"
+              className="flex items-start gap-3 p-3 rounded-2xl"
               style={{
                 background: "hsl(var(--sage) / 0.08)",
                 border: "1px solid hsl(var(--sage) / 0.18)",

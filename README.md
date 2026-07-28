@@ -77,5 +77,6 @@ Native iOS releases go through Fastlane (see `docs/CICD_AND_ASO.md`).
 
 ## Contributing
 
-Branch off `main`, open a PR, and ensure `npm run typecheck`, `npm run lint`, and
-`npm run build` all pass before requesting review.
+Commit directly to `main` — no branch or PR required. Ensure `npm run typecheck`,
+`npm run lint`, and `npm run build` all pass before pushing. See `CLAUDE.md` for
+the full working rules.

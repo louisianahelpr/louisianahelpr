@@ -35,6 +35,10 @@ interface ChatViewProps {
   /** True when the thread fetch failed — shows a recoverable error
    *  state instead of the misleading "Say hello." empty state. */
   chatLoadError: boolean;
+  /** True while a newly-opened conversation's messages are still being
+   *  fetched — shows a skeleton instead of a blank window or the
+   *  misleading "Say hello." empty state. */
+  chatLoading: boolean;
   /** Re-runs the thread fetch for the open conversation. */
   onRetryLoad: () => void;
   hasMoreMessages: boolean;
@@ -101,6 +105,7 @@ export function ChatView({
   messages,
   userId,
   chatLoadError,
+  chatLoading,
   onRetryLoad,
   hasMoreMessages,
   loadingMore,
@@ -257,6 +262,7 @@ export function ChatView({
             loadingMore={loadingMore}
             loadOlderMessages={loadOlderMessages}
             chatLoadError={chatLoadError}
+            chatLoading={chatLoading}
             onRetryLoad={onRetryLoad}
             isOtherTyping={isOtherTyping}
             bottomRef={bottomRef}
@@ -311,14 +317,17 @@ export function ChatView({
         onUnmute={onUnmute}
       />
 
-      {/* Long-press action sheet for a chat bubble — Copy plus Report
-          (inbound) or Delete (own). One shared sheet, opened with the
-          target message. */}
+      {/* Long-press action sheet for a chat bubble — Copy plus Report +
+          Block (inbound) or Delete (own). One shared sheet, opened with
+          the target message. `onBlock` is the SAME handler the ChatHeader
+          ⋮ menu fires, so both entry points land in the one page-level
+          BlockUserDialog. */}
       <MessageActionSheet
         message={actionMessage}
         mine={actionMessage?.sender_id === userId}
         onClose={() => setActionMessage(null)}
         onReport={(id) => setReportTarget({ type: "message", id })}
+        onBlock={() => setBlockTarget({ id: activeConvo.otherUserId, name: activeConvo.otherUserName })}
         onDelete={setDeleteMessageConfirm}
       />
     </ChatPaneShell>

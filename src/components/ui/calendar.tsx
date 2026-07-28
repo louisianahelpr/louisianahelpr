@@ -33,13 +33,13 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         nav: "space-x-1 flex items-center",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)] absolute left-1",
-          isDropdown && "top-[1.375rem]",
+          "h-9 w-9 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)] absolute left-1",
+          isDropdown && "top-[1.25rem]",
         ),
         button_next: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)] absolute right-1",
-          isDropdown && "top-[1.375rem]",
+          "h-9 w-9 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)] absolute right-1",
+          isDropdown && "top-[1.25rem]",
         ),
         month_grid: "w-full border-collapse space-y-1",
         weekdays: "flex",

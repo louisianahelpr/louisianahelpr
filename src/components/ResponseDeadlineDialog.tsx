@@ -41,7 +41,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
           </p>
           <div className="space-y-2">
             <Select value={hours} onValueChange={setHours}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Response deadline">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

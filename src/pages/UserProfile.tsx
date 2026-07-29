@@ -148,9 +148,9 @@ const UserProfile = () => {
   const headerHasActions = !isOwnProfile && !!currentUserId;
   const headerActionPlaceholder = headerHasActions ? (
     <div className="flex items-center gap-1" aria-hidden>
-      <div className="h-10 w-10 rounded-ds-md bg-muted animate-pulse" />
-      <div className="h-10 w-10 rounded-ds-md bg-muted animate-pulse" />
-      <div className="h-10 w-10 rounded-ds-md bg-muted animate-pulse" />
+      <div className="h-10 w-10 rounded-ds-md bg-muted motion-safe:animate-pulse" />
+      <div className="h-10 w-10 rounded-ds-md bg-muted motion-safe:animate-pulse" />
+      <div className="h-10 w-10 rounded-ds-md bg-muted motion-safe:animate-pulse" />
     </div>
   ) : null;
 
@@ -178,16 +178,16 @@ const UserProfile = () => {
         <div className="container mx-auto px-5 py-6">
           <div className="max-w-2xl mx-auto space-y-5">
             <div className="rounded-2xl liquid-glass p-5 text-center space-y-3">
-              <div className="w-24 h-24 rounded-[26px] squircle bg-muted animate-pulse mx-auto" />
-              <div className="h-6 w-40 bg-muted animate-pulse mx-auto rounded" />
-              <div className="h-4 w-24 bg-muted animate-pulse mx-auto rounded" />
-              <div className="h-4 w-64 bg-muted animate-pulse mx-auto rounded" />
+              <div className="w-24 h-24 rounded-[26px] squircle bg-muted motion-safe:animate-pulse mx-auto" />
+              <div className="h-6 w-40 bg-muted motion-safe:animate-pulse mx-auto rounded" />
+              <div className="h-4 w-24 bg-muted motion-safe:animate-pulse mx-auto rounded" />
+              <div className="h-4 w-64 bg-muted motion-safe:animate-pulse mx-auto rounded" />
             </div>
             <div className="grid grid-cols-3 gap-2">
               {[1, 2, 3].map(i => (
                 <div key={i} className="rounded-ds-md liquid-glass p-3 space-y-2">
-                  <div className="h-7 w-10 bg-muted animate-pulse mx-auto rounded" />
-                  <div className="h-3 w-12 bg-muted animate-pulse mx-auto rounded" />
+                  <div className="h-7 w-10 bg-muted motion-safe:animate-pulse mx-auto rounded" />
+                  <div className="h-3 w-12 bg-muted motion-safe:animate-pulse mx-auto rounded" />
                 </div>
               ))}
             </div>

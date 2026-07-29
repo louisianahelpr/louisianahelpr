@@ -277,7 +277,7 @@ const AdminHealth = () => {
                   {d}d
                 </button>
               ))}
-              {fillFetching && <span className="ml-1 text-ds-10 text-muted-foreground animate-pulse">…</span>}
+              {fillFetching && <span className="ml-1 text-ds-10 text-muted-foreground motion-safe:animate-pulse">…</span>}
             </div>
           </div>
 

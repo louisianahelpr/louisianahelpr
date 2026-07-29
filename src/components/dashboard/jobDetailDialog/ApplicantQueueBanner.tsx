@@ -26,7 +26,7 @@ export const ApplicantQueueBanner = ({ guest, applicationCount, viewerAppPositio
       {applicationCount === null && !guest ? (
         <div
           aria-hidden
-          className="rounded-ds-md px-3 py-2 flex items-center gap-2 animate-pulse"
+          className="rounded-ds-md px-3 py-2 flex items-center gap-2 motion-safe:animate-pulse"
           style={{
             background: "hsl(var(--olivewood) / 0.05)",
             border: "0.5px solid hsl(var(--olivewood) / 0.10)",

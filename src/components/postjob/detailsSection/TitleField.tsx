@@ -69,7 +69,7 @@ export function TitleField({
             }
           >
             <Mic
-              className={`w-4 h-4 ${dictation.isListening ? "animate-pulse" : ""}`}
+              className={`w-4 h-4 ${dictation.isListening ? "motion-safe:animate-pulse" : ""}`}
               strokeWidth={2}
             />
           </button>

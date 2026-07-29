@@ -364,7 +364,7 @@ const HelprWrapped = () => {
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className="rounded-ds-md p-4 h-20 animate-pulse"
+                    className="rounded-ds-md p-4 h-20 motion-safe:animate-pulse"
                     style={{ background: "rgba(255,255,255,0.20)" }}
                   />
                 ))}

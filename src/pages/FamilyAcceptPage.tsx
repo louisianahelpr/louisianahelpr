@@ -158,8 +158,8 @@ export default function FamilyAcceptPage() {
         {/* Loading skeleton */}
         {loading && (
           <div className="w-full space-y-3">
-            <div className="h-6 rounded animate-pulse w-2/3 mx-auto" style={{ background: "hsl(var(--sand) / 0.5)" }} />
-            <div className="h-32 rounded-ds-md animate-pulse" style={{ background: "hsl(var(--sand) / 0.4)" }} />
+            <div className="h-6 rounded motion-safe:animate-pulse w-2/3 mx-auto" style={{ background: "hsl(var(--sand) / 0.5)" }} />
+            <div className="h-32 rounded-ds-md motion-safe:animate-pulse" style={{ background: "hsl(var(--sand) / 0.4)" }} />
           </div>
         )}
 

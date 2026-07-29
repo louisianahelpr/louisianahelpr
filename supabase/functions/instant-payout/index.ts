@@ -151,10 +151,13 @@ serve(async (req) => {
             `[instant-payout] platform account retrieval failed — fee transfer skipped for instant_payout ${record.id}: ${acctMsg}`
           );
           // Best-effort reconciliation write so the skipped fee is visible in the DB.
-          await supabaseAdmin
+          const { error: acctRecErr } = await supabaseAdmin
             .from("instant_payouts")
             .update({ error_message: `fee_uncollected: platform_account_retrieval_failed: ${acctMsg}` })
             .eq("id", record.id);
+          if (acctRecErr) {
+            console.error(`[instant-payout] failed to record platform_account_retrieval_failed for ${record.id}:`, acctRecErr);
+          }
         }
 
         if (platformAccountId) {

@@ -10,11 +10,19 @@ export async function handlePaymentIntentPaymentFailed(
   logStep("Payment intent failed", { id: pi.id, email: failedEmail });
 
   // Find the job linked to this PI and notify the poster
-  const { data: failedJob } = await supabase
+  const { data: failedJob, error: failedJobErr } = await supabase
     .from("jobs")
     .select("id, customer_id, title")
     .eq("stripe_payment_intent_id", pi.id)
     .maybeSingle();
+
+  if (failedJobErr) {
+    // Throw so the outer handler rolls back the idempotency row and returns 500,
+    // letting Stripe retry once the DB recovers. Silently returning would ack the
+    // event permanently — leaving the job in its pre-failure state (e.g. "escrow")
+    // with no "failed" marker and no poster notification, forever.
+    throw new Error(`Job lookup failed for failed PI ${pi.id}: ${failedJobErr.message}`);
+  }
 
   if (failedJob) {
     await supabase.from("notifications").insert({

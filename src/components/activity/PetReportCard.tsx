@@ -172,7 +172,7 @@ export function SendReportCard({
             Which pet?
           </h3>
           {petsLoading ? (
-            <div className="rounded-ds-lg liquid-glass h-12 animate-pulse" />
+            <div className="rounded-ds-lg liquid-glass h-12 motion-safe:animate-pulse" />
           ) : pets && pets.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {pets.map((p) => (

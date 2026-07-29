@@ -531,7 +531,7 @@ export default function PayItForward() {
                   {[0, 1].map((i) => (
                     <div
                       key={i}
-                      className="rounded-ds-md h-24 animate-pulse"
+                      className="rounded-ds-md h-24 motion-safe:animate-pulse"
                       style={{ background: "hsl(var(--olivewood) / 0.07)" }}
                     />
                   ))}
@@ -569,7 +569,7 @@ export default function PayItForward() {
               </p>
               {loadingDonated ? (
                 <div
-                  className="rounded-ds-md h-16 animate-pulse"
+                  className="rounded-ds-md h-16 motion-safe:animate-pulse"
                   style={{ background: "hsl(var(--olivewood) / 0.07)" }}
                 />
               ) : donatedFailed ? (

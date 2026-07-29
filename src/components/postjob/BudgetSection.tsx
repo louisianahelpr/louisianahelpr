@@ -209,7 +209,7 @@ export function BudgetSection({
               keeps the original "Suggested" phrasing. */}
           {priceStatsLoading && !priceStats && (
             <div
-              className="h-9 rounded-ds-md bg-primary/5 border border-primary/10 animate-pulse"
+              className="h-9 rounded-ds-md bg-primary/5 border border-primary/10 motion-safe:animate-pulse"
               aria-hidden="true"
             />
           )}

@@ -1,6 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { ImagePlus, X, Plus, GripVertical } from "lucide-react";
 import { Reorder } from "framer-motion";
+import { useReducedMotion } from "@/lib/accessibility";
 
 interface PhotoUploadProps {
   imagePreviews: string[];
@@ -25,6 +26,7 @@ export function PhotoUpload({
   uploadProgressByIndex,
   onReorderImages,
 }: PhotoUploadProps) {
+  const reducedMotion = useReducedMotion();
   return (
     <div className="space-y-2.5">
       <div className="space-y-0.5">
@@ -69,7 +71,7 @@ export function PhotoUpload({
                     border: "0.5px solid hsl(var(--olivewood) / 0.18)",
                     boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
                   }}
-                  whileDrag={{ scale: 1.05, zIndex: 5 }}
+                  whileDrag={reducedMotion ? {} : { scale: 1.05, zIndex: 5 }}
                 >
                   {/^blob:/i.test(src) ? (
                     <img loading="lazy" decoding="async" src={src} alt="" aria-hidden="true" className="w-full h-full object-cover pointer-events-none" />

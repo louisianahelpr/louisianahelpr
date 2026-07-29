@@ -21,8 +21,11 @@ export async function handlePaymentIntentSucceeded(
     .maybeSingle();
 
   if (taxJobErr) {
-    logStep("Sales-tax job lookup failed — tax not recorded", { pi: pi.id, error: taxJobErr.message });
-    return;
+    // Throw so the outer handler rolls back the idempotency row and returns 500,
+    // letting Stripe retry once the DB recovers. A plain `return` here would
+    // commit the dedupe row and ack 200 permanently — the tax amount can never
+    // be retried, under-reporting parish tax and 1099 reconciliation.
+    throw new Error(`Sales-tax job lookup failed for PI ${pi.id}: ${taxJobErr.message}`);
   }
 
   if (taxJob) {
@@ -36,10 +39,10 @@ export async function handlePaymentIntentSucceeded(
     }).eq("id", taxJob.id);
 
     if (taxUpdateErr) {
-      // A dropped write leaves sales_tax_amount at 0, under-reporting parish
-      // tax and 1099 reconciliation while the webhook still 200s.
-      logStep("Sales-tax write failed — tax under-reported for job", { jobId: taxJob.id, error: taxUpdateErr.message });
-      return;
+      // Same retry contract: throw instead of returning so the idempotency row
+      // is rolled back and Stripe re-delivers. A silent 200 here permanently
+      // leaves sales_tax_amount at 0, under-reporting parish tax and 1099s.
+      throw new Error(`Sales-tax write failed for job ${taxJob.id}: ${taxUpdateErr.message}`);
     }
 
     logStep("Sales tax recorded on job", { jobId: taxJob.id, tax: confirmedTax, fromStripe: taxAmountCents > 0 });

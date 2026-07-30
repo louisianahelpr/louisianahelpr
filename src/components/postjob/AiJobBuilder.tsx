@@ -59,7 +59,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
       setOpen(false);
       toast.success("Job details generated! Review and edit as needed.");
     } catch (err) {
-      toast.error((err as Error).message || "AI generation failed");
+      toast.error((err as Error).message || "Couldn't generate — try again?");
     } finally {
       setLoading(false);
     }

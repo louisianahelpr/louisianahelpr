@@ -468,7 +468,7 @@ export function ApplyConfirmDialog({
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
+                        if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5 MB"); return; }
                         setApplyFiles(f => [...f, file]);
                       }
                       e.target.value = "";

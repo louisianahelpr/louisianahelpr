@@ -45,7 +45,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
     const files = Array.from(e.target.files || []);
     const validFiles = files.filter((f) => {
       if (f.size > MAX_FILE_SIZE) {
-        toast.error(`"${f.name}" exceeds 5MB limit`);
+        toast.error(`"${f.name}" exceeds 5 MB limit`);
         return false;
       }
       return true;

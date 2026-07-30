@@ -69,7 +69,7 @@ export default function BusinessVerificationCard() {
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("File must be 10MB or smaller");
+      toast.error("File must be 10 MB or smaller");
       return;
     }
 
@@ -101,7 +101,7 @@ export default function BusinessVerificationCard() {
       toast.success("Document uploaded — pending admin review");
       load();
     } catch (err: any) {
-      toast.error(err.message || "Upload failed");
+      toast.error(err.message || "Couldn't upload — try again?");
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -228,7 +228,7 @@ export default function BusinessVerificationCard() {
               )}
             </Button>
             <p className="text-ds-11 text-muted-foreground mt-1.5">
-              Images or PDF, max 10MB. Re-uploading puts your business back into review.
+              Images or PDF, max 10 MB. Re-uploading puts your business back into review.
             </p>
           </div>
         </div>

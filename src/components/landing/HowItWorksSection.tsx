@@ -32,7 +32,7 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
     },
     {
       title: "Pay when it's done",
-      desc: "Funds sit safe in escrow until you confirm the work.",
+      desc: "Funds are held securely — released when you confirm the work.",
     },
   ],
   // Helpr-side copy is anchored to the real flow, not aspiration:

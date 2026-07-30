@@ -64,6 +64,12 @@ serve(async (req) => {
 
   if (!stripeKey) {
     console.error("🚨 [STRIPE-WEBHOOK] ALERT: STRIPE_SECRET_KEY not set — acknowledging to stop retries");
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "critical",
+      title: "Stripe webhook misconfigured — STRIPE_SECRET_KEY not set",
+      message: "STRIPE_SECRET_KEY is missing from edge function secrets. All Stripe webhook events are being acknowledged but NOT processed. Payments, subscriptions, and payouts are broken until this is fixed.",
+    });
     return new Response(JSON.stringify({ received: true, error: "stripe_key_not_configured" }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
@@ -81,6 +87,12 @@ serve(async (req) => {
 
   if (!webhookSecret) {
     console.error("🚨 [STRIPE-WEBHOOK] ALERT: STRIPE_WEBHOOK_SECRET is not configured — acknowledging 200 to stop retries");
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "critical",
+      title: "Stripe webhook misconfigured — STRIPE_WEBHOOK_SECRET not set",
+      message: "STRIPE_WEBHOOK_SECRET is missing from edge function secrets. All Stripe webhook events are being acknowledged but NOT processed. Payments, subscriptions, and payouts are broken until this is fixed.",
+    });
     return new Response(JSON.stringify({ received: true, error: "webhook_secret_not_configured" }), {
       headers: { "Content-Type": "application/json" },
       status: 200,

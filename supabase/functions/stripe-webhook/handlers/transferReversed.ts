@@ -78,6 +78,23 @@ export async function handleTransferReversed(
         `[transferReversed] FREEZE FAILED for job ${reversedLedger.job_id} after transfer ${transfer.id} reversal — job may still be re-payable:`,
         freezeErr,
       );
+      // Alert ops immediately with full context BEFORE throwing below, so the
+      // critical page has the job/amount details. The outer catch fires its own
+      // generic "webhook processing error" alert and rolls back the idempotency
+      // row → Stripe retries → freeze re-runs once the DB recovers.
+      await postSlackOpsAlert({
+        kind: "payout_reversed",
+        severity: "critical",
+        title: "Helpr payout reversed — FREEZE FAILED, double-pay risk",
+        message: `Stripe transfer ${transfer.id} was reversed but the job freeze write FAILED — the job may still be re-payable by the payout cron. Manually set the job to payout_pending / dispute_status='reversal_hold' NOW. Stripe will retry this webhook.`,
+        fields: {
+          "Transfer ID": transfer.id,
+          "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
+          "Destination": String(transfer.destination ?? "—"),
+          "Job": String(reversedLedger.job_id),
+          "DB error": freezeErr.message.slice(0, 200),
+        },
+      });
     } else {
       logStep("Reversed transfer — job frozen (payout_pending + disputed_at) for manual reconciliation", {
         jobId: reversedLedger.job_id,
@@ -85,17 +102,29 @@ export async function handleTransferReversed(
     }
   }
 
-  postSlackOpsAlert({
-    kind: "payout_reversed",
-    severity: freezeFailed ? "critical" : "warning",
-    title: freezeFailed ? "Helpr payout reversed — FREEZE FAILED, double-pay risk" : "Helpr payout reversed",
-    message: freezeFailed
-      ? `Stripe transfer ${transfer.id} was reversed but the job freeze write FAILED — the job may still be re-payable by the payout cron. Manually set the job to payout_pending / dispute_status='reversal_hold' NOW.`
-      : `Stripe transfer ${transfer.id} was reversed. Investigate and reconcile.`,
-    fields: {
-      "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
-      "Destination": String(transfer.destination ?? "—"),
-      ...(reversedLedger?.job_id ? { "Job": String(reversedLedger.job_id) } : {}),
-    },
-  });
+  // If the freeze succeeded (or there was no job_id), emit the standard ops alert.
+  // When the freeze failed we already fired a critical alert above; skip the
+  // duplicate here and throw instead so the outer handler rolls back the
+  // idempotency row and returns 500 — letting Stripe retry and re-run the freeze
+  // once the DB recovers.
+  if (!freezeFailed) {
+    postSlackOpsAlert({
+      kind: "payout_reversed",
+      severity: "warning",
+      title: "Helpr payout reversed",
+      message: `Stripe transfer ${transfer.id} was reversed. Investigate and reconcile.`,
+      fields: {
+        "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
+        "Destination": String(transfer.destination ?? "—"),
+        ...(reversedLedger?.job_id ? { "Job": String(reversedLedger.job_id) } : {}),
+      },
+    });
+  } else {
+    // freezeFailed is only set inside `if (reversedLedger?.job_id)`, so
+    // job_id is always present here. Throw so the outer handler returns 500
+    // and Stripe retries once the DB recovers.
+    throw new Error(
+      `Job freeze failed after reversed transfer ${transfer.id} (job ${reversedLedger?.job_id}) — see Slack alert for DB error details`,
+    );
+  }
 }

@@ -32,7 +32,16 @@ export async function handlePaymentIntentPaymentFailed(
       type: "warning",
       link: "/my-posts",
     });
-    await supabase.from("jobs").update({ payment_status: "failed" }).eq("id", failedJob.id);
+    // Must throw on failure: a silent drop here leaves the job in its pre-failure
+    // state (e.g. "escrow") permanently. The outer handler rolls back the dedupe
+    // row and returns 500 so Stripe retries once the DB recovers.
+    const { error: updateErr } = await supabase
+      .from("jobs")
+      .update({ payment_status: "failed" })
+      .eq("id", failedJob.id);
+    if (updateErr) {
+      throw new Error(`Failed to mark job ${failedJob.id} as payment_failed: ${updateErr.message}`);
+    }
     logStep("Notified poster of payment failure", { jobId: failedJob.id });
   }
 }

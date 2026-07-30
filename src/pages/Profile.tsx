@@ -266,9 +266,9 @@ const ProfilePage = () => {
   const handleIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5MB"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5 MB"); return; }
     const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
-    if (!allowed.includes(file.type)) { toast.error("Use JPG, PNG, WEBP or PDF"); return; }
+    if (!allowed.includes(file.type)) { toast.error("Use JPG, PNG, WEBP, or PDF"); return; }
     setIdUploading(true);
     const ext = file.name.split(".").pop();
     const path = `${user.id}/id-${Date.now()}.${ext}`;
@@ -286,8 +286,8 @@ const ProfilePage = () => {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
+    if (!file.type.startsWith("image/")) { toast.error("Select an image file"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5 MB"); return; }
 
     setAvatarUploading(true);
     const ext = file.name.split(".").pop();

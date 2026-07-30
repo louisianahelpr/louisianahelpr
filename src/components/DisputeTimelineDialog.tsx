@@ -108,7 +108,7 @@ export const DisputeTimelineDialog = ({
     const files = Array.from(e.target.files || []);
     const valid = files.filter((f) => {
       if (f.size > MAX_FILE_SIZE) {
-        toast.error(`"${f.name}" exceeds 5MB limit`);
+        toast.error(`"${f.name}" exceeds 5 MB limit`);
         return false;
       }
       return true;

@@ -133,7 +133,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                   style={{
                     background: "hsl(var(--bark))",
                     color: "hsl(var(--parchment))",
-                    border: "1px solid hsl(70 22% 24%)",
+                    border: "1px solid hsl(var(--bark-border))",
                     fontFamily: "Montserrat, system-ui, sans-serif",
                     fontWeight: 600,
                     letterSpacing: "0.01em",

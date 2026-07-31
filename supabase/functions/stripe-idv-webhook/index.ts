@@ -47,14 +47,31 @@ serve(async (req) => {
     });
   }
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    // createClient() throws if the URL is falsy — outside any try-catch, that
+    // produces an unhandled 500 that causes Stripe to retry indefinitely with no
+    // ops signal. Return 200 + alert so Stripe stops and ops investigates.
+    const missing = [!supabaseUrl && "SUPABASE_URL", !serviceRoleKey && "SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY"].filter(Boolean).join(", ");
+    console.error(`[stripe-idv-webhook] Missing required env vars: ${missing} — acknowledging to stop retries`);
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "critical",
+      title: "Stripe IDV webhook misconfigured — Supabase env vars missing",
+      message: `The following env vars are not set: ${missing}. Every identity-verification event is being dropped (200-ACKed) with no processing until this is fixed.`,
+    });
+    return new Response(JSON.stringify({ received: true, error: "supabase_not_configured" }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const stripe = new Stripe(stripeKey, {
     apiVersion: "2025-08-27.basil",
   });
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!
-  );
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   const body = await req.text();
   const sig = req.headers.get("stripe-signature");

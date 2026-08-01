@@ -8,6 +8,7 @@ import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import AppShell from "@/components/AppShell";
 import { toast } from "sonner";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -254,10 +255,11 @@ const ProfilePage = () => {
       parish: parish,
     }).eq("user_id", user.id);
     setSaving(false);
-    if (error) toast.error("We couldn't save your profile — please try again.");
+    if (error) { hapticError(); toast.error("We couldn't save your profile — please try again."); }
     else {
       setFullName(merged);
       setJustSaved(true);
+      hapticSuccess();
       toast.success("Profile updated!");
       setTimeout(() => setJustSaved(false), 1800);
     }

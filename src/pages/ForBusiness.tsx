@@ -598,7 +598,7 @@ const TierComparison = () => {
                           <Check
                             className="inline-block w-4 h-4"
                             strokeWidth={2.5}
-                            style={{ color: "hsl(140 45% 38%)" }}
+                            style={{ color: "hsl(var(--success-ink))" }}
                             aria-label="Included"
                           />
                         ) : (
@@ -714,7 +714,7 @@ const PricingSection = () => {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setBillingCycle(cycle)}
-                className="h-9 sm:h-10 px-4 sm:px-5 md:px-3 md:text-ds-12 lg:px-4 rounded-xl font-sans font-semibold text-ds-13 whitespace-nowrap transition-[background,color,transform] duration-150 active:scale-[0.98]"
+                className="h-9 sm:h-10 px-4 sm:px-5 md:px-3 md:text-ds-12 lg:px-4 rounded-ds-md font-sans font-semibold text-ds-13 whitespace-nowrap transition-[background,color,transform] duration-150 active:scale-[0.98]"
                 style={{
                   background: active ? "hsl(var(--bark))" : "transparent",
                   color: active ? "hsl(var(--parchment))" : "hsl(var(--olivewood))",
@@ -945,7 +945,7 @@ const PricingSection = () => {
                       lineHeight: 1,
                       letterSpacing: "-0.005em",
                       color: "hsl(var(--parchment))",
-                      border: "1px solid hsl(66 25% 19%)",
+                      border: "1px solid hsl(var(--bark-border))",
                       boxShadow:
                         "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 12px 30px -10px hsl(var(--bark) / 0.4)",
                     }}
@@ -1153,7 +1153,7 @@ const ClosingSection = () => (
             lineHeight: 1,
             letterSpacing: "-0.005em",
             color: "hsl(var(--parchment))",
-            border: "1px solid hsl(66 25% 19%)",
+            border: "1px solid hsl(var(--bark-border))",
             boxShadow:
               "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
           }}

@@ -25,11 +25,11 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
     setShown(true);
     let cancelled = false;
 
-    const promptToApply = (title: string, budget: number | null) => {
+    const promptToApply = (title: string, budget: number | null, isInstantBook = false) => {
       toast(
-        `Quick Apply: "${title}"${budget != null ? ` ($${budget})` : ""}`,
+        `${isInstantBook ? "Instant Book" : "Quick Apply"}: "${title}"${budget != null ? ` ($${budget})` : ""}`,
         {
-          action: { label: "Apply now", onClick: () => onApply(quickApplyId) },
+          action: { label: isInstantBook ? "Book now" : "Apply now", onClick: () => onApply(quickApplyId) },
           duration: 10000,
         }
       );
@@ -42,7 +42,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
       } else if (feedJob.status && feedJob.status !== "open") {
         toast.error("This job isn't accepting applications anymore.");
       } else {
-        promptToApply(feedJob.title, feedJob.budget ?? null);
+        promptToApply(feedJob.title, feedJob.budget ?? null, !!(feedJob as { instant_book?: boolean }).instant_book);
       }
       return;
     }
@@ -52,7 +52,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
     (async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select("id, title, budget, customer_id, status")
+        .select("id, title, budget, customer_id, status, instant_book")
         .eq("id", quickApplyId)
         .maybeSingle();
       if (cancelled) return;
@@ -68,7 +68,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
         toast.error("This job isn't accepting applications anymore.");
         return;
       }
-      promptToApply(data.title, data.budget ?? null);
+      promptToApply(data.title, data.budget ?? null, !!(data as { instant_book?: boolean }).instant_book);
     })();
 
     return () => { cancelled = true; };

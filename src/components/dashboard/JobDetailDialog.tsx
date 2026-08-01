@@ -167,7 +167,7 @@ const JobDetailDialog = ({
                 aria-label="Boosted"
                 className="boosted-shimmer boosted-pulse absolute -top-2 -right-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
                 style={{
-                  color: "hsl(38 60% 28%)",
+                  color: "hsl(var(--amber-ink))",
                   border: "0.5px solid hsl(var(--gold-warm) / 0.6)",
                   boxShadow:
                     "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
@@ -311,7 +311,7 @@ const JobDetailDialog = ({
               aria-label="Boosted"
               className="boosted-shimmer boosted-pulse absolute -top-2 -right-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
               style={{
-                color: "hsl(38 60% 28%)",
+                color: "hsl(var(--amber-ink))",
                 border: "0.5px solid hsl(var(--gold-warm) / 0.6)",
                 boxShadow:
                   "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +

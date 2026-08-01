@@ -65,7 +65,7 @@ const primaryToneStyle: Record<BrandPrimaryTone, React.CSSProperties> = {
   bark: {
     background: "hsl(var(--bark))",
     color: "hsl(var(--parchment))",
-    border: "1px solid hsl(70 22% 24%)",
+    border: "1px solid hsl(var(--bark-border))",
     fontFamily: "Montserrat, system-ui, sans-serif",
     fontWeight: 600,
     boxShadow:

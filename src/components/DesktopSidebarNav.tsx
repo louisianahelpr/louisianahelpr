@@ -186,9 +186,9 @@ const DesktopSidebarNav = () => {
             className="flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 font-display italic font-semibold text-[0.95rem] transition-transform active:scale-[0.98]"
             style={{
               background:
-                "radial-gradient(125% 125% at 32% 22%, hsl(76 20% 44%) 0%, hsl(var(--bark)) 46%, hsl(66 25% 19%) 100%)",
+                "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-border)) 100%)",
               color: "hsl(var(--parchment))",
-              border: "1px solid hsl(66 26% 18%)",
+              border: "1px solid hsl(var(--bark-border))",
               boxShadow:
                 "inset 0 1.5px 1px 0 rgba(255,255,255,0.28), 0 8px 18px -6px hsl(var(--bark) / 0.5)",
             }}

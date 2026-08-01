@@ -202,7 +202,7 @@ const HeroSection = () => {
               lineHeight: 1,
               letterSpacing: "-0.005em",
               color: "hsl(var(--parchment))",
-              border: "1px solid hsl(66 25% 19%)",
+              border: "1px solid hsl(var(--bark-border))",
               boxShadow:
                 "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
             }}

@@ -250,7 +250,7 @@ const Legal = () => {
                   // use) so the selected tab reads as a primary button and can
                   // never drift from the canonical gradient. Border + ELEV_FILLED
                   // depth layered on top.
-                  border: "1px solid hsl(66 24% 20%)",
+                  border: "1px solid hsl(var(--bark-border))",
                   boxShadow:
                     "inset 0 1px 0 hsl(var(--parchment) / 0.22), " +
                     "0 1px 1px hsl(var(--ink-deep) / 0.10), " +

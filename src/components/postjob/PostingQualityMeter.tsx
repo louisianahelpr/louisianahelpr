@@ -68,7 +68,7 @@ export function PostingQualityMeter({
             <span
               key={check}
               className="inline-flex items-center gap-1 font-serif italic"
-              style={{ fontSize: "0.68rem", color: score >= 85 ? "hsl(155 50% 35%)" : "hsl(var(--bark))" }}
+              style={{ fontSize: "0.68rem", color: score >= 85 ? "hsl(var(--success-ink))" : "hsl(var(--bark))" }}
             >
               <CheckCircle2 className="w-3 h-3 shrink-0" strokeWidth={2.25} aria-hidden />
               {check}
@@ -78,7 +78,7 @@ export function PostingQualityMeter({
             <span
               key={check}
               className="inline-flex items-center gap-1 font-serif italic"
-              style={{ fontSize: "0.68rem", color: "hsl(40 80% 40%)" }}
+              style={{ fontSize: "0.68rem", color: "hsl(var(--amber-solid))" }}
             >
               <Circle className="w-3 h-3 shrink-0" strokeWidth={2.25} aria-hidden />
               {check}

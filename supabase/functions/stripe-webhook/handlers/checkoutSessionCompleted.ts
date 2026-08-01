@@ -72,28 +72,44 @@ export async function handleCheckoutSessionCompleted(
       updateData.subscription_expires_at = subscriptionEnd;
     }
 
-    const { error } = await supabase
+    const { data: updatedProfiles, error } = await supabase
       .from("profiles")
       .update(updateData)
-      .eq("email", customerEmail);
+      .eq("email", customerEmail)
+      .select("user_id");
 
     if (error) {
       logStep("ERROR updating profile", { error: error.message });
-      // A subscription payment captured but the tier wasn't applied. The
-      // customer.subscription.updated event serves as a fallback for new
-      // subscriptions, but a persistent DB failure could leave the user
-      // paying without Pro access. Alert ops so it can be reconciled.
+      // Throw so the outer handler rolls back the idempotency row and returns
+      // 500 — letting Stripe redeliver once the DB recovers. A silent 200 here
+      // permanently loses the entitlement: customer.subscription.updated is a
+      // fallback for recurring subscriptions, but one-time passes only fire
+      // checkout.session.completed, so there is no second chance.
       await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
         title: "Subscription — tier not applied after payment captured",
-        message: "A subscription checkout captured but the profiles UPDATE (subscription_tier) failed. The user paid but may not have access. customer.subscription.updated serves as a fallback; reconcile if the issue persists.",
+        message: "A subscription checkout captured but the profiles UPDATE (subscription_tier) failed. Stripe will retry; if the issue persists, reconcile manually.",
         fields: {
           session_id: session.id,
           email: customerEmail ?? "(missing)",
           tier: tier ?? "(missing)",
           db_error: error.message,
         },
+      });
+      throw new Error(`Failed to apply subscription tier '${tier}' for ${customerEmail}: ${error.message}`);
+    } else if (!updatedProfiles || updatedProfiles.length === 0) {
+      // UPDATE succeeded but matched 0 rows: the Stripe customer email has no
+      // matching profile. The user was charged but received no entitlement.
+      // customer.subscription.updated also resolves by email, so it will hit
+      // the same 0-row result — retrying won't help; ops must reconcile.
+      logStep("WARNING: tier update matched 0 profiles — email mismatch", { email: customerEmail, tier });
+      postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Subscription tier not granted — no matching profile",
+        message: "A customer's checkout completed but no profile matched their Stripe email. They were charged but have no access. Reconcile manually.",
+        fields: { email: customerEmail ?? "(missing)", tier: String(tier), session_id: session.id },
       });
     } else {
       logStep("Profile updated with tier", { email: customerEmail, tier, expires: subscriptionEnd });

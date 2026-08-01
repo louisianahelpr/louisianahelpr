@@ -1,5 +1,6 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 
 export async function handleChargeRefunded(
   event: Stripe.Event,
@@ -56,13 +57,59 @@ export async function handleChargeRefunded(
         // only be detected by manual reconciliation. Throw so Stripe retries.
         throw new Error(`Failed to mark job ${refundedJob.id} as refunded: ${updateErr.message}`);
       }
-      await supabase.from("notifications").insert({
+
+      // Write payment_refunds ledger row. Refunds issued from the Stripe Dashboard
+      // (not via void-cancelled-payments / admin functions that write their own row)
+      // would otherwise leave no queryable record in our DB. Upsert on stripe_refund_id
+      // is idempotent — if another code path already wrote the row, ignoreDuplicates
+      // skips the insert without error.
+      if (latestRefund?.id) {
+        const { error: ledgerErr } = await supabase
+          .from("payment_refunds")
+          .upsert(
+            {
+              job_id: refundedJob.id,
+              customer_id: refundedJob.customer_id,
+              stripe_refund_id: latestRefund.id,
+              stripe_payment_intent_id: refundPiId,
+              amount_cents: charge.amount_refunded,
+              currency: charge.currency,
+              is_partial: false,
+              reason: latestRefund.reason ?? null,
+              source: "stripe_dashboard",
+            },
+            { onConflict: "stripe_refund_id", ignoreDuplicates: true },
+          );
+        if (ledgerErr) {
+          postSlackOpsAlert({
+            kind: "refund_ledger_write_failed",
+            severity: "warning",
+            title: "payment_refunds ledger write failed (charge.refunded)",
+            message: `Could not write refund ledger row for job ${refundedJob.id}.`,
+            fields: {
+              "Job ID": refundedJob.id,
+              "Stripe Refund ID": latestRefund.id,
+              "Error": ledgerErr.message,
+            },
+          });
+          throw new Error(`charge.refunded payment_refunds upsert failed: ${ledgerErr.message}`);
+        }
+      } else {
+        logStep("WARN: no refund object on charge — payment_refunds row skipped", {
+          chargeId: charge.id,
+          pi: refundPiId,
+        });
+      }
+
+      const { error: notifyErr } = await supabase.from("notifications").insert({
         user_id: refundedJob.customer_id,
         title: "💸 Refund processed",
         message: `Your payment for "${refundedJob.title}" has been refunded.`,
         type: "payment",
         link: "/my-posts",
       });
+      if (notifyErr) logStep("WARN: refund notification insert failed", { error: notifyErr.message });
+
       logStep("Job marked as refunded", { jobId: refundedJob.id });
     }
   } else if (refundPiId) {

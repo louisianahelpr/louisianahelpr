@@ -150,7 +150,7 @@ serve(async (req) => {
       // the tier again at payout time. Keep this preview consistent with it.
       // Group jobs: budget is the total for the roster; each helper earns budget/N.
       const helperFeePercent = await getHelperFeePercent(supabaseAdmin, job.helper_id, 10);
-      const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+      const helpersCount = (job.is_group_job && job.helpers_needed > 0) ? job.helpers_needed : 1;
       const perHelperBudget = job.budget / helpersCount;
       const helperCommission = perHelperBudget * helperFeePercent / 100;
       const helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee) / helpersCount;

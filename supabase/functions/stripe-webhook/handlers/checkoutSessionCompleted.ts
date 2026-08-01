@@ -191,13 +191,16 @@ export async function handleCheckoutSessionCompleted(
         .eq("id", boostJobId);
       if (boostError) {
         logStep("ERROR applying boost", { error: boostError.message });
-        // A captured boost payment whose DB write failed means the user paid but
-        // the boost never activated. No retry (200 returned) → ops must reconcile.
+        // Throw so the outer handler rolls back the idempotency row and returns
+        // 500 — letting Stripe redeliver once the DB recovers. A silent 200 here
+        // permanently loses the boost: the user paid but it never activates with
+        // no retry path. The re-delivered UPDATE is idempotent (sets the same
+        // timestamps) so it is safe to retry.
         await postSlackOpsAlert({
           kind: "custom",
           severity: "critical",
           title: "Job boost — activation failed after payment captured",
-          message: "A boost checkout captured but the jobs UPDATE (boosted_at/boost_expires_at) failed. The boost was paid for but never activated. Reconcile manually.",
+          message: "A boost checkout captured but the jobs UPDATE (boosted_at/boost_expires_at) failed. Stripe will retry.",
           fields: {
             session_id: session.id,
             job_id: String(boostJobId),
@@ -205,6 +208,7 @@ export async function handleCheckoutSessionCompleted(
             db_error: boostError.message,
           },
         });
+        throw new Error(`Boost activation failed for job ${boostJobId}: ${boostError.message}`);
       } else {
         logStep("Boost applied", { jobId: boostJobId, expires: expires.toISOString() });
       }

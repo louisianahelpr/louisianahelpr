@@ -47,7 +47,7 @@ serve(async (req) => {
 
     const { data: jobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
       .in("status", ["in_progress", "revision_requested", "accepted"])
       .eq("payment_status", "escrow")
       .or(`poster_completed_at.lte.${cutoff},helper_completed_at.lte.${cutoff}`);
@@ -148,9 +148,12 @@ serve(async (req) => {
 
       // Estimate only — the real transfer in process-scheduled-payouts resolves
       // the tier again at payout time. Keep this preview consistent with it.
+      // Group jobs: budget is the total for the roster; each helper earns budget/N.
       const helperFeePercent = await getHelperFeePercent(supabaseAdmin, job.helper_id, 10);
-      const helperCommission = job.budget * helperFeePercent / 100;
-      const helperPayout = job.budget - helperCommission + netUrgentFeeDollars(job.urgent_fee);
+      const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
+      const perHelperBudget = job.budget / helpersCount;
+      const helperCommission = perHelperBudget * helperFeePercent / 100;
+      const helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,

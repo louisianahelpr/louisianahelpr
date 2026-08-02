@@ -280,6 +280,14 @@ export async function handleCheckoutSessionCompleted(
             message: "A helper's background-check payment captured but the helper_credentials row failed to write, so the check was never queued. Reconcile manually.",
             fields: { session_id: session.id, user_id: String(bgcUserId), db_error: credErr.message },
           });
+          // Throw so the outer handler rolls back the idempotency row and returns
+          // 500 — letting Stripe retry once the DB recovers. A silent 200 here
+          // commits the dedupe row permanently: the paid check is never queued
+          // and the user never receives the confirmation notification (moved into
+          // the success path below). The retry re-enters the else branch because
+          // existingBgc finds nothing (the INSERT failed), and re-attempts the
+          // credential creation cleanly.
+          throw new Error(`Background check credential insert failed for user ${bgcUserId}: ${credErr.message}`);
         } else if (cred) {
           const { error: checkErr } = await supabase
             .from("verification_checks")
@@ -294,6 +302,9 @@ export async function handleCheckoutSessionCompleted(
             logStep("ERROR creating bgc check", { error: checkErr.message });
             // Credential row exists but the check run didn't — the admin queue
             // won't surface it, so the paid screening stalls silently. Alert ops.
+            // Don't throw: a retry would see existingBgc (status='submitted') and
+            // skip the else branch, so there is no clean Stripe-retry path here.
+            // Ops must manually create the verification_checks row.
             postSlackOpsAlert({
               kind: "custom",
               severity: "critical",
@@ -302,17 +313,20 @@ export async function handleCheckoutSessionCompleted(
               fields: { session_id: session.id, user_id: String(bgcUserId), credential_id: String(cred.id), db_error: checkErr.message },
             });
           }
-        }
 
-        await supabase.from("notifications").insert({
-          user_id: bgcUserId,
-          title: "🛡️ Background check started",
-          message:
-            "Thanks — your payment went through and your background check is in progress. We'll add your Background-Checked badge as soon as it clears.",
-          type: "success",
-          link: "/profile",
-        });
-        logStep("Background check initiated", { userId: bgcUserId });
+          // Notify only on confirmed credential creation. Previously this ran
+          // unconditionally so the user received "Background check started" even
+          // when the credential INSERT had just failed and we threw above.
+          await supabase.from("notifications").insert({
+            user_id: bgcUserId,
+            title: "🛡️ Background check started",
+            message:
+              "Thanks — your payment went through and your background check is in progress. We'll add your Background-Checked badge as soon as it clears.",
+            type: "success",
+            link: "/profile",
+          });
+          logStep("Background check initiated", { userId: bgcUserId });
+        }
       }
     }
   }

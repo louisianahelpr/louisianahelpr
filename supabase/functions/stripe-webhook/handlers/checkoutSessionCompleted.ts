@@ -544,15 +544,18 @@ export async function handleCheckoutSessionCompleted(
     if (jobError) {
       logStep("ERROR storing PI on job", { error: jobError.message });
       // The payment is CAPTURED but the job never got marked funded/escrow —
-      // a money↔state divergence (funds held, job looks unpaid). Surface to
-      // ops rather than swallowing it, mirroring the other money paths here.
-      postSlackOpsAlert({
+      // a money↔state divergence (funds held, job looks unpaid). Throw so
+      // the outer handler rolls back the idempotency row and returns 500,
+      // letting Stripe retry once the DB recovers. Matches the tip/boost/
+      // subscription error paths in this same handler.
+      await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
         title: "Escrow funding — job not marked funded after capture",
-        message: "A checkout was captured but the jobs UPDATE (payment_status→escrow/payout_pending) failed. The payment is held with no funded job. Reconcile manually.",
+        message: "A checkout was captured but the jobs UPDATE (payment_status→escrow/payout_pending) failed. Stripe will retry once the DB recovers.",
         fields: { session_id: session.id, job_id: jobId, payment_intent: piId, repay: String(isRepay), db_error: jobError.message },
       });
+      throw new Error(`Escrow update failed for job ${jobId} (PI ${piId}): ${jobError.message}`);
     } else {
       logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId, repay: isRepay });
     }

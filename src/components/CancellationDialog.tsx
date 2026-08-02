@@ -380,12 +380,14 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
           <div className="space-y-1.5">
             <label
+              htmlFor="cancel-reason"
               className="font-serif italic uppercase block"
               style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               Reason — optional
             </label>
             <Textarea
+              id="cancel-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="What changed? Helps us improve."

@@ -270,6 +270,7 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
       >
         <div className="space-y-1.5">
           <Textarea
+            aria-label="Rejection reason (optional)"
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             placeholder="Reason (optional, shown to the poster)…"

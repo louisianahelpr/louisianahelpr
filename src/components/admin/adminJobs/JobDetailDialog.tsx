@@ -5,6 +5,7 @@ import { MapPin, Calendar, Clock, DollarSign, User, Trash2, AlertTriangle, Shiel
 import { StatusBadge } from "@/components/StatusBadge";
 import { paymentStatusLabel } from "@/lib/statusLabels";
 import { categoryLabels, paymentColors, type Job } from "./types";
+import { formatJobDate } from "@/lib/dateUtils";
 
 interface JobDetailDialogProps {
   detailJob: Job | null;
@@ -118,7 +119,7 @@ export const JobDetailDialog = ({
               </div>
               <div className="rounded-ds-sm bg-secondary/30 p-3">
                 <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Date Needed</p>
-                <p className="font-semibold text-foreground">{new Date(detailJob.date_needed).toLocaleDateString()}</p>
+                <p className="font-semibold text-foreground">{formatJobDate(detailJob.date_needed)}</p>
               </div>
               {detailJob.start_time && (
                 <div className="rounded-ds-sm bg-secondary/30 p-3">

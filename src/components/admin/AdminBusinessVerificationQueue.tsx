@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { formatShortDate } from "@/lib/format";
 import {
   Building2,
   CheckCircle2,
@@ -114,7 +115,7 @@ const AdminBusinessVerificationQueue = () => {
                   </p>
                 </div>
                 <p className="text-ds-11 text-muted-foreground shrink-0">
-                  {new Date(r.submitted_at).toLocaleDateString()}
+                  {formatShortDate(r.submitted_at)}
                 </p>
               </div>
 

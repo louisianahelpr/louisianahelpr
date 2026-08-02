@@ -15,6 +15,7 @@ import { SUB_PRICE, type Profile, type Job, type Tip, type DrillDown } from "./a
 import { computeMetrics } from "./adminAnalytics/adminAnalyticsHelpers";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
+import { formatPrice } from "@/lib/format";
 
 // Lazy-load charts so recharts (~250 KB pre-gzip) lands in its own chunk
 // instead of inflating the AdminAnalytics initial bundle. Funnel cards +
@@ -385,7 +386,7 @@ const AdminAnalytics = () => {
               </div>
               <div className="text-right">
                 <span className="text-ds-13 font-semibold text-foreground">${escrowTotal.toFixed(2)}</span>
-                <span className="text-ds-11 text-muted-foreground ml-2">({escrowJobs.length} jobs)</span>
+                <span className="text-ds-11 text-muted-foreground ml-2">({escrowJobs.length} job{escrowJobs.length === 1 ? "" : "s"})</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
@@ -395,7 +396,7 @@ const AdminAnalytics = () => {
               </div>
               <div className="text-right">
                 <span className="text-ds-13 font-semibold text-foreground">${pendingPayoutTotal.toFixed(2)}</span>
-                <span className="text-ds-11 text-muted-foreground ml-2">({pendingPayouts.length} jobs)</span>
+                <span className="text-ds-11 text-muted-foreground ml-2">({pendingPayouts.length} job{pendingPayouts.length === 1 ? "" : "s"})</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
@@ -404,7 +405,7 @@ const AdminAnalytics = () => {
                 <span className="text-ds-11 text-muted-foreground">Released</span>
               </div>
               <div className="text-right">
-                <span className="text-ds-13 font-semibold text-foreground">{releasedPayouts.length} jobs</span>
+                <span className="text-ds-13 font-semibold text-foreground">{releasedPayouts.length} job{releasedPayouts.length === 1 ? "" : "s"}</span>
               </div>
             </div>
           </div>
@@ -421,8 +422,8 @@ const AdminAnalytics = () => {
               <div key={cat.name} className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
                 <span className="text-ds-13 text-foreground capitalize flex-1">{cat.name}</span>
-                <span className="text-ds-11 text-muted-foreground">{cat.count} jobs</span>
-                <span className="text-ds-11 font-semibold text-foreground">${cat.revenue.toFixed(0)}</span>
+                <span className="text-ds-11 text-muted-foreground">{cat.count} job{cat.count === 1 ? "" : "s"}</span>
+                <span className="text-ds-11 font-semibold text-foreground">${formatPrice(cat.revenue)}</span>
               </div>
             ))}
           </div>

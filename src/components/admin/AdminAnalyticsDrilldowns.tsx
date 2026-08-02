@@ -6,7 +6,7 @@ import { cn, formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
-import { formatCategory, formatPrice, formatTimestamp } from "@/lib/format";
+import { formatCategory, formatPrice, formatTimestamp, formatShortDate } from "@/lib/format";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
 import { toneTextClasses, type Tone } from "@/components/admin/tones";
 
@@ -74,7 +74,7 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
                 <Badge className={`text-ds-11 capitalize ${statusColor(u.approval_status)}`}>{u.approval_status}</Badge>
               </div>
             </div>
-            <p className="text-ds-10 text-muted-foreground mt-2">Joined {new Date(u.created_at).toLocaleDateString()} · {roleByUser.get(u.user_id) ?? "—"}</p>
+            <p className="text-ds-10 text-muted-foreground mt-2">Joined {formatShortDate(u.created_at)} · {roleByUser.get(u.user_id) ?? "—"}</p>
           </div>
         ))}
       </div>
@@ -143,7 +143,7 @@ export const CategoriesDrillDown = ({ data }: { data: { name: string; count: num
             <span className="text-ds-13 font-medium text-foreground capitalize">{cat.name}</span>
           </div>
           <div className="flex items-center gap-4 text-ds-13">
-            <span className="text-muted-foreground">{cat.count} jobs</span>
+            <span className="text-muted-foreground">{cat.count} job{cat.count === 1 ? "" : "s"}</span>
             <span className="font-semibold text-foreground">${formatPrice(cat.revenue)} revenue</span>
           </div>
         </div>
@@ -235,7 +235,7 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
 
       {showFinancials && (
         <div className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
-          <span className="text-ds-11 text-muted-foreground">{showFees ? "Total Fees" : "Total Revenue"} ({filtered.length} jobs)</span>
+          <span className="text-ds-11 text-muted-foreground">{showFees ? "Total Fees" : "Total Revenue"} ({filtered.length} job{filtered.length === 1 ? "" : "s"})</span>
           <span className="text-ds-17 font-bold text-foreground">${total.toFixed(2)}</span>
         </div>
       )}

@@ -284,6 +284,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                 {isEditing ? (
                   <div className="space-y-2">
                     <Textarea
+                      aria-label="Edit note"
                       value={editingText}
                       onChange={(e) => setEditingText(e.target.value)}
                       rows={3}

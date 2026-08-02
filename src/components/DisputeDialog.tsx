@@ -199,6 +199,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               What happened?
             </Label>
             <Textarea
+              aria-label="What happened?"
               value={details}
               onChange={(e) => setDetails(e.target.value)}
               placeholder="The more specific you are, the faster admin can help…"

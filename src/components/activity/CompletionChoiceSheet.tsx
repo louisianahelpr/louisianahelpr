@@ -293,6 +293,7 @@ export function CompletionChoiceSheet({
 
             <div className="space-y-3">
               <Textarea
+                aria-label="Describe what needs to be redone"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Please describe what needs to be redone or fixed…"

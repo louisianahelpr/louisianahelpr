@@ -150,7 +150,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             </div>
             <div className="space-y-1.5">
               <Label className={eyebrowCls} style={eyebrowStyle}>Description</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={hasHelper} autoCapitalize="sentences" />
+              <Textarea aria-label="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={hasHelper} autoCapitalize="sentences" />
             </div>
             <div className="space-y-1.5">
               <Label className={eyebrowCls} style={eyebrowStyle}>Category</Label>
@@ -209,7 +209,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             <SectionHeading>Anything else</SectionHeading>
             <div className="space-y-1.5">
               <Label className={eyebrowCls} style={eyebrowStyle}>Special requirements</Label>
-              <Textarea value={specialReq} onChange={(e) => setSpecialReq(e.target.value)} rows={2} disabled={hasHelper} autoCapitalize="sentences" />
+              <Textarea aria-label="Special requirements" value={specialReq} onChange={(e) => setSpecialReq(e.target.value)} rows={2} disabled={hasHelper} autoCapitalize="sentences" />
             </div>
           </section>
         </div>

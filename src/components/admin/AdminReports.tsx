@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import { formatShortDate } from "@/lib/format";
 import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
@@ -254,7 +255,7 @@ const AdminReports = () => {
                       >
                         {report.reporter_name}
                       </button>
-                      {" · "}{new Date(report.created_at).toLocaleDateString()}
+                      {" · "}{formatShortDate(report.created_at)}
                     </p>
                   </div>
                 </div>

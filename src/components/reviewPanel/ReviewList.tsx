@@ -6,6 +6,7 @@ import { report } from "@/lib/errorLogger";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import { MiniStars } from "./MiniStars";
 import { safeImageSrc, type Review, type ReviewListProps } from "./types";
+import { formatShortDate } from "@/lib/format";
 
 export const ReviewList = ({ userId }: ReviewListProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -165,7 +166,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
               </div>
             )}
 
-            <p className="text-ds-11 text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString()}</p>
+            <p className="text-ds-11 text-muted-foreground mt-1">{formatShortDate(r.created_at)}</p>
           </div>
         ))}
       </div>

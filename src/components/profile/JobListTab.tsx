@@ -5,7 +5,8 @@ import type { Database } from "@/integrations/supabase/types";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
-import { formatCategory } from "@/lib/format";
+import { formatCategory, formatPrice } from "@/lib/format";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -53,19 +54,19 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
                   <div className="flex items-center gap-x-2 gap-y-0.5 mt-1.5 font-serif italic flex-wrap" style={{ color: "hsl(var(--olivewood) / 0.8)", fontSize: "0.78rem" }}>
                     <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>
                     <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
-                    <span>{new Date(job.date_needed).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                    <span>{parseLocalDate(job.date_needed).toLocaleDateString("en-US", { month: 'short', day: 'numeric' })}</span>
                     <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                     <span>{formatCategory(job.category)}</span>
                   </div>
                 </div>
                 {isPosted ? (
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="text-ds-15 font-bold text-primary tabular-nums">${job.budget}</span>
+                    <span className="text-ds-15 font-bold text-primary tabular-nums">${formatPrice(job.budget ?? 0)}</span>
                     <StatusBadge status={job.status} className="text-ds-10" />
                   </div>
                 ) : (
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <span className="text-ds-15 font-bold text-primary tabular-nums">${job.budget}</span>
+                    <span className="text-ds-15 font-bold text-primary tabular-nums">${formatPrice(job.budget ?? 0)}</span>
                   </div>
                 )}
               </div>

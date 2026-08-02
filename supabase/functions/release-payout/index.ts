@@ -544,7 +544,7 @@ serve(async (req) => {
   const netDollars = payoutCents / 100;
   const feeNote =
     onboardingFeeDeductedCents > 0
-      ? ` (one-time $2 onboarding fee deducted)`
+      ? ` (one-time $${(onboardingFeeDeductedCents / 100).toFixed(2)} onboarding fee deducted)`
       : "";
   await supabaseAdmin.from("notifications").insert({
     user_id: job.helper_id,

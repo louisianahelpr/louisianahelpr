@@ -1,5 +1,6 @@
 import { Star } from "lucide-react";
 import { TabsContent } from "@/components/ui/tabs";
+import { formatShortDate } from "@/lib/format";
 
 type ReviewReceived = {
   rating: number;
@@ -49,7 +50,7 @@ export function ReviewsTab({ profileReviews, profileReviewsLeft }: ReviewsTabPro
                   </div>
                 </div>
                 {r.feedback && <p className="text-ds-11 text-muted-foreground whitespace-pre-wrap">{r.feedback}</p>}
-                {r.created_at && <p className="text-muted-foreground text-ds-11 mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
+                {r.created_at && <p className="text-muted-foreground text-ds-11 mt-1">{formatShortDate(r.created_at)}</p>}
               </div>
             ))}
           </div>
@@ -80,7 +81,7 @@ export function ReviewsTab({ profileReviews, profileReviewsLeft }: ReviewsTabPro
                   </div>
                 </div>
                 {r.feedback && <p className="text-ds-11 text-muted-foreground whitespace-pre-wrap">{r.feedback}</p>}
-                {r.created_at && <p className="text-muted-foreground text-ds-11 mt-1">{new Date(r.created_at).toLocaleDateString()}</p>}
+                {r.created_at && <p className="text-muted-foreground text-ds-11 mt-1">{formatShortDate(r.created_at)}</p>}
               </div>
             ))}
           </div>

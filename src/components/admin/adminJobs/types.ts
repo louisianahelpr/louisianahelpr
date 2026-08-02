@@ -5,7 +5,7 @@ export type Job = Database["public"]["Tables"]["jobs"]["Row"];
 export const categoryLabels: Record<string, string> = {
   cleaning: "Cleaning", yard_work: "Yard Work", moving: "Moving", errands: "Errands",
   handyman: "Handyman", painting: "Painting", delivery: "Delivery", pet_care: "Pet Care",
-  assembly: "Assembly", other: "Other",
+  assembly: "Assembly", storm_prep: "Storm prep", events: "Events", other: "Other",
 };
 
 export const paymentColors: Record<string, string> = {

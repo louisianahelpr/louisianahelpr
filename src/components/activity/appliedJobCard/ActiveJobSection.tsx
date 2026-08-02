@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, MessageSquare, RefreshCw, Check, ClipboardList } from "lucide-react";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -34,6 +35,17 @@ export function ActiveJobSection({
   navigate,
   setShowReportCard,
 }: ActiveJobSectionProps) {
+  const [resolving, setResolving] = useState(false);
+
+  const handleMarkFixed = async () => {
+    setResolving(true);
+    try {
+      await onResolveRevision(app.job_id);
+    } finally {
+      setResolving(false);
+    }
+  };
+
   return (
     <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
       {/* Live tracking for in-progress jobs */}
@@ -128,7 +140,7 @@ export function ActiveJobSection({
               )}
             </div>
           ) : (
-            <Button size="sm" variant="outline" className="w-full" onClick={() => onResolveRevision(app.job_id)}><RefreshCw className="w-4 h-4 mr-1" /> Mark Fixed</Button>
+            <Button size="sm" variant="outline" className="w-full" disabled={resolving} onClick={handleMarkFixed}><RefreshCw className={`w-4 h-4 mr-1${resolving ? " animate-spin" : ""}`} /> {resolving ? "Marking…" : "Mark Fixed"}</Button>
           )}
         </div>
       )}

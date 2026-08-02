@@ -262,6 +262,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "resolve_revision", jobId } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      hapticSuccess();
       toast.success("Revision resolved! Job is back in progress.");
       refresh();
     } catch (err) { hapticError(); toast.error(err instanceof Error ? err.message : "We couldn't resolve that revision — please try again."); }

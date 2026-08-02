@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHero } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { categories, type Job } from "./activityConstants";
 import { todayLocalISO } from "@/lib/dateUtils";
 
@@ -79,7 +79,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     const { error } = await supabase.from("jobs").update(updateData).eq("id", job.id);
     setSaving(false);
     if (error) { hapticError(); toast.error("We couldn't save your changes — please try again."); }
-    else { toast.success("Job updated!"); onSaved(); onClose(); }
+    else { hapticSuccess(); toast.success("Job updated!"); onSaved(); onClose(); }
   };
 
   const handleSaveClick = () => setShowConfirm(true);

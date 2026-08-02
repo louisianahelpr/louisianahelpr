@@ -21,6 +21,7 @@ import { EscrowExplainer } from "@/components/payment/EscrowExplainer";
 import { EscrowFlowExplainer } from "@/components/payment/EscrowFlowExplainer";
 import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { formatPrice } from "@/lib/format";
+import { formatJobDate } from "@/lib/dateUtils";
 
 const isSafeBlobPreviewUrl = (value: string): boolean => {
   if (!value) return false;
@@ -212,7 +213,7 @@ export function CheckoutStep({
                 <Calendar className="w-3 h-3" />When
               </span>
               <p className="flex-1 text-ds-11 text-foreground text-right">
-                {new Date(dateNeeded + "T00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                {formatJobDate(dateNeeded)}
                 {isFlexibleSchedule ? " · Flexible" : startTime ? ` · ${startTime}` : ""}
                 {estimatedHours ? ` · ${estimatedHours}h est.` : ""}
               </p>
@@ -227,7 +228,7 @@ export function CheckoutStep({
               </span>
               <p className="flex-1 text-ds-11 text-foreground text-right capitalize">
                 {recurrenceInterval}
-                {recurrenceEndDate ? ` until ${new Date(recurrenceEndDate + "T00:00").toLocaleDateString()}` : ""}
+                {recurrenceEndDate ? ` until ${formatJobDate(recurrenceEndDate)}` : ""}
               </p>
             </div>
           )}

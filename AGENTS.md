@@ -177,10 +177,10 @@ don't change generated types — skip the regen for those.
 2. `npm run sync:ios` — copies bundle into `ios/App/App/public/`,
    syncs metadata, runs the verifier
 3. Open `ios/App/App.xcodeproj` in Xcode
-4. Bump `CURRENT_PROJECT_VERSION` in
-   `fastlane/ios_app_metadata.yml` if shipping a new TestFlight
-   build (must be > the highest already in TestFlight for the
-   same `MARKETING_VERSION`)
+4. If App Store Connect rejects a duplicate build number, raise
+   `versioning.current_project_version` in `fastlane/ios_app_metadata.yml`
+   (CI auto-bumps it past that floor on every archive; manual edits
+   are only needed when ASC's API lags and reports a stale highest build)
 5. Re-run `npm run sync:ios` so the new build number propagates
 6. Either: Xcode Archive + Upload manually, OR push the trigger
    in Actions → "Deploy iOS (TestFlight / App Store)"

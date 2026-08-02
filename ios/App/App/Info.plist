@@ -120,5 +120,7 @@
 			<string>AppIcon</string>
 		</dict>
 	</dict>
+	<key>NSContactsUsageDescription</key>
+	<string>Helpr can access contacts only if you choose to invite a friend by phone or email.</string>
 </dict>
 </plist>

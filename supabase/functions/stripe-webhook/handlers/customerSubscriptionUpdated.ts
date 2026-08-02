@@ -49,6 +49,11 @@ export async function handleCustomerSubscriptionUpdated(
           db_error: error.message,
         },
       });
+      // Throw so the outer handler rolls back the idempotency row and returns
+      // 500, letting Stripe retry once the DB recovers. A silent return here
+      // permanently loses the tier grant — customer paid but gets no access.
+      // Matches the error handling in customerSubscriptionDeleted.
+      throw new Error(`Failed to apply tier '${tier}' for subscription ${subscription.id}: ${error.message}`);
     }
   } else if (["canceled", "unpaid", "past_due", "paused"].includes(subscription.status)) {
     logStep("Subscription inactive", { email, status: subscription.status });
@@ -72,6 +77,11 @@ export async function handleCustomerSubscriptionUpdated(
           db_error: error.message,
         },
       });
+      // Throw so the outer handler rolls back the idempotency row and returns
+      // 500, letting Stripe retry once the DB recovers. Without this, the tier
+      // is never cleared and a cancelled/lapsed subscriber retains paid access.
+      // Matches the error handling in customerSubscriptionDeleted.
+      throw new Error(`Failed to clear tier for subscription ${subscription.id} (status=${subscription.status}): ${error.message}`);
     }
   }
 }

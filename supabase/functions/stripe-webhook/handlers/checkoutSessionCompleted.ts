@@ -140,12 +140,15 @@ export async function handleCheckoutSessionCompleted(
         logStep("ERROR updating tip status", { error: tipError.message });
         // A captured tip charge whose row never flips to 'paid' leaves the
         // helper unpaid AND un-notified — a money↔ledger divergence, not a
-        // benign log line. Surface it to ops like the PIF mint failures below.
-        postSlackOpsAlert({
+        // benign log line. Await the alert and throw so the outer handler
+        // rolls back the idempotency row and returns 500, letting Stripe
+        // retry once the DB recovers. A silent return here permanently drops
+        // the tip (same mistake that existed in customerSubscriptionUpdated).
+        await postSlackOpsAlert({
           kind: "custom",
           severity: "critical",
           title: "Tip payment — status flip failed",
-          message: "A tip checkout captured but the tips row was not marked paid, so the helper wasn't notified. Reconcile manually.",
+          message: "A tip checkout captured but the tips row was not marked paid, so the helper wasn't notified. Stripe will retry.",
           fields: {
             session_id: session.id,
             job_id: String(tipJobId),
@@ -154,6 +157,7 @@ export async function handleCheckoutSessionCompleted(
             db_error: tipError.message,
           },
         });
+        throw new Error(`Tip status flip failed for job ${tipJobId}: ${tipError.message}`);
       } else if (flippedTip && flippedTip.length > 0) {
         logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId });
         // Notify the helper — only on the delivery that actually captured the tip.

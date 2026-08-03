@@ -378,14 +378,19 @@ export async function handleCheckoutSessionCompleted(
         .maybeSingle();
       if (existErr) {
         logStep("ERROR checking existing pif credit — aborting mint (fail closed)", { error: existErr.message, sessionId: session.id });
-        postSlackOpsAlert({
+        // Await the alert before throwing: the outer handler rolls back the
+        // idempotency row and returns 500, which triggers Stripe's retry schedule.
+        // A plain `return` would commit the row (200 OK) so Stripe never retries
+        // and the donor's captured charge permanently loses its credit — money in,
+        // no gift out. Throwing is the only path that lets Stripe re-deliver.
+        await postSlackOpsAlert({
           kind: "custom",
           severity: "critical",
           title: "Pay It Forward mint — idempotency check failed",
-          message: "Couldn't verify whether this gift was already minted, so the mint was skipped to avoid a double-credit. Stripe will retry; if it keeps failing, reconcile manually.",
+          message: "Couldn't verify whether this gift was already minted, so the mint was skipped to avoid a double-credit. Returning 500 so Stripe retries; if it keeps failing, reconcile manually.",
           fields: { session_id: session.id, donor_id: donorId, recipient_email: recipientEmail, db_error: existErr.message },
         });
-        return;
+        throw new Error(`pif_credits idempotency check failed for session ${session.id}: ${existErr.message}`);
       }
 
       if (existing) {

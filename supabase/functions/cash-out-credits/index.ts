@@ -99,7 +99,19 @@ serve(async (req) => {
       supabase.from("referral_credits").update({ redeemed: false }).in("id", creditIds);
 
     if (totalCents < 100) {
-      await rollbackClaim();
+      // Rollback failure here is the same risk as in the transfer catch block:
+      // credits stay redeemed=true with no payout. Use the same .catch() pattern
+      // so ops can find and manually reset the row(s) from logs.
+      await rollbackClaim().catch((rollbackErr: unknown) => {
+        console.error(
+          "[cash-out-credits] CRITICAL: minimum-amount rollback failed — credits may be permanently lost",
+          {
+            creditIds,
+            rollbackError: rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr),
+            userId,
+          },
+        );
+      });
       return new Response(
         JSON.stringify({ error: "Minimum cash-out amount is $1.00." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }

@@ -93,11 +93,11 @@ const CompleteProfile = () => {
 
   const validateFile = (file: File, allowedTypes: string[], label: string): boolean => {
     if (!allowedTypes.includes(file.type)) {
-      toast.error(`${label}: Invalid file type.`);
+      toast.error(`${label} — that file type isn't supported.`);
       return false;
     }
     if (file.size > MAX_FILE_SIZE) {
-      toast.error(`${label}: Maximum 5MB.`);
+      toast.error(`${label} is over 5 MB — try a smaller file.`);
       return false;
     }
     return true;

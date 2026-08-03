@@ -94,7 +94,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     if (alertSent) {
       toast.success("Got it — we'll be in touch.");
     } else {
-      toast.error("Something went wrong sending your request — try again or email support.");
+      toast.error("Couldn't send your request — try again or email support.");
     }
   };
 

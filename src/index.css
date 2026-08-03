@@ -70,6 +70,8 @@
   --olive:        78 23% 70%;   /* #B7C3A1 — secondary green */
   --sage:         78 9% 53%;    /* #8C947D — primary accent */
   --bark:         70 20% 33%;   /* #5E6544 — deep olive */
+  --bark-light:   76 20% 44%;   /* bark FAB gradient highlight stop (orb top) */
+  --bark-border:  66 25% 19%;   /* bark CTA button border / dark gradient stop */
   --olivewood:    64 16% 16%;   /* #2E2F22 — primary text + dark ground */
   --burnt-sienna: 19 75% 35%;   /* #984216 — warm accent / emphasis */
   /* Accent used as TEXT on a raised surface. Identical to --burnt-sienna in
@@ -299,6 +301,8 @@
   --olive:        78 15% 42%;   /* secondary green — lightened for dark bg */
   --sage:         78 12% 60%;   /* primary accent — noticeably lighter */
   --bark:         72 22% 52%;   /* deep olive lightened for legibility */
+  --bark-light:   76 20% 44%;   /* same as light mode — gradient stop, not theme-adaptive */
+  --bark-border:  66 25% 19%;   /* same as light mode — button border, not theme-adaptive */
   --olivewood:    36 15% 80%;   /* primary text — near-white warm */
   --burnt-sienna: 19 65% 52%;   /* warm accent — slightly brighter on dark */
   --accent-ink:   19 70% 66%;   /* accent-as-text on a raised dark surface —

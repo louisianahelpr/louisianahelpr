@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { CheckCircle2, XCircle, AlertTriangle, Scale } from "lucide-react";
 import { slaBadge } from "./adminDisputesHelpers";
 import type { DisputedJob, DisputeRecord, FilterTab } from "./types";
+import { formatShortDate } from "@/lib/format";
 
 interface DisputeCardProps {
   job: DisputedJob;
@@ -72,7 +73,7 @@ export const DisputeCard = ({
           </p>
           {job.disputed_at && (
             <p className="text-ds-11 text-muted-foreground">
-              Disputed {new Date(job.disputed_at).toLocaleDateString()} by {profiles[job.disputed_by || ""] || "Unknown"}
+              Disputed {formatShortDate(job.disputed_at)} by {profiles[job.disputed_by || ""] || "Unknown"}
             </p>
           )}
         </div>

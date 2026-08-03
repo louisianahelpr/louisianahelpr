@@ -8,6 +8,7 @@ import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import AppShell from "@/components/AppShell";
 import { toast } from "sonner";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -254,10 +255,11 @@ const ProfilePage = () => {
       parish: parish,
     }).eq("user_id", user.id);
     setSaving(false);
-    if (error) toast.error("We couldn't save your profile — please try again.");
+    if (error) { hapticError(); toast.error("We couldn't save your profile — please try again."); }
     else {
       setFullName(merged);
       setJustSaved(true);
+      hapticSuccess();
       toast.success("Profile updated!");
       setTimeout(() => setJustSaved(false), 1800);
     }
@@ -266,9 +268,9 @@ const ProfilePage = () => {
   const handleIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5 MB"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("That file is over 5 MB — try a smaller one."); return; }
     const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
-    if (!allowed.includes(file.type)) { toast.error("Use JPG, PNG, WEBP, or PDF"); return; }
+    if (!allowed.includes(file.type)) { toast.error("That file type isn't supported — use JPG, PNG, WEBP, or PDF."); return; }
     setIdUploading(true);
     const ext = file.name.split(".").pop();
     const path = `${user.id}/id-${Date.now()}.${ext}`;
@@ -286,8 +288,8 @@ const ProfilePage = () => {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    if (!file.type.startsWith("image/")) { toast.error("Select an image file"); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5 MB"); return; }
+    if (!file.type.startsWith("image/")) { toast.error("That doesn't look like an image — try JPG or PNG."); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("That image is over 5 MB — try a smaller one."); return; }
 
     setAvatarUploading(true);
     const ext = file.name.split(".").pop();

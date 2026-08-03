@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, CheckCircle2, Clock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { formatShortDate } from "@/lib/format";
 
 type Ticket = {
   id: string;
@@ -128,7 +129,7 @@ const AdminSupport = () => {
                         {ticket.reporter_name}
                         {ticket.reporter_email && <span className="text-muted-foreground/60"> · {ticket.reporter_email}</span>}
                         {" · "}
-                        {new Date(ticket.created_at).toLocaleDateString()}
+                        {formatShortDate(ticket.created_at)}
                       </p>
                     </div>
                   </div>

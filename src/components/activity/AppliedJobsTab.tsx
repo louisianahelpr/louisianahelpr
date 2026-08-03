@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { hapticError, hapticLight } from "@/lib/haptics";
+import { hapticError, hapticLight, hapticSuccess } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
@@ -134,6 +134,7 @@ export const AppliedJobsTab = ({
       toast.error("Couldn't update — the poster may have opened your bid. Refreshing…");
       onRefresh();
     } else {
+      hapticSuccess();
       toast.success("Offer updated");
       onRefresh();
     }
@@ -144,8 +145,8 @@ export const AppliedJobsTab = ({
   const handleSaveMessage = useCallback(async (appId: string) => {
     setSavingMessage(true);
     const { error } = await supabase.from("applications").update({ message: editMessageText.trim() || null }).eq("id", appId);
-    if (error) toast.error("Couldn't save your note — try again?");
-    else { toast.success("Message updated"); onRefresh(); }
+    if (error) { hapticError(); toast.error("Couldn't save your note — try again?"); }
+    else { hapticSuccess(); toast.success("Message updated"); onRefresh(); }
     setSavingMessage(false);
     setEditingMessageAppId(null);
   }, [editMessageText, onRefresh]);

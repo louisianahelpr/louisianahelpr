@@ -122,7 +122,7 @@ export function JobConfirmation({
           className="font-serif italic"
           style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          {jobDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+          {jobDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
           {hoursUntilJob > 0 && ` · ${urgencyText} away`}
         </p>
 
@@ -201,7 +201,7 @@ export function JobConfirmation({
                 className="font-display italic font-bold leading-tight"
                 style={{ fontSize: "0.98rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
               >
-                {jobDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                {jobDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
               </p>
             </div>
             <div

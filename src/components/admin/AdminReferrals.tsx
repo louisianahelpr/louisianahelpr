@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { formatShortDate } from "@/lib/format";
 
 interface ReferralCode {
   id: string;
@@ -260,7 +261,7 @@ const AdminReferrals = () => {
                 <div>
                   <p className="font-medium text-foreground">{c.userName}</p>
                   <p className="text-ds-11 text-muted-foreground">
-                    {c.reason === "referrer_bonus" ? "Referral bonus" : "First job bonus"} · {new Date(c.created_at).toLocaleDateString()}
+                    {c.reason === "referrer_bonus" ? "Referral bonus" : "First job bonus"} · {formatShortDate(c.created_at)}
                   </p>
                 </div>
                 <div className="text-right">
@@ -290,7 +291,7 @@ const AdminReferrals = () => {
             <div key={c.id} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
               <div>
                 <p className="text-ds-13 font-medium text-foreground">{c.userName}</p>
-                <p className="text-ds-11 text-muted-foreground">Created {new Date(c.created_at).toLocaleDateString()}</p>
+                <p className="text-ds-11 text-muted-foreground">Created {formatShortDate(c.created_at)}</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-mono text-ds-13 font-bold text-primary tracking-widest">{c.code}</span>
@@ -332,7 +333,7 @@ const AdminReferrals = () => {
                     <span>{r.referredName}</span>
                   </p>
                   <p className="text-ds-11 text-muted-foreground mt-0.5">
-                    Referred on {new Date(r.created_at).toLocaleDateString()}
+                    Referred on {formatShortDate(r.created_at)}
                   </p>
                 </div>
                 {credits.some(c => c.referred_user_id === r.referred_id || c.referred_user_id === r.referrer_id) ? (
@@ -366,7 +367,7 @@ const AdminReferrals = () => {
               <div>
                 <p className="text-ds-13 font-medium text-foreground">{c.userName}</p>
                 <p className="text-ds-11 text-muted-foreground">
-                  {c.reason === "referrer_bonus" ? "Referral bonus" : "First job bonus"} · {new Date(c.created_at).toLocaleDateString()}
+                  {c.reason === "referrer_bonus" ? "Referral bonus" : "First job bonus"} · {formatShortDate(c.created_at)}
                 </p>
               </div>
               <div className="text-right">

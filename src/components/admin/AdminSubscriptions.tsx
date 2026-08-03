@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Crown, Clock, Users } from "lucide-react";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { formatShortDate } from "@/lib/format";
 
 interface SubscribedProfile {
   user_id: string;
@@ -164,7 +165,7 @@ const AdminSubscriptions = () => {
                 {p.subscription_expires_at && (
                   <span className="text-muted-foreground text-ds-11">
                     {status === "active" ? "Expires" : "Expired"}{" "}
-                    {new Date(p.subscription_expires_at).toLocaleDateString()}
+                    {formatShortDate(p.subscription_expires_at)}
                   </span>
                 )}
               </div>

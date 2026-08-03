@@ -72,28 +72,44 @@ export async function handleCheckoutSessionCompleted(
       updateData.subscription_expires_at = subscriptionEnd;
     }
 
-    const { error } = await supabase
+    const { data: updatedProfiles, error } = await supabase
       .from("profiles")
       .update(updateData)
-      .eq("email", customerEmail);
+      .eq("email", customerEmail)
+      .select("user_id");
 
     if (error) {
       logStep("ERROR updating profile", { error: error.message });
-      // A subscription payment captured but the tier wasn't applied. The
-      // customer.subscription.updated event serves as a fallback for new
-      // subscriptions, but a persistent DB failure could leave the user
-      // paying without Pro access. Alert ops so it can be reconciled.
+      // Throw so the outer handler rolls back the idempotency row and returns
+      // 500 — letting Stripe redeliver once the DB recovers. A silent 200 here
+      // permanently loses the entitlement: customer.subscription.updated is a
+      // fallback for recurring subscriptions, but one-time passes only fire
+      // checkout.session.completed, so there is no second chance.
       await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
         title: "Subscription — tier not applied after payment captured",
-        message: "A subscription checkout captured but the profiles UPDATE (subscription_tier) failed. The user paid but may not have access. customer.subscription.updated serves as a fallback; reconcile if the issue persists.",
+        message: "A subscription checkout captured but the profiles UPDATE (subscription_tier) failed. Stripe will retry; if the issue persists, reconcile manually.",
         fields: {
           session_id: session.id,
           email: customerEmail ?? "(missing)",
           tier: tier ?? "(missing)",
           db_error: error.message,
         },
+      });
+      throw new Error(`Failed to apply subscription tier '${tier}' for ${customerEmail}: ${error.message}`);
+    } else if (!updatedProfiles || updatedProfiles.length === 0) {
+      // UPDATE succeeded but matched 0 rows: the Stripe customer email has no
+      // matching profile. The user was charged but received no entitlement.
+      // customer.subscription.updated also resolves by email, so it will hit
+      // the same 0-row result — retrying won't help; ops must reconcile.
+      logStep("WARNING: tier update matched 0 profiles — email mismatch", { email: customerEmail, tier });
+      postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Subscription tier not granted — no matching profile",
+        message: "A customer's checkout completed but no profile matched their Stripe email. They were charged but have no access. Reconcile manually.",
+        fields: { email: customerEmail ?? "(missing)", tier: String(tier), session_id: session.id },
       });
     } else {
       logStep("Profile updated with tier", { email: customerEmail, tier, expires: subscriptionEnd });
@@ -124,12 +140,15 @@ export async function handleCheckoutSessionCompleted(
         logStep("ERROR updating tip status", { error: tipError.message });
         // A captured tip charge whose row never flips to 'paid' leaves the
         // helper unpaid AND un-notified — a money↔ledger divergence, not a
-        // benign log line. Surface it to ops like the PIF mint failures below.
-        postSlackOpsAlert({
+        // benign log line. Await the alert and throw so the outer handler
+        // rolls back the idempotency row and returns 500, letting Stripe
+        // retry once the DB recovers. A silent return here permanently drops
+        // the tip (same mistake that existed in customerSubscriptionUpdated).
+        await postSlackOpsAlert({
           kind: "custom",
           severity: "critical",
           title: "Tip payment — status flip failed",
-          message: "A tip checkout captured but the tips row was not marked paid, so the helper wasn't notified. Reconcile manually.",
+          message: "A tip checkout captured but the tips row was not marked paid, so the helper wasn't notified. Stripe will retry.",
           fields: {
             session_id: session.id,
             job_id: String(tipJobId),
@@ -138,6 +157,7 @@ export async function handleCheckoutSessionCompleted(
             db_error: tipError.message,
           },
         });
+        throw new Error(`Tip status flip failed for job ${tipJobId}: ${tipError.message}`);
       } else if (flippedTip && flippedTip.length > 0) {
         logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId });
         // Notify the helper — only on the delivery that actually captured the tip.
@@ -175,13 +195,16 @@ export async function handleCheckoutSessionCompleted(
         .eq("id", boostJobId);
       if (boostError) {
         logStep("ERROR applying boost", { error: boostError.message });
-        // A captured boost payment whose DB write failed means the user paid but
-        // the boost never activated. No retry (200 returned) → ops must reconcile.
+        // Throw so the outer handler rolls back the idempotency row and returns
+        // 500 — letting Stripe redeliver once the DB recovers. A silent 200 here
+        // permanently loses the boost: the user paid but it never activates with
+        // no retry path. The re-delivered UPDATE is idempotent (sets the same
+        // timestamps) so it is safe to retry.
         await postSlackOpsAlert({
           kind: "custom",
           severity: "critical",
           title: "Job boost — activation failed after payment captured",
-          message: "A boost checkout captured but the jobs UPDATE (boosted_at/boost_expires_at) failed. The boost was paid for but never activated. Reconcile manually.",
+          message: "A boost checkout captured but the jobs UPDATE (boosted_at/boost_expires_at) failed. Stripe will retry.",
           fields: {
             session_id: session.id,
             job_id: String(boostJobId),
@@ -189,6 +212,7 @@ export async function handleCheckoutSessionCompleted(
             db_error: boostError.message,
           },
         });
+        throw new Error(`Boost activation failed for job ${boostJobId}: ${boostError.message}`);
       } else {
         logStep("Boost applied", { jobId: boostJobId, expires: expires.toISOString() });
       }
@@ -256,6 +280,14 @@ export async function handleCheckoutSessionCompleted(
             message: "A helper's background-check payment captured but the helper_credentials row failed to write, so the check was never queued. Reconcile manually.",
             fields: { session_id: session.id, user_id: String(bgcUserId), db_error: credErr.message },
           });
+          // Throw so the outer handler rolls back the idempotency row and returns
+          // 500 — letting Stripe retry once the DB recovers. A silent 200 here
+          // commits the dedupe row permanently: the paid check is never queued
+          // and the user never receives the confirmation notification (moved into
+          // the success path below). The retry re-enters the else branch because
+          // existingBgc finds nothing (the INSERT failed), and re-attempts the
+          // credential creation cleanly.
+          throw new Error(`Background check credential insert failed for user ${bgcUserId}: ${credErr.message}`);
         } else if (cred) {
           const { error: checkErr } = await supabase
             .from("verification_checks")
@@ -270,6 +302,9 @@ export async function handleCheckoutSessionCompleted(
             logStep("ERROR creating bgc check", { error: checkErr.message });
             // Credential row exists but the check run didn't — the admin queue
             // won't surface it, so the paid screening stalls silently. Alert ops.
+            // Don't throw: a retry would see existingBgc (status='submitted') and
+            // skip the else branch, so there is no clean Stripe-retry path here.
+            // Ops must manually create the verification_checks row.
             postSlackOpsAlert({
               kind: "custom",
               severity: "critical",
@@ -278,17 +313,20 @@ export async function handleCheckoutSessionCompleted(
               fields: { session_id: session.id, user_id: String(bgcUserId), credential_id: String(cred.id), db_error: checkErr.message },
             });
           }
-        }
 
-        await supabase.from("notifications").insert({
-          user_id: bgcUserId,
-          title: "🛡️ Background check started",
-          message:
-            "Thanks — your payment went through and your background check is in progress. We'll add your Background-Checked badge as soon as it clears.",
-          type: "success",
-          link: "/profile",
-        });
-        logStep("Background check initiated", { userId: bgcUserId });
+          // Notify only on confirmed credential creation. Previously this ran
+          // unconditionally so the user received "Background check started" even
+          // when the credential INSERT had just failed and we threw above.
+          await supabase.from("notifications").insert({
+            user_id: bgcUserId,
+            title: "🛡️ Background check started",
+            message:
+              "Thanks — your payment went through and your background check is in progress. We'll add your Background-Checked badge as soon as it clears.",
+            type: "success",
+            link: "/profile",
+          });
+          logStep("Background check initiated", { userId: bgcUserId });
+        }
       }
     }
   }
@@ -340,14 +378,19 @@ export async function handleCheckoutSessionCompleted(
         .maybeSingle();
       if (existErr) {
         logStep("ERROR checking existing pif credit — aborting mint (fail closed)", { error: existErr.message, sessionId: session.id });
-        postSlackOpsAlert({
+        // Await the alert before throwing: the outer handler rolls back the
+        // idempotency row and returns 500, which triggers Stripe's retry schedule.
+        // A plain `return` would commit the row (200 OK) so Stripe never retries
+        // and the donor's captured charge permanently loses its credit — money in,
+        // no gift out. Throwing is the only path that lets Stripe re-deliver.
+        await postSlackOpsAlert({
           kind: "custom",
           severity: "critical",
           title: "Pay It Forward mint — idempotency check failed",
-          message: "Couldn't verify whether this gift was already minted, so the mint was skipped to avoid a double-credit. Stripe will retry; if it keeps failing, reconcile manually.",
+          message: "Couldn't verify whether this gift was already minted, so the mint was skipped to avoid a double-credit. Returning 500 so Stripe retries; if it keeps failing, reconcile manually.",
           fields: { session_id: session.id, donor_id: donorId, recipient_email: recipientEmail, db_error: existErr.message },
         });
-        return;
+        throw new Error(`pif_credits idempotency check failed for session ${session.id}: ${existErr.message}`);
       }
 
       if (existing) {
@@ -520,15 +563,18 @@ export async function handleCheckoutSessionCompleted(
     if (jobError) {
       logStep("ERROR storing PI on job", { error: jobError.message });
       // The payment is CAPTURED but the job never got marked funded/escrow —
-      // a money↔state divergence (funds held, job looks unpaid). Surface to
-      // ops rather than swallowing it, mirroring the other money paths here.
-      postSlackOpsAlert({
+      // a money↔state divergence (funds held, job looks unpaid). Throw so
+      // the outer handler rolls back the idempotency row and returns 500,
+      // letting Stripe retry once the DB recovers. Matches the tip/boost/
+      // subscription error paths in this same handler.
+      await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
         title: "Escrow funding — job not marked funded after capture",
-        message: "A checkout was captured but the jobs UPDATE (payment_status→escrow/payout_pending) failed. The payment is held with no funded job. Reconcile manually.",
+        message: "A checkout was captured but the jobs UPDATE (payment_status→escrow/payout_pending) failed. Stripe will retry once the DB recovers.",
         fields: { session_id: session.id, job_id: jobId, payment_intent: piId, repay: String(isRepay), db_error: jobError.message },
       });
+      throw new Error(`Escrow update failed for job ${jobId} (PI ${piId}): ${jobError.message}`);
     } else {
       logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId, repay: isRepay });
     }

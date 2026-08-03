@@ -87,7 +87,6 @@ export function HelperRevisionCard({
 
   const handleAccept = async () => {
     setAccepting(true);
-    hapticSuccess();
     try {
       // Update the formal table if this isn't a legacy fallback
       if (revision?.id && revision.id !== "legacy") {
@@ -111,6 +110,7 @@ export function HelperRevisionCard({
         });
       }
 
+      hapticSuccess();
       toast.success("Got it — get back to work and mark complete when you're done.");
       onAccepted();
     } catch (err: unknown) {

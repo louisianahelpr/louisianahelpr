@@ -266,6 +266,7 @@ export function ProfileEditForm({
           </div>
           <Textarea
             id="bio"
+            aria-label="About you"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="What you do, tools you bring, what makes you reliable…"

@@ -114,6 +114,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
           <div className="space-y-2">
             <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Internal note (sent to user)</p>
             <Textarea
+              aria-label="Internal note (sent to user)"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="e.g. Customer complaint: helper left gate open. Verified via phone call."

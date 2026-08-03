@@ -493,6 +493,7 @@ export default function PayItForward() {
                   </span>
                 </div>
                 <Textarea
+                  aria-label="Personal note (optional)"
                   value={note}
                   onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
                   placeholder="Hope this helps — thinking of you!"

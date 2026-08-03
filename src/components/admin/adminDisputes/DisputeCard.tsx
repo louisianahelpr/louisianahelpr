@@ -151,6 +151,7 @@ export const DisputeCard = ({
           <div className="space-y-1.5">
             <Label className="text-ds-11 font-medium">Decision note (recorded for both parties)</Label>
             <Textarea
+              aria-label="Decision note (recorded for both parties)"
               value={decisionText}
               onChange={(e) => setDecisionText(e.target.value)}
               placeholder="Explain the outcome — what tipped the call, what each party should expect."

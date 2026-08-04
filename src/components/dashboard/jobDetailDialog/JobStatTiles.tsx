@@ -157,7 +157,7 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                   {label}
                 </p>
                 <p
-                  className="font-display italic font-bold mt-1 text-[16px] leading-tight tracking-tight truncate text-center"
+                  className="font-display italic font-bold mt-1 text-ds-16 leading-tight tracking-tight truncate text-center"
                   style={{ color: urgent ? "hsl(var(--accent))" : "hsl(var(--ink-deep))" }}
                 >
                   {value}

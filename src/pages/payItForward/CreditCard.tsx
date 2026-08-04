@@ -98,7 +98,7 @@ export function CreditCard({
           className="w-full rounded-ds-sm font-display italic font-semibold text-ds-13"
           style={{
             background: "hsl(var(--pif-green))",
-            color: "#fff",
+            color: "hsl(var(--parchment))",
             border: "none",
           }}
         >

@@ -528,15 +528,19 @@ export async function handleCheckoutSessionCompleted(
       .maybeSingle();
     if (consumeErr) {
       logStep("ERROR consuming reserved pif credit", { error: consumeErr.message, pifCreditId });
-      // A captured shortfall with no redeemed credit is a money↔ledger
-      // divergence — surface to ops rather than swallowing it.
-      postSlackOpsAlert({
+      // Await the alert before throwing so it fires reliably; the throw rolls
+      // back the idempotency row and returns 500, letting Stripe retry once
+      // the DB recovers. A plain return here commits the dedupe row — the
+      // credit stays 'reserved' forever (unusable on another job) with no
+      // retry path, and the shortfall charge has no matching redeemed record.
+      await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
         title: "Pay It Forward difference payment — credit not consumed",
-        message: "A recipient paid the shortfall on a reserved gift but pif_credits was not flipped to redeemed. Reconcile manually.",
+        message: "A recipient paid the shortfall on a reserved gift but pif_credits was not flipped to redeemed. Stripe will retry; if it persists, reconcile manually.",
         fields: { session_id: session.id, pif_credit_id: pifCreditId, db_error: consumeErr.message },
       });
+      throw new Error(`pif_credits status flip failed for session ${session.id}: ${consumeErr.message}`);
     } else if (!consumed) {
       logStep("Reserved pif credit already consumed or missing — skipping", { pifCreditId });
     } else {

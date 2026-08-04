@@ -96,7 +96,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
               </p>
             </div>
             <span
-              className="mt-1 font-sans font-semibold text-[0.72rem] tracking-wide px-2.5 py-1 rounded-full w-full text-center"
+              className="mt-1 font-sans font-semibold text-[0.72rem] tracking-wide px-2.5 py-1 rounded-ds-md w-full text-center"
               style={{
                 background: "hsl(var(--bark) / 0.16)",
                 color: "hsl(var(--bark))",
@@ -138,7 +138,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
               </p>
             </div>
             <span
-              className="mt-1 font-sans font-semibold text-[0.72rem] tracking-wide px-2.5 py-1 rounded-full w-full text-center"
+              className="mt-1 font-sans font-semibold text-[0.72rem] tracking-wide px-2.5 py-1 rounded-ds-md w-full text-center"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.14)",
                 color: "hsl(var(--burnt-sienna))",

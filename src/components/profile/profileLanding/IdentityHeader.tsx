@@ -481,7 +481,7 @@ export function IdentityHeader({
                 type="button"
                 onClick={() => setVideoOpen(true)}
                 aria-label="Play intro video"
-                className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 active:scale-95 transition-transform"
+                className="relative w-14 h-14 rounded-2xl overflow-hidden shrink-0 active:scale-95 transition-transform"
                 style={{ background: "hsl(var(--ink-deep))" }}
               >
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -614,7 +614,7 @@ export function IdentityHeader({
                               key={url}
                               type="button"
                               onClick={() => onSelectTab("profile")}
-                              className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform snap-start"
+                              className="shrink-0 w-20 h-20 rounded-2xl overflow-hidden border border-border/40 active:scale-95 transition-transform snap-start"
                               aria-label={`Work sample ${i + 1}`}
                             >
                               <img loading="lazy" decoding="async" src={url} alt="" aria-hidden="true" className="w-full h-full object-cover" />

@@ -67,7 +67,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
       {/* Error message */}
       {hasError && (
         <div
-          className="rounded-lg px-3 py-2"
+          className="rounded-ds-md px-3 py-2"
           style={{
             background: "hsl(var(--burnt-sienna) / 0.08)",
             border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
@@ -90,7 +90,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
           jobs.budget — never an hourly rate, so no "/hr" suffix here. */}
       {conn.auto_create_cleaning ? (
         <div
-          className="flex items-center gap-2 rounded-lg px-3 py-2"
+          className="flex items-center gap-2 rounded-ds-md px-3 py-2"
           style={{ background: "hsl(var(--gold-warm) / 0.08)", border: "0.5px solid hsl(var(--gold-warm) / 0.2)" }}
         >
           <Home className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
@@ -103,7 +103,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
         </div>
       ) : (
         <div
-          className="flex items-start gap-2 rounded-lg px-3 py-2"
+          className="flex items-start gap-2 rounded-ds-md px-3 py-2"
           style={{ background: "hsl(var(--olivewood) / 0.06)", border: "0.5px solid hsl(var(--olivewood) / 0.15)" }}
         >
           <CalendarOff className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />

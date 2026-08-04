@@ -41,7 +41,7 @@ export function SectionCard({
               section icon as a quiet badge, so the chapter ordinal is
               always visible even deep in a long scroll. */}
           <div className="relative shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-ds-md bg-primary/10 flex items-center justify-center">
               <Icon className="w-[18px] h-[18px] text-primary" strokeWidth={2} />
             </div>
             <span

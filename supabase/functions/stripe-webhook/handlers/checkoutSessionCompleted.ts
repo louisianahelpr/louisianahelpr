@@ -458,13 +458,19 @@ export async function handleCheckoutSessionCompleted(
 
         if (mintErr) {
           logStep("ERROR minting pif credit", { error: mintErr.message, sessionId: session.id });
-          // A captured charge with no credit row is a real money↔ledger
-          // divergence — surface to ops rather than swallowing it.
-          postSlackOpsAlert({
+          // A captured charge with no credit row is a real money↔ledger divergence.
+          // Await the alert before throwing so ops is paged even if the function
+          // terminates quickly. The throw propagates to the outer webhook handler,
+          // which rolls back the idempotency row and returns 500 — Stripe retries
+          // once the DB recovers, the idempotency check finds no dedupe row, the
+          // existing-credit check finds no row, and the mint re-runs cleanly.
+          // Without the throw Stripe 200-ACKs and the gift is permanently undelivered
+          // (same failure mode that existErr guards against above).
+          await postSlackOpsAlert({
             kind: "custom",
             severity: "critical",
-            title: "Pay It Forward gift mint failed",
-            message: "A donor's gift charge captured but the pif_credits row was not written. Reconcile manually.",
+            title: "Pay It Forward gift mint failed — Stripe will retry",
+            message: "A donor's gift charge captured but the pif_credits row was not written. Returning 500 so Stripe retries; if retries exhaust, reconcile manually.",
             fields: {
               session_id: session.id,
               donor_id: donorId,
@@ -473,6 +479,7 @@ export async function handleCheckoutSessionCompleted(
               db_error: mintErr.message,
             },
           });
+          throw new Error(`pif_credits insert failed for session ${session.id}: ${mintErr.message}`);
         } else {
           logStep("Pay It Forward gift minted", { sessionId: session.id, recipientEmail, amountCents });
 

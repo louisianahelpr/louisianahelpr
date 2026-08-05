@@ -9,7 +9,7 @@ export const categoryPricing: Record<string, { min: number; max: number; label: 
   delivery: { min: 15, max: 60, label: "Delivery" },
   pet_care: { min: 20, max: 60, label: "Pet Care" },
   assembly: { min: 30, max: 120, label: "Assembly" },
-  storm_prep: { min: 80, max: 350, label: "Storm" },
+  storm_prep: { min: 80, max: 350, label: "Storm prep" },
   events: { min: 60, max: 250, label: "Events" },
   other: { min: 20, max: 100, label: "Other" },
 };

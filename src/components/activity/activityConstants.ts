@@ -17,7 +17,7 @@ export const categoryIcons = CATEGORY_ICONS;
 export const categoryLabels: Record<string, string> = {
   cleaning: "Cleaning", yard_work: "Yard Work", moving: "Moving", errands: "Errands",
   handyman: "Handyman", painting: "Painting", delivery: "Delivery", pet_care: "Pet Care",
-  assembly: "Assembly", storm_prep: "Storm", events: "Events", other: "Other",
+  assembly: "Assembly", storm_prep: "Storm prep", events: "Events", other: "Other",
 };
 
 export const categories = Object.entries(categoryLabels).map(([value, label]) => ({ value, label }));

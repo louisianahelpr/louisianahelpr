@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "./StatusPill";
-import { formatShortDate } from "@/lib/format";
+import { formatShortDate, formatPrice } from "@/lib/format";
 import type { PifCredit } from "./types";
 
 // ─── Credit card ──────────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ export function CreditCard({
             className="font-display italic font-bold leading-tight"
             style={{ fontSize: "1.35rem", color: "hsl(var(--pif-ink))", letterSpacing: "-0.02em" }}
           >
-            ${Number(credit.amount).toFixed(0)}
+            ${formatPrice(Number(credit.amount))}
           </p>
           <p
             className="font-serif italic mt-0.5"

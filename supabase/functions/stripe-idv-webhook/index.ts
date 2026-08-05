@@ -118,7 +118,7 @@ serve(async (req) => {
       // the verification email and re-flagging admins. Fail closed: 500 so
       // Stripe retries once the DB recovers and the insert can succeed.
       console.error("[stripe-idv-webhook] Idempotency insert failed — asking Stripe to retry:", idemErr);
-      postSlackOpsAlert({
+      await postSlackOpsAlert({
         kind: "stripe_webhook_error",
         severity: "critical",
         title: "Stripe IDV webhook idempotency insert failed",
@@ -135,7 +135,7 @@ serve(async (req) => {
     // The insert threw (network/client error). Same reasoning: without a dedupe
     // record we can't safely process, so fail closed and let Stripe retry.
     console.error("[stripe-idv-webhook] Idempotency check threw — asking Stripe to retry:", e);
-    postSlackOpsAlert({
+    await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Stripe IDV webhook idempotency check threw",
@@ -161,7 +161,7 @@ serve(async (req) => {
       // dedupe-skip and silently drop this IDV status transition. Page ops; a
       // console line is invisible.
       console.error("[stripe-idv-webhook] Failed to roll back idempotency row:", delErr);
-      postSlackOpsAlert({
+      await postSlackOpsAlert({
         kind: "stripe_webhook_error",
         severity: "critical",
         title: "Stripe IDV webhook idempotency rollback FAILED — event may be stranded",
@@ -330,7 +330,7 @@ serve(async (req) => {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[stripe-idv-webhook] Processing error:", err);
     await rollbackIdempotency();
-    postSlackOpsAlert({
+    await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Stripe IDV webhook processing error",

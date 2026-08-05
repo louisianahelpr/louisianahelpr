@@ -161,7 +161,7 @@ serve(async (req) => {
       // insert succeeds and we get a real dedupe record. A transient DB blip is
       // safer to retry than to process un-deduped.
       console.error("[STRIPE-WEBHOOK] Idempotency insert failed — asking Stripe to retry:", idemErr);
-      postSlackOpsAlert({
+      await postSlackOpsAlert({
         kind: "stripe_webhook_error",
         severity: "critical",
         title: "Stripe webhook idempotency insert failed",
@@ -180,7 +180,7 @@ serve(async (req) => {
     // reasoning as above: without a dedupe record we can't safely process, so
     // fail closed and let Stripe retry.
     console.error("[STRIPE-WEBHOOK] Idempotency check threw — asking Stripe to retry:", e);
-    postSlackOpsAlert({
+    await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Stripe webhook idempotency check threw",
@@ -210,7 +210,7 @@ serve(async (req) => {
       // re-stranding the paid event (the exact failure this whole guard exists
       // to prevent). A console line alone is invisible, so page ops.
       console.error("[STRIPE-WEBHOOK] Failed to roll back idempotency row:", delErr);
-      postSlackOpsAlert({
+      await postSlackOpsAlert({
         kind: "stripe_webhook_error",
         severity: "critical",
         title: "Stripe webhook idempotency rollback FAILED — event may be stranded",
@@ -234,7 +234,7 @@ serve(async (req) => {
     // event. A transient DB/handler failure must not permanently lose a paid
     // event — the retry re-runs the (idempotent) handler once the fault clears.
     await rollbackIdempotency();
-    postSlackOpsAlert({
+    await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Stripe webhook processing error",

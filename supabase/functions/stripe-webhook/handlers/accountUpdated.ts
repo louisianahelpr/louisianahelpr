@@ -1,5 +1,6 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 
 export async function handleAccountUpdated(
   event: Stripe.Event,
@@ -30,7 +31,25 @@ export async function handleAccountUpdated(
           .eq("user_id", helperProfile.user_id);
 
         if (approvalErr) {
-          logStep("ERROR auto-approving helper", { error: approvalErr.message });
+          // Throw so the outer handler rolls back the idempotency row and returns
+          // 500, letting Stripe retry once the DB recovers. A plain log + 200 here
+          // permanently drops the approval: Stripe won't retry, the helper stays
+          // stuck in "pending" status despite Stripe verifying them, and there is
+          // no follow-up event to trigger a re-attempt unless they change their
+          // Connect account again. Matches the throw-on-DB-error pattern in
+          // customerSubscriptionDeleted, customerSubscriptionUpdated, etc.
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "critical",
+            title: "account.updated — helper auto-approval DB write failed",
+            message: `Stripe verified helper ${helperProfile.user_id} (charges + payouts enabled) but the profiles UPDATE (approval_status → approved) failed. Helper stays in "pending" until the DB recovers and Stripe retries this event.`,
+            fields: {
+              user_id: helperProfile.user_id,
+              account_id: account.id,
+              db_error: approvalErr.message.slice(0, 200),
+            },
+          });
+          throw new Error(`Failed to auto-approve helper ${helperProfile.user_id} for account ${account.id}: ${approvalErr.message}`);
         } else {
           logStep("✅ Auto-approved helper via Stripe verification", { userId: helperProfile.user_id });
           await supabase.from("notifications").insert({

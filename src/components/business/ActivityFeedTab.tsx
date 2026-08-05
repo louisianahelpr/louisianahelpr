@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { Briefcase, CheckCircle2, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { formatPrice } from "@/lib/format";
 
 interface ActivityEvent {
   event_at: string;
@@ -117,7 +118,7 @@ export function ActivityFeedTab({ businessId }: ActivityFeedTabProps) {
     <div className="space-y-2">
       {events.map((e, idx) => {
         const actor = e.actor_name || "Someone";
-        const amount = e.amount != null ? `$${Number(e.amount).toFixed(0)}` : "";
+        const amount = e.amount != null ? `$${formatPrice(Number(e.amount))}` : "";
         let icon = <Briefcase className="w-4 h-4" />;
         let verb = "did something with";
         if (e.event_type === "posted") {

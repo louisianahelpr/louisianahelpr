@@ -83,6 +83,7 @@ export function useActivityActions({
   const [respondingHelperAppId, setRespondingHelperAppId] = useState<string | null>(null);
   const [confirmingArrivalJobId, setConfirmingArrivalJobId] = useState<string | null>(null);
   const [confirmingWorkingJobId, setConfirmingWorkingJobId] = useState<string | null>(null);
+  const [confirmingStartJobId, setConfirmingStartJobId] = useState<string | null>(null);
 
   // W-9 e-sign — surfaces when the accepted job has `requires_w9 = true`
   // (set by business posters at post time). We open the dialog after the
@@ -151,6 +152,7 @@ export function useActivityActions({
     setReviewJob,
     setConfirmingArrivalJobId,
     setConfirmingWorkingJobId,
+    setConfirmingStartJobId,
   });
 
   return {
@@ -189,6 +191,7 @@ export function useActivityActions({
     respondingHelperAppId,
     confirmingArrivalJobId,
     confirmingWorkingJobId,
+    confirmingStartJobId,
     // Handlers
     loadApplications,
     loadInlineApplicants,

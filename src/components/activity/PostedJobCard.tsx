@@ -51,6 +51,7 @@ function PostedJobCardInner({
   onDispute,
   onViewDispute,
   onConfirmStart,
+  confirmingStartJobId,
   onConfirmArrival,
   confirmingArrivalJobId,
   onConfirmWorking,
@@ -436,6 +437,7 @@ function PostedJobCardInner({
                 onDispute={onDispute}
                 onViewDispute={onViewDispute}
                 onConfirmStart={onConfirmStart}
+                confirmingStartJobId={confirmingStartJobId}
                 onConfirmArrival={onConfirmArrival}
                 confirmingArrivalJobId={confirmingArrivalJobId}
                 onConfirmWorking={onConfirmWorking}

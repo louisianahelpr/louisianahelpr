@@ -358,6 +358,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onDispute={actions.setDisputeJob}
               onViewDispute={actions.setViewDisputeJob}
               onConfirmStart={actions.confirmStartJob}
+              confirmingStartJobId={actions.confirmingStartJobId}
               onConfirmArrival={actions.confirmArrival}
               confirmingArrivalJobId={actions.confirmingArrivalJobId}
               onConfirmWorking={actions.confirmWorking}

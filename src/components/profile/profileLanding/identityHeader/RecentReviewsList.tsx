@@ -35,7 +35,7 @@ export function RecentReviewsList({
               key={`${r.created_at}-${i}`}
               type="button"
               onClick={() => onSelectTab("reviews")}
-              className="w-full text-left rounded-xl p-2.5 active:scale-[0.99] active:opacity-80 transition-all"
+              className="w-full text-left rounded-2xl p-2.5 active:scale-[0.99] active:opacity-80 transition-all"
               style={{
                 background: "hsla(0, 0%, 100%, 0.55)",
                 border: "1px solid hsl(var(--olivewood) / 0.10)",

@@ -77,7 +77,7 @@ export function ApplyEarningsBreakdown({
       >
         <ShieldCheck className="w-3.5 h-3.5 shrink-0" strokeWidth={2} style={{ color: "hsl(var(--bark))" }} />
         <span className="text-[0.7rem] leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-          Funds are held safe in escrow and released to you when the job is marked complete.
+          Funds are held securely and released to you when the job is marked complete.
         </span>
       </div>
     </div>

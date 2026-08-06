@@ -30,10 +30,13 @@ export async function handleCheckoutSessionExpired(
     .maybeSingle();
 
   if (freeErr) {
-    // Non-fatal: the credit stays reserved and an operator can free it, but a
-    // dropped error here would hide a stuck gift. Surface it in the logs.
-    logStep("ERROR un-reserving pif credit on expired checkout", { error: freeErr.message, pifCreditId });
-    return;
+    // Throw so the outer handler rolls back the idempotency row and returns 500,
+    // letting Stripe retry once the DB recovers. A plain `return` here commits
+    // the dedupe row and acks 200 permanently — leaving the PIF credit in
+    // "reserved" state forever with no retry path and no ops alert. The
+    // recipient's gift is then unusable on any other job until someone manually
+    // repairs the pif_credits row.
+    throw new Error(`Failed to un-reserve pif credit ${pifCreditId} on expired checkout ${session.id}: ${freeErr.message}`);
   }
   if (freed) {
     logStep("Abandoned difference checkout — pif credit un-reserved", { pifCreditId, sessionId: session.id });

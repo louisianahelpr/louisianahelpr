@@ -257,7 +257,7 @@ const BusinessReports = () => {
       hapticSuccess();
     } catch {
       hapticError();
-      toast.error("Couldn't load report data");
+      toast.error("Couldn't load report data — try again?");
     } finally {
       setPdfBusy(false);
     }

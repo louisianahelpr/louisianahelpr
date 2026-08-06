@@ -3,6 +3,8 @@ import { MapPin, Calendar, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { paymentStatusLabel } from "@/lib/statusLabels";
 import { categoryLabels, paymentColors, type Job } from "./types";
+import { formatJobDate } from "@/lib/dateUtils";
+import { formatPrice } from "@/lib/format";
 
 interface JobListItemProps {
   job: Job;
@@ -41,8 +43,8 @@ export const JobListItem = ({ job, flags, isResolved, onOpen }: JobListItemProps
           </div>
           <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground">
             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
-            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(job.date_needed).toLocaleDateString()}</span>
-            <span className="font-medium text-foreground">${job.budget}</span>
+            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatJobDate(job.date_needed)}</span>
+            <span className="font-medium text-foreground">${formatPrice(job.budget ?? 0)}</span>
           </div>
           {showFlagStyle && (
             <div className="flex flex-wrap gap-1 mt-1">

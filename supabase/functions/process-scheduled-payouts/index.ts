@@ -265,7 +265,7 @@ serve(async (req) => {
           continue;
         }
         if (claimed && claimed.length > 0) {
-          if (helperPayout * 100 <= onboardingFeeCents) {
+          if (Math.round(helperPayout * 100) <= onboardingFeeCents) {
             // Claim succeeded but this payout is too small to cover the fee.
             // Roll the claim back and skip so the flag doesn't lie, and a
             // future (larger) payout — or manual reconciliation — collects it.

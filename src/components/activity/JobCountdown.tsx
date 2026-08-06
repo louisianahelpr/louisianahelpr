@@ -58,8 +58,8 @@ export const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: str
         <p className="text-ds-11 font-semibold tabular-nums">{label}: {timeStr}</p>
         <p className="text-ds-10 opacity-80 mt-0.5">
           {startTime
-            ? new Date(jobDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-            : new Date(jobDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) + " · Flexible"
+            ? jobDate.toLocaleString("en-US", { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+            : jobDate.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric' }) + " · Flexible"
           }
         </p>
       </div>

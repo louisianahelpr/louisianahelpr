@@ -36,7 +36,7 @@ export function QrCodeModal({ profile, qrOpen, setQrOpen, qrDataUrl }: QrCodeMod
             />
           ) : (
             <div
-              className="w-60 h-60 rounded-ds-md flex items-center justify-center animate-pulse"
+              className="w-60 h-60 rounded-ds-md flex items-center justify-center motion-safe:animate-pulse"
               style={{ background: "hsl(var(--bark) / 0.06)" }}
             >
               <QrCode className="w-12 h-12" style={{ color: "hsl(var(--bark) / 0.3)" }} />

@@ -356,22 +356,22 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             <div
               className="rounded-ds-md p-3"
               style={{
-                background: "hsl(155 50% 35% / 0.08)",
-                border: "0.5px solid hsl(155 50% 35% / 0.20)",
+                background: "hsl(var(--success-ink) / 0.08)",
+                border: "0.5px solid hsl(var(--success-ink) / 0.20)",
               }}
             >
               <div className="flex items-center gap-2 mb-1">
-                <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(155 50% 30%)" }} strokeWidth={2.25} />
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--success-ink))" }} strokeWidth={2.25} />
                 <p
                   className="font-display italic font-semibold text-ds-13"
-                  style={{ color: "hsl(155 50% 30%)" }}
+                  style={{ color: "hsl(var(--success-ink))" }}
                 >
                   Your Helpr is protected
                 </p>
               </div>
               <p
                 className="font-serif italic text-ds-12"
-                style={{ color: "hsl(155 40% 40%)" }}
+                style={{ color: "hsl(var(--success-ink))" }}
               >
                 Since this is a last-minute cancellation, {helperName || "your Helpr"} will receive a $10 Helpr credit within 24 hours — separate from any cancellation fee above.
               </p>
@@ -380,12 +380,14 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
           <div className="space-y-1.5">
             <label
+              htmlFor="cancel-reason"
               className="font-serif italic uppercase block"
               style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               Reason — optional
             </label>
             <Textarea
+              id="cancel-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="What changed? Helps us improve."

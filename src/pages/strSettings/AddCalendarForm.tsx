@@ -85,7 +85,7 @@ export function AddCalendarForm({
               key={p}
               type="button"
               onClick={() => set("platform", p)}
-              className="rounded-full px-3 py-1 font-serif italic font-semibold transition-all"
+              className="rounded-ds-md px-3 py-1 font-serif italic font-semibold transition-all"
               style={{
                 fontSize: "0.78rem",
                 background:

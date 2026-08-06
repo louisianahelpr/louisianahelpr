@@ -30,7 +30,7 @@ export function scoreApplicant(a: ApplicantData): ApplicantScore {
   // Completed jobs (logarithmic, up to 20 pts)
   if (a.completedJobs > 0) {
     score += Math.min(20, Math.log10(a.completedJobs + 1) * 15);
-    if (a.completedJobs >= 10) signals.push(`${a.completedJobs} jobs`);
+    if (a.completedJobs >= 10) signals.push(`${a.completedJobs} job${a.completedJobs === 1 ? "" : "s"}`);
   }
 
   // Repeat hire % (up to 15 pts)

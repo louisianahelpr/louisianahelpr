@@ -259,7 +259,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-8 w-8"
                           onClick={() => startEdit(n)}
                           aria-label="Edit note"
                           title="Edit"
@@ -270,7 +270,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-destructive hover:text-destructive"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
                         onClick={() => setDeleteNote(n)}
                         aria-label="Delete note"
                         title="Delete"
@@ -284,6 +284,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                 {isEditing ? (
                   <div className="space-y-2">
                     <Textarea
+                      aria-label="Edit note"
                       value={editingText}
                       onChange={(e) => setEditingText(e.target.value)}
                       rows={3}

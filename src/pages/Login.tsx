@@ -195,7 +195,7 @@ const Login = () => {
       await signOutWithPushCleanup();
       setLoading(false);
       hapticError();
-      toast.error("Couldn't verify your account's security settings. Please try again.");
+      toast.error("Couldn't verify your security settings — try again?");
       return;
     }
 

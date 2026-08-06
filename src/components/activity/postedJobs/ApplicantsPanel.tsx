@@ -470,6 +470,7 @@ export function ApplicantsPanel({
                                         onClick={() => setCounterShowing(null)}
                                         className="text-ds-11 px-1.5 py-0.5 rounded-full active:opacity-70"
                                         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                                        aria-label="Cancel counter offer"
                                       >
                                         ✕
                                       </button>

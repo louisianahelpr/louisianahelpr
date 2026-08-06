@@ -42,11 +42,21 @@ serve(async (req) => {
 
     // Helper: get or create Connect account
     const getOrCreateAccount = async () => {
-      const { data: profile } = await supabaseAdmin
+      const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id, full_name, phone, date_of_birth, location")
         .eq("user_id", user.id)
         .single();
+
+      if (profileReadErr) {
+        // A DB error here is indistinguishable from "no profile" — profile is
+        // null in both cases. Without this check, a transient DB failure causes
+        // accountId to be undefined, which triggers account creation. After the
+        // idempotency key expires (>24h), repeated DB failures would create
+        // orphaned Express accounts and overwrite stripe_account_id.
+        console.error(`[stripe-connect] getOrCreateAccount profile read failed for ${user.id}:`, profileReadErr);
+        throw new Error("Could not load your profile — please try again");
+      }
 
       let accountId = profile?.stripe_account_id;
 

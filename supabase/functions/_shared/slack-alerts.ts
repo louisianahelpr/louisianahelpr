@@ -90,6 +90,7 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
         blocks,
         attachments: [{ color: SEVERITY_COLOR[severity], blocks: [] }],
       }),
+      signal: AbortSignal.timeout(5000),
     })
 
     if (!res.ok) {

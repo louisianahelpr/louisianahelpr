@@ -437,6 +437,49 @@ describe("stripe-webhook edge function", () => {
     });
   });
 
+  describe("pif_donation checkout", () => {
+    it("returns 500 + rolls back idempotency row when pif_credits idempotency check fails (DB error)", async () => {
+      // Regression: the handler used to `return` instead of `throw` on a transient
+      // pif_credits DB error. That returned 200 to Stripe (event marked processed,
+      // idempotency row kept), so Stripe stopped retrying and the credit was never
+      // minted — donor paid, recipient got nothing.
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_pif_idem_err",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_pif_1",
+            mode: "payment",
+            customer_email: "donor@test.com",
+            metadata: {
+              kind: "pif_donation",
+              donor_id: "user-donor-1",
+              donor_name: "Jane",
+              recipient_email: "recipient@test.com",
+              amount_cents: "5000",
+              category: "Any",
+            },
+          },
+        },
+      });
+      // Simulate a transient DB error on the pif_credits idempotency look-up.
+      scenario.reads.pif_credits = { error: { message: "connection timeout" } };
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      // Must be 500 so Stripe retries, not 200 which would permanently drop the event.
+      expect(res.status).toBe(500);
+      const body = await json(res);
+      expect(body.received).toBe(false);
+      expect(body.error).toBe("processing_error");
+      // The idempotency row we inserted before processing must be rolled back so
+      // Stripe's retry can re-run the handler rather than being blocked as a dup.
+      const rollback = scenario.writes.find(
+        (w) => w.table === "stripe_webhook_events" && w.op === "delete",
+      );
+      expect(rollback).toBeDefined();
+    });
+  });
+
   describe("processing errors fail closed (retry-safe)", () => {
     it("returns 500 + processing_error and rolls back the dedupe row when a handler throws", async () => {
       const fn = await loadConfigured();

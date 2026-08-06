@@ -242,6 +242,7 @@ const AdminSidebar = ({
           variant="ghost"
           size="sm"
           onClick={onLogout}
+          aria-label="Log out"
           className={cn(
             "justify-start gap-2 hover:bg-destructive/10 hover:text-destructive",
             collapsed && "justify-center px-0"

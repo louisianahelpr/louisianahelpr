@@ -115,6 +115,7 @@ const BusinessOnboarding = () => {
               Enter one email per line. You can add more from Team settings later.
             </p>
             <Textarea
+              aria-label="Team member emails, one per line"
               rows={5}
               placeholder="alice@yourcompany.com&#10;bob@yourcompany.com"
               value={state.invites}

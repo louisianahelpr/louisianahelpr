@@ -51,7 +51,7 @@ export const DateRangeBar = ({
               const n = parseInt(e.target.value, 10);
               if (Number.isFinite(n) && n > 0 && n <= 365) setCustomDays(n);
             }}
-            className="w-14 h-6 px-1.5 text-ds-11 font-semibold tabular-nums rounded-sm bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-14 h-9 px-1.5 text-ds-11 font-semibold tabular-nums rounded-sm bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
       )}

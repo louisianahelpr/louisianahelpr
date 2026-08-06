@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { UpcomingJob } from "@/components/dashboard/DashboardStatusBanners";
+import { formatJobDate } from "@/lib/dateUtils";
 
 interface DashboardInProgressBadgeProps {
   /** Nearest accepted / in-progress job where the user is the helper. */
@@ -30,11 +31,7 @@ const DashboardInProgressBadge = ({ job, onView }: DashboardInProgressBadgeProps
 
   const dateLine =
     job.date_needed &&
-    `${new Date(job.date_needed).toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    })}${job.start_time ? ` · ${job.start_time.slice(0, 5)}` : ""}`;
+    `${formatJobDate(job.date_needed)}${job.start_time ? ` · ${job.start_time.slice(0, 5)}` : ""}`;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

@@ -194,7 +194,7 @@ export function getPaysSelfBack(
   if (feesSaved >= perks.price) {
     return `Pays for itself after just ${jobsNeeded} job${jobsNeeded === 1 ? "" : "s"}/month`;
   }
-  return `Save $${feesSaved.toFixed(0)}/month on fees at ${jobsPerMonth} jobs`;
+  return `Save $${feesSaved.toFixed(0)}/month on fees at ${jobsPerMonth} job${jobsPerMonth === 1 ? "" : "s"}`;
 }
 
 /** Map a raw subscription_tier string (may be null) to the canonical type.

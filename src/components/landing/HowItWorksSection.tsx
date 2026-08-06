@@ -32,7 +32,7 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
     },
     {
       title: "Pay when it's done",
-      desc: "Funds sit safe in escrow until you confirm the work.",
+      desc: "Funds are held securely — released when you confirm the work.",
     },
   ],
   // Helpr-side copy is anchored to the real flow, not aspiration:
@@ -165,7 +165,7 @@ const HowItWorksSection = () => {
                   role="tab"
                   aria-selected={active}
                   onClick={() => setSide(s)}
-                  className="h-9 sm:h-10 px-4 sm:px-5 md:px-3 md:text-ds-12 lg:px-4 rounded-xl font-sans font-semibold text-ds-13 whitespace-nowrap transition-[background,color,transform] duration-150 active:scale-[0.98]"
+                  className="h-9 sm:h-10 px-4 sm:px-5 md:px-3 md:text-ds-12 lg:px-4 rounded-ds-md font-sans font-semibold text-ds-13 whitespace-nowrap transition-[background,color,transform] duration-150 active:scale-[0.98]"
                   style={{
                     background: active ? "hsl(var(--bark))" : "transparent",
                     color: active

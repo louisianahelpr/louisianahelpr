@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, lazy, Suspense } from "react";
 import {
   MapPin, ChevronRight as ChevronRightIcon, ChevronDown,
   Award, BadgeCheck, Building2, Camera, Crown, QrCode, Users, Video, Play,
@@ -12,7 +12,13 @@ import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
-import { ProfileStatsTrend } from "@/components/profile/ProfileStatsTrend";
+// ProfileStatsTrend statically imports recharts (~107 kB gzip combined).
+// The chart lives in a collapsed disclosure (hidden by default), so there
+// is no reason to block the Profile landing render on it. Lazy-loading
+// keeps recharts off the Profile page's synchronous import chain — it
+// only fetches after first paint, mirroring the pattern used for charts
+// in Admin (KpiSparkline) and the BrowseMap/JobDetailDialog pattern.
+const ProfileStatsTrend = lazy(() => import("@/components/profile/ProfileStatsTrend"));
 import { SkillsManager } from "@/components/profile/SkillsManager";
 import { EarningsSparkline } from "@/components/profile/EarningsSparkline";
 import { hapticLight } from "@/lib/haptics";
@@ -464,7 +470,9 @@ export function IdentityHeader({
             chart queries jobs.helper_id which maps to auth.user_id —
             *not* the profiles.id PK, so we pass user_id. */}
         {profile?.user_id && (
-          <ProfileStatsTrend helperId={profile.user_id} feeFallbackPercent={feeFallbackPercent} />
+          <Suspense fallback={null}>
+            <ProfileStatsTrend helperId={profile.user_id} feeFallbackPercent={feeFallbackPercent} />
+          </Suspense>
         )}
 
 
@@ -481,7 +489,7 @@ export function IdentityHeader({
                 type="button"
                 onClick={() => setVideoOpen(true)}
                 aria-label="Play intro video"
-                className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 active:scale-95 transition-transform"
+                className="relative w-14 h-14 rounded-2xl overflow-hidden shrink-0 active:scale-95 transition-transform"
                 style={{ background: "hsl(var(--ink-deep))" }}
               >
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -614,7 +622,7 @@ export function IdentityHeader({
                               key={url}
                               type="button"
                               onClick={() => onSelectTab("profile")}
-                              className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-border/40 active:scale-95 transition-transform snap-start"
+                              className="shrink-0 w-20 h-20 rounded-2xl overflow-hidden border border-border/40 active:scale-95 transition-transform snap-start"
                               aria-label={`Work sample ${i + 1}`}
                             >
                               <img loading="lazy" decoding="async" src={url} alt="" aria-hidden="true" className="w-full h-full object-cover" />

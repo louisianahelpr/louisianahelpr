@@ -21,6 +21,7 @@ import { report } from "@/lib/errorLogger";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { formatPrice } from "@/lib/format";
 
 interface PendingJob {
   id: string;
@@ -225,7 +226,7 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
               )}
             </div>
             <div className="text-right shrink-0">
-              <p className="font-display text-ds-17">${Number(j.budget).toFixed(0)}</p>
+              <p className="font-display text-ds-17">${formatPrice(Number(j.budget))}</p>
             </div>
           </div>
           <div className="flex items-center justify-end gap-2 mt-3">
@@ -270,6 +271,7 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
       >
         <div className="space-y-1.5">
           <Textarea
+            aria-label="Rejection reason (optional)"
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             placeholder="Reason (optional, shown to the poster)…"

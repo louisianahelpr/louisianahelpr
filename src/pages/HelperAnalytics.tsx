@@ -142,13 +142,13 @@ function buildKpis(a: Analytics | undefined) {
     {
       label: "Avg rating",
       value: rating !== null && rating !== undefined ? rating.toFixed(1) : "—",
-      sub: a?.reviewCount ? `${a.reviewCount} reviews` : "no reviews yet",
+      sub: a?.reviewCount ? `${a.reviewCount} review${a.reviewCount === 1 ? "" : "s"}` : "no reviews yet",
       icon: <Star className="w-4 h-4" />,
     },
     {
       label: "Success rate",
       value: success !== null && success !== undefined ? `${success}%` : "—",
-      sub: a?.totalApplications ? `${a.totalApplications} applications` : "no applications yet",
+      sub: a?.totalApplications ? `${a.totalApplications} application${a.totalApplications === 1 ? "" : "s"}` : "no applications yet",
       icon: <Target className="w-4 h-4" />,
     },
     {

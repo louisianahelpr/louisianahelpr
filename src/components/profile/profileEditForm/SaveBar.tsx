@@ -53,11 +53,11 @@ export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarPro
               style={{
                 background: saving || idle ? "hsl(var(--muted))" : "hsl(var(--bark))",
                 color: saving || idle ? "hsl(var(--muted-foreground))" : "hsl(var(--parchment))",
-                border: "1px solid hsl(70 22% 24%)",
+                border: "1px solid hsl(var(--bark-border))",
                 boxShadow: idle
                   ? "none"
                   : "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                    "0 1px 2px hsl(70 20% 18% / 0.18), " +
+                    "0 1px 2px hsl(var(--bark-border) / 0.18), " +
                     "0 6px 14px -4px hsl(var(--bark) / 0.4)",
                 cursor: saving || idle ? "not-allowed" : "pointer",
               }}

@@ -73,5 +73,7 @@ export const categoryLabels = {
   delivery: "Delivery",
   pet_care: "Pet Care",
   assembly: "Assembly",
+  storm_prep: "Storm prep",
+  events: "Events",
   other: "Other",
 } as const;

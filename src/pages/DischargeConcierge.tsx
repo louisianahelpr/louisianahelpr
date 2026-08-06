@@ -210,7 +210,7 @@ const DischargeConcierge = () => {
                   key={id}
                   type="button"
                   onClick={() => setSelectedNeed(id)}
-                  className="px-3 py-1.5 rounded-full text-ds-12 font-sans font-medium transition-all"
+                  className="px-3 py-1.5 rounded-ds-md text-ds-12 font-sans font-medium transition-all"
                   style={
                     selectedNeed === id
                       ? {

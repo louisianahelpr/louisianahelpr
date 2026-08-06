@@ -65,7 +65,7 @@ const StepRow = ({
 };
 
 const SkeletonCard = () => (
-  <div className="w-full max-w-md rounded-ds-lg bg-card p-7 animate-pulse">
+  <div className="w-full max-w-md rounded-ds-lg bg-card p-7 motion-safe:animate-pulse">
     <div className="w-16 h-16 rounded-2xl bg-muted mx-auto" />
     <div className="h-6 w-2/3 mx-auto mt-5 rounded bg-muted" />
     <div className="h-3 w-5/6 mx-auto mt-3 rounded bg-muted/70" />

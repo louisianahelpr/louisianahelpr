@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ShieldCheck, FileText, ExternalLink, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { formatShortDate } from "@/lib/format";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -128,7 +129,7 @@ const AdminCredentialQueue = () => {
                   <p className="text-ds-11 text-muted-foreground truncate">{r.email}</p>
                 </div>
                 <p className="text-ds-11 text-muted-foreground shrink-0">
-                  {new Date(r.submitted_at).toLocaleDateString()}
+                  {formatShortDate(r.submitted_at)}
                 </p>
               </div>
 

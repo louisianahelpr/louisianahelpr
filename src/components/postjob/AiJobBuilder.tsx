@@ -59,7 +59,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
       setOpen(false);
       toast.success("Job details generated! Review and edit as needed.");
     } catch (err) {
-      toast.error((err as Error).message || "AI generation failed");
+      toast.error((err as Error).message || "Couldn't generate — try again?");
     } finally {
       setLoading(false);
     }
@@ -95,6 +95,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
         <div className="space-y-2 px-4 pb-4">
           <div className="h-px bg-border/50" />
           <Textarea
+            aria-label="Describe your job"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="e.g. I need help moving furniture from my apartment to a new house across town."

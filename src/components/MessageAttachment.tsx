@@ -256,7 +256,7 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
               className="flex items-center justify-center w-48 h-32 font-serif italic"
               style={{ background: "hsl(var(--ivory-sand) / 0.5)", fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              Failed to load
+              Couldn't load photo
             </div>
           )}
         </button>

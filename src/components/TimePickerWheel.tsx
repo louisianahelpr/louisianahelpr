@@ -105,9 +105,9 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
           // "scroll for more" — the dimmed adjacent values no longer
           // look like stray labels under the selected number.
           maskImage:
-            "linear-gradient(to bottom, transparent 0%, #000 32%, #000 68%, transparent 100%)",
+            "linear-gradient(to bottom, transparent 0%, black 32%, black 68%, transparent 100%)",
           WebkitMaskImage:
-            "linear-gradient(to bottom, transparent 0%, #000 32%, #000 68%, transparent 100%)",
+            "linear-gradient(to bottom, transparent 0%, black 32%, black 68%, transparent 100%)",
         }}
       >
         <div style={{ height: ITEM_HEIGHT }} aria-hidden />

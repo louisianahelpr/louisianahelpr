@@ -33,7 +33,7 @@ export function RecentWorkSection({
       </p>
       <div className="grid grid-cols-3 gap-2">
         {portfolioUrls.map((url, i) => (
-          <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-border/60 group">
+          <div key={url} className="relative aspect-square rounded-2xl overflow-hidden border border-border/60 group">
             <img
               loading="lazy"
               decoding="async"
@@ -61,7 +61,7 @@ export function RecentWorkSection({
             type="button"
             onClick={() => portfolioInputRef.current?.click()}
             disabled={portfolioUploading}
-            className="aspect-square rounded-xl border-2 border-dashed border-border/60 hover:border-primary/40 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary active:scale-[0.98] transition-all"
+            className="aspect-square rounded-2xl border-2 border-dashed border-border/60 hover:border-primary/40 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary active:scale-[0.98] transition-all"
           >
             {portfolioUploading ? (
               <Loader2 className="w-5 h-5 animate-spin" />

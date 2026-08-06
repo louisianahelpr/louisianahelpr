@@ -10,11 +10,19 @@ export async function handlePaymentIntentPaymentFailed(
   logStep("Payment intent failed", { id: pi.id, email: failedEmail });
 
   // Find the job linked to this PI and notify the poster
-  const { data: failedJob } = await supabase
+  const { data: failedJob, error: failedJobErr } = await supabase
     .from("jobs")
     .select("id, customer_id, title")
     .eq("stripe_payment_intent_id", pi.id)
     .maybeSingle();
+
+  if (failedJobErr) {
+    // Throw so the outer handler rolls back the idempotency row and returns 500,
+    // letting Stripe retry once the DB recovers. Silently returning would ack the
+    // event permanently — leaving the job in its pre-failure state (e.g. "escrow")
+    // with no "failed" marker and no poster notification, forever.
+    throw new Error(`Job lookup failed for failed PI ${pi.id}: ${failedJobErr.message}`);
+  }
 
   if (failedJob) {
     await supabase.from("notifications").insert({
@@ -24,7 +32,16 @@ export async function handlePaymentIntentPaymentFailed(
       type: "warning",
       link: "/my-posts",
     });
-    await supabase.from("jobs").update({ payment_status: "failed" }).eq("id", failedJob.id);
+    // Must throw on failure: a silent drop here leaves the job in its pre-failure
+    // state (e.g. "escrow") permanently. The outer handler rolls back the dedupe
+    // row and returns 500 so Stripe retries once the DB recovers.
+    const { error: updateErr } = await supabase
+      .from("jobs")
+      .update({ payment_status: "failed" })
+      .eq("id", failedJob.id);
+    if (updateErr) {
+      throw new Error(`Failed to mark job ${failedJob.id} as payment_failed: ${updateErr.message}`);
+    }
     logStep("Notified poster of payment failure", { jobId: failedJob.id });
   }
 }

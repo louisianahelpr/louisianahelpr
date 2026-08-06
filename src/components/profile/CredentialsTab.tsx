@@ -80,7 +80,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
       return false;
     }
     if (file.size > MAX_SIZE) {
-      toast.error(`${label}: must be under 5MB`);
+      toast.error(`${label}: must be under 5 MB`);
       return false;
     }
     return true;
@@ -116,7 +116,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
       patchCache(update);
       toast.success(`${kind === "license" ? "License" : "Insurance"} uploaded — pending admin review`);
     } catch (err: any) {
-      toast.error(err.message || "Upload failed");
+      toast.error(err.message || "Couldn't upload — try again?");
     } finally {
       setUploading(null);
     }

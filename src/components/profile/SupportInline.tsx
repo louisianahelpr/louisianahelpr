@@ -77,11 +77,11 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
     e.target.value = ""; // allow re-picking the same file
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+      toast.error("Select an image file");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Screenshot must be under 5MB");
+      toast.error("Screenshot must be under 5 MB");
       return;
     }
     if (screenshotPreview) URL.revokeObjectURL(screenshotPreview);

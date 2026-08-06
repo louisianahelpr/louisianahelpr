@@ -42,7 +42,7 @@ export const SubscriberPieChart = ({ data }: { data: SubPieDatum[] }) => (
           <Cell key={index} fill={entry.color} />
         ))}
       </Pie>
-      <Tooltip formatter={(value, name) => [`${value} helpers`, name as string]} />
+      <Tooltip formatter={(value, name) => [`${value} helper${Number(value) === 1 ? "" : "s"}`, name as string]} />
       <Legend />
     </RePieChart>
   </ResponsiveContainer>

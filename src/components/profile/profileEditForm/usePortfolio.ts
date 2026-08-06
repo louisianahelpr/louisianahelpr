@@ -53,7 +53,7 @@ export function usePortfolio({ profile, onPortfolioChange }: UsePortfolioArgs) {
         return false;
       }
       if (f.size > 5 * 1024 * 1024) {
-        toast.error(`Skipping ${f.name} (over 5MB)`);
+        toast.error(`Skipping ${f.name} (over 5 MB)`);
         return false;
       }
       return true;

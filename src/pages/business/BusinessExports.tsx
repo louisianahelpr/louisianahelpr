@@ -75,7 +75,7 @@ const BusinessExports = () => {
           const billNo = `HELPR-${String(j.id).slice(0, 8)}`;
           const supplier = "Helpr";
           const date = new Date(j.updated_at).toISOString().slice(0, 10);
-          const total = ((j.budget || 0) + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0)) / 100;
+          const total = (j.budget || 0) + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0);
           return [
             csvEscape(billNo),
             csvEscape(supplier),
@@ -97,10 +97,10 @@ const BusinessExports = () => {
             j.title || "",
             j.status,
             j.payment_status,
-            ((j.budget || 0) / 100).toFixed(2),
-            ((j.platform_fee_amount || 0) / 100).toFixed(2),
-            ((j.customer_fee_amount || 0) / 100).toFixed(2),
-            (((j.budget || 0) + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0)) / 100).toFixed(2),
+            (j.budget || 0).toFixed(2),
+            (j.platform_fee_amount || 0).toFixed(2),
+            (j.customer_fee_amount || 0).toFixed(2),
+            ((j.budget || 0) + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0)).toFixed(2),
             j.updated_at,
           ].map(csvEscape);
           return cells.join(",");

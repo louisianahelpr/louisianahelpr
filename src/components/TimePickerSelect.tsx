@@ -44,7 +44,7 @@ export function TimePickerSelect({ value, onChange, disabled, className }: TimeP
   return (
     <div className={`flex items-center gap-1.5 ${className || ""}`}>
       <Select value={parsed ? String(parsed.hour12) : ""} onValueChange={(v) => update("hour", v)} disabled={disabled}>
-        <SelectTrigger className="w-16 h-9 text-ds-13 px-2.5">
+        <SelectTrigger className="w-16 h-9 text-ds-13 px-2.5" aria-label="Hour">
           <SelectValue placeholder="Hr" />
         </SelectTrigger>
         <SelectContent>
@@ -55,7 +55,7 @@ export function TimePickerSelect({ value, onChange, disabled, className }: TimeP
       </Select>
       <span className="text-muted-foreground font-medium">:</span>
       <Select value={parsed ? parsed.minute : ""} onValueChange={(v) => update("minute", v)} disabled={disabled}>
-        <SelectTrigger className="w-16 h-9 text-ds-13 px-2.5">
+        <SelectTrigger className="w-16 h-9 text-ds-13 px-2.5" aria-label="Minute">
           <SelectValue placeholder="Min" />
         </SelectTrigger>
         <SelectContent>
@@ -65,7 +65,7 @@ export function TimePickerSelect({ value, onChange, disabled, className }: TimeP
         </SelectContent>
       </Select>
       <Select value={parsed ? parsed.period : ""} onValueChange={(v) => update("period", v)} disabled={disabled}>
-        <SelectTrigger className="w-[68px] h-9 text-ds-13 px-2.5">
+        <SelectTrigger className="w-[68px] h-9 text-ds-13 px-2.5" aria-label="AM or PM">
           <SelectValue placeholder="—" />
         </SelectTrigger>
         <SelectContent>

@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { formatShortDate } from "@/lib/format";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -182,7 +183,7 @@ const ExceptionQueueInner = () => {
                   )}
                 </div>
                 <p className="text-ds-11 text-muted-foreground shrink-0">
-                  {new Date(r.created_at).toLocaleDateString()}
+                  {formatShortDate(r.created_at)}
                 </p>
               </div>
 

@@ -200,7 +200,7 @@ const PublicLayout = ({
                   asChild
                   variant="bark"
                   size="lg"
-                  className="group rounded-full px-8 w-full sm:w-auto"
+                  className="group rounded-2xl px-8 w-full sm:w-auto"
                 >
                   <Link to="/dashboard">
                     Open app
@@ -213,7 +213,7 @@ const PublicLayout = ({
                     asChild
                     variant="bark"
                     size="lg"
-                    className="group rounded-full px-8 w-full sm:w-auto"
+                    className="group rounded-2xl px-8 w-full sm:w-auto"
                   >
                     <Link to={ctaTo}>
                       {ctaLabel}
@@ -224,7 +224,7 @@ const PublicLayout = ({
                     asChild
                     variant="outline"
                     size="lg"
-                    className="rounded-full px-8 w-full sm:w-auto"
+                    className="rounded-2xl px-8 w-full sm:w-auto"
                     style={{
                       borderColor: "hsl(var(--olivewood) / 0.3)",
                       color: "hsl(var(--ink-deep))",

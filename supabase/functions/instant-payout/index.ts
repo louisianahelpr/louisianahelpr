@@ -136,49 +136,75 @@ serve(async (req) => {
       // normal $0 fee as `fee_uncollected`. (The old fee had a $2 minimum, so
       // feeCents was never 0 and this case couldn't arise.)
       if (feeCents > 0) {
-      // Idempotency: keyed off the persisted instant_payouts.id so any retry —
-      // network blip, function-restart mid-flight, client double-tap — reuses
-      // the same Stripe Transfer instead of double-charging the helper.
-      await stripe.transfers.create(
-        {
-          amount: feeCents,
-          currency: "usd",
-          destination: (await stripe.accounts.retrieve()).id,
-          description: `Instant payout fee — helper ${user.id}`,
-          metadata: {
-            helper_id: user.id,
-            instant_payout_id: record.id,
-            type: "instant_payout_fee",
+        // Resolve the platform account ID before calling stripe.transfers.create().
+        // If this were nested as `(await stripe.accounts.retrieve()).id` inside the
+        // argument object, a rejection would bypass the .catch() below (which only
+        // covers stripe.transfers.create() rejections) and land in the outer catch,
+        // marking the whole payout failed. Since fee transfer is best-effort, a
+        // retrieval failure should only skip the fee — not abort the payout.
+        let platformAccountId: string | undefined;
+        try {
+          platformAccountId = (await stripe.accounts.retrieve()).id;
+        } catch (acctErr) {
+          const acctMsg = acctErr instanceof Error ? acctErr.message : String(acctErr);
+          console.error(
+            `[instant-payout] platform account retrieval failed — fee transfer skipped for instant_payout ${record.id}: ${acctMsg}`
+          );
+          // Best-effort reconciliation write so the skipped fee is visible in the DB.
+          const { error: acctRecErr } = await supabaseAdmin
+            .from("instant_payouts")
+            .update({ error_message: `fee_uncollected: platform_account_retrieval_failed: ${acctMsg}` })
+            .eq("id", record.id);
+          if (acctRecErr) {
+            console.error(`[instant-payout] failed to record platform_account_retrieval_failed for ${record.id}:`, acctRecErr);
+          }
+        }
+
+        if (platformAccountId) {
+        // Idempotency: keyed off the persisted instant_payouts.id so any retry —
+        // network blip, function-restart mid-flight, client double-tap — reuses
+        // the same Stripe Transfer instead of double-charging the helper.
+        await stripe.transfers.create(
+          {
+            amount: feeCents,
+            currency: "usd",
+            destination: platformAccountId,
+            description: `Instant payout fee — helper ${user.id}`,
+            metadata: {
+              helper_id: user.id,
+              instant_payout_id: record.id,
+              type: "instant_payout_fee",
+            },
           },
-        },
-        {
-          stripeAccount: profile.stripe_account_id,
-          idempotencyKey: `instant-payout-transfer-${record.id}`,
+          {
+            stripeAccount: profile.stripe_account_id,
+            idempotencyKey: `instant-payout-transfer-${record.id}`,
+          }
+        ).then(() => {
+          feeTransferSucceeded = true;
+        }).catch(async (feeErr) => {
+          // The fee transfer can fail on older Connect setups. We deliberately
+          // continue and still pay out only netCents — the fee stays in the
+          // helper's connected balance rather than the platform account, so the
+          // helper is NOT double-charged. But the platform silently forgoes that
+          // fee revenue, so this must be logged + recorded for reconciliation
+          // instead of swallowed (was an empty catch — a silent broken promise).
+          const feeMsg = feeErr instanceof Error ? feeErr.message : "fee transfer failed";
+          console.error(
+            `[instant-payout] fee transfer NOT collected for instant_payout ${record.id} (helper ${user.id}, fee ${feeCents}¢): ${feeMsg}`
+          );
+          // The reconciliation write is itself best-effort: if it fails we still
+          // want the net payout below to proceed, so log rather than throw (a
+          // throw here would surface as an uncaught rejection inside .catch()).
+          const { error: recErr } = await supabaseAdmin
+            .from("instant_payouts")
+            .update({ error_message: `fee_uncollected: ${feeMsg}` })
+            .eq("id", record.id);
+          if (recErr) {
+            console.error(`[instant-payout] failed to record fee_uncollected for ${record.id}:`, recErr);
+          }
+        });
         }
-      ).then(() => {
-        feeTransferSucceeded = true;
-      }).catch(async (feeErr) => {
-        // The fee transfer can fail on older Connect setups. We deliberately
-        // continue and still pay out only netCents — the fee stays in the
-        // helper's connected balance rather than the platform account, so the
-        // helper is NOT double-charged. But the platform silently forgoes that
-        // fee revenue, so this must be logged + recorded for reconciliation
-        // instead of swallowed (was an empty catch — a silent broken promise).
-        const feeMsg = feeErr instanceof Error ? feeErr.message : "fee transfer failed";
-        console.error(
-          `[instant-payout] fee transfer NOT collected for instant_payout ${record.id} (helper ${user.id}, fee ${feeCents}¢): ${feeMsg}`
-        );
-        // The reconciliation write is itself best-effort: if it fails we still
-        // want the net payout below to proceed, so log rather than throw (a
-        // throw here would surface as an uncaught rejection inside .catch()).
-        const { error: recErr } = await supabaseAdmin
-          .from("instant_payouts")
-          .update({ error_message: `fee_uncollected: ${feeMsg}` })
-          .eq("id", record.id);
-        if (recErr) {
-          console.error(`[instant-payout] failed to record fee_uncollected for ${record.id}:`, recErr);
-        }
-      });
       }
 
       // Execute the instant payout for net amount.

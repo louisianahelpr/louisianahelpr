@@ -353,7 +353,7 @@ export default function SubscriptionPage() {
                     role="tab"
                     aria-selected={active}
                     onClick={() => setBillingCycle(cycle)}
-                    className="h-9 sm:h-10 px-4 sm:px-5 rounded-xl font-sans font-semibold text-ds-13 transition-[background,color,transform] duration-150 active:scale-[0.98]"
+                    className="h-9 sm:h-10 px-4 sm:px-5 rounded-ds-md font-sans font-semibold text-ds-13 transition-[background,color,transform] duration-150 active:scale-[0.98]"
                     style={{
                       background: active ? "hsl(var(--bark))" : "transparent",
                       color: active
@@ -724,7 +724,7 @@ export default function SubscriptionPage() {
                             // its halo and corner chip; the button doesn't need
                             // to differ too.
                             background: "hsl(var(--bark))",
-                            border: "1px solid hsl(66 25% 19%)",
+                            border: "1px solid hsl(var(--bark-border))",
                             boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.22), 0 1px 2px rgba(0,0,0,0.06), 0 16px 40px -12px hsl(var(--bark) / 0.4)",
                           }}
                         >
@@ -913,7 +913,7 @@ export default function SubscriptionPage() {
                               <Check
                                 className="inline-block w-4 h-4"
                                 strokeWidth={2.5}
-                                style={{ color: "hsl(140 45% 38%)" }}
+                                style={{ color: "hsl(var(--success-ink))" }}
                                 aria-label="Included"
                               />
                             ) : (

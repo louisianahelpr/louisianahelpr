@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -140,8 +141,10 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
 
       const { error } = await supabase.from("helper_availability").insert(inserts);
       if (error) throw error;
+      hapticSuccess();
       toast.success("Availability saved!");
     } catch (err: unknown) {
+      hapticError();
       toast.error(getErrorMessage(err));
     } finally {
       setSaving(false);

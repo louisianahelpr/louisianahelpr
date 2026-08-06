@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { Trophy } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { formatPrice } from "@/lib/format";
 
 interface ReferralExtrasProps {
   referralCode: string | null;
@@ -148,7 +149,7 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
               className="font-display italic font-bold tabular-nums leading-none"
               style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}
             >
-              ${totalEarned.toFixed(0)}
+              ${formatPrice(totalEarned)}
             </p>
             <p
               className="font-serif italic"

@@ -127,7 +127,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="rounded-2xl liquid-glass p-4 flex items-center gap-3 animate-pulse"
+                className="rounded-2xl liquid-glass p-4 flex items-center gap-3 motion-safe:animate-pulse"
               >
                 <div className="w-12 h-12 rounded-full bg-muted" />
                 <div className="flex-1 space-y-2">

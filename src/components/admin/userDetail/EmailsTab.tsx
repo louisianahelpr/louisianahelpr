@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
 import { type Profile, isVerifiedEmail } from "../adminUserHelpers";
+import { formatShortDate } from "@/lib/format";
 
 type EmailEvent = { event_type: string; email_type: string; created_at: string };
 type EmailStat = { template_name: string; count: number; last_sent: string };
@@ -94,18 +95,18 @@ export function EmailsTab({
           <div className="flex items-center justify-between text-ds-11 text-muted-foreground">
             <span>Emails sent: {viewProfile.approval_email_count || 0} / 3</span>
             {viewProfile.last_approval_email_at && (
-              <span>Last sent: {new Date(viewProfile.last_approval_email_at).toLocaleDateString()}</span>
+              <span>Last sent: {formatShortDate(viewProfile.last_approval_email_at)}</span>
             )}
           </div>
           {(approvalOpens.length > 0 || approvalClicks.length > 0) ? (
             <div className="flex gap-4 pt-1">
               <span className="flex items-center gap-1 text-ds-11 text-primary">
                 <Eye className="w-3 h-3" /> {approvalOpens.length} open{approvalOpens.length !== 1 ? 's' : ''}
-                {approvalOpens[0] && <span className="text-muted-foreground ml-1">({new Date(approvalOpens[0].created_at).toLocaleDateString()})</span>}
+                {approvalOpens[0] && <span className="text-muted-foreground ml-1">({formatShortDate(approvalOpens[0].created_at)})</span>}
               </span>
               <span className="flex items-center gap-1 text-ds-11 text-primary">
                 <MousePointerClick className="w-3 h-3" /> {approvalClicks.length} click{approvalClicks.length !== 1 ? 's' : ''}
-                {approvalClicks[0] && <span className="text-muted-foreground ml-1">({new Date(approvalClicks[0].created_at).toLocaleDateString()})</span>}
+                {approvalClicks[0] && <span className="text-muted-foreground ml-1">({formatShortDate(approvalClicks[0].created_at)})</span>}
               </span>
             </div>
           ) : (
@@ -150,7 +151,7 @@ export function EmailsTab({
           <div className="flex items-center justify-between text-ds-11 text-muted-foreground">
             <span>Emails sent: {viewProfile.denial_email_count || 0} / 3</span>
             {viewProfile.last_denial_email_at && (
-              <span>Last sent: {new Date(viewProfile.last_denial_email_at).toLocaleDateString()}</span>
+              <span>Last sent: {formatShortDate(viewProfile.last_denial_email_at)}</span>
             )}
           </div>
           {viewProfile.denial_reason && (
@@ -160,11 +161,11 @@ export function EmailsTab({
             <div className="flex gap-4 pt-1">
               <span className="flex items-center gap-1 text-ds-11 text-destructive">
                 <Eye className="w-3 h-3" /> {denialOpens.length} open{denialOpens.length !== 1 ? 's' : ''}
-                {denialOpens[0] && <span className="text-muted-foreground ml-1">({new Date(denialOpens[0].created_at).toLocaleDateString()})</span>}
+                {denialOpens[0] && <span className="text-muted-foreground ml-1">({formatShortDate(denialOpens[0].created_at)})</span>}
               </span>
               <span className="flex items-center gap-1 text-ds-11 text-destructive">
                 <MousePointerClick className="w-3 h-3" /> {denialClicks.length} click{denialClicks.length !== 1 ? 's' : ''}
-                {denialClicks[0] && <span className="text-muted-foreground ml-1">({new Date(denialClicks[0].created_at).toLocaleDateString()})</span>}
+                {denialClicks[0] && <span className="text-muted-foreground ml-1">({formatShortDate(denialClicks[0].created_at)})</span>}
               </span>
             </div>
           ) : (

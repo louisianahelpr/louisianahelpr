@@ -197,7 +197,7 @@ export function PayoutSetupForm() {
     return (
       <div className="space-y-4" aria-busy="true">
         <div
-          className="h-16 rounded-ds-md animate-pulse"
+          className="h-16 rounded-ds-md motion-safe:animate-pulse"
           style={{
             background: "var(--surface-premium)",
             border: "0.5px solid hsl(var(--olivewood) / 0.10)",
@@ -205,7 +205,7 @@ export function PayoutSetupForm() {
           }}
         />
         <div
-          className="h-10 rounded-ds-md animate-pulse"
+          className="h-10 rounded-ds-md motion-safe:animate-pulse"
           style={{
             background: "var(--surface-premium)",
             border: "0.5px solid hsl(var(--olivewood) / 0.08)",
@@ -282,7 +282,7 @@ export function PayoutSetupForm() {
 
       {needsMoreInfo && (
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(38 60% 32%)" }} />
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--amber-solid))" }} />
           <div>
             <p
               className="font-display italic font-bold leading-tight"

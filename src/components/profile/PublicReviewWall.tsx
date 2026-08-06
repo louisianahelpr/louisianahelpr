@@ -280,7 +280,7 @@ export function PublicReviewWall({
           <div
             key={i}
             className={[
-              "rounded-2xl liquid-glass animate-pulse",
+              "rounded-2xl liquid-glass motion-safe:animate-pulse",
               condensed ? "p-3 h-16" : "p-4 h-24",
             ].join(" ")}
           />

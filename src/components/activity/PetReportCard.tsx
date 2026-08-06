@@ -10,7 +10,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
@@ -124,6 +124,7 @@ export function SendReportCard({
         link: "/my-posts",
       });
 
+      hapticSuccess();
       toast.success(`Report card sent for ${petName}!`);
       queryClient.invalidateQueries({ queryKey: ["pet_report_cards", jobId] });
       onClose();
@@ -172,7 +173,7 @@ export function SendReportCard({
             Which pet?
           </h3>
           {petsLoading ? (
-            <div className="rounded-ds-lg liquid-glass h-12 animate-pulse" />
+            <div className="rounded-ds-lg liquid-glass h-12 motion-safe:animate-pulse" />
           ) : pets && pets.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {pets.map((p) => (

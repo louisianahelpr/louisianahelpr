@@ -900,6 +900,12 @@ serve(async (req) => {
         const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
         paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
       }
+      // A disputed job's escrow was always captured, so a missing payment intent
+      // here is bad data. Without this guard the refund block is silently skipped
+      // but the job is still flipped to payment_status="refunded" and the customer
+      // receives a "Refund issued" notification — data corruption with $0 returned.
+      // admin_release_dispute has this same guard (line ~816); keep them in sync.
+      if (!paymentIntentId) throw new Error("No payment intent found for this job — cannot issue refund");
       if (paymentIntentId) {
         try {
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);

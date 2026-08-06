@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
+  FAKE_CUSTOMER,
   installSupabaseMocks,
   seedAuthedSession,
 } from "../happy-path/fixtures";
@@ -89,10 +90,10 @@ test.describe("desktop content fills the viewport", () => {
 
   for (const route of ROUTES) {
     if (route.exempt) continue;
-    test(`${route.path} — content ≥ ${MIN_FILL_PCT}% of ${DESKTOP_WIDTH}px viewport`, async ({ page }) => {
+    test(`${route.path} — content ≥ ${MIN_FILL_PCT}% of ${DESKTOP_WIDTH}px viewport`, async ({ page, context }) => {
       await installSupabaseMocks(page);
       if (route.auth === "authed") {
-        await seedAuthedSession(page);
+        await seedAuthedSession(context, FAKE_CUSTOMER, "");
       }
       await page.goto(route.path);
       // Give the app a moment to hydrate + any lazy-loaded routes to swap in.

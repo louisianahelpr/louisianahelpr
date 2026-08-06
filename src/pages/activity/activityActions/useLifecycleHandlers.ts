@@ -34,6 +34,7 @@ export interface LifecycleHandlersDeps extends OptimisticJobCache {
   setReviewJob: (job: Job | null) => void;
   setConfirmingArrivalJobId: (id: string | null) => void;
   setConfirmingWorkingJobId: (id: string | null) => void;
+  setConfirmingStartJobId: (id: string | null) => void;
 }
 
 export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
@@ -56,6 +57,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
     setReviewJob,
     setConfirmingArrivalJobId,
     setConfirmingWorkingJobId,
+    setConfirmingStartJobId,
   } = deps;
 
   const tryCancelJob = async (job: Job) => {
@@ -269,21 +271,27 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
   };
 
   const confirmStartJob = async (jobId: string) => {
-    // Optimistic: flip the card to "In Progress" immediately.
-    const snapshot = optimisticallyPatchJob(jobId, { status: "in_progress" });
-    const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
-    if (error) {
-      rollbackActivity(snapshot);
-      hapticError();
-      toast.error("We couldn't start the job just now — please try again.");
-    } else {
-      const job = postedJobs.find(j => j.id === jobId);
-      if (job?.helper_id) {
-        await createNotification({ user_id: job.helper_id, title: "✅ Job started!", message: `The poster confirmed "${job.title}" has started.`, type: "success", link: "/my-jobs?filter=in_progress" });
+    setConfirmingStartJobId(jobId);
+    try {
+      // Optimistic: flip the card to "In Progress" immediately.
+      const snapshot = optimisticallyPatchJob(jobId, { status: "in_progress" });
+      const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
+      if (error) {
+        rollbackActivity(snapshot);
+        hapticError();
+        toast.error("We couldn't start the job just now — please try again.");
+      } else {
+        const job = postedJobs.find(j => j.id === jobId);
+        if (job?.helper_id) {
+          await createNotification({ user_id: job.helper_id, title: "✅ Job started!", message: `The poster confirmed "${job.title}" has started.`, type: "success", link: "/my-jobs?filter=in_progress" });
+        }
+        hapticSuccess();
+        toast.success("Job started! It's now in progress.");
+        await refresh();
+        setStatusFilter("in_progress");
       }
-      toast.success("Job started! It's now in progress.");
-      await refresh();
-      setStatusFilter("in_progress");
+    } finally {
+      setConfirmingStartJobId(null);
     }
   };
 

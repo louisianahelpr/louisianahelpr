@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticLight } from "@/lib/haptics";
@@ -58,6 +59,9 @@ export function useSaveJob({ user, savedJobIds, setSavedJobIds }: UseSaveJobArgs
         return next;
       });
       return { previousSavedJobs, previousLocal };
+    },
+    onSuccess: (_data, { saved }) => {
+      toast.success(saved ? "Job saved!" : "Job removed from saved.");
     },
     onError: (_err, vars, context) => {
       if (context) {

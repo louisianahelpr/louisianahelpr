@@ -290,12 +290,16 @@ serve(async (req) => {
       }
 
       // ── Step 5: Transfer to helper (charge is confirmed captured) ──
-      // Re-use the PI object from Step 3 verification above (already retrieved)
       try {
         const transferParams: any = {
           amount: Math.round(helperPayout * 100),
           currency: "usd",
           destination: helperProfile.stripe_account_id,
+          // Group all charges/transfers for this job so Stripe Dashboard
+          // reconciliation and reporting shows them together. Mirrors the
+          // transfer_group set by release-payout for admin-triggered payouts;
+          // without this, cron-path transfers appear unlinked in the dashboard.
+          transfer_group: `job_${job.id}`,
           metadata: {
             job_id: job.id,
             helper_id: job.helper_id,

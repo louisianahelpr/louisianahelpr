@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
       // Return 500 so the vendor retries once the DB recovers, rather than
       // settling identity state un-deduped.
       console.error("[verification-webhook] Idempotency insert failed — asking vendor to retry:", idemErr);
-      postSlackOpsAlert({
+      await postSlackOpsAlert({
         kind: "stripe_webhook_error",
         severity: "critical",
         title: "Verification webhook idempotency insert failed",

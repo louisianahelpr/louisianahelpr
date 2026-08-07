@@ -45,6 +45,7 @@ interface PostedJobsTabProps {
    *  job that's already in dispute. */
   onViewDispute: (job: Job) => void;
   onConfirmStart: (jobId: string) => void;
+  confirmingStartJobId: string | null;
   onConfirmArrival: (jobId: string) => void;
   confirmingArrivalJobId: string | null;
   onConfirmWorking: (jobId: string) => void;
@@ -78,7 +79,7 @@ export const PostedJobsTab = ({
   helperNames, completedJobMeta, startRequestedJobIds,
   latestTracking, groupHelpersByJob, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
-  onRevision, onNoShow, onTip, onReview, onDispute, onViewDispute, onConfirmStart, onConfirmArrival, confirmingArrivalJobId, onConfirmWorking, confirmingWorkingJobId,
+  onRevision, onNoShow, onTip, onReview, onDispute, onViewDispute, onConfirmStart, confirmingStartJobId, onConfirmArrival, confirmingArrivalJobId, onConfirmWorking, confirmingWorkingJobId,
   onLoadApplications, selectedJob, setSelectedJob, applications,
   applicationsLoading = false, applicationsError = false,
   onAcceptApplication, onDeclineApplication, onLoadInlineApplicants,
@@ -156,6 +157,7 @@ export const PostedJobsTab = ({
         onDispute={onDispute}
         onViewDispute={onViewDispute}
         onConfirmStart={onConfirmStart}
+        confirmingStartJobId={confirmingStartJobId}
         onConfirmArrival={onConfirmArrival}
         confirmingArrivalJobId={confirmingArrivalJobId}
         onConfirmWorking={onConfirmWorking}

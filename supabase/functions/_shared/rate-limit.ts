@@ -1,5 +1,3 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
-
 interface RateLimitOptions {
   windowMs: number;  // Time window in ms
   maxRequests: number;  // Max requests per window

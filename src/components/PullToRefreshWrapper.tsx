@@ -40,7 +40,7 @@ const PullToRefreshWrapper = forwardRef<HTMLDivElement, PullToRefreshWrapperProp
             }}
           >
             <RefreshCw
-              className={`w-4 h-4 transition-transform ${refreshing ? "motion-safe:animate-spin" : ""}`}
+              className={`w-4 h-4 motion-safe:transition-transform ${refreshing ? "motion-safe:animate-spin" : ""}`}
               style={{
                 color: canTrigger || refreshing ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.8)",
                 transform: refreshing

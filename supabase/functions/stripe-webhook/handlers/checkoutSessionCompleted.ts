@@ -570,6 +570,27 @@ export async function handleCheckoutSessionCompleted(
       logStep("Re-payment completed, scheduling payout", { jobId, pi: piId });
     }
 
+    // Race-safe tax recording: the payment_intent.succeeded handler also writes
+    // sales_tax_amount, but Stripe does not guarantee delivery order — if
+    // payment_intent.succeeded fires FIRST it finds no job (stripe_payment_intent_id
+    // not set yet), 200-ACKs, and the dedupe row is committed permanently, so tax
+    // is never retried. Recording tax here ensures at least one of the two handlers
+    // captures it regardless of delivery order. Errors are non-fatal: a Stripe API
+    // hiccup only delays tax recording until payment_intent.succeeded fires (if it
+    // fires after this event, which is the common case).
+    try {
+      const taxPi = await stripe.paymentIntents.retrieve(piId);
+      const taxCents = (taxPi.amount_details as any)?.tax?.total_tax_amount ?? 0;
+      if (taxCents > 0) {
+        updateData.sales_tax_amount = taxCents / 100;
+      }
+    } catch (taxErr) {
+      logStep("WARN: PI retrieve failed in checkout handler — payment_intent.succeeded will record tax", {
+        piId,
+        error: String(taxErr),
+      });
+    }
+
     const { error: jobError } = await supabase.from("jobs").update(updateData).eq("id", jobId);
     if (jobError) {
       logStep("ERROR storing PI on job", { error: jobError.message });

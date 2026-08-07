@@ -171,7 +171,7 @@ export function ShareJobButton({
           transition: "all 0.2s ease, box-shadow 0.3s ease",
         }}
       >
-        <Share2 className="w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5" />
+        <Share2 className="w-4 h-4 motion-safe:transition-transform motion-safe:duration-300 group-hover:-translate-y-0.5" />
       </Button>
     );
   }

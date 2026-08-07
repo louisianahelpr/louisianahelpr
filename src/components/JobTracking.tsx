@@ -411,7 +411,7 @@ export function JobTracking({
       {/* Progress bar */}
       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "hsl(var(--olivewood) / 0.10)" }}>
         <div
-          className="h-full rounded-full transition-all duration-500"
+          className="h-full rounded-full motion-safe:transition-all motion-safe:duration-500"
           style={{
             width: `${((currentStatusIdx + 1) / STATUSES.length) * 100}%`,
             background: "hsl(var(--bark) / 0.85)",

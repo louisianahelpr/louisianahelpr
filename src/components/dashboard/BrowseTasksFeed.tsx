@@ -491,7 +491,7 @@ export function BrowseTasksFeed({
               <div ref={loadMoreRef} className="px-4 py-4 flex justify-center">
                 {isFetchingNextPage ? (
                   <span className="text-ds-11 text-muted-foreground inline-flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                    <span className="w-3 h-3 rounded-full border-2 border-primary/30 border-t-primary motion-safe:animate-spin" />
                     Loading more jobs…
                   </span>
                 ) : (

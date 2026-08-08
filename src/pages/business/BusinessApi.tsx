@@ -153,7 +153,7 @@ const BusinessApi = () => {
       hapticError();
       const code = isPostgrestError(err) ? err.code : undefined;
       if (code === "PGRST202") {
-        toast.error("API key generator not yet deployed — run `supabase db push`.");
+        toast.error("This feature isn't available just yet — check back soon.");
       } else {
         toast.error(err instanceof Error ? err.message : "We couldn't create that key — try again in a moment.");
       }

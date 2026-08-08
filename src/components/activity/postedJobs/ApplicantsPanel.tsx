@@ -82,7 +82,7 @@ export function ApplicantsPanel({
       });
       if (error) {
         if (error.code === "PGRST202") {
-          toast.error("Counter-offer feature not yet deployed — try again later.");
+          toast.error("Couldn't send your counter right now — try again?");
         } else {
           toast.error("Couldn't send your counter — try again?");
         }

@@ -152,7 +152,7 @@ export function SpendDashboardTab({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <SpendStat icon={DollarSign} label="Posted (MTD)" value={fmt(totals.posted)} />
         <SpendStat icon={Wallet} label="Paid out" value={fmt(totals.paid)} />
-        <SpendStat icon={Lock} label="In escrow" value={fmt(totals.escrow)} />
+        <SpendStat icon={Lock} label="Payment held" value={fmt(totals.escrow)} />
         <SpendStat icon={Hourglass} label="Pending" value={fmt(totals.pending)} />
       </div>
 

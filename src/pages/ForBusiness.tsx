@@ -229,7 +229,7 @@ const BUSINESS_FAQS = [
   },
   {
     q: "What happens if a job goes wrong?",
-    a: "Funds sit in Stripe escrow until you confirm the work is complete — nothing releases automatically. If something's off, our support team mediates within one business day, and refunds are available any time before you release payment.",
+    a: "Funds are held securely until you confirm the work is complete — nothing releases automatically. If something's off, our support team mediates within one business day, and refunds are available any time before you release payment.",
   },
   {
     q: "Is there a cancellation fee or long-term contract?",

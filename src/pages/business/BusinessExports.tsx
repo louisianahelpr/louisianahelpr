@@ -163,7 +163,7 @@ const BusinessExports = () => {
           {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Download className="w-4 h-4 mr-1" /> Generate</>}
         </Button>
         <p className="text-ds-11 text-muted-foreground mt-3">
-          Only paid jobs (escrow / payout-pending / released) within the date range are included.
+          Only jobs where payment has been captured or paid out are included.
         </p>
       </Card>
     </BusinessLayout>

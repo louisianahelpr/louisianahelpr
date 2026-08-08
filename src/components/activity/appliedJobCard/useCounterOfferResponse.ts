@@ -27,7 +27,7 @@ export function useCounterOfferResponse() {
       });
       if (error) {
         if (error.code === "PGRST202") {
-          toast.error("Counter-offer feature not yet deployed — try again later.");
+          toast.error("Couldn't respond to the counter-offer right now — try again?");
         } else {
           hapticError();
           toast.error("Couldn't respond to the counter-offer. Please try again.");

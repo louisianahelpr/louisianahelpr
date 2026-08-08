@@ -1081,6 +1081,12 @@ serve(async (req) => {
         const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
         paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
       }
+      // Fail hard when no payment intent exists: the subsequent code marks the job
+      // refunded and notifies the customer even if no Stripe refund was issued.
+      // `admin_refund_dispute` already guards this way — align both paths.
+      if (!paymentIntentId) {
+        throw new Error("No payment intent found for this job — cannot issue refund. If the job was never paid, no Stripe refund is needed.");
+      }
       if (paymentIntentId) {
         try {
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);

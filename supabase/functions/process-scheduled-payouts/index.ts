@@ -382,12 +382,30 @@ serve(async (req) => {
           });
         if (ledgerErr && (ledgerErr as any).code !== "23505") {
           // 23505 = unique_violation: idempotent retry returned the same transfer.id
-          // (already logged on a previous partial run). Any other error is logged
-          // loudly — the transfer already sent so the missing row needs manual fix.
+          // (already logged on a previous partial run). Any other error means the
+          // transfer succeeded in Stripe but we have no DB record — a financial
+          // reconciliation gap that requires manual intervention. Alert ops; the
+          // duplicate-transfer guard in future runs queries payout_transfers, so a
+          // missing row could allow a second transfer if the job somehow re-enters
+          // payout_pending (unlikely since it's flipped to "released" below, but
+          // a manual DB edit could re-expose it).
           console.error(
             `[process-scheduled-payouts] Ledger insert failed for job ${job.id} (transfer ${transfer.id}):`,
             ledgerErr,
           );
+          postSlackOpsAlert({
+            kind: "payout_failed",
+            severity: "critical",
+            title: "Scheduled payout — transfer sent but payout_transfers ledger write FAILED",
+            message: `A Stripe transfer succeeded for job ${job.id} but the payout_transfers row was not written. The transfer exists in Stripe but not in our DB — reconcile manually. The duplicate-transfer guard relies on this row; if the job ever re-enters payout_pending a second transfer could be issued.`,
+            fields: {
+              "Job ID": job.id,
+              "Transfer ID": transfer.id,
+              "Amount": `$${helperPayout.toFixed(2)}`,
+              "Helper ID": job.helper_id,
+              "DB error": ((ledgerErr as any).message as string | undefined)?.slice(0, 200) ?? String(ledgerErr),
+            },
+          });
         }
 
         const { error: statusUpdateErr } = await supabaseAdmin.from("jobs").update({

@@ -116,7 +116,7 @@ const BusinessReports = () => {
       hapticError();
       const code = isPostgrestError(err) ? err.code : undefined;
       if (code === "PGRST204" || code === "42703") {
-        toast.error("Reports columns not yet deployed — run `supabase db push`.");
+        toast.error("This feature isn't available just yet — check back soon.");
       } else {
         toast.error(err instanceof Error ? err.message : "Couldn't save preferences.");
       }

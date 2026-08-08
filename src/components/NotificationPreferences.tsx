@@ -45,7 +45,7 @@ const NotificationPreferences = () => {
       // No row yet is expected (defaults apply); a real query failure is not.
       if (error) {
         console.error("[NotificationPreferences] failed to load preferences:", error);
-        toast.error("Couldn't load notification preferences");
+        toast.error("Couldn't load notification preferences — try again?");
       } else if (data) {
         // Cast through `any` because the generated supabase/types.ts
         // doesn't include `quiet_start` / `quiet_end` until the new

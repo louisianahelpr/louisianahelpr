@@ -267,7 +267,7 @@ const UserProfile = () => {
       });
       if (error) {
         if (error.code === "PGRST202") {
-          toast.error("Feature not yet deployed — please try again later.");
+          toast.error("Couldn't save your response right now — try again?");
         } else {
           toast.error("Couldn't save your response — try again?");
         }

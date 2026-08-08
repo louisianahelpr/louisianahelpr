@@ -149,7 +149,7 @@ const BusinessContracts = () => {
       hapticError();
       const code = isPostgrestError(err) ? err.code : undefined;
       if (code === "PGRST204" || code === "42P01") {
-        toast.error("Templates table not yet deployed — run `supabase db push`.");
+        toast.error("This feature isn't available just yet — check back soon.");
       } else {
         toast.error(err instanceof Error ? err.message : "We couldn't save that template — try again.");
       }

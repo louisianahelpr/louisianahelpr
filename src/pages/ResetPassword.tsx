@@ -80,9 +80,9 @@ const ResetPassword = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirm) { toast.error("Passwords don't match"); return; }
-    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
-    if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return; }
-    if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return; }
+    if (password.length < 8) { toast.error("Password needs at least 8 characters"); return; }
+    if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter"); return; }
+    if (!/[0-9]/.test(password)) { toast.error("Add at least one number"); return; }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);

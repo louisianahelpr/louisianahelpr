@@ -149,18 +149,18 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) { toast.error("Job title is required"); scrollToField("title"); return; }
-    if (!description.trim()) { toast.error("Description is required"); scrollToField("description"); return; }
+    if (!title.trim()) { toast.error("Give your task a title"); scrollToField("title"); return; }
+    if (!description.trim()) { toast.error("Add a description"); scrollToField("description"); return; }
     if (hasUnfilledPlaceholders(description)) { toast.error("Replace the [bracketed] placeholders with your own details before posting"); scrollToField("description"); return; }
-    if (!category) { toast.error("Category is required"); scrollToField("category-picker"); return; }
+    if (!category) { toast.error("Pick a category"); scrollToField("category-picker"); return; }
     // Photo is optional — a photo dramatically improves applicant count and
     // quote accuracy, so it's strongly nudged in the UI, but tasks like
     // dog-walking or errands have no natural photo and shouldn't be blocked.
-    if (!streetAddress.trim()) { toast.error("Street address is required"); scrollToField("streetAddress"); return; }
-    if (!city.trim()) { toast.error("City is required"); scrollToField("city"); return; }
-    if (!addrState.trim()) { toast.error("State is required"); scrollToField("state"); return; }
-    if (!zipCode.trim()) { toast.error("Zip code is required"); scrollToField("zipCode"); return; }
-    if (!dateNeeded) { toast.error("Date needed is required"); scrollToField("date"); return; }
+    if (!streetAddress.trim()) { toast.error("Add a street address"); scrollToField("streetAddress"); return; }
+    if (!city.trim()) { toast.error("Add a city"); scrollToField("city"); return; }
+    if (!addrState.trim()) { toast.error("Add a state"); scrollToField("state"); return; }
+    if (!zipCode.trim()) { toast.error("Add a zip code"); scrollToField("zipCode"); return; }
+    if (!dateNeeded) { toast.error("Pick a date for the task"); scrollToField("date"); return; }
     // Validate date is not in the past
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -217,7 +217,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      toast.error("You must be logged in");
+      toast.error("Sign in to post a task");
       setSaving(false);
       submittingRef.current = false;
       return null;

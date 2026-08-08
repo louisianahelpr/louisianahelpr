@@ -102,7 +102,7 @@ export const CommunityContent = () => (
     {/* ── 3. Getting paid ── */}
     <PolicySection
       icon={Wallet}
-      title="Getting paid — releasing escrow"
+      title="Getting paid — how your payout works"
       subtitle="How completion turns into a payout"
       anchorId="escrow-release"
     >

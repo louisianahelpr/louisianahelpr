@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
+import { formatPriceExact } from "@/lib/format";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -127,7 +128,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
         // date once the available balance flips). "~" prefix keeps the
         // hint honest — Stripe can deviate by a business day or two.
         const nextExpected = new Date(paidAt.getTime() + 7 * 86400 * 1000);
-        const dollars = (lastPayout.amount_cents / 100).toFixed(2);
+        const dollars = formatPriceExact(lastPayout.amount_cents / 100);
         const niceDate = (d: Date) =>
           d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
         return (

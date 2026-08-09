@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { MapPin, Shield, Repeat, Users, Wrench } from "lucide-react";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { todayLocalISO } from "@/lib/dateUtils";
+import { formatPriceExact } from "@/lib/format";
 import { AppleMapPreview } from "@/components/postjob/AppleMapPreview";
 import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
 
@@ -396,7 +397,7 @@ export function LogisticsSection({
                   <p className="text-ds-11 text-muted-foreground">
                     About <span className="font-semibold text-primary">{occ} visit{occ === 1 ? "" : "s"}</span>
                     {budgetNum > 0 && (
-                      <> — roughly <span className="font-semibold text-primary">${(occ * budgetNum).toFixed(2)}</span> total at this budget</>
+                      <> — roughly <span className="font-semibold text-primary">${formatPriceExact(occ * budgetNum)}</span> total at this budget</>
                     )}
                   </p>
                 </div>
@@ -423,7 +424,7 @@ export function LogisticsSection({
               aria-label="Number of helpers needed"
             />
             <p className="text-ds-11 text-muted-foreground">
-              Budget of ${budgetNum.toFixed(2)} will be split: ~${(budgetNum / (parseInt(helpersNeeded) || 2)).toFixed(2)}/Helpr
+              Budget of ${formatPriceExact(budgetNum)} will be split: ~${formatPriceExact(budgetNum / (parseInt(helpersNeeded) || 2))}/Helpr
             </p>
           </div>
         )}

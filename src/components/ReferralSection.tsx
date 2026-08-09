@@ -12,7 +12,7 @@ import { ReferralExtras } from "@/components/profile/ReferralExtras";
 import { requireBiometric } from "@/lib/biometricGate";
 import { shareNative } from "@/lib/nativeShare";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceExact } from "@/lib/format";
 
 /**
  * Single-screen referral dashboard. Backed by React Query (60s staleTime)
@@ -227,14 +227,14 @@ const ReferralSection = ({ userId }: { userId: string }) => {
               Cash out credits
             </p>
             <p className="font-serif italic leading-snug truncate" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-              {hasStripeAccount ? `$${unredeemedCredits.toFixed(2)} → Stripe payout account` : "Connect Stripe to cash out"}
+              {hasStripeAccount ? `$${formatPriceExact(unredeemedCredits)} → Stripe payout account` : "Connect Stripe to cash out"}
             </p>
           </div>
           <Button onClick={handleCashOut} disabled={cashingOut || !hasStripeAccount} size="sm" className="h-10 shrink-0">
             {cashingOut ? (
               <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Cashing out</>
             ) : (
-              <><Banknote className="w-4 h-4 mr-1.5" /> ${unredeemedCredits.toFixed(2)}</>
+              <><Banknote className="w-4 h-4 mr-1.5" /> ${formatPriceExact(unredeemedCredits)}</>
             )}
           </Button>
         </div>

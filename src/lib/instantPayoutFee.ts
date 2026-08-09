@@ -6,6 +6,8 @@
 // the rate (the edge runtime can't import React modules and vice-versa), and
 // `instantPayoutFee.parity.test.ts` fails the build if the two ever diverge.
 
+import { formatPriceExact } from "@/lib/format";
+
 /** Flat percent of the gross payout kept as the instant-payout fee. */
 export const INSTANT_PAYOUT_FEE_PERCENT = 3;
 
@@ -23,6 +25,5 @@ export function instantPayoutFeeLabel(): string {
 
 /** The minimum-cashout threshold as a display string, e.g. "$25". */
 export function instantPayoutMinLabel(): string {
-  const dollars = INSTANT_PAYOUT_MIN_CENTS / 100;
-  return `$${Number.isInteger(dollars) ? dollars : dollars.toFixed(2)}`;
+  return `$${formatPriceExact(INSTANT_PAYOUT_MIN_CENTS / 100)}`;
 }

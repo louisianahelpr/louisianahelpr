@@ -49,7 +49,7 @@ export const BatchRow = ({
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-ds-13 text-foreground truncate">{batch.helper_name}</span>
           <Badge variant="sienna" className="text-ds-10">
-            {batch.job_count} job{batch.job_count > 1 ? "s" : ""}
+            {batch.job_count} job{batch.job_count !== 1 ? "s" : ""}
           </Badge>
           {!batch.stripe_account_id && (
             <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-ds-10">

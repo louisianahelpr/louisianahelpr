@@ -290,6 +290,40 @@ export function useNativePushSetup() {
  */
 export async function requestPushPermission(): Promise<boolean> {
   if (!isNativePlatform) return false;
+
+  // HARD GATE — never raise the OS prompt for a signed-out user.
+  //
+  // iOS gives an app exactly ONE chance at this prompt for the lifetime of the
+  // install. Once it is dismissed with "Don't Allow" the OS silently no-ops
+  // every later requestPermissions() call, and the only recovery is the user
+  // manually finding the app in Settings. So the prompt must be spent at a
+  // moment the user has a reason to say yes.
+  //
+  // A guest has no such reason and, more concretely, CANNOT receive push at
+  // all: savePushToken writes a push_tokens row keyed on user_id, so a token
+  // obtained while signed out is discarded. Prompting them can only ever burn
+  // the one shot for zero benefit.
+  //
+  // Observed on an iOS 26.1 sim during the 2026-08-08 audit: a cold launch as a
+  // guest surfaced the native prompt over the Browse-jobs screen with no
+  // preceding rationale dialog — i.e. something reached this function outside
+  // the intended useRequestPushPermission → rationale flow. Rather than rely on
+  // every present and future call site being disciplined, the chokepoint itself
+  // now refuses. The deliberate flows are unaffected: NotificationPanel's
+  // "Enable" tap and the high-intent nudges all run for signed-in users.
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      track("permission_skipped_guest", { kind: "push" });
+      return false;
+    }
+  } catch (sessionErr) {
+    // Fail CLOSED: if we cannot prove someone is signed in, do not spend the
+    // one-shot prompt on them.
+    report(sessionErr, { tags: { source: "requestPushPermission.sessionCheck" } });
+    return false;
+  }
+
   try {
     const { PushNotifications } = await import("@capacitor/push-notifications");
     const status = await PushNotifications.requestPermissions();

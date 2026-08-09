@@ -10,7 +10,11 @@ import {
   DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Mail, Lock, Monitor, Smartphone, Tablet, LogOut } from "lucide-react";
+import { Mail, Lock, Monitor, Smartphone, Tablet, LogOut, Fingerprint } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { isNativePlatform } from "@/lib/nativeInit";
+import { isAppLockEnabled, setAppLockEnabled } from "@/lib/appLock";
+import { requireBiometric } from "@/lib/biometricGate";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
@@ -206,6 +210,38 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     setEmailDialogOpen(false);
   };
 
+  const [appLockOn, setAppLockOn] = useState(() => isAppLockEnabled());
+
+  /**
+   * Turning the lock ON must PROVE the biometric works before persisting it.
+   * Writing the flag first and discovering at next launch that Face ID is
+   * unavailable/not enrolled would leave the user staring at a lock screen they
+   * cannot pass. So: authenticate first, persist only on success.
+   *
+   * Turning it OFF is intentionally NOT gated — someone whose Face ID stopped
+   * working must be able to switch the lock off. The account is still protected
+   * by the session and by server-side authorization on every write, and
+   * requireBiometric() still guards the money actions themselves.
+   */
+  const handleAppLockToggle = async (next: boolean) => {
+    if (!next) {
+      setAppLockEnabled(false);
+      setAppLockOn(false);
+      toast.success("Face ID lock turned off.");
+      return;
+    }
+    const ok = await requireBiometric("Turn on the Face ID lock for Helpr");
+    if (!ok) {
+      // User cancelled or failed — leave the switch off. The OS already showed
+      // the prompt, so no extra error toast.
+      setAppLockOn(false);
+      return;
+    }
+    setAppLockEnabled(true);
+    setAppLockOn(true);
+    toast.success("Helpr will ask for Face ID when you open it.");
+  };
+
   return (
     <div className="space-y-6">
       <ProfileTabHeader
@@ -379,6 +415,35 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           action is gated behind explicit "this includes this device"
           confirm copy rather than a misleading per-row "sign out this
           device" button. */}
+      {/* App lock — native-only. The Supabase session persists and
+          auto-restores on launch, so without this anyone holding the unlocked
+          phone has the account (payouts, Connect, messages). requireBiometric()
+          already guards individual money actions; this guards the app itself.
+          Card structure copied from "Active sessions" below so the two read as
+          siblings rather than one-offs. */}
+      {isNativePlatform && (
+        <div className="rounded-2xl liquid-glass p-5 space-y-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Fingerprint className="w-4 h-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                Require Face ID to open
+              </h2>
+              <p className="text-ds-11 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                Ask for Face ID or Touch ID when you open Helpr.
+              </p>
+            </div>
+            <Switch
+              checked={appLockOn}
+              onCheckedChange={handleAppLockToggle}
+              aria-label="Require Face ID to open Helpr"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl liquid-glass p-5 space-y-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">

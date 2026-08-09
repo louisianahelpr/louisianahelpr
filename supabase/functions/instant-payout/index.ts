@@ -46,14 +46,14 @@ serve(async (req) => {
     const user = userData.user;
 
     const body = await req.json().catch(() => ({}));
-    const action = body?.action || "quote"; // "quote" | "execute"
+    const action = body?.action === undefined ? "quote" : body.action; // "quote" | "execute"
 
     // Look up helper's Stripe Connect account
     const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
       .select("stripe_account_id, full_name")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     // Distinguish a transient read failure from a genuine no-account state —
     // otherwise a blip throws "set up your payout account" and misleads a

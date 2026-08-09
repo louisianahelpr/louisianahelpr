@@ -151,7 +151,10 @@ export default function FamilyAcceptPage() {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Care invite" onBack={() => navigate("/")} />
+      {/* Body is a lone centered `max-w-sm` invite card; without an explicit
+          width the header fell through to `default` (max-w-5xl→90rem) and the
+          title sat far left of the card at every breakpoint above sm. */}
+      <PageHeader title="Care invite" width="lg" onBack={() => navigate("/")} />
 
       <div className="max-w-sm mx-auto px-4 pt-8 flex flex-col items-center">
 

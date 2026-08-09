@@ -3,6 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { toast } from "sonner";
+// Derive the auto-release window rather than restating "48 hours" in prose.
+// This is checkout copy — a legally load-bearing promise about when money
+// moves — so it must follow the config the cron actually enforces. Imported
+// straight from the Deno _shared module, the same pattern the parity tests use.
+import { COPY_AUTO_RELEASE_HOURS } from "../../supabase/functions/_shared/escrowTiming";
 import { Button } from "@/components/ui/button";
 import {
   ShieldCheck,
@@ -239,7 +244,7 @@ const PaymentSuccess = () => {
             })}
           </ol>
           <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            If one side confirms and the other doesn't respond within 48 hours, the job auto-completes and payment is released automatically.
+            If one side confirms and the other doesn't respond within {COPY_AUTO_RELEASE_HOURS} hours, the job auto-completes and payment is released automatically.
           </p>
         </div>
 

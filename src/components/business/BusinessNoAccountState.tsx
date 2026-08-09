@@ -50,7 +50,10 @@ export default function BusinessNoAccountState({ title }: { title: string }) {
       await queryClient.invalidateQueries({ queryKey: queryKeys.business.allMine });
       toast.success("Business account created.");
       setOpen(false);
-      navigate("/business");
+      // `/business` is not a registered route (only the seven `/business/*`
+      // children are), so this used to fall through to the `*` wildcard and
+      // 404 the user immediately after the success toast.
+      navigate("/business/onboarding");
     } catch (err) {
       report(err, { tags: { source: "BusinessNoAccountState.createBusiness" } });
       toast.error("Couldn't create the business account. Please try again.");

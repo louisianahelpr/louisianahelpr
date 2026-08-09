@@ -20,7 +20,6 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { Card } from "@/components/ui/card";
@@ -77,24 +76,10 @@ const BusinessTeam = () => {
 
   const inviteEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim());
 
-  // Sync seat subscription on mount + after Stripe checkout return
-  useEffect(() => {
-    if (!business?.is_owner) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        await supabase.functions.invoke("check-business-seat-subscription");
-        if (!cancelled) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.business.allMine });
-        }
-      } catch (err) {
-        report(err, { severity: "warning", tags: { source: "BusinessTeam.seatSubscriptionSync" } });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [business?.is_owner, business?.business_id, queryClient]);
+  // The seat-subscription sync that used to live here has moved up into
+  // BusinessLayout, which wraps every /business/* page. Keeping it here as well
+  // would fire it twice on this page, and leaving it ONLY here was the bug: an
+  // owner who never opened Team never had their discounted fee tier applied.
 
   // Toast on Stripe return
   useEffect(() => {

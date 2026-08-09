@@ -83,10 +83,15 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       const adminIds = [...new Set(rows.map((n) => n.admin_id))];
       if (adminIds.length === 0) return rows;
 
-      const { data: profiles } = await supabase
+      // Secondary name-hydration read. Don't drop the error: on failure every
+      // row silently renders the "Unknown"/fallback name, which looks like real
+      // data rather than a failed lookup. Report it, then still render the list
+      // — a missing display name must not blank the whole surface.
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", adminIds);
+      if (profilesError) report(profilesError, { severity: "warning", tags: { source: "AdminUserNotes.hydrateNames" } });
 
       const nameMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
       return rows.map((n) => ({ ...n, admin_name: formatName(nameMap.get(n.admin_id), "Admin") }));

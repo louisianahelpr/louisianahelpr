@@ -44,10 +44,20 @@ Deno.serve(async (req) => {
     const caller = userData.user;
 
     // Use has_role RPC (consistent with other admin functions)
-    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
+    // Distinguish "not an admin" from "couldn't check". This still fails
+    // CLOSED, but a transient RPC failure now returns a truthful 503 instead of
+    // telling a legitimate admin they are Forbidden.
+    const { data: isAdmin, error: roleError } = await supabaseAdmin.rpc("has_role", {
       _user_id: caller.id,
       _role: "admin",
     });
+    if (roleError) {
+      console.error("[admin-delete-user] has_role check failed:", roleError.message);
+      return new Response(JSON.stringify({ error: "Couldn't verify permissions. Please retry." }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
         status: 403,
@@ -114,7 +124,7 @@ Deno.serve(async (req) => {
     }
 
     // Write audit log BEFORE deletion so the record survives cascade deletes
-    await supabaseAdmin.from("admin_audit_log").insert({
+    const { error: auditError } = await supabaseAdmin.from("admin_audit_log").insert({
       admin_id: caller.id,
       action: "delete_user",
       target_id: userId,
@@ -124,9 +134,16 @@ Deno.serve(async (req) => {
         full_name: profile.full_name,
         approval_status: profile.approval_status,
       },
-    }).catch((e: Error) =>
-      console.error("[admin-delete-user] audit log failed:", e.message)
-    );
+    });
+    // NOTE: a PostgrestBuilder is a lazy PromiseLike that implements `then`
+    // only — it has no `.catch`. Chaining `.catch()` here threw a synchronous
+    // TypeError before the builder ever issued its request, so the audit row
+    // was never written AND the delete below never ran (the outer catch turned
+    // it into a 500). Destructure the error instead; a failed audit write is
+    // logged but must not block the deletion.
+    if (auditError) {
+      console.error("[admin-delete-user] audit log failed:", auditError.message);
+    }
 
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (deleteError) {

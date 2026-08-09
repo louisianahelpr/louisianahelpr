@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import type { HealthData, ParishStat } from "./types";
+import { report } from "@/lib/errorLogger";
 
 export const useHealthData = () => {
   const queryKey = ["admin-health"];
@@ -54,10 +55,17 @@ export const useHealthData = () => {
       // alert (auto-restrict, fraud flags, dispute escalations,
       // stuck-payment) fans into the void. Surface this prominently
       // so it can't be missed during launch.
-      const { data: adminUserIds } = await supabase
+      // Don't drop the error: this powers the "do admins have push tokens?"
+      // health check. A failed read yields zero admin ids, which renders as a
+      // confident "0 admins have push tokens" alert — indistinguishable from
+      // the real failure it is meant to detect.
+      const { data: adminUserIds, error: adminUserIdsError } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "admin");
+      if (adminUserIdsError) {
+        report(adminUserIdsError, { severity: "warning", tags: { source: "useHealthData.adminIds" } });
+      }
       const adminIds = (adminUserIds ?? []).map((r) => r.user_id);
       let adminPushTokenCount = 0;
       if (adminIds.length > 0) {
@@ -164,11 +172,17 @@ export const useHealthData = () => {
       let medianTimeToFirstAppMin: number | null = null;
       let jobsAwaitingApps = 0;
       if (jobIds.length > 0) {
-        const { data: appRows } = await supabase
+        // Don't drop the error: a failed read makes every job look like it has
+        // zero applications, inflating "jobs awaiting applications" and voiding
+        // the median-time-to-first-application metric with no signal.
+        const { data: appRows, error: appRowsError } = await supabase
           .from("applications")
           .select("job_id, created_at")
           .in("job_id", jobIds)
           .order("created_at", { ascending: true });
+        if (appRowsError) {
+          report(appRowsError, { severity: "warning", tags: { source: "useHealthData.applications" } });
+        }
         const firstAppByJob = new Map<string, string>();
         for (const a of (appRows || []) as { job_id: string; created_at: string }[]) {
           if (!firstAppByJob.has(a.job_id)) firstAppByJob.set(a.job_id, a.created_at);

@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -169,10 +169,22 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     }
   };
 
+  // One stable id per mounted tip prompt. The server salts its Stripe
+  // idempotency key with this instead of a 10-minute time bucket, so a retry —
+  // double-tap, flaky network, a slow first request — always collapses onto the
+  // same checkout session no matter how much wall-clock time passed. The old
+  // bucket meant a retry straddling the boundary produced a SECOND session and
+  // a second pending tips row. A successful send navigates away to Stripe, so
+  // the component unmounts and a genuinely new tip attempt gets a fresh id on
+  // remount — no manual regeneration needed.
+  const tipAttemptIdRef = useRef<string>(crypto.randomUUID());
+
   const sendTip = async (amount: number) => {
     setSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "tip", jobId, amount } });
+      const { data, error } = await supabase.functions.invoke("create-payment", {
+        body: { action: "tip", jobId, amount, tipAttemptId: tipAttemptIdRef.current },
+      });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data?.url) window.location.href = data.url;

@@ -84,10 +84,16 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     jobTitle: string,
   ) => {
     hapticMedium();
+    // `.eq("status", "pending")` makes the decline conditional. Without it, a
+    // poster with the applicant list open in two tabs could accept in one and
+    // decline in the other, leaving the job `accepted` with helper_id set while
+    // that same application read `rejected` — two views of one deal disagreeing.
+    // A zero-row result now means "already resolved elsewhere", not a failure.
     const { error } = await supabase
       .from("applications")
       .update({ status: "rejected" })
-      .eq("id", app.id);
+      .eq("id", app.id)
+      .eq("status", "pending");
     if (error) {
       hapticError();
       toast.error("Couldn't decline that applicant — please try again.");
@@ -133,19 +139,33 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     // Optimistic: move the posted job into the "Awaiting Response" bucket
     // (status accepted, no helper_confirmed_at) right away so the card jumps
     // instead of waiting on the RPC + refetch. Rolled back on any error path.
+    // A group job stays 'open' while it is only partially staffed — only the
+    // accept that fills the last slot closes it — so don't optimistically show
+    // it as accepted. The refetch below settles the real roster state.
+    const isGroupJobOptimistic = !!(selectedJob as { is_group_job?: boolean }).is_group_job;
     const snapshot = optimisticallyPatchJob(selectedJob.id, {
-      status: "accepted",
+      ...(isGroupJobOptimistic ? {} : { status: "accepted" as const }),
       helper_id: deadlineDialogApp.helper_id,
       response_deadline: deadline,
     });
-    // Atomic accept via the accept_application RPC (migration
-    // 20260518120000): it row-locks the job so two concurrent accepts
-    // can't both book the same single-helper job.
-    const { error } = await supabase.rpc("accept_application", {
-      p_application_id: deadlineDialogApp.id,
-      p_deadline: deadline,
-      p_offer_message: initialMessage ?? undefined,
-    });
+    // Group jobs take a different RPC. accept_application requires the job to
+    // be 'open' and immediately flips it to 'accepted', so on a job needing N
+    // helpers only the FIRST accept could ever succeed and the roster was never
+    // populated. accept_group_application (migration 20260804122000) instead
+    // counts the roster inside the job's row lock, inserts the slot, and holds
+    // the job 'open' until the final slot is filled.
+    const isGroupJob = !!(selectedJob as { is_group_job?: boolean }).is_group_job;
+    const { error } = isGroupJob
+      ? await supabase.rpc("accept_group_application" as never, {
+          p_application_id: deadlineDialogApp.id,
+          p_deadline: deadline,
+          p_offer_message: initialMessage ?? undefined,
+        } as never)
+      : await supabase.rpc("accept_application", {
+          p_application_id: deadlineDialogApp.id,
+          p_deadline: deadline,
+          p_offer_message: initialMessage ?? undefined,
+        });
 
     if (error) {
       const msg = String(error?.message ?? "");
@@ -159,6 +179,16 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       const rpcMissing =
         String(error?.code ?? "") === "PGRST202" ||
         /could not find the function|does not exist|schema cache/i.test(msg);
+      // The legacy fallback below is single-helper only: it sets
+      // status='accepted' outright, which on a group job would close the
+      // posting after ONE slot and strand the remaining helpers. Never run it
+      // for a group job — surface the error instead and wait for the migration.
+      if (rpcMissing && isGroupJob) {
+        rollbackActivity(snapshot);
+        hapticError();
+        toast.error("Group job acceptance isn't available yet — please try again shortly.");
+        return;
+      }
       if (rpcMissing) {
         const { data: jobRows, error: jobErr } = await supabase
           .from("jobs")
@@ -255,14 +285,34 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         helper_confirmed_at: confirmedAt,
         response_deadline: null,
       });
-      const { error: confirmError } = await supabase
+      // Make the confirm CONDITIONAL so it can't race the expiry cron or
+      // double-fire. Previously it re-checked nothing, so a helper could
+      // confirm an offer that had already lapsed (or confirm twice).
+      //   - `helper_confirmed_at is null` → blocks a second confirm.
+      //   - deadline null OR still in the future → blocks confirming a lapsed
+      //     offer. The null branch matters: not every offer carries a deadline,
+      //     and a bare `.gt()` would silently exclude those legitimate rows.
+      // `.select("id")` lets us tell "updated nothing" from "errored".
+      const { data: confirmedRows, error: confirmError } = await supabase
         .from("jobs")
         .update({ helper_confirmed_at: confirmedAt, response_deadline: null })
-        .eq("id", app.job_id);
+        .eq("id", app.job_id)
+        .is("helper_confirmed_at", null)
+        .or(`response_deadline.is.null,response_deadline.gt.${confirmedAt}`)
+        .select("id");
       if (confirmError) {
         rollbackActivity(snapshot);
         hapticError();
         toast.error("Couldn't accept the job — please try again.");
+        return;
+      }
+      if (!confirmedRows || confirmedRows.length === 0) {
+        // Zero rows = the offer lapsed or was already confirmed elsewhere.
+        // Roll the optimistic patch back rather than leaving the card showing
+        // an acceptance that never happened.
+        rollbackActivity(snapshot);
+        hapticError();
+        toast.error("This offer is no longer available — it may have expired.");
         return;
       }
       // Helper-side reject of the losing applicants. The direct UPDATE this
@@ -286,11 +336,16 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       try {
         // `requires_w9` is a new column not in the generated types yet, so
         // the builder is cast to a minimal shape returning the row we read.
-        const { data: jobMeta } = await (supabase.from("jobs") as unknown as {
+        // The cast MUST include `error`. Omitting it made a genuine read failure
+        // indistinguishable from `requires_w9: false`, so the W-9 signature
+        // dialog was silently skipped on a business job that legally requires
+        // one — a compliance gap that looked identical to the happy path.
+        const { data: jobMeta, error: jobMetaError } = await (supabase.from("jobs") as unknown as {
           select: (cols: string) => {
             eq: (col: string, val: string) => {
               maybeSingle: () => Promise<{
                 data: { requires_w9?: boolean | null; business_id?: string | null } | null;
+                error: { code?: string; message: string } | null;
               }>;
             };
           };
@@ -298,6 +353,10 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           .select("requires_w9, business_id")
           .eq("id", app.job_id)
           .maybeSingle();
+        // Rethrow into the catch below so a real failure is REPORTED rather
+        // than silently treated as "no W-9 needed". PGRST204/42703 (column not
+        // on prod yet) is still handled there as the intended graceful skip.
+        if (jobMetaError) throw jobMetaError;
         if (jobMeta && jobMeta.requires_w9) {
           setW9Context({ jobId: app.job_id, businessId: jobMeta.business_id ?? null });
           setW9DialogOpen(true);

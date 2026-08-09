@@ -307,6 +307,10 @@ const HelprWrapped = () => {
       <PageHeader
         eyebrow="Louisiana Helpr"
         title={`Your ${SEASON.title}`}
+        // Body is a single centered card, so the header must not fall through
+        // to `default` (max-w-5xl→90rem) — that left the H1 stranded hundreds
+        // of px to the left of the card on desktop.
+        width="lg"
         showBrand
         rightSlot={<NotificationPanel />}
       />

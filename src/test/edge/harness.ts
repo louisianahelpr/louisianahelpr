@@ -119,6 +119,26 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/posterFees.ts";`,
   );
 
+  // Admin-id fan-out for ops alerts: `_shared/adminIds.ts` takes the supabase
+  // client as an argument and has no module-scope Deno imports, so the
+  // generated file points at the REAL module. That keeps the "did we actually
+  // notify an admin?" behaviour under test — the whole point of the helper is
+  // that a failed lookup must be loud rather than an empty array, and mocking
+  // it away would hide exactly that.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/adminIds\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/adminIds.ts";`,
+  );
+
+  // Business seat fee ladder: `_shared/seatTierGrant.ts` is pure TypeScript
+  // (plain lookup tables + one pure function), so the generated file points at
+  // the REAL module. The commission a seat plan actually buys stays under test
+  // rather than being mocked away — same rationale as helperFees/posterFees.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/seatTierGrant\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/seatTierGrant.ts";`,
+  );
+
   return out;
 }
 

@@ -157,15 +157,18 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       await markAllRead();
     };
 
-    // Posts / Jobs — jump directly to the relevant Activity tab (posted vs
-    // applied). The Activity page reads the `tab` search param.
+    // Posts / Jobs — jump straight to the dedicated route for each Activity
+    // tab. These must NOT go through `/activity?tab=…`: that route is a
+    // `<Navigate to="/my-posts">` redirect, which drops the query string, and
+    // Activity takes its tab from the `defaultTab` prop (App.tsx) rather than
+    // from search params — so every `?tab=` link silently landed on My Posts.
     const goPosted = () => {
       close();
-      navigate("/activity?tab=posted");
+      navigate("/my-posts");
     };
     const goApplied = () => {
       close();
-      navigate("/activity?tab=applied");
+      navigate("/my-jobs");
     };
 
     return {

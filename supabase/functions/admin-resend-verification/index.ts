@@ -46,10 +46,20 @@ Deno.serve(async (req) => {
     // function hand-rolled a `.from('user_roles').select('role').eq(...)`
     // check, which drifted when the role model changed. Reading through
     // has_role() means a future role-schema migration is one place, not four.
-    const { data: isAdmin } = await admin.rpc('has_role', {
+    // Distinguish "not an admin" from "couldn't check". This still fails
+    // CLOSED, but a transient RPC failure now returns a truthful 503 instead of
+    // telling a legitimate admin they are Forbidden.
+    const { data: isAdmin, error: roleError } = await admin.rpc('has_role', {
       _user_id: userRes.user.id,
       _role: 'admin',
     })
+    if (roleError) {
+      console.error('[admin-resend-verification] has_role check failed:', roleError.message)
+      return new Response(JSON.stringify({ error: "Couldn't verify permissions. Please retry." }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
@@ -123,17 +133,33 @@ Deno.serve(async (req) => {
       } as any)
       .eq('id', (profile as any).id)
 
-    // Audit log (best-effort)
+    // Audit log (best-effort, but never silent).
+    // The try/catch alone was not enough: a PostgREST builder RESOLVES with
+    // `{ error }` on a DB failure rather than throwing, so an RLS/column error
+    // slipped past the catch entirely. Destructure the error as well.
     try {
-      await admin.from('admin_audit_log').insert({
+      const { error: auditInsertErr } = await admin.from('admin_audit_log').insert({
         admin_id: userRes.user.id,
         action: 'manual_resend_verification',
         target_type: 'user',
         target_id: userId,
         details: { email: (profile as any).email },
       } as any)
-    } catch (_) {
-      // ignore
+      if (auditInsertErr) {
+        console.error(
+          "[admin-resend-verification] audit log write FAILED — privileged action has no trail:",
+          auditInsertErr.message,
+        )
+      }
+    } catch (auditErr) {
+      // Never silently swallow an admin audit write: a privileged action
+      // completing with no trail is a compliance gap, not a nit. The action
+      // itself still succeeds (the audit must not block it), but the failure
+      // is now visible in logs.
+      console.error(
+        "[admin-resend-verification] audit log write FAILED — privileged action has no trail:",
+        auditErr instanceof Error ? auditErr.message : String(auditErr),
+      );
     }
 
     return new Response(JSON.stringify({ success: true }), {

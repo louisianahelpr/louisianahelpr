@@ -45,9 +45,23 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data: roleRow } = await supabase
-      .from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
-    if (!roleRow) {
+    // Use the shared has_role RPC rather than hand-rolling a user_roles select
+    // (the drift admin-resend-verification was already consolidated away from).
+    // Both are equivalent today, but a hand-rolled copy silently stops matching
+    // if the role model moves — and this endpoint can mail every user.
+    // The error is checked so a transient RPC failure returns a truthful 503
+    // instead of a misleading "Forbidden" to a real admin.
+    const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
+      _user_id: user.id,
+      _role: "admin",
+    });
+    if (roleError) {
+      console.error("[send-marketing-blast] has_role check failed:", roleError.message);
+      return new Response(JSON.stringify({ error: "Couldn't verify permissions. Please retry." }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

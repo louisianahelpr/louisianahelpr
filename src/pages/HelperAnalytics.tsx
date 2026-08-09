@@ -203,7 +203,12 @@ const HelperAnalytics = () => {
         eyebrow="Helper dashboard"
         title="Earnings & Analytics"
         meta="Your last 6 months"
-        width="lg"
+        // Body below is `container mx-auto px-5` > `max-w-lg lg:max-w-5xl
+        // xl:max-w-6xl mx-auto`. `width="lg"` pinned the title to a 512px
+        // column while the body opened to 5xl/6xl at lg+, so the heading floated
+        // far left of its own content. `container-lg-5xl-6xl` is the token
+        // authored for exactly this nested geometry (see PageHeader.tsx).
+        width="container-lg-5xl-6xl"
         showBrand
         rightSlot={<NotificationPanel />}
       />

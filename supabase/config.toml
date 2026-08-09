@@ -21,8 +21,12 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.email-tracking]
     verify_jwt = false
-  [functions.admin-update-email]
-    verify_jwt = false
+  # admin-update-email deliberately has NO verify_jwt override: it is the only
+  # endpoint that can change a user's login identity, and it is called from the
+  # admin UI via supabase.functions.invoke (which attaches the caller's JWT), so
+  # there is no unauthenticated caller to accommodate. Its in-function
+  # getClaims + has_role check is sound on its own; keeping the gateway check as
+  # well is defence-in-depth on an account-takeover-grade action.
   [functions.pro-customer-portal]
     verify_jwt = false
   [functions.weekly-helper-report]

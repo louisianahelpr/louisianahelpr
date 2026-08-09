@@ -151,12 +151,23 @@ const Signup = () => {
     const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
     if (Object.keys(errors).length === 0 && normalizedPhone.length === 10) {
       const lastSeven = normalizedPhone.slice(-7);
-      const { data: existing } = await supabase
+      // Fail CLOSED. Dropping this error let the duplicate-phone gate silently
+      // OPEN on any query failure (RLS change, timeout), which is the one
+      // outcome it exists to prevent. Block with a retryable message instead of
+      // waving a possible duplicate account through.
+      const { data: existing, error: existingError } = await supabase
         .from("profiles")
         .select("user_id")
         .ilike("phone", `%${lastSeven}%`)
         .limit(5);
-      if (existing && existing.length > 0) {
+      if (existingError) {
+        report("signup.phoneDedupe.lookupFailed", {
+          severity: "warning",
+          tags: { source: "Signup.phoneDedupe" },
+          context: { message: existingError.message },
+        });
+        errors.phone = "We couldn't verify this phone number just now. Please try again.";
+      } else if (existing && existing.length > 0) {
         errors.phone = "This phone number is already associated with an account. Please log in instead.";
         // Monitor false-positive rate — multiple matches likely means our
         // last-7-digit heuristic is too loose for this number.

@@ -380,7 +380,24 @@ const Login = () => {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
+            {/* "Forgot password?" sits on the Password label row — the
+                conventional place people look for it, and adjacent to the field
+                they just failed to fill. It was previously a tiny ds-11 line
+                stranded BELOW the field and ABOVE the primary CTA, which both
+                buried the recovery path for the one user who most needs it (the
+                locked-out one) and pushed the CTA down. Styled as the page's
+                canonical actionable link (`font-semibold` + bark), matching
+                "Create a personal account" below rather than a one-off. */}
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
+              <Link
+                to="/forgot-password"
+                className="text-ds-12 font-sans font-semibold hover:underline active:opacity-60 transition-opacity"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <Lock
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none z-10"
@@ -391,7 +408,11 @@ const Login = () => {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 enterKeyHint="done"
-                placeholder="••••••••"
+                // No placeholder. A row of bullet characters mimics a FILLED
+                // password field, so the empty state read as "already
+                // populated" — especially alongside iOS autofill. The visible
+                // "Password" label already names the field, so the placeholder
+                // added nothing but ambiguity.
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -408,15 +429,6 @@ const Login = () => {
               </button>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <Link
-              to="/forgot-password"
-              className="text-ds-11 font-sans tracking-wide hover:opacity-70 active:opacity-50 transition-opacity"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              Forgot password?
-            </Link>
-          </div>
           <Button
             variant="bark"
             type="submit"
@@ -426,16 +438,14 @@ const Login = () => {
           >
             {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing in…</> : "Sign in"}
           </Button>
-          {/* Sits with the button whose action it governs, not stranded below
-              the whole card. */}
-          <p className="text-ds-11 font-sans leading-relaxed text-center text-balance" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
-            By signing in you agree to our{" "}
-            <Link to="/terms" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Terms</Link>
-            {" · "}
-            <Link to="/rules" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Rules</Link>
-            {" · "}
-            <Link to="/privacy" className="underline hover:opacity-80 active:opacity-60 transition-opacity">Privacy</Link>
-          </p>
+          {/* No "By signing in you agree to our Terms · Rules · Privacy" here.
+              Consent is CAPTURED on signup — Signup.tsx has real, recorded
+              checkboxes (Terms + Privacy, the 18+ age gate, marketing opt-in),
+              which is what actually satisfies the consent requirement. A
+              returning user already accepted at signup, so restating it on the
+              highest-frequency path was noise, not compliance. The policies stay
+              one tap away in the footer, Profile → Legal & Policies, and on
+              signup itself. (Owner decision 2026-08-08: drop from sign-in only.) */}
         </form>
 
         {/* Vertical OR rule, lg+ only — the horizontal one inside the right

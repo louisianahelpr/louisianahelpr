@@ -42,5 +42,8 @@
     "supabase/functions/_shared/instantPayoutFee.ts",
     "supabase/functions/_shared/stripeFees.ts",
     "supabase/functions/_shared/posterFees.ts"
+  ],
+  "exclude": [
+    "src/test/edge/**/*.gen.ts"
   ]
 }

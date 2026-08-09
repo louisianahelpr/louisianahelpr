@@ -150,7 +150,11 @@ const ResetPassword = () => {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  // No placeholder — a row of bullets mimics a FILLED password
+                  // field. Worse here than on sign-in: this screen asks the user
+                  // to type a NEW password twice, so a field that looks
+                  // pre-populated invites them to skip it. The "New password"
+                  // label above already names the field. (Matches Login.tsx.)
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -200,7 +204,8 @@ const ResetPassword = () => {
                 <Input
                   id="confirm"
                   type="password"
-                  placeholder="••••••••"
+                  // Same reason as the field above — the "Confirm password"
+                  // label names it; bullets would only imply it's already filled.
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   required

@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
+import { report } from "@/lib/errorLogger";
 
 type Report = {
   id: string;
@@ -81,10 +82,15 @@ const AdminReports = () => {
         ...new Set(reportRows.flatMap(r => [r.reporter_id, r.reported_id, r.assigned_to].filter(Boolean) as string[])),
       ];
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase
+      // Secondary name-hydration read. Don't drop the error: on failure every
+      // row silently renders the "Unknown"/fallback name, which looks like real
+      // data rather than a failed lookup. Report it, then still render the list
+      // — a missing display name must not blank the whole surface.
+        const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
           .select("user_id, full_name")
           .in("user_id", userIds);
+      if (profilesError) report(profilesError, { severity: "warning", tags: { source: "AdminReports.hydrateNames" } });
         const nameMap = new Map((profiles || []).map(p => [p.user_id, formatName(p.full_name, "Unknown")]));
         return reportRows.map(r => ({
           ...r,

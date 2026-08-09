@@ -15,7 +15,12 @@ export default tseslint.config(
   // explicit ignore here or local lint fails on plugin scratch.
   // `ios/**` excludes Xcode build products (build_sim/, DerivedData/) whose
   // bundled Capacitor native-bridge.js otherwise reds `eslint .` locally.
-  { ignores: ["dist", "build", "**/build/**", "ios/**", ".claude/**", ".remember/**", "supabase/functions/**", "playwright-fixture.ts", "playwright.config.ts"] },
+  // `src/test/edge/*.gen.ts` are gitignored scratch files written by the
+  // edge-function test harness (see src/test/edge/harness.ts). Leftovers from a
+  // prior run were adding 176 phantom typecheck errors and 28 lint warnings to
+  // the local gate — the gate CLAUDE.md treats as load-bearing — training us to
+  // ignore it. Excluded here and in tsconfig.app.json so the gate stays honest.
+  { ignores: ["dist", "build", "**/build/**", "ios/**", ".claude/**", ".remember/**", "supabase/functions/**", "src/test/edge/**/*.gen.ts", "playwright-fixture.ts", "playwright.config.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

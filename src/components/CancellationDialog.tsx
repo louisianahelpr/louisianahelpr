@@ -339,12 +339,10 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                   className="font-sans font-bold"
                   style={{ fontSize: "0.82rem", color: "hsl(var(--destructive))", letterSpacing: "-0.01em" }}
                 >
-                  A cancellation fee of{" "}
-                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cancellationFee)}{" "}
-                  applies
+                  A cancellation fee of ${formatPrice(cancellationFee)} applies
                 </p>
                 <p className="text-ds-11 text-muted-foreground mt-0.5">
-                  {cancellationFeePercent}% of the ${jobBudget.toFixed(2)} budget · {feeTier.toLowerCase()}
+                  {cancellationFeePercent}% of the ${formatPrice(jobBudget)} budget · {feeTier.toLowerCase()}
                 </p>
               </div>
             </div>

@@ -194,7 +194,7 @@ const AdminUserRowBase = ({
                   "jobs",
                   <>
                     <Briefcase className="w-3 h-3" />
-                    {jobsDone} job{jobsDone > 1 ? "s" : ""}
+                    {jobsDone} job{jobsDone !== 1 ? "s" : ""}
                   </>
                 )}
 

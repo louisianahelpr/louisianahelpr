@@ -51,11 +51,18 @@ serve(async (req) => {
 
     // Don't let a helper pay twice. Block if a check is already in progress or
     // already passed.
-    const { data: profile } = await supabaseAdmin
+    // Fail CLOSED: dropping this error let `bgcStatus` fall back to "none",
+    // which opens the already-pending/verified guard and bills the helper a
+    // second $34.99 for a check they already paid for.
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("background_check_status")
       .eq("user_id", user.id)
       .single();
+    if (profileError) {
+      console.error("[create-bgc-payment] profile lookup failed:", profileError.message);
+      return fail(503, "We couldn't confirm your background-check status. Please try again in a moment.");
+    }
     const bgcStatus = (profile?.background_check_status ?? "none") as string;
     if (bgcStatus === "pending") {
       return fail(409, "Your background check is already in progress.");

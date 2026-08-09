@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { SEAT_PRODUCT_TO_TIER, SEAT_TIER_TO_SUBSCRIPTION } from "../_shared/seatTierGrant.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,11 +9,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PRODUCT_TO_TIER: Record<string, string> = {
-  prod_UP8XCpifCuHO1y: "crew",
-  prod_UP8Xdu0Z55uyyZ: "team",
-  prod_UP8XIjp23K25YG: "enterprise",
-};
+// Imported, not redeclared: the Stripe webhook now performs this same grant off
+// customer.subscription.* events, so both paths must read one definition or the
+// fee ladder can silently diverge between "what you got when you paid" and
+// "what this poll corrects you to". See _shared/seatTierGrant.ts.
+const PRODUCT_TO_TIER = SEAT_PRODUCT_TO_TIER;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -133,12 +134,6 @@ serve(async (req) => {
     // touches the fee path in several places; this keeps the money correct
     // today with one write. Owner only: team members are not granted, since
     // the seat plan is billed to the owner.
-    const SEAT_TIER_TO_SUBSCRIPTION: Record<string, string | null> = {
-      starter: null,
-      crew: "basic",
-      team: "pro",
-      enterprise: "elite",
-    };
     const grantedTier = SEAT_TIER_TO_SUBSCRIPTION[activeTier] ?? null;
 
     // Only touch the row when the subscription is genuinely active — a

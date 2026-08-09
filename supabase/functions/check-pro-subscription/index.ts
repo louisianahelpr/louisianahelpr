@@ -52,11 +52,21 @@ serve(async (req) => {
     });
 
     // Get current profile to check for one-time pass
-    const { data: profile } = await supabaseAdmin
+    // Fail CLOSED: a dropped error here reads as "no profile", which makes a
+    // paying Pro/Elite member resolve as free for the rest of this call —
+    // silently revoking entitlements they've paid for.
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("subscription_tier, subscription_expires_at")
       .eq("user_id", user.id)
       .single();
+    if (profileError) {
+      console.error("[check-pro-subscription] profile lookup failed:", profileError.message);
+      return new Response(
+        JSON.stringify({ error: "Couldn't load your membership. Please try again." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
@@ -91,14 +101,23 @@ serve(async (req) => {
               .eq("referred_id", user.id)
               .maybeSingle();
             if (referral?.referrer_id && referral?.referral_code_id) {
-              const { data: existingBonus } = await supabaseAdmin
+              // This read is the ONLY thing standing between a retry and a
+              // duplicate referral bonus, so it must fail CLOSED: dropping the
+              // error made `!existingBonus` true on any read failure and minted
+              // the credit again.
+              const { data: existingBonus, error: existingBonusError } = await supabaseAdmin
                 .from("referral_credits")
                 .select("id")
                 .eq("user_id", referral.referrer_id)
                 .eq("referred_user_id", user.id)
                 .eq("reason", "subscription_bonus")
                 .maybeSingle();
-              if (!existingBonus) {
+              if (existingBonusError) {
+                console.error(
+                  "[check-pro-subscription] referral bonus dedupe read failed; skipping bonus:",
+                  existingBonusError.message,
+                );
+              } else if (!existingBonus) {
                 await supabaseAdmin.from("referral_credits").insert({
                   user_id: referral.referrer_id,
                   referred_user_id: user.id,

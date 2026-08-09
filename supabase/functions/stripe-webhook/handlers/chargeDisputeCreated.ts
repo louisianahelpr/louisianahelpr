@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { loadAdminIds } from "../../_shared/adminIds.ts";
 
 export async function handleChargeDisputeCreated(
   event: Stripe.Event,
@@ -40,11 +41,18 @@ export async function handleChargeDisputeCreated(
   }
 
   if (disputePiId) {
-    const { data: chargebackJob } = await supabase
+    // Throw rather than drop: a chargeback is money leaving the platform. A
+    // swallowed error meant the dispute was never recorded against the job and
+    // the payout was never blocked, so we could still pay a helper out on a
+    // charge the poster had already reversed.
+    const { data: chargebackJob, error: chargebackJobError } = await supabase
       .from("jobs")
       .select("id, customer_id, helper_id, title, payment_status, status")
       .eq("stripe_payment_intent_id", disputePiId)
       .maybeSingle();
+    if (chargebackJobError) {
+      throw new Error(`job lookup failed for disputed PI ${disputePiId}: ${chargebackJobError.message}`);
+    }
 
     if (chargebackJob) {
       // Only flip payment_status if the payout hasn't been finalized yet —
@@ -110,14 +118,11 @@ export async function handleChargeDisputeCreated(
 
       // Notify all admins — chargebacks require a Stripe Dashboard response
       // or the platform auto-loses and pays both the customer AND a $15 fee.
-      const { data: chargebackAdminRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin");
-      if (chargebackAdminRoles) {
-        for (const admin of chargebackAdminRoles) {
+      const { ids: chargebackAdminIds } = await loadAdminIds(supabase, "stripe-webhook.chargeDisputeCreated");
+      {
+        for (const adminId of chargebackAdminIds) {
           await supabase.from("notifications").insert({
-            user_id: admin.user_id,
+            user_id: adminId,
             title: "⚠️ Stripe chargeback filed",
             message: `A $${(dispute.amount / 100).toFixed(2)} chargeback was filed for "${chargebackJob.title}". Respond in Stripe Dashboard before the evidence deadline or the dispute is auto-lost.`,
             type: "warning",

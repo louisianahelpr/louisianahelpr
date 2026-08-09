@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { loadAdminIds } from "../_shared/adminIds.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,20 +53,17 @@ Deno.serve(async (req) => {
       // If escalated to admin, don't auto-resolve — admin must handle it
       if (disputeStatus === "escalated") {
         // Just send a reminder to admins
-        const { data: adminRoles } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "admin");
-        if (adminRoles) {
-          for (const admin of adminRoles) {
+        const { ids: escalatedAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.escalated");
+        {
+          for (const adminId of escalatedAdminIds) {
             const { error: notifErr } = await supabase.from("notifications").insert({
-              user_id: admin.user_id,
+              user_id: adminId,
               title: "⏰ Escalated dispute overdue",
               message: `"${job.title}" dispute was escalated and is past its 72h deadline. Please resolve ASAP.`,
               type: "warning",
               link: "/admin",
             });
-            if (notifErr) console.error(`[auto-resolve-disputes] escalation reminder insert failed for admin ${admin.user_id}, job ${job.id}:`, notifErr);
+            if (notifErr) console.error(`[auto-resolve-disputes] escalation reminder insert failed for admin ${adminId}, job ${job.id}:`, notifErr);
           }
         }
         continue;
@@ -160,15 +158,12 @@ Deno.serve(async (req) => {
       });
 
       // Notify admins
-      const { data: adminRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin");
+      const { ids: autoResolvedAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.autoResolved");
 
-      if (adminRoles) {
-        for (const admin of adminRoles) {
+      {
+        for (const adminId of autoResolvedAdminIds) {
           notifications.push({
-            user_id: admin.user_id,
+            user_id: adminId,
             title: "⚠️ Dispute auto-resolved",
             message: `Dispute on "${job.title}" expired without poster action. Payment auto-released to helpr.`,
             type: "warning",

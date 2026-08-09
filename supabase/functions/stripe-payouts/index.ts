@@ -44,11 +44,19 @@ serve(async (req) => {
     const user = userData.user;
 
     // Look up Stripe Connect account from profile
-    const { data: profile } = await supabaseAdmin
+    // Fail CLOSED: dropping this error left `accountId` undefined, so a helper
+    // who IS connected to Stripe was shown the empty "not connected" payout
+    // summary — telling them their payout method vanished. An error state is
+    // honest; a false disconnection is not.
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("stripe_account_id")
       .eq("user_id", user.id)
       .single();
+    if (profileError) {
+      console.error("[stripe-payouts] profile lookup failed:", profileError.message);
+      throw new Error("Couldn't load your payout account. Please try again.");
+    }
 
     const accountId = profile?.stripe_account_id;
 

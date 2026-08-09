@@ -10,11 +10,17 @@ export async function handlePaymentIntentPaymentFailed(
   logStep("Payment intent failed", { id: pi.id, email: failedEmail });
 
   // Find the job linked to this PI and notify the poster
-  const { data: failedJob } = await supabase
+  // Throw rather than drop: on a swallowed error the poster is never told their
+  // payment failed AND the job never flips to payment_status "failed", so it
+  // sits looking funded when no money was captured.
+  const { data: failedJob, error: failedJobError } = await supabase
     .from("jobs")
     .select("id, customer_id, title")
     .eq("stripe_payment_intent_id", pi.id)
     .maybeSingle();
+  if (failedJobError) {
+    throw new Error(`job lookup failed for payment intent ${pi.id}: ${failedJobError.message}`);
+  }
 
   if (failedJob) {
     await supabase.from("notifications").insert({

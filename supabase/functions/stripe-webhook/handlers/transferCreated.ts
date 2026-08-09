@@ -14,12 +14,20 @@ export async function handleTransferCreated(
   //    Most marketplace transfers settle as 'paid' immediately on
   //    creation, so flip directly to 'paid' here. transfer.failed /
   //    transfer.reversed below override if the path doesn't hold.
-  const { data: ledgerRow } = await supabase
+  // Throw rather than drop the error: money has ALREADY moved at Stripe, so a
+  // failure here leaves the ledger and the job disagreeing with reality. The
+  // webhook's 500 path rolls back the dedupe row so Stripe redelivers, which is
+  // exactly the recovery we want — swallowing it stranded the job in its old
+  // payment_status forever with no signal.
+  const { data: ledgerRow, error: ledgerError } = await supabase
     .from("payout_transfers")
     .update({ status: "paid", paid_at: new Date().toISOString() })
     .eq("stripe_transfer_id", transfer.id)
     .select("job_id, helper_id")
     .maybeSingle();
+  if (ledgerError) {
+    throw new Error(`payout_transfers update failed for ${transfer.id}: ${ledgerError.message}`);
+  }
 
   // 2. Find the helper and associated job.
   // Only flip payment_status to "released" for transfers that have a
@@ -28,11 +36,14 @@ export async function handleTransferCreated(
   // write a ledger row — using metadata here would incorrectly overwrite
   // a job's "refunded" status with "released".
   const transferJobId = ledgerRow?.job_id;
-  const { data: paidHelper } = await supabase
+  const { data: paidHelper, error: paidHelperError } = await supabase
     .from("profiles")
     .select("user_id, full_name")
     .eq("stripe_account_id", destAccount)
     .maybeSingle();
+  if (paidHelperError) {
+    throw new Error(`helper lookup failed for account ${destAccount}: ${paidHelperError.message}`);
+  }
 
   if (paidHelper) {
     if (transferJobId) {

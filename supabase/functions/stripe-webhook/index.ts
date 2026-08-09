@@ -63,7 +63,16 @@ serve(async (req) => {
   }
 
   if (!stripeKey) {
+    // Mirror stripe-idv-webhook: the 200 is correct (stop the retry storm) but
+    // a console line alone let the ENTIRE payment pipeline sit broken unnoticed
+    // — every escrow, subscription and payout event silently 200-dropped.
     console.error("🚨 [STRIPE-WEBHOOK] ALERT: STRIPE_SECRET_KEY not set — acknowledging to stop retries");
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "critical",
+      title: "Stripe webhook misconfigured — ALL payment events dropping",
+      message: "STRIPE_SECRET_KEY is not set. Every Stripe payment event (escrow, subscription, payout, dispute) is being 200-ACKed with no processing.",
+    });
     return new Response(JSON.stringify({ received: true, error: "stripe_key_not_configured" }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
@@ -81,6 +90,12 @@ serve(async (req) => {
 
   if (!webhookSecret) {
     console.error("🚨 [STRIPE-WEBHOOK] ALERT: STRIPE_WEBHOOK_SECRET is not configured — acknowledging 200 to stop retries");
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "critical",
+      title: "Stripe webhook secret missing — ALL payment events dropping",
+      message: "STRIPE_WEBHOOK_SECRET is not set, so no signature can be verified. Every Stripe payment event is being 200-ACKed with no processing.",
+    });
     return new Response(JSON.stringify({ received: true, error: "webhook_secret_not_configured" }), {
       headers: { "Content-Type": "application/json" },
       status: 200,

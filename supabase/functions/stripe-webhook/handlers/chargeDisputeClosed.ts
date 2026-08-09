@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { loadAdminIds } from "../../_shared/adminIds.ts";
 
 export async function handleChargeDisputeClosed(
   event: Stripe.Event,
@@ -42,11 +43,17 @@ export async function handleChargeDisputeClosed(
     : "warning_closed";
 
   if (closedPiId) {
-    const { data: closedJob } = await supabase
+    // Throw rather than drop: on a swallowed error the dispute outcome is never
+    // written back, so the job keeps showing an open chargeback that Stripe has
+    // already resolved (in either direction).
+    const { data: closedJob, error: closedJobError } = await supabase
       .from("jobs")
       .select("id, customer_id, helper_id, title, payment_status")
       .eq("stripe_payment_intent_id", closedPiId)
       .maybeSingle();
+    if (closedJobError) {
+      throw new Error(`job lookup failed for closed dispute PI ${closedPiId}: ${closedJobError.message}`);
+    }
 
     if (closedJob) {
       const { error: resolveUpdateErr } = await supabase
@@ -90,14 +97,11 @@ export async function handleChargeDisputeClosed(
         // Admin uses admin_release_dispute (which sets payment_status =
         // "released") or manually sets dispute_status = "resolved" to
         // let release-payout through its dispute gate.
-        const { data: wonAdminRoles } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "admin");
-        if (wonAdminRoles) {
-          for (const admin of wonAdminRoles) {
+        const { ids: wonAdminIds } = await loadAdminIds(supabase, "stripe-webhook.chargeDisputeClosed");
+        {
+          for (const adminId of wonAdminIds) {
             await supabase.from("notifications").insert({
-              user_id: admin.user_id,
+              user_id: adminId,
               title: "✅ Chargeback WON — release helper payout",
               message: `Stripe ruled in our favor on the $${(closedDispute.amount / 100).toFixed(2)} chargeback for "${closedJob.title}". Funds are restored. Please release the helper's payout from the Admin panel.`,
               type: "payment",

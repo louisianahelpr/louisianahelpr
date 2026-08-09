@@ -6,6 +6,7 @@ import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { computeCancellationFee } from "../_shared/cancellationFee.ts";
 import { stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { loadAdminIds } from "../_shared/adminIds.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -118,11 +119,11 @@ serve(async (req) => {
       } catch (transferErr: any) {
         console.error(`Failed to transfer cancellation fee to helper ${job.helper_id}:`, transferErr);
         // Notify admins about the failed transfer
-        const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
-        if (adminRoles) {
-          for (const admin of adminRoles) {
+        const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "void-cancelled-payments.feeTransferFailed");
+        {
+          for (const adminId of adminIds) {
             await supabaseAdmin.from("notifications").insert({
-              user_id: admin.user_id,
+              user_id: adminId,
               title: "⚠️ Cancellation fee transfer failed",
               message: `Failed to transfer $${cancellationFee.toFixed(2)} cancellation fee to helper for job ${job.id}. Error: ${transferErr.message}`,
               type: "warning",

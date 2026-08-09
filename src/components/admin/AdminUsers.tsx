@@ -290,7 +290,7 @@ const AdminUsers = () => {
           className="h-9 text-ds-13 flex-1"
         />
         <Select value={sortDir} onValueChange={(v) => setSortDir(v as typeof sortDir)}>
-          <SelectTrigger className="h-9 text-ds-13 sm:w-[220px]">
+          <SelectTrigger aria-label="Sort by" className="h-9 text-ds-13 sm:w-[220px]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>

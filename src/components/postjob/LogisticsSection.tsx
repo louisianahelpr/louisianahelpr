@@ -364,7 +364,7 @@ export function LogisticsSection({
               <div className="space-y-2.5">
                 <Label>Frequency</Label>
                 <Select value={recurrenceInterval} onValueChange={setRecurrenceInterval}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Frequency"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="daily">Daily</SelectItem>
                     <SelectItem value="weekly">Weekly</SelectItem>

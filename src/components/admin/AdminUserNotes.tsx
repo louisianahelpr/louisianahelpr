@@ -193,7 +193,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
         />
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={newCategory} onValueChange={setNewCategory}>
-            <SelectTrigger className="h-8 w-[140px] text-ds-11">
+            <SelectTrigger aria-label="Note category" className="h-8 w-[140px] text-ds-11">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -292,7 +292,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
                     />
                     <div className="flex items-center gap-2">
                       <Select value={editingCategory} onValueChange={setEditingCategory}>
-                        <SelectTrigger className="h-7 w-[130px] text-ds-11">
+                        <SelectTrigger aria-label="Note category" className="h-7 w-[130px] text-ds-11">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>

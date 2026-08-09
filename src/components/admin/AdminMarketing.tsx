@@ -141,7 +141,7 @@ const AdminMarketing = () => {
             <div className="space-y-2">
               <Label>Segment</Label>
               <Select value={segment} onValueChange={(v) => setSegment(v as Segment)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Segment"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All users</SelectItem>
                   <SelectItem value="helpers">Helprs only</SelectItem>
@@ -154,7 +154,7 @@ const AdminMarketing = () => {
               <div className="space-y-2">
                 <Label>Parish</Label>
                 <Select value={parish} onValueChange={setParish}>
-                  <SelectTrigger><SelectValue placeholder="Pick a parish" /></SelectTrigger>
+                  <SelectTrigger aria-label="Parish"><SelectValue placeholder="Pick a parish" /></SelectTrigger>
                   <SelectContent>
                     {PARISHES.map(p => <SelectItem key={p} value={p}>{p} Parish</SelectItem>)}
                   </SelectContent>

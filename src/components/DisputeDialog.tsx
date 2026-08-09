@@ -183,7 +183,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               Reason
             </Label>
             <Select value={reason} onValueChange={setReason}>
-              <SelectTrigger className="rounded-ds-md bg-background/60 border-border/60 focus:border-primary/40">
+              <SelectTrigger aria-label="Reason" className="rounded-ds-md bg-background/60 border-border/60 focus:border-primary/40">
                 <SelectValue placeholder="Pick the closest fit…" />
               </SelectTrigger>
               <SelectContent>

@@ -118,7 +118,7 @@ const AdminFraudDashboard = () => {
       <div className="flex items-center justify-end flex-wrap gap-3">
         <div className="flex gap-2">
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Flag type" className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               {FLAG_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
             </SelectContent>

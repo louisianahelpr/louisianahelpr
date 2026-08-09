@@ -155,7 +155,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             <div className="space-y-1.5">
               <Label className={eyebrowCls} style={eyebrowStyle}>Category</Label>
               <Select value={category} onValueChange={setCategory} disabled={hasHelper}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Category"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                 </SelectContent>

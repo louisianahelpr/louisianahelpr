@@ -98,7 +98,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
           <div className="space-y-2">
             <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Reason category</p>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Reason category">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -81,8 +81,8 @@ export async function handleChargeRefunded(
             { onConflict: "stripe_refund_id", ignoreDuplicates: true },
           );
         if (ledgerErr) {
-          postSlackOpsAlert({
-            kind: "refund_ledger_write_failed",
+          await postSlackOpsAlert({
+            kind: "custom",
             severity: "warning",
             title: "payment_refunds ledger write failed (charge.refunded)",
             message: `Could not write refund ledger row for job ${refundedJob.id}.`,

@@ -140,7 +140,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
         // Brand parchment ground with a subtle olive border. Brand tokens
         // are CSS variables, not Tailwind theme entries — use the hsl(var(...))
         // form (bg-parchment would silently no-op).
-        className="bg-[hsl(var(--parchment))] border-t border-[hsl(var(--bark)/0.18)] rounded-t-3xl"
+        className="bg-[hsl(var(--parchment))] border-t border-[hsl(var(--bark)/0.18)] rounded-t-2xl"
       >
         <SheetHero
           eyebrow="Your feedback"
@@ -183,7 +183,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
             })}
           </div>
 
-          <div className="flex justify-between text-[11px] text-[hsl(var(--olivewood)/0.8)] px-1">
+          <div className="flex justify-between text-ds-11 text-[hsl(var(--olivewood)/0.8)] px-1">
             <span>{ANCHORS[0]}</span>
             <span>{ANCHORS[1]}</span>
           </div>

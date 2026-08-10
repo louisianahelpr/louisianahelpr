@@ -1118,6 +1118,21 @@ serve(async (req) => {
               reason: reason || null,
               initiatedByUserId: user.id,
             });
+          } else {
+            // PI not succeeded — no money was captured, so marking the job
+            // "refunded" with no actual refund would notify the customer of
+            // money they'll never receive. Abort loudly; mirrors
+            // admin_refund_dispute's PI-status guard above.
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "warning",
+              title: "General refund aborted — PaymentIntent not succeeded",
+              message: `admin_refund_general found the PaymentIntent in status "${pi.status}" (expected "succeeded"). No refund issued; job left unchanged for manual review.`,
+              fields: { job_id: jobId, payment_intent: paymentIntentId, pi_status: pi.status },
+            });
+            throw new Error(
+              `admin_refund_general: PaymentIntent ${paymentIntentId} status is "${pi.status}", not "succeeded" — aborting, no refund for job ${jobId}.`,
+            );
           }
         } catch (e) {
           console.error("[create-payment] admin_refund_general — refund error:", e);

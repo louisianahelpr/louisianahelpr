@@ -312,7 +312,7 @@ Deno.serve(async (_req) => {
 
     // ─── 2. Re-engagement Nudges ──────────────────────────────────
     // Users inactive for 14+ days (no job posted, no message, no login update)
-    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()
+    // fourteenDaysAgo is declared earlier (approval email section) — reuse it here.
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
     // Get users whose profile was last updated more than 14 days ago

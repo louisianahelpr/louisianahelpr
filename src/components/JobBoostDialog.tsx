@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui
 import { Button } from "@/components/ui/button";
 import { Rocket, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { BOOST_FEE_CENTS, formatFeeUsd } from "@/lib/productPrices";
 
@@ -45,6 +46,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
       // Elite perk path — server flipped the boost flags directly and
       // returned `free: true`. No Stripe redirect needed.
       if (data?.free) {
+        hapticSuccess();
         toast.success(data.message || "Job boosted — your post will lead the feed.");
         onBoosted?.();
         onClose();
@@ -53,8 +55,10 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
       if (!data?.url) throw new Error("No checkout URL returned");
       // Redirect to Stripe Checkout. The webhook will flip the boost flags
       // on the job once payment captures, so we don't update the DB here.
+      hapticSuccess();
       window.location.href = data.url;
     } catch (err: any) {
+      hapticError();
       toast.error(err.message || "Couldn't start your boost — try again?");
       setBoosting(false);
     }

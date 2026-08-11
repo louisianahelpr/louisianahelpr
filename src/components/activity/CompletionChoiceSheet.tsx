@@ -76,6 +76,7 @@ export function CompletionChoiceSheet({
   };
 
   const handleConfirm = () => {
+    hapticMedium();
     handleClose();
     onConfirm();
   };

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { Zap, Loader2, Clock } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { requireBiometric } from "@/lib/biometricGate";
@@ -62,12 +63,14 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
     setProcessing(false);
 
     if (error || data?.error) {
+      hapticError();
       toast.error(
         data?.error || (error ? await functionErrorMessage(error, "Payout failed") : "Payout failed")
       );
       return;
     }
 
+    hapticSuccess();
     toast.success(`$${(data.net_cents / 100).toFixed(2)} is on the way to your debit card!`);
     onOpenChange(false);
     onSuccess?.();

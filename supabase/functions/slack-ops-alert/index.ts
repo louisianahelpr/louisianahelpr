@@ -87,6 +87,22 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // Internal-only endpoint — callers must present CRON_SECRET or SERVICE_ROLE_KEY.
+  // Without this gate, any unauthenticated caller can inject arbitrary messages
+  // into the ops Slack channel (alert spam, phishing links, social engineering).
+  const cronSecret     = Deno.env.get('CRON_SECRET')
+  const serviceRoleKey = Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const authHeader     = req.headers.get('Authorization') ?? ''
+  const authorized =
+    (cronSecret     && authHeader === `Bearer ${cronSecret}`) ||
+    (serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`)
+  if (!authorized) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
+  }
+
   try {
     const slackKey = Deno.env.get('SLACK_API_KEY')
 

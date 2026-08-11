@@ -19,7 +19,7 @@ export function CredentialTierSelector({
     <div className="space-y-2.5">
       <div className="space-y-0.5">
         <Label>Who can apply?</Label>
-        <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+        <p className="text-ds-11 font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           Require credentials for licensed trade work.
         </p>
       </div>

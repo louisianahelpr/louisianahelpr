@@ -276,7 +276,7 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
                     legible. Only shown when a tab origin is supplied. */}
                 {isSearching && tabLabel && (
                   <span
-                    className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-sans font-semibold uppercase tracking-wider"
+                    className="shrink-0 rounded-full px-1.5 py-0.5 text-ds-10 font-sans font-semibold uppercase tracking-wider"
                     style={{
                       background: "hsl(var(--bark) / 0.10)",
                       color: "hsl(var(--bark))",
@@ -287,7 +287,7 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
                 )}
                 {warning && (
                   <span
-                    className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-sans font-semibold uppercase tracking-wider"
+                    className="shrink-0 rounded-full px-1.5 py-0.5 text-ds-10 font-sans font-semibold uppercase tracking-wider"
                     style={{
                       background: "hsl(var(--burnt-sienna) / 0.06)",
                       color: "hsl(var(--burnt-sienna))",

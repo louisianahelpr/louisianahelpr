@@ -32,6 +32,8 @@ export interface PostedJobCardProps {
    *  job that's already in dispute. */
   onViewDispute: (job: Job) => void;
   onConfirmStart: (jobId: string) => void;
+  /** Non-null (=== job.id) while the confirmStart DB write is in-flight. */
+  confirmingStartJobId: string | null;
   onConfirmArrival: (jobId: string) => void;
   /** Non-null (=== job.id) while the confirmArrival DB write is in-flight. */
   confirmingArrivalJobId: string | null;

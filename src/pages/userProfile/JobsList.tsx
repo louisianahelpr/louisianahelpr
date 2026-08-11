@@ -26,7 +26,7 @@ export const JobsList = ({ jobs, variant }: Props) => {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-ds-13 font-bold text-primary">${formatPrice(job.budget)}</span>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${jobStatusColorClasses(job.status)}`}>{jobStatusLabel(job.status)}</span>
+            <span className={`text-ds-10 font-semibold px-2 py-0.5 rounded-full ${jobStatusColorClasses(job.status)}`}>{jobStatusLabel(job.status)}</span>
           </div>
         </div>
       )) : (

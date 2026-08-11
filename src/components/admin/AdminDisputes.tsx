@@ -181,7 +181,7 @@ const AdminDisputes = () => {
         });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
-        toast.success("Payment refunded to customer. Dispute resolved.");
+        toast.success("Payment refunded to poster. Dispute resolved.");
       }
       loadDisputes();
     } catch (err: any) {

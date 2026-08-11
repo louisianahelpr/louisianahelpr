@@ -73,7 +73,14 @@ serve(async (req) => {
       mode: isOneTime ? "payment" : "subscription",
       success_url: `${getAppUrl()}/profile?pro=success`,
       cancel_url: `${getAppUrl()}/profile?pro=cancel`,
-      metadata: { tier, billing_cycle },
+      // Stamp the buyer's user_id so the webhook can grant the tier by primary
+      // key. Without it the webhook could only match on `.eq("email", …)`, and
+      // profiles.email carries no unique constraint — a case variant or a stale
+      // unconfirmed signup sharing the address would have taken the paid tier
+      // from someone else's payment. client_reference_id survives on the
+      // Session; the metadata copy covers the one-time/payment_intent path.
+      client_reference_id: user.id,
+      metadata: { tier, billing_cycle, user_id: user.id },
       automatic_tax: { enabled: true },
     };
 
@@ -83,7 +90,7 @@ serve(async (req) => {
 
     // For one-time, store tier info in payment metadata so webhook can update profile
     if (isOneTime) {
-      sessionParams.payment_intent_data = { metadata: { tier, billing_cycle: "one_time" } };
+      sessionParams.payment_intent_data = { metadata: { tier, billing_cycle: "one_time", user_id: user.id } };
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams, {

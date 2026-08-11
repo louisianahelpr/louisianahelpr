@@ -23,7 +23,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
         month_caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "flex items-center gap-1 font-display italic font-bold text-[0.95rem] tracking-tight text-[hsl(var(--ink-deep))]",
+        caption_label: "flex items-center gap-1 font-display italic font-bold text-ds-15 tracking-tight text-[hsl(var(--ink-deep))]",
         // captionLayout="dropdown": the native <select> sits transparently on
         // top of the styled label (which shows the value + a caret), so taps
         // open the OS picker while the calendar keeps its own typography.
@@ -43,7 +43,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         ),
         month_grid: "w-full border-collapse space-y-1",
         weekdays: "flex",
-        weekday: "rounded-md w-9 font-serif italic uppercase text-[0.6rem] tracking-[0.18em] text-[hsl(var(--burnt-sienna)/0.78)]",
+        weekday: "rounded-md w-9 font-serif italic uppercase text-ds-10 tracking-[0.18em] text-[hsl(var(--burnt-sienna)/0.78)]",
         week: "flex w-full mt-2",
         day: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day_button: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] hover:bg-[hsl(var(--bark)/0.10)] aria-selected:opacity-100 rounded-full"),

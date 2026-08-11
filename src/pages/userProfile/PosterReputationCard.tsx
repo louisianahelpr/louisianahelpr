@@ -23,7 +23,7 @@ export const PosterReputationCard = ({
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-2">
       <p
-        className="text-[10px] uppercase tracking-wide font-semibold"
+        className="text-ds-10 uppercase tracking-wide font-semibold"
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         As a job poster

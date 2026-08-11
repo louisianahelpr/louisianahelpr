@@ -32,7 +32,7 @@ export const NotesIndicator = ({ userId, notesSummary }: NotesIndicatorProps) =>
           aria-label={`${summary.count} admin note${summary.count > 1 ? "s" : ""}`}
         >
           <MessageCircle className="w-3.5 h-3.5" />
-          <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-1 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center border border-background">
+          <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-1 rounded-full bg-accent text-accent-foreground text-ds-9 font-bold flex items-center justify-center border border-background">
             {summary.count}
           </span>
         </button>

@@ -7,6 +7,12 @@
 import { divIcon, point as leafletPoint } from "leaflet";
 import type { MapJob } from "./config";
 
+function resolveToken(varName: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  return v ? `hsl(${v})` : fallback;
+}
+
 // Fix Leaflet's default-icon-not-found problem when bundlers can't
 // resolve the asset paths. We use a small inline div-icon instead so
 // pins render reliably across web + Capacitor iOS.
@@ -36,14 +42,16 @@ export const categoryColors: Record<string, string> = {
 export function clusterIcon(cluster: { getChildCount: () => number }) {
   const count = cluster.getChildCount();
   const size = count >= 10 ? 44 : count >= 5 ? 40 : 36;
+  const bark = resolveToken("--bark", "#5E6544");
+  const parchment = resolveToken("--parchment", "#FAF8F5");
   const html = `
     <div style="
       width:${size}px;height:${size}px;border-radius:9999px;
       display:flex;align-items:center;justify-content:center;
-      background:#5E6544;color:#FAF8F5;
+      background:${bark};color:${parchment};
       font-family:ui-sans-serif,system-ui,sans-serif;font-weight:800;
       font-size:${count >= 10 ? 15 : 14}px;
-      border:2px solid #FAF8F5;
+      border:2px solid ${parchment};
       box-shadow:0 4px 12px -2px rgba(46,46,40,0.45);
     ">${count}</div>
   `;

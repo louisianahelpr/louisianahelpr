@@ -16,7 +16,7 @@ import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { IncomingReportCard } from "./PetReportCard";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceExact } from "@/lib/format";
 import { type PostedJobCardProps } from "./postedJobCard/types";
 import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
@@ -51,6 +51,7 @@ function PostedJobCardInner({
   onDispute,
   onViewDispute,
   onConfirmStart,
+  confirmingStartJobId,
   onConfirmArrival,
   confirmingArrivalJobId,
   onConfirmWorking,
@@ -168,7 +169,7 @@ function PostedJobCardInner({
                     </span>
                     {/* Fee status badge — only when a fee was actually assessed */}
                     {job.cancellation_fee != null && job.cancellation_fee > 0 && job.cancellation_fee_status && (() => {
-                      const feeAmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(job.cancellation_fee);
+                      const feeAmt = `$${formatPriceExact(job.cancellation_fee)}`;
                       const statusCopy: Record<string, string> = {
                         pending: `Fee ${feeAmt} · pending`,
                         charged: `Fee ${feeAmt} · charged`,
@@ -436,6 +437,7 @@ function PostedJobCardInner({
                 onDispute={onDispute}
                 onViewDispute={onViewDispute}
                 onConfirmStart={onConfirmStart}
+                confirmingStartJobId={confirmingStartJobId}
                 onConfirmArrival={onConfirmArrival}
                 confirmingArrivalJobId={confirmingArrivalJobId}
                 onConfirmWorking={onConfirmWorking}

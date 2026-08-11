@@ -2,12 +2,21 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { PRODUCT_TO_TIER } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { applyBusinessSeatGrant } from "./businessSeatGrant.ts";
 
 export async function handleCustomerSubscriptionUpdated(
   event: Stripe.Event,
-  { stripe, supabase, logStep }: WebhookContext,
+  ctx: WebhookContext,
 ): Promise<void> {
+  const { stripe, supabase, logStep } = ctx;
   const subscription = event.data.object as Stripe.Subscription;
+
+  // Business seat plans are handled first and terminate here. Their commission
+  // discount (Crew 11 / Team 10 / Enterprise 8 vs the standard 12) is applied or
+  // revoked directly off this event, rather than waiting for the customer to
+  // open a business page in the app — which is what previously left a paying
+  // Crew owner on the standard 12% indefinitely.
+  if (await applyBusinessSeatGrant(subscription, ctx)) return;
 
   // Business seat subscriptions share the same Stripe customer as personal
   // subscriptions (both look up customer by email). Guard before any DB write:

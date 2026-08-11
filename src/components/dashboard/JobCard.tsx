@@ -312,7 +312,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             card stays uncluttered. */}
         <div className="absolute top-0 left-0 z-20 flex items-stretch gap-1">
           <span
-            className={`inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-[10px] font-semibold leading-none shadow-sm ${catStyle.badge}`}
+            className={`inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-ds-10 font-semibold leading-none shadow-sm ${catStyle.badge}`}
           >
             <CategoryIcon
               category={job.category}
@@ -348,7 +348,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               an extra row above the title that pushed the title down. */}
           {recommended && (
             <span
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-b-lg border-b border-r text-[10px] font-semibold leading-none shadow-sm pointer-events-none"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-b-lg border-b border-r text-ds-10 font-semibold leading-none shadow-sm pointer-events-none"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.12)",
                 color: "hsl(var(--burnt-sienna))",
@@ -369,7 +369,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             a clean accent instead of a cluster stacked over the price. */}
         {(() => {
           const corner =
-            "absolute top-0 right-0 z-20 inline-flex items-center gap-1 pl-2.5 pr-3 py-1 rounded-bl-lg border-b border-l text-[9px] font-bold uppercase leading-none shadow-sm";
+            "absolute top-0 right-0 z-20 inline-flex items-center gap-1 pl-2.5 pr-3 py-1 rounded-bl-lg border-b border-l text-ds-9 font-bold uppercase leading-none shadow-sm";
           if (job.isBoosted)
             return (
               <span
@@ -456,7 +456,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
 
         {/* Meta row — category lives in the badge above, so this leads
             with location. */}
-        <div className="mt-2 flex flex-col gap-1 text-[10.5px] text-muted-foreground leading-tight">
+        <div className="mt-2 flex flex-col gap-1 text-ds-11 text-muted-foreground leading-tight">
           {/* Row 1 — where + when. The expiry countdown deliberately does NOT
               live here: this row is flex-nowrap, so every extra chip steals
               width from the city, which has min-w-0 and collapses first. With

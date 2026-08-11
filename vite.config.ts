@@ -110,6 +110,28 @@ export default defineConfig(({ mode }) => ({
       injectRegister: "script-defer",
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       workbox: {
+        // navigateFallback DISABLED (empty string is falsy, so workbox-build
+        // emits no NavigationRoute).
+        //
+        // Why: vite-plugin-pwa defaults this to "index.html", which registers
+        //   registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")))
+        // BEFORE the runtimeCaching rules below. Workbox matches routes in
+        // registration order and first match wins, and a NavigationRoute
+        // matches EVERY navigation — so the NetworkFirst navigation rule below,
+        // and its precacheFallback to offline.html, were unreachable dead code.
+        // Verified against a built dist/sw.js on 2026-08-10: an offline
+        // navigation produced the browser's own error page, never offline.html.
+        //
+        // With it off, navigations fall through to the explicit rule below:
+        //   online            -> network first, so a deploy lands next reload
+        //   offline, cached   -> html-pages hit, real app shell + in-app offline UI
+        //   offline, no cache -> precacheFallback serves offline.html
+        // which is the intended three-tier behaviour.
+        //
+        // SPA deep links while ONLINE do not depend on this: the host rewrites
+        // unknown paths to index.html (vercel.json), and vite preview does the
+        // same locally. This only governs what the service worker does.
+        navigateFallback: "",
         navigateFallbackDenylist: [/^\/~oauth/],
         // PRECACHE = critical-path first-paint files ONLY. Everything else
         // (route chunks, dialog chunks, vendor chunks not in the entry's
@@ -148,6 +170,17 @@ export default defineConfig(({ mode }) => ({
           "apple-touch-icon.png",
           "pwa-192x192-v2.png",
           "pwa-512x512-v2.png",
+          // The offline fallback page. This is the ONE html file that must be
+          // precached — the `html` exclusion above exists so a stale SW can't
+          // serve outdated index.html, which does not apply here: offline.html
+          // references no hashed bundles and is entirely self-contained.
+          //
+          // Without this it was dead weight: nothing referenced offline.html
+          // anywhere in the build or the SW, so it shipped and was never
+          // served. An offline navigation that missed the html-pages cache
+          // (first visit offline, or an evicted entry) fell through to the
+          // browser's own error page.
+          "offline.html",
         ],
         // Drop sourcemaps (never fetched by the browser) and the unrelated
         // `assets/index.es-*.js` vendor chunk (jspdf etc.) that happens to
@@ -174,6 +207,16 @@ export default defineConfig(({ mode }) => ({
               networkTimeoutSeconds: 3,
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
               cacheableResponse: { statuses: [0, 200] },
+              // Last resort when BOTH the network and the html-pages cache
+              // miss — a first visit while offline, or an evicted entry.
+              // Previously that fell through to the browser's own error page,
+              // because nothing in the build ever referenced offline.html.
+              //
+              // Ordering note: this only fires after the cache lookup fails,
+              // so a returning user still gets the real app shell offline and
+              // the app's own in-app offline handling. This page is the floor,
+              // not the default.
+              precacheFallback: { fallbackURL: "offline.html" },
             },
           },
           {

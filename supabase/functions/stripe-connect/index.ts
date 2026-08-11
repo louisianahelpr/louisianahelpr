@@ -139,11 +139,13 @@ serve(async (req) => {
 
     // ─── LIST PAYOUT METHODS ───
     if (action === "list_payout_methods") {
-      const { data: profile } = await supabaseAdmin
+      const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
         .eq("user_id", user.id)
         .single();
+
+      if (profileReadErr) throw new Error("Could not load your profile — please try again");
 
       if (!profile?.stripe_account_id) {
         return new Response(JSON.stringify({ methods: [] }), {
@@ -174,12 +176,13 @@ serve(async (req) => {
       const { method_id } = body;
       if (!method_id) throw new Error("Missing method_id");
 
-      const { data: profile } = await supabaseAdmin
+      const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
         .eq("user_id", user.id)
         .single();
 
+      if (profileReadErr) throw new Error("Could not load your profile — please try again");
       if (!profile?.stripe_account_id) throw new Error("No account connected");
 
       await stripe.accounts.deleteExternalAccount(profile.stripe_account_id, method_id);
@@ -197,8 +200,15 @@ serve(async (req) => {
           type: "financial_alerts",
           link: "/profile?tab=payment",
         });
-      } catch (_e) {
-        // notification failure must not block the actual removal
+      } catch (notifyErr) {
+        // A notification failure must not block the actual removal — but it
+        // must NOT be invisible either. This is the user's only signal that a
+        // payout destination changed on their account, so a silently dropped
+        // one hides exactly the event an account takeover would produce.
+        console.error(
+          "[stripe-connect] FAILED to send 'payout method removed' security notification — user was not warned:",
+          notifyErr instanceof Error ? notifyErr.message : String(notifyErr),
+        );
       }
 
       return new Response(JSON.stringify({ success: true }), {
@@ -209,11 +219,13 @@ serve(async (req) => {
 
     // ─── CHECK ACCOUNT STATUS ───
     if (action === "status") {
-      const { data: profile } = await supabaseAdmin
+      const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
         .eq("user_id", user.id)
         .single();
+
+      if (profileReadErr) throw new Error("Could not load your profile — please try again");
 
       if (!profile?.stripe_account_id) {
         return new Response(JSON.stringify({ connected: false, details_submitted: false, payouts_enabled: false }), {
@@ -242,12 +254,13 @@ serve(async (req) => {
     // ─── DASHBOARD: Manage payout account ───
     if (action === "dashboard") {
       const { return_url } = body;
-      const { data: profile } = await supabaseAdmin
+      const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
         .eq("user_id", user.id)
         .single();
 
+      if (profileReadErr) throw new Error("Could not load your profile — please try again");
       if (!profile?.stripe_account_id) {
         throw new Error("No payout account connected. Please set up your payout account first.");
       }
@@ -287,11 +300,16 @@ serve(async (req) => {
     // ─── RESET: Delete old account and create fresh Express one ───
     if (action === "reset") {
       const { return_url } = body;
-      const { data: profile } = await supabaseAdmin
+      const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
         .eq("user_id", user.id)
         .single();
+
+      // A DB error here is dangerous: profile would be null, causing the code
+      // to skip deletion of the real account, null out stripe_account_id, and
+      // orphan the existing Express account with a brand new one.
+      if (profileReadErr) throw new Error("Could not load your profile — please try again");
 
       if (profile?.stripe_account_id) {
         try {
@@ -307,6 +325,23 @@ serve(async (req) => {
         .eq("user_id", user.id);
 
       const { accountId } = await getOrCreateAccount();
+
+      // Security alert: resetting the payout account deletes all saved bank
+      // accounts and pending payout configuration — more destructive than
+      // removing a single payout method. Mirrors the notification in
+      // delete_payout_method so account takeover attempts are visible.
+      try {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: user.id,
+          title: "🔒 Payout account reset",
+          message:
+            "Your payout account was reset and a new one created. If this wasn't you, contact support immediately.",
+          type: "financial_alerts",
+          link: "/profile?tab=payment",
+        });
+      } catch (_e) {
+        // notification failure must not block the reset
+      }
 
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
@@ -328,12 +363,13 @@ serve(async (req) => {
     // ─── UPDATE ONBOARDING: Return new Account Link for incomplete accounts ───
     if (action === "update_onboarding") {
       const { return_url } = body;
-      const { data: profile } = await supabaseAdmin
+      const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
         .eq("user_id", user.id)
         .single();
 
+      if (profileReadErr) throw new Error("Could not load your profile — please try again");
       if (!profile?.stripe_account_id) throw new Error("No account connected");
 
       const accountLink = await stripe.accountLinks.create({

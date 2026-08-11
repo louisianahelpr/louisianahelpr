@@ -114,7 +114,7 @@ const SwipeableJobCard = ({
             aria-hidden
           />
           <span
-            className="text-[0.62rem] font-serif italic uppercase tracking-[0.16em]"
+            className="text-ds-10 font-serif italic uppercase tracking-[0.16em]"
             style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             Just in
@@ -153,7 +153,7 @@ const SwipeableJobCard = ({
         >
           <X className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.5} />
           <span
-            className="text-[0.62rem] font-serif italic uppercase tracking-[0.18em]"
+            className="text-ds-10 font-serif italic uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             Not interested

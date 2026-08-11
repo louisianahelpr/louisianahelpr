@@ -50,7 +50,7 @@ export const AttachSourceSheet = ({
             >
               <Camera className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
             </div>
-            <span className="font-sans text-[12.5px] font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+            <span className="font-sans text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
               Camera
             </span>
           </button>
@@ -72,7 +72,7 @@ export const AttachSourceSheet = ({
             >
               <ImageIcon className="w-4 h-4" style={{ color: "hsl(var(--gold-warm))" }} />
             </div>
-            <span className="font-sans text-[12.5px] font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+            <span className="font-sans text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
               Library
             </span>
           </button>
@@ -94,13 +94,13 @@ export const AttachSourceSheet = ({
             >
               <FilePlus2 className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
             </div>
-            <span className="font-sans text-[12.5px] font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+            <span className="font-sans text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
               Files
             </span>
           </button>
         </div>
         <p
-          className="mt-3 font-serif italic text-[0.74rem] leading-relaxed text-center"
+          className="mt-3 font-serif italic text-ds-12 leading-relaxed text-center"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Up to {Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB ·

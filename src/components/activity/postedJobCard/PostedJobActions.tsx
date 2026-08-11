@@ -36,6 +36,7 @@ interface PostedJobActionsProps {
   onDispute: (job: Job) => void;
   onViewDispute: (job: Job) => void;
   onConfirmStart: (jobId: string) => void;
+  confirmingStartJobId: string | null;
   onConfirmArrival: (jobId: string) => void;
   confirmingArrivalJobId: string | null;
   onConfirmWorking: (jobId: string) => void;
@@ -67,6 +68,7 @@ export function PostedJobActions({
   onDispute,
   onViewDispute,
   onConfirmStart,
+  confirmingStartJobId,
   onConfirmArrival,
   confirmingArrivalJobId,
   onConfirmWorking,
@@ -144,7 +146,7 @@ export function PostedJobActions({
                   onClick={() => onBoost(job.id)}
                 >
                   <Rocket className="w-4 h-4" />
-                  <span className="text-[0.66rem] leading-none font-medium">{isBoosted ? "Boosted" : "Boost"}</span>
+                  <span className="text-ds-11 leading-none font-medium">{isBoosted ? "Boosted" : "Boost"}</span>
                 </Button>
                 <Button
                   variant="outline" size="sm"
@@ -153,7 +155,7 @@ export function PostedJobActions({
                   onClick={() => onEdit(job)}
                 >
                   <Pencil className="w-4 h-4" />
-                  <span className="text-[0.66rem] leading-none font-medium">Edit</span>
+                  <span className="text-ds-11 leading-none font-medium">Edit</span>
                 </Button>
                 <Button
                   variant="outline" size="sm"
@@ -162,7 +164,7 @@ export function PostedJobActions({
                   onClick={() => onCancel(job)}
                 >
                   <XCircle className="w-4 h-4" />
-                  <span className="text-[0.66rem] leading-none font-medium">Cancel</span>
+                  <span className="text-ds-11 leading-none font-medium">Cancel</span>
                 </Button>
               </div>
             </div>
@@ -176,7 +178,10 @@ export function PostedJobActions({
               Helpr must confirm 24 hours before the job starts — tracking actions unlock then
             </p>
             {startRequestedJobIds.has(job.id) && !job.helper_confirmed_at && (
-              <Button size="sm" className="w-full" onClick={() => onConfirmStart(job.id)}><CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Start</Button>
+              <Button size="sm" className="w-full" disabled={confirmingStartJobId === job.id} onClick={() => onConfirmStart(job.id)}>
+                <CheckCircle2 className="w-4 h-4 mr-1" />
+                {confirmingStartJobId === job.id ? "Starting…" : "Confirm start"}
+              </Button>
             )}
             <div className="flex gap-2">
               <Button size="sm" variant="destructive" className="flex-1" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>

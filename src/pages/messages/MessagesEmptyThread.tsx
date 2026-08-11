@@ -30,7 +30,7 @@ export const MessagesEmptyThread = () => (
       Your conversations
     </p>
     <p
-      className="font-serif italic text-[0.85rem] max-w-[280px]"
+      className="font-serif italic text-ds-14 max-w-[280px]"
       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
     >
       Pick a thread on the left to read and reply here.

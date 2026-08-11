@@ -48,8 +48,8 @@ const buttonVariants = cva(
   // transition covers transform + box-shadow so the press collapse and
   // spring-back animate together. duration-150 on the press (fast, snappy)
   // and the spring easing bounces back on release without needing two
-  // separate durations — cubic-bezier(0.34,1.56,0.64,1) is our brand spring.
-  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-ds-md text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter] duration-[150ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
+  // separate durations — `ease-ds-spring` (--ease-spring) is our brand spring.
+  "squircle inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-ds-md text-ds-15 font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-[18px] [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -107,12 +107,20 @@ const buttonVariants = cva(
           ELEV_FILLED,
       },
       size: {
-        default: "h-14 px-6 py-2 text-[16px]",
-        sm: "h-11 px-4 text-[14px]",
+        default: "h-14 px-6 py-2 text-ds-16",
+        sm: "h-11 px-4 text-ds-14",
         lg: "h-[60px] px-8 text-ds-17",
-        xl: "h-16 px-10 text-[18px]",
+        xl: "h-16 px-10 text-ds-18",
         icon: "h-14 w-14",
-        "icon-sm": "h-9 w-9",
+        // NOTE: an "icon-sm" size (h-9 w-9 = 36px) used to live here. It was a
+        // 36×36 tap target — under Apple's 44pt and Android's 48dp minimums —
+        // sitting in the shared primitive where it was the variant most likely
+        // to spread. It had ZERO call sites, so it was deleted rather than
+        // resized: nothing rendered smaller, and the trap is gone.
+        //
+        // If you need a smaller-LOOKING icon button, do NOT re-add a smaller
+        // box. Keep the 44px target and shrink the glyph inside it — the hit
+        // area is the accessibility contract, the glyph is just paint.
       },
     },
     defaultVariants: {

@@ -46,5 +46,14 @@ export async function handlePaymentIntentSucceeded(
     }
 
     logStep("Sales tax recorded on job", { jobId: taxJob.id, tax: confirmedTax, fromStripe: taxAmountCents > 0 });
+  } else {
+    // No job found for this PI. Two possible causes:
+    // 1. Race: this event fired before checkout.session.completed set
+    //    stripe_payment_intent_id on the job. The checkout handler now also
+    //    records tax (belt-and-suspenders), so tax will be captured there.
+    // 2. Unrelated PI (not from a Helpr Checkout session) — no action needed.
+    // Either way, we 200-ACK here; the dedupe row is committed so this event
+    // won't retry. checkout.session.completed is the authoritative tax writer.
+    logStep("No job found for PI — tax not recorded here (race or unrelated PI)", { piId: pi.id });
   }
 }

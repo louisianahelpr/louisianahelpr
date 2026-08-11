@@ -84,7 +84,7 @@ serve(async (req) => {
       return_url: `${getAppUrl()}/profile?idv=complete`,
     });
 
-    await supabaseAdmin
+    const { error: updateErr } = await supabaseAdmin
       .from("profiles")
       .update({
         idv_session_id: session.id,
@@ -92,6 +92,12 @@ serve(async (req) => {
         idv_attempted_at: new Date().toISOString(),
       } as any)
       .eq("user_id", user.id);
+    if (updateErr) {
+      // Log and continue — the IDV webhook sets final status via metadata.user_id,
+      // but the missing session record breaks the "reuse pending session" guard and
+      // leaves the profile showing no in-progress verification.
+      console.error("[stripe-idv-start] Failed to store IDV session on profile:", updateErr);
+    }
 
     return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

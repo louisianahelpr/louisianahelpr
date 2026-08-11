@@ -19,6 +19,7 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import SectionBoundary from "@/components/SectionBoundary";
 import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
+import { report } from "@/lib/errorLogger";
 
 // Maps DB exception_type values to human-readable labels
 const EXCEPTION_TYPE_LABELS: Record<string, string> = {
@@ -91,10 +92,15 @@ const ExceptionQueueInner = () => {
       const userIds = [...new Set(baseRows.map((r) => r.user_id).filter(Boolean))];
       const nameById = new Map<string, { full_name: string | null; email: string | null }>();
       if (userIds.length > 0) {
-        const { data: profs } = await supabase
+      // Secondary name-hydration read. Don't drop the error: on failure every
+      // row silently renders the "Unknown"/fallback name, which looks like real
+      // data rather than a failed lookup. Report it, then still render the list
+      // — a missing display name must not blank the whole surface.
+        const { data: profs, error: profsError } = await supabase
           .from("profiles")
           .select("user_id, full_name, email")
           .in("user_id", userIds);
+      if (profsError) report(profsError, { severity: "warning", tags: { source: "AdminExceptionQueue.hydrateNames" } });
         (profs ?? []).forEach((p: any) =>
           nameById.set(p.user_id, { full_name: p.full_name ?? null, email: p.email ?? null }),
         );

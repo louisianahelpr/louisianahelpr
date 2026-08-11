@@ -183,7 +183,7 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       <div className={cn("relative", className)}>
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[15px] font-semibold text-[hsl(var(--bark))]"
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ds-15 font-semibold text-[hsl(var(--bark))]"
         >
           $
         </span>

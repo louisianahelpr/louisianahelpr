@@ -136,11 +136,19 @@ serve(async (req) => {
     if (!claimed) {
       // Lost a race between the read and the update. Re-read to report the
       // truth: if the winner was this same caller it's still a success.
-      const { data: after } = await supabaseAdmin
+      // Don't drop this error: on a failed re-read `after` is null and the
+      // caller is told the gift "has already been claimed by another account"
+      // — a confident, wrong answer about someone else taking their credit,
+      // when in truth we simply couldn't check.
+      const { data: after, error: afterError } = await supabaseAdmin
         .from("pif_credits")
         .select("recipient_id")
         .eq("id", credit.id)
         .maybeSingle();
+      if (afterError) {
+        console.error("[claim-pif-credit] post-race re-read failed:", afterError.message);
+        return json(500, { error: "We couldn't confirm the status of this gift. Please try again." });
+      }
       if (after?.recipient_id === user.id) {
         return json(200, { ok: true, credit_id: credit.id, already_claimed: true });
       }

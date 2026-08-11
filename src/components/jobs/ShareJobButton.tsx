@@ -157,7 +157,7 @@ export function ShareJobButton({
         disabled={sharing}
         onClick={handleShare}
         className={cn(
-          "group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 transition-all duration-200 hover:scale-105 active:scale-95",
+          "group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:scale-105 motion-safe:active:scale-95",
           className,
         )}
         style={{
@@ -168,10 +168,10 @@ export function ShareJobButton({
           color: "hsl(var(--olivewood) / 0.80)",
           boxShadow:
             "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px hsl(var(--olivewood) / 0.04)",
-          transition: "all 0.2s ease, box-shadow 0.3s ease",
+          // Transition is handled by motion-safe:transition-all in className
         }}
       >
-        <Share2 className="w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5" />
+        <Share2 className="w-4 h-4 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:-translate-y-0.5" />
       </Button>
     );
   }
@@ -202,7 +202,7 @@ export function ShareJobButton({
       {layout === "stack" ? (
         <>
           <Share2 className="w-4 h-4" />
-          <span className="text-[0.66rem] leading-none font-medium">Share</span>
+          <span className="text-ds-11 leading-none font-medium">Share</span>
         </>
       ) : (
         <>

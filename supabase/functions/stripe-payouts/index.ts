@@ -37,18 +37,25 @@ serve(async (req) => {
     );
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing Authorization header");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401,
+      });
+    }
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userErr } = await supabaseClient.auth.getUser(token);
-    if (userErr || !userData?.user) throw new Error("Not authenticated");
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401,
+      });
+    }
     const user = userData.user;
 
     // Look up Stripe Connect account from profile.
     // maybeSingle: zero rows → { data: null, error: null } (valid "not connected"
     // state); only a real DB failure sets error. This keeps the profileErr guard
     // from firing on expected missing-profile cases while still catching transient
-    // read failures. Return 500 directly so callers can retry — the outer catch
-    // converts everything to 400 which would be wrong for a server-side fault.
+    // read failures.
     const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
       .select("stripe_account_id")
@@ -116,7 +123,7 @@ serve(async (req) => {
     console.error("[stripe-payouts] error:", message);
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
+      status: 500,
     });
   }
 });

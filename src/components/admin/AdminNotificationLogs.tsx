@@ -174,7 +174,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
           />
         </div>
         <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+          <SelectTrigger aria-label="Category filter"><SelectValue placeholder="Category" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All categories</SelectItem>
             {Object.entries(CATEGORY_LABEL).map(([k, v]) => (
@@ -184,7 +184,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
         </Select>
         <div className="grid grid-cols-2 gap-2">
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger aria-label="Status filter"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All status</SelectItem>
               <SelectItem value="sent">Sent</SelectItem>
@@ -194,7 +194,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
             </SelectContent>
           </Select>
           <Select value={channel} onValueChange={setChannel}>
-            <SelectTrigger><SelectValue placeholder="Channel" /></SelectTrigger>
+            <SelectTrigger aria-label="Channel filter"><SelectValue placeholder="Channel" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
               <SelectItem value="in_app">In-App</SelectItem>

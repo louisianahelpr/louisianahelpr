@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import {
   computeInstantPayoutFeeCents,
   INSTANT_PAYOUT_MIN_CENTS,
@@ -31,21 +32,29 @@ serve(async (req) => {
     );
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing Authorization header");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401,
+      });
+    }
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userErr } = await supabaseClient.auth.getUser(token);
-    if (userErr || !userData?.user) throw new Error("Not authenticated");
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401,
+      });
+    }
     const user = userData.user;
 
     const body = await req.json().catch(() => ({}));
-    const action = body?.action || "quote"; // "quote" | "execute"
+    const action = body?.action === undefined ? "quote" : body.action; // "quote" | "execute"
 
     // Look up helper's Stripe Connect account
     const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
       .select("stripe_account_id, full_name")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     // Distinguish a transient read failure from a genuine no-account state —
     // otherwise a blip throws "set up your payout account" and misleads a
@@ -54,7 +63,9 @@ serve(async (req) => {
       throw new Error("Could not load your payout account right now. Please try again in a moment.");
     }
     if (!profile?.stripe_account_id) {
-      throw new Error("No payout account connected. Set up your payout account first.");
+      return new Response(JSON.stringify({ error: "No payout account connected. Set up your payout account first." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+      });
     }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -67,7 +78,9 @@ serve(async (req) => {
     const availableCents = usdInstant?.amount ?? 0;
 
     if (availableCents <= 0) {
-      throw new Error("No funds available for instant payout right now. Funds become available once jobs are completed and released.");
+      return new Response(JSON.stringify({ error: "No funds available for instant payout right now. Funds become available once jobs are completed and released." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+      });
     }
 
     // Minimum-cashout floor. Below this, a flat 3% doesn't reliably clear
@@ -77,16 +90,18 @@ serve(async (req) => {
     // (or calls the API directly) still can't cash out under the floor.
     if (availableCents < INSTANT_PAYOUT_MIN_CENTS) {
       const min = (INSTANT_PAYOUT_MIN_CENTS / 100).toFixed(2);
-      throw new Error(
-        `Instant payout needs at least $${min} available. You have less than that right now, so these funds will pay out on the standard schedule for free.`
-      );
+      return new Response(JSON.stringify({ error: `Instant payout needs at least $${min} available. You have less than that right now, so these funds will pay out on the standard schedule for free.` }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+      });
     }
 
     const feeCents = computeInstantPayoutFeeCents(availableCents);
     const netCents = availableCents - feeCents;
 
     if (netCents <= 0) {
-      throw new Error("Balance is too low to cover the instant payout fee.");
+      return new Response(JSON.stringify({ error: "Balance is too low to cover the instant payout fee." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+      });
     }
 
     // Quote only — return breakdown without executing
@@ -103,7 +118,9 @@ serve(async (req) => {
     }
 
     if (action !== "execute") {
-      throw new Error("Invalid action");
+      return new Response(JSON.stringify({ error: "Invalid action" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+      });
     }
 
     // Create pending record first
@@ -203,6 +220,22 @@ serve(async (req) => {
           if (recErr) {
             console.error(`[instant-payout] failed to record fee_uncollected for ${record.id}:`, recErr);
           }
+          // The `fee_uncollected` marker is write-only — nothing sweeps it, so
+          // without an alert this is revenue the platform quietly forgoes
+          // forever. Surface it so someone can either collect it or fix the
+          // Connect setup that caused it.
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "warning",
+            title: "Instant-payout fee NOT collected",
+            message: `An instant payout completed but its platform fee transfer failed, so the fee stayed in the helper's connected balance. The helper was not double-charged; the platform forgoes this fee unless it is collected manually.`,
+            fields: {
+              "Instant payout ID": String(record.id),
+              "Helper ID": user.id,
+              "Fee (cents)": String(feeCents),
+              Error: feeMsg.slice(0, 200),
+            },
+          });
         });
         }
       }
@@ -281,7 +314,7 @@ serve(async (req) => {
     console.error("[instant-payout] error:", message);
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
+      status: 500,
     });
   }
 });

@@ -26,6 +26,7 @@ import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useAppLifecycle } from "@/lib/appLifecycle";
+import { AppLockGate } from "@/components/AppLockGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
@@ -91,8 +92,6 @@ const Jobs = lazy(() => import("./pages/Jobs"));
 const JobDetail = lazy(() => import("./pages/JobDetail"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 
-const DischargeConcierge = lazy(() => import("./pages/DischargeConcierge"));
-const InsuranceClaim = lazy(() => import("./pages/InsuranceClaim"));
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
 const HelperAnalytics = lazy(() => import("./pages/HelperAnalytics"));
 const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
@@ -241,8 +240,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/business/onboarding" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessOnboarding /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/reports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessReports /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Public vertical landing pages */}
-      <Route path="/discharge" element={<RouteErrorBoundary>{routeEl(<PageTransition><DischargeConcierge /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/insurance-claim" element={<RouteErrorBoundary>{routeEl(<PageTransition><InsuranceClaim /></PageTransition>)}</RouteErrorBoundary>} />
 
       <Route path="/home-history" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HomeHistory /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/work-record" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><WorkRecord /></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -477,6 +474,11 @@ const App = () => (
         {/* Provider wraps the banner (publisher of its measured height) and
             the page content (AppShell reads the offset to reserve space).
             See src/lib/offlineBannerLayout.tsx. */}
+        {/* AppLockGate wraps everything inside the router so the lock covers
+            the entire authed surface (nav, banners, routes) — not just the
+            page body. It renders children untouched unless the user opted in
+            via Profile → Security, and only ever locks a signed-in session. */}
+        <AppLockGate>
         <OfflineBannerLayoutProvider>
           <Suspense fallback={null}><ScrollToTop /></Suspense>
           <SessionManager />
@@ -499,6 +501,7 @@ const App = () => (
           </Suspense>
           <SpeedInsightsRouted />
         </OfflineBannerLayoutProvider>
+        </AppLockGate>
       </BrowserRouter>
       <Analytics />
     </QueryClientProvider>

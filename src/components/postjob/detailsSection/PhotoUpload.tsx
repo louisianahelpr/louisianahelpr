@@ -36,12 +36,12 @@ export function PhotoUpload({
             <span className="font-normal text-muted-foreground">(optional, up to 5)</span>
           </Label>
           {imageFiles.length > 0 && (
-            <span className="text-[0.66rem] tabular-nums text-muted-foreground">
+            <span className="text-ds-11 tabular-nums text-muted-foreground">
               {imageFiles.length}/5 photos
             </span>
           )}
         </div>
-        <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+        <p className="text-ds-11 font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           Posts with a photo get noticeably more applicants.
         </p>
       </div>
@@ -251,7 +251,7 @@ export function PhotoUpload({
         </div>
       )}
       {imageFiles.length === 0 && (
-        <p className="text-[0.7rem] leading-snug text-muted-foreground">
+        <p className="text-ds-11 leading-snug text-muted-foreground">
           Optional, but posts with a photo get more applicants and better quotes.
         </p>
       )}

@@ -142,7 +142,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
       const { error } = await supabase.from("helper_availability").insert(inserts);
       if (error) throw error;
       hapticSuccess();
-      toast.success("Availability saved!");
+      toast.success("Availability saved");
     } catch (err: unknown) {
       hapticError();
       toast.error(getErrorMessage(err));
@@ -180,7 +180,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                     />
                     <span
                       className={cn(
-                        "font-display text-[13px] font-bold w-8",
+                        "font-display text-ds-13 font-bold w-8",
                         off ? "text-muted-foreground" : "text-foreground",
                       )}
                     >
@@ -227,7 +227,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
           so the pills never wrap awkwardly. */}
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
         <span
-          className="shrink-0 font-serif italic uppercase text-[0.62rem]"
+          className="shrink-0 font-serif italic uppercase text-ds-10"
           style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
         >
           Quick set:
@@ -298,7 +298,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                       italic text so the off state reads as intentional,
                       not forgotten. */
                   <span
-                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.7rem] font-sans font-semibold uppercase tracking-wider"
+                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-ds-11 font-sans font-semibold uppercase tracking-wider"
                     style={{
                       background: "hsl(var(--olivewood) / 0.10)",
                       color: "hsl(var(--olivewood) / 0.8)",
@@ -317,7 +317,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
         onClick={handleSave}
         disabled={saving}
         size="lg"
-        className="w-full h-12 rounded-2xl text-[15px] font-semibold"
+        className="w-full h-12 rounded-2xl text-ds-15 font-semibold"
       >
         {saving ? "Saving…" : "Save availability"}
       </Button>

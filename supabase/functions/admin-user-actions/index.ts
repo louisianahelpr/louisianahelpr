@@ -77,7 +77,16 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-    const { data: isAdmin } = await admin.rpc('has_role', { _user_id: userData.user.id, _role: 'admin' })
+    // Distinguish "not an admin" from "couldn't check". This still fails
+    // CLOSED, but a transient RPC failure now returns a truthful 503 instead of
+    // telling a legitimate admin they are Forbidden.
+    const { data: isAdmin, error: roleError } = await admin.rpc('has_role', { _user_id: userData.user.id, _role: 'admin' })
+    if (roleError) {
+      console.error('[admin-user-actions] has_role check failed:', roleError.message)
+      return new Response(JSON.stringify({ error: "Couldn't verify permissions. Please retry." }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -128,13 +137,14 @@ Deno.serve(async (req) => {
       } as any).eq('user_id', targetUserId)
       if (verifyErr) throw new Error(`Failed to verify user: ${verifyErr.message}`)
 
-      await admin.from('admin_audit_log').insert({
+      const { error: auditErr } = await admin.from('admin_audit_log').insert({
         admin_id: userData.user.id,
         action: 'manual_verify_user',
         target_id: targetUserId,
         target_type: 'user',
         details: { note },
       })
+      if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
       await admin.from('notifications').insert({
         user_id: targetUserId,
@@ -165,13 +175,14 @@ Deno.serve(async (req) => {
       } as any).eq('user_id', targetUserId)
       if (reuploadErr) throw new Error(`Failed to update IDV status: ${reuploadErr.message}`)
 
-      await admin.from('admin_audit_log').insert({
+      const { error: auditErr } = await admin.from('admin_audit_log').insert({
         admin_id: userData.user.id,
         action: 'request_id_reupload',
         target_id: targetUserId,
         target_type: 'user',
         details: { note },
       })
+      if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
       await admin.from('notifications').insert({
         user_id: targetUserId,
@@ -210,13 +221,14 @@ Deno.serve(async (req) => {
       }
       const actionLink = linkData?.properties?.action_link || `${SITE_URL}/forgot-password`
 
-      await admin.from('admin_audit_log').insert({
+      const { error: auditErr } = await admin.from('admin_audit_log').insert({
         admin_id: userData.user.id,
         action: 'send_password_reset',
         target_id: targetUserId,
         target_type: 'user',
         details: {},
       })
+      if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
       if (resendApiKey) {
         const html = wrapEmail(
@@ -304,13 +316,14 @@ Deno.serve(async (req) => {
       const { error: banErr } = await admin.from('profiles').update(banStatusUpdate).eq('user_id', targetUserId)
       if (banErr) throw new Error(`Failed to apply ban status: ${banErr.message}`)
 
-      await admin.from('admin_audit_log').insert({
+      const { error: auditErr } = await admin.from('admin_audit_log').insert({
         admin_id: userData.user.id,
         action: actionTaken === 'suspension' ? 'auto_suspend_3_strikes' : (actionTaken === 'final_warning' ? 'final_warning' : 'formal_warning'),
         target_id: targetUserId,
         target_type: 'user',
         details: { note, reason_category: reasonCategory, strike_number: strikeNumber, prior_strikes: priorStrikes || 0, bypass_strike: bypassStrike },
       })
+      if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
       await admin.from('notifications').insert({
         user_id: targetUserId,

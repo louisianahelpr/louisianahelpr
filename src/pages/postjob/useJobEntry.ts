@@ -145,7 +145,7 @@ export function useJobEntry(params: UseJobEntryParams) {
     if (draft.offerToHelperId !== undefined) setOfferToHelperId(draft.offerToHelperId);
 
     setDraftConsumed(true);
-    toast.success("Draft restored!");
+    toast.success("Draft restored");
   };
 
   // ── Entry-landing choices ──────────────────────────────────────────────

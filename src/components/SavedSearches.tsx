@@ -209,7 +209,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
         <div className="space-y-2.5">
           <Label
             htmlFor="search-name"
-            className="font-serif italic uppercase text-[0.6rem]"
+            className="font-serif italic uppercase text-ds-10"
             style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.16em" }}
           >
             Save current filters
@@ -281,13 +281,13 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                 <AlertTriangle className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={1.75} aria-hidden="true" />
               </div>
               <p
-                className="font-display italic font-bold text-[0.95rem]"
+                className="font-display italic font-bold text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 We couldn't load your saved searches.
               </p>
               <p
-                className="font-serif italic text-[0.78rem] leading-snug max-w-[280px]"
+                className="font-serif italic text-ds-12 leading-snug max-w-[280px]"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Tap retry — your saved searches are safe, this is just a fetch hiccup.
@@ -319,13 +319,13 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                 <Bookmark className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} aria-hidden="true" />
               </div>
               <p
-                className="font-display italic font-bold text-[0.95rem]"
+                className="font-display italic font-bold text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 No saved searches yet.
               </p>
               <p
-                className="font-serif italic text-[0.78rem] leading-snug max-w-[280px]"
+                className="font-serif italic text-ds-12 leading-snug max-w-[280px]"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Set a filter combo above and save it — we'll ping you when fresh jobs match.
@@ -347,7 +347,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                   className="flex-1 text-left min-w-0 active:opacity-70 transition-opacity"
                 >
                   <p
-                    className="font-display italic font-bold text-[0.92rem] truncate"
+                    className="font-display italic font-bold text-ds-15 truncate"
                     style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
                   >
                     {s.name}

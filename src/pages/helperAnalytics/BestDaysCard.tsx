@@ -59,7 +59,7 @@ const BestDaysCard = ({ analytics, hasAccess, isLoading, onUpgrade }: BestDaysCa
                             : "hsl(var(--olivewood) / 0.12)",
                         }}
                       />
-                      <span className="text-[9px] text-muted-foreground">{day.slice(0, 2)}</span>
+                      <span className="text-ds-9 text-muted-foreground">{day.slice(0, 2)}</span>
                     </div>
                   );
                 })}

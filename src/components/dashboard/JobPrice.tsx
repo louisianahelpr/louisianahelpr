@@ -198,7 +198,7 @@ export function JobPrice({
         {expanded && (
           <span
             id={panelId}
-            className="font-sans tabular-nums text-[9px] tracking-[0.02em] mt-1 pt-1 whitespace-nowrap"
+            className="font-sans tabular-nums text-ds-9 tracking-[0.02em] mt-1 pt-1 whitespace-nowrap"
             style={{ color: "hsl(var(--olivewood) / 0.8)", borderTop: "0.5px solid hsl(var(--bark) / 0.18)" }}
           >
             Budget ${formatPrice(budget)} − {effectiveFee}% fee
@@ -240,7 +240,7 @@ export function JobPrice({
         // --surface-premium tile, where the plain accent measured ~3.3:1 in
         // dark mode against a 4.5:1 requirement (small text gets no large-text
         // allowance). --accent-ink is the same colour in light mode.
-        className="text-[0.6rem] font-serif italic uppercase tracking-[0.18em] flex items-center gap-1"
+        className="text-ds-10 font-serif italic uppercase tracking-[0.18em] flex items-center gap-1"
         style={{ color: "hsl(var(--accent-ink))" }}
       >
         <DollarSign className="w-3 h-3" /> {isBidMode ? "Open to bids" : showBudget ? "Budget" : "You earn"}

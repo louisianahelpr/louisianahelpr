@@ -61,7 +61,7 @@ const UserProfile = () => {
     const pro = searchParams.get("pro");
     if (!pro) return;
     if (pro === "success") {
-      toast.success("You're now upgraded — welcome to your new plan!");
+      toast.success("You're now upgraded — welcome to your new plan.");
     } else if (pro === "cancel") {
       toast.info("Upgrade cancelled — you can upgrade any time from your profile.");
     }
@@ -267,7 +267,7 @@ const UserProfile = () => {
       });
       if (error) {
         if (error.code === "PGRST202") {
-          toast.error("Feature not yet deployed — please try again later.");
+          toast.error("Couldn't save your response right now — try again?");
         } else {
           toast.error("Couldn't save your response — try again?");
         }

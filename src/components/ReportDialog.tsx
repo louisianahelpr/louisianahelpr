@@ -168,7 +168,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                       setTimeout(() => setStep("details"), 120);
                     }}
                     aria-pressed={active}
-                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-ds-md text-[12.5px] font-medium transition-all active:scale-[0.97] ${isLast && reasons.length % 2 === 1 ? "col-span-2 justify-center" : "justify-start"} ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-ds-md text-ds-13 font-medium transition-all active:scale-[0.97] ${isLast && reasons.length % 2 === 1 ? "col-span-2 justify-center" : "justify-start"} ${
                       active
                         ? "bg-primary/10 text-primary border border-primary/35 shadow-[0_1px_2px_hsl(var(--primary)/0.10)]"
                         : "bg-card text-foreground border border-border/60 hover:bg-secondary/40 hover:border-border"
@@ -207,7 +207,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
               }}
             >
               <span
-                className="font-sans text-[12.5px] font-medium"
+                className="font-sans text-ds-13 font-medium"
                 style={{ color: "hsl(var(--primary))" }}
               >
                 {reason}
@@ -215,7 +215,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
               <button
                 type="button"
                 onClick={() => setStep("reason")}
-                className="text-[0.7rem] font-sans font-medium underline-offset-2 hover:underline"
+                className="text-ds-11 font-sans font-medium underline-offset-2 hover:underline"
                 style={{ color: "hsl(var(--primary))" }}
               >
                 Change
@@ -230,7 +230,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 onChange={(e) => setDescription(e.target.value.slice(0, MAX_LENGTH))}
                 rows={4}
                 required
-                className="rounded-ds-md border-border/60 bg-background/80 focus-visible:bg-background focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15 text-[14px] leading-relaxed resize-none"
+                className="rounded-ds-md border-border/60 bg-background/80 focus-visible:bg-background focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15 text-ds-14 leading-relaxed resize-none"
               />
               <div className="flex items-center justify-between text-ds-11">
                 <span
@@ -325,7 +325,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 </div>
               </div>
               <p
-                className="font-serif italic text-[0.92rem] leading-relaxed"
+                className="font-serif italic text-ds-15 leading-relaxed"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 Our trust team reviews every report. Most are handled within
@@ -333,7 +333,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
               </p>
               <div className="space-y-1">
                 <p
-                  className="font-serif italic uppercase text-[0.6rem]"
+                  className="font-serif italic uppercase text-ds-10"
                   style={{
                     color: "hsl(var(--olivewood) / 0.8)",
                     letterSpacing: "0.16em",
@@ -344,7 +344,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 <button
                   type="button"
                   onClick={copyCaseNumber}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ds-sm font-mono tabular-nums text-[15px] font-semibold transition-colors hover:bg-secondary/40"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-ds-sm font-mono tabular-nums text-ds-15 font-semibold transition-colors hover:bg-secondary/40"
                   style={{
                     color: "hsl(var(--ink-deep))",
                     background: "var(--surface-premium)",

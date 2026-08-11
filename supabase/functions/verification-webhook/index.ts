@@ -110,13 +110,30 @@ Deno.serve(async (req) => {
     (body.id as string | undefined) ??
     (body.event_id as string | undefined) ??
     null;
-  if (rawEventId) {
+
+  // Fall back to a content hash when the vendor sends no top-level id.
+  // Previously the whole dedupe block was skipped in that case (`if
+  // (rawEventId)`), so such a payload reprocessed on EVERY vendor retry —
+  // re-flipping verification_checks and appending a duplicate
+  // verification_exceptions adverse-action row per redelivery. An identical
+  // body is by definition the same delivery, so hashing it is a sound key.
+  const dedupeKey =
+    rawEventId ??
+    `sha256:${
+      Array.from(
+        new Uint8Array(
+          await crypto.subtle.digest("SHA-256", new TextEncoder().encode(rawBody)),
+        ),
+      ).map((b) => b.toString(16).padStart(2, "0")).join("")
+    }`;
+
+  {
     const { error: idemErr } = await supabase
       .from("stripe_webhook_events")
-      .insert({ event_id: `${vendor}:${rawEventId}`, event_type: `verification.${vendor}` });
+      .insert({ event_id: `${vendor}:${dedupeKey}`, event_type: `verification.${vendor}` });
     if (idemErr) {
       if ((idemErr as { code?: string }).code === "23505") {
-        console.log("[verification-webhook] Duplicate event — skipping:", `${vendor}:${rawEventId}`);
+        console.log("[verification-webhook] Duplicate event — skipping:", `${vendor}:${dedupeKey}`);
         return new Response(JSON.stringify({ received: true, duplicate: true }), {
           status: 200, headers: { "Content-Type": "application/json" }
         });
@@ -127,14 +144,14 @@ Deno.serve(async (req) => {
       // Return 500 so the vendor retries once the DB recovers, rather than
       // settling identity state un-deduped.
       console.error("[verification-webhook] Idempotency insert failed — asking vendor to retry:", idemErr);
-      postSlackOpsAlert({
+      await postSlackOpsAlert({
         kind: "stripe_webhook_error",
         severity: "critical",
         title: "Verification webhook idempotency insert failed",
         message: `Could not record dedupe row for \`verification.${vendor}\` (DB error, not a duplicate) — returning 500 so the vendor retries rather than processing un-deduped.`,
         fields: {
           Vendor: vendor,
-          "Event ID": String(rawEventId),
+          "Event ID": String(dedupeKey),
           Error: String((idemErr as { message?: string }).message ?? idemErr).slice(0, 200),
         },
       });
@@ -203,13 +220,30 @@ Deno.serve(async (req) => {
   // (which would strand the status un-synced forever). Called only on the failure
   // paths below, where returning 500 asks the vendor to redeliver.
   const rollbackIdempotency = async () => {
-    if (!rawEventId) return;
+    // Keyed on dedupeKey, not rawEventId: every delivery now writes a dedupe row
+    // (hash-keyed when the vendor sends no id), so guarding on rawEventId here
+    // would leave those rows in place and make the retry 200-skip forever.
     const { error: delErr } = await supabase
       .from("stripe_webhook_events")
       .delete()
-      .eq("event_id", `${vendor}:${rawEventId}`);
+      .eq("event_id", `${vendor}:${dedupeKey}`);
     if (delErr) {
+      // Both sibling webhooks page ops here, and for good reason: a surviving
+      // dedupe row makes the vendor's retry hit the dedupe wall and 200-skip,
+      // permanently stranding this verification status transition with no
+      // further delivery to fix it. A console line alone is not enough.
       console.error("[verification-webhook] Failed to roll back idempotency row:", delErr);
+      await postSlackOpsAlert({
+        kind: "stripe_webhook_error",
+        severity: "critical",
+        title: "Verification webhook idempotency rollback FAILED — status stranded",
+        message: `Could not delete the dedupe row for \`${vendor}:${dedupeKey}\` after a processing failure. The vendor's retry will now 200-skip as a duplicate, so this verification status transition will never be applied. Delete the row manually to allow redelivery.`,
+        fields: {
+          Vendor: vendor,
+          "Event ID": String(dedupeKey),
+          Error: String((delErr as { message?: string }).message ?? delErr).slice(0, 200),
+        },
+      });
     }
   };
 

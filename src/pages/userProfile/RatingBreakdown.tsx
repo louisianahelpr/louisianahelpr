@@ -38,7 +38,7 @@ export const RatingBreakdown = ({ reviews }: Props) => {
     <div className="rounded-2xl liquid-glass p-5 space-y-3">
       {/* Distribution chart */}
       <p
-        className="text-[10px] uppercase tracking-wide font-semibold"
+        className="text-ds-10 uppercase tracking-wide font-semibold"
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         Rating breakdown
@@ -84,7 +84,7 @@ export const RatingBreakdown = ({ reviews }: Props) => {
         <>
           <div className="h-px" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
           <p
-            className="text-[10px] uppercase tracking-wide font-semibold"
+            className="text-ds-10 uppercase tracking-wide font-semibold"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Sub-ratings

@@ -260,7 +260,7 @@ const ProfilePage = () => {
       setFullName(merged);
       setJustSaved(true);
       hapticSuccess();
-      toast.success("Profile updated!");
+      toast.success("Profile updated");
       setTimeout(() => setJustSaved(false), 1800);
     }
   };
@@ -321,7 +321,7 @@ const ProfilePage = () => {
     } else {
       setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
       setAvatarBroken(false);
-      toast.success("Profile picture updated!");
+      toast.success("Profile picture updated");
     }
     setAvatarUploading(false);
   };

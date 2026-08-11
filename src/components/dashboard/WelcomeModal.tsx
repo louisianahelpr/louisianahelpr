@@ -89,14 +89,14 @@ export function WelcomeModal({ open, onDismiss }: Props) {
                 Need help?
               </p>
               <p
-                className="font-serif italic mt-0.5 text-[0.72rem] leading-snug"
+                className="font-serif italic mt-0.5 text-ds-12 leading-snug"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Post your first job in 2 min.
               </p>
             </div>
             <span
-              className="mt-1 font-sans font-semibold text-[0.72rem] tracking-wide px-2.5 py-1 rounded-ds-md w-full text-center"
+              className="mt-1 font-sans font-semibold text-ds-12 tracking-wide px-2.5 py-1 rounded-ds-md w-full text-center"
               style={{
                 background: "hsl(var(--bark) / 0.16)",
                 color: "hsl(var(--bark))",
@@ -131,14 +131,14 @@ export function WelcomeModal({ open, onDismiss }: Props) {
                 Want to earn?
               </p>
               <p
-                className="font-serif italic mt-0.5 text-[0.72rem] leading-snug"
+                className="font-serif italic mt-0.5 text-ds-12 leading-snug"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Browse open jobs near you.
               </p>
             </div>
             <span
-              className="mt-1 font-sans font-semibold text-[0.72rem] tracking-wide px-2.5 py-1 rounded-ds-md w-full text-center"
+              className="mt-1 font-sans font-semibold text-ds-12 tracking-wide px-2.5 py-1 rounded-ds-md w-full text-center"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.14)",
                 color: "hsl(var(--burnt-sienna))",
@@ -158,7 +158,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
           }}
         >
           <p
-            className="font-serif italic text-center text-[0.68rem] leading-relaxed"
+            className="font-serif italic text-center text-ds-11 leading-relaxed"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Payment always protected · Verify when you're ready · Real people if you need help
@@ -170,7 +170,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
           <button
             type="button"
             onClick={onDismiss}
-            className="font-serif italic text-[0.78rem] underline underline-offset-2 active:opacity-60 transition-opacity"
+            className="font-serif italic text-ds-12 underline underline-offset-2 active:opacity-60 transition-opacity"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Skip for now

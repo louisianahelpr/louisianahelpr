@@ -160,7 +160,7 @@ const AdminSettings = () => {
     setSavingWebhook(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Webhook URL saved!");
+      toast.success("Webhook URL saved");
       await logAdminAction("update_settings", "platform_settings", settingsId, { social_webhook_url: url ? "set" : "cleared" });
     }
   };
@@ -225,7 +225,7 @@ const AdminSettings = () => {
     setSaving(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Fee settings updated!");
+      toast.success("Fee settings updated");
       await logAdminAction("update_settings", "platform_settings", settingsId, { customer_fee_percent: custVal, helper_fee_percent: helpVal });
     }
   };

@@ -119,11 +119,23 @@ serve(async (req) => {
       }
 
       // Only allow if profile is in initial empty state (no bio set yet)
-      const { data: existingProfile } = await supabase
+      // Separate "lookup failed" from "no such profile". Dropping the error
+      // collapsed both into the 404 branch, which on this UNAUTHENTICATED path
+      // meant a transient DB failure bypassed the "already completed — please
+      // log in" guard above and let the completion proceed.
+      const { data: existingProfile, error: existingProfileError } = await supabase
         .from("profiles")
         .select("bio, approval_status")
         .eq("user_id", bodyUserId)
         .single();
+
+      if (existingProfileError && existingProfileError.code !== "PGRST116") {
+        console.error("[complete-signup] profile lookup failed:", existingProfileError.message);
+        return new Response(JSON.stringify({ error: "We couldn't load your account. Please try again." }), {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       if (!existingProfile) {
         return new Response(JSON.stringify({ error: "Profile not found" }), {

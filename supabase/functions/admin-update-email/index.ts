@@ -38,10 +38,20 @@ Deno.serve(async (req) => {
     }
 
     const adminId = claims.claims.sub as string
-    const { data: isAdmin } = await supabaseAdmin.rpc('has_role', {
+    // Distinguish "not an admin" from "couldn't check". This still fails
+    // CLOSED, but a transient RPC failure now returns a truthful 503 instead of
+    // telling a legitimate admin they are Forbidden.
+    const { data: isAdmin, error: roleError } = await supabaseAdmin.rpc('has_role', {
       _user_id: adminId,
       _role: 'admin',
     })
+    if (roleError) {
+      console.error('[admin-update-email] has_role check failed:', roleError.message)
+      return new Response(JSON.stringify({ error: "Couldn't verify permissions. Please retry." }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
@@ -235,13 +245,20 @@ Deno.serve(async (req) => {
     })
 
     // Write admin audit log
-    await supabaseAdmin.from('admin_audit_log').insert({
+    // NOTE: a PostgrestBuilder is a lazy PromiseLike implementing `then` only —
+    // it has no `.catch`. Chaining `.catch()` here threw a synchronous TypeError
+    // AFTER the auth + profile email had already been changed, so the admin saw
+    // a 500 on a change that had actually applied, the audit row was never
+    // written, and the old-address security notification below never sent —
+    // silently locking the owner out with no warning. Destructure instead.
+    const { error: auditError } = await supabaseAdmin.from('admin_audit_log').insert({
       admin_id: adminId,
       action: 'update_email',
       target_id: userId,
       target_type: 'user',
       details: { old_email: oldEmail, new_email: normalizedEmail },
-    }).catch((e: Error) => console.error('[admin-update-email] audit log failed:', e.message))
+    })
+    if (auditError) console.error('[admin-update-email] audit log failed:', auditError.message)
 
     // Notify the OLD address by email so the account owner knows their login
     // identity changed — they may no longer receive messages at the new address.

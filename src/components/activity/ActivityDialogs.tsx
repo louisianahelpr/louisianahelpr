@@ -93,7 +93,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success("Revision requested!");
+      toast.success("Revision requested");
       props.setRevisionJobId(null);
       setRevisionNote("");
       props.onRevisionRequested();

@@ -31,7 +31,7 @@ export function PayoutHistory({
           </h3>
         </div>
         <Select value={exportYear} onValueChange={onExportYearChange}>
-          <SelectTrigger className="h-7 w-[88px] text-ds-11">
+          <SelectTrigger aria-label="Export year" className="h-7 w-[88px] text-ds-11">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

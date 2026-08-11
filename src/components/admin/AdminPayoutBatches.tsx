@@ -475,7 +475,7 @@ const AdminPayoutBatches = () => {
         title="Send this payout?"
         description={
           confirmBatch
-            ? `This transfers $${Number(confirmBatch.total_payout).toFixed(2)} to ${confirmBatch.helper_name} for ${confirmBatch.job_count} job${confirmBatch.job_count > 1 ? "s" : ""} via Stripe. This moves real money and can't be undone here.`
+            ? `This transfers $${Number(confirmBatch.total_payout).toFixed(2)} to ${confirmBatch.helper_name} for ${confirmBatch.job_count} job${confirmBatch.job_count !== 1 ? "s" : ""} via Stripe. This moves real money and can't be undone here.`
             : ""
         }
         primaryLabel={confirmBatch && paying === confirmBatch.helper_id ? "Sending…" : "Send payout"}

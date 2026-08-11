@@ -170,7 +170,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
         <div
           aria-hidden
           data-testid="browse-map-job-count"
-          className="px-2.5 h-6 rounded-full flex items-center font-sans font-semibold text-[0.68rem] tracking-wide"
+          className="px-2.5 h-6 rounded-full flex items-center font-sans font-semibold text-ds-11 tracking-wide"
           style={{
             background: "hsla(0, 0%, 100%, 0.92)",
             color: "hsl(var(--bark))",
@@ -211,8 +211,8 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
                 data-testid={`browse-map-layer-${opt.key}`}
                 className={
                   active
-                    ? "px-3.5 h-8 rounded-full text-[0.78rem] font-sans font-semibold transition-all bg-[hsl(var(--bark))] text-white shadow-sm"
-                    : "px-3.5 h-8 rounded-full text-[0.78rem] font-sans font-semibold transition-all bg-[hsl(var(--parchment)/0.9)] text-[hsl(var(--bark))] hover:bg-[hsl(var(--parchment))]"
+                    ? "px-3.5 h-8 rounded-full text-ds-12 font-sans font-semibold transition-all bg-[hsl(var(--bark))] text-white shadow-sm"
+                    : "px-3.5 h-8 rounded-full text-ds-12 font-sans font-semibold transition-all bg-[hsl(var(--parchment)/0.9)] text-[hsl(var(--bark))] hover:bg-[hsl(var(--parchment))]"
                 }
               >
                 {opt.label}

@@ -126,7 +126,7 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
             </span>
           </label>
           {ip && (
-            <p className="text-[0.65rem] text-muted-foreground font-mono">Recorded with IP {ip}</p>
+            <p className="text-ds-10 text-muted-foreground font-mono">Recorded with IP {ip}</p>
           )}
           <Button onClick={submit} disabled={submitting || !name.trim() || !agreed} className="w-full">
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sign W-9"}

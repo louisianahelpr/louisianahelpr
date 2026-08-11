@@ -80,9 +80,9 @@ const ResetPassword = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirm) { toast.error("Passwords don't match"); return; }
-    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
-    if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return; }
-    if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return; }
+    if (password.length < 8) { toast.error("Password needs at least 8 characters"); return; }
+    if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter"); return; }
+    if (!/[0-9]/.test(password)) { toast.error("Add at least one number"); return; }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
@@ -150,7 +150,11 @@ const ResetPassword = () => {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  // No placeholder — a row of bullets mimics a FILLED password
+                  // field. Worse here than on sign-in: this screen asks the user
+                  // to type a NEW password twice, so a field that looks
+                  // pre-populated invites them to skip it. The "New password"
+                  // label above already names the field. (Matches Login.tsx.)
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -200,7 +204,8 @@ const ResetPassword = () => {
                 <Input
                   id="confirm"
                   type="password"
-                  placeholder="••••••••"
+                  // Same reason as the field above — the "Confirm password"
+                  // label names it; bullets would only imply it's already filled.
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   required

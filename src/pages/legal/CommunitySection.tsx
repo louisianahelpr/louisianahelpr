@@ -4,6 +4,16 @@ import {
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
+// Derive the escrow auto-release schedule instead of restating it in prose.
+// These are the platform's binding promises about when money moves, so they
+// must follow the config the cron enforces (guarded by escrowTiming.parity.test).
+// NOTE: the 72h figures in the DISPUTE steps below are a DIFFERENT deadline
+// (dispute_deadline / revision_acceptance_deadline) and are deliberately NOT
+// interpolated from TOTAL_TO_PAYOUT_HOURS — they only coincide numerically.
+import {
+  COPY_AUTO_RELEASE_HOURS,
+  TOTAL_TO_PAYOUT_HOURS,
+} from "../../../supabase/functions/_shared/escrowTiming";
 
 /* ─────────────────────  COMMUNITY RULES  ───────────────────── */
 export const CommunityContent = () => (
@@ -11,7 +21,7 @@ export const CommunityContent = () => (
     <TldrCard
       items={[
         "Cancel free 24+ hours ahead. Inside 24h, fees apply (25% / 50%). No-show = permanent ban.",
-        "Payment auto-releases 48 hours after completion if either side doesn't act.",
+        `Payment auto-releases ${COPY_AUTO_RELEASE_HOURS} hours after completion if either side doesn't act.`,
         "If something's wrong, request a revision first → file a dispute → admin decides. Each step has a 72-hour window.",
         "Three strikes = ban. Fraud, harassment, off-platform payments, and identity fraud skip the strikes.",
         "Helprs are independent contractors — taxes are your responsibility. We send 1099s when thresholds are met.",
@@ -102,7 +112,7 @@ export const CommunityContent = () => (
     {/* ── 3. Getting paid ── */}
     <PolicySection
       icon={Wallet}
-      title="Getting paid — releasing escrow"
+      title="Getting paid — how your payout works"
       subtitle="How completion turns into a payout"
       anchorId="escrow-release"
     >
@@ -113,13 +123,13 @@ export const CommunityContent = () => (
       />
       <PolicyRowItem
         icon={Clock}
-        title="One-sided confirmation = 48-hour window"
-        body={<p>If only one party confirms, the other has 48 hours to confirm or request a revision. Both parties are notified every 12 hours.</p>}
+        title={`One-sided confirmation = ${COPY_AUTO_RELEASE_HOURS}-hour window`}
+        body={<p>If only one party confirms, the other has {COPY_AUTO_RELEASE_HOURS} hours to confirm or request a revision. Both parties are notified every 12 hours.</p>}
       />
       <PolicyRowItem
         icon={CheckCircle}
-        title="Auto-release after 48 hours"
-        body={<p>If neither confirmation nor revision is received within 48 hours, the job auto-completes and payment is released to the Helpr (funds reach them about 72 hours after completion).</p>}
+        title={`Auto-release after ${COPY_AUTO_RELEASE_HOURS} hours`}
+        body={<p>If neither confirmation nor revision is received within {COPY_AUTO_RELEASE_HOURS} hours, the job auto-completes and payment is released to the Helpr (funds reach them about {TOTAL_TO_PAYOUT_HOURS} hours after completion).</p>}
       />
       <PolicyRowItem
         icon={FileText}
@@ -280,7 +290,7 @@ export const CommunityContent = () => (
       />
       <PolicyRowItem
         icon={CheckCircle}
-        title="Job posters (customers)"
+        title="Job posters"
         body={
           <>
             <p><strong className="text-foreground">Sales tax:</strong> Helpr collects on your behalf and remits to the state.</p>

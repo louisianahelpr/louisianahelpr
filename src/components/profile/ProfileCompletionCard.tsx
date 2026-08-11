@@ -129,12 +129,13 @@ export function ProfileCompletionCard({
     }
   };
 
-  // Bar color shifts from burnt-sienna (early) to bark (strong progress)
+  // Bar color shifts sienna (early) -> amber (mid) -> bark (strong progress).
+  // The mid rung was --gold-warm, which is reserved for status/prestige.
   const barColor =
     score >= 66
       ? "hsl(var(--bark) / 0.85)"
       : score >= 40
-        ? "hsl(var(--gold-warm) / 0.90)"
+        ? "hsl(var(--amber-tint) / 0.90)"
         : "hsl(var(--burnt-sienna) / 0.80)";
 
   return (

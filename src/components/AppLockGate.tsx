@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requireBiometric } from "@/lib/biometricGate";
 import { isAppLockEnabled, shouldLockOnResume } from "@/lib/appLock";
@@ -163,31 +162,54 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
         role="dialog"
         aria-modal="true"
         aria-label="App locked"
-        className="bg-premium-page fixed inset-0 z-[100] flex flex-col items-center justify-center gap-6 px-8"
+        // Content is anchored in thirds rather than dead-centred, and the
+        // container carries the top safe-area inset.
+        //
+        // `justify-center` with no inset put the heading exactly where iOS
+        // draws the Face ID sheet, so on shorter devices the two collided —
+        // observed on an iPhone 17 Pro simulator, not theoretical. Pinning the
+        // mark + heading to the upper third and the button to the lower third
+        // leaves the OS somewhere to land.
+        className="bg-premium-page fixed inset-0 z-[100] flex flex-col items-center px-8"
+        style={{
+          paddingTop: "max(env(safe-area-inset-top), 1rem)",
+          paddingBottom: "max(env(safe-area-inset-bottom), 1rem)",
+        }}
       >
-        <div
-          className="flex h-16 w-16 items-center justify-center rounded-full"
-          style={{ background: "hsl(var(--ink-deep) / 0.06)" }}
-        >
-          <Lock className="h-7 w-7" style={{ color: "hsl(var(--olivewood))" }} aria-hidden />
-        </div>
-        <div className="text-center">
+        {/* Upper third — the mark and the greeting. */}
+        <div className="flex flex-1 flex-col items-center justify-end pb-6">
+          {/* The real Helpr mark, not a generic padlock glyph. This asset was
+              already sitting unused in public/ while the lock screen — the
+              FIRST thing a lock user sees on every cold launch — identified
+              itself with a Lucide icon. */}
+          <img
+            src="/helpr-splash-icon.png"
+            alt=""
+            aria-hidden
+            className="h-20 w-20 object-contain"
+          />
           <h1
-            className="font-display font-bold italic"
+            className="mt-5 text-center font-display font-bold italic"
             style={{ fontSize: "clamp(1.35rem, 2vw + 0.5rem, 1.6rem)", color: "hsl(var(--ink-deep))" }}
           >
-            Locked
+            {/* "Locked" named a failure the user did not commit — they opened
+                your app. This is a front door, so it greets them. */}
+            Welcome back
           </h1>
           <p
-            className="mt-2 font-sans text-ds-13 leading-relaxed"
+            className="mt-2 max-w-xs text-center font-sans text-ds-13 leading-relaxed"
             style={{ color: "hsl(var(--olivewood))" }}
           >
             Unlock to get back to your jobs and payouts.
           </p>
         </div>
-        <Button variant="bark" onClick={() => void attemptUnlock()} disabled={checking}>
-          {checking ? "Unlocking…" : "Unlock"}
-        </Button>
+
+        {/* Lower third — the single action. */}
+        <div className="flex flex-1 flex-col items-center justify-start pt-2">
+          <Button variant="bark" onClick={() => void attemptUnlock()} disabled={checking}>
+            {checking ? "Unlocking…" : "Unlock"}
+          </Button>
+        </div>
       </div>
     </>
   );

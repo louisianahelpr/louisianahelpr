@@ -352,7 +352,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
         <div className="space-y-3">
           <ToggleRow
             icon={Rocket}
-            iconClassName="text-[hsl(var(--gold-warm))]"
+            iconClassName="text-[hsl(var(--burnt-sienna))]"
             label="Boosted jobs"
             hint={
               <p className="text-ds-11 text-muted-foreground leading-snug">

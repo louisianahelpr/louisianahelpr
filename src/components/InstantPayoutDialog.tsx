@@ -127,7 +127,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
                 border: "0.5px solid hsl(var(--bark) / 0.22)",
                 boxShadow:
                   "inset 0 1px 1px 0 rgba(255,255,255,0.6), " +
-                  "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22)",
+                  "inset 0 0 0 0.5px hsl(var(--burnt-sienna) / 0.22)",
               }}
             >
               <div className="flex justify-between text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

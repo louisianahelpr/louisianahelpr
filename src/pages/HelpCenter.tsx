@@ -224,7 +224,7 @@ const HelpCenter = () => {
           with the topic / FAQ columns. */}
       <section className="px-5 sm:px-8 lg:px-12">
         <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-          <div className="flex items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8">
+          <div className="flex items-center gap-3 mt-6 mb-4 md:mt-8 md:mb-5">
             <div className="shrink-0">
               <BackButton />
             </div>
@@ -248,30 +248,17 @@ const HelpCenter = () => {
             Answers, guides, and support — for posters and Helprs alike.
           </p>
 
-          {/* The FAQ can't answer everything, and until /support existed the
-              only escape hatch on this page was a `mailto:` buried in the
-              zero-results state — i.e. reachable only by failing a search.
-              This is the always-visible way out to a human, and it works
-              logged-out and inside the native app. */}
-          <p
-            className="mt-3 font-sans text-ds-13 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-          >
-            Can&apos;t find it?{" "}
-            <Link
-              to="/support"
-              className="font-semibold underline"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
-            >
-              Contact support
-            </Link>{" "}
-            — no account needed.
-          </p>
-
           {/* Squircle search pill — client-side filter drives the FAQ list
-              below. Olivewood outline on parchment; no glass. Preserved
-              verbatim from the old hero, just relocated under the header. */}
-          <div className="w-full max-w-2xl mt-6">
+              below. Olivewood outline on parchment; no glass.
+
+              The "Can't find it? Contact support" line used to sit HERE,
+              between the lede and the search. Five blocks stacked before a
+              single answer (title, lede, support line, search, chip label +
+              chips) pushed the topics well below the fold. It is an escape
+              hatch for after the search fails, so it now sits under the search
+              instead of in front of it — still always visible, no longer
+              queue-jumping the thing people came to use. */}
+          <div className="w-full max-w-2xl mt-5">
             <div
               className="flex items-center gap-3 rounded-2xl px-5 py-4 sm:px-6 sm:py-5 transition-shadow focus-within:shadow-md"
               style={{
@@ -320,16 +307,19 @@ const HelpCenter = () => {
                 the vocabulary. Hidden the moment the visitor starts
                 typing; clicking a pill drives the same client-side
                 filter as typing the term into the input. */}
+            {/* The chips used to sit under a full-width "POPULAR SEARCHES"
+                eyebrow — uppercase, 0.22em tracking, its own row. That is a
+                section-heading treatment for five one-word shortcuts, and it
+                cost a whole block of vertical space above the fold. The label
+                is now an inline lead-in on the same row, which says the same
+                thing in a quarter of the height. */}
             {!searching && (
-              <div className="mt-5 flex flex-col items-start gap-2.5">
+              <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2">
                 <span
-                  className="font-sans font-medium uppercase text-ds-10"
-                  style={{
-                    color: "hsl(var(--burnt-sienna))",
-                    letterSpacing: "0.22em",
-                  }}
+                  className="font-sans font-medium text-ds-11 shrink-0"
+                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                 >
-                  Popular searches
+                  Popular:
                 </span>
                 <div className="flex flex-wrap items-center justify-start gap-2">
                   {POPULAR_SEARCHES.map((term) => (
@@ -351,6 +341,27 @@ const HelpCenter = () => {
                 </div>
               </div>
             )}
+
+            {/* Escape hatch to a human. Deliberately AFTER the search: until
+                /support existed the only way out was a mailto buried in the
+                zero-results state, reachable only by failing a search, so it
+                was pulled up to always-visible. It still is — just no longer
+                ahead of the search box it's a fallback for. Works logged-out
+                and inside the native app. */}
+            <p
+              className="mt-4 font-sans text-ds-13 leading-relaxed"
+              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              Can&apos;t find it?{" "}
+              <Link
+                to="/support"
+                className="font-semibold underline"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              >
+                Contact support
+              </Link>{" "}
+              — no account needed.
+            </p>
           </div>
         </div>
       </section>
@@ -394,7 +405,7 @@ const HelpCenter = () => {
 
             {/* Right column — magazine grid of topics with giant Bodoni
                 numerals as the anchor. Sequential fade-in matches HIW. */}
-            <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12 sm:gap-y-14 lg:gap-y-16">
+            <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
               {TOPICS.map((topic, i) => (
                 <div
                   key={topic.label}
@@ -404,10 +415,10 @@ const HelpCenter = () => {
                     transform: topicsInView
                       ? "translateY(0)"
                       : "translateY(24px)",
-                    transition: `opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${
-                      i * 400
-                    }ms, transform 1100ms cubic-bezier(0.22, 1, 0.36, 1) ${
-                      i * 400
+                    transition: `opacity 520ms cubic-bezier(0.22, 1, 0.36, 1) ${
+                      i * 70
+                    }ms, transform 520ms cubic-bezier(0.22, 1, 0.36, 1) ${
+                      i * 70
                     }ms`,
                     willChange: "opacity, transform",
                     background: "hsl(var(--burnt-sienna) / 0.04)",

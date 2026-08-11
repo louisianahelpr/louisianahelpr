@@ -250,6 +250,21 @@ export function ConversationList({
   // hidden so the empty state reads as one clean panel.
   const isEmpty = !loading && !loadError && conversations.length === 0;
 
+  // Header second line, matching the Activity pages ("My Jobs" / "All · 4").
+  //
+  // Messages has no status filter, so there is no filter label to hoist — but
+  // an inbox does have one number worth stating up front, which is how much is
+  // waiting on you. Threads, not messages: "2 unread" means two conversations
+  // need a reply, which is the actionable unit here.
+  //
+  // Omitted entirely at zero rather than rendering "0 unread" — a caught-up
+  // inbox should say nothing, not report an absence.
+  const unreadThreads = conversations.filter((c) => c.unread > 0).length;
+  const headerSubtitle =
+    isEmpty || unreadThreads === 0
+      ? undefined
+      : `${unreadThreads} unread`;
+
   // Pull-to-refresh: swiping down on the list re-runs loadConversations.
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: async () => { if (userId) await loadConversations(userId); },
@@ -272,42 +287,35 @@ export function ConversationList({
               clean panel. */}
           {!isEmpty && (
             <div
-              className="shrink-0 flex items-center justify-between gap-3 px-4 py-2"
+              className="shrink-0 flex items-center justify-end gap-3 px-4 py-2"
               style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
             >
-              {selectMode ? (
+              {/* Select mode keeps its live "N/3 selected" counter here. Out of
+                  select mode this slot held an <h2> reading "All", mirroring
+                  ActivityHeader's heading on My Posts / My Jobs.
+
+                  Both are gone now. Those headings sat directly beneath the top
+                  bar's page title — "Messages" over "All" — two headings with
+                  nothing relating them, and on this screen the word was doing
+                  even less work than on Activity, because the inbox has no
+                  filters for "All" to be distinguished from.
+
+                  An earlier pass added that <h2> because the slot had been an
+                  empty `aria-hidden` span, leaving the toolbar with a blank
+                  left half that read as a failed render. The real problem was
+                  the empty ELEMENT, not the absent text: the row is now
+                  `justify-end`, so the controls sit deliberately at the edge
+                  with nothing pretending to balance them. The state worth
+                  stating — how many threads are waiting on you — moved up into
+                  the header as "Messages / 2 unread". */}
+              {selectMode && (
                 <span
-                  className="font-sans font-semibold uppercase leading-none"
+                  className="font-sans font-semibold uppercase leading-none mr-auto"
                   style={{ fontSize: "0.68rem", letterSpacing: "0.1em", color: "hsl(var(--olivewood) / 0.85)" }}
                   aria-live="polite"
                 >
                   {selectedKeys.size}/{MAX_SELECT} selected
                 </span>
-              ) : (
-                /* Section heading, matching ActivityHeader's <h2> on My Posts
-                   / My Jobs exactly (same font, size, colour, tracking) —
-                   those render the active filter's label and fall back to
-                   "All", which is the right word here since the inbox has no
-                   filter tabs.
-
-                   This slot used to be an empty `<span aria-hidden>`, so the
-                   Messages toolbar was the ONE title card in the app with a
-                   blank left half: "Select" and the search icon floated on the
-                   right against nothing. Against the dark theme especially, it
-                   read as a component that had failed to load rather than a
-                   deliberate layout. The slot is clearly meant to hold
-                   something — select mode already fills it with the
-                   "N/3 selected" count. */
-                <h2
-                  className="font-display italic font-bold leading-tight truncate"
-                  style={{
-                    fontSize: "1.25rem",
-                    color: "hsl(var(--ink-deep))",
-                    letterSpacing: "-0.018em",
-                  }}
-                >
-                  All
-                </h2>
               )}
               <div className="flex items-center gap-1 shrink-0">
                 {!selectMode && (
@@ -624,7 +632,7 @@ export function ConversationList({
     // passes it; only this branch was missed). Phone web and the iOS app are
     // the same surface, so that was the shipped app's inbox announcing no
     // page heading to VoiceOver.
-    <PageScaffold header={<DashboardHeader titleAs="h1" title="Messages" />}>
+    <PageScaffold header={<DashboardHeader titleAs="h1" title="Messages" subtitle={headerSubtitle} />}>
       {listBody}
     </PageScaffold>
   );

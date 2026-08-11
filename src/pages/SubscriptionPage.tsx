@@ -398,11 +398,18 @@ export default function SubscriptionPage() {
           </div>
 
           {/* Right — tier grid. Column count tracks CONSUMER_TIERS.length so
-              the row always divides evenly and never orphans a dead column:
-              three across at sm+ while Basic is hidden (see CONSUMER_TIERS).
-              If Basic is restored, take this back to
-              `sm:grid-cols-2 lg:grid-cols-4` to match /for-business's 2x2. */}
-          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-4 lg:gap-5">
+              the row always divides evenly and never orphans a dead column.
+              If Basic is restored, take this to `sm:grid-cols-2 lg:grid-cols-4`
+              to match /for-business's 2x2.
+
+              Three-across starts at lg, NOT sm. This grid only gets 8/12 (then
+              9/12) of the row because the masthead holds the rest, so at sm
+              three cards landed in roughly 200px each: "Access to / all open /
+              jobs" broke across three lines, the subtitles hit their
+              line-clamp ("For serious…", "Maximum…"), and even the button
+              label wrapped to "Start / free". Two-up in the middle band gives
+              each card real width before going three-across. */}
+          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4 lg:gap-5">
             {CONSUMER_TIERS.map((tier, i) => {
               const perks = TIER_PERKS[tier];
               const isActive = tier === currentTier;

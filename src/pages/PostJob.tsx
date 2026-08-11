@@ -76,7 +76,13 @@ const PostJob = () => {
           the entry cards in a 512px column with big dead gutters. At md the
           column fills to 3xl and EntryChoice flips its cards to a
           md:grid-cols-2 grid so the space is consumed, not gutter'd.
-          Form + checkout keep the same 5xl column since they're dense.
+
+          The FORM and CHECKOUT column now carries the same ladder. It was
+          `max-w-lg lg:max-w-5xl` — no md rung — so from 768px to 1024px
+          (tablets, wide phones in landscape, small laptop windows) the whole
+          form stayed pinned in a 512px column with wide dead gutters either
+          side. The entry step had already been fixed for exactly this reason;
+          the form and checkout never got the same treatment.
 
           The entry column previously carried `min-h-[60vh] flex flex-col
           justify-center`, which vertically centred four cards inside a 60vh
@@ -89,7 +95,7 @@ const PostJob = () => {
             <EntryChoice form={form} />
           </div>
         ) : (
-          <div className="max-w-lg lg:max-w-5xl mx-auto space-y-6">
+          <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto space-y-6">
             {/* STEP 1: FORM */}
             {form.step === "form" && <FormStep form={form} />}
 

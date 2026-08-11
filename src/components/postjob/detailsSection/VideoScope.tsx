@@ -1,4 +1,5 @@
 import { X, Video } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 interface VideoScopeProps {
   scopeVideoUrl?: string | null;
@@ -15,11 +16,12 @@ export function VideoScope({
 }: VideoScopeProps) {
   return (
     <div className="mt-4">
-      <p className="font-display italic font-semibold text-ds-14 mb-1" style={{ color: "hsl(var(--ink-deep))" }}>
-        Show them the job <span className="font-sans text-ds-11 not-italic font-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>(optional)</span>
-      </p>
-      <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        A short video of the space gets you more accurate quotes and fewer surprises.
+      <Label className="mb-2 block">
+        Video{" "}
+        <span className="font-normal text-muted-foreground">(optional, 30s max)</span>
+      </Label>
+      <p className="text-ds-11 font-serif italic leading-snug mb-2" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+        A short clip gets you more accurate quotes and fewer surprises.
       </p>
       {scopeVideoUrl ? (
         <div className="relative rounded-ds-md overflow-hidden aspect-video bg-black">

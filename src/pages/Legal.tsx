@@ -174,14 +174,19 @@ const Legal = () => {
   // document. The poster subhead is dropped because TAB_TAGLINES already
   // carries the same framing one line further down.
   //
-  // The wrapper classes deliberately mirror the content container below
-  // (`container mx-auto px-5` → same max-w ladder) rather than the reference
-  // pages' `px-5 sm:px-8 lg:px-12`. Tailwind's `container` caps width per
-  // breakpoint (1400px at 2xl), so borrowing the other pages' padding scheme
-  // would leave the title on a wider column than the tab band and policy cards
-  // it heads. Vertical rhythm (`mt-2 md:mt-6`) is what has to match, and does.
+  // This header and the content container below BOTH use the reference pages'
+  // `px-5 sm:px-8 lg:px-12`, so Legal's left edge lines up with Help Center,
+  // Support and For Business.
+  //
+  // They previously both used `container mx-auto px-5`. That kept the title
+  // aligned with its own tab band and policy cards — the constraint the old
+  // comment here defended, and a real one — but it put Legal's whole column
+  // ~28px left of every sibling page at desktop, because Tailwind's
+  // `container` pads 20px where the others pad 48px (lg:px-12). The header and
+  // the body were changed together, so the internal alignment that mattered is
+  // preserved and the cross-page mismatch is gone. Change them as a pair.
   const webHeader = (
-    <section className="container mx-auto px-5">
+    <section className="px-5 sm:px-8 lg:px-12">
       <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
         <div className="flex items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8">
           <div data-print-hide className="shrink-0">
@@ -469,7 +474,7 @@ const Legal = () => {
             /for-business, /subscription, /help, and /jobs. */}
         {webHeader}
 
-        <div className="container mx-auto px-5 pb-8">
+        <div className="px-5 sm:px-8 lg:px-12 pb-8">
           <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-3">
             <div
               className="sticky z-30 -mx-5 px-5 pt-0 pb-0 backdrop-blur-md"

@@ -200,37 +200,25 @@ export function FormStep({ form }: FormStepProps) {
           </div>
         )}
 
-        {/* Business-only: department / cost-center field. Only rendered
-            when the user is posting under a business membership so we
-            don't clutter the form for personal posters. Maps directly
-            to jobs.department (migration 20260609170000). */}
-        {form.business && (
-          <div className="space-y-2">
-            <label htmlFor="department" className="text-ds-13 font-medium">
-              Department / cost center{" "}
-              <span className="text-ds-11 text-muted-foreground font-normal">(optional)</span>
-            </label>
-            <input
-              id="department"
-              type="text"
-              value={form.department}
-              onChange={(e) => form.setDepartment(e.target.value)}
-              placeholder="e.g. Marketing, Ops, Q3 events"
-              maxLength={64}
-              className="w-full rounded-ds-md border border-input bg-background px-3 py-2 text-ds-13"
-            />
-            {form.business.require_approval_above != null &&
-              form.budgetNum > Number(form.business.require_approval_above) && (
-                <p
-                  className="text-ds-11"
-                  style={{ color: "hsl(var(--bark))" }}
-                >
-                  This post exceeds your team's ${Number(form.business.require_approval_above)} threshold —
-                  it'll go to pending approval before going live.
-                </p>
-              )}
-          </div>
-        )}
+        {/* The optional "Department / cost center" input used to live here for
+            business posters. Removed 2026-08-10 — it was an extra field on the
+            longest form in the product, optional, and free-text (so it was
+            never reliable for reporting anyway).
+
+            The approval-threshold notice below was NESTED INSIDE that field's
+            block and is deliberately kept: it tells a business poster their job
+            will go to pending approval instead of straight live, which changes
+            what happens after they pay. `jobs.department` still exists in the
+            schema and in jobSubmitHelpers, so nothing is dropped server-side
+            and the field can come back without a migration. */}
+        {form.business &&
+          form.business.require_approval_above != null &&
+          form.budgetNum > Number(form.business.require_approval_above) && (
+            <p className="text-ds-11" style={{ color: "hsl(var(--bark))" }}>
+              This post exceeds your team's ${Number(form.business.require_approval_above)} threshold —
+              it'll go to pending approval before going live.
+            </p>
+          )}
 
         {/* Submit — sits at the natural end of the form (not sticky) so it
             never floats over and obscures the section fields above it. The

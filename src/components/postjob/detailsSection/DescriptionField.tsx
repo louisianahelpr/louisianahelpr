@@ -2,7 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Wand2 } from "lucide-react";
 import { categoryTemplates, hasUnfilledPlaceholders } from "@/lib/postingTemplates";
-import { DESCRIPTION_MAX, categories, descriptionHints } from "./detailsSectionConstants";
+import { DESCRIPTION_MAX, categories } from "./detailsSectionConstants";
 import { FieldError } from "@/components/ui/FieldError";
 
 interface DescriptionFieldProps {
@@ -71,11 +71,16 @@ export function DescriptionField({
           Replace the [bracketed] placeholders with your own details — they can't be posted as-is.
         </FieldError>
       )}
-      {/* Category-aware prompt — tells the poster exactly what a helpr
-          needs to quote accurately. Vague posts get fewer applicants. */}
-      <p className="text-ds-11 font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-        {descriptionHints[category] ?? descriptionHints.other}
-      </p>
+      {/* A generic category prompt used to render here as a SECOND serif-italic
+          hint ("Add anything a Helpr needs to quote accurately — access,
+          timing, and supplies.") directly above the adaptive "Tip:" line
+          below. On an empty description both showed at once, saying much the
+          same thing in the same typeface.
+
+          The adaptive one won: it names the specific details still missing
+          from THIS description, and it disappears on its own once the poster
+          has written enough. A fixed sentence that never changes is wallpaper
+          by the second time you see it. */}
       {/* Checklist hints — surface the first 2 unmet template items
           when the description is under 100 chars to nudge the poster
           to include the details that make a post fill faster. */}

@@ -64,15 +64,27 @@ export function computeBudgetPresets(
   presetRange: { min: number; max: number } | null,
   priceStatsMedian: number | null | undefined,
 ): number[] {
-  if (!presetRange) return [25, 50, 75];
+  // Five rungs, not three. Three presets (min / median / max) meant a poster
+  // whose job sat between two of them — the common case — had to type a number
+  // anyway, which is the tap the presets exist to save. Five covers the range
+  // at a useful granularity and still wraps to two rows at 375px.
+  if (!presetRange) return [25, 50, 75, 100, 150];
   const snap25 = (n: number) => Math.max(25, Math.round(n / 25) * 25);
+  const median = priceStatsMedian ?? Math.round((presetRange.min + presetRange.max) / 2);
   const raw = [
     presetRange.min,
-    priceStatsMedian ?? Math.round((presetRange.min + presetRange.max) / 2),
+    // Quarter points between the floor and the median/ceiling, so the ladder
+    // is denser where most jobs actually price.
+    Math.round((presetRange.min + median) / 2),
+    median,
+    Math.round((median + presetRange.max) / 2),
     presetRange.max,
   ]
     .map(snap25)
     .sort((a, b) => a - b);
+  // Snapping can collapse neighbours onto the same value (a narrow category
+  // range, or a median close to an endpoint). Keep the ladder strictly
+  // ascending by nudging duplicates up one $25 step, exactly as before.
   return raw.reduce<number[]>((acc, v) => {
     const prev = acc[acc.length - 1];
     acc.push(prev != null && v <= prev ? prev + 25 : v);

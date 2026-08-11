@@ -67,18 +67,8 @@ export const titlePlaceholders: Record<string, string> = {
   other: "e.g. Help me with a quick job",
 };
 
-// Category-specific description prompts — tells the poster what detail
-// a helpr needs to quote accurately. Vague posts get fewer applicants.
-export const descriptionHints: Record<string, string> = {
-  cleaning: "Mention square footage, number of rooms, supplies on hand, and parking or access.",
-  yard_work: "Mention yard size, what needs doing, and whether tools and bags are provided.",
-  moving: "Mention what's being moved, stairs or elevator, distance, and any heavy items.",
-  errands: "List the stops, anything time-sensitive, and how purchases get paid for.",
-  handyman: "Describe the fix, what parts/tools you already have, and any specific skill needed.",
-  painting: "Mention the area, surface condition, whether paint is provided, and number of coats.",
-  delivery: "Mention pickup and drop-off addresses, item size, and whether a truck is needed.",
-  pet_care: "Mention pet type and temperament, the schedule, and any feeding or medication.",
-  assembly: "Mention the item(s), whether you have the manual, and what tools are available.",
-  storm_prep: "Describe what needs doing (boarding, debris, generator setup, etc.), the timeline, and any materials or equipment you already have.",
-  other: "Add anything a Helpr needs to quote accurately — access, timing, and supplies.",
-};
+// `descriptionHints` was removed 2026-08-10. It rendered a fixed
+// per-category sentence directly above DescriptionField's adaptive
+// "Tip:" line, so an empty description showed two serif-italic hints at
+// once saying much the same thing. The adaptive one names what is
+// actually still missing and self-dismisses, so it won.

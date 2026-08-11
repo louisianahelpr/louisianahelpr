@@ -13,6 +13,7 @@ import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
+import { ActivityStatePill } from "./ActivityStatePill";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { IncomingReportCard } from "./PetReportCard";
@@ -86,6 +87,21 @@ function PostedJobCardInner({
 
             {/* Summary */}
             <div className="px-4 py-3 space-y-2.5">
+              {/* Where this job stands. Active folds several statuses into one
+                  list, so without this a job awaiting a reply, one whose offer
+                  was just declined, and one already underway all look alike.
+                  Renders nothing outside the Active bucket — completed and
+                  cancelled cards already carry their own treatment below. */}
+              <ActivityStatePill
+                posted={{
+                  status: job.status,
+                  helper_id: job.helper_id,
+                  helper_confirmed_at: job.helper_confirmed_at,
+                  offered_to_helper_id: job.offered_to_helper_id,
+                  direct_offer_status: job.direct_offer_status,
+                  applicantCount: applicantCounts[job.id] || 0,
+                }}
+              />
               <JobCardMetaRow
                 dateNeeded={job.date_needed}
                 startTime={job.start_time}

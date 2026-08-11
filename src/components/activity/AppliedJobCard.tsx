@@ -12,6 +12,7 @@ import { EscrowProgressBar } from "@/components/payment/EscrowProgressBar";
 import { DisputeLink } from "@/components/jobs/DisputeLink";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
+import { ActivityStatePill } from "./ActivityStatePill";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { SendReportCard } from "./PetReportCard";
@@ -135,6 +136,21 @@ function AppliedJobCardInner({
 
           {/* Summary info line */}
           <div className="px-4 py-3 space-y-2.5">
+            {/* Whose move is it? Active spans "applied and waiting", "they
+                picked you, respond", and "already working" — states that read
+                identically without this. Renders nothing once the helper's
+                involvement has ended, which Active never contains anyway. */}
+            <ActivityStatePill
+              applied={{
+                status: app.status,
+                job: {
+                  status: job.status,
+                  helper_confirmed_at: job.helper_confirmed_at,
+                  offered_to_helper_id: job.offered_to_helper_id,
+                  direct_offer_status: job.direct_offer_status,
+                },
+              }}
+            />
             <JobCardMetaRow
               dateNeeded={job.date_needed}
               startTime={job.start_time}

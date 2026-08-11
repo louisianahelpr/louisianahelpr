@@ -341,9 +341,24 @@ const ConversationRowBase = ({
                 {c.otherUserName}
               </p>
             </div>
-            <div className="flex items-center gap-1.5 mt-0.5">
+            {/* `flex-wrap` + a generous basis on the title, so the annotations
+                below it wrap instead of starving it.
+
+                Measured at 375px: this row is 120px wide, and the "CANCELLED"
+                chip alone took 76px of it. Every sibling here — status chip,
+                mute bell, last-active pill — is `shrink-0`, and `truncate`
+                sets the title's automatic minimum size to zero, so the title
+                absorbed the entire deficit and collapsed to 38px. "Crawfish
+                boil setup and teardown" rendered as "Crawfi…", which does not
+                identify a conversation. The annotations were winning space
+                from the thing they annotate.
+
+                A basis wider than the row forces the title onto its own line
+                when a chip is present, so both stay fully legible; the cost is
+                ~14px of height, and only on narrow screens with a chip. */}
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5">
               <p
-                className="text-ds-11 truncate font-serif italic"
+                className="flex-1 min-w-0 basis-[9rem] text-ds-11 truncate font-serif italic"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {c.jobTitle}

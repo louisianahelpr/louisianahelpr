@@ -47,7 +47,7 @@ export function CredentialTierSelector({
                   : {
                       background: "hsl(var(--parchment) / 0.7)",
                       border: "0.5px solid hsl(var(--olivewood) / 0.22)",
-                      boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+                      boxShadow: "var(--elev-inset-gloss)",
                     }
               }
             >

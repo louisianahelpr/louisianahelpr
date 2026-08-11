@@ -184,7 +184,7 @@ export function ActiveJobSection({
                         backgroundImage: "none",
                         border: "1px solid hsl(var(--bark))",
                         color: "hsl(var(--parchment))",
-                        boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                        boxShadow: "var(--elev-bark-raised)",
                       }
                     : undefined
                 }

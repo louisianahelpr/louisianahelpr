@@ -247,7 +247,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
             style={{
               background: "hsl(var(--burnt-sienna) / 0.08)",
               border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-              boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+              boxShadow: "var(--elev-inset-gloss)",
             }}
           >
             <ul

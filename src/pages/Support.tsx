@@ -149,7 +149,7 @@ const PageIntro = () => (
 const PANEL_STYLE = {
   background: "hsl(var(--burnt-sienna) / 0.04)",
   border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
-  boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+  boxShadow: "var(--elev-inset-hairline)",
 } as const;
 
 /** Inline field error — same shape as AddCalendarForm's budget error

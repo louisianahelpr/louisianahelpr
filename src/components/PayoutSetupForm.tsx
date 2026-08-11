@@ -201,7 +201,7 @@ export function PayoutSetupForm() {
           style={{
             background: "var(--surface-premium)",
             border: "0.5px solid hsl(var(--olivewood) / 0.10)",
-            boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+            boxShadow: "var(--elev-inset-gloss)",
           }}
         />
         <div
@@ -380,7 +380,7 @@ export function PayoutSetupForm() {
             style={{
               background: "hsl(var(--bark) / 0.06)",
               border: "0.5px solid hsl(var(--bark) / 0.20)",
-              boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45)",
+              boxShadow: "var(--elev-inset-gloss)",
             }}
           >
             <div className="flex items-center gap-2">

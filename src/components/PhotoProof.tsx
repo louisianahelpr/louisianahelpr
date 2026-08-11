@@ -139,7 +139,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                   className="relative w-20 h-20 rounded-2xl overflow-hidden group"
                   style={{
                     border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                    boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
+                    boxShadow: "var(--elev-card)",
                   }}
                 >
                   {src.startsWith("blob:") ? (
@@ -157,7 +157,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                     style={{
                       background: "hsl(var(--burnt-sienna))",
                       color: "hsl(var(--parchment))",
-                      boxShadow: "0 1px 4px hsl(var(--burnt-sienna) / 0.40)",
+                      boxShadow: "var(--elev-sienna-glow)",
                     }}
                   >
                     <X className="w-3 h-3" strokeWidth={2.5} />
@@ -217,7 +217,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                       backgroundImage: "none",
                       border: "1px solid hsl(var(--bark))",
                       color: "hsl(var(--parchment))",
-                      boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)",
+                      boxShadow: "var(--elev-bark-raised)",
                     }
                   : undefined
               }

@@ -345,7 +345,7 @@ export const DisputeTimelineDialog = ({
                 backgroundImage: "none",
                 border: "1px solid hsl(var(--burnt-sienna))",
                 color: "hsl(var(--parchment))",
-                boxShadow: "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)",
+                boxShadow: "var(--elev-sienna-raised)",
               }}
             >
               {submitting ? "Uploading…" : `Upload ${evidenceFiles.length} file${evidenceFiles.length === 1 ? "" : "s"}`}

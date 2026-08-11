@@ -353,7 +353,7 @@ export default function SubscriptionPage() {
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.06)",
                 border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
-                boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+                boxShadow: "var(--elev-inset-hairline)",
               }}
             >
               {(["monthly", "annual"] as const).map((cycle) => {
@@ -1015,7 +1015,7 @@ export default function SubscriptionPage() {
                   willChange: "opacity, transform",
                   background: "hsl(var(--burnt-sienna) / 0.04)",
                   border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
-                  boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+                  boxShadow: "var(--elev-inset-hairline)",
                 }}
               >
                 {/* No 01/02/03 numeral. These three are parallel BENEFITS of

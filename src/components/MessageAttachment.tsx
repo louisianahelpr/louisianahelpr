@@ -234,7 +234,7 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
           className="block max-w-xs overflow-hidden rounded-2xl active:scale-[0.98] transition-transform"
           style={{
             border: `0.5px solid ${mine ? "hsl(var(--parchment) / 0.18)" : "hsl(var(--olivewood) / 0.18)"}`,
-            boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
+            boxShadow: "var(--elev-card)",
           }}
           aria-label={`Open ${filename}`}
         >

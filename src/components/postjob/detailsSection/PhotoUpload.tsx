@@ -69,7 +69,7 @@ export function PhotoUpload({
                   className="relative w-20 h-20 rounded-2xl overflow-hidden touch-none"
                   style={{
                     border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                    boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
+                    boxShadow: "var(--elev-card)",
                   }}
                   whileDrag={reducedMotion ? {} : { scale: 1.05, zIndex: 5 }}
                 >
@@ -120,7 +120,7 @@ export function PhotoUpload({
                       style={{
                         background: "hsl(var(--burnt-sienna))",
                         color: "hsl(var(--parchment))",
-                        boxShadow: "0 1px 4px hsl(var(--burnt-sienna) / 0.40)",
+                        boxShadow: "var(--elev-sienna-glow)",
                       }}
                     >
                       <X className="w-3 h-3" strokeWidth={2.5} />
@@ -173,7 +173,7 @@ export function PhotoUpload({
                 className="relative w-20 h-20 rounded-2xl overflow-hidden"
                 style={{
                   border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                  boxShadow: "0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12)",
+                  boxShadow: "var(--elev-card)",
                 }}
               >
                 {/^blob:/i.test(src) ? (
@@ -209,7 +209,7 @@ export function PhotoUpload({
                     style={{
                       background: "hsl(var(--burnt-sienna))",
                       color: "hsl(var(--parchment))",
-                      boxShadow: "0 1px 4px hsl(var(--burnt-sienna) / 0.40)",
+                      boxShadow: "var(--elev-sienna-glow)",
                     }}
                   >
                     <X className="w-3 h-3" strokeWidth={2.5} />

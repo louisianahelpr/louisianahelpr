@@ -59,7 +59,7 @@ export function TitleField({
                 ? {
                     background: "hsl(var(--burnt-sienna))",
                     color: "hsl(var(--parchment))",
-                    boxShadow: "0 1px 4px hsl(var(--burnt-sienna) / 0.40)",
+                    boxShadow: "var(--elev-sienna-glow)",
                   }
                 : {
                     background: "hsl(var(--parchment) / 0.7)",

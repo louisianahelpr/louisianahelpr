@@ -173,7 +173,7 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
                       ? {
                           background: "hsl(var(--bark))",
                           color: "hsl(var(--parchment))",
-                          boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
+                          boxShadow: "var(--elev-bark-flat)",
                         }
                       : { color: "hsl(var(--olivewood) / 0.8)" }
                   }

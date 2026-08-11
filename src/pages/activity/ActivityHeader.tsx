@@ -125,7 +125,7 @@ export function ActivityHeader({
                               background: "hsl(var(--bark))",
                               color: "hsl(var(--parchment))",
                               borderColor: "hsl(var(--bark))",
-                              boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
+                              boxShadow: "var(--elev-bark-flat)",
                             }
                           : {
                               background: "hsl(var(--background))",

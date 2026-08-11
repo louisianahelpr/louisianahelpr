@@ -2734,3 +2734,36 @@ html.simple-mode *::after {
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
 }
+
+/* ── Elevation ladder ────────────────────────────────────────────────
+   205 inline `boxShadow:` declarations across src/ resolved to 51 DISTINCT
+   values — which is not a ladder, it is 51 one-off opinions about how far off
+   the page a thing sits. Two cards side by side could differ by a couple of
+   percent of alpha for no reason anyone could reconstruct.
+
+   These tokens name the values that were already repeating, so adopting them
+   is a pure rename: the declarations they replace were string-identical, and
+   the computed style is unchanged. That is the point — this commit buys a
+   vocabulary, not a new look. Narrowing the remaining one-offs ONTO this
+   ladder is a separate, visible change and should be judged as one.
+
+   Named by role, not by number: `--elev-raised` says what it is for, where
+   `--elev-3` only says it is more than two. */
+:root {
+  /* The hairline of light along a surface's top edge. By far the most
+     repeated value in the codebase (11 sites). */
+  --elev-inset-hairline: inset 0 1px 0 hsl(var(--parchment) / 0.5);
+  --elev-inset-gloss: inset 0 1px 1px 0 rgba(255, 255, 255, 0.45);
+
+  /* Bark — the primary action colour. Flat for a resting control, raised for
+     one that should read as lifted off the page. */
+  --elev-bark-flat: 0 1px 2px hsl(var(--bark) / 0.18);
+  --elev-bark-raised: 0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34);
+
+  /* Sienna — accent/destructive surfaces. */
+  --elev-sienna-glow: 0 1px 4px hsl(var(--burnt-sienna) / 0.40);
+  --elev-sienna-raised: 0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32);
+
+  /* Olivewood — neutral content cards. */
+  --elev-card: 0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12);
+}

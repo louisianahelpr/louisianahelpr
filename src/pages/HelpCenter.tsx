@@ -85,7 +85,7 @@ const TopicSection = ({
       style={{
         background: "hsl(var(--burnt-sienna) / 0.04)",
         border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
-        boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+        boxShadow: "var(--elev-inset-hairline)",
       }}
     >
       <button
@@ -423,7 +423,7 @@ const HelpCenter = () => {
                     willChange: "opacity, transform",
                     background: "hsl(var(--burnt-sienna) / 0.04)",
                     border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
-                    boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+                    boxShadow: "var(--elev-inset-hairline)",
                   }}
                 >
                   <span

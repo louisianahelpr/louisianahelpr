@@ -153,7 +153,7 @@ const HowItWorksSection = () => {
             style={{
               background: "hsl(var(--burnt-sienna) / 0.06)",
               border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
-              boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+              boxShadow: "var(--elev-inset-hairline)",
             }}
           >
             {(["hire", "work"] as const).map((s) => {
@@ -231,7 +231,7 @@ const HowItWorksSection = () => {
                   willChange: "opacity, transform",
                   background: "hsl(var(--burnt-sienna) / 0.04)",
                   border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
-                  boxShadow: "inset 0 1px 0 hsl(var(--parchment) / 0.5)",
+                  boxShadow: "var(--elev-inset-hairline)",
                 }}
               >
                 <span

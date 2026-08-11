@@ -210,7 +210,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                           background: "hsl(var(--bark))",
                           color: "hsl(var(--parchment))",
                           border: "0.5px solid hsl(var(--bark))",
-                          boxShadow: "0 1px 2px hsl(var(--bark) / 0.18)",
+                          boxShadow: "var(--elev-bark-flat)",
                         }
                       : {
                           background: "var(--surface-premium)",

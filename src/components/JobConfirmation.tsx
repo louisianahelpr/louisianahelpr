@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui
 import { CheckCircle2, Clock, AlertTriangle, ShieldCheck } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticSuccess } from "@/lib/haptics";
 
 export function JobConfirmation({
   jobId,
@@ -58,6 +58,7 @@ export function JobConfirmation({
       hapticError();
       toast.error("We couldn't confirm just now — please try again.");
     } else {
+      hapticSuccess();
       toast.success("Confirmed! You're committed to this job.");
       setLocalConfirmedAt(new Date().toISOString());
       onConfirm?.();

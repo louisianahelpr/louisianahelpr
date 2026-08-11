@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import type { Job, EnrichedApplication } from "./activityConstants";
@@ -93,11 +94,13 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      hapticSuccess();
       toast.success("Revision requested");
       props.setRevisionJobId(null);
       setRevisionNote("");
       props.onRevisionRequested();
     } catch (err) {
+      hapticError();
       toast.error(err instanceof Error ? err.message : "Couldn't request a revision — try again?");
     } finally {
       setRequestingRevision(false);

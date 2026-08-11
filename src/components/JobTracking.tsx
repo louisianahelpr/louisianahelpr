@@ -4,6 +4,7 @@ import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
 import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, ShieldCheck, AlertTriangle, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
@@ -210,6 +211,7 @@ export function JobTracking({
     // GPS proximity check for "arrived" — must be within 500ft of job location
     if (newStatus === "arrived") {
       if (!loc) {
+        hapticError();
         toast.error("Enable GPS in Settings to mark Arrived — then try again.");
         setUpdating(false);
         return;
@@ -219,6 +221,7 @@ export function JobTracking({
       if (job?.latitude && job?.longitude) {
         const dist = getDistanceFt(loc.lat, loc.lng, Number(job.latitude), Number(job.longitude));
         if (dist > 500) {
+          hapticError();
           toast.error(`You must be within 500ft of the job location to mark Arrived. You're about ${Math.round(dist)}ft away.`);
           setUpdating(false);
           return;
@@ -255,6 +258,7 @@ export function JobTracking({
         });
     if (writeErr) {
       report(writeErr, { tags: { source: "JobTracking.updateStatus" } });
+      hapticError();
       toast.error("Couldn't update your status — try again?");
       setUpdating(false);
       loadTracking();
@@ -268,6 +272,7 @@ export function JobTracking({
       const { error: doneErr } = await supabase.from("jobs").update({ helper_completed_at: now }).eq("id", jobId);
       if (doneErr) {
         report(doneErr, { tags: { source: "JobTracking.helperCompleted" } });
+        hapticError();
         toast.error("Couldn't mark the job complete — try again?");
         setUpdating(false);
         loadTracking();
@@ -304,6 +309,7 @@ export function JobTracking({
       }
     }
 
+    hapticSuccess();
     toast.success(`Status updated: ${STATUSES.find(s => s.key === newStatus)?.label}`);
     setUpdating(false);
     loadTracking();

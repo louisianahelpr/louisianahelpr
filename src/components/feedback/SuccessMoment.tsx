@@ -51,7 +51,7 @@ function SuccessCheck({ size = 88, reducedMotion }: SuccessCheckProps) {
         className="absolute inset-0 rounded-full"
         style={{
           background:
-            "radial-gradient(circle at 50% 50%, hsl(var(--gold-warm) / 0.45) 0%, hsl(var(--bark) / 0.18) 42%, transparent 72%)",
+            "radial-gradient(circle at 50% 50%, hsl(var(--burnt-sienna) / 0.45) 0%, hsl(var(--bark) / 0.18) 42%, transparent 72%)",
         }}
         initial={reducedMotion ? { opacity: 0.9, scale: 1 } : { opacity: 0, scale: 0.6 }}
         animate={

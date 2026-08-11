@@ -75,14 +75,14 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
                     background:
                       "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
                       "var(--surface-premium)",
-                    border: "0.5px solid hsl(var(--gold-warm) / 0.30)",
+                    border: "0.5px solid hsl(var(--burnt-sienna) / 0.30)",
                     color: "hsl(var(--ink-deep))",
                     letterSpacing: "-0.02em",
                     boxShadow:
                       "inset 0 1px 1px 0 rgba(255,255,255,0.55), " +
-                      "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22), " +
-                      "0 1px 2px hsl(var(--gold-warm) / 0.12), " +
-                      "0 6px 14px -4px hsl(var(--gold-warm) / 0.28)",
+                      "inset 0 0 0 0.5px hsl(var(--burnt-sienna) / 0.22), " +
+                      "0 1px 2px hsl(var(--burnt-sienna) / 0.12), " +
+                      "0 6px 14px -4px hsl(var(--burnt-sienna) / 0.28)",
                   }}
                   onClick={() => handleSend(amt)}
                   disabled={sending}

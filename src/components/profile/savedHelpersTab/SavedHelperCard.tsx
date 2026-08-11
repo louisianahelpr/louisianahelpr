@@ -116,8 +116,8 @@ export function SavedHelperCard({
         <div
           className="rounded-ds-md p-2.5 space-y-2"
           style={{
-            background: "hsl(var(--gold-warm) / 0.06)",
-            border: "1px solid hsl(var(--gold-warm) / 0.22)",
+            background: "hsl(var(--burnt-sienna) / 0.06)",
+            border: "1px solid hsl(var(--burnt-sienna) / 0.22)",
           }}
         >
           <textarea
@@ -157,8 +157,8 @@ export function SavedHelperCard({
           aria-label="Edit private note"
           className="w-full text-left rounded-ds-md p-2.5 flex gap-2 active:opacity-80 transition-opacity"
           style={{
-            background: "hsl(var(--gold-warm) / 0.06)",
-            border: "1px solid hsl(var(--gold-warm) / 0.22)",
+            background: "hsl(var(--burnt-sienna) / 0.06)",
+            border: "1px solid hsl(var(--burnt-sienna) / 0.22)",
           }}
         >
           <StickyNote className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />

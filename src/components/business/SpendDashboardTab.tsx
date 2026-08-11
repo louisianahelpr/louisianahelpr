@@ -202,7 +202,7 @@ export function SpendDashboardTab({
                 <Legend />
                 <Bar dataKey="Posted" fill="hsl(var(--bark))" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Paid" fill="hsl(var(--olivewood))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Escrow" fill="hsl(var(--gold-warm))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Escrow" fill="hsl(var(--amber-solid))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

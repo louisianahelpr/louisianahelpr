@@ -53,8 +53,8 @@ export function ChatComposer({
         <div
           className="flex items-start gap-2.5 rounded-ds-md px-3.5 py-3"
           style={{
-            background: "hsl(var(--gold-warm) / 0.10)",
-            border: "0.5px solid hsl(var(--gold-warm) / 0.30)",
+            background: "hsl(var(--amber-tint) / 0.10)",
+            border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
           }}
         >
           <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} aria-hidden="true" />

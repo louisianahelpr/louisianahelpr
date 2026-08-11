@@ -168,7 +168,7 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${Math.min(100, Math.round((referralCount / LADDER[LADDER.length - 1].goal) * 100))}%`,
-              background: "linear-gradient(90deg, hsl(var(--burnt-sienna)) 0%, hsl(var(--gold-warm)) 100%)",
+              background: "linear-gradient(90deg, hsl(var(--burnt-sienna)) 0%, hsl(var(--burnt-sienna)) 100%)",
             }}
           />
         </div>
@@ -187,12 +187,12 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
                   background: cleared
                     ? "hsl(var(--bark) / 0.10)"
                     : isNext
-                      ? "hsl(var(--gold-warm) / 0.10)"
+                      ? "hsl(var(--burnt-sienna) / 0.10)"
                       : "hsla(0, 0%, 100%, 0.45)",
                   border: cleared
                     ? "0.5px solid hsl(var(--bark) / 0.32)"
                     : isNext
-                      ? "0.5px solid hsl(var(--gold-warm) / 0.42)"
+                      ? "0.5px solid hsl(var(--burnt-sienna) / 0.42)"
                       : "0.5px solid hsl(var(--olivewood) / 0.14)",
                 }}
               >
@@ -202,7 +202,7 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
                     color: cleared
                       ? "hsl(var(--bark))"
                       : isNext
-                        ? "hsl(var(--gold-warm))"
+                        ? "hsl(var(--burnt-sienna))"
                         : "hsl(var(--olivewood) / 0.8)",
                   }}
                 />
@@ -260,7 +260,7 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${nextProgressPct}%`,
-                  background: "hsl(var(--gold-warm))",
+                  background: "hsl(var(--burnt-sienna))",
                 }}
               />
             </div>

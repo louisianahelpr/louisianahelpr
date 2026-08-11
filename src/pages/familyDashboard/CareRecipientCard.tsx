@@ -51,8 +51,8 @@ export function CareRecipientCard({
           <div className="flex items-center gap-1 mt-0.5">
             {isPending ? (
               <>
-                <Clock className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} />
-                <span className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--gold-warm))" }}>
+                <Clock className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))" }} />
+                <span className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--burnt-sienna))" }}>
                   Invite pending
                 </span>
               </>
@@ -123,8 +123,8 @@ export function CareRecipientCard({
             }}
             className="w-full flex items-center justify-center gap-1.5 h-9 rounded-ds-sm text-ds-12 font-sans font-medium transition-all active:scale-[0.98]"
             style={{
-              background: "hsl(var(--gold-warm) / 0.1)",
-              color: "hsl(var(--gold-warm))",
+              background: "hsl(var(--burnt-sienna) / 0.1)",
+              color: "hsl(var(--burnt-sienna))",
             }}
           >
             Copy invite link

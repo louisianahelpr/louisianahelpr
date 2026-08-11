@@ -24,14 +24,14 @@ export function CancellationFeePill({ job }: { job: Job }) {
         background: isCharged
           ? "hsl(var(--charged-tint))"
           : isPending
-          ? "hsl(var(--gold-warm) / 0.12)"
+          ? "hsl(var(--amber-tint) / 0.12)"
           : "hsl(var(--olivewood) / 0.08)",
         color: isCharged
           ? "hsl(var(--charged-ink))"
           : isPending
           ? "hsl(var(--amber-ink))"
           : "hsl(var(--olivewood))",
-        border: `0.5px solid ${isCharged ? "hsl(var(--charged-border))" : isPending ? "hsl(var(--gold-warm) / 0.30)" : "hsl(var(--olivewood) / 0.22)"}`,
+        border: `0.5px solid ${isCharged ? "hsl(var(--charged-border))" : isPending ? "hsl(var(--amber-tint) / 0.30)" : "hsl(var(--olivewood) / 0.22)"}`,
       }}
     >
       {label}

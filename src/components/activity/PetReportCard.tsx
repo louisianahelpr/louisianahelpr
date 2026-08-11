@@ -27,7 +27,7 @@ type ReportCard = Database["public"]["Tables"]["pet_report_cards"]["Row"];
 
 const MOODS = [
   { value: "happy", label: "Happy", icon: Laugh, color: "hsl(var(--bark))" },
-  { value: "playful", label: "Playful", icon: Zap, color: "hsl(var(--gold-warm))" },
+  { value: "playful", label: "Playful", icon: Zap, color: "hsl(var(--burnt-sienna))" },
   { value: "calm", label: "Calm", icon: Smile, color: "hsl(var(--sage))" },
   { value: "tired", label: "Tired", icon: Moon, color: "hsl(var(--olivewood) / 0.8)" },
   { value: "anxious", label: "Anxious", icon: Frown, color: "hsl(var(--burnt-sienna))" },

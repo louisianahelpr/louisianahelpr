@@ -161,8 +161,8 @@ export function AddCalendarForm({
       <div
         className="rounded-ds-md p-3 space-y-3"
         style={{
-          background: "hsl(var(--gold-warm) / 0.06)",
-          border: "0.5px solid hsl(var(--gold-warm) / 0.2)",
+          background: "hsl(var(--burnt-sienna) / 0.06)",
+          border: "0.5px solid hsl(var(--burnt-sienna) / 0.2)",
         }}
       >
         <div className="flex items-center justify-between">

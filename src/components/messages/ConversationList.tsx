@@ -481,9 +481,9 @@ export function ConversationList({
                               aria-label="Pinned"
                               className="absolute top-2 left-2 z-10 inline-flex items-center justify-center w-4 h-4 rounded-full pointer-events-none"
                               style={{
-                                background: "hsl(var(--gold-warm) / 0.9)",
+                                background: "hsl(var(--burnt-sienna) / 0.9)",
                                 boxShadow:
-                                  "0 1px 3px hsl(var(--gold-warm) / 0.45)",
+                                  "0 1px 3px hsl(var(--burnt-sienna) / 0.45)",
                               }}
                             >
                               <Pin

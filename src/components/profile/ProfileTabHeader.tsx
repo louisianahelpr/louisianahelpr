@@ -14,7 +14,13 @@ export function ProfileTabHeader({ title, onBack, rightSlot }: ProfileTabHeaderP
   // from the interface entirely so a caller can't pass copy that never renders.
   return (
     <div className="flex items-center gap-3 mb-3 shrink-0">
-      <BackButton onClick={onBack} />
+      {/* `ml-0` cancels BackButton's default `-ml-2`. That negative margin
+          optically aligns the arrow glyph with the content below it, which is
+          right on a full-width page — but this header renders inside a
+          `liquid-glass overflow-hidden` panel, so the 40px hover circle
+          overhung the panel's left edge and was visibly clipped on hover.
+          className is appended after the base classes, so this wins. */}
+      <BackButton onClick={onBack} className="ml-0" />
       <div className="flex flex-col leading-none min-w-0 flex-1">
         <h1
           className="font-display italic font-bold leading-tight truncate"

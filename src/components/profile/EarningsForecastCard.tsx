@@ -186,9 +186,9 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
         <div className="flex items-center gap-2.5">
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: "hsl(var(--gold-warm) / 0.14)" }}
+            style={{ background: "hsl(var(--burnt-sienna) / 0.14)" }}
           >
-            <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--gold-warm))" }} />
+            <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
           </div>
           <div className="min-w-0">
             <h3
@@ -226,9 +226,9 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
       <div className="flex items-center gap-2.5 mb-3">
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: "hsl(var(--gold-warm) / 0.14)" }}
+          style={{ background: "hsl(var(--burnt-sienna) / 0.14)" }}
         >
-          <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--gold-warm))" }} />
+          <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
         </div>
         <div className="min-w-0">
           <p
@@ -329,7 +329,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
               className="h-full rounded-full transition-[width] duration-500"
               style={{
                 width: `${pct}%`,
-                background: "hsl(var(--gold-warm))",
+                background: "hsl(var(--burnt-sienna))",
               }}
             />
           </div>

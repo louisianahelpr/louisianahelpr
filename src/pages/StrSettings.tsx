@@ -206,8 +206,8 @@ export default function StrSettings() {
               className="rounded-full flex items-center justify-center shrink-0"
               style={{
                 width: 44, height: 44,
-                background: "hsl(var(--gold-warm) / 0.12)",
-                border: "1.5px solid hsl(var(--gold-warm) / 0.3)",
+                background: "hsl(var(--burnt-sienna) / 0.12)",
+                border: "1.5px solid hsl(var(--burnt-sienna) / 0.3)",
               }}
             >
               <Home className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} />
@@ -239,8 +239,8 @@ export default function StrSettings() {
                 className="rounded-full flex items-center justify-center mb-3"
                 style={{
                   width: 44, height: 44,
-                  background: "hsl(var(--gold-warm) / 0.12)",
-                  border: "1.5px solid hsl(var(--gold-warm) / 0.3)",
+                  background: "hsl(var(--burnt-sienna) / 0.12)",
+                  border: "1.5px solid hsl(var(--burnt-sienna) / 0.3)",
                 }}
               >
                 <Home className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} />

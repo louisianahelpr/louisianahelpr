@@ -16,9 +16,9 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
       className="rounded-2xl p-4 flex items-start gap-3"
       style={{
         background:
-          "radial-gradient(70% 90% at 0% 0%, hsl(var(--gold-warm) / 0.16) 0%, transparent 60%), " +
+          "radial-gradient(70% 90% at 0% 0%, hsl(var(--amber-tint) / 0.16) 0%, transparent 60%), " +
           "hsla(0, 0%, 100%, 0.6)",
-        border: "0.5px solid hsl(var(--gold-warm) / 0.34)",
+        border: "0.5px solid hsl(var(--amber-tint) / 0.34)",
         boxShadow:
           "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
           "0 1px 2px hsl(var(--olivewood) / 0.05), " +
@@ -28,8 +28,8 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
       <span
         className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
         style={{
-          background: "hsl(var(--gold-warm) / 0.18)",
-          color: "hsl(var(--gold-warm))",
+          background: "hsl(var(--amber-tint) / 0.18)",
+          color: "hsl(var(--amber-tint))",
         }}
       >
         <FileCheck2 className="w-4 h-4" />

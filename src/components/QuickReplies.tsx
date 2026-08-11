@@ -152,8 +152,8 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus 
           size="sm"
           className="shrink-0 text-ds-11 min-h-[44px] px-2.5 gap-1 rounded-full"
           style={{
-            background: "hsl(var(--gold-warm) / 0.22)",
-            border: "1px solid hsl(var(--gold-warm) / 0.55)",
+            background: "hsl(var(--burnt-sienna) / 0.22)",
+            border: "1px solid hsl(var(--burnt-sienna) / 0.55)",
             color: "hsl(var(--ink-deep))",
           }}
           onClick={() => handlePick(qr)}

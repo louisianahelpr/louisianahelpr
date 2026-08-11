@@ -86,12 +86,12 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
               background:
                 "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
                 "var(--surface-premium)",
-              border: "0.5px solid hsl(var(--gold-warm) / 0.30)",
+              border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
               boxShadow:
                 "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
-                "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.28), " +
-                "0 1px 2px hsl(var(--gold-warm) / 0.12), " +
-                "0 8px 22px -6px hsl(var(--gold-warm) / 0.30)",
+                "inset 0 0 0 0.5px hsl(var(--amber-tint) / 0.28), " +
+                "0 1px 2px hsl(var(--amber-tint) / 0.12), " +
+                "0 8px 22px -6px hsl(var(--amber-tint) / 0.30)",
             }}
           >
             {isSubscriber ? (
@@ -127,7 +127,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                   to="/profile?tab=subscription"
                   onClick={onClose}
                   className="inline-flex items-center gap-1 mt-2 text-ds-12 font-sans font-semibold active:opacity-70"
-                  style={{ color: "hsl(var(--gold-warm))" }}
+                  style={{ color: "hsl(var(--amber-tint))" }}
                 >
                   <Sparkles className="w-3 h-3" /> Free with Elite · See plans
                 </Link>
@@ -148,8 +148,8 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                 <span
                   className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-ds-10 font-bold mt-0.5"
                   style={{
-                    background: "hsl(var(--gold-warm) / 0.18)",
-                    color: "hsl(var(--gold-warm))",
+                    background: "hsl(var(--amber-tint) / 0.18)",
+                    color: "hsl(var(--amber-tint))",
                   }}
                 >
                   ✓

@@ -148,7 +148,7 @@ export function useProfileLandingDerived({
           tint: "var(--sage)",
           incompleteLabel: !phoneVerified ? "Verify phone" : undefined,
         },
-        { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get", tint: "var(--gold-warm)" },
+        { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get", tint: "var(--stormy-sky)" },
         {
           key: "family",
           label: "Family & care",
@@ -218,7 +218,7 @@ export function useProfileLandingDerived({
     {
       title: "Money",
       items: [
-        { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports", tint: "var(--gold-warm)" },
+        { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports", tint: "var(--burnt-siennam)" },
         {
           key: "payment",
           label: "Payout & Payments",
@@ -229,13 +229,13 @@ export function useProfileLandingDerived({
           incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
         },
         { key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)", href: "/subscription" },
-        { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--gold-warm)" },
+        { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--burnt-sienna)" },
         {
           key: "work-record",
           label: "Work Record",
           icon: <FileText className="w-5 h-5" />,
           desc: "Shareable verified earnings document",
-          tint: "var(--gold-warm)",
+          tint: "var(--burnt-sienna)",
           href: "/work-record",
         },
       ],

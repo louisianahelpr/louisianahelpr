@@ -64,17 +64,17 @@ export function EarningsSparkline({
       className={className}
       preserveAspectRatio="none"
     >
-      <path d={areaPath} fill="hsl(var(--gold-warm) / 0.14)" stroke="none" />
+      <path d={areaPath} fill="hsl(var(--burnt-sienna) / 0.14)" stroke="none" />
       <path
         d={linePath}
         fill="none"
-        stroke="hsl(var(--gold-warm))"
+        stroke="hsl(var(--burnt-sienna))"
         strokeWidth={1.75}
         strokeLinejoin="round"
         strokeLinecap="round"
       />
       {/* End-point dot — anchors the eye on the most recent week. */}
-      <circle cx={last[0]} cy={last[1]} r={2} fill="hsl(var(--gold-warm))" />
+      <circle cx={last[0]} cy={last[1]} r={2} fill="hsl(var(--burnt-sienna))" />
     </svg>
   );
 }

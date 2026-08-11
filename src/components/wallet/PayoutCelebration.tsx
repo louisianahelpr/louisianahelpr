@@ -50,7 +50,7 @@ const AUTO_DISMISS_MS = 4000;
 
 /** Brand palette for the confetti dots. Pulled from CSS variables. */
 const PARTICLE_TOKENS = [
-  "--gold-warm",
+  "--burnt-sienna",
   "--bark",
   "--burnt-sienna",
 ] as const;
@@ -174,12 +174,12 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
           className="relative rounded-2xl liquid-glass p-4 overflow-hidden"
           style={{
             backgroundImage:
-              "radial-gradient(60% 90% at 100% 0%, hsl(var(--gold-warm) / 0.18) 0%, transparent 55%), " +
+              "radial-gradient(60% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.18) 0%, transparent 55%), " +
               "radial-gradient(70% 90% at 0% 100%, hsl(var(--burnt-sienna) / 0.12) 0%, transparent 60%)",
             boxShadow:
               "inset 0 1px 1px 0 rgba(255, 255, 255, 0.5), " +
               "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-              "0 16px 36px -10px hsl(var(--gold-warm) / 0.32)",
+              "0 16px 36px -10px hsl(var(--burnt-sienna) / 0.32)",
           }}
           onClick={dismiss}
         >
@@ -235,12 +235,12 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
             <div
               className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
               style={{
-                background: "hsl(var(--gold-warm) / 0.18)",
-                color: "hsl(var(--gold-warm))",
-                border: "0.5px solid hsl(var(--gold-warm) / 0.34)",
+                background: "hsl(var(--burnt-sienna) / 0.18)",
+                color: "hsl(var(--burnt-sienna))",
+                border: "0.5px solid hsl(var(--burnt-sienna) / 0.34)",
                 boxShadow:
                   "inset 0 1px 1px 0 rgba(255,255,255,0.55), " +
-                  "0 8px 18px -6px hsl(var(--gold-warm) / 0.32)",
+                  "0 8px 18px -6px hsl(var(--burnt-sienna) / 0.32)",
               }}
             >
               <Sparkles className="w-5 h-5" strokeWidth={1.75} />

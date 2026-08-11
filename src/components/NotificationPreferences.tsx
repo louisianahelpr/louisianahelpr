@@ -264,8 +264,8 @@ const NotificationPreferences = () => {
           <span
             className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
             style={{
-              background: "hsl(var(--gold-warm) / 0.14)",
-              color: "hsl(var(--gold-warm))",
+              background: "hsl(var(--burnt-sienna) / 0.14)",
+              color: "hsl(var(--burnt-sienna))",
             }}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />

@@ -133,8 +133,8 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               className="font-serif italic text-ds-13 leading-relaxed rounded-ds-md p-2.5"
               style={{
                 color: "hsl(var(--olivewood) / 0.85)",
-                background: "hsl(var(--gold-warm) / 0.10)",
-                border: "0.5px solid hsl(var(--gold-warm) / 0.30)",
+                background: "hsl(var(--amber-tint) / 0.10)",
+                border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
               }}
             >
               These fields are locked — a Helpr's already accepted this job.

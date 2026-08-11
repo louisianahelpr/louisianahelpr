@@ -68,7 +68,7 @@ export const TaxReserveCard = ({
       className="rounded-ds-md liquid-glass p-4 sm:p-5 space-y-4"
       style={{
         backgroundImage:
-          "radial-gradient(80% 90% at 100% 0%, hsl(var(--gold-warm) / 0.10) 0%, transparent 60%)",
+          "radial-gradient(80% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.10) 0%, transparent 60%)",
       }}
     >
       <div className="flex items-start justify-between gap-3">

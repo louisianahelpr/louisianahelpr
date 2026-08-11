@@ -66,11 +66,11 @@ export const AttachSourceSheet = ({
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center"
               style={{
-                background: "hsl(var(--gold-warm) / 0.18)",
-                border: "1px solid hsl(var(--gold-warm) / 0.32)",
+                background: "hsl(var(--burnt-sienna) / 0.18)",
+                border: "1px solid hsl(var(--burnt-sienna) / 0.32)",
               }}
             >
-              <ImageIcon className="w-4 h-4" style={{ color: "hsl(var(--gold-warm))" }} />
+              <ImageIcon className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
             </div>
             <span className="font-sans text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
               Library

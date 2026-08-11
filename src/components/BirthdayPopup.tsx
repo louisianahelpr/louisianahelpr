@@ -88,7 +88,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                   translate: "-50% -50%",
                   backgroundImage:
                     "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.12) 0%, transparent 55%), " +
-                    "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.14) 0%, transparent 60%)",
+                    "radial-gradient(60% 80% at 0% 100%, hsl(var(--burnt-sienna) / 0.14) 0%, transparent 60%)",
                   boxShadow:
                     "inset 0 1px 1px 0 rgba(255, 255, 255, 0.45), " +
                     "0 1px 2px hsl(var(--olivewood) / 0.06), " +
@@ -107,10 +107,10 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                 <div
                   className="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4"
                   style={{
-                    background: "hsl(var(--gold-warm) / 0.18)",
-                    color: "hsl(var(--gold-warm))",
-                    border: "0.5px solid hsl(var(--gold-warm) / 0.36)",
-                    boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 8px 22px -6px hsl(var(--gold-warm) / 0.30)",
+                    background: "hsl(var(--burnt-sienna) / 0.18)",
+                    color: "hsl(var(--burnt-sienna))",
+                    border: "0.5px solid hsl(var(--burnt-sienna) / 0.36)",
+                    boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 8px 22px -6px hsl(var(--burnt-sienna) / 0.30)",
                   }}
                 >
                   <Cake className="w-7 h-7" strokeWidth={1.75} />

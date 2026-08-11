@@ -91,7 +91,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
       {conn.auto_create_cleaning ? (
         <div
           className="flex items-center gap-2 rounded-ds-md px-3 py-2"
-          style={{ background: "hsl(var(--gold-warm) / 0.08)", border: "0.5px solid hsl(var(--gold-warm) / 0.2)" }}
+          style={{ background: "hsl(var(--burnt-sienna) / 0.08)", border: "0.5px solid hsl(var(--burnt-sienna) / 0.2)" }}
         >
           <Home className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
           <span style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>

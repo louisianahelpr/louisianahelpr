@@ -10,8 +10,8 @@ export function EmptyConnections() {
         className="rounded-full flex items-center justify-center"
         style={{
           width: 56, height: 56,
-          background: "hsl(var(--gold-warm) / 0.12)",
-          border: "1.5px solid hsl(var(--gold-warm) / 0.3)",
+          background: "hsl(var(--burnt-sienna) / 0.12)",
+          border: "1.5px solid hsl(var(--burnt-sienna) / 0.3)",
         }}
       >
         <CalendarDays className="w-7 h-7" style={{ color: "hsl(var(--bark))" }} />

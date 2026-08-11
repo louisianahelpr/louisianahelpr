@@ -24,9 +24,9 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
       className="px-4 py-3 space-y-2.5"
       onClick={(e) => e.stopPropagation()}
       style={{
-        borderTop: "0.5px solid hsl(var(--gold-warm) / 0.30)",
+        borderTop: "0.5px solid hsl(var(--amber-tint) / 0.30)",
         background:
-          "radial-gradient(80% 100% at 50% 0%, hsl(var(--gold-warm) / 0.10) 0%, transparent 60%)",
+          "radial-gradient(80% 100% at 50% 0%, hsl(var(--amber-tint) / 0.10) 0%, transparent 60%)",
       }}
     >
       {app.offer_message && (

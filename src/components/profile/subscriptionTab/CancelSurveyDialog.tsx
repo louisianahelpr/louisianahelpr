@@ -65,8 +65,8 @@ export const CancelSurveyDialog = ({
         <div
           className="rounded-ds-md p-3 mt-1"
           style={{
-            background: "hsl(var(--gold-warm) / 0.10)",
-            border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
+            background: "hsl(var(--amber-tint) / 0.10)",
+            border: "0.5px solid hsl(var(--amber-tint) / 0.32)",
           }}
         >
           <p

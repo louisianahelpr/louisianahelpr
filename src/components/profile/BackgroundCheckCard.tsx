@@ -83,13 +83,13 @@ export function BackgroundCheckCard({ status }: { status: string }) {
     return (
       <div
         className="rounded-2xl liquid-glass p-4 flex items-center gap-3"
-        style={{ border: "0.5px solid hsl(var(--gold-warm) / 0.35)" }}
+        style={{ border: "0.5px solid hsl(var(--amber-tint) / 0.35)" }}
       >
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: "hsl(var(--gold-warm) / 0.16)" }}
+          style={{ background: "hsl(var(--amber-tint) / 0.16)" }}
         >
-          <Clock className="w-5 h-5" style={{ color: "hsl(var(--gold-warm))" }} />
+          <Clock className="w-5 h-5" style={{ color: "hsl(var(--amber-tint))" }} />
         </div>
         <div>
           <p className="font-semibold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>

@@ -106,18 +106,18 @@ function SwipeableConversationRowBase({
           className="flex flex-col items-center gap-1 px-3 py-2 rounded-ds-md"
           style={{
             scale: pinScale,
-            background: "hsl(var(--gold-warm) / 0.18)",
-            border: "0.5px solid hsl(var(--gold-warm) / 0.42)",
+            background: "hsl(var(--burnt-sienna) / 0.18)",
+            border: "0.5px solid hsl(var(--burnt-sienna) / 0.42)",
           }}
         >
           {isPinned ? (
-            <PinOff className="w-5 h-5" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.4} />
+            <PinOff className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.4} />
           ) : (
-            <Pin className="w-5 h-5" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.4} />
+            <Pin className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.4} />
           )}
           <span
             className="text-ds-10 font-serif italic uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--gold-warm))" }}
+            style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             {isPinned ? "Unpin" : "Pin"}
           </span>

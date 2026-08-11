@@ -175,7 +175,7 @@ export default function FamilyAcceptPage() {
               border: "0.5px solid hsl(var(--sand) / 0.6)",
             }}
           >
-            <AlertTriangle className="w-10 h-10" style={{ color: "hsl(var(--gold-warm))" }} />
+            <AlertTriangle className="w-10 h-10" style={{ color: "hsl(var(--burnt-sienna))" }} />
             <p className="font-display italic font-semibold text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
               Invite unavailable
             </p>

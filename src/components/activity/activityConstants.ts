@@ -123,12 +123,26 @@ export type AppliedApp = Application & {
  * its active-filter indicator on a view the user had never filtered, and
  * "Clear all" would have reset to a status the page never opens on.
  *
- * "applied" opens on "all" deliberately. It is the only broad option on that
- * tab, and its grouped view keeps live applications in the ACTIVE section
- * above settled ones. Opening on a single status ("pending") meant a helper
- * whose applications had all been answered landed on an empty screen with
- * their whole history hidden behind a filter menu they had to find.
+ * Both tabs open on "active" (owner decision) so My Jobs and My Posts lead
+ * with the same word instead of one saying "Active" and the other "All".
+ *
+ * "active" is a BUCKET, not a single status — it folds every live item
+ * (applied / direct offer / awaiting response / accepted / in progress) into
+ * one list, defined by bucketAppliedApp and bucketPostedJob so it means the
+ * same thing here as in the grouped view's ACTIVE section.
+ *
+ * That bucket-not-status distinction is the whole point. My Jobs previously
+ * defaulted to "pending", a single status, so a helper whose applications had
+ * all been answered landed on an empty screen with their history hidden behind
+ * a filter menu they had to go find. A bucket degrades far more gracefully.
+ *
+ * It can still come up empty — every application sitting on a cancelled job
+ * does it. There is deliberately NO automatic fallback to "all" in that case
+ * (owner decision): a default that silently moves is harder to reason about
+ * than one that holds still. ActivityEmptyState covers it instead by naming
+ * where the items went ("Nothing under active — but you have 4 in Not
+ * Selected"), which is a pointer rather than a dead end.
  */
-export function defaultStatusFilterFor(tab: "posted" | "applied"): string {
-  return tab === "applied" ? "all" : "active";
+export function defaultStatusFilterFor(_tab: "posted" | "applied"): string {
+  return "active";
 }

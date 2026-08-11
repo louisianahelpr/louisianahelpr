@@ -57,6 +57,13 @@ export const POSTED_STATUS_FILTERS: StatusFilter[] = [
 ];
 
 export const APPLIED_STATUS_FILTERS: StatusFilter[] = [
+  // "Active" — the default landing view, mirroring POSTED_STATUS_FILTERS so
+  // My Jobs and My Posts open on the same word instead of one saying "Active"
+  // and the other "All". Folds every application that is still live (applied /
+  // direct offer / awaiting my response / accepted / in progress) into one
+  // flat list. Defined by `bucketAppliedApp`, so it means exactly what the
+  // grouped view's ACTIVE section means — one definition, not two.
+  { key: "active",       label: "Active",                       color: ALL_FILTER_COLOR },
   { key: "all",          label: "All",                          color: ALL_FILTER_COLOR },
   { key: "pending",      label: "Applied",                      color: DERIVED_PENDING_APPLIED },
   { key: "direct_offer", label: "Direct Offers",                color: DERIVED_DIRECT_OFFER },
@@ -136,6 +143,7 @@ export function useActivityFilters({
     return appliedApps.filter((a) => {
       let statusMatch = false;
       if (statusFilter === "all") statusMatch = true;
+      else if (statusFilter === "active") statusMatch = bucketAppliedApp(a) === "active";
       else if (statusFilter === "direct_offer") statusMatch = !!a.job?.offered_to_helper_id && a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending";
       else if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
       else if (statusFilter === "offered") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !a.job?.helper_confirmed_at;
@@ -157,8 +165,12 @@ export function useActivityFilters({
   }, [appliedApps, statusFilter, searchLower]);
 
   const appliedCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: appliedApps.length, pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0 };
+    const counts: Record<string, number> = { all: appliedApps.length, active: 0, pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0 };
     appliedApps.forEach((a) => {
+      // Counted separately from the chain below, not inside it: "active" is a
+      // BUCKET that overlaps several of the single-status counters, so it must
+      // not consume an `else if` branch and steal rows from them.
+      if (bucketAppliedApp(a) === "active") counts.active++;
       if (a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending") counts.direct_offer++;
       if (a.status === "pending" && a.job?.status !== "cancelled") counts.pending++;
       else if (a.status === "accepted" && a.job?.status === "accepted" && !a.job?.helper_confirmed_at) counts.offered++;

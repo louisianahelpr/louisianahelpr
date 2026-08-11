@@ -294,6 +294,19 @@ export function ChatTimeline({
             showReadReceipt={m.id === lastOwnMessageId}
             reactions={reactions?.get(m.id)}
             onReact={onReact}
+            replyParent={(() => {
+              // Resolved here rather than in the bubble so the lookup happens
+              // once per render pass with the full list in hand. A parent that
+              // is missing (deleted, or simply outside the loaded window)
+              // yields null and the reply renders as a normal message.
+              if (!m.reply_to_id) return null;
+              const parent = timeline.find(
+                (t): t is Extract<TimelineItem, { message: Message }> =>
+                  "message" in t && t.message?.id === m.reply_to_id,
+              )?.message;
+              if (!parent) return null;
+              return { content: parent.content, mine: parent.sender_id === userId };
+            })()}
             grouped={grouped}
             activeConvo={activeConvo}
             retryMessage={retryMessage}

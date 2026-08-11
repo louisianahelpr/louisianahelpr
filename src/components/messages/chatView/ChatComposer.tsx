@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import { Lock } from "lucide-react";
+import { Lock, X } from "lucide-react";
 import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
 import { FirstMessageChips } from "../FirstMessageChips";
@@ -23,6 +23,8 @@ export function ChatComposer({
   setChipsDismissed,
   sendMessage,
   broadcastTyping,
+  replyTo,
+  onCancelReply,
 }: {
   composerLocked: boolean;
   chatLoadError: boolean;
@@ -37,8 +39,12 @@ export function ChatComposer({
   sendMessage: (
     content: string,
     attachment?: { path: string; mime: string; size: number; duration?: number },
+    replyToId?: string | null,
   ) => Promise<boolean>;
   broadcastTyping: () => void;
+  /** Message being replied to, or null. Owned by ChatView. */
+  replyTo?: Message | null;
+  onCancelReply?: () => void;
 }) {
   if (composerLocked) {
     /* Poster-first lock — the applicant waits for the poster to
@@ -133,6 +139,34 @@ export function ChatComposer({
         );
       })()}
 
+      {/* Reply strip — the quoted message sits directly above the input, so
+          what you are answering is visible while you type it. Dismissible,
+          because deciding mid-sentence not to make it a reply is common. */}
+      {replyTo && (
+        <div
+          className="flex items-start gap-2 mb-1.5 px-3 py-2 rounded-ds-md"
+          style={{ background: "hsl(var(--olivewood) / 0.07)", borderLeft: "2.5px solid hsl(var(--bark))" }}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-ds-10 font-sans font-semibold" style={{ color: "hsl(var(--bark))" }}>
+              Replying to {replyTo.sender_id === userId ? "yourself" : (activeConvo?.otherUserName ?? "them")}
+            </p>
+            <p className="text-ds-11 truncate font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+              {replyTo.content?.trim() || "Attachment"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCancelReply}
+            aria-label="Cancel reply"
+            className="shrink-0 h-8 w-8 -mr-1 -mt-1 inline-flex items-center justify-center rounded-full"
+            style={{ color: "hsl(var(--olivewood))" }}
+          >
+            <X className="w-4 h-4" strokeWidth={2} />
+          </button>
+        </div>
+      )}
+
       <RichMessageInput
         value={draft}
         onChange={setDraft}
@@ -143,7 +177,11 @@ export function ChatComposer({
           // restore the typed text so a blocked message isn't
           // silently lost — the user keeps what they wrote and a
           // toast explains why it didn't send.
-          const accepted = await sendMessage(content, attachment);
+          const accepted = await sendMessage(content, attachment, replyTo?.id ?? null);
+          // Only clear the reply once the message was actually accepted. If the
+          // content scan blocked it, the user keeps both their text AND the
+          // message they were replying to, so retrying is one tap.
+          if (accepted) onCancelReply?.();
           if (!accepted && content.trim()) setDraft(content);
         }}
         onTyping={broadcastTyping}

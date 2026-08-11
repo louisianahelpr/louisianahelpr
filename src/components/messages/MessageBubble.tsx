@@ -80,6 +80,7 @@ export function MessageBubble({
   showReadReceipt,
   reactions,
   onReact,
+  replyParent,
   grouped = false,
   activeConvo,
   retryMessage,
@@ -96,6 +97,10 @@ export function MessageBubble({
   showReadReceipt: boolean;
   /** Grouped tapbacks for this message, or undefined when it has none. */
   reactions?: { counts: { emoji: string; count: number }[]; mine: string | null };
+  /** The message this one replies to, already resolved by the timeline.
+   *  Undefined when this isn't a reply, or when the parent was deleted —
+   *  the FK is ON DELETE SET NULL, so a reply outlives its parent. */
+  replyParent?: { content: string; mine: boolean } | null;
   /** Toggle the viewer's tapback — used by the chips as a one-tap undo. */
   onReact?: (messageId: string, emoji: string) => void;
   /** True when the previous timeline row is a message from the same
@@ -167,6 +172,28 @@ export function MessageBubble({
             duration={m.attachment_duration}
             mine={mine}
           />
+        )}
+        {/* Quoted parent — inside the bubble and above the content, so the
+            reply reads as one unit rather than two stacked messages. Clamped
+            to two lines: it is a pointer back, not a re-read. */}
+        {replyParent && (
+          <div
+            className="mb-1.5 pl-2 py-0.5"
+            style={{ borderLeft: `2px solid ${mine ? "hsl(var(--parchment) / 0.55)" : "hsl(var(--bark) / 0.45)"}` }}
+          >
+            <p
+              className="text-ds-10 font-sans font-semibold leading-none mb-0.5"
+              style={{ color: mine ? "hsl(var(--parchment) / 0.85)" : "hsl(var(--bark))" }}
+            >
+              {replyParent.mine ? "You" : "Them"}
+            </p>
+            <p
+              className="text-ds-11 font-serif italic leading-snug line-clamp-2"
+              style={{ color: mine ? "hsl(var(--parchment) / 0.80)" : "hsl(var(--olivewood) / 0.85)" }}
+            >
+              {replyParent.content?.trim() || "Attachment"}
+            </p>
+          </div>
         )}
         {m.content && renderMessageContent(m.content, setLightboxPhoto)}
       </div>

@@ -159,6 +159,9 @@ export function ChatView({
   // Tapbacks for the open thread. Scoped by job so the realtime subscription
   // can be filtered server-side (see useMessageReactions).
   const { reactions, react } = useMessageReactions(activeConvo?.jobId ?? null, userId);
+  // The message being replied to. Cleared once a reply actually sends (the
+  // composer only clears on acceptance, so a blocked message keeps its reply).
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
   // Once the user taps any first-message chip the row hides for the rest
   // of this conversation — it's only meant to break the empty-thread
   // ice, not stick around as the chat actually starts.
@@ -302,6 +305,8 @@ export function ChatView({
             setChipsDismissed={setChipsDismissed}
             sendMessage={sendMessage}
             broadcastTyping={broadcastTyping}
+            replyTo={replyTo}
+            onCancelReply={() => setReplyTo(null)}
           />
         </div>
       <PhotoLightbox
@@ -337,6 +342,7 @@ export function ChatView({
         onDelete={setDeleteMessageConfirm}
         onReact={react}
         myReaction={actionMessage ? (reactions.get(actionMessage.id)?.mine ?? null) : null}
+        onReply={setReplyTo}
       />
     </ChatPaneShell>
   );

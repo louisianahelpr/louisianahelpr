@@ -17,6 +17,9 @@ export type Message = {
   attachment_size: number | null;
   /** Duration in seconds — only set for audio/voice-note messages. */
   attachment_duration: number | null;
+  /** Message this one replies to, or null. FK is ON DELETE SET NULL, so a
+   *  reply survives its parent being deleted — it just stops quoting. */
+  reply_to_id?: string | null;
   /**
    * Optimistic-send bookkeeping. Absent on rows loaded from the DB or
    * received over realtime — present only on bubbles the local user has

@@ -116,6 +116,10 @@ export function createSendHandlers({
         ...(optimistic.attachment_duration != null
           ? { attachment_duration: optimistic.attachment_duration }
           : {}),
+        // Same defensive spread as attachment_duration: omitted entirely when
+        // absent so the insert still succeeds against a database that predates
+        // the reply_to_id column.
+        ...(optimistic.reply_to_id ? { reply_to_id: optimistic.reply_to_id } : {}),
       })
       .select("*")
       .single();
@@ -158,6 +162,7 @@ export function createSendHandlers({
   const sendMessage = async (
     content: string,
     attachment?: { path: string; mime: string; size: number; duration?: number },
+    replyToId?: string | null,
   ): Promise<boolean> => {
     if (!requireOnline()) return false;
     if (!activeConvo || !userId) return false;
@@ -201,6 +206,7 @@ export function createSendHandlers({
       attachment_mime: attachment?.mime ?? null,
       attachment_size: attachment?.size ?? null,
       attachment_duration: attachment?.duration ?? null,
+      reply_to_id: replyToId ?? null,
       clientId,
       sendStatus: "sending",
     };

@@ -72,7 +72,6 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
       <CheckoutStep
         title={form.title}
         description={form.description}
-        category={form.category}
         categoryLabel={form.categoryLabel}
         imagePreviews={form.imagePreviews}
         streetAddress={form.streetAddress}

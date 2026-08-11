@@ -4,14 +4,19 @@ import { Lock, CheckCircle2, Wallet, Shield } from "lucide-react";
  * Inline, always-visible Stripe escrow explainer for the Post-a-Task
  * checkout step.
  *
- * Unlike the small `EscrowExplainer` pill + popover (which is a soft
- * nudge only first-time customers expand), this card is laid out
- * inline above the confirmation checkbox so every poster sees the
+ * Laid out inline above the confirmation checkbox so every poster sees the
  * full hold → verify → release flow before they consent to charge.
  *
- * No state: pure presentational. The "Held in escrow until complete"
- * pill from `EscrowExplainer` still renders inside the order-summary
- * card so the totals row keeps its passive reassurance signal.
+ * No state: pure presentational.
+ *
+ * This is now the ONLY expanded escrow explanation on checkout. The screen
+ * previously said the same thing five times — this card, an `EscrowExplainer`
+ * pill + auto-opening popover in the order summary, a duplicate sentence
+ * beneath it, the confirmation checkbox, and the microline under the pay
+ * button. The pill and the duplicate sentence were removed; this card
+ * survived because it TEACHES (three concrete steps) rather than merely
+ * reassuring, and the microline survived because it does the same work in
+ * one good line. `EscrowExplainer` itself is now unreferenced by the app.
  */
 export function EscrowFlowExplainer() {
   return (

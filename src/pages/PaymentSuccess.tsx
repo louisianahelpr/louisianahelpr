@@ -29,6 +29,7 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { report } from "@/lib/errorLogger";
 import { safeStorage } from "@/lib/safeStorage";
 import { formatPrice } from "@/lib/format";
+import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 
 // Visual lifecycle preview — replaces the dense paragraph that used to
 // sit in this same slot. Keeps the same content (4 stages from job-state
@@ -58,6 +59,9 @@ const PaymentSuccess = () => {
   // semantics. Null until loaded (or if the job can't be read), in which
   // case the amount line is simply omitted.
   const [escrowAmount, setEscrowAmount] = useState<number | null>(null);
+  // Job category, read in the same lookup, purely to pick the materials list.
+  // Null (or a category with no entry in categoryMaterials) renders nothing.
+  const [category, setCategory] = useState<string | null>(null);
 
   // Share the just-posted job. Follows the same Capacitor → Web Share →
   // clipboard tiered fallback as the existing ShareJobButton — repeated
@@ -118,7 +122,7 @@ const PaymentSuccess = () => {
     void (async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select("budget")
+        .select("budget, category")
         .eq("id", resolvedJobId)
         .maybeSingle();
       if (cancelled) return;
@@ -127,6 +131,7 @@ const PaymentSuccess = () => {
         return;
       }
       if (typeof data?.budget === "number") setEscrowAmount(data.budget);
+      if (typeof data?.category === "string") setCategory(data.category);
     })();
     return () => { cancelled = true; };
   }, [resolvedJobId]);
@@ -292,6 +297,21 @@ const PaymentSuccess = () => {
             Back to dashboard
           </Button>
         </div>
+
+        {/* "You might need: …" — moved here from the checkout screen, where it
+            sat between the running total and the pay button.
+
+            It carries an affiliate disclosure, so its placement is an ethics
+            question, not just a layout one: before payment it was the app
+            selling the poster something else mid-decision. Here the job is
+            already posted and paid, so the same list reads as prep.
+
+            Deliberately BELOW the CTAs. The reason it was wrong on checkout
+            was that it outranked the real action; putting it above "View
+            applicants" would repeat that mistake on a new screen. It renders
+            collapsed (one row) and returns null for categories with no
+            materials, so it costs almost nothing when it isn't wanted. */}
+        {category && <MaterialsPanel category={category} className="mt-6 text-left" />}
       </div>
     </AuthShell>
   );

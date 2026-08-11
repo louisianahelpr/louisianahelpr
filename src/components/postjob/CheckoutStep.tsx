@@ -17,9 +17,7 @@ import {
   Loader2,
 } from "lucide-react";
 import type { HelprActivity } from "@/hooks/useHelprActivity";
-import { EscrowExplainer } from "@/components/payment/EscrowExplainer";
 import { EscrowFlowExplainer } from "@/components/payment/EscrowFlowExplainer";
-import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { formatPrice } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
 
@@ -36,8 +34,6 @@ const isSafeBlobPreviewUrl = (value: string): boolean => {
 interface CheckoutStepProps {
   title: string;
   description: string;
-  /** Raw category value (e.g. "moving") — used to show the materials panel. */
-  category: string;
   categoryLabel: string;
   imagePreviews: string[];
   streetAddress: string;
@@ -86,7 +82,6 @@ interface CheckoutStepProps {
 export function CheckoutStep({
   title,
   description,
-  category,
   categoryLabel,
   imagePreviews,
   streetAddress,
@@ -168,7 +163,7 @@ export function CheckoutStep({
             <div className="px-4 py-3 flex items-start gap-3">
               <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5">Details</span>
               <p
-                className="flex-1 text-ds-11 text-foreground leading-relaxed line-clamp-3"
+                className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3"
                 style={{ wordBreak: "break-word" }}
               >
                 {description}
@@ -215,7 +210,7 @@ export function CheckoutStep({
             <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
               <MapPin className="w-3 h-3" />Location
             </span>
-            <p className="flex-1 text-ds-11 text-foreground text-right">
+            <p className="flex-1 text-ds-13 text-foreground text-right">
               {[streetAddress, city, addrState, zipCode].filter(Boolean).join(", ")}
               {parish ? ` · ${parish} Parish` : ""}
             </p>
@@ -227,7 +222,7 @@ export function CheckoutStep({
               <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
                 <Calendar className="w-3 h-3" />When
               </span>
-              <p className="flex-1 text-ds-11 text-foreground text-right">
+              <p className="flex-1 text-ds-13 text-foreground text-right">
                 {formatJobDate(dateNeeded)}
                 {isFlexibleSchedule ? " · Flexible" : startTime ? ` · ${startTime}` : ""}
                 {estimatedHours ? ` · ${estimatedHours}h est.` : ""}
@@ -241,7 +236,7 @@ export function CheckoutStep({
               <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
                 <Repeat className="w-3 h-3" />Repeats
               </span>
-              <p className="flex-1 text-ds-11 text-foreground text-right capitalize">
+              <p className="flex-1 text-ds-13 text-foreground text-right capitalize">
                 {recurrenceInterval}
                 {recurrenceEndDate ? ` until ${formatJobDate(recurrenceEndDate)}` : ""}
               </p>
@@ -276,7 +271,7 @@ export function CheckoutStep({
           {specialRequirements && (
             <div className="px-4 py-3 flex items-start gap-3">
               <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5">Notes</span>
-              <p className="flex-1 text-ds-11 text-foreground text-right line-clamp-2">
+              <p className="flex-1 text-ds-13 text-foreground text-right line-clamp-2">
                 {specialRequirements}
               </p>
             </div>
@@ -350,19 +345,40 @@ export function CheckoutStep({
             <span className="font-semibold text-foreground">Estimated total (excl. tax)</span>
             <span className="text-ds-20 font-bold text-foreground">${formatPrice(totalCharge)}</span>
           </div>
-          {/* First-time escrow reassurance — inline pill + info popover.
-              The pill stays for everyone (passive reassurance); the
-              popover auto-opens once, then suppresses via safeStorage. */}
-          <div className="pt-1">
-            <EscrowExplainer />
-          </div>
-          <p className="text-muted-foreground text-ds-11">Sales tax is automatically calculated based on your location at checkout. Payment is held securely until both parties confirm job completion.</p>
+          {/* Escrow was explained FIVE times on this one screen: this pill and
+              its auto-opening popover, the sentence below it, the three-step
+              EscrowFlowExplainer panel, the confirmation checkbox, and the
+              microline under the pay button. Each was presumably added because
+              the previous one wasn't landing — but repeated reassurance stops
+              reading as confidence and starts reading as protesting too much.
+              The screen sounded nervous about its own payment flow.
+
+              Two survive, and they're the two that do different jobs: the
+              three-step panel below (teaches a first-time poster what their
+              money is actually doing) and the microline under the CTA (the
+              best writing on the screen — it carries the weight in one line).
+              The pill + popover and the duplicate sentence are gone.
+
+              The confirmation checkbox keeps its escrow wording deliberately:
+              that is a consent record, not reassurance, and trimming it would
+              weaken what the poster actually agreed to. */}
+          <p className="text-muted-foreground text-ds-11">Sales tax is automatically calculated based on your location at checkout.</p>
         </div>
       </div>
 
-      {/* Shop the Job — category-specific materials panel. Only renders
-          when the category has items in categoryMaterials. */}
-      <MaterialsPanel category={category} className="mt-4" />
+      {/* MaterialsPanel ("You might need: …") used to sit right here, between
+          the total and the pay button. It has moved to PaymentSuccess.
+
+          It is an AFFILIATE panel — it carries "Helpr may earn a small
+          commission on purchases via these links." Putting it between the
+          price and the pay button meant the app was selling the poster
+          something else at the exact moment they were deciding whether to
+          commit to the job. It also pushed the actual payment controls
+          further down a screen that already had too much on it.
+
+          After payment it does the same job honestly: the poster has
+          committed, and "here's what this kind of job usually needs" is
+          genuinely useful prep rather than a distraction from checkout. */}
 
       {/* Trust Signals — replaced the previous two-icon strip ("Secure
           Payment" / "Money-Back Guarantee") with a full inline explainer
@@ -399,9 +415,26 @@ export function CheckoutStep({
       {/* Preferred helper shortcut — shown when the poster has a trusted
           repeat helper. Lets them route this job to that helper first
           before broadcasting to all. Preference stored in job metadata. */}
+      {/* This row used to use a RAW `<input type="checkbox">` with an
+          `accent-` colour, inside a plain `<div>`. That made three different
+          control types on one checkout screen — a Switch above, a native
+          checkbox here, the design-system Checkbox below — for choices that
+          are all just "on or off".
+
+          It was also the only one that wasn't accessible: 20×20px with no
+          wrapping label, so the tap target was the box itself. The
+          confirmation card immediately below already solved exactly this
+          (its comment explains the full-card `<label>` trick for WCAG 2.5.5)
+          — this row simply never got the same treatment.
+
+          Now a `<label>` + the shared Checkbox, matching that card. Two
+          control types remain, and the split is meaningful rather than
+          accidental: Switch for a sticky account PREFERENCE ("save card for
+          next time"), Checkbox for a per-job CHOICE or consent. */}
       {preferredHelper && onSendToPreferredChange && (
-        <div
-          className="rounded-ds-md p-3 flex items-center gap-2.5"
+        <label
+          htmlFor="send-to-preferred"
+          className="rounded-ds-md p-3 flex items-center gap-2.5 cursor-pointer min-h-[44px]"
           style={{
             background: "hsl(var(--bark) / 0.06)",
             border: "0.5px solid hsl(var(--bark) / 0.15)",
@@ -422,14 +455,13 @@ export function CheckoutStep({
               Your trusted helper from past jobs
             </p>
           </div>
-          <input
-            type="checkbox"
+          <Checkbox
+            id="send-to-preferred"
             checked={!!sendToPreferred}
-            onChange={(e) => onSendToPreferredChange(e.target.checked)}
-            className="w-5 h-5 accent-[hsl(var(--bark))] cursor-pointer"
-            aria-label={`Send to ${preferredHelper.name ?? "trusted helper"} first`}
+            onCheckedChange={(checked) => onSendToPreferredChange(checked === true)}
+            className="shrink-0"
           />
-        </div>
+        </label>
       )}
 
       {/* Confirmation Checkbox — the full card is a <label> so tapping

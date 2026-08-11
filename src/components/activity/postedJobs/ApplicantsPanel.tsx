@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil, Play, Plus, Sparkles, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { AttachmentLink } from "@/components/AttachmentLink";
-import { hapticLight } from "@/lib/haptics";
+import { hapticLight, hapticSuccess, hapticError } from "@/lib/haptics";
 import { type Job, type EnrichedApplication } from "../activityConstants";
 import { callUntypedRpc, type ApplicantBidFields } from "./postedJobsHelpers";
 import { useApplicantComparison } from "./useApplicantComparison";
@@ -81,6 +81,7 @@ export function ApplicantsPanel({
         p_counter_price: counterPrice,
       });
       if (error) {
+        hapticError();
         if (error.code === "PGRST202") {
           toast.error("Couldn't send your counter right now — try again?");
         } else {
@@ -88,12 +89,14 @@ export function ApplicantsPanel({
         }
         return;
       }
+      hapticSuccess();
       toast.success("Counter sent! Waiting for the Helpr's response.");
       // Optimistic update so the UI reflects the sent counter immediately.
       setLocalNegotiation((prev) => ({ ...prev, [appId]: { status: "countered", price: counterPrice } }));
       setCounterShowing(null);
       setCounterInputs((prev) => { const next = { ...prev }; delete next[appId]; return next; });
     } catch {
+      hapticError();
       toast.error("Couldn't send that — try again?");
     } finally {
       setCounterSending(false);

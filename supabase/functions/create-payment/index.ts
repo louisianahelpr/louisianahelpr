@@ -927,10 +927,9 @@ serve(async (req) => {
       // receives a "Refund issued" notification — data corruption with $0 returned.
       // admin_release_dispute has this same guard (line ~816); keep them in sync.
       if (!paymentIntentId) throw new Error("No payment intent found for this job — cannot issue refund");
-      if (paymentIntentId) {
-        try {
-          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-          if (pi.status === "succeeded") {
+      try {
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        if (pi.status === "succeeded") {
             // The poster WON the dispute, so they get the budget + service fee
             // back — but Stripe's 2.9%+$0.30 on the original capture is NOT
             // returned on a refund, so a full refund would leave the platform
@@ -1035,7 +1034,6 @@ serve(async (req) => {
           console.error("[create-payment] admin_refund_dispute — refund error:", e);
           throw e;
         }
-      }
 
       // Refund is out — same fail-loud rule as admin_release_dispute above.
       const { error: refundUpdateErr } = await supabaseAdmin.from("jobs").update({
@@ -1108,74 +1106,72 @@ serve(async (req) => {
       if (!paymentIntentId) {
         throw new Error("No payment intent found for this job — cannot issue refund. If the job was never paid, no Stripe refund is needed.");
       }
-      if (paymentIntentId) {
-        try {
-          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-          if (pi.status === "succeeded") {
-            // Sequence number for the partial-refund idempotency key, derived
-            // from Stripe's OWN refund history for this PaymentIntent.
-            //
-            // The key used to be salted with `Math.floor(Date.now()/600_000)`,
-            // so a double-click that straddled the 10-minute boundary issued
-            // TWO refunds against one charge. Counting existing refunds instead
-            // removes wall-clock from the key entirely: a retry of the same
-            // intent sees the same count and collapses onto one refund, while a
-            // deliberate later partial sees an incremented count and correctly
-            // gets its own key.
-            const priorRefunds = await stripe.refunds.list({
-              payment_intent: paymentIntentId,
-              limit: 100,
-            });
-            const refundSeq = priorRefunds.data.length;
+      try {
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        if (pi.status === "succeeded") {
+          // Sequence number for the partial-refund idempotency key, derived
+          // from Stripe's OWN refund history for this PaymentIntent.
+          //
+          // The key used to be salted with `Math.floor(Date.now()/600_000)`,
+          // so a double-click that straddled the 10-minute boundary issued
+          // TWO refunds against one charge. Counting existing refunds instead
+          // removes wall-clock from the key entirely: a retry of the same
+          // intent sees the same count and collapses onto one refund, while a
+          // deliberate later partial sees an incremented count and correctly
+          // gets its own key.
+          const priorRefunds = await stripe.refunds.list({
+            payment_intent: paymentIntentId,
+            limit: 100,
+          });
+          const refundSeq = priorRefunds.data.length;
 
-            const refund = await stripe.refunds.create({
-              payment_intent: paymentIntentId,
-              ...(isPartial ? { amount: requestedCents } : {}),
-              metadata: {
-                reason: reason || (isPartial ? "admin_partial_refund" : "admin_general_refund"),
-                admin_user_id: user.id,
-                partial: String(isPartial),
-              },
-            }, {
-              // Full refund: deduped within Stripe's ~24h key lifetime; after
-              // expiry a repeat is rejected with charge_already_refunded.
-              // Partial: keyed on the refund sequence (see refundSeq above) so
-              // retries collapse regardless of elapsed time, with no wall-clock
-              // component that a slow retry can cross.
-              idempotencyKey: isPartial
-                ? `refund-general-${jobId}-${requestedCents}-seq${refundSeq}`
-                : `refund-general-${jobId}-full`,
-            });
-            await recordRefund(supabaseAdmin, {
-              refund,
-              jobId,
-              customerId: job.customer_id,
-              paymentIntentId,
-              source: "admin_refund_general",
-              isPartial,
-              reason: reason || null,
-              initiatedByUserId: user.id,
-            });
-          } else {
-            // PI not succeeded — no money was captured, so marking the job
-            // "refunded" with no actual refund would notify the customer of
-            // money they'll never receive. Abort loudly; mirrors
-            // admin_refund_dispute's PI-status guard above.
-            await postSlackOpsAlert({
-              kind: "custom",
-              severity: "warning",
-              title: "General refund aborted — PaymentIntent not succeeded",
-              message: `admin_refund_general found the PaymentIntent in status "${pi.status}" (expected "succeeded"). No refund issued; job left unchanged for manual review.`,
-              fields: { job_id: jobId, payment_intent: paymentIntentId, pi_status: pi.status },
-            });
-            throw new Error(
-              `admin_refund_general: PaymentIntent ${paymentIntentId} status is "${pi.status}", not "succeeded" — aborting, no refund for job ${jobId}.`,
-            );
-          }
-        } catch (e) {
-          console.error("[create-payment] admin_refund_general — refund error:", e);
-          throw e;
+          const refund = await stripe.refunds.create({
+            payment_intent: paymentIntentId,
+            ...(isPartial ? { amount: requestedCents } : {}),
+            metadata: {
+              reason: reason || (isPartial ? "admin_partial_refund" : "admin_general_refund"),
+              admin_user_id: user.id,
+              partial: String(isPartial),
+            },
+          }, {
+            // Full refund: deduped within Stripe's ~24h key lifetime; after
+            // expiry a repeat is rejected with charge_already_refunded.
+            // Partial: keyed on the refund sequence (see refundSeq above) so
+            // retries collapse regardless of elapsed time, with no wall-clock
+            // component that a slow retry can cross.
+            idempotencyKey: isPartial
+              ? `refund-general-${jobId}-${requestedCents}-seq${refundSeq}`
+              : `refund-general-${jobId}-full`,
+          });
+          await recordRefund(supabaseAdmin, {
+            refund,
+            jobId,
+            customerId: job.customer_id,
+            paymentIntentId,
+            source: "admin_refund_general",
+            isPartial,
+            reason: reason || null,
+            initiatedByUserId: user.id,
+          });
+        } else {
+          // PI not succeeded — no money was captured, so marking the job
+          // "refunded" with no actual refund would notify the customer of
+          // money they'll never receive. Abort loudly; mirrors
+          // admin_refund_dispute's PI-status guard above.
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "warning",
+            title: "General refund aborted — PaymentIntent not succeeded",
+            message: `admin_refund_general found the PaymentIntent in status "${pi.status}" (expected "succeeded"). No refund issued; job left unchanged for manual review.`,
+            fields: { job_id: jobId, payment_intent: paymentIntentId, pi_status: pi.status },
+          });
+          throw new Error(
+            `admin_refund_general: PaymentIntent ${paymentIntentId} status is "${pi.status}", not "succeeded" — aborting, no refund for job ${jobId}.`,
+          );
         }
+      } catch (e) {
+        console.error("[create-payment] admin_refund_general — refund error:", e);
+        throw e;
       }
 
       // Only cancel the job + flip payment_status on a FULL refund. Partial

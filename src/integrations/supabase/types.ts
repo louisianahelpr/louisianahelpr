@@ -2296,6 +2296,59 @@ export type Database = {
           },
         ]
       }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          job_id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          job_id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          job_id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           attachment_duration: number | null
@@ -2311,6 +2364,7 @@ export type Database = {
           job_id: string
           read: boolean
           receiver_id: string
+          reply_to_id: string | null
           sender_id: string
         }
         Insert: {
@@ -2327,6 +2381,7 @@ export type Database = {
           job_id: string
           read?: boolean
           receiver_id: string
+          reply_to_id?: string | null
           sender_id: string
         }
         Update: {
@@ -2343,9 +2398,17 @@ export type Database = {
           job_id?: string
           read?: boolean
           receiver_id?: string
+          reply_to_id?: string | null
           sender_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_job_id_fkey"
             columns: ["job_id"]
@@ -4011,6 +4074,49 @@ export type Database = {
           },
           {
             foreignKeyName: "thread_mutes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thread_pins: {
+        Row: {
+          job_id: string
+          other_user_id: string
+          pinned_at: string
+          user_id: string
+        }
+        Insert: {
+          job_id: string
+          other_user_id: string
+          pinned_at?: string
+          user_id: string
+        }
+        Update: {
+          job_id?: string
+          other_user_id?: string
+          pinned_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_pins_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_pins_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_pins_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "open_jobs_browse"

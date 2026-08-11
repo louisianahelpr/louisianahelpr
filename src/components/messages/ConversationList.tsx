@@ -20,7 +20,7 @@ import { VirtualList } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
 import { MuteSheet } from "./MuteSheet";
 import { SwipeableConversationRow } from "./SwipeableConversationRow";
-import { getPinnedSet, pinnedKey, togglePinned } from "@/lib/pinnedConversations";
+import { getPinnedSet, loadPins, pinnedKey, togglePinned } from "@/lib/pinnedConversations";
 import type { Conversation } from "./types";
 
 // Cap the rendered list; "Show all" reveals the rest. The virtualizer
@@ -124,6 +124,22 @@ export function ConversationList({
   // sessionStorage (the pin set is read directly to avoid a parallel
   // state branch). Cheap, scoped to a paint.
   const [pinNonce, setPinNonce] = useState(0);
+
+  // Pull the pin list from the server once the user is known.
+  //
+  // Pins are now durable (public.thread_pins) rather than sessionStorage, so
+  // a cold launch has to fetch them. `loadPins` seeds its cache from the local
+  // mirror first, so the first paint is already right in the common case; this
+  // bump is what folds in anything pinned on another device. It never rejects
+  // — a failed pin fetch resolves to the mirror rather than breaking the inbox.
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    void loadPins(userId).then(() => {
+      if (!cancelled) setPinNonce((n) => n + 1);
+    });
+    return () => { cancelled = true; };
+  }, [userId]);
 
   // Partition + sort: pinned threads first (kept in their own
   // newest-first stack), then everything else in newest-first order.

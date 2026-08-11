@@ -11,9 +11,27 @@
  * discrete address fields. Used by both the one-tap rebook loader and the
  * draft restore path, which historically had identical inline parsing.
  *
- * When the string has fewer than 3 comma-separated parts we can't confidently
- * split it, so the whole value is returned as the street address and the other
- * fields are left untouched (the caller decides how to apply them).
+ * A 2-part "City, ST" (or "City, ST 70501") is recognised explicitly, because
+ * plenty of stored locations have no street — guest posts, older rows, and
+ * anything created before the address fields were split apart.
+ *
+ * Those used to fall through to the catch-all below and land the WHOLE string
+ * in `streetAddress`. Because the fallback also leaves city/state/zip alone,
+ * they kept whatever was already in the form (the poster's profile defaults),
+ * so reposting a "Baton Rouge, LA" job produced a street of "Baton Rouge, LA"
+ * next to an unrelated city — and since the submit path recomposes
+ * `"{street}, {city}, {state} {zip}"` verbatim, that nonsense was WRITTEN BACK
+ * to the job row as "Baton Rouge, LA, Delcambre, LA, 70501". Observed on the
+ * checkout Location row while verifying the repost flow.
+ *
+ * Mapping it to city/state instead leaves `streetAddress` empty, which the
+ * submit gate already blocks on with "Add a street address" — the poster is
+ * asked for the one field we genuinely don't know, instead of silently
+ * shipping a corrupted address.
+ *
+ * When the string still can't be split confidently the whole value is returned
+ * as the street address and the other fields are left untouched (the caller
+ * decides how to apply them, keyed off whether `city` came back defined).
  */
 export interface ParsedLocationFields {
   streetAddress: string;
@@ -32,6 +50,21 @@ export function parseLocationIntoFields(location: string | null | undefined): Pa
       addrState: stateZip[0] || "",
       zipCode: stateZip.slice(1).join(" ") || "",
     };
+  }
+  // "City, ST" / "City, ST 70501" — no street component.
+  if (locParts.length === 2) {
+    const stateZip = locParts[1].trim().split(/\s+/);
+    if (/^[A-Za-z]{2}$/.test(stateZip[0] ?? "")) {
+      return {
+        streetAddress: "",
+        city: locParts[0].trim(),
+        addrState: stateZip[0].toUpperCase(),
+        // Deliberately "" rather than leaving the previous value: we are
+        // loading ONE specific job's address, so a zip left over from a
+        // different address is worse than an empty required field.
+        zipCode: stateZip.slice(1).join(" ") || "",
+      };
+    }
   }
   return { streetAddress: location || "" };
 }

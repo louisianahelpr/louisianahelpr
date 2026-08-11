@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { safeStorage } from "@/lib/safeStorage";
@@ -42,6 +42,29 @@ export function usePostJobForm() {
   // start-fresh / draft / template choice first, which declutters the page.
   const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
+
+  // Advance to the form when `rebook`/`offerTo` arrives AFTER mount.
+  //
+  // The initializer above only runs once per mount. That covers a genuine
+  // deep-link arrival, but NOT the entry screen's own "Repost a recent job"
+  // tiles: those call `navigate("/post-job?rebook=<id>")` while already on
+  // /post-job, so the route never changes, the component never remounts, and
+  // `step` stayed "entry" forever.
+  //
+  // The bug this caused was invisible-looking but not harmless. The rebook
+  // effect in useJobFormEffects DOES re-run on searchParams, so tapping a
+  // Repost tile silently filled every field of a form the user couldn't see,
+  // which tripped the draft autosave — so the only feedback was a "Pick up
+  // your draft" card quietly appearing ABOVE the tile they just tapped.
+  // The button looked dead and spawned a card that explained nothing.
+  //
+  // Safe to run unconditionally: when skipEntry is already true at mount the
+  // step is "form" and this is a no-op. `handleBack` reads the same flag, so
+  // once the URL carries the param, backing out goes to the dashboard rather
+  // than to an entry screen the user never came from.
+  useEffect(() => {
+    if (skipEntry) setStep("form");
+  }, [skipEntry]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("other");

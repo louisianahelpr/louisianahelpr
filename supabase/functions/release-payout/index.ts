@@ -30,6 +30,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

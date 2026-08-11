@@ -69,8 +69,41 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   if (req.method !== 'POST')    return new Response('Method not allowed', { status: 405 });
 
+  // Auth gate — two valid callers:
+  //   1. Internal (cron / service role): CRON_SECRET or SERVICE_ROLE_KEY → may sync all or one connection
+  //   2. User JWT: may only sync a specific connection they own (manual "sync now" from UI)
+  // Without this gate any unauthenticated caller could trigger platform-wide iCal fetches
+  // or auto-create cleaning jobs for connections they don't own.
+  const cronSecret     = Deno.env.get('CRON_SECRET')
+  const serviceRoleKey = Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const authHeader     = req.headers.get('Authorization') ?? ''
+  const isInternal =
+    (cronSecret     && authHeader === `Bearer ${cronSecret}`) ||
+    (serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`)
+
   let body: { connection_id?: string } = {};
   try { body = await req.json(); } catch { /* empty body is fine */ }
+
+  // All-connections sync is internal-only
+  if (!body.connection_id && !isInternal) {
+    return errorResponse('Unauthorized', 401, corsHeaders);
+  }
+
+  // For user JWT callers, validate the token and extract their user id so we
+  // can enforce ownership on the connection below.
+  let callerUserId: string | null = null
+  if (!isInternal) {
+    if (!authHeader) return errorResponse('Unauthorized', 401, corsHeaders);
+    const anonKey = Deno.env.get('PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    const userClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      anonKey,
+      { global: { headers: { Authorization: authHeader } } },
+    )
+    const { data: { user }, error: authError } = await userClient.auth.getUser()
+    if (authError || !user) return errorResponse('Unauthorized', 401, corsHeaders);
+    callerUserId = user.id
+  }
 
   // Build query — optionally filter to a single connection for manual sync
   let query = supabase
@@ -80,6 +113,8 @@ serve(async (req) => {
 
   if (body.connection_id) {
     query = query.eq('id', body.connection_id);
+    // Enforce ownership for non-internal callers
+    if (callerUserId) query = query.eq('user_id', callerUserId);
   }
 
   const { data: connections, error: connError } = await query;

@@ -11,6 +11,7 @@ import type { Conversation, Message } from "./types";
 import type { JobSystemEvent } from "@/lib/jobSystemEvents";
 import { ChatPaneShell } from "./chatView/ChatPaneShell";
 import { ChatTimeline } from "./chatView/ChatTimeline";
+import { useMessageReactions } from "./useMessageReactions";
 import { ChatComposer } from "./chatView/ChatComposer";
 import { JumpToBottomButton } from "./chatView/JumpToBottomButton";
 import { useChatScroll } from "./chatView/useChatScroll";
@@ -155,6 +156,9 @@ export function ChatView({
   // Message whose long-press action sheet is open (null = closed). One
   // shared sheet for the whole thread, mirroring JobQuickActionSheet.
   const [actionMessage, setActionMessage] = useState<Message | null>(null);
+  // Tapbacks for the open thread. Scoped by job so the realtime subscription
+  // can be filtered server-side (see useMessageReactions).
+  const { reactions, react } = useMessageReactions(activeConvo?.jobId ?? null, userId);
   // Once the user taps any first-message chip the row hides for the rest
   // of this conversation — it's only meant to break the empty-thread
   // ice, not stick around as the chat actually starts.
@@ -271,6 +275,8 @@ export function ChatView({
             setReportTarget={setReportTarget}
             setDeleteMessageConfirm={setDeleteMessageConfirm}
             setActionMessage={setActionMessage}
+            reactions={reactions}
+            onReact={react}
           />
           </PullToRefreshWrapper>
 
@@ -329,6 +335,8 @@ export function ChatView({
         onReport={(id) => setReportTarget({ type: "message", id })}
         onBlock={() => setBlockTarget({ id: activeConvo.otherUserId, name: activeConvo.otherUserName })}
         onDelete={setDeleteMessageConfirm}
+        onReact={react}
+        myReaction={actionMessage ? (reactions.get(actionMessage.id)?.mine ?? null) : null}
       />
     </ChatPaneShell>
   );

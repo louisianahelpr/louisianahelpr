@@ -65,9 +65,14 @@ export function ChatTimeline({
   setReportTarget,
   setDeleteMessageConfirm,
   setActionMessage,
+  reactions,
+  onReact,
 }: {
   timeline: TimelineItem[];
   userId: string | null;
+  /** messageId → grouped tapbacks. Empty map before the first load. */
+  reactions?: Map<string, { counts: { emoji: string; count: number }[]; mine: string | null }>;
+  onReact?: (messageId: string, emoji: string) => void;
   activeConvo: Conversation;
   lastOwnMessageId: string | null;
   hasMoreMessages: boolean;
@@ -287,6 +292,8 @@ export function ChatTimeline({
             m={m}
             mine={m.sender_id === userId}
             showReadReceipt={m.id === lastOwnMessageId}
+            reactions={reactions?.get(m.id)}
+            onReact={onReact}
             grouped={grouped}
             activeConvo={activeConvo}
             retryMessage={retryMessage}

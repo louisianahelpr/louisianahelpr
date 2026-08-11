@@ -1,8 +1,9 @@
-import { Ban, Copy, Flag, Trash2 } from "lucide-react";
+import { Ban, Copy, Flag, Reply, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { hapticLight } from "@/lib/haptics";
 import type { Message } from "./types";
+import { TAPBACKS } from "./useMessageReactions";
 
 interface MessageActionSheetProps {
   /** Message under inspection — null keeps the sheet closed. */
@@ -20,6 +21,12 @@ interface MessageActionSheetProps {
   onBlock: () => void;
   /** Open the existing delete confirm for the viewer's own message. */
   onDelete: (id: string) => void;
+  /** Apply/change/clear the viewer's tapback. Tapping the active one clears it. */
+  onReact?: (messageId: string, emoji: string) => void;
+  /** The viewer's current tapback on this message, for the selected state. */
+  myReaction?: string | null;
+  /** Start a reply that quotes this message. */
+  onReply?: (message: Message) => void;
 }
 
 /** Photo and location messages encode a URL + emoji prefix, so their raw
@@ -46,6 +53,9 @@ export function MessageActionSheet({
   onReport,
   onBlock,
   onDelete,
+  onReact,
+  myReaction,
+  onReply,
 }: MessageActionSheetProps) {
   if (!message) return null;
 
@@ -95,7 +105,39 @@ export function MessageActionSheet({
           eyebrow="Message actions"
           title="What next?"
         />
+        {/* Tapbacks — the row sits ABOVE the action list because it is the
+            thing people reach for most, and because a horizontal emoji strip
+            reads as a different KIND of control than the stacked destructive
+            actions below it. Tapping the one already applied clears it, so the
+            same control both sets and unsets (iMessage behaviour). */}
+        {onReact && (
+          <div className="flex items-center justify-between gap-1 px-1 pb-3 mb-1" style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.12)" }}>
+            {TAPBACKS.map((emoji) => {
+              const active = myReaction === emoji;
+              return (
+                <button
+                  key={emoji}
+                  type="button"
+                  aria-label={active ? `Remove ${emoji} reaction` : `React with ${emoji}`}
+                  aria-pressed={active}
+                  onClick={() => { onReact(message.id, emoji); onClose(); }}
+                  className="h-11 w-11 rounded-full inline-flex items-center justify-center text-ds-22 leading-none transition-transform active:scale-90"
+                  style={active ? { background: "hsl(var(--bark) / 0.16)", outline: "1.5px solid hsl(var(--bark) / 0.45)" } : undefined}
+                >
+                  {emoji}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-1.5">
+          {onReply && (
+            <ActionRow
+              icon={<Reply className="w-5 h-5" strokeWidth={2} />}
+              label="Reply"
+              onClick={() => { hapticLight(); onReply(message); onClose(); }}
+            />
+          )}
           {canCopy && (
             <ActionRow
               icon={<Copy className="w-5 h-5" strokeWidth={2} />}

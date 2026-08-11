@@ -78,6 +78,8 @@ export function MessageBubble({
   m,
   mine,
   showReadReceipt,
+  reactions,
+  onReact,
   grouped = false,
   activeConvo,
   retryMessage,
@@ -92,6 +94,10 @@ export function MessageBubble({
    *  message — gates the "Read"/"Delivered" indicator so it appears once
    *  at the bottom (iMessage-style) rather than on every bubble. */
   showReadReceipt: boolean;
+  /** Grouped tapbacks for this message, or undefined when it has none. */
+  reactions?: { counts: { emoji: string; count: number }[]; mine: string | null };
+  /** Toggle the viewer's tapback — used by the chips as a one-tap undo. */
+  onReact?: (messageId: string, emoji: string) => void;
   /** True when the previous timeline row is a message from the same
    *  sender — tightens the gap above so a run of consecutive bubbles
    *  reads as one group (iOS convention), with a larger gap on sender
@@ -164,6 +170,41 @@ export function MessageBubble({
         )}
         {m.content && renderMessageContent(m.content, setLightboxPhoto)}
       </div>
+      {/* Tapback chips — sit between the bubble and the meta row, on the
+          bubble's own side, so a reaction reads as belonging to that message
+          rather than to the conversation. Tapping a chip you're part of
+          removes your reaction, which makes the chip its own undo. */}
+      {reactions && reactions.counts.length > 0 && (
+        <div className={`flex items-center gap-1 mt-1 px-1 flex-wrap ${mine ? "justify-end" : "justify-start"}`}>
+          {reactions.counts.map(({ emoji, count }) => {
+            const isMine = reactions.mine === emoji;
+            return (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => onReact?.(m.id, emoji)}
+                disabled={!onReact}
+                aria-label={isMine ? `Remove your ${emoji} reaction` : `React with ${emoji}`}
+                aria-pressed={isMine}
+                className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-ds-11 leading-none transition-transform active:scale-90 disabled:active:scale-100"
+                style={{
+                  background: isMine ? "hsl(var(--bark) / 0.14)" : "hsl(var(--olivewood) / 0.08)",
+                  border: `0.5px solid ${isMine ? "hsl(var(--bark) / 0.40)" : "hsl(var(--olivewood) / 0.16)"}`,
+                }}
+              >
+                <span>{emoji}</span>
+                {/* Only show a number once more than one person has used it —
+                    a lone "1" next to every chip is noise. */}
+                {count > 1 && (
+                  <span className="tabular-nums font-sans font-semibold" style={{ color: "hsl(var(--olivewood))" }}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {/* Meta row — timestamp / read-receipt plus the report (inbound) or
           delete (own) affordance. Kept BELOW the bubble, never overlaid on
           the copy, so the icon can't sit on top of the message text. Faded

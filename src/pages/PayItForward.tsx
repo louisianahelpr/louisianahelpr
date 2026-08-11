@@ -35,6 +35,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/ui/ErrorState";
 import type { PifCredit } from "./payItForward/types";
 import { AMOUNT_PRESETS, MAX_NOTE_LENGTH } from "./payItForward/constants";
+import { GIFT_OCCASIONS, DEFAULT_OCCASION, DEFAULT_DESIGN } from "./payItForward/giftCardDesigns";
+import { GiftCardPreview } from "./payItForward/GiftCardPreview";
 import { CreditCard } from "./payItForward/CreditCard";
 import { EmptyState } from "./payItForward/EmptyState";
 
@@ -52,7 +54,7 @@ export default function PayItForward() {
   const [searchParams, setSearchParams] = useSearchParams();
   usePageTitle("Gift Card — Helpr");
 
-  const { user, isLoading: authLoading } = useCurrentUser();
+  const { user, profile, isLoading: authLoading } = useCurrentUser();
   const myEmail = user?.email?.toLowerCase() ?? "";
   const queryClient = useQueryClient();
 
@@ -67,6 +69,13 @@ export default function PayItForward() {
   const [customAmount, setCustomAmount] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [note, setNote] = useState("");
+  // Occasion drives which designs are offered and what the note placeholder
+  // suggests; design is what the recipient actually sees. Both persist on the
+  // credit row, so a card looks the same when opened as when it was sent.
+  const [occasionId, setOccasionId] = useState<string>(DEFAULT_OCCASION.id);
+  const [designId, setDesignId] = useState<string>(DEFAULT_DESIGN.id);
+  const occasion = GIFT_OCCASIONS.find((o) => o.id === occasionId) ?? DEFAULT_OCCASION;
+  const design = occasion.designs.find((d) => d.id === designId) ?? occasion.designs[0];
 
   const effectiveAmount = selectedAmount ?? (customAmount ? parseFloat(customAmount) : null);
   const trimmedRecipient = recipientEmail.trim().toLowerCase();
@@ -255,6 +264,8 @@ export default function PayItForward() {
           amount: amt,
           recipient_email: trimmedRecipient,
           message: note.trim(),
+          occasion: occasionId,
+          design_id: design.id,
         },
       });
       if (error) {
@@ -417,6 +428,76 @@ export default function PayItForward() {
                 )}
               </div>
 
+              {/* Occasion — a horizontal chip rail. Picking one swaps the
+                  design set and the note placeholder, so the choice does real
+                  work rather than just tagging the gift. */}
+              <div>
+                <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  Occasion
+                </p>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
+                  {GIFT_OCCASIONS.map((o) => {
+                    const active = o.id === occasionId;
+                    return (
+                      <button
+                        key={o.id}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => {
+                          setOccasionId(o.id);
+                          // Reset to that occasion's first design — keeping a
+                          // design from the previous occasion would show a
+                          // birthday cake on a sympathy card.
+                          setDesignId(o.designs[0].id);
+                        }}
+                        className="shrink-0 px-3 h-9 rounded-ds-pill text-ds-12 font-sans font-semibold transition-colors"
+                        style={{
+                          background: active ? "hsl(var(--bark) / 0.15)" : "transparent",
+                          border: `1px solid hsl(var(--bark) / ${active ? "0.40" : "0.18"})`,
+                          color: "hsl(var(--bark))",
+                        }}
+                      >
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Live preview — the sender is choosing an artifact, not filling
+                  in a form, so they see exactly what lands in the inbox. */}
+              <div>
+                <GiftCardPreview
+                  design={design}
+                  amount={effectiveAmount || null}
+                  note={note}
+                  senderName={profile?.full_name ?? null}
+                />
+                {occasion.designs.length > 1 && (
+                  <div className="flex gap-2 mt-3">
+                    {occasion.designs.map((d) => {
+                      const active = d.id === design.id;
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          aria-label={`${d.label} design`}
+                          aria-pressed={active}
+                          onClick={() => setDesignId(d.id)}
+                          className="flex-1 h-10 rounded-ds-sm transition-transform active:scale-95"
+                          style={{
+                            background: d.background,
+                            border: active
+                              ? "2px solid hsl(var(--bark))"
+                              : "0.5px solid hsl(var(--olivewood) / 0.20)",
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* Amount chips */}
               <div>
                 <p
@@ -496,7 +577,7 @@ export default function PayItForward() {
                   aria-label="Personal note (optional)"
                   value={note}
                   onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
-                  placeholder="Hope this helps — thinking of you!"
+                  placeholder={occasion.notePlaceholder}
                   rows={2}
                   maxLength={MAX_NOTE_LENGTH}
                   className="rounded-ds-sm bg-background/60 border-border/60 font-serif italic text-ds-13 leading-relaxed"

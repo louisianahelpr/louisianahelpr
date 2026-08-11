@@ -62,6 +62,12 @@ serve(async (req) => {
     const recipientEmailRaw = typeof body?.recipient_email === "string" ? body.recipient_email : "";
     const category = typeof body?.category === "string" ? body.category.slice(0, 40) : "Any";
     const message = typeof body?.message === "string" ? body.message.slice(0, MAX_MESSAGE_LEN) : "";
+    // Presentation only — which occasion the sender picked and which card
+    // design they chose. Length-capped here as well as by the column CHECK so
+    // a crafted call can't stuff Stripe metadata (which has its own limits and
+    // would fail the whole session create, not just this field).
+    const occasion = typeof body?.occasion === "string" ? body.occasion.slice(0, 48) : "";
+    const designId = typeof body?.design_id === "string" ? body.design_id.slice(0, 48) : "";
 
     // ── Amount validation (server-authoritative) ──
     if (!Number.isFinite(amountDollars) || amountDollars <= 0) {
@@ -116,6 +122,8 @@ serve(async (req) => {
       amount_cents: String(amountCents),
       category,
       message,
+      occasion,
+      design_id: designId,
     };
 
     const session = await stripe.checkout.sessions.create({

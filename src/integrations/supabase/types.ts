@@ -2989,7 +2989,9 @@ export type Database = {
           expires_at: string | null
           id: string
           job_id: string | null
+          design_id: string | null
           message: string | null
+          occasion: string | null
           parent_credit_id: string | null
           parish: string | null
           payment_status: string
@@ -3009,7 +3011,9 @@ export type Database = {
           expires_at?: string | null
           id?: string
           job_id?: string | null
+          design_id?: string | null
           message?: string | null
+          occasion?: string | null
           parent_credit_id?: string | null
           parish?: string | null
           payment_status?: string
@@ -3029,7 +3033,9 @@ export type Database = {
           expires_at?: string | null
           id?: string
           job_id?: string | null
+          design_id?: string | null
           message?: string | null
+          occasion?: string | null
           parent_credit_id?: string | null
           parish?: string | null
           payment_status?: string

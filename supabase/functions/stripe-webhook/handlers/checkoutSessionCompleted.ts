@@ -358,6 +358,11 @@ export async function handleCheckoutSessionCompleted(
     const amountCents = parseInt((session.metadata as any)?.amount_cents || "0", 10);
     const giftCategory = ((session.metadata as any)?.category as string | undefined) || "Any";
     const giftMessage = ((session.metadata as any)?.message as string | undefined) || null;
+    // Presentation only: which occasion the sender picked and which card art
+    // they chose. Empty string → null so an older client that never sends
+    // these doesn't write "" and make "no occasion" look like a real choice.
+    const giftOccasion = ((session.metadata as any)?.occasion as string | undefined) || null;
+    const giftDesignId = ((session.metadata as any)?.design_id as string | undefined) || null;
     const pifPiId = typeof session.payment_intent === "string"
       ? session.payment_intent
       : (session.payment_intent as any)?.id;
@@ -466,6 +471,8 @@ export async function handleCheckoutSessionCompleted(
           payment_status: "paid",
           category: giftCategory,
           message: giftMessage,
+          occasion: giftOccasion,
+          design_id: giftDesignId,
           claim_token: claimToken,
           stripe_session_id: session.id,
           stripe_payment_intent_id: pifPiId ?? null,

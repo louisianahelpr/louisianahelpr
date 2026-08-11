@@ -156,7 +156,7 @@ const BusinessOnboarding = () => {
               <CalendarClock className="w-4 h-4" /> Stage your first job template
             </h2>
             <p className="text-ds-12 text-muted-foreground mb-4">
-              We'll save this as a draft you can post or schedule from /business/contracts.
+              We'll save this as a draft you can post from your jobs list.
             </p>
             <div className="space-y-3">
               <div>

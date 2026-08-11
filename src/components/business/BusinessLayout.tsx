@@ -2,10 +2,7 @@ import { useLocation, NavLink, Link } from "react-router-dom";
 import {
   Users,
   CreditCard,
-  CalendarClock,
   FileSpreadsheet,
-  FileText,
-  KeyRound,
   Sparkles,
   Rocket,
   ShieldAlert,
@@ -28,15 +25,18 @@ interface NavItem {
 }
 
 // Single source of truth for the /business/* sub-nav. Order mirrors the
-// Phase 4 IA map: Team · Billing · Contracts · Exports · Reports · API ·
-// Onboarding.
+// IA map: Team · Billing · Exports · Onboarding.
+//
+// Contracts, Reports and API were REMOVED 2026-08-10. All three rendered a
+// "This feature isn't available just yet — check back soon" toast while Stripe
+// was actively selling Crew/Team/Enterprise seats — a refund exposure and an
+// App Store 2.1 (placeholder functionality) risk. Nothing on /for-business
+// advertised them, so no pricing claim had to change. Re-add the routes when
+// the features actually exist, not before.
 const NAV: NavItem[] = [
   { to: "/business/team", label: "Team", icon: Users },
   { to: "/business/billing", label: "Billing", icon: CreditCard },
-  { to: "/business/contracts", label: "Contracts", icon: CalendarClock },
   { to: "/business/exports", label: "Exports", icon: FileSpreadsheet },
-  { to: "/business/reports", label: "Reports", icon: FileText },
-  { to: "/business/api", label: "API", icon: KeyRound },
   { to: "/business/onboarding", label: "Onboarding", icon: Rocket },
 ];
 

@@ -17,8 +17,9 @@ export type ExtendedRole = "viewer" | "poster" | "approver" | "admin" | "owner";
 /**
  * Admin-set business verification state. A business must be `verified`
  * (insurance + license reviewed by an admin) before it can post jobs; the
- * gate is enforced in `useJobSubmit.runPreSubmitChecks` and in
- * `BusinessContracts.submit`, and mirrored server-side by an RLS check on
+ * gate is enforced in `useJobSubmit.runPreSubmitChecks` (the
+ * `BusinessContracts.submit` call site was removed with that page on
+ * 2026-08-10), and mirrored server-side by an RLS check on
  * `jobs.INSERT` when `business_id` is set. Column ships in migration
  * 20260425235407 with CHECK IN ('none','pending','verified','rejected').
  */

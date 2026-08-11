@@ -97,11 +97,8 @@ const HelperAnalytics = lazy(() => import("./pages/HelperAnalytics"));
 const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 const HelprWrapped = lazy(() => import("./pages/HelprWrapped"));
 const BusinessBilling = lazy(() => import("./pages/business/BusinessBilling"));
-const BusinessApi = lazy(() => import("./pages/business/BusinessApi"));
-const BusinessContracts = lazy(() => import("./pages/business/BusinessContracts"));
 const BusinessExports = lazy(() => import("./pages/business/BusinessExports"));
 const BusinessOnboarding = lazy(() => import("./pages/business/BusinessOnboarding"));
-const BusinessReports = lazy(() => import("./pages/business/BusinessReports"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
@@ -234,11 +231,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/analytics" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelperAnalytics /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/business/api" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessApi /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/business/contracts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessContracts /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/exports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessExports /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/business/onboarding" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessOnboarding /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/business/reports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessReports /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Public vertical landing pages */}
 
       <Route path="/home-history" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HomeHistory /></ProtectedRoute>)}</RouteErrorBoundary>} />

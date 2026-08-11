@@ -107,7 +107,7 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
       const code = (error as { code?: string }).code;
       if (code === "PGRST202") {
         setRpcMissing(true);
-        toast.error("Approval API isn't live yet — try again in a few minutes.");
+        toast.error("Approvals aren't available yet. We'll let you know when they land.");
         return;
       }
       hapticError();
@@ -133,7 +133,7 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
       const code = (error as { code?: string }).code;
       if (code === "PGRST202") {
         setRpcMissing(true);
-        toast.error("Approval API isn't live yet — try again in a few minutes.");
+        toast.error("Approvals aren't available yet. We'll let you know when they land.");
         return;
       }
       hapticError();

@@ -70,7 +70,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
       if (err.message === "already_exists") {
         toast.error("You already have that skill.");
       } else if (err.message === "not_deployed") {
-        toast.error("Skills will be available soon.");
+        toast.error("Skills aren't available yet. We'll let you know when they land.");
       } else {
         report(err, { tags: { source: "SkillsManager.add" } });
         toast.error("Couldn't add skill. Try again.");

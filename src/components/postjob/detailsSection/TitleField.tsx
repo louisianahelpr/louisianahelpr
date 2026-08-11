@@ -39,7 +39,7 @@ export function TitleField({
           // never overlap each other or the text.
           className={
             dictation.supported
-              ? title.trim().length > 0 ? "pr-20" : "pr-12"
+              ? title.trim().length > 0 ? "pr-24" : "pr-12"
               : title.trim().length > 0 ? "pr-10" : ""
           }
         />
@@ -78,7 +78,7 @@ export function TitleField({
           <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
         )}
         {title.trim().length > 0 && dictation.supported && (
-          <Check className="absolute right-12 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+          <Check className="absolute right-14 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
         )}
       </div>
     </div>

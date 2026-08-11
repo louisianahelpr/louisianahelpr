@@ -221,7 +221,7 @@ export function LogisticsSection({
         {/* Parish is silently looked up from zip for Louisiana sales tax (admin-only). */}
         <p className="text-ds-11 text-muted-foreground flex items-center gap-1.5">
           <Shield className="w-3 h-3 shrink-0" />
-          Only the city will be visible to applicants until you select a helper.
+          Only your city is shown until you pick a Helpr.
         </p>
         {/* Apple MapKit JS embedded preview — confirms visually that the
             typed address resolved to the right spot. Hides itself when

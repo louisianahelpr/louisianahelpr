@@ -177,15 +177,12 @@ export function BudgetSection({
             enterKeyHint="done"
           />
 
-          {/* Comps hint from category pricing */}
-          {catPricing && (
-            <p
-              className="font-serif italic text-ds-12"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              Most {catPricing.label} jobs in Louisiana go for ${catPricing.min}–${catPricing.max}
-            </p>
-          )}
+          {/* The category comps line used to live here — "Most Yard Work jobs
+              in Louisiana go for $30–$100" — directly above a "Suggested:
+              $30–$100 for Yard Work jobs" callout further down. Two sentences,
+              same numbers, same category, ~80px apart. Kept the callout (it
+              has the lightbulb affordance and sits with the preset pills) and
+              removed this one. */}
 
           {/* Lowball warning */}
           {showLowballWarning && (

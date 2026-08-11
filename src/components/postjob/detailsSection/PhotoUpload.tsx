@@ -250,11 +250,11 @@ export function PhotoUpload({
           )}
         </div>
       )}
-      {imageFiles.length === 0 && (
-        <p className="text-ds-11 leading-snug text-muted-foreground">
-          Optional, but posts with a photo get more applicants and better quotes.
-        </p>
-      )}
+      {/* An "Optional, but posts with a photo get more applicants and better
+          quotes." line used to render here, directly beneath the near-identical
+          "Posts with a photo get noticeably more applicants." above the picker.
+          Two sentences, same claim, a few pixels apart — the second one is
+          gone. */}
     </div>
   );
 }

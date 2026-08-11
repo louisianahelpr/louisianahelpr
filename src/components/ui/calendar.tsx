@@ -21,7 +21,11 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
       className={cn("p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-4",
+        // `relative` establishes the positioning context for `nav` below.
+        // Without it the absolutely-positioned prev/next buttons resolved
+        // against a far ancestor (the popover), escaped the calendar panel and
+        // landed on top of the trigger above it.
+        month: "space-y-4 relative",
         month_caption: "flex justify-center pt-1 relative items-center",
         caption_label: "flex items-center gap-1 font-display italic font-bold text-ds-15 tracking-tight text-[hsl(var(--ink-deep))]",
         // captionLayout="dropdown": the native <select> sits transparently on
@@ -30,15 +34,17 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         dropdowns: "flex items-center justify-center gap-1.5",
         dropdown_root: "relative inline-flex items-center",
         dropdown: "absolute inset-0 w-full h-full opacity-0 cursor-pointer",
-        nav: "space-x-1 flex items-center",
+        // Pinned across the caption row so the chevrons flank the month label
+        // instead of floating at the panel's outer edges.
+        nav: "absolute inset-x-0 top-1 z-10 flex items-center justify-between px-1",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),
-          "h-9 w-9 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)] absolute left-1",
+          "h-9 w-9 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)]",
           isDropdown && "top-[1.25rem]",
         ),
         button_next: cn(
           buttonVariants({ variant: "outline" }),
-          "h-9 w-9 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)] absolute right-1",
+          "h-9 w-9 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)]",
           isDropdown && "top-[1.25rem]",
         ),
         month_grid: "w-full border-collapse space-y-1",

@@ -76,12 +76,16 @@ const PostJob = () => {
           the entry cards in a 512px column with big dead gutters. At md the
           column fills to 3xl and EntryChoice flips its cards to a
           md:grid-cols-2 grid so the space is consumed, not gutter'd.
-          min-h-[60vh] flex still vertically centers to avoid the
-          below-the-fold dead band the earlier fix addressed. Form +
-          checkout keep the same 5xl column since they're dense. */}
+          Form + checkout keep the same 5xl column since they're dense.
+
+          The entry column previously carried `min-h-[60vh] flex flex-col
+          justify-center`, which vertically centred four cards inside a 60vh
+          box and produced a large empty band above AND below them on a phone —
+          the cards floated in the middle of the screen with nothing anchoring
+          them. Content now starts under the header and flows naturally. */}
       <div className="container mx-auto px-4 py-6">
         {form.step === "entry" ? (
-          <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto min-h-[60vh] flex flex-col justify-center space-y-6">
+          <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto space-y-6">
             <EntryChoice form={form} />
           </div>
         ) : (

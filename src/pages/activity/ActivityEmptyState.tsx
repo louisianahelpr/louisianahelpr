@@ -27,6 +27,13 @@ export interface ActivityEmptyStateProps {
   statusFilter: string;
   /** Whether a search query is currently narrowing the list. */
   hasSearch: boolean;
+  /**
+   * Per-status counts for the active tab, plus the filter labels, so the
+   * filtered-empty copy can name WHERE the hidden items actually are instead
+   * of telling the user to go hunting through the filter menu themselves.
+   */
+  statusCounts?: Record<string, number>;
+  statusLabels?: { key: string; label: string }[];
   onRetry: () => void;
   onNavigate: (to: string) => void;
 }
@@ -38,6 +45,8 @@ export function ActivityEmptyState({
   appliedAppsCount,
   statusFilter,
   hasSearch,
+  statusCounts,
+  statusLabels,
   onRetry,
   onNavigate,
 }: ActivityEmptyStateProps) {
@@ -63,6 +72,24 @@ export function ActivityEmptyState({
   // hints at posting. For the filtered-but-empty case the copy depends on
   // *why* it's empty — a search with no hits, an "all" filter (no other
   // status to try), or a specific status filter that's hiding the rest.
+  // "Try a different filter — there might be jobs in another status" makes the
+  // user go and look. When we already know exactly which buckets hold their
+  // items, say so: "Nothing under active — but you have 3 in Closed."
+  //
+  // This is the same failure the /my-jobs default-filter bug produced — items
+  // present, screen blank, the explanation one menu away — so the empty state
+  // should point at them rather than shrug.
+  const activeLabel =
+    statusLabels?.find((f) => f.key === statusFilter)?.label ?? "this view";
+  const elsewhere = (statusLabels ?? [])
+    .filter((f) => f.key !== statusFilter && f.key !== "all" && (statusCounts?.[f.key] ?? 0) > 0)
+    .map((f) => `${statusCounts?.[f.key]} in ${f.label}`);
+  const filteredElsewhere =
+    elsewhere.length === 0
+      ? null
+      : elsewhere.length === 1
+        ? elsewhere[0]
+        : `${elsewhere.slice(0, -1).join(", ")} and ${elsewhere[elsewhere.length - 1]}`;
   const body = isTrulyEmpty
     ? (isPosted
         ? "While you wait for the right moment to post, you can earn on the helper side — browse open jobs near you and apply."
@@ -71,7 +98,9 @@ export function ActivityEmptyState({
       ? "No jobs match your search — try a different term."
       : statusFilter === "all"
         ? "No jobs match the current view."
-        : "Try a different filter — there might be jobs in another status.";
+        : filteredElsewhere
+          ? `Nothing under ${activeLabel.toLowerCase()} — but you have ${filteredElsewhere}.`
+          : "Try a different filter — there might be jobs in another status.";
   // Swap the CTAs on the empty state so each tab promotes the OTHER side
   // of the marketplace. When the user has data ("no matches" view) we
   // keep them on the same side they're filtering.

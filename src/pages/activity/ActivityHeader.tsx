@@ -48,25 +48,21 @@ export function ActivityHeader({
           input expands below this row instead of replacing the title,
           matching the Dashboard search pattern. */}
       <div
-        className="shrink-0 flex items-center justify-between gap-3 px-4 py-3"
+        className="shrink-0 flex items-center justify-end gap-3 px-4 py-2"
         style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
       >
-            <div className="flex flex-col leading-none min-w-0">
-              {/* No eyebrow. The page is already titled "My Posts" (or "My
-                  Jobs") immediately above this card, so "POSTED JOBS" restated
-                  it in smaller type — the same stacked-label pattern removed
-                  from the dialogs and the landing section. */}
-              <h2
-                className="font-display italic font-bold leading-tight mt-1 truncate"
-                style={{
-                  fontSize: "1.25rem",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.018em",
-                }}
-              >
-                {activeStatusFilters.find((f) => f.key === statusFilter)?.label ?? "All"}
-              </h2>
-            </div>
+            {/* The filter label used to be an <h2> right here, directly under
+                the top bar's page title — "My Jobs" over "All", a heading and
+                a second heading with no stated relationship. It now lives in
+                the header itself as "My Jobs / All · 4", one statement instead
+                of two, with the count permanently visible.
+
+                An earlier pass had already stripped the eyebrow above this for
+                restating the page name; this finishes that thought. Only the
+                search and filter controls remain, so the row is `justify-end`
+                rather than keeping an empty spacer element to push them over —
+                and `py-2`, since without a title the row no longer needs to
+                clear a line of display type. */}
             <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"

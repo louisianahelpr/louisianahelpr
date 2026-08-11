@@ -17,6 +17,19 @@ interface DashboardHeaderProps {
    * zero h1) pass `titleAs="h1"` so they get exactly one.
    */
   titleAs?: "span" | "h1";
+  /**
+   * Optional second line under `title`, for state that belongs to the page
+   * rather than to a card inside it — e.g. Activity's current status filter
+   * and its count ("All · 4").
+   *
+   * This exists because the page title and the panel's own heading were
+   * stacking: the top bar said "My Jobs" and the card immediately beneath it
+   * said "All", two headings with no stated relationship. Folding the filter
+   * into the header makes it one statement, and keeps the active filter
+   * permanently visible — which matters because the filter silently hiding
+   * everything is a bug this app has actually shipped.
+   */
+  subtitle?: React.ReactNode;
   onMenuClick?: () => void;
   /** Nearest accepted / in-progress job — shows the live status pill. */
   inProgressJob?: UpcomingJob | null;
@@ -24,7 +37,7 @@ interface DashboardHeaderProps {
   onViewInProgress?: () => void;
 }
 
-const DashboardHeader = ({ title, titleAs = "span", onMenuClick, inProgressJob, onViewInProgress }: DashboardHeaderProps) => {
+const DashboardHeader = ({ title, titleAs = "span", subtitle, onMenuClick, inProgressJob, onViewInProgress }: DashboardHeaderProps) => {
   const TitleTag = titleAs;
   const navigate = useNavigate();
   const { isAdmin } = useCurrentUser();
@@ -39,7 +52,19 @@ const DashboardHeader = ({ title, titleAs = "span", onMenuClick, inProgressJob, 
       <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
         <div className="flex items-center gap-2 min-w-0">
           {title ? (
-            <TitleTag className="font-display font-bold text-foreground text-ds-15 truncate m-0">{title}</TitleTag>
+            /* `leading-none` on both lines + a small gap, so the two-line
+               variant still fits the 56px bar without changing its height. */
+            <div className="flex flex-col justify-center min-w-0 gap-0.5">
+              <TitleTag className="font-display font-bold text-foreground text-ds-15 truncate m-0 leading-none">{title}</TitleTag>
+              {subtitle && (
+                <span
+                  className="font-serif italic text-ds-11 truncate leading-none"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  {subtitle}
+                </span>
+              )}
+            </div>
           ) : (
             <HelprMark to="/dashboard" size="md" hideEmblem />
           )}

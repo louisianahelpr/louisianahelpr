@@ -120,7 +120,12 @@ serve(async (req) => {
       // Mark the row failed-with-reason rather than deleting it: a poster who
       // meant to tip and couldn't should be asked, and a deleted row would
       // make the sweeper re-attempt the same doomed charge every tick.
-      const giveUp = async (reason: string) => {
+      //
+      // `notify` is false for failures the POSTER cannot act on. Telling
+      // someone "your tip failed" when the cause is the helper's missing
+      // payout account is noise they can do nothing with, and it leaks the
+      // other party's account state.
+      const giveUp = async (reason: string, notify: boolean) => {
         await supabase
           .from("tips")
           .update({
@@ -129,6 +134,24 @@ serve(async (req) => {
             auto_prompt_sent_at: new Date().toISOString(),
           })
           .eq("id", tipRow.id);
+
+        if (!notify) return;
+        // The one thing this function must never do is fail silently. A
+        // poster who configured an automatic tip and got nothing — no charge,
+        // no message — would reasonably believe their helper was tipped.
+        const { error: notifyErr } = await supabase.from("notifications").insert({
+          user_id: c.customer_id,
+          type: "payment",
+          title: "Your tip didn't go through",
+          message:
+            "We couldn't charge your automatic tip — usually because there's no saved card on file. You can send it in a tap.",
+          link: "/my-posts",
+        });
+        if (notifyErr) {
+          // Never swallowed: if this insert fails the poster is back to
+          // silence, which is the exact failure mode being guarded against.
+          log("ERROR writing tip-failure notification", { jobId, error: notifyErr.message });
+        }
       };
 
       try {
@@ -142,7 +165,7 @@ serve(async (req) => {
         // Charging the poster and holding it on the platform would be taking
         // money for a transfer that can't happen.
         if (!helperProfile?.stripe_account_id) {
-          await giveUp("helper_not_connected");
+          await giveUp("helper_not_connected", false);
           results.failed++;
           continue;
         }
@@ -150,7 +173,7 @@ serve(async (req) => {
         const { data: authUser } = await supabase.auth.admin.getUserById(c.customer_id as string);
         const email = authUser?.user?.email;
         if (!email) {
-          await giveUp("no_poster_email");
+          await giveUp("no_poster_email", false);
           results.failed++;
           continue;
         }
@@ -160,7 +183,7 @@ serve(async (req) => {
         const customers = await stripe.customers.list({ email, limit: 1 });
         const customerId = customers.data[0]?.id;
         if (!customerId) {
-          await giveUp("no_stripe_customer");
+          await giveUp("no_stripe_customer", true);
           results.prompted++;
           continue;
         }
@@ -176,7 +199,7 @@ serve(async (req) => {
         });
         const paymentMethodId = methods.data[0]?.id;
         if (!paymentMethodId) {
-          await giveUp("no_saved_card");
+          await giveUp("no_saved_card", true);
           results.prompted++;
           continue;
         }
@@ -221,13 +244,13 @@ serve(async (req) => {
         } else {
           // requires_action means the card wants SCA, which needs the user
           // present — exactly what off-session cannot do. Treat as prompt.
-          await giveUp(`intent_${intent.status}`);
+          await giveUp(`intent_${intent.status}`, true);
           results.prompted++;
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         // Card declines land here (authentication_required, card_declined…).
-        await giveUp(message.slice(0, 200));
+        await giveUp(message.slice(0, 200), true);
         results.failed++;
         log("charge failed", { jobId, error: message });
       }

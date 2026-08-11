@@ -3159,6 +3159,9 @@ export type Database = {
           auto_suspended_until: string | null
           availability: string | null
           available_until: string | null
+          auto_tip_cap: number | null
+          auto_tip_mode: Database["public"]["Enums"]["auto_tip_mode"]
+          auto_tip_value: number | null
           avatar_url: string | null
           background_check_status: string
           ban_status: string | null
@@ -3244,6 +3247,9 @@ export type Database = {
           auto_suspended_until?: string | null
           availability?: string | null
           available_until?: string | null
+          auto_tip_cap?: number | null
+          auto_tip_mode?: Database["public"]["Enums"]["auto_tip_mode"]
+          auto_tip_value?: number | null
           avatar_url?: string | null
           background_check_status?: string
           ban_status?: string | null
@@ -3329,6 +3335,9 @@ export type Database = {
           auto_suspended_until?: string | null
           availability?: string | null
           available_until?: string | null
+          auto_tip_cap?: number | null
+          auto_tip_mode?: Database["public"]["Enums"]["auto_tip_mode"]
+          auto_tip_value?: number | null
           avatar_url?: string | null
           background_check_status?: string
           ban_status?: string | null
@@ -5645,6 +5654,7 @@ export type Database = {
       }
     }
     Enums: {
+      auto_tip_mode: "off" | "percent" | "fixed"
       app_role: "admin" | "customer" | "helper"
       application_status: "pending" | "accepted" | "rejected"
       business_member_role: "owner" | "member"

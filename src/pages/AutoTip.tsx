@@ -1,0 +1,247 @@
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import PageHeader from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
+import { hapticLight } from "@/lib/haptics";
+import { formatPrice } from "@/lib/format";
+
+type Mode = "off" | "percent" | "fixed";
+
+const PERCENT_PRESETS = [10, 15, 20];
+const FIXED_PRESETS = [5, 10, 20];
+/** Mirrors the CHECK constraint in 20260811180000. Kept in sync deliberately:
+ *  the form should refuse a bad value before the database has to. */
+const LIMITS = { percent: { min: 1, max: 50 }, fixed: { min: 1, max: 500 }, cap: { min: 1, max: 500 } };
+
+/**
+ * Auto-tip settings.
+ *
+ * A standing preference to tip after a job completes — Lyft's model. It is
+ * NOT bundled into the job's original charge: Helpr captures the job in full
+ * at checkout, so a bundled tip would have to be REFUNDED whenever the poster
+ * adjusted it down, and Stripe keeps the processing fee on refunds. A separate
+ * post-completion charge costs less overall and only ever charges for work
+ * that actually happened.
+ */
+const AutoTip = () => {
+  usePageTitle("Auto-tip — Helpr");
+  const { user, profile } = useCurrentUser();
+
+  const [mode, setMode] = useState<Mode>("off");
+  const [value, setValue] = useState<string>("15");
+  const [cap, setCap] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  // Seed from the profile once it arrives. Guarded by `loaded` so a later
+  // profile refetch can't stomp edits the user is in the middle of making.
+  useEffect(() => {
+    if (!profile || loaded) return;
+    const p = profile as unknown as {
+      auto_tip_mode?: Mode | null;
+      auto_tip_value?: number | null;
+      auto_tip_cap?: number | null;
+    };
+    setMode(p.auto_tip_mode ?? "off");
+    if (p.auto_tip_value != null) setValue(String(p.auto_tip_value));
+    if (p.auto_tip_cap != null) setCap(String(p.auto_tip_cap));
+    setLoaded(true);
+  }, [profile, loaded]);
+
+  const numericValue = Number(value);
+  const numericCap = cap.trim() ? Number(cap) : null;
+  const limits = mode === "percent" ? LIMITS.percent : LIMITS.fixed;
+  const valueValid =
+    mode === "off" ||
+    (Number.isFinite(numericValue) && numericValue >= limits.min && numericValue <= limits.max);
+  const capValid =
+    mode !== "percent" ||
+    numericCap === null ||
+    (Number.isFinite(numericCap) && numericCap >= LIMITS.cap.min && numericCap <= LIMITS.cap.max);
+
+  const save = async () => {
+    if (!user?.id || !valueValid || !capValid) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        auto_tip_mode: mode,
+        // Null when off, so the row can never carry a stale amount behind a
+        // disabled preference — the CHECK constraint enforces this too.
+        auto_tip_value: mode === "off" ? null : numericValue,
+        auto_tip_cap: mode === "percent" ? numericCap : null,
+      })
+      .eq("user_id", user.id);
+    setSaving(false);
+    if (error) {
+      report(error, { tags: { source: "AutoTip.save" } });
+      toast.error("Couldn't save your auto-tip", { description: error.message });
+      return;
+    }
+    void hapticLight();
+    toast.success(mode === "off" ? "Auto-tip turned off" : "Auto-tip saved");
+  };
+
+  // A worked example beats a description. $150 is close to the median job.
+  const example =
+    mode === "percent" && valueValid
+      ? Math.min(Math.round((150 * numericValue) / 100), numericCap ?? Infinity)
+      : mode === "fixed" && valueValid
+        ? numericValue
+        : null;
+
+  return (
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
+      <PageHeader title="Auto-tip" />
+      <div className="px-4 max-w-2xl mx-auto space-y-5 pt-2">
+        <section className="liquid-glass rounded-ds-md p-5 space-y-4">
+          <p
+            className="font-serif italic text-ds-13 leading-relaxed"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            Tip automatically once a job is finished, without having to remember.
+            Charged after completion — never before — so you only ever tip for
+            work that actually happened.
+          </p>
+
+          <div className="grid grid-cols-3 gap-2">
+            {(["off", "percent", "fixed"] as const).map((m) => {
+              const active = mode === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => { void hapticLight(); setMode(m); }}
+                  className="py-2.5 rounded-ds-md text-ds-12 font-sans font-semibold transition-colors"
+                  style={{
+                    background: active ? "hsl(var(--bark) / 0.15)" : "transparent",
+                    border: `1px solid hsl(var(--bark) / ${active ? "0.40" : "0.18"})`,
+                    color: "hsl(var(--bark))",
+                  }}
+                >
+                  {m === "off" ? "Off" : m === "percent" ? "Percentage" : "Fixed"}
+                </button>
+              );
+            })}
+          </div>
+
+          {mode !== "off" && (
+            <div className="space-y-2">
+              <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                {mode === "percent" ? "Percent of the job" : "Amount per job"}
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {(mode === "percent" ? PERCENT_PRESETS : FIXED_PRESETS).map((n) => {
+                  const active = String(n) === value;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setValue(String(n))}
+                      className="flex-1 py-2 rounded-ds-sm text-ds-13 font-sans font-semibold transition-colors"
+                      style={{
+                        background: active ? "hsl(var(--bark) / 0.15)" : "transparent",
+                        border: `1px solid hsl(var(--bark) / ${active ? "0.40" : "0.18"})`,
+                        color: "hsl(var(--bark))",
+                      }}
+                    >
+                      {mode === "percent" ? `${n}%` : `$${n}`}
+                    </button>
+                  );
+                })}
+                <input
+                  type="number"
+                  aria-label={mode === "percent" ? "Custom percentage" : "Custom amount in dollars"}
+                  min={limits.min}
+                  max={limits.max}
+                  placeholder="Custom"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  className="flex-1 py-2 px-3 rounded-ds-sm text-ds-13 font-sans font-semibold text-center"
+                  style={{
+                    background: "transparent",
+                    border: `1px solid hsl(var(--${valueValid ? "bark" : "burnt-sienna"}) / 0.40)`,
+                    color: "hsl(var(--bark))",
+                    outline: "none",
+                    minWidth: 0,
+                  }}
+                />
+              </div>
+              {!valueValid && (
+                <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  {mode === "percent" ? "Pick between 1% and 50%." : `Pick between $${LIMITS.fixed.min} and $${LIMITS.fixed.max}.`}
+                </p>
+              )}
+            </div>
+          )}
+
+          {mode === "percent" && (
+            <div className="space-y-2">
+              <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                Maximum per job — optional
+              </p>
+              <input
+                type="number"
+                aria-label="Maximum tip per job in dollars"
+                min={LIMITS.cap.min}
+                max={LIMITS.cap.max}
+                placeholder="No maximum"
+                value={cap}
+                onChange={(e) => setCap(e.target.value)}
+                className="w-full py-2 px-3 rounded-ds-sm text-ds-13 font-sans font-semibold"
+                style={{
+                  background: "transparent",
+                  border: `1px solid hsl(var(--${capValid ? "bark" : "burnt-sienna"}) / 0.40)`,
+                  color: "hsl(var(--bark))",
+                  outline: "none",
+                }}
+              />
+              {/* The cap is the whole reason percentage mode is safe to offer:
+                  15% of a $600 job is $90, which is not what most people
+                  picture when they set "15%". */}
+              <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                A percentage of a large job adds up. A maximum keeps it predictable.
+              </p>
+            </div>
+          )}
+
+          {example != null && (
+            <div
+              className="rounded-ds-md p-3"
+              style={{ background: "hsl(var(--bark) / 0.06)", border: "0.5px solid hsl(var(--bark) / 0.18)" }}
+            >
+              <p className="text-ds-12 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
+                On a <span className="font-semibold">$150</span> job you'd tip{" "}
+                <span className="font-semibold">${formatPrice(example)}</span>.
+              </p>
+            </div>
+          )}
+
+          <Button
+            variant="bark"
+            onClick={() => void save()}
+            disabled={saving || !valueValid || !capValid}
+            className="w-full rounded-ds-md"
+          >
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        </section>
+
+        <section className="liquid-glass rounded-ds-md p-5">
+          <p className="font-serif italic text-ds-12 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            Tips go straight to your Helpr — Helpr takes no cut, only the card
+            processing fee applies. If you haven't saved a card, we'll ask you
+            to confirm the tip instead of charging it automatically.
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+};
+
+export default AutoTip;

@@ -226,6 +226,14 @@ export function useProfileLandingDerived({
     {
       title: "Money",
       items: [
+        {
+          key: "auto-tip",
+          label: "Auto-tip",
+          icon: <Heart className="w-5 h-5" />,
+          desc: "Tip automatically when a job is done",
+          tint: "var(--burnt-sienna)",
+          href: "/auto-tip",
+        },
         { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports", tint: "var(--burnt-siennam)" },
         {
           key: "payment",

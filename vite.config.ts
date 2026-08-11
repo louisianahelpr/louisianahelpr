@@ -110,6 +110,28 @@ export default defineConfig(({ mode }) => ({
       injectRegister: "script-defer",
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       workbox: {
+        // navigateFallback DISABLED (empty string is falsy, so workbox-build
+        // emits no NavigationRoute).
+        //
+        // Why: vite-plugin-pwa defaults this to "index.html", which registers
+        //   registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")))
+        // BEFORE the runtimeCaching rules below. Workbox matches routes in
+        // registration order and first match wins, and a NavigationRoute
+        // matches EVERY navigation — so the NetworkFirst navigation rule below,
+        // and its precacheFallback to offline.html, were unreachable dead code.
+        // Verified against a built dist/sw.js on 2026-08-10: an offline
+        // navigation produced the browser's own error page, never offline.html.
+        //
+        // With it off, navigations fall through to the explicit rule below:
+        //   online            -> network first, so a deploy lands next reload
+        //   offline, cached   -> html-pages hit, real app shell + in-app offline UI
+        //   offline, no cache -> precacheFallback serves offline.html
+        // which is the intended three-tier behaviour.
+        //
+        // SPA deep links while ONLINE do not depend on this: the host rewrites
+        // unknown paths to index.html (vercel.json), and vite preview does the
+        // same locally. This only governs what the service worker does.
+        navigateFallback: "",
         navigateFallbackDenylist: [/^\/~oauth/],
         // PRECACHE = critical-path first-paint files ONLY. Everything else
         // (route chunks, dialog chunks, vendor chunks not in the entry's

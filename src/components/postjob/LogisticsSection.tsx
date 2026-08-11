@@ -15,6 +15,7 @@ import { todayLocalISO } from "@/lib/dateUtils";
 import { formatPriceExact } from "@/lib/format";
 import { AppleMapPreview } from "@/components/postjob/AppleMapPreview";
 import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
+import { FieldError } from "@/components/ui/FieldError";
 
 // Normalize a reverse-geocoder's state value (full name or abbreviation)
 // to the canonical 2-letter code the form stores. We special-case the only
@@ -213,9 +214,9 @@ export function LogisticsSection({
             field a poster can still be missing here; name it inline using the
             same error treatment as the description placeholder guard (LH-23). */}
         {streetAddress.trim().length > 0 && !zipCode.trim() && (
-          <p className="text-ds-11 font-sans font-semibold leading-snug" style={{ color: "hsl(var(--destructive))" }}>
+          <FieldError>
             Add the zip code to continue.
-          </p>
+          </FieldError>
         )}
         {/* Parish is silently looked up from zip for Louisiana sales tax (admin-only). */}
         <p className="text-ds-11 text-muted-foreground flex items-center gap-1.5">

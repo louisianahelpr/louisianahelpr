@@ -3,6 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Wand2 } from "lucide-react";
 import { categoryTemplates, hasUnfilledPlaceholders } from "@/lib/postingTemplates";
 import { DESCRIPTION_MAX, categories, descriptionHints } from "./detailsSectionConstants";
+import { FieldError } from "@/components/ui/FieldError";
 
 interface DescriptionFieldProps {
   description: string;
@@ -66,9 +67,9 @@ export function DescriptionField({
           fill-ins. Flag them inline so the poster swaps in real details
           before the (now-disabled) submit button unlocks (LH-23). */}
       {hasUnfilledPlaceholders(description) && (
-        <p className="text-ds-11 font-sans font-semibold leading-snug" style={{ color: "hsl(var(--destructive))" }}>
+        <FieldError>
           Replace the [bracketed] placeholders with your own details — they can't be posted as-is.
-        </p>
+        </FieldError>
       )}
       {/* Category-aware prompt — tells the poster exactly what a helpr
           needs to quote accurately. Vague posts get fewer applicants. */}

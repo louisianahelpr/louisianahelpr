@@ -201,8 +201,8 @@ serve(async (req) => {
           if (paymentIntentId) {
             await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
           }
-        } catch (e) {
-          results.push({ job_id: job.id, title: job.title, status: "session_not_found", error: e.message });
+        } catch (e: any) {
+          results.push({ job_id: job.id, title: job.title, status: "session_not_found", error: (e as Error).message });
           continue;
         }
       }

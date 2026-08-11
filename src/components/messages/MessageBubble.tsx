@@ -4,6 +4,7 @@ import { ReadReceipt } from "@/components/ChatPresence";
 import { useLongPress } from "@/hooks/useLongPress";
 import { hapticMedium } from "@/lib/haptics";
 import type { Conversation, Message } from "./types";
+import { REVEAL_WIDTH } from "./chatView/useTimestampReveal";
 
 /**
  * Message `content` is attacker-controlled free text, and both the photo and
@@ -81,6 +82,7 @@ export function MessageBubble({
   reactions,
   onReact,
   replyParent,
+  reveal = 0,
   grouped = false,
   activeConvo,
   retryMessage,
@@ -101,6 +103,8 @@ export function MessageBubble({
    *  Undefined when this isn't a reply, or when the parent was deleted —
    *  the FK is ON DELETE SET NULL, so a reply outlives its parent. */
   replyParent?: { content: string; mine: boolean } | null;
+  /** px the timeline is dragged left; >0 reveals the absolute time column. */
+  reveal?: number;
   /** Toggle the viewer's tapback — used by the chips as a one-tap undo. */
   onReact?: (messageId: string, emoji: string) => void;
   /** True when the previous timeline row is a message from the same
@@ -132,11 +136,19 @@ export function MessageBubble({
   return (
     <div
       data-msg-id={m.id}
-      className={`flex flex-col ${mine ? "items-end" : "items-start"}`}
+      className={`relative flex flex-col ${mine ? "items-end" : "items-start"}`}
       // Inline margin so it wins over the timeline's `space-y-3`: a run of
       // consecutive same-sender bubbles tightens to a hairline gap; a
       // sender change keeps the full spacing.
-      style={{ marginTop: grouped ? "0.125rem" : undefined }}
+      //
+      // `relative` anchors the revealed time column, and the row shifts left
+      // by the drag distance. No transition while dragging — the transform
+      // must track the finger 1:1 — but one on release so it springs back.
+      style={{
+        marginTop: grouped ? "0.125rem" : undefined,
+        transform: reveal > 0 ? `translateX(-${reveal}px)` : undefined,
+        transition: reveal > 0 ? "none" : "transform 180ms ease-out",
+      }}
     >
       <div
         {...pressHandlers}
@@ -197,6 +209,25 @@ export function MessageBubble({
         )}
         {m.content && renderMessageContent(m.content, setLightboxPhoto)}
       </div>
+      {/* Revealed time column — absolutely positioned OUTSIDE the row's right
+          edge, so it costs no layout width and slides into the gap the drag
+          opens. aria-hidden: the accessible name already carries the time via
+          the meta row, and a screen reader user has no drag gesture to make
+          this appear. */}
+      {reveal > 0 && (
+        <span
+          aria-hidden
+          className="absolute top-1/2 -translate-y-1/2 text-ds-10 tabular-nums whitespace-nowrap"
+          style={{
+            right: -REVEAL_WIDTH + 6,
+            width: REVEAL_WIDTH - 10,
+            opacity: reveal / REVEAL_WIDTH,
+            color: "hsl(var(--olivewood) / 0.75)",
+          }}
+        >
+          {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
+        </span>
+      )}
       {/* Tapback chips — sit between the bubble and the meta row, on the
           bubble's own side, so a reaction reads as belonging to that message
           rather than to the conversation. Tapping a chip you're part of
@@ -255,9 +286,18 @@ export function MessageBubble({
           </button>
         ) : (
           <>
-            <span>
-              {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
-            </span>
+            {/* The inline time is hidden on a GROUPED message — one that
+                directly follows another from the same sender. A run of five
+                replies used to stamp five timestamps a few seconds apart,
+                which is noise; the run now reads as one block and the last
+                message carries the time. Every hidden time is still one
+                left-drag away (see useTimestampReveal), which is exactly the
+                trade iMessage makes. */}
+            {!grouped && (
+              <span>
+                {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
+              </span>
+            )}
             {showReadReceipt && (
               <ReadReceipt
                 read={m.read}

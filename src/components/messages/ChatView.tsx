@@ -15,6 +15,7 @@ import { useMessageReactions } from "./useMessageReactions";
 import { ChatComposer } from "./chatView/ChatComposer";
 import { JumpToBottomButton } from "./chatView/JumpToBottomButton";
 import { useChatScroll } from "./chatView/useChatScroll";
+import { useTimestampReveal } from "./chatView/useTimestampReveal";
 import {
   buildTimeline,
   resolveLastOwnMessageId,
@@ -162,6 +163,10 @@ export function ChatView({
   // The message being replied to. Cleared once a reply actually sends (the
   // composer only clears on acceptance, so a blocked message keeps its reply).
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  // Drag-left-to-see-times. Attached to the thread scroller, and deliberately
+  // inert until the gesture is clearly horizontal so vertical scrolling —
+  // the primary gesture on this screen — is never stolen.
+  const { reveal, handlers: revealHandlers } = useTimestampReveal();
   // Once the user taps any first-message chip the row hides for the rest
   // of this conversation — it's only meant to break the empty-thread
   // ice, not stick around as the chat actually starts.
@@ -260,7 +265,15 @@ export function ChatView({
             canTrigger={canTrigger}
             className="flex-1 space-y-3 pt-4 pb-2"
           >
+          {/* The reveal handlers live on this plain div, NOT on
+              PullToRefreshWrapper: that component destructures a fixed prop
+              list and silently drops anything else, so spreading them there
+              compiled, rendered, and did nothing. `overflow-x-clip` keeps the
+              revealed time column from widening the page while the rows are
+              translated left. */}
+          <div {...revealHandlers} className="overflow-x-clip">
           <ChatTimeline
+            reveal={reveal}
             timeline={timeline}
             userId={userId}
             activeConvo={activeConvo}
@@ -281,6 +294,7 @@ export function ChatView({
             reactions={reactions}
             onReact={react}
           />
+          </div>
           </PullToRefreshWrapper>
 
           <JumpToBottomButton

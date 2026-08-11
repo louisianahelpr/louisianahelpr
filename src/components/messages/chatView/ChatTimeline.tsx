@@ -67,12 +67,15 @@ export function ChatTimeline({
   setActionMessage,
   reactions,
   onReact,
+  reveal = 0,
 }: {
   timeline: TimelineItem[];
   userId: string | null;
   /** messageId → grouped tapbacks. Empty map before the first load. */
   reactions?: Map<string, { counts: { emoji: string; count: number }[]; mine: string | null }>;
   onReact?: (messageId: string, emoji: string) => void;
+  /** px the timeline is dragged left, from useTimestampReveal. */
+  reveal?: number;
   activeConvo: Conversation;
   lastOwnMessageId: string | null;
   hasMoreMessages: boolean;
@@ -294,6 +297,7 @@ export function ChatTimeline({
             showReadReceipt={m.id === lastOwnMessageId}
             reactions={reactions?.get(m.id)}
             onReact={onReact}
+            reveal={reveal}
             replyParent={(() => {
               // Resolved here rather than in the bubble so the lookup happens
               // once per render pass with the full list in hand. A parent that

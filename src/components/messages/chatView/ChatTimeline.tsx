@@ -137,7 +137,7 @@ export function ChatTimeline({
               Couldn't load this conversation.
             </p>
             <p
-              className="font-serif italic text-[0.82rem] max-w-[260px]"
+              className="font-serif italic text-ds-13 max-w-[260px]"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Tap Retry. If it sticks, our end is having a hiccup —
@@ -173,7 +173,7 @@ export function ChatTimeline({
               Say hello.
             </p>
             <p
-              className="font-serif italic text-[0.82rem] max-w-[260px]"
+              className="font-serif italic text-ds-13 max-w-[260px]"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Send the first message to get the job moving.
@@ -237,7 +237,7 @@ export function ChatTimeline({
                 }}
               >
                 <p
-                  className="font-serif italic text-[0.74rem] leading-snug"
+                  className="font-serif italic text-ds-12 leading-snug"
                   style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                 >
                   {ev.label}

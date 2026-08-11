@@ -156,7 +156,7 @@ const JobDetailDialog = ({
             {job.is_urgent && (
               <span
                 aria-label="Urgent"
-                className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[9px] font-bold uppercase tracking-wider"
+                className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-ds-9 font-bold uppercase tracking-wider"
                 style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
               >
                 <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
@@ -165,7 +165,7 @@ const JobDetailDialog = ({
             {job.isBoosted && (
               <span
                 aria-label="Boosted"
-                className="boosted-shimmer boosted-pulse absolute -top-2 -right-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
+                className="boosted-shimmer boosted-pulse absolute -top-2 -right-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-9 font-bold uppercase tracking-wider"
                 style={{
                   color: "hsl(var(--amber-ink))",
                   border: "0.5px solid hsl(var(--gold-warm) / 0.6)",
@@ -309,7 +309,7 @@ const JobDetailDialog = ({
           {photos.length === 0 && job.isBoosted && (
             <span
               aria-label="Boosted"
-              className="boosted-shimmer boosted-pulse absolute -top-2 -right-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
+              className="boosted-shimmer boosted-pulse absolute -top-2 -right-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-9 font-bold uppercase tracking-wider"
               style={{
                 color: "hsl(var(--amber-ink))",
                 border: "0.5px solid hsl(var(--gold-warm) / 0.6)",
@@ -345,7 +345,7 @@ const JobDetailDialog = ({
                 need it (matching the Read more threshold) so short
                 descriptions stay plain blocks that wrap cleanly. */}
             <p
-              className={`font-serif text-[0.95rem] leading-relaxed break-words min-w-0 ${!descExpanded && (job.description?.length ?? 0) > 180 ? "line-clamp-3" : ""}`}
+              className={`font-serif text-ds-15 leading-relaxed break-words min-w-0 ${!descExpanded && (job.description?.length ?? 0) > 180 ? "line-clamp-3" : ""}`}
               style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
             >
               {job.description}

@@ -112,7 +112,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
               {avgRating.toFixed(1)}
             </p>
             <p
-              className="font-serif italic mt-1 text-[0.68rem]"
+              className="font-serif italic mt-1 text-ds-11"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               out of 5
@@ -132,7 +132,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
               ))}
             </div>
             <p
-              className="font-serif italic text-[0.85rem]"
+              className="font-serif italic text-ds-14"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Based on{" "}
@@ -239,7 +239,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Quality</span> · was the work done well?</li>
                   <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Communication</span> · were you easy to reach?</li>
                 </ul>
-                <p className="font-serif italic text-[0.7rem] mt-3 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-serif italic text-ds-11 mt-3 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Posters can leave written feedback too. Everything shows up here within minutes.
                 </p>
               </PopoverContent>

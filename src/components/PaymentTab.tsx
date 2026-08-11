@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
+import { formatPriceExact } from "@/lib/format";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -127,7 +128,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
         // date once the available balance flips). "~" prefix keeps the
         // hint honest — Stripe can deviate by a business day or two.
         const nextExpected = new Date(paidAt.getTime() + 7 * 86400 * 1000);
-        const dollars = (lastPayout.amount_cents / 100).toFixed(2);
+        const dollars = formatPriceExact(lastPayout.amount_cents / 100);
         const niceDate = (d: Date) =>
           d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
         return (
@@ -226,7 +227,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
                   key={opt.key}
                   type="button"
                   onClick={() => setScope(opt.key)}
-                  className="flex-1 px-3 h-7 rounded-full text-[0.7rem] font-sans font-semibold transition-all"
+                  className="flex-1 px-3 h-7 rounded-full text-ds-11 font-sans font-semibold transition-all"
                   style={
                     active
                       ? {
@@ -278,7 +279,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
             <button
               type="button"
               onClick={onSeeEarnings}
-              className="mt-3 w-full inline-flex items-center justify-center gap-1 py-2 rounded-ds-md text-[0.78rem] font-sans font-semibold active:opacity-70 transition-opacity"
+              className="mt-3 w-full inline-flex items-center justify-center gap-1 py-2 rounded-ds-md text-ds-12 font-sans font-semibold active:opacity-70 transition-opacity"
               style={{ color: "hsl(var(--bark))" }}
             >
               See full breakdown

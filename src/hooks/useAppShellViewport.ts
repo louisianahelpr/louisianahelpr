@@ -76,8 +76,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/benefits",    // Benefits marketplace — partner perks (document-scroll)
 
   // Public vertical landing pages (PageHeader + min-h-screen document-scroll)
-  "/discharge",       // Healthcare Discharge Concierge
-  "/insurance-claim", // Insurance Claim Concierge
 
   // Public marketing / informational pages (document-scroll)
   "/help",         // Help Center — static FAQ / support page

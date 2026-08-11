@@ -128,7 +128,7 @@ export function JobConfirmation({
 
         <div className="flex items-center gap-2">
           <span
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.7rem] font-sans font-semibold"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-ds-11 font-sans font-semibold"
             style={
               myConfirmed
                 ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))", border: "0.5px solid hsl(var(--bark) / 0.22)" }
@@ -139,7 +139,7 @@ export function JobConfirmation({
             You: {myConfirmed ? "Confirmed" : "Pending"}
           </span>
           <span
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.7rem] font-sans font-semibold"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-ds-11 font-sans font-semibold"
             style={
               otherConfirmed
                 ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))", border: "0.5px solid hsl(var(--bark) / 0.22)" }

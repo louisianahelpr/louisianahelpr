@@ -23,7 +23,7 @@ export function TitleField({
     <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor="title">Job title <span className="text-destructive">*</span></Label>
-        <span className="text-[0.66rem] tabular-nums text-muted-foreground">{title.length}/{TITLE_MAX}</span>
+        <span className="text-ds-11 tabular-nums text-muted-foreground">{title.length}/{TITLE_MAX}</span>
       </div>
       <div className="relative">
         <Input

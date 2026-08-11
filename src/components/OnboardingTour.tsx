@@ -299,7 +299,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
             Resume tour
           </span>
           <span
-            className="font-serif italic uppercase text-[0.62rem] px-1.5 py-0.5 rounded-full"
+            className="font-serif italic uppercase text-ds-10 px-1.5 py-0.5 rounded-full"
             style={{
               color: "hsl(var(--burnt-sienna))",
               backgroundColor: "hsl(var(--burnt-sienna) / 0.08)",
@@ -341,7 +341,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
           <div className="px-5 pt-4 pb-1">
             <div className="flex items-center justify-between mb-2">
               <span
-                className="font-serif italic uppercase text-[0.62rem]"
+                className="font-serif italic uppercase text-ds-10"
                 style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
                 Step {state.currentStep + 1} of {steps.length}
@@ -413,7 +413,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
               </DialogPrimitive.Title>
               <DialogPrimitive.Description asChild>
                 <p
-                  className="font-serif italic text-[0.92rem] leading-relaxed max-w-[360px] mx-auto"
+                  className="font-serif italic text-ds-15 leading-relaxed max-w-[360px] mx-auto"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   {currentStep.description}

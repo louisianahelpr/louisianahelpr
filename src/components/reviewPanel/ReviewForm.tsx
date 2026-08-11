@@ -138,7 +138,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       else toast.error("We couldn't post your review — please try again.");
     } else {
       hapticSuccess();
-      toast.success("Review submitted!");
+      toast.success("Review submitted");
       // Brand-tinted confetti for the first few reviews so the moment
       // feels worth doing again. After the limit it fades to silent.
       void maybeCelebrate("first_review");
@@ -203,7 +203,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                   key={opt}
                   type="button"
                   onClick={() => toggleQuickOption(opt)}
-                  className="text-[0.72rem] font-sans font-semibold px-3 py-1.5 rounded-full transition-all active:scale-[0.97]"
+                  className="text-ds-12 font-sans font-semibold px-3 py-1.5 rounded-full transition-all active:scale-[0.97]"
                   style={
                     selected
                       ? {
@@ -230,7 +230,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             rows={3}
-            className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
+            className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14 leading-relaxed"
           />
 
           {/* Photo attachments — up to 3 photos */}

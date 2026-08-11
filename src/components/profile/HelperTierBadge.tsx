@@ -85,7 +85,7 @@ type HelperTierBadgeProps = TierBadgeBaseProps &
   );
 
 const sizeStyles: Record<Size, { pill: string; icon: string }> = {
-  sm: { pill: "text-[0.65rem] px-2 py-0.5 gap-1", icon: "w-3 h-3" },
+  sm: { pill: "text-ds-10 px-2 py-0.5 gap-1", icon: "w-3 h-3" },
   md: { pill: "text-ds-11 px-2.5 py-1 gap-1.5", icon: "w-3.5 h-3.5" },
 };
 

@@ -270,7 +270,12 @@ const Dashboard = () => {
         <>
           <DashboardHeader
             inProgressJob={upcomingJob}
-            onViewInProgress={() => navigate("/activity?tab=myjobs")}
+            // An in-progress job is one the user is DOING, so this belongs on
+            // the applied/"My Jobs" side. It previously pointed at
+            // `/activity?tab=myjobs` — a redirect that drops the query string,
+            // to a tab name that never existed (Activity only accepts
+            // "posted" | "applied") — so it always landed on My Posts.
+            onViewInProgress={() => navigate("/my-jobs")}
           />
           <Suspense fallback={null}>
             <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />

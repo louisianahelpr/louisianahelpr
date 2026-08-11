@@ -163,7 +163,21 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           if (banInsertErr) report(banInsertErr, { tags: { source: "CancellationDialog.recordBan" } });
           const { error: banStatusErr } = await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", userId);
           if (banStatusErr) report(banStatusErr, { tags: { source: "CancellationDialog.applyBanStatus" } });
-          toast.error("Your account has been permanently banned due to 3 cancellations after selecting a Helpr.");
+          // A permanent ban is the most consequential message this product can
+          // send, and it used to be a toast: auto-dismissing in a few seconds,
+          // swipeable by accident, leaving no record. Someone who looked away
+          // lost their account and never saw why.
+          //
+          // Route to /account-banned instead. The ban rows above have already
+          // been written, and that screen reads `ban_status` off the profile,
+          // so it renders the real headline, the reason and the support path —
+          // and it persists, because it is a page rather than a notification.
+          // window.location, not useNavigate: a full document load is the RIGHT
+          // behaviour for a ban — it tears down every cached authed query
+          // rather than leaving a banned session live in memory behind the
+          // screen. It also keeps this component renderable without a Router,
+          // which its unit tests rely on.
+          window.location.assign("/account-banned");
         }
 
         // Bulk-fan to admins in one INSERT instead of awaiting per row.
@@ -182,6 +196,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           );
           if (notifyErr) report(notifyErr, { tags: { source: "CancellationDialog.notifyAdmins" } });
         }
+        toast.success("Job cancelled.");
       } else {
         toast.success("Job cancelled. Any held payment will be refunded within the hour.");
       }
@@ -338,12 +353,10 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                   className="font-sans font-bold"
                   style={{ fontSize: "0.82rem", color: "hsl(var(--destructive))", letterSpacing: "-0.01em" }}
                 >
-                  A cancellation fee of{" "}
-                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cancellationFee)}{" "}
-                  applies
+                  A cancellation fee of ${formatPrice(cancellationFee)} applies
                 </p>
                 <p className="text-ds-11 text-muted-foreground mt-0.5">
-                  {cancellationFeePercent}% of the ${jobBudget.toFixed(2)} budget · {feeTier.toLowerCase()}
+                  {cancellationFeePercent}% of the ${formatPrice(jobBudget)} budget · {feeTier.toLowerCase()}
                 </p>
               </div>
             </div>
@@ -392,7 +405,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               onChange={(e) => setReason(e.target.value)}
               placeholder="What changed? Helps us improve."
               rows={2}
-              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-[0.85rem]"
+              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14"
             />
           </div>
         </div>

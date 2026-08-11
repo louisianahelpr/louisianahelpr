@@ -145,10 +145,15 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
       const actorIds = Array.from(new Set(merged.map((e) => e.actor).filter((id): id is string => !!id && id.length > 16)));
       const nameMap = new Map<string, string>();
       if (actorIds.length > 0) {
-        const { data: profs } = await supabase
+      // Secondary name-hydration read. Don't drop the error: on failure every
+      // row silently renders the "Unknown"/fallback name, which looks like real
+      // data rather than a failed lookup. Report it, then still render the list
+      // — a missing display name must not blank the whole surface.
+        const { data: profs, error: profsError } = await supabase
           .from("profiles")
           .select("user_id, full_name")
           .in("user_id", actorIds);
+      if (profsError) report(profsError, { severity: "warning", tags: { source: "UserAuditLog.hydrateNames" } });
         for (const p of profs ?? []) {
           nameMap.set(p.user_id, formatName(p.full_name, "Admin"));
         }

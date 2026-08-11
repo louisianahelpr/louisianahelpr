@@ -263,7 +263,7 @@ const AdminUsers = () => {
           >
             <span className="truncate">{t.label}</span>
             {t.count !== undefined && t.count > 0 && (
-              <span className="text-[9px] sm:text-ds-10 bg-destructive/10 text-destructive px-1 py-0.5 rounded-full flex-shrink-0">{t.count}</span>
+              <span className="text-ds-9 sm:text-ds-10 bg-destructive/10 text-destructive px-1 py-0.5 rounded-full flex-shrink-0">{t.count}</span>
             )}
           </button>
         ))}
@@ -290,7 +290,7 @@ const AdminUsers = () => {
           className="h-9 text-ds-13 flex-1"
         />
         <Select value={sortDir} onValueChange={(v) => setSortDir(v as typeof sortDir)}>
-          <SelectTrigger className="h-9 text-ds-13 sm:w-[220px]">
+          <SelectTrigger aria-label="Sort by" className="h-9 text-ds-13 sm:w-[220px]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>

@@ -113,10 +113,10 @@ const Signup = () => {
     // Profile photo is REQUIRED — it carries a red asterisk, so the validator
     // has to enforce it. Note this adds real signup friction: a photo is a
     // bigger ask than a name, and it now blocks account creation.
-    if (!avatarFile) errors.avatar = "A profile photo is required";
-    if (isBusinessSignup && !companyName.trim()) errors.companyName = "Company name is required";
-    if (!firstName.trim()) errors.firstName = "First name is required";
-    if (!lastName.trim()) errors.lastName = "Last name is required";
+    if (!avatarFile) errors.avatar = "Upload a profile photo";
+    if (isBusinessSignup && !companyName.trim()) errors.companyName = "Add your company name";
+    if (!firstName.trim()) errors.firstName = "Add your first name";
+    if (!lastName.trim()) errors.lastName = "Add your last name";
     // Avatar, phone, DOB, and city are DEFERRED — not required to create the
     // account (keeps signup "under a minute"). They're soft-prompted later on
     // first post/apply. Each is still validated *when the user provides it*, so
@@ -128,9 +128,9 @@ const Signup = () => {
     // validator must actually enforce it — a marker the form doesn't honour is
     // worse than no marker). Age is still checked when a value is present.
     if (!dateOfBirth) {
-      errors.dateOfBirth = "Date of birth is required";
+      errors.dateOfBirth = "Add your date of birth";
     } else if (ageFromDob(dateOfBirth) < 18) {
-      errors.dateOfBirth = "You must be at least 18 years old to sign up";
+      errors.dateOfBirth = "You need to be 18+ to sign up";
     }
     // Bio is optional — but if the user starts one, keep the 20-char floor so
     // a half-typed sentence doesn't ship as their whole profile.
@@ -151,12 +151,23 @@ const Signup = () => {
     const normalizedPhone = phone.replace(/\D/g, "").slice(-10);
     if (Object.keys(errors).length === 0 && normalizedPhone.length === 10) {
       const lastSeven = normalizedPhone.slice(-7);
-      const { data: existing } = await supabase
+      // Fail CLOSED. Dropping this error let the duplicate-phone gate silently
+      // OPEN on any query failure (RLS change, timeout), which is the one
+      // outcome it exists to prevent. Block with a retryable message instead of
+      // waving a possible duplicate account through.
+      const { data: existing, error: existingError } = await supabase
         .from("profiles")
         .select("user_id")
         .ilike("phone", `%${lastSeven}%`)
         .limit(5);
-      if (existing && existing.length > 0) {
+      if (existingError) {
+        report("signup.phoneDedupe.lookupFailed", {
+          severity: "warning",
+          tags: { source: "Signup.phoneDedupe" },
+          context: { message: existingError.message },
+        });
+        errors.phone = "We couldn't verify this phone number just now. Please try again.";
+      } else if (existing && existing.length > 0) {
         errors.phone = "This phone number is already associated with an account. Please log in instead.";
         // Monitor false-positive rate — multiple matches likely means our
         // last-7-digit heuristic is too loose for this number.
@@ -184,12 +195,12 @@ const Signup = () => {
 
   // Validates the "Account credentials + agreements" content (UI step 1).
   const validateAccountStep = async () => {
-    if (!email.trim()) { toast.error("Email is required"); return false; }
-    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return false; }
-    if (!/[A-Z]/.test(password)) { toast.error("Password must contain at least one uppercase letter"); return false; }
-    if (!/[0-9]/.test(password)) { toast.error("Password must contain at least one number"); return false; }
-    if (!acceptedPolicies) { toast.error("You must agree to the terms, platform rules, and privacy policy"); return false; }
-    if (!ageConfirmed) { toast.error("You must confirm you are at least 18 years old to sign up"); return false; }
+    if (!email.trim()) { toast.error("Add your email address"); return false; }
+    if (password.length < 8) { toast.error("Password needs at least 8 characters"); return false; }
+    if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter to your password"); return false; }
+    if (!/[0-9]/.test(password)) { toast.error("Add at least one number to your password"); return false; }
+    if (!acceptedPolicies) { toast.error("Check the box to agree to the terms and platform rules"); return false; }
+    if (!ageConfirmed) { toast.error("Check the box to confirm you're 18+"); return false; }
     return true;
   };
 
@@ -242,7 +253,7 @@ const Signup = () => {
     if (elapsed < SIGNUP_COOLDOWN_MS) {
       const secsLeft = Math.ceil((SIGNUP_COOLDOWN_MS - elapsed) / 1000);
       hapticError();
-      toast.error(`Please wait ${secsLeft} seconds before trying again`);
+      toast.error(`Too many attempts — try again in ${secsLeft}s`);
       setLoading(false);
       return;
     }
@@ -387,7 +398,14 @@ const Signup = () => {
                 aligned to nothing. */}
             <div className="text-left space-y-1">
               <div className="flex items-center gap-3">
-                <div className="shrink-0"><BackButton to="/" /></div>
+                {/* On step 2 the arrow walks the FLOW back a step — leaving
+                    signup entirely from there silently discards the email and
+                    password already typed. Only step 1 exits to home. */}
+                <div className="shrink-0">
+                  {step === 2
+                    ? <BackButton onClick={() => { setStep2Errors({}); setStep(1); }} />
+                    : <BackButton to="/" />}
+                </div>
                 <h1
                   className="font-display italic font-bold leading-tight min-w-0 flex-1"
                   style={{

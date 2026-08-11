@@ -90,7 +90,7 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
       {/* Filters */}
       <div className="w-full">
         <Select value={jobsRole} onValueChange={(v: any) => setJobsRole(v)}>
-          <SelectTrigger className="h-9 text-ds-11 w-full"><SelectValue /></SelectTrigger>
+          <SelectTrigger aria-label="Job role filter" className="h-9 text-ds-11 w-full"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Jobs</SelectItem>
             <SelectItem value="worked">Worked (Helpr)</SelectItem>

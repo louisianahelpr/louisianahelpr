@@ -191,14 +191,28 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // manual poster acceptance. The `helper_confirmed_at` column is NOT
       // instant_book-specific; it's the same field set in handleHelperResponse.
       if (isInstantBook) {
-        try {
-          const confirmedAt = new Date().toISOString();
-          await supabase
-            .from("jobs")
-            .update({ helper_confirmed_at: confirmedAt, helper_id: helperId, status: "accepted" as const, response_deadline: null })
-            .eq("id", jobId);
-        } catch {
-          // Best-effort — apply still landed.
+        // Claim through the RPC, never a direct table UPDATE. The previous
+        // client-side `.update({helper_id, status:"accepted"}).eq("id", jobId)`
+        // was a silent no-op: at claim time helper_id is still NULL, so the
+        // "Helpers can update their assigned jobs" RLS policy
+        // (USING auth.uid() = helper_id) made the row invisible and the UPDATE
+        // matched zero rows — which is a SUCCESS, not an error, so the
+        // try/catch never fired. Instant Book has therefore never worked, while
+        // the UI promised it ("Instant book" badge, "Book now" button).
+        // instant_book_claim() locks the job and re-checks every precondition,
+        // so two simultaneous claims resolve to exactly one winner.
+        // `as any` matches the established pattern for an RPC that isn't in the
+        // generated types yet (see business_activity_feed, approve_pending_job,
+        // update_business_member_role). Regenerating via `npm run db:types`
+        // after this migration deploys will make the cast unnecessary.
+        const { error: claimError } = await supabase.rpc("instant_book_claim" as any, {
+          p_job_id: jobId,
+        } as any);
+        // PGRST202 = the function isn't deployed yet (the window between this
+        // commit merging and db-deploy finishing). Degrade to the normal
+        // application flow rather than failing the apply that already landed.
+        if (claimError && claimError.code !== "PGRST202") {
+          throw claimError;
         }
       }
     },

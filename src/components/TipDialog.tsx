@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Gift } from "lucide-react";
 import { toast } from "sonner";
+import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
 interface TipDialogProps {
   jobId: string;
@@ -24,6 +25,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
       toast.error("Enter a valid amount");
       return;
     }
+    hapticMedium();
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", {
@@ -31,9 +33,10 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) { hapticSuccess(); window.location.href = data.url; }
       else throw new Error("Couldn't start checkout. Please try again.");
     } catch (err: any) {
+      hapticError();
       toast.error(err.message || "Couldn't send your tip — try again?");
     } finally {
       setSending(false);

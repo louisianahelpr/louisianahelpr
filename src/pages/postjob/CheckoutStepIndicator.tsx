@@ -31,7 +31,7 @@ export function CheckoutStepIndicator({ onBackToForm }: CheckoutStepIndicatorPro
         className="group flex min-h-[44px] items-center gap-1.5 rounded-full pr-1 transition-transform active:scale-[0.97]"
       >
         <span
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-sans font-bold tabular-nums transition-all duration-300 ease-ds-out"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-ds-10 font-sans font-bold tabular-nums transition-all duration-300 ease-ds-out"
           style={{
             background: "hsl(var(--bark))",
             color: "hsl(var(--parchment))",
@@ -62,7 +62,7 @@ export function CheckoutStepIndicator({ onBackToForm }: CheckoutStepIndicatorPro
         aria-current="step"
       >
         <span
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-sans font-bold tabular-nums"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-ds-10 font-sans font-bold tabular-nums"
           style={{
             background: "hsla(0, 0%, 100%, 0.85)",
             color: "hsl(var(--bark))",
@@ -78,7 +78,7 @@ export function CheckoutStepIndicator({ onBackToForm }: CheckoutStepIndicatorPro
             color: "hsl(var(--ink-deep))",
           }}
         >
-          Review &amp; Pay
+          Review and pay
         </span>
       </div>
     </div>

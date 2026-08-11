@@ -268,7 +268,7 @@ const AccountPending = () => {
                 >
                   We&apos;re verifying your details
                 </h1>
-                <p className="text-[13px] text-muted-foreground leading-relaxed max-w-[90%] sm:max-w-[28ch]">
+                <p className="text-ds-13 text-muted-foreground leading-relaxed max-w-[90%] sm:max-w-[28ch]">
                   {firstName ? `Hang tight, ${firstName}. ` : ""}
                   Our team is reviewing your credentials. This usually takes
                   {" "}<span className="font-medium text-foreground">24–48 hours</span>.
@@ -370,7 +370,7 @@ const AccountPending = () => {
                     `Email: ${userEmail || "unknown"}`,
                   ].join("\n"),
                 )}`}
-                className="text-center text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+                className="text-center text-ds-12 text-muted-foreground hover:text-foreground transition-colors"
               >
                 Need help?{" "}
                 <span className="underline underline-offset-2">Contact support</span>

@@ -309,15 +309,16 @@ Listed in rough priority order.
   Geocoding wired into PostJob (Nominatim, free, US-scoped) so
   new posts populate coords automatically. Map item COMPLETE.
 - [ ] **Continue god-component extraction**
-  AdminUsers is at 1,916 lines (was 2,464 at start of audit, -548 / -22.2%).
+  AdminUsers is at 467 lines (was 1,916 as of 2026-05-06; further reduced via
+  `src/components/admin/adminusers/` subdirectory).
   9 sub-components extracted: `AutoRestrictedRail`, `DenyUserDialog`,
   `BanDialog`, `EditEmailDialog`, `DeleteUserDialog`,
   `ManualVerifyDialog`, `ResetPasswordDialog`, `ReuploadIdDialog`,
   `FormalWarningDialog`. The shared `callAdminAction` coordinator
   + `actionBusy` state are retired from the parent. AdminUsers is
   now mostly the user-list + filter pills + per-card menu —
-  no further dialog extractions needed at this point. Profile.tsx (now
-  563 lines) and PostJob.tsx (now 93 lines) were extracted in the
+  no further dialog extractions needed at this point. Profile.tsx (573 lines)
+  and PostJob.tsx (109 lines) were extracted in the
   2026-05-11 session. Remaining: `Dashboard.tsx` (510 lines).
 - [x] **Stripe webhook refactor** — handlers split into
   `supabase/functions/stripe-webhook/handlers/` (13 files, ~1 k

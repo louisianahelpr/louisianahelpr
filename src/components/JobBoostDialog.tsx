@@ -122,7 +122,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                 <Link
                   to="/profile?tab=subscription"
                   onClick={onClose}
-                  className="inline-flex items-center gap-1 mt-2 text-[0.72rem] font-sans font-semibold active:opacity-70"
+                  className="inline-flex items-center gap-1 mt-2 text-ds-12 font-sans font-semibold active:opacity-70"
                   style={{ color: "hsl(var(--gold-warm))" }}
                 >
                   <Sparkles className="w-3 h-3" /> Free with Elite · See plans
@@ -142,7 +142,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                 style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
               >
                 <span
-                  className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[0.6rem] font-bold mt-0.5"
+                  className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-ds-10 font-bold mt-0.5"
                   style={{
                     background: "hsl(var(--gold-warm) / 0.18)",
                     color: "hsl(var(--gold-warm))",

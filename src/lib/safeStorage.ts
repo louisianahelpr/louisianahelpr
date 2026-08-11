@@ -122,6 +122,28 @@ export const safeStorage = {
  * already present in localStorage, copy it back. We don't overwrite — if
  * localStorage has a value, that's the most recent write.
  */
+/**
+ * Memoized so ANY caller can await the same hydration rather than starting a
+ * second pass. Needed by consumers for which the "read a sensible default on
+ * first render" contract above is unsafe — specifically the app lock
+ * (`lib/appLock.ts`), where the default is the INSECURE state: a synchronous
+ * read that misses the durable value silently leaves the app unlocked. Those
+ * consumers await `hydrate()` before deciding.
+ */
+let hydratePromise: Promise<void> | null = null;
+
+/**
+ * Await the app's ONE hydration pass.
+ *
+ * Separate from `hydrate()` — which stays un-memoized so existing callers and
+ * tests keep their "run it again" semantics — because memoizing that would
+ * silently change its contract.
+ */
+export function ensureHydrated(): Promise<void> {
+  if (!hydratePromise) hydratePromise = hydrate();
+  return hydratePromise;
+}
+
 export async function hydrate(): Promise<void> {
   try {
     const { keys } = await Preferences.keys();

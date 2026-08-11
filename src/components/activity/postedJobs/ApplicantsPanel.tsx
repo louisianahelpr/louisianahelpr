@@ -82,7 +82,7 @@ export function ApplicantsPanel({
       });
       if (error) {
         if (error.code === "PGRST202") {
-          toast.error("Counter-offer feature not yet deployed — try again later.");
+          toast.error("Couldn't send your counter right now — try again?");
         } else {
           toast.error("Couldn't send your counter — try again?");
         }
@@ -263,7 +263,7 @@ export function ApplicantsPanel({
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <span className="font-display italic font-bold text-[0.85rem]" style={{ color: "hsl(var(--bark))" }}>
+                              <span className="font-display italic font-bold text-ds-14" style={{ color: "hsl(var(--bark))" }}>
                                 {helperInitials}
                               </span>
                             )}
@@ -281,7 +281,7 @@ export function ApplicantsPanel({
                               </a>
                               {isElite && (
                                 <span
-                                  className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
                                   style={{
                                     background: "hsl(var(--gold-warm) / 0.14)",
                                     color: "hsl(var(--gold-warm))",
@@ -293,7 +293,7 @@ export function ApplicantsPanel({
                               )}
                               {isPro && (
                                 <span
-                                  className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
                                   style={{
                                     background: "hsl(var(--burnt-sienna) / 0.12)",
                                     color: "hsl(var(--burnt-sienna))",
@@ -319,7 +319,7 @@ export function ApplicantsPanel({
                                   }}
                                 >
                                   <Play className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }} />
-                                  <span className="text-[8px] font-semibold" style={{ color: "hsl(var(--burnt-sienna))" }}>Intro</span>
+                                  <span className="text-ds-9 font-semibold" style={{ color: "hsl(var(--burnt-sienna))" }}>Intro</span>
                                 </button>
                               )}
                               {/* Inline rating — compact ★ 4.9 (23) */}

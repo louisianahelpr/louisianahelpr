@@ -271,7 +271,7 @@ export function ApplyConfirmDialog({
                         key={sentence}
                         type="button"
                         onClick={() => handleStarterTap(sentence)}
-                        className="shrink-0 whitespace-nowrap text-[0.72rem] font-serif italic px-2.5 py-1 rounded-full transition-colors active:scale-[0.97]"
+                        className="shrink-0 whitespace-nowrap text-ds-12 font-serif italic px-2.5 py-1 rounded-full transition-colors active:scale-[0.97]"
                         style={{
                           background: "hsl(var(--bark) / 0.07)",
                           color: "hsl(var(--ink-deep) / 0.88)",
@@ -311,7 +311,7 @@ export function ApplyConfirmDialog({
               maxLength={MAX_PITCH_LENGTH}
               placeholder="Introduce yourself or share relevant experience…"
               rows={3}
-              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
+              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14 leading-relaxed"
             />
             <div className="flex items-center justify-between text-ds-11">
               {/* Soft min counter — surfaces the "30+ chars feels real"
@@ -443,7 +443,7 @@ export function ApplyConfirmDialog({
               {applyFiles.map((file, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2 text-[0.72rem] rounded-ds-md px-2.5 py-1.5"
+                  className="flex items-center gap-2 text-ds-12 rounded-ds-md px-2.5 py-1.5"
                   style={{ background: "hsl(var(--bark) / 0.08)", border: "0.5px solid hsl(var(--bark) / 0.18)" }}
                 >
                   <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
@@ -456,7 +456,7 @@ export function ApplyConfirmDialog({
               ))}
               {applyFiles.length < 5 && (
                 <label
-                  className="inline-flex items-center gap-1.5 text-[0.78rem] font-sans font-semibold cursor-pointer active:opacity-70"
+                  className="inline-flex items-center gap-1.5 text-ds-12 font-sans font-semibold cursor-pointer active:opacity-70"
                   style={{ color: "hsl(var(--bark))" }}
                 >
                   <Paperclip className="w-3.5 h-3.5" strokeWidth={2.25} />
@@ -483,7 +483,7 @@ export function ApplyConfirmDialog({
         </div>
         {!online && (
           <p
-            className="flex items-center gap-1.5 font-serif italic text-[0.78rem] leading-snug -mt-1"
+            className="flex items-center gap-1.5 font-serif italic text-ds-12 leading-snug -mt-1"
             style={{ color: "hsl(var(--burnt-sienna))" }}
             role="status"
           >

@@ -79,7 +79,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     const { error } = await supabase.from("jobs").update(updateData).eq("id", job.id);
     setSaving(false);
     if (error) { hapticError(); toast.error("We couldn't save your changes — please try again."); }
-    else { hapticSuccess(); toast.success("Job updated!"); onSaved(); onClose(); }
+    else { hapticSuccess(); toast.success("Job updated"); onSaved(); onClose(); }
   };
 
   const handleSaveClick = () => setShowConfirm(true);
@@ -130,7 +130,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <div className="space-y-5">
           {locked && (
             <p
-              className="font-serif italic text-[0.8rem] leading-relaxed rounded-ds-md p-2.5"
+              className="font-serif italic text-ds-13 leading-relaxed rounded-ds-md p-2.5"
               style={{
                 color: "hsl(var(--olivewood) / 0.85)",
                 background: "hsl(var(--gold-warm) / 0.10)",
@@ -155,7 +155,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             <div className="space-y-1.5">
               <Label className={eyebrowCls} style={eyebrowStyle}>Category</Label>
               <Select value={category} onValueChange={setCategory} disabled={hasHelper}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Category"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                 </SelectContent>
@@ -247,7 +247,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         />
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={save}>Save Changes</AlertDialogAction>
+          <AlertDialogAction onClick={save}>Save changes</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -183,7 +183,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               Reason
             </Label>
             <Select value={reason} onValueChange={setReason}>
-              <SelectTrigger className="rounded-ds-md bg-background/60 border-border/60 focus:border-primary/40">
+              <SelectTrigger aria-label="Reason" className="rounded-ds-md bg-background/60 border-border/60 focus:border-primary/40">
                 <SelectValue placeholder="Pick the closest fit…" />
               </SelectTrigger>
               <SelectContent>
@@ -205,7 +205,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               placeholder="The more specific you are, the faster admin can help…"
               rows={3}
               maxLength={1000}
-              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-[0.88rem] leading-relaxed"
+              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14 leading-relaxed"
             />
           </div>
 
@@ -217,7 +217,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               {evidenceFiles.map((file, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-1 text-[0.7rem] px-2 py-1 rounded-full"
+                  className="flex items-center gap-1 text-ds-11 px-2 py-1 rounded-full"
                   style={{
                     background: "hsl(var(--bark) / 0.10)",
                     color: "hsl(var(--bark))",
@@ -233,7 +233,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
             </div>
             {evidenceFiles.length < 5 && (
               <label
-                className="inline-flex items-center gap-1.5 text-[0.78rem] font-sans font-semibold cursor-pointer active:opacity-70"
+                className="inline-flex items-center gap-1.5 text-ds-12 font-sans font-semibold cursor-pointer active:opacity-70"
                 style={{ color: "hsl(var(--bark))" }}
               >
                 <Upload className="w-3.5 h-3.5" strokeWidth={2.25} /> {evidenceFiles.length === 0 ? "Add photos" : "Add more"}

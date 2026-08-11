@@ -35,15 +35,11 @@ export function validateFile(
   label: string,
 ): boolean {
   if (!allowedTypes.includes(file.type)) {
-    toast.error(
-      `${label}: Invalid file type. Allowed: ${allowedTypes
-        .map((t) => t.split("/")[1])
-        .join(", ")}`,
-    );
+    toast.error(`${label}: that file type isn't supported — try JPG, PNG, or WEBP.`);
     return false;
   }
   if (file.size > MAX_FILE_SIZE) {
-    toast.error(`${label}: File too large. Maximum 5MB.`);
+    toast.error(`${label}: that file is over 5 MB — try a smaller one.`);
     return false;
   }
   return true;

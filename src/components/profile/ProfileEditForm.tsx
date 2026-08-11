@@ -282,7 +282,7 @@ export function ProfileEditForm({
             the body copy below identifies the section on its own. */}
         <div className="rounded-2xl liquid-glass p-5 space-y-4">
           <div className="flex items-center justify-end gap-2">
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium not-italic ${idBadge.cls}`}>{idBadge.label}</span>
+            <span className={`text-ds-9 px-1.5 py-0.5 rounded-full font-medium not-italic ${idBadge.cls}`}>{idBadge.label}</span>
           </div>
           <div className="flex items-center gap-3">
             <p className="font-serif italic leading-snug flex-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>

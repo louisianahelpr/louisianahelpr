@@ -10,11 +10,18 @@ export async function handleAccountUpdated(
   logStep("Connect account updated", { accountId: account.id, chargesEnabled: account.charges_enabled, payoutsEnabled: account.payouts_enabled });
 
   // Find the helper with this Stripe account
-  const { data: helperProfile } = await supabase
+  // Throw rather than drop: this lookup gates Stripe-verified AUTO-APPROVAL.
+  // Swallowing the error silently skipped the approval, leaving a helper who
+  // passed Stripe's identity checks stuck in `pending` forever with nothing
+  // logged and no retry. The 500 path makes Stripe redeliver instead.
+  const { data: helperProfile, error: helperProfileError } = await supabase
     .from("profiles")
     .select("user_id, full_name, approval_status, email_verified")
     .eq("stripe_account_id", account.id)
     .maybeSingle();
+  if (helperProfileError) {
+    throw new Error(`helper lookup failed for account ${account.id}: ${helperProfileError.message}`);
+  }
 
   if (helperProfile) {
     if (account.charges_enabled && account.payouts_enabled) {

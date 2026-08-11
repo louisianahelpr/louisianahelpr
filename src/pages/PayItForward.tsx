@@ -77,7 +77,7 @@ export default function PayItForward() {
   useEffect(() => {
     const gift = searchParams.get("gift");
     if (gift === "success") {
-      toast.success("Gift card on its way!", {
+      toast.success("Gift card on its way.", {
         description: "We've emailed your recipient a link to claim their gift card.",
         icon: "💚",
       });
@@ -323,7 +323,7 @@ export default function PayItForward() {
             }}
           >
             <div
-              className="w-4 h-4 shrink-0 rounded-full border-2 border-t-transparent animate-spin"
+              className="w-4 h-4 shrink-0 rounded-full border-2 border-t-transparent motion-safe:animate-spin"
               style={{ borderColor: "hsl(var(--pif-green))", borderTopColor: "transparent" }}
             />
             <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--pif-ink))" }}>

@@ -95,7 +95,7 @@ const TopicSection = ({
         className="w-full flex items-center justify-between gap-6 py-4 sm:py-5 px-5 sm:px-6 text-left transition-opacity hover:opacity-80"
       >
         <span
-          className="font-sans font-semibold uppercase text-[0.72rem] sm:text-[0.78rem] tracking-[0.18em] inline-flex items-center gap-3"
+          className="font-sans font-semibold uppercase text-ds-12 sm:text-ds-12 tracking-[0.18em] inline-flex items-center gap-3"
           style={{ color: accent }}
         >
           <span
@@ -106,7 +106,7 @@ const TopicSection = ({
           {section.topic}
           <span
             aria-hidden
-            className="ml-1 font-sans font-medium normal-case tracking-normal text-[0.7rem]"
+            className="ml-1 font-sans font-medium normal-case tracking-normal text-ds-11"
             style={{ color: "hsl(var(--olivewood) / 0.6)" }}
           >
             {section.items.length}
@@ -323,7 +323,7 @@ const HelpCenter = () => {
             {!searching && (
               <div className="mt-5 flex flex-col items-start gap-2.5">
                 <span
-                  className="font-sans font-medium uppercase text-[0.62rem]"
+                  className="font-sans font-medium uppercase text-ds-10"
                   style={{
                     color: "hsl(var(--burnt-sienna))",
                     letterSpacing: "0.22em",

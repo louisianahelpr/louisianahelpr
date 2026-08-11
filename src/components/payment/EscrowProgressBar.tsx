@@ -191,7 +191,7 @@ export function EscrowProgressBar({
                         />
                       ) : (
                         <span
-                          className="text-[10px] font-bold tabular-nums leading-none"
+                          className="text-ds-10 font-bold tabular-nums leading-none"
                           aria-hidden
                         >
                           {stepNumber}

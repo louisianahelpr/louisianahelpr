@@ -68,7 +68,7 @@ const SectionCard = ({
           }}
         >
           <span
-            className="inline-flex items-center gap-1 mb-2 font-sans font-semibold uppercase text-[0.6rem] tracking-[0.16em]"
+            className="inline-flex items-center gap-1 mb-2 font-sans font-semibold uppercase text-ds-10 tracking-[0.16em]"
             style={{ color: "hsl(var(--bark) / 0.8)" }}
           >
             <Crown className="w-3 h-3" strokeWidth={2} />

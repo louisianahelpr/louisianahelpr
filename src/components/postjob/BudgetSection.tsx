@@ -171,7 +171,7 @@ export function BudgetSection({
             value={budget === "" ? undefined : Number.parseFloat(budget) || undefined}
             onChange={(next) => setBudget(next === undefined ? "" : next.toString())}
             placeholder="50.00"
-            className="text-[15px] font-medium"
+            className="text-ds-15 font-medium"
             required
             aria-label="Job budget in dollars"
             enterKeyHint="done"
@@ -293,7 +293,7 @@ export function BudgetSection({
             value={budget === "" ? undefined : Number.parseFloat(budget) || undefined}
             onChange={(next) => setBudget(next === undefined ? "" : next.toString())}
             placeholder="0.00"
-            className="text-[15px] font-medium opacity-60 cursor-not-allowed"
+            className="text-ds-15 font-medium opacity-60 cursor-not-allowed"
             aria-label="Auto-set budget in dollars"
             readOnly
             enterKeyHint="done"
@@ -341,7 +341,7 @@ export function BudgetSection({
               value={bidCeiling === "" ? undefined : Number.parseFloat(bidCeiling) || undefined}
               onChange={(next) => setBidCeiling(next === undefined ? "" : next.toString())}
               placeholder="$"
-              className="text-[15px] font-medium"
+              className="text-ds-15 font-medium"
               aria-label="Maximum bid ceiling in dollars"
               enterKeyHint="done"
             />

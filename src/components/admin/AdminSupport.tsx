@@ -8,6 +8,7 @@ import { MessageSquarePlus, Lightbulb, AlertTriangle, HelpCircle, CheckCircle2, 
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { formatShortDate } from "@/lib/format";
+import { report } from "@/lib/errorLogger";
 
 type Ticket = {
   id: string;
@@ -57,10 +58,15 @@ const AdminSupport = () => {
 
       const userIds = [...new Set((data || []).map(r => r.reporter_id))];
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase
+      // Secondary name-hydration read. Don't drop the error: on failure every
+      // row silently renders the "Unknown"/fallback name, which looks like real
+      // data rather than a failed lookup. Report it, then still render the list
+      // — a missing display name must not blank the whole surface.
+        const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
           .select("user_id, full_name, email")
           .in("user_id", userIds);
+      if (profilesError) report(profilesError, { severity: "warning", tags: { source: "AdminSupport.hydrateNames" } });
         const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
         return (data || []).map(r => ({
           ...r,

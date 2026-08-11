@@ -64,7 +64,7 @@ export const PrivacyContent = () => (
       <PolicyRowItem
         icon={Eye}
         title="Service delivery"
-        body={<p>To match you with jobs, process payments, and facilitate communication between customers and Helprs.</p>}
+        body={<p>To match you with jobs, process payments, and facilitate communication between posters and Helprs.</p>}
       />
       <PolicyRowItem
         icon={Shield}
@@ -92,7 +92,7 @@ export const PrivacyContent = () => (
       <PolicyRowItem
         icon={Users}
         title="With other users"
-        body={<p>Your first name, profile photo, ratings, and reviews are visible to other users. Full contact details are only shared after a job is confirmed.</p>}
+        body={<p>Your first name, profile photo, ratings, and reviews are visible to other neighbors. Full contact details are only shared after a job is confirmed.</p>}
       />
       <PolicyRowItem
         icon={Wallet}
@@ -216,7 +216,7 @@ export const PrivacyContent = () => (
           >
             We never sell your data.
           </p>
-          <p className="font-serif italic mt-1 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Other users only see your first name, photo, and ratings. ID documents stay encrypted and are accessed only during verification.
           </p>
         </div>

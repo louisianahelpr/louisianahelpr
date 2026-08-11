@@ -101,6 +101,7 @@ const BusinessExports = lazy(() => import("./pages/business/BusinessExports"));
 const BusinessOnboarding = lazy(() => import("./pages/business/BusinessOnboarding"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
+const Accessibility = lazy(() => import("./pages/Accessibility"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Support = lazy(() => import("./pages/Support"));
@@ -222,6 +223,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<PageTransition><SubscriptionPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
+      <Route path="/accessibility" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><Accessibility /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Legacy /pay-it-forward → /gift-card (feature renamed). */}
       <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />

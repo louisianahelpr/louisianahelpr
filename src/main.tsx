@@ -6,6 +6,7 @@ import { installGlobalErrorHandlers } from "./lib/errorLogger";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
 import { recoverFromChunkError } from "./lib/chunkReload";
+import { initSimpleMode } from "./lib/simpleMode";
 
 // Build identifier — exposed on window so a deploy with only doc/cosmetic
 // changes still produces a new bundle hash, evicting stale CacheFirst
@@ -22,6 +23,12 @@ window.HELPR_BUILD = "2026-05-04-editorial-brand-polish";
 // Global error handlers are tiny + synchronous — keep them eager so we
 // catch any throw during the very first render.
 installGlobalErrorHandlers();
+
+// Simple Mode — applied BEFORE render, and synchronously. It is a class on
+// <html> read from local storage, so it costs nothing; doing it after mount
+// would paint the app at the small size and then jump to the large one, which
+// is exactly the experience this mode exists to prevent.
+initSimpleMode();
 
 // Stale-chunk recovery — eager, before render. When a deploy changes the
 // content-hashed chunk filenames, a tab still running the previous build

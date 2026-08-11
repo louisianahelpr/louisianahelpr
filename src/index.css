@@ -2679,3 +2679,58 @@ button,
   }
 }
 
+
+/* ── Simple Mode ─────────────────────────────────────────────────────
+   A larger, calmer rendering for users who find the default density hard
+   to read. Toggled from Profile → Accessibility; see src/lib/simpleMode.ts
+   for why this is a class rather than a root font-size (the ds-* scale is
+   defined in PIXELS, which ignore root font-size entirely).
+
+   Only the SMALL rungs are restated. ds-16 and up are already comfortable,
+   and scaling them too would push headings into line-wrapping on a 375px
+   screen — making the page longer without making it more readable.
+
+   `!important` is load-bearing here: the ds-* utilities and these overrides
+   have equal specificity once the class is on <html>, so source order alone
+   would leave the winner dependent on Tailwind's emit order. This is the one
+   place in the stylesheet where that trade is worth it. */
+html.simple-mode .text-ds-9  { font-size: 12px !important; line-height: 1.45 !important; }
+html.simple-mode .text-ds-10 { font-size: 13px !important; line-height: 1.45 !important; }
+html.simple-mode .text-ds-11 { font-size: 14px !important; line-height: 1.5 !important; }
+html.simple-mode .text-ds-12 { font-size: 15px !important; line-height: 1.5 !important; }
+html.simple-mode .text-ds-13 { font-size: 16px !important; line-height: 1.5 !important; }
+html.simple-mode .text-ds-14 { font-size: 17px !important; line-height: 1.5 !important; }
+html.simple-mode .text-ds-15 { font-size: 18px !important; line-height: 1.45 !important; }
+
+/* Muted greys are the first thing to fail for ageing eyes — they were chosen
+   for hierarchy on a good screen in good light. Simple Mode trades some of
+   that hierarchy back for contrast. */
+html.simple-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !important; }
+
+/* Every tappable thing clears 48px — above the 44px WCAG 2.5.5 floor, since
+   the people who need this mode are also the most likely to mis-tap.
+
+   The :not() chain is copied verbatim from the global 44px tap-target rule
+   above, for two reasons, both found by measuring rather than reasoning:
+
+   1. Specificity. That rule is (0,3,1) because each :not([attr]) contributes
+      an attribute selector's weight. A plain `html.simple-mode button` is
+      (0,1,2) and LOSES, so every button stayed at 44px and this block looked
+      like it worked while doing nothing.
+   2. Correctness. It excludes switches/checkboxes/radios because those have
+      designed dimensions — our Switch is h-[31px]. Without the same
+      exclusions, Simple Mode stretched the toggle into a 48px-tall pill. */
+html.simple-mode button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]),
+html.simple-mode a[role="button"],
+html.simple-mode [role="tab"] { min-height: 48px; }
+
+/* Decorative motion is noise when reading is already effortful. This is the
+   same treatment prefers-reduced-motion gets, applied by choice rather than
+   by OS setting — plenty of people never find that setting. */
+html.simple-mode *,
+html.simple-mode *::before,
+html.simple-mode *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}

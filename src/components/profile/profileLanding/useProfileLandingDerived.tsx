@@ -2,7 +2,7 @@ import {
   Shield, Bell, Users, PawPrint, ClipboardList,
   CalendarDays, BarChart2, Heart, ShieldCheck, Home, Star,
   TrendingUp, CreditCard, Crown, FileText, Gavel, HelpCircle,
-  AlertTriangle,
+  AlertTriangle, Type,
 } from "lucide-react";
 import { getProfileCompletion } from "@/lib/profileCompletion";
 import { hapticLight } from "@/lib/haptics";
@@ -149,6 +149,14 @@ export function useProfileLandingDerived({
           incompleteLabel: !phoneVerified ? "Verify phone" : undefined,
         },
         { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get", tint: "var(--stormy-sky)" },
+        {
+          key: "accessibility",
+          label: "Accessibility",
+          icon: <Type className="w-5 h-5" />,
+          desc: "Simple Mode — larger text and buttons",
+          tint: "var(--bark)",
+          href: "/accessibility",
+        },
         {
           key: "family",
           label: "Family & care",

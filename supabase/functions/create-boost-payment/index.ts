@@ -72,11 +72,21 @@ serve(async (req) => {
     // subscription, flip the boost flags directly without redirecting
     // to Stripe Checkout. Returns a `free: true` payload so the client
     // can show a success toast instead of redirecting.
-    const { data: posterProfile } = await supabaseAdmin
+    // Fail CLOSED. Dropping this error made `subTier` fall back to "free",
+    // silently DOWNGRADING an Elite member: they'd lose their free-boost perk
+    // and be sent to Stripe Checkout to pay for something already included.
+    const { data: posterProfile, error: posterProfileError } = await supabaseAdmin
       .from("profiles")
       .select("subscription_tier, subscription_expires_at")
       .eq("user_id", user.id)
       .single();
+    if (posterProfileError) {
+      console.error("[create-boost-payment] profile lookup failed:", posterProfileError.message);
+      return new Response(
+        JSON.stringify({ error: "We couldn't confirm your membership just now. Please try again." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     const subTier = (posterProfile?.subscription_tier ?? "free") as string;
     const subExp = posterProfile?.subscription_expires_at
       ? new Date(posterProfile.subscription_expires_at)
@@ -158,7 +168,10 @@ serve(async (req) => {
           currency: "usd",
           product_data: {
             name: productName,
-            description: `Boosts "${job.title}" to the top of Browse Tasks for 24 hours.`,
+            // Derived, not hardcoded: this is the line the customer reads on
+            // their Stripe receipt, and it was the ONE duration string in this
+            // file that wouldn't follow BOOST_DURATION_HOURS if it changed.
+            description: `Boosts "${job.title}" to the top of Browse Tasks for ${BOOST_DURATION_HOURS} hours.`,
             // Promotional / advertising service — not subject to LA sales tax.
             // (LA does not currently tax advertising services for state purposes.)
             tax_code: "txcd_00000000",

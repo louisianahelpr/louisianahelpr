@@ -117,7 +117,7 @@ function Wheel({ options, value, onChange, ariaLabel, disabled }: WheelProps) {
             <div
               key={String(opt)}
               className={cn(
-                "flex items-center justify-center text-[17px] font-semibold tracking-tight tabular-nums snap-center select-none",
+                "flex items-center justify-center text-ds-17 font-semibold tracking-tight tabular-nums snap-center select-none",
                 isActive ? "text-foreground" : "text-muted-foreground/60",
               )}
               style={{ height: ITEM_HEIGHT }}
@@ -175,7 +175,7 @@ export function TimePickerWheel({ value, onChange, disabled, className }: TimePi
               disabled={disabled}
               onClick={() => update("period", p)}
               className={cn(
-                "h-11 rounded-ds-md text-[15px] font-semibold tracking-tight transition-all",
+                "h-11 rounded-ds-md text-ds-15 font-semibold tracking-tight transition-all",
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",

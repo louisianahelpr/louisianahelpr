@@ -256,7 +256,7 @@ export function PayoutSetupForm() {
           type="button"
           onClick={loadData}
           disabled={statusQuery.isFetching}
-          className="inline-flex items-center gap-1 text-[0.7rem] font-sans font-semibold tracking-wide active:opacity-70 transition-opacity disabled:opacity-50"
+          className="inline-flex items-center gap-1 text-ds-11 font-sans font-semibold tracking-wide active:opacity-70 transition-opacity disabled:opacity-50"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           <RefreshCw className={`w-3 h-3 ${statusQuery.isFetching ? "animate-spin" : ""}`} />

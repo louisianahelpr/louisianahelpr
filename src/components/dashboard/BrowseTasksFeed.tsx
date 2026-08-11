@@ -19,6 +19,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCachedUserLocation } from "@/hooks/useUserLocation";
 import { useProfile } from "@/hooks/useProfile";
+import { useHelprActivity } from "@/hooks/useHelprActivity";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -149,6 +150,16 @@ export function BrowseTasksFeed({
   // when we don't yet have a name (unauthed OR still-loading profile) so
   // the copy never reads as broken.
   const { data: myProfile } = useProfile(user?.id ?? null);
+  // Supply-side proof for the EMPTY feed (audit F1/L7). This exact signal was
+  // already built and shown on checkout — where it preaches to someone who has
+  // already decided to pay. Here it is the difference between "this
+  // marketplace is dead" and "this marketplace is waiting for you".
+  //
+  // Same RPC, same restraint rule: the hook returns null below 3 helprs, so a
+  // genuinely thin parish shows nothing rather than a discouraging number.
+  const { activity: helprActivity } = useHelprActivity(
+    (myProfile as { parish?: string | null } | null)?.parish ?? null,
+  );
   const emptyStateGreeting = (() => {
     const first = (myProfile?.full_name ?? "").trim().split(/\s+/)[0]?.replace(/[^a-zA-Z'-]/g, "");
     return first || "neighbor";
@@ -297,7 +308,15 @@ export function BrowseTasksFeed({
                 : nearbyActive
                   ? `Try widening to ${nextMiles} mi, or clear the radius to see all open work across your parish.`
                   : "Try a different category, a wider time window, or clearing a filter."
-              : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
+              // Supply-side proof when we have an honest number for it. An
+              // empty feed reads as "this marketplace is dead"; the parish
+              // count reframes it as "waiting for a job", which is what is
+              // actually true. Same sentence the checkout uses, so the claim
+              // stays identical on both screens — and it simply falls back to
+              // the original copy when the hook withholds a thin count.
+              : helprActivity
+                ? `${helprActivity.count} Helprs have worked jobs in ${helprActivity.parish} — the work just hasn't landed yet today. Fresh jobs post throughout the day.`
+                : "New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon."
           }
           action={
             // Filtered: offer a way out. Otherwise — for both signed-in
@@ -329,15 +348,20 @@ export function BrowseTasksFeed({
                 </Button>
               )
             ) : (
-              // Single primary action lives in the floating "+" FAB — these
-              // empty-state affordances stay quiet text-link tier so the
-              // dock-level CTA isn't visually duplicated.
-              <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
+              // Both actions used to be `ghost` at the same olivewood/80, so the
+              // screen's only real primary was an unlabelled floating "+" and
+              // the two visible options were indistinguishable. The old comment
+              // reasoned that keeping them quiet avoided duplicating the FAB —
+              // sound, but the outcome was a screen with no primary at all.
+              //
+              // The fork itself stays (every account can post AND work — this
+              // product has no roles). Equal importance does not require equal
+              // visual weight: an empty feed is itself proof there is no work to
+              // take, so posting leads and Notify is the quiet second line.
+              <div className="flex flex-col items-center gap-3">
                 <Button
-                  variant="ghost"
                   onClick={() => navigate("/post-job")}
-                  className="rounded-ds-md font-sans font-medium"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                  className="rounded-ds-md"
                 >
                   <Plus className="w-4 h-4 mr-1" strokeWidth={2.25} />
                   Post your first job

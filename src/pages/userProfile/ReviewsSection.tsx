@@ -117,7 +117,7 @@ export const ReviewsSection = ({
         // filters. Radius/material match the sibling cards.
         <div className="rounded-2xl liquid-glass p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Filter</span>
+            <span className="text-ds-10 uppercase tracking-wide text-muted-foreground font-semibold">Filter</span>
             {hasActiveFilter && (
               <button
                 onClick={() => {
@@ -143,7 +143,7 @@ export const ReviewsSection = ({
                       onSetReviewCategoryFilter(active ? null : cat);
                       onResetVisibleCount(PAGE_SIZE);
                     }}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[0.7rem] font-sans font-semibold transition-colors"
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-ds-11 font-sans font-semibold transition-colors"
                     style={{
                       color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
                       background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
@@ -176,7 +176,7 @@ export const ReviewsSection = ({
                     onSetReviewRatingFilter(bucket.key);
                     onResetVisibleCount(PAGE_SIZE);
                   }}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[0.7rem] font-sans font-semibold transition-colors tabular-nums"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-ds-11 font-sans font-semibold transition-colors tabular-nums"
                   style={{
                     color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
                     background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
@@ -221,7 +221,7 @@ export const ReviewsSection = ({
                 <div className="grid grid-cols-3 gap-2">
                   {r.punctuality && (
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Punctuality</span>
+                      <span className="text-ds-9 uppercase tracking-wide text-muted-foreground">Punctuality</span>
                       <div className="flex gap-0.5">
                         {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
                       </div>
@@ -229,7 +229,7 @@ export const ReviewsSection = ({
                   )}
                   {r.quality && (
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Quality</span>
+                      <span className="text-ds-9 uppercase tracking-wide text-muted-foreground">Quality</span>
                       <div className="flex gap-0.5">
                         {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
                       </div>
@@ -237,7 +237,7 @@ export const ReviewsSection = ({
                   )}
                   {r.communication && (
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className="text-[9px] uppercase tracking-wide text-muted-foreground">Comms</span>
+                      <span className="text-ds-9 uppercase tracking-wide text-muted-foreground">Comms</span>
                       <div className="flex gap-0.5">
                         {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
                       </div>

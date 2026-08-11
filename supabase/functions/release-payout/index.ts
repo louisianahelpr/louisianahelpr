@@ -29,6 +29,8 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
+import { loadAdminIds } from "../_shared/adminIds.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -121,6 +123,56 @@ serve(async (req) => {
   }
   if (!job.helper_id) {
     return jsonResponse({ error: "job has no helper_id" }, 409);
+  }
+
+  // Group jobs: refuse rather than silently pay 1 of N.
+  //
+  // This function is a single linear payout for ONE helper (job.helper_id). Its
+  // amount math is already group-aware (budget / helpers_needed at :323), so on
+  // a multi-helper roster it would transfer the LEAD helper their correct 1/N
+  // share, flip the job to "released", and drop it out of the payout queue —
+  // permanently stranding the other roster members' shares on the platform
+  // balance with no retry and no error.
+  //
+  // process-scheduled-payouts is the fan-out path: it iterates every roster
+  // member, writes a ledger row per helper, and holds the job in payout_pending
+  // until the whole roster is settled. Route group jobs there.
+  //
+  // Fail loud, not quiet: an operator hitting this needs to know why, and a
+  // group job stuck in payout_pending is recoverable, whereas an under-paid
+  // roster is not.
+  if (job.is_group_job && (job.helpers_needed ?? 1) > 1) {
+    const { data: roster } = await supabaseAdmin
+      .from("group_job_helpers")
+      .select("helper_id")
+      .eq("job_id", job.id);
+    const rosterSize = (roster ?? []).length;
+    if (rosterSize > 1) {
+      console.error(
+        `[release-payout] refusing group job ${job.id}: ${rosterSize} roster members require the fan-out path.`,
+      );
+      await postSlackOpsAlert({
+        kind: "payout_failed",
+        severity: "critical",
+        title: "Group job sent to the single-helper payout path",
+        message:
+          "release-payout was invoked for a multi-helper group job. It can only pay one helper, which would have released the job while the rest of the roster went unpaid. The payout was REFUSED — no money moved. Run it through process-scheduled-payouts, which fans out across the roster.",
+        fields: {
+          "Job ID": job.id,
+          "Roster size": String(rosterSize),
+          "Helpers needed": String(job.helpers_needed ?? 1),
+        },
+        link: "https://www.louisianahelpr.com/admin?tab=payouts",
+      });
+      return jsonResponse(
+        {
+          error:
+            "group jobs must be paid through the scheduled-payout fan-out path, which pays every roster member",
+          roster_size: rosterSize,
+        },
+        409,
+      );
+    }
   }
 
   // Defense-in-depth: refuse payout on any dispute marker, even if
@@ -279,10 +331,10 @@ serve(async (req) => {
       // The charge was never captured — transferring now would drain the platform
       // balance for money that was never collected. Refuse and alert admins.
       console.error(`[release-payout] PI ${paymentIntentId} for job ${job.id} status "${pi.status}" — refusing transfer.`);
-      const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
-      for (const admin of adminRoles ?? []) {
+      const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "release-payout");
+      for (const adminId of adminIds) {
         await supabaseAdmin.from("notifications").insert({
-          user_id: admin.user_id,
+          user_id: adminId,
           title: "⚠️ Payout blocked — charge not captured",
           message: `Job ${job.id} ("${job.title}") payout blocked. PaymentIntent status: ${pi.status}.`,
           type: "warning", link: "/admin",

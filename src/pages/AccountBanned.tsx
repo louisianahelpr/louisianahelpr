@@ -88,7 +88,7 @@ const AccountBanned = () => {
             <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
             <div>
               <p
-                className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em] mb-1"
+                className="text-ds-11 font-serif italic uppercase tracking-[0.18em] mb-1"
                 style={{ color: "hsl(var(--burnt-sienna))" }}
               >
                 Suspended until

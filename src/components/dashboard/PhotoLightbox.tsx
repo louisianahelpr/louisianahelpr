@@ -400,7 +400,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
                 />
                 <span
-                  className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-sans font-semibold tabular-nums"
+                  className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-full text-ds-10 font-sans font-semibold tabular-nums"
                   style={{
                     backgroundColor: "rgba(0, 0, 0, 0.5)",
                     color: "white",

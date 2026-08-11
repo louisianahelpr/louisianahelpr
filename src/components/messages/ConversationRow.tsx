@@ -343,7 +343,7 @@ const ConversationRowBase = ({
             </div>
             <div className="flex items-center gap-1.5 mt-0.5">
               <p
-                className="text-[0.7rem] truncate font-serif italic"
+                className="text-ds-11 truncate font-serif italic"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {c.jobTitle}
@@ -356,7 +356,7 @@ const ConversationRowBase = ({
                 // the thread itself renders a "Job cancelled" system event,
                 // so the chip doesn't need to intercept taps to explain it.)
                 <span
-                  className="text-[8.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
                   style={{ color: statusChip.color, backgroundColor: statusChip.bg, letterSpacing: "0.08em" }}
                 >
                   {statusChip.label}
@@ -395,7 +395,7 @@ const ConversationRowBase = ({
                     />
                   )}
                   <span
-                    className="text-[0.62rem] font-serif italic"
+                    className="text-ds-10 font-serif italic"
                     style={{
                       color: lastActiveLabel.isLive
                         ? "hsl(var(--live))"
@@ -421,7 +421,7 @@ const ConversationRowBase = ({
                 />
               )}
               <p
-                className="text-[0.78rem] truncate min-w-0 flex-1"
+                className="text-ds-12 truncate min-w-0 flex-1"
                 style={{
                   color: hasUnreadFromOther ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",
                   fontWeight: hasUnreadFromOther ? 600 : 400,
@@ -440,7 +440,7 @@ const ConversationRowBase = ({
             </div>
           </div>
           <span
-            className="text-[0.7rem] shrink-0 self-center whitespace-nowrap"
+            className="text-ds-11 shrink-0 self-center whitespace-nowrap"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {when}

@@ -70,7 +70,7 @@ export const DashboardHome = ({
         >
           Welcome back
         </h1>
-        <p className="font-serif italic mt-0.5 text-[0.78rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        <p className="font-serif italic mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           {hasAlerts ? "There are items needing attention today." : "Everything looks calm on the platform."}
         </p>
       </div>

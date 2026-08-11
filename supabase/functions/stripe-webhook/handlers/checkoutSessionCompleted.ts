@@ -72,11 +72,26 @@ export async function handleCheckoutSessionCompleted(
       updateData.subscription_expires_at = subscriptionEnd;
     }
 
-    const { data: updatedProfiles, error } = await supabase
-      .from("profiles")
-      .update(updateData)
-      .eq("email", customerEmail)
-      .select("user_id");
+    // Grant by user_id whenever we have it. `profiles.email` has NO unique
+    // constraint, so `.eq("email", …)` could update several rows (case variant,
+    // stale unconfirmed signup) and hand a paid tier to the wrong account from
+    // one payment. create-pro-checkout now stamps client_reference_id +
+    // metadata.user_id; the email path remains only for legacy sessions created
+    // before that change, and is logged so the fallback is visible.
+    const buyerUserId =
+      session.client_reference_id || (session.metadata as any)?.user_id || null;
+
+    if (!buyerUserId) {
+      logStep("No user_id on session — falling back to email match", { email: customerEmail });
+    }
+
+    // `.select("user_id")` is retained from the upstream fix so the 0-row branch
+    // below can still detect a payment that granted nothing — that check matters
+    // MORE on the email fallback path, which is exactly where a mismatch happens.
+    const updateQuery = supabase.from("profiles").update(updateData);
+    const { data: updatedProfiles, error } = buyerUserId
+      ? await updateQuery.eq("user_id", buyerUserId).select("user_id")
+      : await updateQuery.eq("email", customerEmail).select("user_id");
 
     if (error) {
       logStep("ERROR updating profile", { error: error.message });

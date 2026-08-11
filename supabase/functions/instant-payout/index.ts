@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import {
   computeInstantPayoutFeeCents,
   INSTANT_PAYOUT_MIN_CENTS,
@@ -219,6 +220,22 @@ serve(async (req) => {
           if (recErr) {
             console.error(`[instant-payout] failed to record fee_uncollected for ${record.id}:`, recErr);
           }
+          // The `fee_uncollected` marker is write-only — nothing sweeps it, so
+          // without an alert this is revenue the platform quietly forgoes
+          // forever. Surface it so someone can either collect it or fix the
+          // Connect setup that caused it.
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "warning",
+            title: "Instant-payout fee NOT collected",
+            message: `An instant payout completed but its platform fee transfer failed, so the fee stayed in the helper's connected balance. The helper was not double-charged; the platform forgoes this fee unless it is collected manually.`,
+            fields: {
+              "Instant payout ID": String(record.id),
+              "Helper ID": user.id,
+              "Fee (cents)": String(feeCents),
+              Error: feeMsg.slice(0, 200),
+            },
+          });
         });
         }
       }

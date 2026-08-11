@@ -150,7 +150,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
         <div className="mt-5 space-y-4">
           {/* 0..10 row. On narrow viewports the row stays one line because
               each button is `min-w-0 flex-1` and the parent uses `flex` (no
-              wrap). text-[10px] keeps the digits legible at the smallest
+              wrap). text-ds-10 keeps the digits legible at the smallest
               iPhone widths. */}
           <div
             className="flex w-full gap-1"

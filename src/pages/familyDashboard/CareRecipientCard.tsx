@@ -118,7 +118,7 @@ export function CareRecipientCard({
               hapticLight();
               const url = `${window.location.origin}/family/accept/${relationship.invite_token}`;
               void navigator.clipboard.writeText(url).then(() => {
-                toast.success("Invite link copied!");
+                toast.success("Invite link copied");
               });
             }}
             className="w-full flex items-center justify-center gap-1.5 h-9 rounded-ds-sm text-ds-12 font-sans font-medium transition-all active:scale-[0.98]"

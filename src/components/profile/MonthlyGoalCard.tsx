@@ -103,7 +103,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
       localStorage.setItem(GOAL_KEY, String(val));
     } catch { /* best-effort */ }
     setEditing(false);
-    toast.success("Monthly goal set!");
+    toast.success("Monthly goal set");
   }, [draft]);
 
   const monthName = new Date().toLocaleDateString("en-US", { month: "long" });

@@ -202,7 +202,7 @@ export function ShareJobButton({
       {layout === "stack" ? (
         <>
           <Share2 className="w-4 h-4" />
-          <span className="text-[0.66rem] leading-none font-medium">Share</span>
+          <span className="text-ds-11 leading-none font-medium">Share</span>
         </>
       ) : (
         <>

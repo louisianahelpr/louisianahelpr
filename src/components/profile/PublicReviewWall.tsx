@@ -146,7 +146,7 @@ function ReviewQuote({
         {review.jobCategory && (
           <span
             data-testid="public-review-category"
-            className="text-[0.65rem] font-sans font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap"
+            className="text-ds-10 font-sans font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap"
             style={{
               background: "hsl(var(--bark) / 0.08)",
               color: "hsl(var(--bark))",

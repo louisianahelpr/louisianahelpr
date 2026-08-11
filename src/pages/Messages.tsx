@@ -311,7 +311,7 @@ const Messages = () => {
                   new conversation, so the rail never reads as dead space. */}
               <div
                 aria-hidden
-                className="shrink-0 px-4 py-3 border-t text-[0.68rem] font-serif italic leading-snug"
+                className="shrink-0 px-4 py-3 border-t text-ds-11 font-serif italic leading-snug"
                 style={{
                   borderColor: "hsl(var(--olivewood) / 0.1)",
                   color: "hsl(var(--olivewood) / 0.65)",

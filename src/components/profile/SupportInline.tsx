@@ -149,7 +149,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
       toast.error("We couldn't send that — please try again.");
     } else {
       setSent(true);
-      toast.success("Message sent to admin!");
+      toast.success("Message sent to admin.");
     }
   };
 

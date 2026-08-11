@@ -137,7 +137,7 @@ const SectionHeaderSkeleton = ({
         fill={`hsl(var(--${tint}) / 0.2)`}
       />
       <span
-        className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em]"
+        className="text-ds-11 font-serif italic uppercase tracking-[0.18em]"
         style={{ color: `hsl(var(--${tint}))` }}
       >
         {label}

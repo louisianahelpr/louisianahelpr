@@ -167,7 +167,7 @@ export function BrowseTasksToolbar({
               stays and simply renders nothing when no filter is on. */}
           {filters.hasFilters && (
             <span
-              className="font-serif italic tracking-[0.18em] uppercase text-[0.62rem]"
+              className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
               style={{ color: "hsl(var(--burnt-sienna))" }}
             >
               {`Filtered · ${filters.activeFilterCount} active`}
@@ -297,7 +297,7 @@ export function BrowseTasksToolbar({
               <button
                 onClick={chip.onClear}
                 aria-label={chip.ariaLabel}
-                className="hover:text-primary/70 btn-press"
+                className="relative hover:text-primary/70 btn-press before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-9 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -469,7 +469,7 @@ export function BrowseTasksToolbar({
               ariaLabel={`Clear category filter (${categoryLabels[filters.selectedCategory]} selected)`}
             >
               {categoryLabels[filters.selectedCategory]}
-              <button onClick={() => filters.setSelectedCategory(null)} aria-label={`Clear category filter (${categoryLabels[filters.selectedCategory]} selected)`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setSelectedCategory(null)} aria-label={`Clear category filter (${categoryLabels[filters.selectedCategory]} selected)`} className="relative hover:text-primary/70 btn-press before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-9 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"><X className="w-3 h-3" /></button>
             </SwipeableFilterChip>
           )}
           {filters.locationFilter && (
@@ -481,7 +481,7 @@ export function BrowseTasksToolbar({
               {filters.locationFilter.startsWith("nearby:")
                 ? `Within ${filters.locationFilter.slice(7)} mi`
                 : filters.locationFilter}
-              <button onClick={() => filters.setLocationFilter("")} aria-label={`Clear location filter (${locationFilterText} selected)`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setLocationFilter("")} aria-label={`Clear location filter (${locationFilterText} selected)`} className="relative hover:text-primary/70 btn-press before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-9 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"><X className="w-3 h-3" /></button>
             </SwipeableFilterChip>
           )}
           {(filters.minBudget || filters.maxBudget) && (
@@ -490,7 +490,7 @@ export function BrowseTasksToolbar({
               ariaLabel={`Clear budget filter (${budgetChipLabel(filters.minBudget, filters.maxBudget)})`}
             >
               {budgetChipLabel(filters.minBudget, filters.maxBudget)}
-              <button onClick={() => { filters.setMinBudget(""); filters.setMaxBudget(""); }} aria-label={`Clear budget filter (${budgetChipLabel(filters.minBudget, filters.maxBudget)})`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => { filters.setMinBudget(""); filters.setMaxBudget(""); }} aria-label={`Clear budget filter (${budgetChipLabel(filters.minBudget, filters.maxBudget)})`} className="relative hover:text-primary/70 btn-press before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-9 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"><X className="w-3 h-3" /></button>
             </SwipeableFilterChip>
           )}
           {filters.expiresWithin && (
@@ -499,7 +499,7 @@ export function BrowseTasksToolbar({
               ariaLabel={`Clear expiry filter (${filters.expiresWithin})`}
             >
               {filters.expiresWithin}
-              <button onClick={() => filters.setExpiresWithin("")} aria-label={`Clear expiry filter (${filters.expiresWithin})`} className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setExpiresWithin("")} aria-label={`Clear expiry filter (${filters.expiresWithin})`} className="relative hover:text-primary/70 btn-press before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-9 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"><X className="w-3 h-3" /></button>
             </SwipeableFilterChip>
           )}
           {filters.matchAvailability && (
@@ -508,7 +508,7 @@ export function BrowseTasksToolbar({
               ariaLabel="Clear availability filter (matching my hours)"
             >
               <Clock className="w-3 h-3" /> My hours
-              <button onClick={() => filters.setMatchAvailability(false)} aria-label="Clear availability filter (matching my hours)" className="hover:text-primary/70 btn-press"><X className="w-3 h-3" /></button>
+              <button onClick={() => filters.setMatchAvailability(false)} aria-label="Clear availability filter (matching my hours)" className="relative hover:text-primary/70 btn-press before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-9 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"><X className="w-3 h-3" /></button>
             </SwipeableFilterChip>
           )}
           {filters.activeFilterCount >= 2 && (

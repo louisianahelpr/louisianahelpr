@@ -75,7 +75,15 @@ function formatPaidTierPrices(tierId: "basic" | "pro" | "elite") {
 // not this consumer upgrade page, so it is intentionally omitted here —
 // leaving it in would render a card whose checkout has no Stripe price and
 // 500s.
-const CONSUMER_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
+//
+// Basic is omitted for the SAME reason as Business: it has no usable live
+// Stripe price. `_shared/proTiers.ts` still falls back to the literal
+// placeholders `price_TODO_LIVE_BASIC_{MONTHLY,ANNUAL,ONETIME}`, so unless the
+// STRIPE_PRICE_BASIC_* env overrides are set, every Basic upgrade sends a
+// nonexistent price to Stripe and fails at checkout. Re-add "basic" here once
+// real Live Prices exist and are pasted into LIVE_PRO_PRICE_MAP (the tier
+// itself, its perks, and its parity tests all remain intact meanwhile).
+const CONSUMER_TIERS: SubscriptionTier[] = ["free", "pro", "elite"];
 
 // The three benefits shown in the "Why upgrade" section. Kept short —
 // they're anchored by giant Bodoni numerals, not by prose.
@@ -312,7 +320,11 @@ export default function SubscriptionPage() {
         <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
           {/* Left masthead */}
           <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32">
-            <span className="text-display-eyebrow">Plans</span>
+            {/* "Membership" is the canonical user-facing noun for this feature
+                (nav, footer, profile, page title, h1). The eyebrow read "Plans"
+                — a second noun for the same thing. The `id="plans"` anchor is
+                internal and deliberately left alone. */}
+            <span className="text-display-eyebrow">Membership tiers</span>
             <h2
               className="mt-3 font-display font-bold text-balance leading-[1.05]"
               style={{
@@ -385,10 +397,12 @@ export default function SubscriptionPage() {
             )}
           </div>
 
-          {/* Right — tier grid. Four across at lg, matching /for-business's
-              seat-plan grid so the two pricing pages read the same way
-              (2x2 stacking below lg). */}
-          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-5">
+          {/* Right — tier grid. Column count tracks CONSUMER_TIERS.length so
+              the row always divides evenly and never orphans a dead column:
+              three across at sm+ while Basic is hidden (see CONSUMER_TIERS).
+              If Basic is restored, take this back to
+              `sm:grid-cols-2 lg:grid-cols-4` to match /for-business's 2x2. */}
+          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-4 lg:gap-5">
             {CONSUMER_TIERS.map((tier, i) => {
               const perks = TIER_PERKS[tier];
               const isActive = tier === currentTier;
@@ -461,7 +475,7 @@ export default function SubscriptionPage() {
                         // rather than a sticker dropped on top. Still absolute,
                         // so it costs the Pro card no layout height and all four
                         // headings stay on one baseline.
-                        className="absolute top-0 left-0 z-10 font-sans text-[9px] font-bold uppercase pl-3 pr-2.5 py-1 rounded-tl-2xl rounded-br-lg leading-none"
+                        className="absolute top-0 left-0 z-10 font-sans text-ds-9 font-bold uppercase pl-3 pr-2.5 py-1 rounded-tl-2xl rounded-br-lg leading-none"
                         style={{
                           background: "hsl(var(--burnt-sienna))",
                           color: "hsl(var(--parchment))",
@@ -571,7 +585,7 @@ export default function SubscriptionPage() {
                           <div className="mt-1 flex items-center gap-2 flex-wrap">
                             {isAnnual && (
                               <span
-                                className="font-sans text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full"
+                                className="font-sans text-ds-10 font-bold uppercase px-1.5 py-0.5 rounded-full"
                                 style={{
                                   background: "hsl(var(--burnt-sienna))",
                                   color: "hsl(var(--parchment))",
@@ -622,12 +636,24 @@ export default function SubscriptionPage() {
                         (tierConfig.tsx), instead of only listing this tier's
                         own new perks and implying the rest are lost. */}
                     <ul className="mt-4 space-y-2 flex-1">
-                      {tier === "pro" && (
-                        <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
-                          <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.25} style={{ color: "hsl(var(--burnt-sienna))" }} />
-                          <span>Everything in Basic</span>
-                        </li>
-                      )}
+                      {/* Name the tier ACTUALLY rendered below this one, not a
+                          hardcoded "Basic". With Basic hidden (see
+                          CONSUMER_TIERS) a literal "Everything in Basic"
+                          referenced a tier the user cannot see anywhere on the
+                          page — a dangling comparison. Deriving it from
+                          CONSUMER_TIERS keeps the ladder honest whichever tiers
+                          are on display, and restores "Basic" automatically if
+                          it is ever re-enabled. */}
+                      {tier === "pro" && (() => {
+                        const belowKey = CONSUMER_TIERS[CONSUMER_TIERS.indexOf("pro") - 1];
+                        const belowLabel = belowKey ? TIER_PERKS[belowKey]?.name ?? belowKey : null;
+                        return belowLabel ? (
+                          <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
+                            <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.25} style={{ color: "hsl(var(--burnt-sienna))" }} />
+                            <span>Everything in {belowLabel}</span>
+                          </li>
+                        ) : null;
+                      })()}
                       {tier === "elite" && (
                         <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
                           <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.25} style={{ color: "hsl(var(--burnt-sienna))" }} />
@@ -802,7 +828,7 @@ export default function SubscriptionPage() {
                       }}
                     >
                       <span
-                        className="font-sans uppercase text-[10px] font-semibold tracking-[0.14em]"
+                        className="font-sans uppercase text-ds-10 font-semibold tracking-[0.14em]"
                         style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                       >
                         Feature
@@ -840,7 +866,7 @@ export default function SubscriptionPage() {
                             </span>
                             {isFeatured && (
                               <span
-                                className="mt-1 font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full"
+                                className="mt-1 font-sans text-ds-9 font-bold uppercase px-1.5 py-0.5 rounded-full"
                                 style={{
                                   background: "hsl(var(--burnt-sienna))",
                                   color: "hsl(var(--parchment))",

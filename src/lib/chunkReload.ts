@@ -40,6 +40,24 @@ const RELOAD_FLAG = "helpr_chunk_reload_at";
  * hand back the same stale page.
  */
 export const hardReloadBypassCache = async () => {
+  // OFFLINE GUARD — do not run the destructive recovery when there is no
+  // network. This function unregisters every service worker and deletes every
+  // Cache Storage entry, which is correct for a stale deploy and catastrophic
+  // when the user is simply offline: it destroys the precache (including
+  // offline.html) and the html-pages cache, i.e. the app's entire ability to
+  // work without a network. The following navigation then has no service
+  // worker AND no server, so the user gets the browser's own error page.
+  //
+  // This is not hypothetical — it is why offline.html never appeared. Offline,
+  // a lazy route chunk fails with "Failed to fetch dynamically imported
+  // module", which isChunkLoadError matches first, so an offline navigation
+  // was self-destructing on every attempt (verified 2026-08-10 against a built
+  // dist with the server stopped).
+  //
+  // Offline is not recoverable by reloading, so the honest response is to do
+  // nothing here and let the caller fall through to its normal error UI —
+  // which is the in-app offline state, or offline.html on a cold navigation.
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
   try {
     if ("serviceWorker" in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -69,6 +87,12 @@ export const hardReloadBypassCache = async () => {
  * off, false if the guard suppressed it (already reloaded recently).
  */
 export const recoverFromChunkError = (): boolean => {
+  // Same offline guard as hardReloadBypassCache, checked here too so callers
+  // get an honest `false` (= "I did not start a reload, show your error UI")
+  // rather than a true that promises a recovery which will never arrive.
+  // A chunk that failed because the device is offline is not stale, and no
+  // amount of reloading will fetch it.
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
   let last = 0;
   try {
     last = Number(sessionStorage.getItem(RELOAD_FLAG) || "0");

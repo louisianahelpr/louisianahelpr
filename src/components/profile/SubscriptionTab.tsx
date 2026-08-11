@@ -36,7 +36,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     try {
       await supabase.functions.invoke("check-pro-subscription");
       await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
-      toast.success("Membership updated!");
+      toast.success("Membership updated");
     } catch {
       toast.error("Couldn't refresh your membership — try again?");
     } finally {
@@ -302,7 +302,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                   // supplies the real background via `hsl(var(--burnt-sienna)
                   // / 0.14)`, so dropping the dead class is purely cleanup
                   // — no visual change.
-                  className={`text-[9px] font-bold tracking-wider px-1 py-0.5 rounded ${
+                  className={`text-ds-9 font-bold tracking-wider px-1 py-0.5 rounded ${
                     active ? "bg-primary-foreground/20 text-primary-foreground" : ""
                   }`}
                   style={
@@ -382,7 +382,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             >
               {isPro && (
                 <span
-                  className="absolute -top-2 left-3 text-[9px] uppercase px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap"
+                  className="absolute -top-2 left-3 text-ds-9 uppercase px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap"
                   style={{ letterSpacing: "0.18em" }}
                 >
                   Most popular
@@ -412,7 +412,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       {tier.name}
                     </h3>
                     {isActive && (
-                      <span className="text-[9px] not-italic font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-1">
+                      <span className="text-ds-9 not-italic font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-1">
                         <CheckCircle className="w-2.5 h-2.5" /> Current
                       </span>
                     )}
@@ -481,7 +481,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                   </span>
                   {saveBadge && (
                     <span
-                      className="text-[8.5px] px-1 py-px rounded-full font-bold"
+                      className="text-ds-9 px-1 py-px rounded-full font-bold"
                       style={{ background: accentSoft, color: accent, letterSpacing: "0.06em" }}
                     >
                       {saveBadge}

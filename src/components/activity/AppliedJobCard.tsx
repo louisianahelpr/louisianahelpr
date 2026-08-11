@@ -257,7 +257,7 @@ function AppliedJobCardInner({
                 type="button"
                 disabled={withdrawingAppId === app.id}
                 onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Job", jobId: job.id ?? null })}
-                className="inline-flex items-center gap-1.5 text-[0.72rem] font-sans font-semibold tracking-wide px-2.5 py-1 rounded-full active:opacity-70 transition-opacity disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 text-ds-12 font-sans font-semibold tracking-wide px-2.5 py-1 rounded-full active:opacity-70 transition-opacity disabled:opacity-50"
                 style={{
                   color: "hsl(var(--burnt-sienna))",
                   background: "hsl(var(--burnt-sienna) / 0.08)",

@@ -160,7 +160,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                   <button
                     type="button"
                     onClick={() => { setCurrentMonth(new Date()); setSelectedDate(null); }}
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.66rem] font-sans font-semibold tracking-wide active:scale-[0.96] transition-transform"
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-ds-11 font-sans font-semibold tracking-wide active:scale-[0.96] transition-transform"
                     style={{
                       background: "hsl(var(--bark) / 0.10)",
                       color: "hsl(var(--bark))",
@@ -259,7 +259,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                 return (jobsByDate.get(ds) ?? []).some((j) => j.status === "in_progress" || j.status === "accepted");
               });
               return (
-                <div className="mt-3 pt-3 flex items-center gap-4 flex-wrap font-serif italic text-[0.7rem]" style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)", color: "hsl(var(--olivewood) / 0.8)" }}>
+                <div className="mt-3 pt-3 flex items-center gap-4 flex-wrap font-serif italic text-ds-11" style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)", color: "hsl(var(--olivewood) / 0.8)" }}>
                   <span className="inline-flex items-center gap-1.5">
                     <span className="w-3 h-3 rounded ring-2 ring-primary/70 ring-inset bg-primary/8" aria-hidden />
                     Today

@@ -273,7 +273,7 @@ const CompleteProfile = () => {
       // back to /complete-profile (LH-29). The authoritative row above is the
       // single source of truth; staleTime keeps it from refetching on arrival.
       hapticSuccess();
-      toast.success("Profile complete — welcome to Helpr!");
+      toast.success("Profile complete — welcome to Helpr.");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
       const recovered = await recoverCompletedProfile();
@@ -351,7 +351,7 @@ const CompleteProfile = () => {
             <p className="mt-3 font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               We need a few details before you can use Helpr. This keeps the community safe.
             </p>
-            <p className="mt-2 text-[0.7rem] font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="mt-2 text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               All fields marked <span style={{ color: "hsl(var(--burnt-sienna))" }}>*</span> are required.
             </p>
           </div>

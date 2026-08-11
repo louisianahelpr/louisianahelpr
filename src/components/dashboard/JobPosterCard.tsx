@@ -77,7 +77,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false
     >
       <div className="flex items-center gap-2.5">
         <div
-          className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-sans font-semibold text-[0.75rem] tracking-[0.06em] uppercase overflow-hidden"
+          className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-sans font-semibold text-ds-12 tracking-[0.06em] uppercase overflow-hidden"
           style={{
             backgroundColor: "hsl(var(--bark) / 0.12)",
             border: "1px solid hsl(var(--bark) / 0.22)",
@@ -105,7 +105,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false
             Posted by
           </p>
           <div className="flex items-baseline gap-2">
-            <p className="font-display italic font-bold leading-tight truncate text-[1rem] min-w-0" style={{ color: "hsl(var(--ink-deep))" }}>
+            <p className="font-display italic font-bold leading-tight truncate text-ds-16 min-w-0" style={{ color: "hsl(var(--ink-deep))" }}>
               {job.posterName}
             </p>
             <span className="flex items-center gap-0.5 text-ds-11 shrink-0">

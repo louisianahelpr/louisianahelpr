@@ -435,7 +435,7 @@ export const ProfileHeaderCard = ({
             {profile.skills.split(",").map(s => s.trim()).filter(Boolean).map((s, i) => (
               <span
                 key={i}
-                className="text-[0.7rem] font-sans font-semibold px-2 py-0.5 rounded-full"
+                className="text-ds-11 font-sans font-semibold px-2 py-0.5 rounded-full"
                 style={{
                   background: "hsl(var(--bark) / 0.10)",
                   color: "hsl(var(--bark))",

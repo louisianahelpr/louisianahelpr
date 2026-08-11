@@ -36,7 +36,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       await navigator.clipboard.writeText(referralCode);
       setCopied(true);
       hapticSuccess();
-      toast.success("Referral code copied!");
+      toast.success("Referral code copied");
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error(`Couldn't copy — your code is ${referralCode}`);

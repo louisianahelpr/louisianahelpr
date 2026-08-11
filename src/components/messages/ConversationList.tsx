@@ -442,7 +442,7 @@ export function ConversationList({
                 No conversations match
               </p>
               <p
-                className="font-serif italic text-[0.8rem] max-w-[240px]"
+                className="font-serif italic text-ds-13 max-w-[240px]"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Try a different name or keyword.

@@ -6,6 +6,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { stripeProcessingCostCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
+import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
@@ -559,6 +560,17 @@ serve(async (req) => {
     if (action === "tip") {
       const { jobId, amount } = body;
       if (!jobId) throw new Error("Missing jobId");
+      // Client-supplied idempotency salt — treat as untrusted input. Accept
+      // ONLY a canonical UUID: the value is concatenated into a Stripe
+      // idempotency key, so an attacker-chosen string could otherwise be used
+      // to collide with (and replay) another attempt's key. Anything malformed
+      // is dropped, falling back to the time-bucket key below.
+      const rawTipAttemptId = (body as { tipAttemptId?: unknown }).tipAttemptId;
+      const tipAttemptId =
+        typeof rawTipAttemptId === "string" &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawTipAttemptId)
+          ? rawTipAttemptId
+          : null;
       // `amount` is raw client JSON — validate it as a finite, bounded number
       // BEFORE any money math. A $1 floor keeps the tip safely above both
       // Stripe's 50¢ charge minimum AND the fee-crossover (a sub-32¢ tip would
@@ -625,9 +637,18 @@ serve(async (req) => {
         metadata: { job_id: jobId, tipper_id: user.id, helper_id: helperId, type: "tip" },
       }, {
         // Dedupe client retries (double-tap, network retry) without blocking a
-        // deliberate repeat tip later: same job+tipper+amount collapses to one
-        // session (and one pending `tips` row) within a 10-minute bucket.
-        idempotencyKey: `tip-${jobId}-${user.id}-${tipCents}-${Math.floor(Date.now() / 600_000)}`,
+        // deliberate repeat tip later. Salted with the CLIENT'S per-attempt id
+        // rather than a wall-clock bucket: the previous
+        // `Math.floor(Date.now() / 600_000)` meant a retry that straddled the
+        // 10-minute boundary produced a SECOND checkout session and a second
+        // pending `tips` row for one user intent. The attempt id is stable for
+        // as long as the tip prompt is open, so every retry of that intent
+        // collapses onto one session regardless of elapsed time.
+        // Falls back to the old bucket only for a client that predates this
+        // field, so an older app build still gets partial protection.
+        idempotencyKey: tipAttemptId
+          ? `tip-${jobId}-${user.id}-${tipCents}-${tipAttemptId}`
+          : `tip-${jobId}-${user.id}-${tipCents}-${Math.floor(Date.now() / 600_000)}`,
       });
 
       // Ledger row for the webhook to reconcile against. The idempotency key
@@ -1091,6 +1112,22 @@ serve(async (req) => {
         try {
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
           if (pi.status === "succeeded") {
+            // Sequence number for the partial-refund idempotency key, derived
+            // from Stripe's OWN refund history for this PaymentIntent.
+            //
+            // The key used to be salted with `Math.floor(Date.now()/600_000)`,
+            // so a double-click that straddled the 10-minute boundary issued
+            // TWO refunds against one charge. Counting existing refunds instead
+            // removes wall-clock from the key entirely: a retry of the same
+            // intent sees the same count and collapses onto one refund, while a
+            // deliberate later partial sees an incremented count and correctly
+            // gets its own key.
+            const priorRefunds = await stripe.refunds.list({
+              payment_intent: paymentIntentId,
+              limit: 100,
+            });
+            const refundSeq = priorRefunds.data.length;
+
             const refund = await stripe.refunds.create({
               payment_intent: paymentIntentId,
               ...(isPartial ? { amount: requestedCents } : {}),
@@ -1102,10 +1139,11 @@ serve(async (req) => {
             }, {
               // Full refund: deduped within Stripe's ~24h key lifetime; after
               // expiry a repeat is rejected with charge_already_refunded.
-              // Partial: dedupe retries of the same amount within a 10-minute
-              // bucket while still allowing a deliberate second partial later.
+              // Partial: keyed on the refund sequence (see refundSeq above) so
+              // retries collapse regardless of elapsed time, with no wall-clock
+              // component that a slow retry can cross.
               idempotencyKey: isPartial
-                ? `refund-general-${jobId}-${requestedCents}-${Math.floor(Date.now() / 600_000)}`
+                ? `refund-general-${jobId}-${requestedCents}-seq${refundSeq}`
                 : `refund-general-${jobId}-full`,
             });
             await recordRefund(supabaseAdmin, {
@@ -1335,11 +1373,11 @@ async function transferToHelper(
   } catch (e) {
     console.error(`Failed to transfer to helper ${helperId}:`, e);
     // Notify admin
-    const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
-    if (adminRoles) {
-      for (const admin of adminRoles) {
+    const { ids: transferAdminIds } = await loadAdminIds(supabaseAdmin, "create-payment.transferFailed");
+    {
+      for (const adminId of transferAdminIds) {
         await supabaseAdmin.from("notifications").insert({
-          user_id: admin.user_id,
+          user_id: adminId,
           title: "⚠️ Transfer failed",
           message: `Failed to transfer $${amount.toFixed(2)} to helper for job ${jobId}. Error: ${(e as Error).message}`,
           type: "warning",

@@ -10,7 +10,11 @@ import {
   Rocket,
   ShieldAlert,
 } from "lucide-react";
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { queryKeys } from "@/lib/queryKeys";
+import { report } from "@/lib/errorLogger";
 import { cn } from "@/lib/utils";
 import HelprMark from "@/components/HelprMark";
 import BackButton from "@/components/BackButton";
@@ -73,6 +77,40 @@ interface Props {
 const BusinessLayout = ({ title, meta, requiresVerification, children }: Props) => {
   const location = useLocation();
   const { business } = useMyBusiness();
+  const queryClient = useQueryClient();
+
+  // Reconcile the seat plan on EVERY /business/* page, not just Team.
+  //
+  // check-business-seat-subscription is what maps seat_tier → subscription_tier
+  // (crew→basic 11%, team→pro 10%, enterprise→elite 8%), and that mapping is the
+  // only thing that actually delivers the discounted fee ladder we advertise.
+  // It used to be invoked from BusinessTeam alone, so a Crew owner who paid
+  // $20/mo and never opened the Team page kept being charged the standard 12% —
+  // and, symmetrically, a lapsed owner kept the discount until they revisited.
+  // Hoisting it here means any business surface reconciles it.
+  //
+  // NOTE: this is still poll-on-visit. The durable fix is to perform the
+  // grant/revoke inside the customer.subscription.* webhook handlers so it
+  // applies with no client visit at all; this narrows the window rather than
+  // closing it.
+  const isOwner = !!business?.is_owner;
+  useEffect(() => {
+    if (!isOwner) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await supabase.functions.invoke("check-business-seat-subscription");
+        if (!cancelled) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.business.allMine });
+        }
+      } catch (err) {
+        report(err, { severity: "warning", tags: { source: "BusinessLayout.seatSubscriptionSync" } });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOwner, queryClient]);
 
   const showVerificationBanner =
     !!requiresVerification && !!business && business.verification_status !== "verified";
@@ -136,7 +174,7 @@ const BusinessLayout = ({ title, meta, requiresVerification, children }: Props) 
                 no longer paints. */}
             <h1 className="text-page-title leading-tight mt-1">{title}</h1>
             {meta && (
-              <p className="font-serif italic mt-1 text-[0.82rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-serif italic mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {meta}
               </p>
             )}

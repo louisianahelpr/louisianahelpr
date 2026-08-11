@@ -63,7 +63,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["helperSkills", userId] });
-      toast.success("Skill added!");
+      toast.success("Skill added");
       setPickerOpen(false);
     },
     onError: (err: Error) => {

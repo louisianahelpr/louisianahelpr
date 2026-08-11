@@ -84,7 +84,7 @@ export function WalletCard({
             <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
               Wallet
             </h2>
-            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary" style={{ letterSpacing: "0.05em" }}>LIVE</span>
+            <span className="text-ds-9 font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary" style={{ letterSpacing: "0.05em" }}>LIVE</span>
           </div>
         </div>
         <button
@@ -148,7 +148,7 @@ export function WalletCard({
                 <span className="text-ds-11 font-semibold text-foreground">Instant cash out</span>
                 {!canUseInstantPayout && (
                   <span
-                    className="text-[8.5px] font-bold uppercase tracking-wider px-1 py-0.5 rounded-full"
+                    className="text-ds-9 font-bold uppercase tracking-wider px-1 py-0.5 rounded-full"
                     style={{
                       background: "hsl(var(--burnt-sienna) / 0.14)",
                       color: "hsl(var(--burnt-sienna))",

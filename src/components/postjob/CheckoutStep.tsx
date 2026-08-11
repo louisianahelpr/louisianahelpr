@@ -139,7 +139,7 @@ export function CheckoutStep({
         >
           <BookOpen className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
           <p
-            className="text-[10px] uppercase tracking-wide font-semibold"
+            className="text-ds-10 uppercase tracking-wide font-semibold"
             style={{ color: "hsl(var(--bark))" }}
           >
             Your post at a glance
@@ -152,7 +152,7 @@ export function CheckoutStep({
             <div className="flex-1 min-w-0 text-right">
               <p className="text-ds-13 font-semibold text-foreground truncate">{title}</p>
               <span
-                className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[0.65rem] font-semibold capitalize"
+                className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-ds-10 font-semibold capitalize"
                 style={{
                   background: "hsl(var(--bark) / 0.09)",
                   color: "hsl(var(--bark))",
@@ -178,17 +178,32 @@ export function CheckoutStep({
 
           {/* Budget with fee breakdown */}
           <div className="px-4 py-3 flex items-start justify-between gap-3">
+            {/* Label is "Total", not "Budget" — it names the figure that now
+                leads this row (what the poster is charged), so the label and
+                the number agree. */}
             <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
-              <DollarSign className="w-3 h-3" />Budget
+              <DollarSign className="w-3 h-3" />Total
             </span>
+            {/* The number that LEAVES the poster's account leads; the budget
+                (which does not) is the secondary line.
+                It previously read the other way round — budget bold at ds-13,
+                "You pay" beneath it at ds-11 — so the smaller figure was the
+                real one.
+
+                `totalCharge` is rendered here, NOT re-derived. This used to
+                compute `budgetNum + customerFeeAmount + urgentFeeNum +
+                onboardingFeeAmount` inline while the breakdown below rendered
+                the hook's `totalCharge` — the same formula in two places, 150
+                lines apart. They agreed only by coincidence: the moment a fee
+                is waived, capped or made conditional in useJobDerived, this
+                screen would show the poster two different answers to "what
+                will you charge me". One source, both places. */}
             <div className="text-right">
-              <p className="text-ds-13 font-bold text-foreground">${formatPrice(budgetNum)}</p>
+              <p className="text-ds-13 font-bold text-foreground">${formatPrice(totalCharge)}</p>
               {budgetNum > 0 && (
                 <p className="text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  You pay{" "}
-                  <span className="font-semibold text-foreground">
-                    ${formatPrice(budgetNum + customerFeeAmount + urgentFeeNum + onboardingFeeAmount)}
-                  </span>
+                  <span className="font-semibold text-foreground">${formatPrice(budgetNum)}</span>
+                  {" "}budget + fees
                 </p>
               )}
             </div>
@@ -296,11 +311,11 @@ export function CheckoutStep({
         </div>
       )}
 
-      {/* Payment Breakdown Card */}
+      {/* Payment breakdown card */}
       <div className="rounded-2xl liquid-glass overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-primary" /> Payment Breakdown
+            <CreditCard className="w-4 h-4 text-primary" /> Payment breakdown
           </h3>
         </div>
         <div className="p-5 space-y-3">
@@ -327,7 +342,7 @@ export function CheckoutStep({
             </div>
           )}
           <div className="flex justify-between text-ds-13">
-            <span className="text-muted-foreground">Sales Tax</span>
+            <span className="text-muted-foreground">Sales tax</span>
             <span className="font-medium text-muted-foreground italic">Calculated at checkout</span>
           </div>
           <div className="h-px bg-border" />

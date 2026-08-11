@@ -61,7 +61,12 @@ export const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-pass
 // Tapping the tab while inside one of these returns the user to the tab root.
 export const tabStacks: Record<string, string[]> = {
   "/dashboard": ["/jobs"],
-  "/my-posts": ["/activity", "/post-job"],
+  // NOTE: /post-job is deliberately NOT in this stack. Posting is reached from
+  // the floating "+" FAB, not from the Posts tab, so lighting Posts up while
+  // the user is mid-post claimed they were somewhere they hadn't navigated to —
+  // and it competed with the FAB, which is the control they actually pressed.
+  // The tab highlights for the Posts LIST and its /activity alias only.
+  "/my-posts": ["/activity"],
   "/my-jobs": ["/earnings"],
   "/messages": [],
   "/profile": ["/support", "/user", "/admin", "/schedule", "/availability", "/saved-helpers"],

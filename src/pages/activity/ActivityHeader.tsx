@@ -3,6 +3,7 @@ import { FilterSheet } from "@/components/dashboard/FilterSheet";
 import { hapticLight } from "@/lib/haptics";
 import type { StatusFilter } from "./activityFilters";
 import type { Tab } from "@/components/activity/activityConstants";
+import { defaultStatusFilterFor } from "@/components/activity/activityConstants";
 
 /**
  * ActivityHeader — the title row with search/filter toggle buttons, the
@@ -39,7 +40,7 @@ export function ActivityHeader({
   // The "non-default" status that lights up the filter button + dot.
   // Preserved verbatim from the prior dropdown so the active indicator
   // behaves identically after the move to the bottom sheet.
-  const defaultStatus = tab === "applied" ? "pending" : "active";
+  const defaultStatus = defaultStatusFilterFor(tab);
   const isStatusFiltered = statusFilter !== defaultStatus;
   return (
     <>

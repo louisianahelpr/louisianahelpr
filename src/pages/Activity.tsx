@@ -40,6 +40,7 @@ import { ActivityHeader } from "@/pages/activity/ActivityHeader";
 import { ActivityEmptyState } from "@/pages/activity/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import SectionBoundary from "@/components/SectionBoundary";
+import { defaultStatusFilterFor } from "@/components/activity/activityConstants";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
@@ -50,7 +51,23 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // My Posts opens on "Active" — a flat list of every non-terminal task
   // (open / accepted / in_progress / …). Completed and Cancelled remain
   // reachable via the status filter.
-  const defaultFilter = defaultTab === "applied" ? "pending" : "active";
+  //
+  // My Jobs opens on "All", which renders the grouped ACTIVE / COMPLETED /
+  // CLOSED view.
+  //
+  // It used to open on "pending" — a SINGLE status, not a bucket — which made
+  // the two tabs asymmetric: My Posts got a broad default, My Jobs got a
+  // narrow one. The moment every application had been answered, the helper
+  // landed on "No jobs in this view. Try a different filter", and their whole
+  // history was invisible until they found the filter menu and changed it
+  // themselves. Observed on a real account with four applications: the filter
+  // menu read "All 4 … Applied (none) … Not Selected 4", i.e. the page had
+  // four things to show and chose the one bucket that was empty.
+  //
+  // "All" is the only broad option on this tab (there is no "active" bucket
+  // for applications), and its grouped view already puts live applications in
+  // the ACTIVE section above the settled ones — so pending work still leads.
+  const defaultFilter = defaultStatusFilterFor(defaultTab);
   // Filter + search seed from URL params so a deep link (or browser
   // back/forward) lands the user on the exact view they had. We keep the
   // local-state mirror because the dropdown/search inputs need a

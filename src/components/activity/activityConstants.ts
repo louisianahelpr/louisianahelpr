@@ -111,3 +111,24 @@ export type AppliedApp = Application & {
   job?: (Job & { revision_note?: string | null }) | null;
   posterName?: string;
 };
+
+/**
+ * The status filter each Activity tab opens on.
+ *
+ * Single source of truth because it was previously written out twice —
+ * Activity.tsx computed the initial `statusFilter`, and ActivityHeader
+ * independently recomputed the same expression to decide whether to show the
+ * "filtered" dot and what "Clear all" should reset to. Two copies of a default
+ * is a defect waiting to happen, and it did: they drifted, so the header lit
+ * its active-filter indicator on a view the user had never filtered, and
+ * "Clear all" would have reset to a status the page never opens on.
+ *
+ * "applied" opens on "all" deliberately. It is the only broad option on that
+ * tab, and its grouped view keeps live applications in the ACTIVE section
+ * above settled ones. Opening on a single status ("pending") meant a helper
+ * whose applications had all been answered landed on an empty screen with
+ * their whole history hidden behind a filter menu they had to find.
+ */
+export function defaultStatusFilterFor(tab: "posted" | "applied"): string {
+  return tab === "applied" ? "all" : "active";
+}

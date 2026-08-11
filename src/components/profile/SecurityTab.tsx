@@ -206,7 +206,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       console.warn("[SecurityTab] old-address notification failed", notifyErr);
     }
     setSubmitting(false);
-    toast.success("Confirmation sent to your new email!");
+    toast.success("Confirmation sent to your new email.");
     setEmailDialogOpen(false);
   };
 
@@ -399,7 +399,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               });
               setResettingPassword(false);
               if (error) toast.error("Couldn't send the reset link — try again?");
-              else toast.success("Password reset link sent to your email!");
+              else toast.success("Password reset link sent to your email.");
             }}
           >
             {resettingPassword ? "Sending…" : "Reset"}

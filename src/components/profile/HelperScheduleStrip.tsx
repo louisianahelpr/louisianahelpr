@@ -428,7 +428,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
                       </div>
                     </div>
                     <span
-                      className="shrink-0 text-[10px] font-medium uppercase tracking-wide px-2 py-0.5 rounded-full"
+                      className="shrink-0 text-ds-10 font-medium uppercase tracking-wide px-2 py-0.5 rounded-full"
                       style={{
                         background:
                           j.status === "in_progress"

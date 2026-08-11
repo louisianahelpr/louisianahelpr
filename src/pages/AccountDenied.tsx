@@ -53,7 +53,7 @@ const AccountDenied = () => {
             }}
           >
             <p
-              className="text-[0.7rem] font-serif italic uppercase tracking-[0.18em] mb-1"
+              className="text-ds-11 font-serif italic uppercase tracking-[0.18em] mb-1"
               style={{ color: "hsl(var(--burnt-sienna))" }}
             >
               Reason

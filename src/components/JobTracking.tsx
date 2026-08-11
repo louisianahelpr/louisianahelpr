@@ -399,7 +399,7 @@ export function JobTracking({
                     {s.label}
                   </span>
                   {subtext && (
-                    <span className="text-[9px] text-muted-foreground text-center leading-none">{subtext}</span>
+                    <span className="text-ds-9 text-muted-foreground text-center leading-none">{subtext}</span>
                   )}
                 </div>
               );

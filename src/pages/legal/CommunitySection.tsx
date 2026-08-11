@@ -290,7 +290,7 @@ export const CommunityContent = () => (
       />
       <PolicyRowItem
         icon={CheckCircle}
-        title="Job posters (customers)"
+        title="Job posters"
         body={
           <>
             <p><strong className="text-foreground">Sales tax:</strong> Helpr collects on your behalf and remits to the state.</p>

@@ -13,6 +13,6 @@ export const QuickActionRow = ({ icon: Icon, label, onClick }: QuickActionRowPro
     style={{ color: "hsl(var(--ink-deep))" }}
   >
     <Icon className="w-5 h-5" strokeWidth={1.8} />
-    <span className="font-display italic font-semibold text-[0.95rem]">{label}</span>
+    <span className="font-display italic font-semibold text-ds-15">{label}</span>
   </button>
 );

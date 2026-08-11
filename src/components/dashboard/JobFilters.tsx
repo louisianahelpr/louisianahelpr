@@ -36,7 +36,7 @@ export { categoryLabels };
  * internal line break overflows the chip instead of growing it.
  */
 const chipBase =
-  "inline-flex items-center gap-1.5 px-3 rounded-ds-md text-[11px] font-semibold tracking-tight whitespace-nowrap transition-all duration-200 btn-press squircle border h-9";
+  "inline-flex items-center gap-1.5 px-3 rounded-ds-md text-ds-11 font-semibold tracking-tight whitespace-nowrap transition-all duration-200 btn-press squircle border h-9";
 
 /** The one row layout, paired with `chipBase`. Wrapping and content-sized:
  *  no empty grid cells at any option count, no hidden off-screen options, and

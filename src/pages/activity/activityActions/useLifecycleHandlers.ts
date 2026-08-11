@@ -307,7 +307,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       if (job?.helper_id) {
         await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
       }
-      toast.success("Arrival confirmed!");
+      toast.success("Arrival confirmed");
       refresh();
     } finally {
       setConfirmingArrivalJobId(null);
@@ -326,7 +326,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       if (job?.helper_id) {
         await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
       }
-      toast.success("Confirmed Helpr is working!");
+      toast.success("Confirmed — the Helpr is working.");
       refresh();
     } finally {
       setConfirmingWorkingJobId(null);

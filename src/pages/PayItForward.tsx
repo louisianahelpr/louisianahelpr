@@ -77,7 +77,7 @@ export default function PayItForward() {
   useEffect(() => {
     const gift = searchParams.get("gift");
     if (gift === "success") {
-      toast.success("Gift card on its way!", {
+      toast.success("Gift card on its way.", {
         description: "We've emailed your recipient a link to claim their gift card.",
         icon: "💚",
       });

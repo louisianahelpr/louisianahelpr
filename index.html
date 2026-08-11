@@ -10,11 +10,16 @@
     <meta name="geo.placename" content="Louisiana">
     <link rel="canonical" href="https://www.louisianahelpr.com">
     <meta name="author" content="Helpr" />
-    <!-- Matches the page canvas gradient's top stop (#FAF9F5 in
-         .page-warmth / .bg-premium-page) so the native status-bar / browser
-         chrome band blends seamlessly into the top of the page instead of
-         showing a faint greige seam against the lighter gradient (LH-18). -->
-    <meta name="theme-color" content="#F6F7F9" />
+    <!-- === CANVAS === Must equal --parchment in src/index.css so the native
+         status-bar / browser chrome band blends into the top of the page with
+         no seam (LH-18). Currently hsl(220 14% 95%) = #F1F2F4.
+         The SAME value must appear in capacitor.config.ts (splash +
+         StatusBar) and manifest.webmanifest (theme_color + background_color).
+         Four files, one colour — if the palette flips warm, change all four.
+         (This previously claimed to match "#FAF9F5" while the manifest was
+         teal and Capacitor was warm #ECE9E4; three comments each asserted
+         agreement that did not exist.) -->
+    <meta name="theme-color" content="#F1F2F4" />
     <meta name="application-name" content="Helpr" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -72,27 +77,35 @@
     <link rel="dns-prefetch" href="https://fncmgoasalhdgfwzhsqa.supabase.co" />
     <!-- Preload + stylesheet for the editorial font stack. The preload kicks
          off the CSS fetch at highest priority; the stylesheet link below
-         consumes that response without re-fetching. `display=optional` in the
-         URL tells the browser to use the system fallback if the web font isn't
-         already cached — this eliminates the invisible-text flash that delays
-         LCP on first visit without impacting repeat visits (font is cached).
+         consumes that response without re-fetching. `display=swap` in the URL
+         paints fallback text immediately AND swaps in Bodoni Moda whenever the
+         woff2 lands, however late that is.
+
+         This was `display=optional` until 2026-08-10. `optional` sounds
+         permissive but is the strictest value there is: ~100ms block, then if
+         the font hasn't arrived the browser commits to the fallback for the
+         WHOLE page view and never swaps. On a cold cache over mobile a web
+         font essentially never wins that race, so first-time visitors saw the
+         hero H1 — the largest brand asset the product has — render in Georgia,
+         permanently. It bought a Lighthouse CLS score with the brand's first
+         impression. Do NOT put `optional` back; if CLS regresses, self-host the
+         single Bodoni 900 weight the hero needs as a preloaded woff2 instead.
          Do NOT reintroduce media="print"+onload swap here — it delays the
          font request behind JS-parse and regresses LCP. -->
     <link
       rel="preload"
       as="style"
-      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,700;0,900;1,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Montserrat:wght@500;600;700&display=optional"
+      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,700;0,900;1,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Montserrat:wght@400;500;600;700&display=swap"
     />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,700;0,900;1,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Montserrat:wght@500;600;700&display=optional"
+      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,700;0,900;1,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Montserrat:wght@400;500;600;700&display=swap"
     />
     <!-- Beth Ellen is the handwritten signature accent (dashboard greeting
-         name). Unlike the editorial stack above, it MUST actually render —
-         `display=optional` would let the browser permanently fall back to the
-         generic `cursive` (system Snell Roundhand/Apple Chancery) whenever the
-         font isn't already cached on first paint. `display=swap` guarantees it
-         swaps in once downloaded. It is not the LCP element, so the swap costs
+         name). It MUST actually render — `display=optional` would let the
+         browser permanently fall back to the generic `cursive` (system Snell
+         Roundhand/Apple Chancery) whenever the font isn't already cached on
+         first paint. `display=swap` guarantees it swaps in once downloaded. It is not the LCP element, so the swap costs
          nothing visually. -->
     <link
       rel="stylesheet"

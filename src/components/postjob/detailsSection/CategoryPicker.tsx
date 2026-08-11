@@ -53,7 +53,7 @@ export function CategoryPicker({
               autoCategoryArmedRef.current = false;
               setAutoCategoryHint(null);
             }}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.65rem] font-sans font-semibold active:scale-95 transition-transform"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-sans font-semibold active:scale-95 transition-transform"
             style={{
               background: "hsl(var(--burnt-sienna) / 0.12)",
               color: "hsl(var(--burnt-sienna))",

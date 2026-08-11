@@ -78,7 +78,7 @@ const BusinessOnboarding = () => {
   const finish = () => {
     safeStorage.removeItem(STORAGE_KEY);
     hapticSuccess();
-    toast.success("You're all set!");
+    toast.success("You're all set.");
     navigate("/business/team");
   };
 
@@ -209,7 +209,7 @@ const BusinessOnboarding = () => {
                 }`}>
                   <Icon className="w-3.5 h-3.5" />
                 </div>
-                <span className={`text-[0.65rem] truncate ${active ? "text-foreground font-semibold" : "text-muted-foreground"}`}>{s.label}</span>
+                <span className={`text-ds-10 truncate ${active ? "text-foreground font-semibold" : "text-muted-foreground"}`}>{s.label}</span>
               </div>
             );
           })}

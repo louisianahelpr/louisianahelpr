@@ -56,7 +56,7 @@ const AdminUserRowBase = ({
   onOpen,
 }: AdminUserRowProps) => {
   const chip = (key: string, content: React.ReactNode, tone = "bg-secondary/40 text-muted-foreground") => (
-    <span key={key} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10.5px] font-medium ${tone}`}>
+    <span key={key} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-ds-11 font-medium ${tone}`}>
       {content}
     </span>
   );

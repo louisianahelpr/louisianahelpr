@@ -477,7 +477,17 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         toast.warning(`Warning ${warningNum}/4: You've declined a job offer.`);
       } else if (actionTaken === "permanent_ban") {
         hapticError();
-        toast.error("Your account has been permanently banned due to repeated job offer declines.");
+        // Same reasoning as CancellationDialog: a permanent ban is not a toast.
+        // Send them to the banned screen, which reads ban_status off the
+        // profile and states the rule, the reason and the support path — and
+        // does not auto-dismiss.
+        //
+        // window.location, not useNavigate: createOfferHandlers is a plain
+        // factory function, not a React hook, so hooks cannot be called here.
+        // A full document load is also the RIGHT behaviour for a ban — it tears
+        // down all cached authed state rather than leaving a banned session
+        // live in memory behind the screen.
+        window.location.assign("/account-banned");
       }
       if (actionTaken !== "none") {
         // Admin fan-out — a silent drop here means no admin sees the

@@ -81,7 +81,7 @@ export function DatePickerField({
           id={id}
           type="button"
           className={cn(
-            "flex h-12 w-full items-center justify-between rounded-2xl border border-input glass-field px-4 text-[15px] text-left ring-offset-background transition-colors",
+            "flex h-12 w-full items-center justify-between rounded-2xl border border-input glass-field px-4 text-ds-15 text-left ring-offset-background transition-colors",
             // Softer, flush focus ring — the full-strength bark ring reads
             // too bright on the frosted glass fill, so use a half-opacity
             // ring with no offset gap to match the glass-field focus style.

@@ -160,7 +160,7 @@ function AudioPlayer({
         </div>
         {/* Time display */}
         <span
-          className="text-[0.65rem] tabular-nums font-sans"
+          className="text-ds-10 tabular-nums font-sans"
           style={{ color: mine ? "hsl(var(--parchment) / 0.75)" : "hsl(var(--olivewood))" }}
         >
           {playing
@@ -329,8 +329,8 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
         }
       >
         <FileText className="w-4 h-4 shrink-0" strokeWidth={2.25} />
-        <span className="truncate max-w-[180px] font-sans font-semibold text-[0.78rem]">{filename}</span>
-        {sizeKb && <span className="text-[0.65rem] opacity-70 shrink-0 font-sans tabular-nums">{sizeKb}</span>}
+        <span className="truncate max-w-[180px] font-sans font-semibold text-ds-12">{filename}</span>
+        {sizeKb && <span className="text-ds-10 opacity-70 shrink-0 font-sans tabular-nums">{sizeKb}</span>}
         <ExternalLink className="w-3 h-3 shrink-0 opacity-70" />
       </button>
     );

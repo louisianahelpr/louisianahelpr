@@ -193,7 +193,7 @@ const StatCard = ({ label, value, sublabel }: StatCardProps) => (
     >
       {value}
     </p>
-    <p className="text-[0.7rem] font-sans font-semibold uppercase tracking-wider leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+    <p className="text-ds-11 font-sans font-semibold uppercase tracking-wider leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
       {label}
     </p>
     {sublabel && (

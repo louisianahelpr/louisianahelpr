@@ -174,7 +174,7 @@ const BusinessLayout = ({ title, meta, requiresVerification, children }: Props) 
                 no longer paints. */}
             <h1 className="text-page-title leading-tight mt-1">{title}</h1>
             {meta && (
-              <p className="font-serif italic mt-1 text-[0.82rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-serif italic mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {meta}
               </p>
             )}

@@ -298,7 +298,7 @@ export const DisputeTimelineDialog = ({
                   {evidenceFiles.map((file, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-1 text-[0.7rem] px-2 py-1 rounded-full"
+                      className="flex items-center gap-1 text-ds-11 px-2 py-1 rounded-full"
                       style={{
                         background: "hsl(var(--bark) / 0.10)",
                         color: "hsl(var(--bark))",
@@ -319,7 +319,7 @@ export const DisputeTimelineDialog = ({
                 </div>
                 {evidenceFiles.length < 5 && (
                   <label
-                    className="inline-flex items-center gap-1.5 text-[0.78rem] font-sans font-semibold cursor-pointer active:opacity-70"
+                    className="inline-flex items-center gap-1.5 text-ds-12 font-sans font-semibold cursor-pointer active:opacity-70"
                     style={{ color: "hsl(var(--bark))" }}
                   >
                     <Upload className="w-3.5 h-3.5" strokeWidth={2.25} /> {evidenceFiles.length === 0 ? "Add photos" : "Add more"}

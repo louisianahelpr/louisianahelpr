@@ -167,7 +167,7 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
                   key={w}
                   type="button"
                   onClick={() => setWin(w)}
-                  className="flex-1 px-2 h-6 rounded-full text-[0.7rem] font-sans font-semibold transition-all"
+                  className="flex-1 px-2 h-6 rounded-full text-ds-11 font-sans font-semibold transition-all"
                   style={
                     active
                       ? {

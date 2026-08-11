@@ -61,7 +61,7 @@ const UserProfile = () => {
     const pro = searchParams.get("pro");
     if (!pro) return;
     if (pro === "success") {
-      toast.success("You're now upgraded — welcome to your new plan!");
+      toast.success("You're now upgraded — welcome to your new plan.");
     } else if (pro === "cancel") {
       toast.info("Upgrade cancelled — you can upgrade any time from your profile.");
     }

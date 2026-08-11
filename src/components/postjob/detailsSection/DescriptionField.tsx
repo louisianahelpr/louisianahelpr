@@ -21,7 +21,7 @@ export function DescriptionField({
     <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
-        <span className="text-[0.66rem] tabular-nums text-muted-foreground">{description.length}/{DESCRIPTION_MAX}</span>
+        <span className="text-ds-11 tabular-nums text-muted-foreground">{description.length}/{DESCRIPTION_MAX}</span>
       </div>
       {/* Template button — only shown when the description is empty or
           still the raw template text (not user-written prose). Lets the
@@ -40,7 +40,7 @@ export function DescriptionField({
               setTitle(tpl.title);
               setDescription(tpl.description);
             }}
-            className="text-[0.75rem] font-sans font-semibold inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+            className="text-ds-12 font-sans font-semibold inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
             style={{
               color: "hsl(var(--burnt-sienna))",
               textDecoration: "underline",
@@ -66,13 +66,13 @@ export function DescriptionField({
           fill-ins. Flag them inline so the poster swaps in real details
           before the (now-disabled) submit button unlocks (LH-23). */}
       {hasUnfilledPlaceholders(description) && (
-        <p className="text-[0.7rem] font-sans font-semibold leading-snug" style={{ color: "hsl(var(--destructive))" }}>
+        <p className="text-ds-11 font-sans font-semibold leading-snug" style={{ color: "hsl(var(--destructive))" }}>
           Replace the [bracketed] placeholders with your own details — they can't be posted as-is.
         </p>
       )}
       {/* Category-aware prompt — tells the poster exactly what a helpr
           needs to quote accurately. Vague posts get fewer applicants. */}
-      <p className="text-[0.7rem] font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+      <p className="text-ds-11 font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
         {descriptionHints[category] ?? descriptionHints.other}
       </p>
       {/* Checklist hints — surface the first 2 unmet template items
@@ -89,7 +89,7 @@ export function DescriptionField({
         if (unmet.length === 0) return null;
         return (
           <p
-            className="text-[0.68rem] font-serif italic leading-snug"
+            className="text-ds-11 font-serif italic leading-snug"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Tip: {unmet.join(" · ")}

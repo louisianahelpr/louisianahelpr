@@ -66,7 +66,7 @@ export function YourHelpersRow() {
         <button
           type="button"
           onClick={() => navigate("/profile?tab=saved_helpers")}
-          className="text-[0.65rem] font-sans font-semibold active:opacity-60 transition-opacity"
+          className="text-ds-10 font-sans font-semibold active:opacity-60 transition-opacity"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           See all
@@ -112,7 +112,7 @@ export function YourHelpersRow() {
                     />
                   ) : (
                     <span
-                      className="font-display italic font-bold text-[0.85rem]"
+                      className="font-display italic font-bold text-ds-14"
                       style={{ color: "hsl(var(--bark))" }}
                     >
                       {initialsOf(name)}
@@ -136,7 +136,7 @@ export function YourHelpersRow() {
                 )}
               </span>
               <span
-                className="text-[0.65rem] font-sans font-medium leading-tight truncate w-full text-center"
+                className="text-ds-10 font-sans font-medium leading-tight truncate w-full text-center"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 {name.split(" ")[0]}

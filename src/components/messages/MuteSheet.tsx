@@ -74,7 +74,7 @@ export function MuteSheet({
           >
             <Clock className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
             <span
-              className="font-serif italic text-[0.74rem]"
+              className="font-serif italic text-ds-12"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
               {isForever ? "Muted until you turn it back on" : remaining ?? "Muted"}
@@ -95,7 +95,7 @@ export function MuteSheet({
               }}
             >
               <span
-                className="font-sans font-medium text-[0.92rem]"
+                className="font-sans font-medium text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 {preset.label}
@@ -127,7 +127,7 @@ export function MuteSheet({
               }}
             >
               <span
-                className="font-sans font-medium text-[0.92rem]"
+                className="font-sans font-medium text-ds-15"
                 style={{ color: "hsl(var(--burnt-sienna))" }}
               >
                 Turn notifications back on

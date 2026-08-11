@@ -59,7 +59,7 @@ export function IDVPromptDialog({
       const { data, error } = await supabase.functions.invoke("stripe-idv-start", { body: {} });
       if (error) throw error;
       if (data?.alreadyVerified) {
-        toast.success("You're already verified!");
+        toast.success("You're already verified.");
         onOpenChange(false);
         onLaunched?.();
         return;

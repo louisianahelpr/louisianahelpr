@@ -128,7 +128,7 @@ function buildKpis(a: Analytics | undefined) {
       ? {
           label: "Repeat hire",
           value: `${a.repeatHirePercent}%`,
-          sub: "clients who rebook",
+          sub: "posters who rebook",
           icon: <Repeat className="w-4 h-4" />,
         }
       : {

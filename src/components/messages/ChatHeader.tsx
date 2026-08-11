@@ -144,7 +144,7 @@ export function ChatHeader({
               status === "assigned" ? "Awarded" : jobStatusLabel(status);
             return (
               <span
-                className="text-[9px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
                 style={{ color: palette.text, backgroundColor: palette.bg, letterSpacing: "0.08em" }}
               >
                 {label}

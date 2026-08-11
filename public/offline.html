@@ -2,42 +2,96 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#F1F2F4" />
   <title>Helpr — Offline</title>
+  <!--
+    OFFLINE FALLBACK. Served by the service worker when the network is gone,
+    so it must be entirely self-contained: NO CSS variables (this document
+    never loads src/index.css) and NO web fonts (there is no network by
+    definition). Every colour below is therefore a literal hex copied from the
+    token it mirrors, and the type stack is system-only.
+
+    Because these values cannot be imported, they can drift. If the palette
+    changes, this file must be updated by hand — it is not reachable by
+    grepping components. The tokens it mirrors, from src/index.css:
+      #F1F2F4  --parchment    220 14% 95%   page canvas
+      #2E2F22  --olivewood     64 16% 16%   primary text
+      #5E6544  --bark          70 20% 33%   primary CTA
+      #2A2E1C  --bark-border   66 25% 19%   CTA border / dark gradient stop
+
+    Rebuilt 2026-08-10. The previous version was a pre-rebrand survivor: DM
+    Sans (a face used nowhere else and never loaded), a mint-green canvas, an
+    emerald button in no token, an off-scale radius, and "your community is
+    waiting!" — an exclamation mark in a brand that does not use them.
+
+    NOTE: the service worker caches this file, so a stale copy can outlive a
+    fix. Bump the SW cache/version when changing it.
+  -->
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: hsl(150 20% 97%);
-      color: hsl(160 10% 12%);
+      /* Montserrat is the brand sans but cannot load offline — fall back to
+         the platform UI face rather than naming an unavailable font. */
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: #F1F2F4;
+      color: #2E2F22;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      padding: 2rem;
+      min-height: 100dvh;
+      /* Respect the notch and home indicator — this can show full-screen in
+         the Capacitor WebView, not just in a browser tab. */
+      padding: max(2rem, env(safe-area-inset-top)) 2rem max(2rem, env(safe-area-inset-bottom));
       text-align: center;
+      -webkit-font-smoothing: antialiased;
     }
-    .container { max-width: 400px; }
-    .icon {
-      width: 88px; height: 88px;
-      object-fit: contain;
-      margin: 0 auto 1.5rem;
+    .container { max-width: 26rem; }
+    .icon { width: 88px; height: 88px; object-fit: contain; margin: 0 auto 1.5rem; }
+    h1 {
+      /* Bodoni Moda is the display face; Georgia is its closest system
+         analogue and is what the app already falls back to. */
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.625rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.75rem;
     }
-    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem; }
-    p { color: hsl(160 6% 50%); line-height: 1.6; margin-bottom: 1.5rem; }
+    p {
+      color: rgba(46, 47, 34, 0.72);
+      line-height: 1.55;
+      font-size: 0.9375rem;
+      margin-bottom: 1.75rem;
+      text-wrap: balance;
+    }
     button {
-      background: hsl(158 45% 42%); color: #fff; border: none;
-      padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-size: 1rem;
-      font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+      background: #5E6544;
+      color: #F1F2F4;
+      border: 1px solid #2A2E1C;
+      padding: 0.875rem 1.75rem;
+      /* 14px — the ds-md rung of the 8/14/20/28 radius scale. */
+      border-radius: 14px;
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      /* 44px minimum tap target, same rule as the app. */
+      min-height: 44px;
+      cursor: pointer;
+      transition: opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     }
     button:hover { opacity: 0.9; }
+    button:active { opacity: 0.8; }
+    button:focus-visible { outline: 2px solid #2A2E1C; outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { button { transition: none; } }
   </style>
 </head>
 <body>
   <div class="container">
     <img class="icon" src="/helpr-splash-icon.png" alt="Helpr" />
-    <h1>You're offline</h1>
-    <p>It looks like you've lost your internet connection. Check your connection and try again — your community is waiting!</p>
+    <h1>No connection</h1>
+    <!-- Matches the in-app error voice: takes the blame without apology
+         theatre, no exclamation mark. -->
+    <p>You've dropped offline. Try again once you're back on — if it sticks, our end is having a hiccup, not yours.</p>
     <button onclick="window.location.reload()">Try again</button>
   </div>
 </body>

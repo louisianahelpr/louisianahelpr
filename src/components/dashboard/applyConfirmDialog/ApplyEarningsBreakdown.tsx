@@ -40,7 +40,7 @@ export function ApplyEarningsBreakdown({
           "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22)",
       }}
     >
-      <div className="space-y-1 text-[0.78rem]">
+      <div className="space-y-1 text-ds-12">
         <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           <span className="font-serif italic">Budget{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
           <span className="font-display italic tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${formatPrice(perHelper)}</span>
@@ -76,7 +76,7 @@ export function ApplyEarningsBreakdown({
         style={{ borderTop: "0.5px dashed hsl(var(--bark) / 0.22)" }}
       >
         <ShieldCheck className="w-3.5 h-3.5 shrink-0" strokeWidth={2} style={{ color: "hsl(var(--bark))" }} />
-        <span className="text-[0.7rem] leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+        <span className="text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           Funds are held securely and released to you when the job is marked complete.
         </span>
       </div>

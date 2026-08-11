@@ -506,7 +506,7 @@ const TierComparison = () => {
                   }}
                 >
                   <span
-                    className="font-sans uppercase text-[10px] font-semibold tracking-[0.14em]"
+                    className="font-sans uppercase text-ds-10 font-semibold tracking-[0.14em]"
                     style={{ color: "hsl(var(--olivewood) / 0.7)" }}
                   >
                     Feature
@@ -536,7 +536,7 @@ const TierComparison = () => {
                       </span>
                       {tier.featured && (
                         <span
-                          className="mt-1 font-sans text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full"
+                          className="mt-1 font-sans text-ds-9 font-bold uppercase px-1.5 py-0.5 rounded-full"
                           style={{
                             background: "hsl(var(--burnt-sienna))",
                             color: "hsl(var(--parchment))",
@@ -782,7 +782,7 @@ const PricingSection = () => {
                   no height and all four titles stay level. */}
               {tier.featured && (
                 <span
-                  className="absolute top-0 left-0 z-20 text-[9px] font-bold uppercase tracking-widest pl-3 pr-2.5 py-1 rounded-tl-2xl rounded-br-lg leading-none"
+                  className="absolute top-0 left-0 z-20 text-ds-9 font-bold uppercase tracking-widest pl-3 pr-2.5 py-1 rounded-tl-2xl rounded-br-lg leading-none"
                   style={{
                     background: "hsl(var(--burnt-sienna))",
                     color: "hsl(var(--parchment))",

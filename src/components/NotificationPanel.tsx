@@ -139,7 +139,7 @@ const NotificationPanel = () => {
     const granted = await requestPush();
     if (granted) {
       setPushEnabled(true);
-      toast.success("Push notifications enabled!");
+      toast.success("Push notifications enabled");
     } else {
       toast.error(
         Capacitor.isNativePlatform()
@@ -243,7 +243,7 @@ const NotificationPanel = () => {
                   {opt.label}
                   {opt.count > 0 && (
                     <span
-                      className="tabular-nums text-[0.66rem] font-bold"
+                      className="tabular-nums text-ds-11 font-bold"
                       style={{
                         color: isActive ? "hsl(var(--parchment) / 0.85)" : "hsl(var(--olivewood) / 0.8)",
                       }}
@@ -370,7 +370,7 @@ const NotificationPanel = () => {
               {groupedNotifications.map((group) => (
                 <section key={group.key}>
                   <div
-                    className="sticky top-0 z-10 px-4 py-1.5 flex items-center justify-between font-serif italic uppercase tracking-[0.18em] text-[0.62rem]"
+                    className="sticky top-0 z-10 px-4 py-1.5 flex items-center justify-between font-serif italic uppercase tracking-[0.18em] text-ds-10"
                     style={{
                       color: "hsl(var(--burnt-sienna))",
                       background:

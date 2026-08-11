@@ -110,7 +110,7 @@ export const TaxReserveCard = ({
 
       {/* Big all-time reserve figure */}
       <div>
-        <p className="text-ds-24 sm:text-[1.75rem] font-bold tabular-nums leading-none" style={{ color: "hsl(var(--ink-deep))" }}>
+        <p className="text-ds-24 sm:text-ds-28 font-bold tabular-nums leading-none" style={{ color: "hsl(var(--ink-deep))" }}>
           {statsLoading ? "—" : money(reserveAllTime)}
         </p>
         <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">

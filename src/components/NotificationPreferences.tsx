@@ -196,7 +196,7 @@ const NotificationPreferences = () => {
             >
               Push Notifications
             </Label>
-            <p className="font-serif italic text-[0.7rem]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Master switch for everything below
             </p>
           </div>

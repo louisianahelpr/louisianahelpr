@@ -46,7 +46,7 @@ export const ReadReceipt = ({
   if (!read) {
     return (
       <span
-        className="text-[0.65rem] font-sans font-semibold ml-1"
+        className="text-ds-10 font-sans font-semibold ml-1"
         style={{ color: "hsl(var(--bark) / 0.55)" }}
         aria-label="Delivered"
         title="Delivered"
@@ -81,7 +81,7 @@ export const ReadReceipt = ({
           className="w-full h-full object-cover"
         />
       ) : (
-        <span className="text-[0.5rem] font-sans font-bold" style={{ color: "hsl(var(--bark))" }}>
+        <span className="text-ds-9 font-sans font-bold" style={{ color: "hsl(var(--bark))" }}>
           {initials}
         </span>
       )}

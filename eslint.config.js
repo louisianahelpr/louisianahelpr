@@ -72,6 +72,35 @@ export default tseslint.config(
       // in this codebase (silent fallbacks, type aliases). Downgrade to warn.
       "no-empty": ["warn", { allowEmptyCatch: true }],
       "@typescript-eslint/no-empty-object-type": "warn",
+
+      // ── Type scale guardrail ────────────────────────────────────────────
+      // tailwind.config.ts defines an 18-step scale (ds-9 … ds-40), each rung
+      // carrying a tuned line-height (1.45 in the body range) and letter
+      // spacing. Arbitrary `text-[13px]` / `text-[0.78rem]` values carry NO
+      // line-height, so they silently inherit Tailwind's default and break
+      // vertical rhythm inside a card — the "unfinished but unnameable" look.
+      //
+      // 220 such values had accumulated across 106 files (28 distinct sizes
+      // layered over an 18-step system, several differing by a third of a
+      // pixel). They were mapped onto the scale on 2026-08-10; this rule stops
+      // them coming back.
+      //
+      // Deliberately NUMERIC-only: `text-[hsl(var(--token))]` is the required
+      // way to set brand colours here and must stay legal. Sizes above the
+      // scale's 40px ceiling are also allowed — the marketing hero ramp
+      // (3.5rem…7.25rem) genuinely has no rung.
+      "no-restricted-syntax": ["error", {
+        // px and rem need separate bounds — 1rem is 16px, so a single numeric
+        // range would wrongly ban the hero's 3.5rem (56px, above the ceiling).
+        //   px  : 1–40      → banned (the scale covers 9–40)
+        //   rem : 0–2.99    → banned (≈ up to 47px; the hero starts at 3.5rem)
+        selector:
+          "Literal[value=/text-\\[(?:(?:[1-9]|[1-3][0-9]|40)(?:\\.[0-9]+)?px|[0-2](?:\\.[0-9]+)?rem)\\]/]",
+        message:
+          "Use a ds-* type token (ds-9 … ds-40) instead of an arbitrary text-[…] size. " +
+          "Arbitrary sizes carry no line-height and break vertical rhythm. " +
+          "Sizes above 40px (the hero ramp) and colour values like text-[hsl(var(--x))] are fine.",
+      }],
     },
   },
 );

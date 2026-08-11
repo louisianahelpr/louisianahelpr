@@ -108,7 +108,20 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
 
   return (
     <div className="mt-3.5 pt-3.5" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-      <div className="flex items-center justify-end mb-2">
+      {/* Every other section on the profile card announces itself with this
+          eyebrow (burnt sienna, uppercase serif italic, 0.18em tracking) and
+          puts its action on the right — see ProfileStatsTrend's "Activity
+          trend / View". Skills was the one section that skipped the label and
+          used `justify-end`, so it read as a stray "+ Add skill" link floating
+          after a divider rather than as a titled section, and the helper text
+          below it ("Add skills so clients know…") had nothing to belong to. */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span
+          className="font-serif italic uppercase text-ds-9"
+          style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+        >
+          Skills
+        </span>
         {!atMax && (
           <button
             type="button"

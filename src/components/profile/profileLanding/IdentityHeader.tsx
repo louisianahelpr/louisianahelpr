@@ -368,7 +368,17 @@ export function IdentityHeader({
             style={{ background: "hsl(var(--bark) / 0.06)" }}
           >
             <span className="inline-flex items-center gap-1" style={{ color: "hsl(var(--ink-deep))" }}>
-              <Star className="w-3.5 h-3.5 fill-current" style={{ color: "hsl(var(--gold-warm))" }} />
+              {/* Gold is reserved for prestige that was actually EARNED (P1).
+                  This star was unconditionally filled gold, so a brand-new
+                  account rendered a gold star directly above the words
+                  "0 reviews" — the exact inverse of what gold is supposed to
+                  signal, and it cheapens the badge for helprs who did earn it.
+                  With no rating yet it is an outline star in the muted ink,
+                  which reads as "nothing here yet" rather than as an award. */}
+              <Star
+                className={`w-3.5 h-3.5 ${avgRating ? "fill-current" : ""}`}
+                style={{ color: avgRating ? "hsl(var(--gold-warm))" : "hsl(var(--olivewood) / 0.5)" }}
+              />
               <span className="text-ds-13 font-bold leading-none">
                 {avgRating ? avgRating.toFixed(1) : "New"}
               </span>
@@ -537,7 +547,15 @@ export function IdentityHeader({
                 className="flex-1 min-w-0 font-semibold text-ds-13 leading-tight"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
-                Record a 60-second intro video
+                {/* At 375px the icon (32) + Upload button (87) + gaps and
+                    padding leave this column just 131px, which broke
+                    "Record a 60-second intro video" mid-word as "Record a 60-"
+                    / "second intro video". A non-breaking hyphen alone only
+                    made it worse (three lines), so the copy is shorter too:
+                    the video glyph beside it already says "video", making that
+                    word redundant. Two lines, both breaking at real word
+                    boundaries. */}
+                Record a 60&#8209;second intro
               </p>
               <Button
                 type="button"

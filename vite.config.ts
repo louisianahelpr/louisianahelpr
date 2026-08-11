@@ -148,6 +148,17 @@ export default defineConfig(({ mode }) => ({
           "apple-touch-icon.png",
           "pwa-192x192-v2.png",
           "pwa-512x512-v2.png",
+          // The offline fallback page. This is the ONE html file that must be
+          // precached — the `html` exclusion above exists so a stale SW can't
+          // serve outdated index.html, which does not apply here: offline.html
+          // references no hashed bundles and is entirely self-contained.
+          //
+          // Without this it was dead weight: nothing referenced offline.html
+          // anywhere in the build or the SW, so it shipped and was never
+          // served. An offline navigation that missed the html-pages cache
+          // (first visit offline, or an evicted entry) fell through to the
+          // browser's own error page.
+          "offline.html",
         ],
         // Drop sourcemaps (never fetched by the browser) and the unrelated
         // `assets/index.es-*.js` vendor chunk (jspdf etc.) that happens to
@@ -174,6 +185,16 @@ export default defineConfig(({ mode }) => ({
               networkTimeoutSeconds: 3,
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
               cacheableResponse: { statuses: [0, 200] },
+              // Last resort when BOTH the network and the html-pages cache
+              // miss — a first visit while offline, or an evicted entry.
+              // Previously that fell through to the browser's own error page,
+              // because nothing in the build ever referenced offline.html.
+              //
+              // Ordering note: this only fires after the cache lookup fails,
+              // so a returning user still gets the real app shell offline and
+              // the app's own in-app offline handling. This page is the floor,
+              // not the default.
+              precacheFallback: { fallbackURL: "offline.html" },
             },
           },
           {

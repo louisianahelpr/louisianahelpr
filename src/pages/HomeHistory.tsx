@@ -9,7 +9,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
 import { getCategoryIcon } from "@/lib/categoryIcons";
-import { formatTimestamp } from "@/lib/format";
+import { formatTimestamp, formatPrice } from "@/lib/format";
 import { categoryColors, categoryLabels } from "@/components/activity/activityConstants";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
@@ -254,7 +254,7 @@ const HomeHistory = () => {
                           {(job.budget ?? 0) > 0 && (
                             <span className="inline-flex items-center gap-1 text-ds-11 font-medium" style={{ color: "hsl(var(--bark))" }}>
                               <DollarSign className="w-3 h-3 shrink-0" />
-                              {job.budget?.toLocaleString("en-US", { minimumFractionDigits: 0 })}
+                              {formatPrice(job.budget ?? 0)}
                             </span>
                           )}
                           {job.location && (

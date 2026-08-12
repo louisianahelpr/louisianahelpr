@@ -35,10 +35,11 @@ export async function handleCustomerSubscriptionDeleted(
 
   logStep("Subscription deleted", { email });
 
-  const { error } = await supabase
+  const { data: clearedProfiles, error } = await supabase
     .from("profiles")
     .update({ subscription_tier: null, subscription_expires_at: null })
-    .eq("email", email);
+    .eq("email", email)
+    .select("user_id");
 
   if (error) {
     logStep("ERROR clearing tier", { error: error.message });
@@ -59,5 +60,15 @@ export async function handleCustomerSubscriptionDeleted(
       },
     });
     throw new Error(`Failed to clear tier for deleted subscription ${subscription.id}: ${error.message}`);
+  } else if (!clearedProfiles || clearedProfiles.length === 0) {
+    // UPDATE succeeded but matched 0 rows — no profile found for this Stripe
+    // email. A zero-match on deletion means a formerly-active tier on a
+    // mismatched account is never cleared (the subscriber retains access
+    // without a valid subscription). Log for auditability; ops can reconcile
+    // by finding the profile and nulling its tier.
+    logStep("WARN: subscription deleted but matched 0 profiles — email mismatch; stale tier may persist", {
+      email,
+      subscription_id: subscription.id,
+    });
   }
 }

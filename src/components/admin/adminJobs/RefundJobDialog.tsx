@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { formatPrice } from "@/lib/format";
+import { paymentStatusLabel } from "@/lib/statusLabels";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { DollarSign } from "lucide-react";
@@ -53,7 +55,7 @@ export const RefundJobDialog = ({
               <p className="text-ds-11 text-muted-foreground">Refunding</p>
               <p className="text-ds-13 font-medium text-foreground">{detailJob.title}</p>
               <p className="text-ds-11 text-muted-foreground">
-                ${detailJob.budget} · payment_status: {detailJob.payment_status}
+                ${detailJob.budget != null ? formatPrice(detailJob.budget) : "—"} · {paymentStatusLabel(detailJob.payment_status)}
                 {detailJob.helper_id && " · helper assigned"}
               </p>
             </div>

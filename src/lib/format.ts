@@ -99,6 +99,23 @@ export function formatCategory(category: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
 }
 
+const RECURRENCE_LABELS: Record<string, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  biweekly: "Every 2 weeks",
+  monthly: "Monthly",
+};
+
+/**
+ * Human-readable label for a job's `recurrence_interval` enum value.
+ * Raw values like "weekly" read as "Every weekly" when concatenated with
+ * "Every "; this maps them to grammatically correct phrases.
+ */
+export function formatRecurrenceInterval(interval: string | null | undefined): string {
+  if (!interval) return "Recurring";
+  return RECURRENCE_LABELS[interval] ?? "Recurring";
+}
+
 /**
  * Season-aware label for the year-in-review feature.
  *

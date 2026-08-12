@@ -5,8 +5,7 @@ import type { Database } from "@/integrations/supabase/types";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
-import { formatCategory, formatPrice } from "@/lib/format";
-import { parseLocalDate } from "@/lib/dateUtils";
+import { formatCategory, formatPrice, formatShortDate } from "@/lib/format";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -54,7 +53,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
                   <div className="flex items-center gap-x-2 gap-y-0.5 mt-1.5 font-serif italic flex-wrap" style={{ color: "hsl(var(--olivewood) / 0.8)", fontSize: "0.78rem" }}>
                     <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>
                     <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
-                    <span>{parseLocalDate(job.date_needed).toLocaleDateString("en-US", { month: 'short', day: 'numeric' })}</span>
+                    <span>{formatShortDate(job.date_needed)}</span>
                     <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                     <span>{formatCategory(job.category)}</span>
                   </div>

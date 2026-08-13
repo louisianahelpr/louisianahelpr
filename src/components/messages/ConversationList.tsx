@@ -324,15 +324,7 @@ export function ConversationList({
                   with nothing pretending to balance them. The state worth
                   stating — how many threads are waiting on you — moved up into
                   the header as "Messages / 2 unread". */}
-              {selectMode && (
-                <span
-                  className="font-sans font-semibold uppercase leading-none mr-auto"
-                  style={{ fontSize: "0.68rem", letterSpacing: "0.1em", color: "hsl(var(--olivewood) / 0.85)" }}
-                  aria-live="polite"
-                >
-                  {selectedKeys.size}/{MAX_SELECT} selected
-                </span>
-              )}
+
               <div className="flex items-center gap-1 shrink-0">
                 {!selectMode && (
                   <>
@@ -575,44 +567,75 @@ export function ConversationList({
           </PullToRefreshWrapper>
           )}
 
-          {/* Sticky bottom action bar — multi-select delete. A shrink-0
-              child at the bottom of the list pane; on mobile it clears the
-              floating nav dock via the safe-area + nav reserve so its
-              buttons never hide behind the dock. Reuses the honest local
-              archive (via the parent's combined confirm) — never a hard
-              delete. */}
+          {/* Multi-select action bar.
+              
+              This used to be an in-flow `shrink-0` row that padded itself by
+              `safe-area + 88px` to clear the floating nav dock. In-flow, that
+              reserve is not clearance — it is 88px of card-coloured padding
+              rendered BELOW the buttons, so select mode showed a dead white
+              band between Cancel/Delete and the bottom of the screen.
+
+              It is now a fixed floating bar, which is what the app already
+              does for this exact interaction on Activity (`BulkDismissBar`).
+              Same ink pill, same safe-area maths, same left-count /
+              right-actions arrangement — so the two bulk-select surfaces stop
+              being two different inventions of the same control.
+
+              The count moved in here with it; the toolbar's "N/3 selected"
+              text is gone, because with both present the same number was on
+              screen twice. */}
           {selectMode && !isEmpty && (
             <div
-              className="shrink-0 flex items-center justify-between gap-3 px-4 pt-3"
-              style={{
-                borderTop: "1px solid hsl(var(--olivewood) / 0.12)",
-                background: "hsl(var(--card))",
-                paddingBottom: embedded
-                  ? "0.75rem"
-                  : "calc(env(safe-area-inset-bottom, 0px) + 88px)",
-              }}
+              role="toolbar"
+              aria-label="Bulk delete action bar"
+              className="fixed inset-x-0 z-40 px-4"
+              style={{ bottom: embedded ? "1rem" : "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
             >
-              <button
-                onClick={exitSelectMode}
-                className="min-h-[44px] px-3 inline-flex items-center text-ds-13 font-medium btn-press rounded-ds-md"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBatchDelete}
-                disabled={selectedKeys.size === 0}
-                aria-label={`Delete ${selectedKeys.size} selected conversation${selectedKeys.size === 1 ? "" : "s"}`}
-                className="min-h-[44px] px-4 inline-flex items-center gap-2 text-ds-13 font-semibold btn-press rounded-ds-md transition-opacity disabled:opacity-40 disabled:pointer-events-none"
+              <div
+                className="mx-auto max-w-xl flex items-center justify-between gap-3 px-4 py-3 rounded-ds-md"
                 style={{
-                  background: "hsl(var(--burnt-sienna))",
-                  color: "hsl(var(--parchment))",
-                  boxShadow: "0 1px 2px hsl(var(--burnt-sienna) / 0.25)",
+                  background: "hsl(var(--ink-deep))",
+                  boxShadow: "0 12px 28px hsl(var(--ink-deep) / 0.32)",
                 }}
               >
-                <Trash2 className="w-4 h-4" />
-                Delete{selectedKeys.size > 0 ? ` (${selectedKeys.size})` : ""}
-              </button>
+                <span
+                  className="text-ds-13 font-semibold truncate"
+                  style={{ color: "hsl(var(--parchment))" }}
+                  aria-live="polite"
+                >
+                  {selectedKeys.size === 0
+                    ? "Tap to select"
+                    : `${selectedKeys.size} of ${MAX_SELECT} selected`}
+                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={exitSelectMode}
+                    aria-label="Cancel selection"
+                    className="h-9 w-9 rounded-ds-md inline-flex items-center justify-center btn-press transition"
+                    style={{
+                      color: "hsl(var(--parchment) / 0.85)",
+                      background: "hsl(var(--parchment) / 0.06)",
+                    }}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBatchDelete}
+                    disabled={selectedKeys.size === 0}
+                    aria-label={`Delete ${selectedKeys.size} selected conversation${selectedKeys.size === 1 ? "" : "s"}`}
+                    className="h-9 px-3 rounded-ds-md inline-flex items-center gap-1.5 text-ds-13 font-semibold btn-press transition disabled:opacity-40 disabled:pointer-events-none"
+                    style={{
+                      background: "hsl(var(--burnt-sienna))",
+                      color: "hsl(var(--parchment))",
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

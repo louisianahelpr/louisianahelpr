@@ -1,7 +1,7 @@
 import { useCallback, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Paperclip, MapPin, X, FileText, Loader2, Mic, MicOff, Square, AudioLines } from "lucide-react";
+import { Send, Plus, MapPin, X, FileText, Loader2, Mic, MicOff, Square, AudioLines } from "lucide-react";
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
 import { hapticLight, hapticMedium, hapticError } from "@/lib/haptics";
@@ -386,27 +386,26 @@ export const RichMessageInput = ({
       )}
 
       <div className="flex gap-1.5 items-center">
+        {/* One "+" instead of a row of source buttons.
+        
+            The composer used to lead with a paperclip AND a map pin, then
+            follow the field with a dictation mic, a voice-note button and
+            send — five controls around one input. iPhone shows a single "+"
+            on the left and a mic on the right, and everything else lives one
+            tap deeper in the sheet the "+" opens.
+        
+            Nothing was removed: attach and location are both in that sheet
+            now, alongside the camera/library/files sources it already held. */}
         <Button
           variant="ghost"
           size="icon"
           className="shrink-0 h-11 w-11 rounded-full liquid-glass glass-press"
           onClick={() => { hapticLight(); setAttachSheetOpen(true); }}
           disabled={disabled || uploading || recorder.state === "recording" || recorder.state === "stopped"}
-          aria-label="Attach photo or PDF"
-          title="Attach photo or PDF"
+          aria-label="Add photo, file, or location"
+          title="Add photo, file, or location"
         >
-          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="shrink-0 h-11 w-11 rounded-full liquid-glass glass-press"
-          onClick={handleShareLocation}
-          disabled={disabled || uploading || recorder.state === "recording" || recorder.state === "stopped"}
-          aria-label="Share location"
-          title="Share location"
-        >
-          <MapPin className="w-4 h-4" />
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-5 h-5" strokeWidth={2.25} />}
         </Button>
         <Input
           aria-label="Type a message"
@@ -459,24 +458,6 @@ export const RichMessageInput = ({
             )}
           </Button>
         )}
-        {/* Voice note record button — tap to start recording; recording
-            indicator (above the toolbar) takes over. Shows the AudioLines
-            icon to distinguish it from the dictation mic. Hidden when a
-            file is staged (can't send both) or dictation is active. */}
-        {recorder.state === "idle" && !voice.isListening && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0 h-11 w-11 relative rounded-full liquid-glass glass-press"
-            onClick={() => void handleVoiceNoteRecord()}
-            disabled={disabled || uploading || !!stagedFile}
-            aria-label="Record voice note"
-            title="Record voice note"
-          >
-            <AudioLines className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-          </Button>
-        )}
         <Button
           size="icon"
           onClick={handleSend}
@@ -526,6 +507,9 @@ export const RichMessageInput = ({
         onPickCamera={pickFromCamera}
         onPickLibrary={pickFromLibrary}
         onPickFiles={pickFromFiles}
+        onShareLocation={handleShareLocation}
+        onRecordVoiceNote={() => void handleVoiceNoteRecord()}
+        voiceNoteDisabled={disabled || uploading || !!stagedFile}
       />
 
       <ViolationDialog

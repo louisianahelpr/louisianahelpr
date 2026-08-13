@@ -1,5 +1,5 @@
 import type { Message } from "../types";
-import type { JobSystemEvent } from "@/lib/jobSystemEvents";
+import type { JobSystemEvent, JobSystemEventKind } from "@/lib/jobSystemEvents";
 import type { TimelineItem } from "./types";
 
 // Format the divider label for a given message timestamp. "Today",
@@ -71,12 +71,42 @@ export function buildTimeline(
   jobSystemEvents: JobSystemEvent[],
   hasMoreMessages: boolean,
 ): TimelineItem[] {
-  const items: TimelineItem[] = messages.map((m) => ({
-    type: "message",
-    key: m.clientId ?? m.id,
-    at: m.created_at,
-    message: m,
-  }));
+  // Two independent mechanisms describe the same job transitions, and a
+  // cancelled thread showed BOTH: a derived jobSystemEvent pill reading "Job
+  // cancelled by helper." and, right under it, a stored is_system message
+  // reading "Job cancelled". Same fact, twice, in two different visual idioms.
+  //
+  // The derived event wins because it names WHO acted and carries a timestamp;
+  // the stored row is the older, blunter version of the same announcement. So
+  // a stored system message is dropped when a derived event already covers
+  // that transition. Matching is on the transition KIND, not on wording — the
+  // two strings are deliberately phrased differently, so comparing text would
+  // never dedupe them.
+  const coveredKinds = new Set(jobSystemEvents.map((e) => e.kind));
+  // Each derived event kind, paired with what the older stored wording for the
+  // same transition looks like. Kinds are checked against the real
+  // JobSystemEventKind union, so a renamed kind fails the build rather than
+  // silently un-deduping.
+  const DUPLICATE_PATTERNS: { kind: JobSystemEventKind; matches: RegExp }[] = [
+    { kind: "cancelled", matches: /\bcancell?ed\b/i },
+    { kind: "disputed", matches: /\bdisput/i },
+    { kind: "poster_confirmed_completed", matches: /\bcomplete/i },
+    { kind: "helper_completed", matches: /\bcomplete/i },
+  ];
+  const isDuplicateStoredSystem = (m: Message): boolean => {
+    if (!m.is_system) return false;
+    const text = m.content ?? "";
+    return DUPLICATE_PATTERNS.some((p) => coveredKinds.has(p.kind) && p.matches.test(text));
+  };
+
+  const items: TimelineItem[] = messages
+    .filter((m) => !isDuplicateStoredSystem(m))
+    .map((m) => ({
+      type: "message",
+      key: m.clientId ?? m.id,
+      at: m.created_at,
+      message: m,
+    }));
   // Only include system events that fall within the loaded window —
   // anything older than the oldest message stays hidden until the
   // user loads earlier messages (otherwise paginated history would

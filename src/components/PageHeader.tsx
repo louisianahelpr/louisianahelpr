@@ -178,18 +178,22 @@ const PageHeader = ({ title, meta, onBack, rightSlot, hideBack = false, showBran
                   TREND, …). The `eyebrow` prop is kept in the type so the ~140
                   existing call sites don't have to churn and the label is a
                   one-line restore if we ever want it back — it just no longer
-                  paints. `meta` still renders below the title. */}
+                  paints.
+
+                  `meta` is now retired the same way (owner decision
+                  2026-08-13): a title sitting next to a back button must not
+                  carry a small line beneath it. In practice the meta line was
+                  restating the title in smaller type — "Post a job / Pick how
+                  you'd like to begin", "My Pets / Care details your Helpr
+                  should know" — and on a screen that already has its own body
+                  copy it read as a third heading nobody asked for.
+
+                  Prop kept for the same reason as `eyebrow`: ~15 call sites
+                  pass it, and neither churning them nor breaking their types
+                  buys anything. One line restores it. */}
               <h1 className="text-page-title leading-tight mt-1 text-balance">
                 {title}
               </h1>
-              {meta && (
-                <span
-                  className="font-serif italic mt-0.5 text-ds-12"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  {meta}
-                </span>
-              )}
             </div>
           </div>
         </>,

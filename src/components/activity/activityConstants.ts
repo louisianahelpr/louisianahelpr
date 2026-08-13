@@ -144,5 +144,5 @@ export type AppliedApp = Application & {
  * Selected"), which is a pointer rather than a dead end.
  */
 export function defaultStatusFilterFor(tab: "posted" | "applied"): string {
-  return tab === "posted" ? "all" : "active";
+  return "active";
 }

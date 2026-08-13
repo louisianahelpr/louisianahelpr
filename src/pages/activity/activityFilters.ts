@@ -108,7 +108,7 @@ export function useActivityFilters({
     const query = searchLower;
     return appliedApps.filter((a) => {
       let statusMatch = false;
-      if (statusFilter === "all") statusMatch = true;
+      if (statusFilter === "all") statusMatch = bucketAppliedApp(a) !== "cancelled";
       else if (statusFilter === "active") statusMatch = bucketAppliedApp(a) === "active";
       else if (statusFilter === "direct_offer") statusMatch = !!a.job?.offered_to_helper_id && a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending";
       else if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
@@ -131,12 +131,15 @@ export function useActivityFilters({
   }, [appliedApps, statusFilter, searchLower]);
 
   const appliedCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: appliedApps.length, active: 0, pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0 };
+    const counts: Record<string, number> = { all: 0, active: 0, pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0 };
     appliedApps.forEach((a) => {
+      const bucket = bucketAppliedApp(a);
+      // "all" excludes not-selected (rejected / cancelled) — mirrors filteredAppliedApps.
+      if (bucket !== "cancelled") counts.all++;
       // Counted separately from the chain below, not inside it: "active" is a
       // BUCKET that overlaps several of the single-status counters, so it must
       // not consume an `else if` branch and steal rows from them.
-      if (bucketAppliedApp(a) === "active") counts.active++;
+      if (bucket === "active") counts.active++;
       if (a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending") counts.direct_offer++;
       if (a.status === "pending" && a.job?.status !== "cancelled") counts.pending++;
       else if (a.status === "accepted" && a.job?.status === "accepted" && !a.job?.helper_confirmed_at) counts.offered++;

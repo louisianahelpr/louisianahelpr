@@ -330,7 +330,7 @@ export function ConversationList({
                   Omitted at zero: a caught-up inbox should say nothing rather
                   than report an absence. */}
               <div className="flex flex-col min-w-0 gap-0.5">
-                <h1 className="font-display font-bold text-foreground text-ds-15 truncate m-0 leading-none">
+                <h1 className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none">
                   Messages
                 </h1>
                 {headerSubtitle && (

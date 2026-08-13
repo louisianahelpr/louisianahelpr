@@ -143,6 +143,6 @@ export type AppliedApp = Application & {
  * where the items went ("Nothing under active — but you have 4 in Not
  * Selected"), which is a pointer rather than a dead end.
  */
-export function defaultStatusFilterFor(_tab: "posted" | "applied"): string {
-  return "active";
+export function defaultStatusFilterFor(tab: "posted" | "applied"): string {
+  return tab === "posted" ? "all" : "active";
 }

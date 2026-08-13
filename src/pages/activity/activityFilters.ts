@@ -39,9 +39,10 @@ const DERIVED_NOT_SELECTED = "bg-destructive/15 text-destructive border-destruct
 const ALL_FILTER_COLOR = "bg-[hsl(var(--olivewood)/0.08)] text-[hsl(var(--olivewood))] border-[hsl(var(--olivewood)/0.18)]";
 
 export const POSTED_STATUS_FILTERS: StatusFilter[] = [
-  // "Active" — the default landing view. Folds every non-terminal status
-  // (open / accepted / in_progress / revision / direct_offer) into one
-  // flat list, replacing the old grouped "All" view.
+  // "All" — the default landing view. Shows the grouped Active / Completed /
+  // Cancelled sectioned layout so nothing is hidden on first open.
+  { key: "all",          label: "All",                          color: ALL_FILTER_COLOR },
+  // "Active" — folds every non-terminal status into one flat list.
   { key: "active",       label: "Active",                       color: ALL_FILTER_COLOR },
   { key: "open",         label: jobStatusLabel("open"),         color: jobStatusColorClasses("open") },
   { key: "direct_offer", label: "Direct Offers",                color: DERIVED_DIRECT_OFFER },

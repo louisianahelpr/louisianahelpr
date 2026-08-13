@@ -258,24 +258,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const sourceCount = tab === "posted" ? postedJobs.length : appliedApps.length;
   const isTrulyEmpty = sourceCount === 0;
 
-  // The header's second line: which filter is active, and how many things it
-  // matches. This used to be an <h2> inside the panel, directly beneath the
-  // top bar's page title — "My Jobs" over "All", two headings with nothing
-  // relating them. Folded into the header it becomes one statement, and the
-  // count is always on screen.
-  //
-  // That last part is the point, not decoration: /my-jobs used to open on a
-  // filter that matched nothing while four applications sat one menu away,
-  // and the screen just said "No jobs in this view". A header that always
-  // reads "All · 4" makes that failure visible instead of silent.
-  const activeFilterLabel =
-    activeStatusFilters.find((f) => f.key === statusFilter)?.label ?? "All";
-  const activeFilterCount = activeCounts[statusFilter] ?? 0;
-  const headerSubtitle = isTrulyEmpty
-    ? undefined
-    : activeFilterCount > 0
-      ? `${activeFilterLabel} · ${activeFilterCount}`
-      : activeFilterLabel;
 
   // Per-tab "updated Xm ago" indicator — only shown after the first
   // user-triggered pull-to-refresh on this tab so it doesn't feel
@@ -323,7 +305,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           {!isTrulyEmpty && (
             <ActivityHeader
               title={tab === "posted" ? "My Posts" : "My Jobs"}
-              subtitle={headerSubtitle}
               tab={tab}
               activeStatusFilters={activeStatusFilters}
               activeCounts={activeCounts}

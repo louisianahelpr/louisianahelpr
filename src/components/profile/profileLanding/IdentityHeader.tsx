@@ -1,10 +1,9 @@
-import { useState, useRef, lazy, Suspense } from "react";
+import { useState, lazy, Suspense } from "react";
 import {
   MapPin, ChevronRight as ChevronRightIcon, ChevronDown,
-  Award, BadgeCheck, Building2, Camera, Crown, QrCode, Users, Video, Play,
+  Award, BadgeCheck, Building2, Camera, Crown, QrCode, Users,
   Star, Share2, Edit,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { useBusinessSeatTier } from "@/hooks/useBusinessSeatTier";
 import { avatarGradientFor } from "@/lib/avatarGradient";
@@ -19,13 +18,10 @@ import { tierFeePercent } from "@/lib/subscriptionTiers";
 // only fetches after first paint, mirroring the pattern used for charts
 // in Admin (KpiSparkline) and the BrowseMap/JobDetailDialog pattern.
 const ProfileStatsTrend = lazy(() => import("@/components/profile/ProfileStatsTrend"));
-import { SkillsManager } from "@/components/profile/SkillsManager";
 import { EarningsSparkline } from "@/components/profile/EarningsSparkline";
 import { hapticLight } from "@/lib/haptics";
 import { shareNative } from "@/lib/nativeShare";
 import type { Profile, ReviewPreview } from "./types";
-import { formatVideoDuration } from "./identityHeader/identityHeaderHelpers";
-import { IntroVideoOverlay } from "./identityHeader/IntroVideoOverlay";
 import { RecentReviewsList } from "./identityHeader/RecentReviewsList";
 
 interface IdentityHeaderProps {
@@ -73,8 +69,8 @@ export function IdentityHeader({
   memberSinceLabel,
   earnedBadges,
   portfolioUrls,
-  videoUploading,
-  handleVideoUpload,
+  videoUploading: _videoUploading,
+  handleVideoUpload: _handleVideoUpload,
   setQrOpen,
 }: IdentityHeaderProps) {
   // Crew/Team/Enterprise badge for a business member — see the note at the
@@ -86,12 +82,10 @@ export function IdentityHeader({
   // established profile.
   const [showcaseOpen, setShowcaseOpen] = useState(false);
   // Intro-video state — tracks the fullscreen preview open state.
-  const [videoOpen, setVideoOpen] = useState(false);
   // Fee % for legacy job rows without a per-job helper_fee_percent —
   // tier-derived so the trend chart's "earned" agrees with the other
   // earnings surfaces (analytics/work-record/Earnings tab).
   const feeFallbackPercent = tierFeePercent(tier, profile?.subscription_expires_at ?? null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <>
@@ -485,116 +479,6 @@ export function IdentityHeader({
           </Suspense>
         )}
 
-
-        {/* ── Intro video ─────────────────────────────────────────────
-            Own-profile only. If no video, a dashed-border CTA nudges
-            the user to record or upload. If a video exists, a compact
-            row with a play button and "Re-record" link renders instead.
-            The actual video modal lives in the overlay below. */}
-        <div className="mt-3.5 pt-3.5" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-          {profile?.intro_video_url ? (
-            // Video exists — compact play row
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setVideoOpen(true)}
-                aria-label="Play intro video"
-                className="relative w-14 h-14 rounded-2xl overflow-hidden shrink-0 active:scale-95 transition-transform"
-                style={{ background: "hsl(var(--ink-deep))" }}
-              >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Play className="w-5 h-5 fill-white text-white" />
-                </div>
-              </button>
-              <div className="flex-1 min-w-0">
-                <p className="text-ds-13 font-semibold leading-tight" style={{ color: "hsl(var(--ink-deep))" }}>
-                  Intro video
-                  {(profile as any).intro_video_duration_seconds != null && (
-                    <span className="ml-2 text-ds-10 font-medium text-muted-foreground">
-                      {formatVideoDuration((profile as any).intro_video_duration_seconds)}
-                    </span>
-                  )}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => videoInputRef.current?.click()}
-                  className="mt-0.5 text-ds-11 font-semibold active:opacity-70"
-                  style={{ color: "hsl(var(--burnt-sienna))" }}
-                >
-                  Re-record or replace
-                </button>
-              </div>
-            </div>
-          ) : (
-            // No video — compact single-row dashed CTA. Headline + button
-            // sit side-by-side; the "2× more hires" subtitle is dropped to
-            // halve the card height (it was the largest profile-screen
-            // element on first paint).
-            <div
-              className="rounded-2xl flex items-center gap-3 p-3"
-              style={{
-                border: "1.5px dashed hsl(var(--olivewood) / 0.30)",
-                background: "hsl(var(--parchment) / 0.4)",
-              }}
-            >
-              <div
-                className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center"
-                style={{ background: "hsl(var(--burnt-sienna) / 0.10)" }}
-              >
-                <Video className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
-              </div>
-              <p
-                className="flex-1 min-w-0 font-semibold text-ds-13 leading-tight"
-                style={{ color: "hsl(var(--ink-deep))" }}
-              >
-                {/* At 375px the icon (32) + Upload button (87) + gaps and
-                    padding leave this column just 131px, which broke
-                    "Record a 60-second intro video" mid-word as "Record a 60-"
-                    / "second intro video". A non-breaking hyphen alone only
-                    made it worse (three lines), so the copy is shorter too:
-                    the video glyph beside it already says "video", making that
-                    word redundant. Two lines, both breaking at real word
-                    boundaries. */}
-                Record a 60&#8209;second intro
-              </p>
-              <Button
-                type="button"
-                variant="bark"
-                size="sm"
-                onClick={() => videoInputRef.current?.click()}
-                disabled={videoUploading}
-                className="shrink-0"
-              >
-                {videoUploading ? "Uploading…" : "Upload"}
-              </Button>
-            </div>
-          )}
-          {/* Hidden file input — shared by the CTA and the "Re-record" link. */}
-          <input
-            ref={videoInputRef}
-            type="file"
-            accept="video/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleVideoUpload(file);
-              e.target.value = "";
-            }}
-          />
-        </div>
-
-        {/* ── Intro video fullscreen overlay ──────────────────────────
-            Only mounts when the user has a video and taps the thumbnail. */}
-        {videoOpen && profile?.intro_video_url && (
-          <IntroVideoOverlay url={profile.intro_video_url} onClose={() => setVideoOpen(false)} />
-        )}
-
-        {/* Your skills — the helper adds/manages skills on their own
-            profile; endorsement counts are shown inline. Only rendered
-            when a user_id is known (i.e. a real signed-in account row). */}
-        {profile?.user_id && (
-          <SkillsManager userId={profile.user_id} />
-        )}
 
         {/* Work & reviews — collapsed into one disclosure so the header
             stays short. Renders only when there's something to show, OR

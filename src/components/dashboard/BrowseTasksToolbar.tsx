@@ -1,5 +1,4 @@
 import { startTransition, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Clock, MapPin, Search, SlidersHorizontal, X, List, Map as MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SavedSearches } from "@/components/SavedSearches";
@@ -39,7 +38,6 @@ export function BrowseTasksToolbar({
   hideViewToggle = false,
   onClearAllFilters,
 }: BrowseTasksToolbarProps) {
-  const reducedMotion = useReducedMotion();
   // Recent searches dropdown — shown only when the search input is
   // focused AND empty AND we have history to show. We snapshot the list
   // when the input opens, and refresh after each push so the dropdown
@@ -150,71 +148,81 @@ export function BrowseTasksToolbar({
 
   return (
     <>
-      {/* Header row — always shown. Even on a quiet, unfiltered board the
-          search + saved-searches + category filters stay available so a
-          helper can hunt for work (or set up a saved search to be pinged)
-          rather than just staring at an empty feed. */}
+      {/* Header row — title in normal mode; inline search input in search mode. */}
       <div
-        className="shrink-0 flex items-center justify-between px-4 py-3"
-        style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
+        className="shrink-0 flex items-center gap-3 px-4"
+        style={{ minHeight: "52px", borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
       >
-        <div className="flex flex-col leading-none">
-          {/* Only the FILTERED state survives here. "Fresh today" was a plain
-              eyebrow — "Browse jobs" sits directly below and says it, and it
-              over-claimed anyway, since the feed is every open job rather than
-              only today's. "Filtered · N active" is not a label though: it's
-              state feedback you can't get anywhere else on this row, so it
-              stays and simply renders nothing when no filter is on. */}
-          {filters.hasFilters && (
-            <span
-              className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
+        {filters.searchOpen ? (
+          /* Search mode — input replaces the title row inline (iOS pattern). */
+          <>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                autoFocus
+                type="search"
+                aria-label="Search jobs"
+                placeholder="Search jobs…"
+                enterKeyHint="search"
+                inputMode="search"
+                autoComplete="off"
+                value={filters.searchQuery}
+                onChange={(e) => filters.setSearchQuery(e.target.value)}
+                onFocus={() => {
+                  setSearchFocused(true);
+                  setRecentSearches(getRecentSearches());
+                }}
+                onBlur={() => window.setTimeout(() => setSearchFocused(false), 150)}
+                className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+              />
+              {filters.searchQuery && (
+                <button
+                  onClick={() => filters.setSearchQuery("")}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => { filters.setSearchOpen(false); filters.setSearchQuery(""); }}
+              className="shrink-0 text-ds-13 font-medium btn-press py-2"
+              style={{ color: "hsl(var(--bark))" }}
             >
-              {`Filtered · ${filters.activeFilterCount} active`}
-            </span>
-          )}
-          {/* h1, not h2: this is the primary heading of the surfaces that
-              render this toolbar (/browse guest board and /dashboard). Neither
-              page renders any other h1, so demoting this to h2 left both with
-              zero h1 and a broken heading order. */}
-          <h1
-            className="font-display italic font-bold leading-tight mt-2"
-            style={{
-              fontSize: "1.25rem",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.018em",
-            }}
-          >
-            {/* Sentence case, matching the /jobs public board's "Browse jobs"
-                h1 — the same feature must not read "Browse Jobs" on one
-                surface and "Browse jobs" on the other. */}
-            {filters.hasFilters ? "Filtered results" : "Browse jobs"}
-          </h1>
-          {/* No "N jobs" count line under the title: the feed directly
-              below IS the count, and the empty state already says
-              "Nothing nearby just yet" far more clearly. Matches the
-              /jobs public board, which dropped the same line. */}
-        </div>
-        <div className="flex items-center gap-1">
-              {/* Clear-all lives with the filter/chip rows below, not here —
-                  crowding it into the icon cluster forced the title to wrap
-                  and pushed the filter button off-screen on narrow phones. */}
-
-              {/* List ⇄ Map toggle — single icon button living in the
-                  toolbar cluster beside saved-search / search / filter.
-                  List is the default; tapping swaps to the map and back.
-                  Always available (the map shows the live Louisiana board
-                  even when 0 jobs are nearby). Hidden on the desktop web,
-                  where the feed and map already render side by side. */}
+              Cancel
+            </button>
+          </>
+        ) : (
+          /* Normal mode — title + action buttons. */
+          <>
+            <div className="flex flex-col leading-none flex-1 min-w-0 py-2.5">
+              {filters.hasFilters && (
+                <span
+                  className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
+                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                >
+                  {`Filtered · ${filters.activeFilterCount} active`}
+                </span>
+              )}
+              <h1
+                className="font-display italic font-bold leading-tight"
+                style={{
+                  fontSize: "1.25rem",
+                  color: "hsl(var(--ink-deep))",
+                  letterSpacing: "-0.018em",
+                  marginTop: filters.hasFilters ? "0.25rem" : 0,
+                }}
+              >
+                {filters.hasFilters ? "Filtered results" : "Browse jobs"}
+              </h1>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
               {!hideViewToggle && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  // Mark the view swap as a transition — switching to map lazy-
-                  // loads the leaflet chunk, and a slow fetch would otherwise
-                  // block this tap from feeling responsive. startTransition lets
-                  // React keep the current view interactive (and its Suspense
-                  // fallback in place) while the map commits non-urgently.
                   onClick={() => startTransition(() => setView(view === "map" ? "list" : "map"))}
                   className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${view === "map" ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
                   aria-label={view === "map" ? "Show list view" : "Show map view"}
@@ -244,9 +252,8 @@ export function BrowseTasksToolbar({
                 variant="ghost"
                 size="icon"
                 onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
-                className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.searchOpen || filters.searchQuery ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
+                className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.searchQuery ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
                 aria-label="Search jobs"
-                aria-expanded={filters.searchOpen}
               >
                 <Search className="w-5 h-5" />
               </Button>
@@ -265,14 +272,91 @@ export function BrowseTasksToolbar({
                   </span>
                 )}
               </Button>
-        </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* One-tap category picker row. Hidden in the default state —
-          appears only once the user has picked a category via the filter
-          sheet, then expands to the full picker so they can switch or
-          clear with a single tap. Keeps the unfiltered Browse board
-          uncluttered while preserving the in-context switch affordance. */}
+      {/* Search suggestions — shown below the inline search bar when
+          the input is focused and the query is empty. */}
+      {filters.searchOpen && showSearchDropdown && (
+        <div
+          className="border-b border-border/30"
+          role="listbox"
+          aria-label="Search suggestions"
+        >
+          {recentSearches.length > 0 && (
+            <>
+              <div className="flex items-center justify-between px-4 py-1.5 border-b border-border/30">
+                <span
+                  className="font-serif italic tracking-[0.14em] uppercase text-ds-9"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  Recent
+                </span>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    clearRecentSearches();
+                    setRecentSearches([]);
+                  }}
+                  className="text-ds-10 text-muted-foreground hover:text-destructive btn-press"
+                >
+                  Clear
+                </button>
+              </div>
+              <ul>
+                {recentSearches.map((q) => (
+                  <li key={q}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={false}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        applySuggestion(q);
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-left text-ds-13 hover:bg-muted/50 btn-press"
+                    >
+                      <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span className="truncate">{q}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <div className="px-4 py-1.5 border-b border-border/30">
+            <span
+              className="font-serif italic tracking-[0.14em] uppercase text-ds-9"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+            >
+              Popular
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5 px-4 py-2.5">
+            {POPULAR_CATEGORIES.map((key) => (
+              <button
+                key={key}
+                type="button"
+                role="option"
+                aria-selected={false}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  applyPopularCategory(key);
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.08)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.18)] text-ds-11 font-medium hover:bg-[hsl(var(--bark)/0.14)] btn-press"
+              >
+                <CategoryIcon category={key} className="w-3 h-3 shrink-0" />
+                {categoryLabels[key]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* One-tap category picker row. */}
       {filters.selectedCategory && (
         <CategoryChipRow
           selectedCategory={filters.selectedCategory}
@@ -280,11 +364,7 @@ export function BrowseTasksToolbar({
         />
       )}
 
-      {/* Active-filter recap chip row — only when 3+ filters are
-          simultaneously active. With fewer, the input controls below
-          already say the same thing and a recap is redundant noise.
-          Each chip is wrapped in a SwipeableFilterChip so a horizontal
-          swipe-left removes that single filter with no confirm step. */}
+      {/* Active-filter recap chip row — only when 3+ filters are active. */}
       {showRecapRow && (
         <div className="flex flex-wrap gap-1.5 px-4 py-2 border-b border-border/30" aria-label="Active filters">
           {recapChips.map((chip) => (
@@ -305,129 +385,6 @@ export function BrowseTasksToolbar({
           ))}
         </div>
       )}
-
-      {/* Expandable search bar */}
-      <AnimatePresence>
-        {filters.searchOpen && (
-          <motion.div
-            initial={reducedMotion ? false : { height: 0, opacity: 0 }}
-            animate={reducedMotion ? {} : { height: "auto", opacity: 1 }}
-            exit={reducedMotion ? {} : { height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="overflow-hidden border-b border-border/30"
-          >
-            <div className="relative px-4 py-3">
-              <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="search"
-                aria-label="Search jobs"
-                placeholder="Search jobs…"
-                enterKeyHint="search"
-                inputMode="search"
-                autoComplete="off"
-                value={filters.searchQuery}
-                onChange={(e) => filters.setSearchQuery(e.target.value)}
-                onFocus={() => {
-                  setSearchFocused(true);
-                  // Re-read history on each focus so dropdowns reflect
-                  // anything pushed since last render.
-                  setRecentSearches(getRecentSearches());
-                }}
-                // 150ms delay so a tap on a dropdown row fires before
-                // the blur removes the dropdown from the DOM.
-                onBlur={() => window.setTimeout(() => setSearchFocused(false), 150)}
-                className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
-              />
-              {filters.searchQuery && (
-                <button onClick={() => filters.setSearchQuery("")} aria-label="Clear search" className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press">
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-              {showSearchDropdown && (
-                <div
-                  className="mx-3 mt-1 rounded-ds-md liquid-glass overflow-hidden"
-                  role="listbox"
-                  aria-label="Search suggestions"
-                >
-                  {recentSearches.length > 0 && (
-                    <>
-                      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/30">
-                        <span
-                          className="font-serif italic tracking-[0.14em] uppercase text-ds-9"
-                          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                        >
-                          Recent
-                        </span>
-                        <button
-                          type="button"
-                          // onMouseDown fires before the input's blur, so the
-                          // dropdown is still mounted when we update state.
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            clearRecentSearches();
-                            setRecentSearches([]);
-                          }}
-                          className="text-ds-10 text-muted-foreground hover:text-destructive btn-press"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                      <ul>
-                        {recentSearches.map((q) => (
-                          <li key={q}>
-                            <button
-                              type="button"
-                              role="option"
-                              aria-selected={false}
-                              // Beat the input blur so the dropdown
-                              // doesn't unmount before the click resolves.
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                applySuggestion(q);
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-left text-ds-13 hover:bg-muted/50 btn-press"
-                            >
-                              <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                              <span className="truncate">{q}</span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                  <div className="px-3 py-1.5 border-b border-border/30">
-                    <span
-                      className="font-serif italic tracking-[0.14em] uppercase text-ds-9"
-                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                    >
-                      Popular
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 px-3 py-2.5">
-                    {POPULAR_CATEGORIES.map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        role="option"
-                        aria-selected={false}
-                        // Beat the input blur (same reason as the recent rows).
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          applyPopularCategory(key);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.08)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.18)] text-ds-11 font-medium hover:bg-[hsl(var(--bark)/0.14)] btn-press"
-                      >
-                        <CategoryIcon category={key} className="w-3 h-3 shrink-0" />
-                        {categoryLabels[key]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Unified filter bottom sheet — the SlidersHorizontal button above
           toggles `filtersOpen`, which opens this sheet with all the filter

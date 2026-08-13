@@ -66,7 +66,7 @@ const DashboardHeader = ({ title, titleAs = "span", subtitle, onMenuClick, inPro
               )}
             </div>
           ) : (
-            <HelprMark to="/dashboard" size="md" hideEmblem />
+            <HelprMark to="/dashboard" size="sm" emblemOnly />
           )}
         </div>
         <div className="flex items-center gap-1.5 -mr-1">

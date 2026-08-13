@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { htmlEscape, sanitizeSameOriginLink, timingSafeEqual } from '../_shared/safe-strings.ts'
+import { brand } from '../_shared/email-templates/styles.ts'
 
 const SITE_NAME = "Helpr"
 const SENDER_DOMAIN = "louisianahelpr.com"
@@ -73,17 +74,17 @@ function renderNotificationEmail(title: string, message: string, link: string | 
   const safeRootDomain = htmlEscape(ROOT_DOMAIN)
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:0">
+<body style="background-color:${brand.surface};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:0">
 <div style="padding:32px 28px;max-width:480px;margin:0 auto">
   <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:20px;font-weight:bold;color:#23231A;margin:0 0 12px">${safeTitle}</h1>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 8px">Hey ${safeUser},</p>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">${safeMessage}</p>
-  <a href="${safeActionUrl}" style="display:inline-block;background-color:#5E6544;color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
+  <h1 style="font-size:20px;font-weight:bold;color:${brand.inkDeep};margin:0 0 12px">${safeTitle}</h1>
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 8px">Hey ${safeUser},</p>
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">${safeMessage}</p>
+  <a href="${safeActionUrl}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
     View Details
   </a>
-  <p style="font-size:14px;color:#2E2F22;margin:28px 0 4px">— ${safeFromName}</p>
-  <p style="font-size:12px;color:#6A6F5D;margin:24px 0 0;padding:16px 0 0;border-top:1px solid #E3E4DD">
+  <p style="font-size:14px;color:${brand.olivewood};margin:28px 0 4px">— ${safeFromName}</p>
+  <p style="font-size:12px;color:${brand.footerOlive};margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
     You're receiving this because you enabled email notifications on ${safeRootDomain}. Manage your preferences in your profile settings.
   </p>
 </div></body></html>`

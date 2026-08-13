@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
+import { brand } from '../_shared/email-templates/styles.ts'
 
 const SITE_NAME = "Helpr"
 const SENDER_DOMAIN = "louisianahelpr.com"
@@ -90,20 +91,20 @@ async function renderApprovedEmail(fullName: string, userId: string): Promise<{ 
   const greetingName = getGreetingName(fullName)
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
+<body style="background-color:${brand.surface};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
   <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:#23231A;margin:0 0 16px">You're approved.</h1>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">
+  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">You're approved.</h1>
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
     Hey ${greetingName},
   </p>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">
-    Great news — your account has been reviewed and <strong style="color:#984216">approved</strong>! You now have full access to the Helpr platform.
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
+    Great news — your account has been reviewed and <strong style="color:${brand.burntSienna}">approved</strong>! You now have full access to the Helpr platform.
   </p>
-  <a href="${ctaUrl}" style="display:inline-block;background-color:#5E6544;color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
+  <a href="${ctaUrl}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
     Log In Now
   </a>
-  <p style="font-size:13px;color:#5E5F4E;line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid #E3E4DD">
+  <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
     Welcome to the Helpr community! If you have any questions, don't hesitate to reach out to our support team.
   </p>
   <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />
@@ -122,20 +123,20 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
   const greetingName = getGreetingName(fullName)
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
+<body style="background-color:${brand.surface};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
   <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:#23231A;margin:0 0 16px">Verification Successful ✅</h1>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">
+  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">Verification Successful ✅</h1>
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
     Hey ${greetingName},
   </p>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">
-    Your identity has been <strong style="color:#984216">verified</strong> and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
+    Your identity has been <strong style="color:${brand.burntSienna}">verified</strong> and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.
   </p>
-  <a href="${ctaUrl}" style="display:inline-block;background-color:#5E6544;color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
+  <a href="${ctaUrl}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
     Go to Dashboard
   </a>
-  <p style="font-size:13px;color:#5E5F4E;line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid #E3E4DD">
+  <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
     Welcome in. You're set to post tasks and help neighbors across Louisiana.
   </p>
   <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />
@@ -153,29 +154,29 @@ async function renderDeniedEmail(fullName: string, userId: string, reason?: stri
   const pixelUrl = await trackingPixelUrl(userId, 'account_denied')
   const greetingName = getGreetingName(fullName)
   const reasonText = reason
-    ? `<p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px"><strong>Reason:</strong> ${reason}</p>`
+    ? `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px"><strong>Reason:</strong> ${reason}</p>`
     : ''
   const reasonPlain = reason ? `\nReason: ${reason}` : ''
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
+<body style="background-color:${brand.surface};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
   <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:#23231A;margin:0 0 16px">Account Update</h1>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">
+  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">Account Update</h1>
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
     Hey ${greetingName},
   </p>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
     We've reviewed your account application and unfortunately we're <strong>unable to approve it</strong> at this time.
   </p>
   ${reasonText}
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
     You can update your profile and resubmit for review:
   </p>
-  <a href="${ctaUrl}" style="display:inline-block;background-color:#5E6544;color:#ffffff;font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
+  <a href="${ctaUrl}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
     Update My Profile
   </a>
-  <p style="font-size:13px;color:#5E5F4E;line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid #E3E4DD">
+  <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
     If you believe this was a mistake, please contact our support team.
   </p>
   <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />

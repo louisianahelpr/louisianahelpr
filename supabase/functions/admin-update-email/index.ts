@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
+import { brand } from '../_shared/email-templates/styles.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -266,13 +267,13 @@ Deno.serve(async (req) => {
       const resendApiKey = Deno.env.get('RESEND_API_KEY')
       if (resendApiKey) {
         const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
+<body style="background-color:${brand.surface};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
   <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:#23231A;margin:0 0 16px">Your email address was changed</h1>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">An administrator updated the email address on your Helpr account from <strong>${oldEmail}</strong> to <strong>${normalizedEmail}</strong>.</p>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">Use <strong>${normalizedEmail}</strong> to log in going forward. If you did not authorise this change, contact us immediately at <a href="mailto:admin@louisianahelpr.com" style="color:#984216">admin@louisianahelpr.com</a>.</p>
-  <p style="font-size:13px;color:#5E5F4E;line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid #E3E4DD">Questions? Contact us at admin@louisianahelpr.com.</p>
+  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">Your email address was changed</h1>
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">An administrator updated the email address on your Helpr account from <strong>${oldEmail}</strong> to <strong>${normalizedEmail}</strong>.</p>
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Use <strong>${normalizedEmail}</strong> to log in going forward. If you did not authorise this change, contact us immediately at <a href="mailto:admin@louisianahelpr.com" style="color:${brand.burntSienna}">admin@louisianahelpr.com</a>.</p>
+  <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">Questions? Contact us at admin@louisianahelpr.com.</p>
 </div>
 </body></html>`
         const text = `Your Helpr account email was changed from ${oldEmail} to ${normalizedEmail} by an administrator. Use ${normalizedEmail} to log in going forward. If you did not authorise this change, contact admin@louisianahelpr.com immediately.`

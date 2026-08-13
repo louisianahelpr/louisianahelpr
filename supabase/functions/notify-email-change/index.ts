@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { brand } from '../_shared/email-templates/styles.ts'
 
 /**
  * notify-email-change — sends an "email address changed" notification to
@@ -73,14 +74,14 @@ serve(async (req) => {
     }
 
     const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
+<body style="background-color:${brand.surface};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
   <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:#23231A;margin:0 0 16px">Your email address was changed</h1>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">Someone signed in to your Helpr account and started changing your login email from <strong>${oldEmail}</strong> to <strong>${newEmail}</strong>. To finalize the change, the new address will need to confirm the request.</p>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px"><strong>Was this you?</strong> No action needed — the confirmation link was sent to your new address.</p>
-  <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px"><strong>Was this NOT you?</strong> Reset your password immediately and contact us at <a href="mailto:admin@louisianahelpr.com" style="color:#984216">admin@louisianahelpr.com</a>.</p>
-  <p style="font-size:13px;color:#5E5F4E;line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid #E3E4DD">Questions? Contact us at admin@louisianahelpr.com.</p>
+  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">Your email address was changed</h1>
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Someone signed in to your Helpr account and started changing your login email from <strong>${oldEmail}</strong> to <strong>${newEmail}</strong>. To finalize the change, the new address will need to confirm the request.</p>
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px"><strong>Was this you?</strong> No action needed — the confirmation link was sent to your new address.</p>
+  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px"><strong>Was this NOT you?</strong> Reset your password immediately and contact us at <a href="mailto:admin@louisianahelpr.com" style="color:${brand.burntSienna}">admin@louisianahelpr.com</a>.</p>
+  <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">Questions? Contact us at admin@louisianahelpr.com.</p>
 </div>
 </body></html>`;
     const text = `Your Helpr account email is being changed from ${oldEmail} to ${newEmail}. If this was NOT you, reset your password and contact admin@louisianahelpr.com immediately.`;

@@ -61,7 +61,7 @@ export function useSaveJob({ user, savedJobIds, setSavedJobIds }: UseSaveJobArgs
       return { previousSavedJobs, previousLocal };
     },
     onSuccess: (_data, { saved }) => {
-      toast.success(saved ? "Job saved!" : "Job removed from saved.");
+      toast.success(saved ? "Job saved" : "Job removed from saved");
     },
     onError: (_err, vars, context) => {
       if (context) {

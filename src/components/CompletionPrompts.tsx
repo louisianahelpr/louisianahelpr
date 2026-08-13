@@ -129,7 +129,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       else { hapticError(); toast.error("We couldn't submit your review — please try again."); }
     } else {
       hapticSuccess();
-      toast.success("Review submitted! Thanks for your feedback.");
+      toast.success("Review submitted — thanks for your feedback.");
 
       // Check for repeat low ratings → auto-flag
       const { data: allReviews, error: allReviewsErr } = await supabase.from("reviews").select("rating").eq("reviewee_id", revieweeId);

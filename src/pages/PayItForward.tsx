@@ -130,7 +130,7 @@ export default function PayItForward() {
         if (!data?.ok) throw new Error("Couldn't claim this gift. Please try again.");
 
         hapticSuccess();
-        toast.success(data.already_claimed ? "This gift card is already yours" : "Gift card claimed!", {
+        toast.success(data.already_claimed ? "This gift card is already yours" : "Gift card claimed", {
           description: data.already_claimed
             ? "Find it under “Gift cards sent to you” below."
             : "It's ready to put toward your next job.",

@@ -125,7 +125,7 @@ class ErrorBoundary extends React.Component<Props, State> {
             </p>
           </div>
           <Button
-            variant="bark"
+            variant="primary"
             onClick={this.handleReset}
             className="rounded-ds-md"
           >

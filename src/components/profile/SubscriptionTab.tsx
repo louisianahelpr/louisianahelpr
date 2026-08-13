@@ -489,7 +489,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                   )}
                   {!isActive && (
                     <Button
-                      variant={isPro ? "bark" : "outline"}
+                      variant={isPro ? "primary" : "outline"}
                       size="sm"
                       onClick={() =>
                         currentTier && !isExpired

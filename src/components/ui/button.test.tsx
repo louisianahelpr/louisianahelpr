@@ -56,12 +56,12 @@ describe("Button", () => {
       expect(className).toContain("active:scale-[0.97]");
     };
 
-    it("bark primary CTA gets all 4 treatments (gradient + highlight + 3-layer shadow + press)", () => {
-      render(<Button variant="bark">Sign in</Button>);
+    it("primary CTA gets all 4 treatments (gradient + highlight + 3-layer shadow + press)", () => {
+      render(<Button variant="primary">Sign in</Button>);
       const cls = screen.getByRole("button").className;
       expectFilledElevation(cls);
       // Bark shares the primary CTA gradient via the hand-written
-      // .btn-grad-primary CSS class (same as `default`/`hero`), so every
+      // .btn-grad-primary CSS class (same as `default`), so every
       // "Post a job"–family CTA reads identically. Asserting the class — not
       // an inline arbitrary gradient — keeps this in step with that unifying.
       expect(cls).toContain("btn-grad-primary");
@@ -114,16 +114,16 @@ describe("Button", () => {
       expect(cls).not.toContain("active:scale-[0.97]");
     });
 
-    it("hero (marketing primary CTA) gets all 4 treatments", () => {
-      render(<Button variant="hero">Get started</Button>);
+    it("primary + shimmer (marketing CTA) keeps all 4 treatments", () => {
+      render(<Button variant="primary" shimmer>Get started</Button>);
       const cls = screen.getByRole("button").className;
       expectFilledElevation(cls);
       // Same gradient delivery as `default` — via .btn-grad-primary, see above.
       expect(cls).toContain("btn-grad-primary");
     });
 
-    it("hero-outline gets outline-family elevation (shadow + press only)", () => {
-      render(<Button variant="hero-outline">Browse</Button>);
+    it("outline gets outline-family elevation (shadow + press only)", () => {
+      render(<Button variant="outline">Browse</Button>);
       const cls = screen.getByRole("button").className;
       expectOutlineElevation(cls);
       expect(cls).not.toContain("linear-gradient");

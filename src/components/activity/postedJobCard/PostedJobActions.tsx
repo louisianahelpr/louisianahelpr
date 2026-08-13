@@ -387,7 +387,7 @@ export function PostedJobActions({
                   to them (skipping the open-application queue). */}
               {job.helper_id ? (
                 <Button
-                  variant="bark"
+                  variant="primary"
                   size="sm"
                   className="w-full rounded-ds-md"
                   onClick={() => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`)}

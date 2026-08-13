@@ -472,7 +472,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
               <div className="flex-1" />
               {state.currentStep < steps.length - 1 ? (
                 <Button
-                  variant="bark"
+                  variant="primary"
                   size="sm"
                   onClick={() => handleGoToStep(currentStep.action)}
                   className="group rounded-ds-md"
@@ -481,7 +481,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
                 </Button>
               ) : (
                 <Button
-                  variant="bark"
+                  variant="primary"
                   size="sm"
                   onClick={handleNext}
                   className="rounded-ds-md"

@@ -223,7 +223,7 @@ const AutoTip = () => {
           )}
 
           <Button
-            variant="bark"
+            variant="primary"
             onClick={() => void save()}
             disabled={saving || !valueValid || !capValid}
             className="w-full rounded-ds-md"

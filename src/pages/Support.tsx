@@ -517,7 +517,7 @@ const Support = () => {
 
                 <Button
                   type="submit"
-                  variant="bark"
+                  variant="primary"
                   className="w-full h-12 rounded-2xl"
                   disabled={sending || identityPending || !isValid}
                 >

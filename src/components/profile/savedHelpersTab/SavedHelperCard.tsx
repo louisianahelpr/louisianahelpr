@@ -141,7 +141,7 @@ export function SavedHelperCard({
             </Button>
             <Button
               type="button"
-              variant="bark"
+              variant="primary"
               size="sm"
               onClick={() => void saveNote(h.helper_id)}
               disabled={savingNote}
@@ -179,7 +179,7 @@ export function SavedHelperCard({
 
       <div className="flex items-center gap-2">
         <Button
-          variant="bark"
+          variant="primary"
           size="sm"
           onClick={() => navigate(`/post-job?offerTo=${h.helper_id}`)}
           className="flex-1 rounded-ds-md"

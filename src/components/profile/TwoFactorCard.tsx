@@ -283,7 +283,7 @@ function EnrollDialog({
             Cancel
           </Button>
           <Button
-            variant="bark"
+            variant="primary"
             onClick={handleVerify}
             disabled={verifying || code.length !== 6 || !data}
             className="rounded-ds-md"

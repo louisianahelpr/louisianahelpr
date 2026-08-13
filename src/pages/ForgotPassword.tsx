@@ -138,7 +138,7 @@ const ForgotPassword = () => {
             </p>
             <div className="space-y-2">
               <Button
-                variant="bark"
+                variant="primary"
                 type="button"
                 className="w-full rounded-ds-md"
                 onClick={handleResend}
@@ -203,7 +203,7 @@ const ForgotPassword = () => {
                 )}
               </div>
               <Button
-                variant="bark"
+                variant="primary"
                 type="submit"
                 className="w-full rounded-ds-md"
                 size="lg"

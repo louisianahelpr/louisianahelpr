@@ -116,7 +116,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
               aria-label="Tip amount in dollars"
             />
             <Button
-              variant="bark"
+              variant="primary"
               className="h-12 px-5 rounded-ds-md"
               onClick={() => handleSend(amount ?? 0)}
               disabled={sending || amount === undefined || amount <= 0}

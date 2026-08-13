@@ -103,7 +103,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
             className="text-ds-13 mt-2"
           />
           <Button
-            variant="bark"
+            variant="primary"
             type="button"
             onClick={generate}
             disabled={loading}

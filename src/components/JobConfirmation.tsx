@@ -161,7 +161,7 @@ export function JobConfirmation({
 
         {!myConfirmed && (isOwner || isHelper) && (
           <Button
-            variant="bark"
+            variant="primary"
             size="sm"
             onClick={() => setShowConfirmDialog(true)}
             className="w-full rounded-ds-md"
@@ -224,7 +224,7 @@ export function JobConfirmation({
           <DialogFooter className="!gap-2">
             <Button variant="ghost" onClick={() => setShowConfirmDialog(false)} className="rounded-ds-md">Cancel</Button>
             <Button
-              variant="bark"
+              variant="primary"
               onClick={handleConfirm}
               disabled={confirming}
               className="rounded-ds-md"

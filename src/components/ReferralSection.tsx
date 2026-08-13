@@ -170,7 +170,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         </p>
         <div className="grid grid-cols-3 gap-2">
           <Button
-            variant="bark"
+            variant="primary"
             size="sm"
             className="h-11 rounded-ds-md"
             onClick={shareReferral}

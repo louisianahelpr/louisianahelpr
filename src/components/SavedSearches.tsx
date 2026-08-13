@@ -224,7 +224,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
               className="rounded-ds-md h-11 border-border/60 bg-background/80 focus-visible:bg-background focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15"
             />
             <Button
-              variant="bark"
+              variant="primary"
               onClick={handleSave}
               disabled={saving}
               className="h-11 w-11 p-0 rounded-ds-md shrink-0"
@@ -293,7 +293,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                 Tap retry — your saved searches are safe, this is just a fetch hiccup.
               </p>
               <Button
-                variant="bark"
+                variant="primary"
                 size="sm"
                 onClick={() => load()}
                 disabled={loading}

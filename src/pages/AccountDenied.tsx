@@ -90,7 +90,7 @@ const AccountDenied = () => {
 
         <div className="flex flex-col gap-3">
           <Button
-            variant="bark"
+            variant="primary"
             className="w-full rounded-ds-md"
             size="lg"
             onClick={async () => { await signOutWithPushCleanup(); navigate("/signup"); }}

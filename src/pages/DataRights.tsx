@@ -154,7 +154,7 @@ const DataRights = () => {
             <Button
               onClick={handleExport}
               disabled={exporting || !userId}
-              variant="bark"
+              variant="primary"
               size="sm"
               className="shrink-0"
             >

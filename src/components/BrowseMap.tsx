@@ -273,7 +273,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
                 rather than dead-ending the user. */}
             {emptyStateCta && (
               <Button
-                variant="bark"
+                variant="primary"
                 onClick={emptyStateCta.onClick}
                 className="rounded-ds-md mt-1"
               >

@@ -68,7 +68,7 @@ export function WalletCard({
         <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.8)" }}>
           Connect your payout account to see your live balance.
         </p>
-        <Button variant="bark" size="sm" className="w-full" onClick={onNavigatePayment}>Set up payouts</Button>
+        <Button variant="primary" size="sm" className="w-full" onClick={onNavigatePayment}>Set up payouts</Button>
       </div>
     );
   }

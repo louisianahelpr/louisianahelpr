@@ -174,7 +174,7 @@ const PetProfiles = () => {
               title="No pets yet"
               body="Add your pets' profiles so helpers know their needs."
               action={
-                <Button variant="bark" onClick={openAddMobile}>
+                <Button variant="primary" onClick={openAddMobile}>
                   <Plus className="w-4 h-4 mr-1" /> Add a pet
                 </Button>
               }
@@ -200,7 +200,7 @@ const PetProfiles = () => {
               standalone one too would surface two identical CTAs at once. */}
           {!!pets?.length && (
             <Button
-              variant="bark"
+              variant="primary"
               className="w-full"
               size="lg"
               onClick={openAddMobile}
@@ -266,7 +266,7 @@ const PetProfiles = () => {
                     title="No pets yet"
                     body="Add your first pet to get started."
                     action={
-                      <Button variant="bark" size="sm" onClick={openAddDesktop}>
+                      <Button variant="primary" size="sm" onClick={openAddDesktop}>
                         <Plus className="w-4 h-4 mr-1" /> Add a pet
                       </Button>
                     }
@@ -343,7 +343,7 @@ const PetProfiles = () => {
                   </p>
                   {!pets?.length && (
                     <Button
-                      variant="bark"
+                      variant="primary"
                       className="mt-4"
                       onClick={openAddDesktop}
                     >

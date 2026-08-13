@@ -125,7 +125,7 @@ export function ProUpgradeSheet({
             Maybe later
           </Button>
           <Button
-            variant="bark"
+            variant="primary"
             onClick={() => {
               onClose();
               navigate("/profile?tab=subscription");

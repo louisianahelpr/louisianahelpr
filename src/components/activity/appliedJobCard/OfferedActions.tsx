@@ -98,7 +98,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           <ThumbsDown className="w-4 h-4 mr-1" /> Decline
         </Button>
         <Button
-          variant="bark"
+          variant="primary"
           size="sm"
           className="flex-1 rounded-ds-md"
           disabled={respondingHelperAppId === app.id}

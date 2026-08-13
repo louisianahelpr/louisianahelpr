@@ -324,7 +324,7 @@ const Login = () => {
                 />
               </div>
               <Button
-                variant="bark"
+                variant="primary"
                 type="submit"
                 className="w-full rounded-ds-md"
                 size="lg"
@@ -444,7 +444,7 @@ const Login = () => {
             </div>
           </div>
           <Button
-            variant="bark"
+            variant="primary"
             type="submit"
             className="w-full rounded-ds-md"
             size="lg"

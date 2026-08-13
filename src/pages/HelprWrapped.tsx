@@ -425,7 +425,7 @@ const HelprWrapped = () => {
           {hasActivity && (
             <div className="px-5 pb-7 space-y-3">
               <Button
-                variant="hero"
+                variant="primary" shimmer
                 size="lg"
                 className="w-full squircle"
                 onClick={handleShare}

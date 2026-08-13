@@ -63,6 +63,20 @@ const buttonVariants = cva(
         // either — independent of variant token resolution.
         //
         // Depth: all 4 treatments (filled primary CTA).
+        //
+        // ONE primary button (C2). `default`, `bark` and `hero` were three
+        // names for the same thing: all three applied btn-grad-primary, the
+        // pinned cream text, GREEN_CTA_HOVER and ELEV_FILLED. `bark` added a
+        // border and re-declared Montserrat (already the global sans); `hero`
+        // added a shimmer sweep. Three names meant a reviewer could not tell
+        // from a diff whether a CTA had changed importance.
+        //
+        // `primary` is the name; `default` is kept as the cva fallback so a
+        // <Button> with no variant still works, and points at the same string.
+        primary:
+          "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] " +
+          GREEN_CTA_HOVER + " " +
+          ELEV_FILLED,
         default:
           "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] " +
           GREEN_CTA_HOVER + " " +
@@ -83,28 +97,6 @@ const buttonVariants = cva(
         // tertiary affordances and must not compete with filled CTAs.
         ghost: "hover:bg-secondary hover:text-secondary-foreground",
         link: "link-standard text-primary shadow-none",
-        // Hero is the marketing-page primary CTA — same family as bark/default,
-        // so it gets all 4 treatments (gradient + highlight + 2-layer shadow
-        // + active press), plus its existing shimmer sweep.
-        hero:
-          "relative overflow-hidden btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] text-base before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:ease-out " +
-          GREEN_CTA_HOVER + " " +
-          ELEV_FILLED,
-        // Hero-outline: outline family, shadow #1 only.
-        "hero-outline":
-          "relative border-2 border-primary/40 bg-background/60 backdrop-blur-md text-primary text-base hover:border-primary hover:bg-primary/5 " +
-          ELEV_OUTLINE,
-        // Bark CTA (auth-screen "Sign in" / "Send reset link"). Same
-        // cascade-loss defense as `default`: pin cream text with `!text-[...]`
-        // + descendant `[&_*]` so it never renders dark-on-olive in the
-        // WebView.
-        //
-        // Depth: all 4 treatments — this is THE primary CTA the TestFlight
-        // feedback flagged as flat.
-        bark:
-          "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] border border-[hsl(66_24%_20%)] [font-family:Montserrat,system-ui,sans-serif] font-semibold tracking-[0.01em] " +
-          GREEN_CTA_HOVER + " " +
-          ELEV_FILLED,
       },
       size: {
         default: "h-14 px-6 py-2 text-ds-16",
@@ -134,12 +126,26 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  /** Marketing shimmer sweep — the only thing the old `hero` variant added
+   *  over the primary CTA. A prop rather than a variant, so "is this the
+   *  primary action?" and "does it sparkle?" stay separate questions. */
+  shimmer?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, shimmer = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+    const SHIMMER =
+      "relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r " +
+      "before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full " +
+      "hover:before:translate-x-full before:transition-transform before:duration-700 before:ease-out";
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }), shimmer && SHIMMER)}
+        ref={ref}
+        {...props}
+      />
+    );
   },
 );
 Button.displayName = "Button";

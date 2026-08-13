@@ -522,7 +522,7 @@ export function ApplicantsPanel({
                           {app.status === "pending" && (
                             <div className="flex items-center gap-1.5 shrink-0">
                               <Button
-                                variant="bark"
+                                variant="primary"
                                 size="sm"
                                 className="rounded-ds-md btn-press"
                                 aria-label={`Select ${helperName}`}

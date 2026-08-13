@@ -297,7 +297,7 @@ const AdminIDVQueue = () => {
                     <>
                       <Button
                         size="sm"
-                        variant="bark"
+                        variant="primary"
                         onClick={() => setConfirmAction({ profile: p, action: "approve" })}
                         disabled={actioning === p.user_id}
                       >

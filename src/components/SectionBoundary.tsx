@@ -124,7 +124,7 @@ class SectionErrorBoundary extends React.Component<
             </p>
             <div className="mt-3">
               <Button
-                variant="bark"
+                variant="primary"
                 size="sm"
                 onClick={this.handleReset}
                 className="rounded-ds-md h-8 text-ds-13"

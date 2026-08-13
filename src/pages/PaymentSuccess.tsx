@@ -257,7 +257,7 @@ const PaymentSuccess = () => {
           {/* Primary CTA — View applicants. Most actionable next step for
               the poster who just finished paying. */}
           <Button
-            variant="bark"
+            variant="primary"
             size="lg"
             onClick={handleViewApplicants}
             className="w-full rounded-ds-md"

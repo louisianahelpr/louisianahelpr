@@ -354,7 +354,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
               No thanks
             </Button>
             <Button
-              variant="bark"
+              variant="primary"
               onClick={() => { setTipPromptOpen(false); setTipDialogOpen(true); }}
               className="rounded-ds-md"
             >

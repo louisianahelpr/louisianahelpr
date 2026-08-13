@@ -115,7 +115,7 @@ const AccountBanned = () => {
               session so support gets the account without them typing it. */}
           <Link to="/support?topic=message&subject=Account%20suspension%20appeal">
             <Button
-              variant="bark"
+              variant="primary"
               className="w-full rounded-ds-md"
               size="lg"
             >

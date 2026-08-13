@@ -516,7 +516,7 @@ export function CheckoutStep({
       {/* Action Buttons */}
       <div className="space-y-3">
         <Button
-          variant="bark"
+          variant="primary"
           className="w-full rounded-ds-md"
           size="lg"
           onClick={onSubmit}

@@ -232,7 +232,7 @@ export function FormStep({ form }: FormStepProps) {
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
         >
           <Button
-            variant="bark"
+            variant="primary"
             type="submit"
             className="w-full rounded-ds-md"
             size="lg"

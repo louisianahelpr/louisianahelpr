@@ -211,7 +211,7 @@ export function IDVPromptDialog({
           </Button>
           {!isPending && !isAdminReview && (
             <Button
-              variant="bark"
+              variant="primary"
               onClick={handleStart}
               disabled={loading}
               className="rounded-ds-md h-11"

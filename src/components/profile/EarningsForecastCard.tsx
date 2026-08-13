@@ -206,7 +206,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
           Pick up a job before Sunday and we'll project your earnings here.
         </p>
         <Button
-          variant="bark"
+          variant="primary"
           size="sm"
           className="w-full gap-1.5"
           onClick={() => navigate("/dashboard")}

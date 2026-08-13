@@ -92,7 +92,7 @@ const NotFound = () => {
             </Button>
             <Button
               asChild
-              variant="bark"
+              variant="primary"
               className="rounded-ds-md"
             >
               <Link to="/">

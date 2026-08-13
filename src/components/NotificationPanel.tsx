@@ -353,7 +353,7 @@ const NotificationPanel = () => {
               )}
               {filter === "all" && pushSupported && !pushEnabled && (
                 <Button
-                  variant="bark"
+                  variant="primary"
                   onClick={enablePush}
                   className="rounded-ds-md mt-1"
                 >

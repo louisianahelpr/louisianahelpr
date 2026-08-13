@@ -197,7 +197,7 @@ const PublicLayout = ({
               {user ? (
                 <Button
                   asChild
-                  variant="bark"
+                  variant="primary"
                   size="lg"
                   className="group rounded-2xl px-8 w-full sm:w-auto"
                 >
@@ -210,7 +210,7 @@ const PublicLayout = ({
                 <>
                   <Button
                     asChild
-                    variant="bark"
+                    variant="primary"
                     size="lg"
                     className="group rounded-2xl px-8 w-full sm:w-auto"
                   >

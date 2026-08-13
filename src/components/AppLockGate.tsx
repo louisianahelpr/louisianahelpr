@@ -206,7 +206,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
 
         {/* Lower third — the single action. */}
         <div className="flex flex-1 flex-col items-center justify-start pt-2">
-          <Button variant="bark" onClick={() => void attemptUnlock()} disabled={checking}>
+          <Button variant="primary" onClick={() => void attemptUnlock()} disabled={checking}>
             {checking ? "Unlocking…" : "Unlock"}
           </Button>
         </div>

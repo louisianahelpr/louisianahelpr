@@ -316,7 +316,7 @@ export function SignupStep2(props: SignupStep2Props) {
           arrow, and two arrows on one screen is ambiguous. */}
       <div className="flex gap-3">
         <Button
-          variant="bark"
+          variant="primary"
           className="flex-1 rounded-ds-md"
           size="lg"
           onClick={onContinue}

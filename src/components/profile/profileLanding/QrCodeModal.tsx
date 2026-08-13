@@ -47,7 +47,7 @@ export function QrCodeModal({ profile, qrOpen, setQrOpen, qrDataUrl }: QrCodeMod
           </p>
           <Button
             type="button"
-            variant="bark"
+            variant="primary"
             onClick={async () => {
               if (!profile?.user_id) return;
               await shareNative({

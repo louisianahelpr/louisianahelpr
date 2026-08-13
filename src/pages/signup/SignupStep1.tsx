@@ -356,7 +356,7 @@ export function SignupStep1({
       </div>
 
       <Button
-        variant="bark"
+        variant="primary"
         className="w-full rounded-ds-md"
         size="lg"
         onClick={handleContinue}

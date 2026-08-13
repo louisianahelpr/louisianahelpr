@@ -221,7 +221,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
               Maybe later
             </Button>
             <Button
-              variant="bark"
+              variant="primary"
               onClick={handleSend}
               disabled={submitting || score === null}
               className="px-6"

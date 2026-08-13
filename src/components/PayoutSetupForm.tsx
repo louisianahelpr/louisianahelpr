@@ -300,7 +300,7 @@ export function PayoutSetupForm() {
       {!isFullyOnboarded && (
         <>
           <Button
-            variant="bark"
+            variant="primary"
             onClick={handleOnboard}
             disabled={onboarding}
             className="w-full rounded-ds-md"

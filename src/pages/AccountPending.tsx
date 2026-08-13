@@ -329,7 +329,7 @@ const AccountPending = () => {
             {/* Action area */}
             <div className="shrink-0 flex flex-col gap-2.5">
               <Button
-                variant="bark"
+                variant="primary"
                 onClick={() => navigate("/dashboard")}
                 size="lg"
                 className="w-full gap-2 rounded-2xl"

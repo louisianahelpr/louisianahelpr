@@ -364,7 +364,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                       <Search className="w-3.5 h-3.5 mr-1.5" /> Browse open jobs
                     </Button>
                     <Button
-                      variant="bark"
+                      variant="primary"
                       size="sm"
                       className="rounded-ds-md"
                       onClick={() => navigate("/post-job")}

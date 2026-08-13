@@ -129,7 +129,7 @@ export function BackgroundCheckCard({ status }: { status: string }) {
         </p>
       )}
       <Button
-        variant="bark"
+        variant="primary"
         size="lg"
         className="w-full"
         disabled={loading}

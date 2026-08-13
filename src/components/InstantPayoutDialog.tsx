@@ -170,7 +170,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             Cancel
           </Button>
           <Button
-            variant="bark"
+            variant="primary"
             onClick={handleConfirm}
             disabled={!quote || processing || !!error}
             className="gap-2 rounded-ds-md"

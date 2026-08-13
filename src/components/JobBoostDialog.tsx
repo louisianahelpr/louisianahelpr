@@ -162,7 +162,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
         <DialogFooter className="!gap-2">
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md">Cancel</Button>
           <Button
-            variant="bark"
+            variant="primary"
             onClick={handleBoost}
             disabled={boosting}
             className="rounded-ds-md"

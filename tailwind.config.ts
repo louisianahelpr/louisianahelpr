@@ -103,6 +103,10 @@ export default {
         "ds-sm": "8px",
         "ds-md": "14px",
         "ds-lg": "20px",
+        // Avatar squircle. Repeated as a rounded-[26px] literal in nine places
+        // — a deliberate, good radius that sits between ds-lg and ds-pill, so
+        // it earns a name rather than being restated (D3).
+        "ds-avatar": "26px",
         "ds-pill": "28px",
       },
       fontSize: {

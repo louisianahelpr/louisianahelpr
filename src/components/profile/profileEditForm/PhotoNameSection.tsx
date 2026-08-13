@@ -32,7 +32,7 @@ export function PhotoNameSection({
             Upload trigger moved to a small floating chip at the bottom-
             right of the avatar so the user always sees their photo. */}
         <div className="relative shrink-0">
-          {/* Squircle (rounded-[26px]) to match the avatar on the
+          {/* Squircle (rounded-ds-avatar) to match the avatar on the
               Profile landing hero exactly — both use the same 26px
               curve so the avatar reads identically across pages. */}
           {profile?.avatar_url && !avatarBroken ? (
@@ -41,11 +41,11 @@ export function PhotoNameSection({
               decoding="async"
               src={profile.avatar_url}
               alt=""
-              className="w-20 h-20 rounded-[26px] squircle object-cover border-2 border-primary/20"
+              className="w-20 h-20 rounded-ds-avatar squircle object-cover border-2 border-primary/20"
               onError={() => setAvatarBroken(true)}
             />
           ) : (
-            <div className="w-20 h-20 rounded-[26px] squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold border-2 border-primary/20">
+            <div className="w-20 h-20 rounded-ds-avatar squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold border-2 border-primary/20">
               {initials}
             </div>
           )}

@@ -253,7 +253,7 @@ export function ChatTimeline({
                 <p
                   className="font-sans uppercase tracking-wider mt-0.5"
                   style={{
-                    fontSize: "8.5px",
+                    fontSize: "9px",
                     letterSpacing: "0.12em",
                     color: "hsl(var(--olivewood) / 0.8)",
                   }}

@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
  *   `--ink-deep` so it stays legible on every variant.
  * - `size` accepts a number (pixels) or a Tailwind class string. The
  *   internal `Avatar` defaults to `h-10 w-10` — pass `className` to
- *   override sizing or radius (e.g. `rounded-[26px] squircle`).
+ *   override sizing or radius (e.g. `rounded-ds-avatar squircle`).
  * - When the underlying photo URL is a Supabase public-storage URL,
  *   we route it through `transformedImageUrl` at the requested pixel
  *   size to avoid loading multi-MB originals into a 44px circle.

@@ -119,7 +119,7 @@ export function IdentityHeader({
               onClick={() => onSelectTab("profile")}
               aria-label={hasPhoto ? "Edit profile" : "Add a profile photo"}
               className={cn(
-                "w-[88px] h-[88px] rounded-[26px] squircle flex items-center justify-center text-ds-24 font-display italic font-bold overflow-hidden active:scale-[0.98] transition-transform",
+                "w-[88px] h-[88px] rounded-ds-avatar squircle flex items-center justify-center text-ds-24 font-display italic font-bold overflow-hidden active:scale-[0.98] transition-transform",
                 // When a real photo is present the gradient is hidden by
                 // the `<img>` overlay; when it isn't, the warm hashed
                 // gradient replaces the old flat `bg-primary/10` so each

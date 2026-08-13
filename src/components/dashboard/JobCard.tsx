@@ -336,7 +336,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 />
                 <span
                   className="font-sans font-bold uppercase not-italic"
-                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.07em", fontSize: "8.5px" }}
+                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.07em", fontSize: "9px" }}
                 >
                   New
                 </span>

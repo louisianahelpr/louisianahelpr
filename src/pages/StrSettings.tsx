@@ -14,7 +14,6 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import PageHeader from "@/components/PageHeader";
-import NotificationPanel from "@/components/NotificationPanel";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -193,8 +192,6 @@ export default function StrSettings() {
         meta="Auto-post cleaning jobs on guest checkout"
         // Mirrors the body ladder below, gutters included.
         width="lg-2xl-5xl-6xl"
-        showBrand
-        rightSlot={<NotificationPanel />}
       />
 
       <div className="max-w-lg md:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 md:px-6 lg:px-8 mt-2 pb-8">

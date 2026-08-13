@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
-import NotificationPanel from "@/components/NotificationPanel";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface BenefitItem {
@@ -124,8 +123,6 @@ export default function BenefitsPage() {
         eyebrow="Built for Helprs, by Helprs"
         meta="Partner perks curated for Louisiana Helpr members — health coverage, financial tools, and supply discounts to help you earn more and keep more."
         onBack={() => navigate("/profile")}
-        showBrand
-        rightSlot={<NotificationPanel />}
         // Mirrors the body container below (max-w-5xl, px-4 → lg:px-8 → xl:px-12).
         width="5xl-p4"
       />

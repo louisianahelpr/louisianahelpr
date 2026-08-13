@@ -5,7 +5,6 @@ import { Eye, Star, Target, Clock, Repeat } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
-import NotificationPanel from "@/components/NotificationPanel";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchAnalytics, type Analytics } from "./helperAnalytics/fetchAnalytics";
@@ -209,8 +208,6 @@ const HelperAnalytics = () => {
         // far left of its own content. `container-lg-5xl-6xl` is the token
         // authored for exactly this nested geometry (see PageHeader.tsx).
         width="container-lg-5xl-6xl"
-        showBrand
-        rightSlot={<NotificationPanel />}
       />
 
       <div className="container mx-auto px-5 py-6">

@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { Gift, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
-import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -311,8 +310,6 @@ const HelprWrapped = () => {
         // to `default` (max-w-5xl→90rem) — that left the H1 stranded hundreds
         // of px to the left of the card on desktop.
         width="lg"
-        showBrand
-        rightSlot={<NotificationPanel />}
       />
 
       <div className="px-5 py-6 flex flex-col items-center">

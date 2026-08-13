@@ -29,7 +29,6 @@ import { STRIPE_PCT, STRIPE_FLAT_CENTS } from "@/lib/stripeFees";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
 import PageHeader from "@/components/PageHeader";
-import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -315,8 +314,6 @@ export default function PayItForward() {
         title="Gift Card"
         meta="Send someone you know a Helpr gift card"
         onBack={() => navigate(-1)}
-        showBrand
-        rightSlot={<NotificationPanel />}
         // Mirrors the body ladder below (max-w-2xl → lg:5xl → xl:7xl).
         width="2xl-5xl-7xl"
       />

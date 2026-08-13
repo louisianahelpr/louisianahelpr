@@ -13,7 +13,6 @@ import {
   Award,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import NotificationPanel from "@/components/NotificationPanel";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
@@ -216,8 +215,6 @@ const WorkRecord = () => {
         title="Work Record"
         eyebrow="Employment & Earnings"
         onBack={() => navigate("/profile")}
-        showBrand
-        rightSlot={<NotificationPanel />}
         // Mirrors the body container below (max-w-5xl, px-4 → lg:px-8 → xl:px-12).
         width="5xl-p4"
       />

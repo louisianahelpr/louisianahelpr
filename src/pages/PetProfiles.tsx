@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import PageHeader from "@/components/PageHeader";
-import NotificationPanel from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -142,7 +141,6 @@ const PetProfiles = () => {
       <PageHeader
         title="My Pets"
         onBack={() => navigate("/profile")}
-        rightSlot={<NotificationPanel />}
         // Mirrors the body ladder below (max-w-lg → lg:5xl → xl:6xl, px-5 → lg:px-8).
         width="lg-5xl-6xl"
       />

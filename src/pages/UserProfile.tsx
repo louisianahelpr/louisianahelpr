@@ -168,7 +168,6 @@ const UserProfile = () => {
     return wrap(
       <>
         <PageHeader
-          showBrand
           width="container-lg-5xl-6xl"
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
@@ -201,7 +200,6 @@ const UserProfile = () => {
     return wrap(
       <>
         <PageHeader
-          showBrand
           width="container-lg-5xl-6xl"
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
@@ -221,7 +219,6 @@ const UserProfile = () => {
     return wrap(
       <>
         <PageHeader
-          showBrand
           width="container-lg-5xl-6xl"
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
@@ -294,7 +291,6 @@ const UserProfile = () => {
   return wrap(
     <>
       <PageHeader
-        showBrand
         // Same width in EVERY state (loading / error / empty / loaded): this
         // used to be "5xl" while loading and "lg" once data landed, so the
         // title jumped hundreds of pixels the moment the query resolved. The

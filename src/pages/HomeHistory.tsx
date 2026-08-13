@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, DollarSign, Calendar, Home } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import NotificationPanel from "@/components/NotificationPanel";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
@@ -106,8 +105,6 @@ const HomeHistory = () => {
         title="Home History"
         eyebrow="Your maintenance record"
         onBack={() => navigate("/profile")}
-        showBrand
-        rightSlot={<NotificationPanel />}
         // Mirrors the body container below (max-w-5xl, px-4 → lg:px-8 → xl:px-12).
         // Without it the header defaulted to a 90rem container and the title sat
         // outside the 5xl column it heads.

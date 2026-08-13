@@ -19,7 +19,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Download, ShieldOff, Loader2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import NotificationPanel from "@/components/NotificationPanel";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticError } from "@/lib/haptics";
@@ -114,8 +113,6 @@ const DataRights = () => {
         title="Your Data Rights"
         meta="Export, correct, or delete your information at any time"
         onBack={() => navigate("/profile")}
-        showBrand
-        rightSlot={<NotificationPanel />}
       />
       {/* Full page width (matching every other page) — a narrower column here
           left dead gutters, which the project treats as a failed layout. The

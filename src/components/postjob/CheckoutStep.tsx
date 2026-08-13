@@ -336,15 +336,45 @@ export function CheckoutStep({
               <span className="font-medium text-foreground">${formatPrice(onboardingFeeAmount)}</span>
             </div>
           )}
-          <div className="flex justify-between text-ds-13">
-            <span className="text-muted-foreground">Sales tax</span>
-            <span className="font-medium text-muted-foreground italic">Calculated at checkout</span>
-          </div>
-          <div className="h-px bg-border" />
-          <div className="flex justify-between">
-            <span className="font-semibold text-foreground">Estimated total (excl. tax)</span>
-            <span className="text-ds-20 font-bold text-foreground">${formatPrice(totalCharge)}</span>
-          </div>
+          {/* Sales tax — stated as a range, not deferred.
+          
+              This row used to read "Calculated at checkout" and the total
+              below it "Estimated total (excl. tax)", so the biggest number on
+              the screen excluded roughly a tenth of what the poster would
+              actually be charged. On a $200 job that is about $20 they find
+              out about on Stripe's page — and surprise at the payment step is
+              the most common cause of checkout abandonment there is.
+          
+              A precise figure would need the parish rate, and the form only
+              collects a free-text address, so inventing one would be false
+              precision. Louisiana state plus parish runs roughly 9-11%, so the
+              range is stated as a range and labelled an estimate. The exact
+              amount still comes from Stripe Tax at payment. */}
+          {(() => {
+            const taxLo = totalCharge * 0.09;
+            const taxHi = totalCharge * 0.11;
+            return (
+              <>
+                <div className="flex justify-between text-ds-13">
+                  <span className="text-muted-foreground">State &amp; parish sales tax</span>
+                  <span className="font-medium text-foreground">
+                    about ${formatPrice(taxLo)}–{formatPrice(taxHi)}
+                  </span>
+                </div>
+                <div className="h-px bg-border" />
+                <div className="flex justify-between items-baseline">
+                  <span className="font-semibold text-foreground">Estimated total</span>
+                  <span className="text-ds-20 font-bold text-foreground">
+                    ${formatPrice(totalCharge + taxLo)}–{formatPrice(totalCharge + taxHi)}
+                  </span>
+                </div>
+                <p className="text-ds-11 text-muted-foreground leading-snug">
+                  Tax is set by your parish, so the exact amount appears on the
+                  payment page. Everything above it is fixed.
+                </p>
+              </>
+            );
+          })()}
           {/* Escrow was explained FIVE times on this one screen: this pill and
               its auto-opening popover, the sentence below it, the three-step
               EscrowFlowExplainer panel, the confirmation checkbox, and the

@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-const SITE_NAME = "Helpr"
+const SITE_NAME = "Louisiana Helpr"
 const SENDER_DOMAIN = "louisianahelpr.com"
 const FROM_DOMAIN = "louisianahelpr.com"
 const ROOT_DOMAIN = "louisianahelpr.com"
@@ -12,7 +12,7 @@ function wrapEmail(content: string): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:0">
 <div style="padding:32px 28px;max-width:480px;margin:0 auto">
-  <p style="font-size:28px;font-weight:bold;color:#5E6544;margin:0 0 24px;font-family:'Bodoni Moda',Didot,'Times New Roman',Georgia,serif">Helpr</p>
+  <p style="font-size:28px;font-weight:bold;color:#5E6544;margin:0 0 24px;font-family:'Bodoni Moda',Didot,'Times New Roman',Georgia,serif">Louisiana Helpr</p>
   ${content}
   <p style="font-size:12px;color:#6A6F5D;margin:32px 0 0;padding:16px 0 0;border-top:1px solid #E3E4DD">
     You're receiving this because you signed up at ${ROOT_DOMAIN}.
@@ -29,9 +29,9 @@ const h1 = (t: string) => `<h1 style="font-size:22px;font-weight:bold;color:#232
 
 // Welcome drip step 1: Welcome to Helpr (Day 1)
 function dripStep1(name: string) {
-  const subject = "You're in. Here's where to start on Helpr."
+  const subject = "You're in. Here's where to start on Louisiana Helpr."
   const html = wrapEmail(`
-    ${h1("Welcome to Helpr!")}
+    ${h1("Welcome to Louisiana Helpr!")}
     ${p(`Hey ${name || "there"} — your account is set up. Two things you can do today:`)}
     <ul style="font-size:15px;color:#5E5F4E;line-height:1.8;padding-left:20px;margin:0 0 16px">
       <li><strong>Post a task</strong> — describe what you need and set your budget</li>
@@ -47,9 +47,9 @@ function dripStep1(name: string) {
 
 // Welcome drip step 2: Explore the platform (Day 3)
 function dripStep2(name: string) {
-  const subject = "A quick tour of how Helpr works."
+  const subject = "A quick tour of how Louisiana Helpr works."
   const html = wrapEmail(`
-    ${h1("Explore what Helpr has to offer")}
+    ${h1("Explore what Louisiana Helpr has to offer")}
     ${p(`Hey ${name || "there"}, now that you're set up, here's what you can do:`)}
     <ul style="font-size:15px;color:#5E5F4E;line-height:1.8;padding-left:20px;margin:0 0 16px">
       <li><strong>Post a task</strong> — describe what you need, set a budget, and get help fast</li>
@@ -58,7 +58,7 @@ function dripStep2(name: string) {
     </ul>
     ${btn("Go to Dashboard", `${SITE_URL}/dashboard`)}
   `)
-  const text = `Hey ${name || "there"}, explore what Helpr has to offer! Post tasks, browse jobs, and chat with others. Visit: ${SITE_URL}/dashboard`
+  const text = `Hey ${name || "there"}, explore what Louisiana Helpr has to offer! Post tasks, browse jobs, and chat with others. Visit: ${SITE_URL}/dashboard`
   return { subject, html, text }
 }
 
@@ -91,7 +91,7 @@ function reEngagementEmail(name: string) {
     ${btn("See What's New", `${SITE_URL}/dashboard`)}
     ${p("Pull up the feed when you're ready.")}
   `)
-  const text = `Hey ${name || "there"}, it's been a while! New tasks are waiting on Helpr. Check them out: ${SITE_URL}/dashboard`
+  const text = `Hey ${name || "there"}, it's been a while! New tasks are waiting on Louisiana Helpr. Check them out: ${SITE_URL}/dashboard`
   return { subject, html, text }
 }
 
@@ -104,7 +104,7 @@ function adminDigestEmail(stats: {
   openReports: number
   revenue: number
 }) {
-  const subject = `Helpr Weekly Digest — Week of ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+  const subject = `Louisiana Helpr Weekly Digest — Week of ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
   const stat = (label: string, value: string | number) =>
     `<tr><td style="padding:8px 0;font-size:15px;color:#5E5F4E;border-bottom:1px solid #E3E4DD">${label}</td><td style="padding:8px 0;font-size:15px;font-weight:bold;color:#23231A;text-align:right;border-bottom:1px solid #E3E4DD">${value}</td></tr>`
 
@@ -121,7 +121,7 @@ function adminDigestEmail(stats: {
     </table>
     ${btn("Open Admin Dashboard", `${SITE_URL}/admin`)}
   `)
-  const text = `Helpr Weekly Digest: ${stats.newUsers} new users, ${stats.newJobs} new jobs, ${stats.completedJobs} completed, ${stats.pendingApprovals} pending approvals, ${stats.openReports} reports, $${stats.revenue.toFixed(2)} revenue. View: ${SITE_URL}/admin`
+  const text = `Louisiana Helpr Weekly Digest: ${stats.newUsers} new users, ${stats.newJobs} new jobs, ${stats.completedJobs} completed, ${stats.pendingApprovals} pending approvals, ${stats.openReports} reports, $${stats.revenue.toFixed(2)} revenue. View: ${SITE_URL}/admin`
   return { subject, html, text }
 }
 
@@ -261,16 +261,16 @@ Deno.serve(async (_req) => {
         continue
       }
 
-      const subject = "Your Helpr account is approved — ready when you are."
+      const subject = "Your Louisiana Helpr account is approved — ready when you are."
 
       const htmlContent = wrapEmail(`
         ${h1("Your account is approved!")}
-        ${p(`Hey ${user.full_name || "there"}, just a reminder — your Helpr account has been approved and is ready to go!`)}
+        ${p(`Hey ${user.full_name || "there"}, just a reminder — your Louisiana Helpr account has been approved and is ready to go!`)}
         ${p("Browse tasks, post jobs, or connect with people in your area. It only takes a minute to get started.")}
         ${btn("Browse Jobs", `${SITE_URL}/dashboard`)}
         ${p("Open the app whenever you're ready to post or browse.")}
       `)
-      const textContent = `Hey ${user.full_name || "there"}, your Helpr account is approved! Browse jobs and get started: ${SITE_URL}/dashboard`
+      const textContent = `Hey ${user.full_name || "there"}, your Louisiana Helpr account is approved! Browse jobs and get started: ${SITE_URL}/dashboard`
 
       const messageId = crypto.randomUUID()
       await supabase.from('email_send_log').insert({

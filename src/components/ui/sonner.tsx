@@ -35,15 +35,21 @@ const Toaster = ({ ...props }: ToasterProps) => {
   // wider viewports keep the desktop bottom-right placement. A resize
   // listener flips the anchor live so a rotation/orientation change is
   // handled cleanly.
-  const [position, setPosition] = useState<"bottom-center" | "bottom-right">(() => {
-    if (typeof window === "undefined") return "bottom-center";
-    return window.matchMedia("(min-width: 768px)").matches ? "bottom-right" : "bottom-center";
+  // TOP, not bottom (owner decision). Bottom-anchored toasts on a phone land
+  // on top of the floating dock and whatever the user was just reading — the
+  // "Face ID lock turned off." confirmation covered the Active-sessions row of
+  // the very screen that produced it. A top banner is also the iOS convention
+  // for transient system confirmations, so it reads as chrome rather than as
+  // content that has appeared over your work.
+  const [position, setPosition] = useState<"top-center" | "top-right">(() => {
+    if (typeof window === "undefined") return "top-center";
+    return window.matchMedia("(min-width: 768px)").matches ? "top-right" : "top-center";
   });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mql = window.matchMedia("(min-width: 768px)");
-    const update = () => setPosition(mql.matches ? "bottom-right" : "bottom-center");
+    const update = () => setPosition(mql.matches ? "top-right" : "top-center");
     update();
     mql.addEventListener?.("change", update);
     return () => mql.removeEventListener?.("change", update);
@@ -55,11 +61,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
       className="toaster group"
       position={position}
       visibleToasts={3}
-      // Lift the toast above the dock on phones and the safe-area inset on
-      // notched devices so it never sits under the BottomNav or home
-      // indicator. ~96px matches the dock clearance reserved by AppShell.
-      mobileOffset={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
-      offset={{ bottom: "24px" }}
+      // Clear the status bar / notch instead of the dock. These offsets were
+      // bottom-anchored to lift the toast above the BottomNav; with the anchor
+      // moved to the top they would have pinned it back down to the bottom
+      // edge, so they move with it.
+      mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 8px)" }}
+      offset={{ top: "24px" }}
       toastOptions={{
         unstyled: false,
         classNames: {

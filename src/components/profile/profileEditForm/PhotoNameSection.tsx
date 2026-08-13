@@ -77,23 +77,6 @@ export function PhotoNameSection({
           </p>
         </div>
       </div>
-      <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
-        Your name is locked after signup
-        {onContactSupport ? (
-          <>
-            {" — "}
-            <button
-              type="button"
-              onClick={onContactSupport}
-              className="not-italic font-sans font-semibold underline active:opacity-70"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              contact support
-            </button>
-            {" to change it."}
-          </>
-        ) : "."}
-      </p>
     </div>
   );
 }

@@ -39,10 +39,11 @@ export async function handleCustomerSubscriptionUpdated(
     const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
     logStep("Subscription updated to active", { email, tier });
 
-    const { error } = await supabase
+    const { data: updatedProfiles, error } = await supabase
       .from("profiles")
       .update({ subscription_tier: tier, subscription_expires_at: expiresAt })
-      .eq("email", email);
+      .eq("email", email)
+      .select("user_id");
 
     if (error) {
       logStep("ERROR updating profile", { error: error.message });
@@ -63,14 +64,36 @@ export async function handleCustomerSubscriptionUpdated(
       // permanently loses the tier grant — customer paid but gets no access.
       // Matches the error handling in customerSubscriptionDeleted.
       throw new Error(`Failed to apply tier '${tier}' for subscription ${subscription.id}: ${error.message}`);
+    } else if (!updatedProfiles || updatedProfiles.length === 0) {
+      // UPDATE succeeded but matched 0 rows: the Stripe customer email has no
+      // matching profile. Customer paid for renewal but received no entitlement.
+      // Unlike checkoutSessionCompleted where client_reference_id provides a
+      // user_id fallback, subscription events carry only the Stripe customer
+      // email — so retrying won't help; ops must reconcile manually (find the
+      // profile by account lookup and apply the tier by hand).
+      logStep("WARNING: subscription renewal matched 0 profiles — email mismatch", { email, tier });
+      postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Subscription renewal — tier not applied (no matching profile)",
+        message: "A customer.subscription.updated (active) event fired but no profile matched the Stripe customer email. Customer paid for renewal but has no tier access. Reconcile manually.",
+        fields: {
+          email: email ?? "(missing)",
+          tier: tier ?? "(missing)",
+          subscription_id: subscription.id,
+        },
+      });
+    } else {
+      logStep("Profile updated with tier", { email, tier, expires: expiresAt });
     }
   } else if (["canceled", "unpaid", "past_due", "paused"].includes(subscription.status)) {
     logStep("Subscription inactive", { email, status: subscription.status });
 
-    const { error } = await supabase
+    const { data: clearedProfiles, error } = await supabase
       .from("profiles")
       .update({ subscription_tier: null, subscription_expires_at: null })
-      .eq("email", email);
+      .eq("email", email)
+      .select("user_id");
 
     if (error) {
       logStep("ERROR clearing tier", { error: error.message });
@@ -91,6 +114,14 @@ export async function handleCustomerSubscriptionUpdated(
       // is never cleared and a cancelled/lapsed subscriber retains paid access.
       // Matches the error handling in customerSubscriptionDeleted.
       throw new Error(`Failed to clear tier for subscription ${subscription.id} (status=${subscription.status}): ${error.message}`);
+    } else if (!clearedProfiles || clearedProfiles.length === 0) {
+      // 0 rows matched — no profile found for this Stripe email. Less critical
+      // than the active path (no money loss, just a tier-clear that was a no-op),
+      // but worth logging so stale access on a mismatched account is auditable.
+      logStep("WARN: subscription status-change matched 0 profiles — email mismatch; tier may persist on another account", {
+        email,
+        status: subscription.status,
+      });
     }
   }
 }

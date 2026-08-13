@@ -2,7 +2,6 @@ import { Plus, Camera, Image as ImageIcon, FilePlus2, MapPin, AudioLines } from 
 import {
   Sheet,
   SheetContent,
-  SheetHero,
 } from "@/components/ui/sheet";
 import { MESSAGE_ATTACHMENT_MAX_BYTES } from "@/lib/messageAttachments";
 
@@ -37,117 +36,53 @@ export const AttachSourceSheet = ({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-w-md mx-auto rounded-t-2xl">
-        <SheetHero
-          eyebrow={<><Plus className="w-3 h-3" /> Add to this message</>}
-          eyebrowClassName="inline-flex items-center gap-1.5"
-          title="What are you sending?"
-        />
-        {/* Quick replies first — they are the likeliest reason to open this
-            sheet mid-job ("on my way", "running late"), and unlike the
-            attachment sources they SEND on tap rather than opening a picker.
-            Separated by a rule so the two halves don't read as one menu. */}
+        {/* iOS "+" menu shape: one uniform vertical list, each row a circular
+            icon and a label. No headline — iMessage's sheet doesn't ask a
+            question, it just lists what you can attach.
+
+            The previous version was a serif "What are you sending?" over a
+            three-up tile grid and then a two-up row, so five actions of equal
+            standing were drawn three different ways and the eye had to learn
+            two layouts to read one menu. */}
         {quickReplies && (
-          <div className="mt-4">
+          <div className="pt-1 pb-3">
             <div onClick={() => onOpenChange(false)}>{quickReplies}</div>
-            <div className="mt-4 h-px" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
           </div>
         )}
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={onPickCamera}
-            className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-ds-md min-h-[88px] transition-colors hover:bg-secondary/40"
-            style={{
-              background: "var(--surface-premium)",
-              border: "0.5px solid hsl(var(--olivewood) / 0.14)",
-            }}
-          >
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center"
-              style={{
-                background: "hsl(var(--bark) / 0.10)",
-                border: "1px solid hsl(var(--bark) / 0.22)",
-              }}
-            >
-              <Camera className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-            </div>
-            <span className="font-sans text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-              Camera
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={onPickLibrary}
-            className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-ds-md min-h-[88px] transition-colors hover:bg-secondary/40"
-            style={{
-              background: "var(--surface-premium)",
-              border: "0.5px solid hsl(var(--olivewood) / 0.14)",
-            }}
-          >
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center"
-              style={{
-                background: "hsl(var(--burnt-sienna) / 0.18)",
-                border: "1px solid hsl(var(--burnt-sienna) / 0.32)",
-              }}
-            >
-              <ImageIcon className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
-            </div>
-            <span className="font-sans text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-              Library
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={onPickFiles}
-            className="flex flex-col items-center justify-center gap-1.5 px-3 py-4 rounded-ds-md min-h-[88px] transition-colors hover:bg-secondary/40"
-            style={{
-              background: "var(--surface-premium)",
-              border: "0.5px solid hsl(var(--olivewood) / 0.14)",
-            }}
-          >
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center"
-              style={{
-                background: "hsl(var(--burnt-sienna) / 0.12)",
-                border: "1px solid hsl(var(--burnt-sienna) / 0.28)",
-              }}
-            >
-              <FilePlus2 className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
-            </div>
-            <span className="font-sans text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-              Files
-            </span>
-          </button>
-        </div>
-        {/* Location and voice note — the two controls that used to have their
-            own buttons in the composer row. Second row rather than squeezed
-            into the three-up grid above, because those three answer "where
-            does the FILE come from?" and these two are not files at all. */}
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={pick(onShareLocation)}
-            className="flex items-center gap-2.5 px-3 py-3 rounded-ds-md transition-colors hover:bg-secondary/40"
-            style={{ background: "var(--surface-premium)", border: "0.5px solid hsl(var(--olivewood) / 0.14)" }}
-          >
-            <MapPin className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-            <span className="text-ds-12 font-sans font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-              Location
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={pick(onRecordVoiceNote)}
-            disabled={voiceNoteDisabled}
-            className="flex items-center gap-2.5 px-3 py-3 rounded-ds-md transition-colors hover:bg-secondary/40 disabled:opacity-40 disabled:pointer-events-none"
-            style={{ background: "var(--surface-premium)", border: "0.5px solid hsl(var(--olivewood) / 0.14)" }}
-          >
-            <AudioLines className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-            <span className="text-ds-12 font-sans font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-              Voice note
-            </span>
-          </button>
+        <div
+          className="rounded-ds-md overflow-hidden"
+          style={{ background: "var(--surface-premium)", border: "0.5px solid hsl(var(--olivewood) / 0.14)" }}
+        >
+          {([
+            { key: "camera", label: "Camera", Icon: Camera, onPick: onPickCamera, tint: "bark" },
+            { key: "library", label: "Photo Library", Icon: ImageIcon, onPick: onPickLibrary, tint: "sienna" },
+            { key: "files", label: "Files", Icon: FilePlus2, onPick: onPickFiles, tint: "sienna" },
+            { key: "location", label: "Location", Icon: MapPin, onPick: onShareLocation, tint: "bark" },
+            { key: "voice", label: "Voice note", Icon: AudioLines, onPick: onRecordVoiceNote, tint: "bark", disabled: voiceNoteDisabled },
+          ] as const).map((row, i) => {
+            const tintFg = row.tint === "bark" ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))";
+            const tintBg = row.tint === "bark" ? "hsl(var(--bark) / 0.10)" : "hsl(var(--burnt-sienna) / 0.14)";
+            return (
+              <button
+                key={row.key}
+                type="button"
+                onClick={pick(row.onPick)}
+                disabled={"disabled" in row ? row.disabled : false}
+                className="w-full min-h-[56px] flex items-center gap-3 px-4 text-left transition-colors hover:bg-secondary/40 active:bg-secondary/60 disabled:opacity-40 disabled:pointer-events-none"
+                style={i > 0 ? { borderTop: "0.5px solid hsl(var(--olivewood) / 0.12)" } : undefined}
+              >
+                <span
+                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: tintBg, border: `1px solid ${tintFg}38` }}
+                >
+                  <row.Icon className="w-4 h-4" style={{ color: tintFg }} />
+                </span>
+                <span className="font-sans text-ds-14 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+                  {row.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
         <p
           className="mt-3 font-serif italic text-ds-12 leading-relaxed text-center"

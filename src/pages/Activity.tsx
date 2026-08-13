@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
@@ -231,7 +230,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // bg-premium-page shell with skeleton cards inside the bottom box.
     return (
       <PageScaffold
-        header={<DashboardHeader titleAs="h1" title={tab === "posted" ? "My Posts" : "My Jobs"} />}
         titleCard={<Skeleton className="h-3 w-44 rounded" />}
       >
         <div className="px-4 pt-3 space-y-2.5">
@@ -299,7 +297,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     <>
       <PageScaffold
         animate
-        header={<DashboardHeader titleAs="h1" title={tab === "posted" ? "My Posts" : "My Jobs"} subtitle={headerSubtitle} />}
         titleCard={
           /* The "N jobs" count chip was removed (2026-07-25 decision) — the
              section name already lives in the top bar and the count read as
@@ -325,6 +322,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               when there's nothing to act on — see `isTrulyEmpty`. */}
           {!isTrulyEmpty && (
             <ActivityHeader
+              title={tab === "posted" ? "My Posts" : "My Jobs"}
+              subtitle={headerSubtitle}
               tab={tab}
               activeStatusFilters={activeStatusFilters}
               activeCounts={activeCounts}

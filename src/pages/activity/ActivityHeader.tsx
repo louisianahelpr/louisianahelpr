@@ -11,6 +11,13 @@ import { defaultStatusFilterFor } from "@/components/activity/activityConstants"
  * search/filter state is owned by the page and passed in.
  */
 export interface ActivityHeaderProps {
+  /** Page name, rendered here rather than in an app bar above the panel.
+   *  The bar was removed: it stated the page name a second time, directly
+   *  above this row, which is the stacked-header problem already fixed on the
+   *  message thread. */
+  title: string;
+  /** Current filter + count ("Active", "All · 4"), under the title. */
+  subtitle?: string;
   tab: Tab;
   activeStatusFilters: StatusFilter[];
   activeCounts: Record<string, number>;
@@ -25,6 +32,8 @@ export interface ActivityHeaderProps {
 }
 
 export function ActivityHeader({
+  title,
+  subtitle,
   tab,
   activeStatusFilters,
   activeCounts,
@@ -48,21 +57,34 @@ export function ActivityHeader({
           input expands below this row instead of replacing the title,
           matching the Dashboard search pattern. */}
       <div
-        className="shrink-0 flex items-center justify-end gap-3 px-4 py-2"
+        className="shrink-0 flex items-center justify-between gap-3 px-4 py-2.5"
         style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
       >
-            {/* The filter label used to be an <h2> right here, directly under
-                the top bar's page title — "My Jobs" over "All", a heading and
-                a second heading with no stated relationship. It now lives in
-                the header itself as "My Jobs / All · 4", one statement instead
-                of two, with the count permanently visible.
-
-                An earlier pass had already stripped the eyebrow above this for
-                restating the page name; this finishes that thought. Only the
-                search and filter controls remain, so the row is `justify-end`
-                rather than keeping an empty spacer element to push them over —
-                and `py-2`, since without a title the row no longer needs to
-                clear a line of display type. */}
+            {/* Page name + current filter, both here rather than in an app bar.
+            
+                This moved twice, so the reasoning is worth keeping. First the
+                filter label was an <h2> under a "My Jobs" app bar — two
+                headings, no stated relationship. That was fixed by hoisting
+                the filter into the bar as "My Jobs / All · 4". The bar itself
+                is now gone (owner decision: no top nav on these screens), so
+                the whole block comes back down here, where it is the panel's
+                only heading and the shield/bell chrome is not competing with
+                it. */}
+            <div className="flex flex-col min-w-0 gap-0.5">
+              <h1
+                className="font-display font-bold text-foreground text-ds-15 truncate m-0 leading-none"
+              >
+                {title}
+              </h1>
+              {subtitle && (
+                <span
+                  className="font-serif italic text-ds-11 truncate leading-none"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  {subtitle}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"

@@ -22,8 +22,15 @@ import AppShell from "@/components/AppShell";
 
 interface PageScaffoldProps {
   /** Sticky page header — <DashboardHeader /> on signed-in pages, a
-   *  bespoke guest header on DashboardGuest. */
-  header: ReactNode;
+   *  bespoke guest header on DashboardGuest.
+   *
+   *  Optional. My Jobs, My Posts and Messages pass nothing: their page name
+   *  lives inside the panel's own toolbar, so an app bar above it would be a
+   *  second header stating the same thing — the stacked-bar problem already
+   *  removed from the message thread. When omitted, AppShell renders no
+   *  header slot and this scaffold takes on the top safe-area inset that the
+   *  bar used to absorb. */
+  header?: ReactNode;
   /** Body of the top title card (greeting / page-title block). Optional —
    *  when omitted, no title card (or its layout gap) is rendered and the
    *  panel sits flush below the header. */
@@ -184,7 +191,14 @@ export function PageScaffold({
       header={header}
       scrollable={false}
       reserveBottomNav={false}
-      className={"bg-premium-page" + (className ? ` ${className}` : "")}
+      // No header slot → nothing else owns the top safe-area inset, so the
+      // scaffold takes it. Merged into the single className rather than passed
+      // twice; two className props on one element silently drops the first.
+      className={
+        "bg-premium-page" +
+        (header ? "" : " pt-safe-top") +
+        (className ? ` ${className}` : "")
+      }
     >
       <div className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
         <div

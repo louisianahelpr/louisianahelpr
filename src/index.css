@@ -179,10 +179,13 @@
      aligned with the vetted `--cancel` pair (hue ~6). White foreground keeps
      AA on the solid fill. Applies to every destructive/error button, badge,
      and text token app-wide. */
-  --error: 6 64% 46%;
-  --error-foreground: 0 0% 100%;
   --info: 78 9% 53%;
   --info-foreground: 0 0% 100%;
+  /* --error / --error-foreground were BYTE-IDENTICAL to --destructive
+     (6 64% 46%) and had zero consumers in src/. --cancel-tint / --cancel-ink
+     were 1° away and meant the same thing. All four deleted (A2) — three
+     near-identical reds is not a colour language, it's three chances to pick
+     the wrong one. */
   --destructive: 6 64% 46%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:         var(--parchment);
@@ -273,8 +276,10 @@
   /* Pay It Forward — donation "mint" identity palette. Tokenised so the page
      (built with inline-style colors) renders correctly in dark mode instead of
      painting glaring light-green blocks on the dark canvas. */
+  /* --pif-green was BYTE-IDENTICAL to --success-ink (155 50% 30%) — one
+     colour, two names, in two different token families. Retired in favour of
+     --success-ink, which had 25 consumers to its 7 (A2). */
   --pif-ink:        155 50% 28%;   /* headings / amount */
-  --pif-green:      155 50% 30%;   /* primary green: icons, button, pill text */
   --pif-green-soft: 155 40% 40%;   /* muted green subtext */
   --pif-tint:       155 50% 35%;   /* base hue used at low alpha for fills/borders */
   --pif-card-from:  155 50% 97%;   /* credit-card gradient top */
@@ -327,8 +332,6 @@
 
   /* Cancel red — destructive "Cancel job" action button. Warmer & more
      saturated than the muted system --destructive, kept as its own pair. */
-  --cancel-tint: 6 58% 46%;   /* base hue, used at low alpha for fill/border */
-  --cancel-ink:  6 62% 34%;   /* button label */
 
   /* Premium cream surfaces — the warm parchment panel behind upgrade/payout
      sheets and sticky list-section headers. The literals were hardcoded cream
@@ -392,8 +395,6 @@
   /* Real red for dark mode (was the muted mauve `0 18% 55%`). Slightly
      lighter/brighter than the light-mode red so it reads on the dark canvas
      while keeping white-foreground contrast. See the light-mode note. */
-  --error:                6 60% 52%;
-  --error-foreground:     0 0% 100%;
   --info:                 78 12% 55%;
   --info-foreground:      0 0% 100%;
   --destructive:          6 60% 52%;
@@ -449,7 +450,6 @@
   /* Pay It Forward — dark-mode mint palette: lightened greens for legible
      foreground, dark green-tinted surfaces instead of light fills. */
   --pif-ink:        155 35% 72%;
-  --pif-green:      155 33% 62%;
   --pif-green-soft: 155 20% 60%;
   --pif-tint:       155 30% 52%;
   --pif-card-from:  155 22% 13%;
@@ -486,8 +486,6 @@
   --boost-tint: 25 65% 56%;   /* lighter base so low-alpha fill reads on dark */
   --boost-ink:  25 80% 70%;   /* legible orange label on dark */
 
-  --cancel-tint: 6 55% 56%;   /* lighter base so low-alpha fill reads on dark */
-  --cancel-ink:  6 65% 70%;   /* legible red label on dark */
 
   /* Premium cream surfaces — deep warm-charcoal so the upgrade/payout panels
      and sticky bands sit slightly above the dark canvas instead of glowing. */

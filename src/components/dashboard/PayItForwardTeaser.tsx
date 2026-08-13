@@ -21,7 +21,7 @@ const PayItForwardTeaser = ({ pifCount }: PayItForwardTeaserProps) => {
     >
       <p
         className="font-display italic font-semibold text-ds-14"
-        style={{ color: "hsl(var(--pif-green))" }}
+        style={{ color: "hsl(var(--success-ink))" }}
       >
         {pifCount} Helpr gift card{pifCount > 1 ? "s" : ""} in your parish
       </p>

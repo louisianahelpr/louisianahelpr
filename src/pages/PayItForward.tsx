@@ -335,7 +335,7 @@ export default function PayItForward() {
           >
             <div
               className="w-4 h-4 shrink-0 rounded-full border-2 border-t-transparent motion-safe:animate-spin"
-              style={{ borderColor: "hsl(var(--pif-green))", borderTopColor: "transparent" }}
+              style={{ borderColor: "hsl(var(--success-ink))", borderTopColor: "transparent" }}
             />
             <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--pif-ink))" }}>
               Claiming your gift card…
@@ -358,7 +358,7 @@ export default function PayItForward() {
               }}
             >
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--pif-green))" }} />
+                <Sparkles className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--success-ink))" }} />
                 <p
                   className="font-display italic font-semibold text-ds-14"
                   style={{ color: "hsl(var(--pif-ink))" }}
@@ -590,7 +590,7 @@ export default function PayItForward() {
                 disabled={!canDonate || donateMutation.isPending}
                 className="w-full rounded-ds-sm font-display italic font-semibold"
                 style={{
-                  background: canDonate ? "hsl(var(--pif-green))" : "hsl(var(--bark) / 0.15)",
+                  background: canDonate ? "hsl(var(--success-ink))" : "hsl(var(--bark) / 0.15)",
                   color: canDonate ? "hsl(var(--parchment))" : "hsl(var(--bark) / 0.5)",
                   border: "none",
                 }}

@@ -97,7 +97,7 @@ export function CreditCard({
           onClick={() => onRedeem(credit.id)}
           className="w-full rounded-ds-sm font-display italic font-semibold text-ds-13"
           style={{
-            background: "hsl(var(--pif-green))",
+            background: "hsl(var(--success-ink))",
             color: "hsl(var(--parchment))",
             border: "none",
           }}

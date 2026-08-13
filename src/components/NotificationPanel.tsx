@@ -187,10 +187,6 @@ const NotificationPanel = () => {
 
   const handleClick = (n: Notification) => {
     markAsRead(n.id);
-    if (n.link) {
-      setOpen(false);
-      navigate(n.link);
-    }
   };
 
   return (

@@ -67,7 +67,7 @@ describe("EditEmailDialog", () => {
     fireEvent.change(inputs[1], { target: { value: "notanemail" } });
     fireEvent.click(screen.getByRole("button", { name: /Update Email/ }));
     await waitFor(() => expect(toastError).toHaveBeenCalled());
-    expect(toastError).toHaveBeenCalledWith(expect.stringContaining("Invalid email"));
+    expect(toastError).toHaveBeenCalledWith(expect.stringContaining("valid email"));
     expect(invokeMock).not.toHaveBeenCalled();
   });
 

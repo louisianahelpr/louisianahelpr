@@ -22,58 +22,26 @@ export interface StatusFilter {
   color: string;
 }
 
-// Derived-bucket palettes — these are NOT enum values, so they
-// deliberately read different from any single job_status. Kept inline
-// because the canonical statusColors map only covers enum values.
-const DERIVED_DIRECT_OFFER =
-  "bg-destructive/15 text-destructive border-destructive/30";
-const DERIVED_OFFERED =
-  "bg-warning/15 text-warning border-warning/30";
-const DERIVED_PENDING_APPLIED = "bg-secondary text-secondary-foreground border-border";
 const DERIVED_NOT_SELECTED = "bg-destructive/15 text-destructive border-destructive/30";
 
-// "All" key — when active, the page swaps the single filtered list for
-// the grouped/collapsible Active / Completed / Cancelled view defined
-// below. Painted neutrally so it doesn't compete with the per-status
-// dots that follow it in the dropdown.
+// Neutral palette for broad-bucket filters (All, Active).
 const ALL_FILTER_COLOR = "bg-[hsl(var(--olivewood)/0.08)] text-[hsl(var(--olivewood))] border-[hsl(var(--olivewood)/0.18)]";
 
+// Granular sub-status filters (Open, Accepted, In Progress, etc.) are
+// intentionally omitted — those statuses are surfaced as colored banners
+// on each job card, so the filter sheet stays at the high-level bucket level.
 export const POSTED_STATUS_FILTERS: StatusFilter[] = [
-  // "All" — the default landing view. Shows the grouped Active / Completed /
-  // Cancelled sectioned layout so nothing is hidden on first open.
-  { key: "all",          label: "All",                          color: ALL_FILTER_COLOR },
-  // "Active" — folds every non-terminal status into one flat list.
-  { key: "active",       label: "Active",                       color: ALL_FILTER_COLOR },
-  { key: "open",         label: jobStatusLabel("open"),         color: jobStatusColorClasses("open") },
-  { key: "direct_offer", label: "Direct Offers",                color: DERIVED_DIRECT_OFFER },
-  // "Awaiting Helpr's Response" — the poster sent an offer; the helpr hasn't confirmed yet.
-  { key: "offered",      label: "Awaiting Helpr's Response",    color: DERIVED_OFFERED },
-  { key: "accepted",     label: jobStatusLabel("accepted"),     color: jobStatusColorClasses("accepted") },
-  { key: "in_progress",  label: jobStatusLabel("in_progress"),  color: jobStatusColorClasses("in_progress") },
-  { key: "completed",    label: jobStatusLabel("completed"),    color: jobStatusColorClasses("completed") },
-  // Cancelled is a terminal bucket like Completed, so it gets its own
-  // filter rather than living only inside the grouped "All" view. It
-  // folds disputed in, mirroring `bucketPostedJob`.
-  { key: "cancelled",    label: jobStatusLabel("cancelled"),    color: jobStatusColorClasses("cancelled") },
+  { key: "all",       label: "All",                      color: ALL_FILTER_COLOR },
+  { key: "active",    label: "Active",                   color: ALL_FILTER_COLOR },
+  { key: "completed", label: jobStatusLabel("completed"), color: jobStatusColorClasses("completed") },
+  { key: "cancelled", label: jobStatusLabel("cancelled"), color: jobStatusColorClasses("cancelled") },
 ];
 
 export const APPLIED_STATUS_FILTERS: StatusFilter[] = [
-  // "Active" — the default landing view, mirroring POSTED_STATUS_FILTERS so
-  // My Jobs and My Posts open on the same word instead of one saying "Active"
-  // and the other "All". Folds every application that is still live (applied /
-  // direct offer / awaiting my response / accepted / in progress) into one
-  // flat list. Defined by `bucketAppliedApp`, so it means exactly what the
-  // grouped view's ACTIVE section means — one definition, not two.
-  { key: "active",       label: "Active",                       color: ALL_FILTER_COLOR },
-  { key: "all",          label: "All",                          color: ALL_FILTER_COLOR },
-  { key: "pending",      label: "Applied",                      color: DERIVED_PENDING_APPLIED },
-  { key: "direct_offer", label: "Direct Offers",                color: DERIVED_DIRECT_OFFER },
-  // "Respond to Offer" — the poster selected me; I need to accept or decline.
-  { key: "offered",      label: "Respond to Offer",             color: DERIVED_OFFERED },
-  { key: "accepted",     label: jobStatusLabel("accepted"),     color: jobStatusColorClasses("accepted") },
-  { key: "in_progress",  label: jobStatusLabel("in_progress"),  color: jobStatusColorClasses("in_progress") },
-  { key: "completed",    label: jobStatusLabel("completed"),    color: jobStatusColorClasses("completed") },
-  { key: "not_selected", label: "Not Selected",                 color: DERIVED_NOT_SELECTED },
+  { key: "active",       label: "Active",                    color: ALL_FILTER_COLOR },
+  { key: "all",          label: "All",                       color: ALL_FILTER_COLOR },
+  { key: "completed",    label: jobStatusLabel("completed"), color: jobStatusColorClasses("completed") },
+  { key: "not_selected", label: "Not Selected",              color: DERIVED_NOT_SELECTED },
 ];
 
 /**

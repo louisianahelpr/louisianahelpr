@@ -7,6 +7,17 @@ export type SendAttachment = {
 };
 
 export interface RichMessageInputProps {
+  /**
+   * Job quick-replies, rendered inside the "+" sheet rather than as their own
+   * row above the composer.
+   *
+   * They used to sit in a horizontally-scrolling strip between the thread and
+   * the input, where the third chip was always clipped mid-word by the fade
+   * mask. iPhone keeps this class of shortcut one tap deeper, behind the "+",
+   * and the owner picked that arrangement. Passed as a node because the chips
+   * need the thread's send handler, which lives up in ChatComposer.
+   */
+  quickReplies?: React.ReactNode;
   onSend: (content: string, attachment?: SendAttachment) => void;
   onTyping?: () => void;
   disabled?: boolean;

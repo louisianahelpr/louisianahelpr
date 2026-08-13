@@ -1,23 +1,50 @@
 import type { ReactNode } from "react";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import AppShell from "@/components/AppShell";
 
 /**
  * Shell wrapper for the chat surface. Standalone (mobile/native) it owns
  * the AppShell fixed-viewport lock + centered column; embedded (desktop
  * two-pane) it's just a flex column that fills its parent pane.
+ *
+ * An open thread has NO app nav bar. It used to render `<DashboardHeader />`
+ * — the "Helpr · LA" bar with the shield and bell — directly above the chat
+ * header, so a conversation carried two stacked bars before a single message.
+ * iOS doesn't do that: entering a conversation replaces the app chrome with
+ * the conversation's own header, and the way back out is the back button
+ * rather than the global nav. The bottom nav was already suppressed here
+ * (`reserveBottomNav={false}`); this makes the top consistent with it.
+ *
+ * `header` is therefore the CHAT header, handed in by ChatView. It goes to
+ * AppShell's header slot so it stays pinned while the thread scrolls under
+ * it, and — per AppShell's contract — it must own the top safe-area inset
+ * itself, since the wrapper is a transparent positioning shell only.
  */
-export function ChatPaneShell({ embedded, children }: { embedded: boolean; children: ReactNode }) {
+export function ChatPaneShell({
+  embedded,
+  header,
+  children,
+}: {
+  embedded: boolean;
+  header?: ReactNode;
+  children: ReactNode;
+}) {
   if (embedded) {
-    return <div className="flex-1 min-h-0 flex flex-col">{children}</div>;
+    // Desktop two-pane: the chat header belongs inside the pane, above the
+    // thread. No safe-area concerns — it isn't against the status bar.
+    return (
+      <div className="flex-1 min-h-0 flex flex-col">
+        {header}
+        {children}
+      </div>
+    );
   }
   return (
-    // Fixed-viewport lock + safe-area-top header inset come from AppShell,
-    // the single shell primitive. `scrollable={false}` because the chat
-    // body manages its own scroll (chatContainerRef); the message input
-    // bleeds to the safe-area bottom rather than reserving dock space.
+    // Fixed-viewport lock comes from AppShell, the single shell primitive.
+    // `scrollable={false}` because the chat body manages its own scroll
+    // (chatContainerRef); the message input bleeds to the safe-area bottom
+    // rather than reserving dock space.
     <AppShell
-      header={<DashboardHeader />}
+      header={header}
       scrollable={false}
       reserveBottomNav={false}
       className="bg-premium-page"

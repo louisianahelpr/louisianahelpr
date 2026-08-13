@@ -16,7 +16,7 @@ import { ActivityStatePill } from "./ActivityStatePill";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { SendReportCard } from "./PetReportCard";
-import { formatPrice, formatShortDate } from "@/lib/format";
+import { formatPrice, formatShortDate, formatRecurrenceInterval } from "@/lib/format";
 import type { AppliedJobCardProps, NegotiationFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "./appliedJobCard/useHighlightPulse";
 import { useCounterOfferResponse } from "./appliedJobCard/useCounterOfferResponse";
@@ -406,7 +406,7 @@ function AppliedJobCardInner({
               {job.is_recurring && (
                 <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
                   <RefreshCw className="w-3 h-3 text-primary" />
-                  <span>{job.recurrence_interval ? `Every ${job.recurrence_interval}` : "Recurring"}{job.recurrence_end_date && ` until ${formatShortDate(job.recurrence_end_date)}`}</span>
+                  <span>{formatRecurrenceInterval(job.recurrence_interval)}{job.recurrence_end_date && ` until ${formatShortDate(job.recurrence_end_date)}`}</span>
                 </div>
               )}
               {job.is_group_job && (

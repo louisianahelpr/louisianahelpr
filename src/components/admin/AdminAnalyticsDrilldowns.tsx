@@ -6,7 +6,8 @@ import { cn, formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
-import { formatCategory, formatPrice, formatTimestamp, formatShortDate } from "@/lib/format";
+import { formatCategory, formatPrice, formatShortDate } from "@/lib/format";
+import { formatJobDate } from "@/lib/dateUtils";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
 import { toneTextClasses, type Tone } from "@/components/admin/tones";
 
@@ -191,7 +192,7 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-foreground text-ds-13 truncate">{j.title}</p>
-                <p className="text-ds-11 text-muted-foreground mt-0.5">{j.location} · {formatTimestamp(j.date_needed)}</p>
+                <p className="text-ds-11 text-muted-foreground mt-0.5">{j.location} · {formatJobDate(j.date_needed)}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <div className={cn("w-2 h-2 rounded-full", statusDot(j.payment_status || ""))} />

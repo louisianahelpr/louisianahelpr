@@ -214,7 +214,23 @@ export function ChatView({
   const timeline = buildTimeline(messages, jobSystemEvents, hasMoreMessages);
 
   return (
-    <ChatPaneShell embedded={embedded}>
+    <ChatPaneShell
+      embedded={embedded}
+      header={
+        <ChatHeader
+          activeConvo={activeConvo}
+          isOtherOnline={isOtherOnline}
+          hideBack={embedded}
+          ownsSafeArea={!embedded}
+          onBack={() => { setActiveConvo(null); setDraft(""); setLightboxPhoto(null); navigate("/messages", { replace: true }); }}
+          onOpenMuteSheet={() => setMuteSheetOpen(true)}
+          onToggleMute={onToggleMute}
+          onReportUser={() => setReportTarget({ type: "user", id: activeConvo.otherUserId })}
+          onBlockUser={() => setBlockTarget({ id: activeConvo.otherUserId, name: activeConvo.otherUserName })}
+          onViewProfile={() => navigate(`/user/${activeConvo.otherUserId}`)}
+        />
+      }
+    >
         <div
           className={
             // Embedded (desktop split) the pane can be very wide, so cap the
@@ -230,16 +246,6 @@ export function ChatView({
           // double-counts the inset and leaves a dead gap below the composer.
           style={{ paddingBottom: keyboardInset > 0 ? `${keyboardInset}px` : 0 }}
         >
-          <ChatHeader
-            activeConvo={activeConvo}
-            isOtherOnline={isOtherOnline}
-            hideBack={embedded}
-            onBack={() => { setActiveConvo(null); setDraft(""); setLightboxPhoto(null); navigate("/messages", { replace: true }); }}
-            onOpenMuteSheet={() => setMuteSheetOpen(true)}
-            onToggleMute={onToggleMute}
-            onReportUser={() => setReportTarget({ type: "user", id: activeConvo.otherUserId })}
-            onBlockUser={() => setBlockTarget({ id: activeConvo.otherUserId, name: activeConvo.otherUserName })}
-          />
           {/* Community rules banner — compact */}
           {!bannerDismissed && (
             <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5">

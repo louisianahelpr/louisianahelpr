@@ -71,9 +71,13 @@ interface QuickRepliesProps {
    *  min late; "in_progress" → Running 5 min late / Done. Other
    *  statuses fall through to the generic audience replies only. */
   jobStatus?: string | null;
+  /** Wrap onto multiple lines instead of scrolling horizontally. Set on
+   *  roomy surfaces (the composer's "+" sheet) where a fade-clipped last
+   *  chip reads as a bug rather than as "scroll for more". */
+  wrap?: boolean;
 }
 
-export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus }: QuickRepliesProps) => {
+export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus, wrap = false }: QuickRepliesProps) => {
   const [showEta, setShowEta] = useState(false);
   const replies = audience === "poster" ? posterReplies : helperReplies;
   // Only helpers get the En-Route flow (posters don't drive to themselves).
@@ -139,7 +143,18 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus 
   }
 
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-1 pr-5 scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]">
+    <div
+      className={
+        // `wrap` is for surfaces with room to breathe (the "+" sheet). The
+        // scrolling variant exists because these chips used to live in the
+        // composer, where a fade mask hinted "there is more to the right" —
+        // but in a sheet that same mask just clips the last chip mid-word for
+        // no reason, since nothing is competing for the space.
+        wrap
+          ? "flex flex-wrap gap-1.5 pb-1"
+          : "flex gap-1.5 overflow-x-auto pb-1 pr-5 scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]"
+      }
+    >
       {/* Status-aware smart-reply chips — sent on tap, no composer
           round-trip. Visually distinguished from the generic suggestions
           by the warm-gold pill so the user reads them as "send-now"

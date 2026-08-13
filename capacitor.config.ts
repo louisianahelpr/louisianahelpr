@@ -80,7 +80,14 @@ const config: CapacitorConfig = {
       // never hangs even if init fails.
       launchShowDuration: 0,
       launchAutoHide: false,
-      backgroundColor: '#F1F2F4', // Warm parchment (hsl(36 16% 91%), --parchment) — matches StatusBar, theme-color and the #root FCP shell so cold-start never flashes a mismatched tint as splash hands off to the WebView
+      backgroundColor: '#F1F2F4', // COOL parchment — the exact hex of hsl(220 14% 95%), i.e. --parchment in index.css. Matches StatusBar (below), index.html's theme-color and the #root FCP shell, so cold-start never flashes a mismatched tint as splash hands off to the WebView.
+      //
+      // This comment used to read "Warm parchment (hsl(36 16% 91%))" while the
+      // value beside it was already cool. That is how P2 happened the first
+      // time: the value moved and the comment did not, so the mismatch it was
+      // written to prevent went unnoticed because the comment said it couldn't.
+      // If --parchment changes again, this hex and index.html's theme-color
+      // both have to move with it — neither can read a CSS variable.
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,

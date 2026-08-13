@@ -398,13 +398,13 @@
      dark frosted glass over the dark page instead of a bright-white slab.
      Rims drop to faint light hairlines; the curtain fades a near-black
      warm tint instead of warm-white. */
-  --nav-pill-bg:       hsl(20 14% 12% / 0.72);
+  --nav-pill-bg:       hsl(220 14% 12% / 0.72);
   --nav-rim-strong:    hsla(0, 0%, 100%, 0.14);
   --nav-rim-soft:      hsla(0, 0%, 100%, 0.08);
   --nav-rim-bottom:    hsla(0, 0%, 100%, 0.05);
   --nav-inset-hi:      rgba(255, 255, 255, 0.10);
-  --nav-curtain-top:   hsl(20 15% 8% / 0.6);
-  --nav-curtain-fade:  hsl(20 15% 8% / 0);
+  --nav-curtain-top:   hsl(220 15% 8% / 0.6);
+  --nav-curtain-fade:  hsl(220 15% 8% / 0);
 
   /* Pay It Forward — dark-mode mint palette: lightened greens for legible
      foreground, dark green-tinted surfaces instead of light fills. */
@@ -478,25 +478,25 @@
   background-image:
     linear-gradient(
       160deg,
-      hsl(20 15% 8%) 0%,
-      hsl(25 12% 11%) 40%,
+      hsl(220 15% 8%) 0%,
+      hsl(220 12% 11%) 40%,
       hsl(200 15% 10%) 100%
     );
 }
 
 /* Dark mode glass utilities */
 [data-theme="dark"] .glass {
-  background: rgba(10, 10, 8, 0.75);
+  background: rgba(8, 9, 11, 0.75);
 }
 
 [data-theme="dark"] .glass-header {
   border-bottom-color: hsla(0, 0%, 100%, 0.06);
-  background-color: hsl(20 15% 9% / 0.82);
+  background-color: hsl(var(--parchment) / 0.82);
 }
 
 [data-theme="dark"] .glass-dock {
   border-top-color: hsla(0, 0%, 100%, 0.06);
-  background-color: hsl(20 15% 9% / 0.82);
+  background-color: hsl(var(--parchment) / 0.82);
 }
 
 [data-theme="dark"] .glass-nav {
@@ -504,7 +504,7 @@
 }
 
 [data-theme="dark"] .glass-nav.is-scrolled {
-  background: hsl(20 14% 11%);
+  background: hsl(220 14% 11%);
 }
 
 [data-theme="dark"] .glass-modal {

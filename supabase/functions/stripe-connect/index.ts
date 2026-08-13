@@ -319,10 +319,19 @@ serve(async (req) => {
         }
       }
 
-      await supabaseAdmin
+      const { error: resetUpdateErr } = await supabaseAdmin
         .from("profiles")
         .update({ stripe_account_id: null })
         .eq("user_id", user.id);
+
+      if (resetUpdateErr) {
+        // The Stripe account was already deleted above. If we can't null out
+        // stripe_account_id, getOrCreateAccount() will find the stale (deleted)
+        // account ID, return it without creating a new one, and the subsequent
+        // accountLinks.create() will 404. Throw so the client can retry cleanly.
+        console.error(`[stripe-connect] reset: failed to null stripe_account_id for ${user.id}:`, resetUpdateErr);
+        throw new Error("Could not unlink your current payout account — please try again");
+      }
 
       const { accountId } = await getOrCreateAccount();
 

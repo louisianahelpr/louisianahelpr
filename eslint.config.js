@@ -39,7 +39,6 @@ const DS_TYPE_INLINE_RULE = {
    from it, and it should only ever get shorter. New files are not exempt. */
 const DS_TYPE_INLINE_LEGACY = [
   "src/components/BirthdayPopup.tsx",
-  "src/components/BlockUserDialog.tsx",
   "src/components/BrowseMap.tsx",
   "src/components/BuildStamp.tsx",
   "src/components/CancellationDialog.tsx",
@@ -61,10 +60,7 @@ const DS_TYPE_INLINE_LEGACY = [
   "src/components/PayoutSetupForm.tsx",
   "src/components/PhotoProof.tsx",
   "src/components/ProUpgradeSheet.tsx",
-  "src/components/PullToRefreshWrapper.tsx",
   "src/components/ReferralSection.tsx",
-  "src/components/RouteErrorBoundary.tsx",
-  "src/components/SectionBoundary.tsx",
   "src/components/TipDialog.tsx",
   "src/components/activity/AppliedJobsTab.tsx",
   "src/components/activity/CompletionChoiceSheet.tsx",

@@ -104,9 +104,8 @@ class SectionErrorBoundary extends React.Component<
           </div>
           <div className="flex-1 min-w-0">
             <p
-              className="font-display italic font-bold leading-tight"
+              className="font-display italic font-bold leading-tight text-ds-15"
               style={{
-                fontSize: "0.92rem",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.012em",
               }}
@@ -114,9 +113,8 @@ class SectionErrorBoundary extends React.Component<
               Couldn't load {this.props.label}.
             </p>
             <p
-              className="font-serif italic mt-0.5"
+              className="font-serif italic mt-0.5 text-ds-12"
               style={{
-                fontSize: "0.78rem",
                 color: "hsl(var(--olivewood) / 0.8)",
               }}
             >

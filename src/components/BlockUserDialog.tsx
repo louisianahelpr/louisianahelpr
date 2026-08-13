@@ -117,8 +117,8 @@ export function BlockUserDialog({
         />
         <div className="space-y-3 mt-2">
               <ul
-                className="font-serif italic space-y-1 list-disc pl-5 leading-relaxed"
-                style={{ fontSize: "0.84rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                className="font-serif italic space-y-1 list-disc pl-5 leading-relaxed text-ds-13"
+                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
               >
                 <li>You won&apos;t see their messages, applications, or profile.</li>
                 <li>They won&apos;t be able to apply to your jobs or message you.</li>
@@ -131,8 +131,8 @@ export function BlockUserDialog({
               </ul>
               <div className="space-y-1.5">
                 <label
-                  className="font-serif italic uppercase block"
-                  style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                  className="font-serif italic uppercase block text-ds-10"
+                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                 >
                   Reason — optional, admin-only
                 </label>

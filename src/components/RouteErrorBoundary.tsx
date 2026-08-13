@@ -144,9 +144,8 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
             {chunkError ? "Update ready." : "This page hit a problem."}
           </h3>
           <p
-            className="font-serif italic leading-relaxed"
+            className="font-serif italic leading-relaxed text-ds-15"
             style={{
-              fontSize: "0.92rem",
               color: "hsl(var(--olivewood) / 0.8)",
             }}
           >

@@ -281,7 +281,7 @@ const ConversationRowBase = ({
           aria-checked={selected}
           aria-label={selected ? "Deselect conversation" : "Select conversation"}
           onClick={(e) => { e.stopPropagation(); onToggleSelect?.(); }}
-          className="shrink-0 min-h-[44px] min-w-[28px] inline-flex items-center justify-center self-center"
+          className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center self-center"
         >
           <span
             className="w-6 h-6 rounded-full flex items-center justify-center transition-colors"

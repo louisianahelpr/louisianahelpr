@@ -141,7 +141,6 @@ const PetProfiles = () => {
           The back button + title now carry the navigation context. */}
       <PageHeader
         title="My Pets"
-        meta="Care details your Helpr should know"
         onBack={() => navigate("/profile")}
         rightSlot={<NotificationPanel />}
         // Mirrors the body ladder below (max-w-lg → lg:5xl → xl:6xl, px-5 → lg:px-8).

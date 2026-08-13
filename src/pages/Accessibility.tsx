@@ -4,7 +4,7 @@ import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { hapticLight } from "@/lib/haptics";
 import { isSimpleMode, setSimpleMode } from "@/lib/simpleMode";
-import { Type, Sparkles, PhoneCall } from "lucide-react";
+import { Type } from "lucide-react";
 
 /**
  * Accessibility settings.
@@ -78,36 +78,6 @@ const Accessibility = () => {
           </label>
         </section>
 
-        <section className="liquid-glass rounded-ds-md p-5">
-          <div className="flex items-start gap-3">
-            <span
-              className="w-10 h-10 rounded-ds-md shrink-0 inline-flex items-center justify-center"
-              style={{ background: "hsl(var(--burnt-sienna) / 0.10)" }}
-            >
-              <PhoneCall className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={1.75} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <h2 className="font-display italic font-bold text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
-                Prefer to talk to someone?
-              </h2>
-              <p
-                className="font-serif italic text-ds-13 leading-relaxed mt-1"
-                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-              >
-                You don't have to do any of this on a screen. Reach our support
-                team and a person will walk you through posting a job.
-              </p>
-              <a
-                href="/support"
-                className="inline-flex items-center gap-1.5 mt-3 text-ds-13 font-sans font-semibold"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                <Sparkles className="w-4 h-4" strokeWidth={2} />
-                Contact support
-              </a>
-            </div>
-          </div>
-        </section>
       </div>
     </div>
   );

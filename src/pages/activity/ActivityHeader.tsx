@@ -53,27 +53,49 @@ export function ActivityHeader({
   const isStatusFiltered = statusFilter !== defaultStatus;
   return (
     <>
-      {/* Header row — title + search/filter toggle buttons. The search
-          input expands below this row instead of replacing the title,
-          matching the Dashboard search pattern. */}
       <div
-        className="shrink-0 flex items-center justify-between gap-3 px-4 py-2.5"
-        style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
+        className="shrink-0 flex items-center gap-3 px-4"
+        style={{ minHeight: "52px", borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
       >
-            {/* Page name + current filter, both here rather than in an app bar.
-            
-                This moved twice, so the reasoning is worth keeping. First the
-                filter label was an <h2> under a "My Jobs" app bar — two
-                headings, no stated relationship. That was fixed by hoisting
-                the filter into the bar as "My Jobs / All · 4". The bar itself
-                is now gone (owner decision: no top nav on these screens), so
-                the whole block comes back down here, where it is the panel's
-                only heading and the shield/bell chrome is not competing with
-                it. */}
-            <div className="flex flex-col min-w-0 gap-0.5">
-              <h1
-                className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none"
-              >
+        {searchOpen ? (
+          /* Search mode — input replaces the title row inline (iOS pattern). */
+          <>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                autoFocus
+                type="search"
+                aria-label="Search jobs"
+                placeholder="Search jobs…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => { hapticLight(); setSearchOpen(false); setSearchQuery(""); }}
+              className="shrink-0 text-ds-13 font-medium btn-press py-2"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          /* Normal mode — title + action buttons. */
+          <>
+            <div className="flex flex-col min-w-0 flex-1 gap-0.5 py-2.5">
+              <h1 className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none">
                 {title}
               </h1>
               {subtitle && (
@@ -88,21 +110,12 @@ export function ActivityHeader({
             <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"
-                onClick={() => { hapticLight(); setSearchOpen(!searchOpen); }}
+                onClick={() => { hapticLight(); setSearchOpen(true); }}
                 aria-label="Search jobs"
-                aria-expanded={searchOpen}
-                className={`h-11 w-11 rounded-ds-md flex items-center justify-center btn-press transition ${
-                  searchOpen || searchQuery
-                    ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                }`}
+                className="h-11 w-11 rounded-ds-md flex items-center justify-center btn-press transition text-muted-foreground hover:text-foreground hover:bg-secondary/60"
               >
                 <Search className="w-4 h-4" />
               </button>
-              {/* Filter button — opens the shared FilterSheet (a bottom
-                  sheet) with a single "Status" section. Same presentation as
-                  the Browse / Dashboard filters, instead of a bespoke
-                  dropdown. */}
               <button
                 type="button"
                 aria-label="Filter by status"
@@ -120,6 +133,8 @@ export function ActivityHeader({
                 )}
               </button>
             </div>
+          </>
+        )}
       </div>
 
       <FilterSheet
@@ -178,37 +193,6 @@ export function ActivityHeader({
         ]}
       />
 
-      {/* Expandable search bar — drops down below the header row,
-          matching the Dashboard search pattern. */}
-      {searchOpen && (
-        <div
-          className="shrink-0 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200"
-          style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
-        >
-          <div className="relative px-4 py-3">
-            <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              autoFocus
-              type="search"
-              aria-label="Search jobs"
-              placeholder="Search jobs…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                aria-label="Clear search"
-                className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </>
   );
 }

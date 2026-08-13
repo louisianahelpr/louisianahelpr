@@ -22,8 +22,6 @@ export interface StatusFilter {
   color: string;
 }
 
-const DERIVED_NOT_SELECTED = "bg-destructive/15 text-destructive border-destructive/30";
-
 // Neutral palette for broad-bucket filters (All, Active).
 const ALL_FILTER_COLOR = "bg-[hsl(var(--olivewood)/0.08)] text-[hsl(var(--olivewood))] border-[hsl(var(--olivewood)/0.18)]";
 
@@ -41,7 +39,6 @@ export const APPLIED_STATUS_FILTERS: StatusFilter[] = [
   { key: "active",       label: "Active",                    color: ALL_FILTER_COLOR },
   { key: "all",          label: "All",                       color: ALL_FILTER_COLOR },
   { key: "completed",    label: jobStatusLabel("completed"), color: jobStatusColorClasses("completed") },
-  { key: "not_selected", label: "Not Selected",              color: DERIVED_NOT_SELECTED },
 ];
 
 /**

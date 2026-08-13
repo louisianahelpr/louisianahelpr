@@ -302,51 +302,65 @@ export function ConversationList({
               clean panel. */}
           {!isEmpty && (
             <div
-              className="shrink-0 flex items-center justify-between gap-3 px-4 py-2.5"
-              style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
+              className="shrink-0 flex items-center gap-3 px-4"
+              style={{ minHeight: "52px", borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
             >
-              {/* Select mode keeps its live "N/3 selected" counter here. Out of
-                  select mode this slot held an <h2> reading "All", mirroring
-                  ActivityHeader's heading on My Posts / My Jobs.
-
-                  Both are gone now. Those headings sat directly beneath the top
-                  bar's page title — "Messages" over "All" — two headings with
-                  nothing relating them, and on this screen the word was doing
-                  even less work than on Activity, because the inbox has no
-                  filters for "All" to be distinguished from.
-
-                  An earlier pass added that <h2> because the slot had been an
-                  empty `aria-hidden` span, leaving the toolbar with a blank
-                  left half that read as a failed render. The real problem was
-                  the empty ELEMENT, not the absent text: the row is now
-                  `justify-end`, so the controls sit deliberately at the edge
-                  with nothing pretending to balance them. The state worth
-                  stating — how many threads are waiting on you — moved up into
-                  the header as "Messages / 2 unread".
-
-                  That header is now gone too (owner decision: no top nav on
-                  these screens), so both come back down here — the page name
-                  as the panel's only heading, the unread count beneath it.
-                  Omitted at zero: a caught-up inbox should say nothing rather
-                  than report an absence. */}
-              <div className="flex flex-col min-w-0 gap-0.5">
-                <h1 className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none">
-                  Messages
-                </h1>
-                {headerSubtitle && (
-                  <span
-                    className="font-serif italic text-ds-11 truncate leading-none"
-                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              {selectMode ? (
+                /* Select mode — live "N/3 selected" counter fills the row. */
+                <span className="flex-1 text-ds-13 font-medium" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  {selectedKeys.size}/{MAX_SELECT} selected
+                </span>
+              ) : searchOpen ? (
+                /* Search mode — input replaces the row inline (iOS pattern). */
+                <>
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      autoFocus
+                      type="search"
+                      aria-label="Search conversations"
+                      placeholder="Search conversations…"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                        aria-label="Clear search"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { hapticLight(); setSearchOpen(false); setSearchQuery(""); }}
+                    className="shrink-0 text-ds-13 font-medium btn-press py-2"
+                    style={{ color: "hsl(var(--bark))" }}
                   >
-                    {headerSubtitle}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-1 shrink-0">
-                {!selectMode && (
-                  <>
-                    {/* Select — enters multi-select delete mode. */}
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                /* Normal mode — title + Select + Search. */
+                <>
+                  <div className="flex flex-col min-w-0 flex-1 gap-0.5 py-2.5">
+                    <h1 className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none">
+                      Messages
+                    </h1>
+                    {headerSubtitle && (
+                      <span
+                        className="font-serif italic text-ds-11 truncate leading-none"
+                        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                      >
+                        {headerSubtitle}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={enterSelectMode}
                       aria-label="Select conversations"
@@ -355,59 +369,17 @@ export function ConversationList({
                     >
                       Select
                     </button>
-                    {/* Search toggle — expands the field below this row,
-                        matching the Activity tabs' search pattern. Tinted
-                        active while open or while a query is set. 44px tap
-                        target. */}
                     <button
-                      onClick={() => { hapticLight(); setSearchOpen((o) => !o); }}
+                      onClick={() => { hapticLight(); setSearchOpen(true); }}
                       aria-label="Search conversations"
-                      aria-expanded={searchOpen}
                       className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-md transition-colors btn-press shrink-0"
-                      style={
-                        searchOpen || searchQuery
-                          ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))" }
-                          : { color: "hsl(var(--olivewood) / 0.8)" }
-                      }
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       <Search className="w-4 h-4" />
                     </button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Expandable search bar — drops below the header row. Pure
-              client-side filter over already-loaded threads (name +
-              snippet + job title), so no debounce. */}
-          {!isEmpty && searchOpen && (
-            <div
-              className="shrink-0 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200"
-              style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
-            >
-              <div className="relative px-4 py-3">
-                <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  autoFocus
-                  type="search"
-                  aria-label="Search conversations"
-                  placeholder="Search conversations…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-9 h-10 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    aria-label="Clear search"
-                    className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
           {!loading && loadError && conversations.length === 0 ? (

@@ -388,16 +388,7 @@ const Login = () => {
                 locked-out one) and pushed the CTA down. Styled as the page's
                 canonical actionable link (`font-semibold` + bark), matching
                 "Create a personal account" below rather than a one-off. */}
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
-              <Link
-                to="/forgot-password"
-                className="text-ds-12 font-sans font-semibold hover:underline active:opacity-60 transition-opacity"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                Forgot password?
-              </Link>
-            </div>
+            <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
             <div className="relative">
               <Lock
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none z-10"
@@ -427,6 +418,29 @@ const Login = () => {
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
+            </div>
+            {/* Recovery link, under the field it belongs to.
+            
+                It previously sat on the label row, opposite "Password". That
+                placement was chosen because an earlier version stranded it
+                between the field and the Sign in button, which pushed the CTA
+                down — a real cost, and the reason it moved. But a label row is
+                for naming the field, not for actions, and at 111x17 the link
+                was also well under the 44px touch target the rest of the app
+                holds to.
+            
+                Under the field, right-aligned, it reads as "what to do if this
+                didn't work" — and the min-height gives it a real target
+                without adding a full row of height, because the 44px box
+                overlaps the existing gap above the button. */}
+            <div className="flex justify-end -mb-1">
+              <Link
+                to="/forgot-password"
+                className="min-h-[44px] inline-flex items-center text-ds-12 font-sans font-semibold hover:underline active:opacity-60 transition-opacity"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                Forgot password?
+              </Link>
             </div>
           </div>
           <Button
@@ -485,15 +499,33 @@ const Login = () => {
         {/* Creating an account is the alternative to BOTH sign-in methods, so
             it closes the right column rather than floating under the card. */}
         <div className="space-y-1.5">
+          {/* Both links sit on their own line under their question. The
+              business one had to, because it wrapped mid-phrase; this one is
+              `block` for symmetry — with one link inline and the other
+              stacked, the two offers read as different KINDS of thing rather
+              than as the two halves of one choice. */}
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            New to Helpr?{" "}
-            <Link to="/signup" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+            New to Helpr?
+            <Link
+              to="/signup"
+              className="block font-semibold hover:underline"
+              style={{ color: "hsl(var(--bark))" }}
+            >
               Create a personal account
             </Link>
           </p>
+          {/* The business link is long enough that it wrapped mid-phrase —
+              "Create a" on one line and "business account" on the next, which
+              read as two broken fragments rather than one link. `block` puts
+              the whole link on its own line under the question, so it breaks
+              at the sentence seam instead of inside the call to action. */}
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Setting up a company?{" "}
-            <Link to="/signup?type=business" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+            Setting up a company?
+            <Link
+              to="/signup?type=business"
+              className="block font-semibold hover:underline"
+              style={{ color: "hsl(var(--bark))" }}
+            >
               Create a business account
             </Link>
           </p>

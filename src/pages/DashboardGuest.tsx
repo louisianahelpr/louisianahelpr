@@ -380,7 +380,35 @@ const DashboardGuest = () => {
                               Clear filters
                             </button>
                           )
-                        ) : undefined
+                        ) : (
+                          /* Unfiltered empty state used to pass NO action, so a
+                             visitor who landed on Browse before any jobs were
+                             posted read "check back soon" and had nowhere to go
+                             — a dead end at the exact moment they were most
+                             curious. The signed-in version of this same state
+                             offers two ways forward; the guest one offered
+                             none.
+
+                             Both routes lead to signup because both require an
+                             account, but they are named for what the visitor
+                             wants rather than for the gate: watching for work,
+                             or hiring someone. */
+                          <div className="flex flex-col items-center gap-2.5">
+                            <Button
+                              onClick={() => navigate("/signup")}
+                              className="rounded-ds-md h-11 px-5 font-semibold"
+                            >
+                              Get notified when work lands
+                            </Button>
+                            <button
+                              type="button"
+                              onClick={() => navigate("/signup")}
+                              className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
+                            >
+                              Or hire someone for a job
+                            </button>
+                          </div>
+                        )
                       }
                     />
                     )}

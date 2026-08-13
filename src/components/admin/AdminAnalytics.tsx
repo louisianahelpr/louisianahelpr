@@ -15,7 +15,7 @@ import { SUB_PRICE, type Profile, type Job, type Tip, type DrillDown } from "./a
 import { computeMetrics } from "./adminAnalytics/adminAnalyticsHelpers";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceExact } from "@/lib/format";
 
 // Lazy-load charts so recharts (~250 KB pre-gzip) lands in its own chunk
 // instead of inflating the AdminAnalytics initial bundle. Funnel cards +
@@ -385,7 +385,7 @@ const AdminAnalytics = () => {
                 <span className="text-ds-11 text-muted-foreground">In Escrow</span>
               </div>
               <div className="text-right">
-                <span className="text-ds-13 font-semibold text-foreground">${escrowTotal.toFixed(2)}</span>
+                <span className="text-ds-13 font-semibold text-foreground">${formatPriceExact(escrowTotal)}</span>
                 <span className="text-ds-11 text-muted-foreground ml-2">({escrowJobs.length} job{escrowJobs.length === 1 ? "" : "s"})</span>
               </div>
             </div>
@@ -395,7 +395,7 @@ const AdminAnalytics = () => {
                 <span className="text-ds-11 text-muted-foreground">Payout Pending</span>
               </div>
               <div className="text-right">
-                <span className="text-ds-13 font-semibold text-foreground">${pendingPayoutTotal.toFixed(2)}</span>
+                <span className="text-ds-13 font-semibold text-foreground">${formatPriceExact(pendingPayoutTotal)}</span>
                 <span className="text-ds-11 text-muted-foreground ml-2">({pendingPayouts.length} job{pendingPayouts.length === 1 ? "" : "s"})</span>
               </div>
             </div>

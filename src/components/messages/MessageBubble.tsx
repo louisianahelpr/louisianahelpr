@@ -176,6 +176,62 @@ export function MessageBubble({
             "0 4px 10px -4px hsl(var(--olivewood) / 0.10)",
         }}
       >
+        {/* Tapbacks — overlapping the bubble's top corner, on the side away
+            from the speaker: top-right for an inbound bubble, top-left for
+            your own. That is where iMessage puts them, and it is why they
+            read as attached TO the message.
+
+            They previously sat in the column below the bubble, which left a
+            large chip floating in the gap between the message and its
+            timestamp — visually closer to the next message than to the one it
+            belonged to. Absolute here, so they add no height and cannot push
+            the meta row around.
+
+            The ring is the page background rather than a border colour, so the
+            chip punches a clean hole in the bubble edge instead of looking
+            like a sticker laid on top. */}
+        {reactions && reactions.counts.length > 0 && (
+          <div
+            className={`absolute -top-3 z-10 flex items-center gap-0.5 ${mine ? "-left-1.5" : "-right-1.5"}`}
+          >
+            {reactions.counts.map(({ emoji, count }) => {
+              const isMine = reactions.mine === emoji;
+              return (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => onReact?.(m.id, emoji)}
+                  disabled={!onReact}
+                  aria-label={isMine ? `Remove your ${emoji} reaction` : `React with ${emoji}`}
+                  aria-pressed={isMine}
+                  className="inline-flex items-center gap-0.5 rounded-full px-1 py-[2px] text-ds-10 leading-none transition-transform active:scale-90 disabled:active:scale-100"
+                  style={{
+                    // Always a light chip. Two earlier passes got this wrong
+                    // in opposite directions: first a page-coloured ring that
+                    // read as a pale disc with a heart lost inside it, then a
+                    // solid bark fill for your OWN reaction, which turned a
+                    // 20px accent into the darkest object on the screen.
+                    // The emoji is the content — the chip is just the card it
+                    // sits on, and "mine" is worth a tinted ring, not a
+                    // different silhouette.
+                    background: "hsl(var(--ivory-sand))",
+                    border: `0.5px solid ${isMine ? "hsl(var(--bark) / 0.55)" : "hsl(var(--olivewood) / 0.16)"}`,
+                    boxShadow: "0 1px 3px hsl(var(--olivewood) / 0.22)",
+                  }}
+                >
+                  <span>{emoji}</span>
+                  {/* Only show a number once more than one person has used it —
+                      a lone "1" next to every chip is noise. */}
+                  {count > 1 && (
+                    <span className="tabular-nums font-sans font-semibold text-ds-10" style={{ color: "hsl(var(--olivewood))" }}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {m.attachment_url && m.attachment_mime && (
           <MessageAttachment
             path={m.attachment_url}
@@ -227,41 +283,6 @@ export function MessageBubble({
         >
           {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
         </span>
-      )}
-      {/* Tapback chips — sit between the bubble and the meta row, on the
-          bubble's own side, so a reaction reads as belonging to that message
-          rather than to the conversation. Tapping a chip you're part of
-          removes your reaction, which makes the chip its own undo. */}
-      {reactions && reactions.counts.length > 0 && (
-        <div className={`flex items-center gap-1 mt-1 px-1 flex-wrap ${mine ? "justify-end" : "justify-start"}`}>
-          {reactions.counts.map(({ emoji, count }) => {
-            const isMine = reactions.mine === emoji;
-            return (
-              <button
-                key={emoji}
-                type="button"
-                onClick={() => onReact?.(m.id, emoji)}
-                disabled={!onReact}
-                aria-label={isMine ? `Remove your ${emoji} reaction` : `React with ${emoji}`}
-                aria-pressed={isMine}
-                className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-ds-11 leading-none transition-transform active:scale-90 disabled:active:scale-100"
-                style={{
-                  background: isMine ? "hsl(var(--bark) / 0.14)" : "hsl(var(--olivewood) / 0.08)",
-                  border: `0.5px solid ${isMine ? "hsl(var(--bark) / 0.40)" : "hsl(var(--olivewood) / 0.16)"}`,
-                }}
-              >
-                <span>{emoji}</span>
-                {/* Only show a number once more than one person has used it —
-                    a lone "1" next to every chip is noise. */}
-                {count > 1 && (
-                  <span className="tabular-nums font-sans font-semibold" style={{ color: "hsl(var(--olivewood))" }}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
       )}
       {/* Meta row — timestamp / read-receipt plus the report (inbound) or
           delete (own) affordance. Kept BELOW the bubble, never overlaid on

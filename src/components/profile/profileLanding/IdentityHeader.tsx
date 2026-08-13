@@ -460,7 +460,7 @@ export function IdentityHeader({
                 Earnings · last 6 weeks
               </p>
               <p className="text-ds-15 font-bold leading-tight mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
-                ${Number(formatPrice(totalEarnings)).toLocaleString()}
+                ${formatPrice(totalEarnings)}
                 <span className="ml-1.5 text-ds-10 font-medium text-muted-foreground">total</span>
               </p>
             </div>

@@ -105,40 +105,6 @@ export function ChatComposer({
         />
       )}
 
-      {/* Quick replies — the single quick-reply system for a thread
-          that already has messages. `FirstMessageChips` (above) owns
-          the empty-thread starter prompts; once there's a real
-          message, `QuickReplies` takes over. Most chips populate the
-          composer; the status-aware smart-reply chips ("On my way",
-          "Running 5 min late", "Done", from #15) fire on tap so an
-          active-job logistics update is one tap, not three.
-          `jobStatus` drives which smart-reply set (if any) is
-          prepended.
-
-          Suppressed when the user typed the last real message (they
-          already spoke) or is currently composing (draft has content)
-          — no reply nudge is needed in those moments. */}
-      {(() => {
-        const realMessages = messages.filter((m) => !m.is_system);
-        // Empty thread → FirstMessageChips handles it; don't stack
-        // QuickReplies on top of the starter prompts.
-        if (realMessages.length === 0) return null;
-        const lastReal = realMessages[realMessages.length - 1];
-        const userSentLast = lastReal?.sender_id === userId;
-        if (draft.trim() || userSentLast) return null;
-
-        return (
-          <div className="pb-1">
-            <QuickReplies
-              onSelect={(msg) => setDraft(msg)}
-              onSend={(msg) => { void sendMessage(msg); }}
-              audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
-              jobStatus={activeConvo.jobStatus}
-            />
-          </div>
-        );
-      })()}
-
       {/* Reply strip — the quoted message sits directly above the input, so
           what you are answering is visible while you type it. Dismissible,
           because deciding mid-sentence not to make it a reply is common. */}
@@ -168,6 +134,27 @@ export function ChatComposer({
       )}
 
       <RichMessageInput
+        // Quick replies live in the "+" sheet now, not in their own strip
+        // above the input — the third chip was permanently clipped mid-word by
+        // the scroll fade, and iPhone keeps this class of shortcut one tap
+        // deeper. Same gating as before: suppressed on an empty thread
+        // (FirstMessageChips owns that moment), when the user typed the last
+        // real message, or while they are mid-draft.
+        quickReplies={(() => {
+          const realMessages = messages.filter((m) => !m.is_system);
+          if (realMessages.length === 0) return null;
+          const lastReal = realMessages[realMessages.length - 1];
+          if (draft.trim() || lastReal?.sender_id === userId) return null;
+          return (
+            <QuickReplies
+              onSelect={(msg) => setDraft(msg)}
+              onSend={(msg) => { void sendMessage(msg); }}
+              audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
+              jobStatus={activeConvo.jobStatus}
+              wrap
+            />
+          );
+        })()}
         value={draft}
         onChange={setDraft}
         onSend={async (content, attachment) => {

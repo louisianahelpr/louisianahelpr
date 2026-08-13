@@ -1,4 +1,4 @@
-import { Paperclip, Camera, Image as ImageIcon, FilePlus2 } from "lucide-react";
+import { Plus, Camera, Image as ImageIcon, FilePlus2, MapPin, AudioLines } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +12,13 @@ interface AttachSourceSheetProps {
   onPickCamera: () => void;
   onPickLibrary: () => void;
   onPickFiles: () => void;
+  /** Share current location — moved here when the composer collapsed to "+". */
+  onShareLocation: () => void;
+  /** Start a voice note — likewise moved in from the composer row. */
+  onRecordVoiceNote: () => void;
+  voiceNoteDisabled?: boolean;
+  /** Job quick-replies, shown above the send-something actions. */
+  quickReplies?: React.ReactNode;
 }
 
 /**
@@ -22,15 +29,29 @@ interface AttachSourceSheetProps {
  */
 export const AttachSourceSheet = ({
   open, onOpenChange, onPickCamera, onPickLibrary, onPickFiles,
+  onShareLocation, onRecordVoiceNote, voiceNoteDisabled = false, quickReplies,
 }: AttachSourceSheetProps) => {
+  // Wrap each action so picking one closes the sheet — otherwise it stays
+  // open behind the OS picker / permission prompt it just triggered.
+  const pick = (fn: () => void) => () => { onOpenChange(false); fn(); };
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-w-md mx-auto rounded-t-2xl">
         <SheetHero
-          eyebrow={<><Paperclip className="w-3 h-3" /> Send an attachment</>}
+          eyebrow={<><Plus className="w-3 h-3" /> Add to this message</>}
           eyebrowClassName="inline-flex items-center gap-1.5"
-          title="Where from?"
+          title="What are you sending?"
         />
+        {/* Quick replies first — they are the likeliest reason to open this
+            sheet mid-job ("on my way", "running late"), and unlike the
+            attachment sources they SEND on tap rather than opening a picker.
+            Separated by a rule so the two halves don't read as one menu. */}
+        {quickReplies && (
+          <div className="mt-4">
+            <div onClick={() => onOpenChange(false)}>{quickReplies}</div>
+            <div className="mt-4 h-px" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
+          </div>
+        )}
         <div className="mt-4 grid grid-cols-3 gap-2">
           <button
             type="button"
@@ -96,6 +117,35 @@ export const AttachSourceSheet = ({
             </div>
             <span className="font-sans text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
               Files
+            </span>
+          </button>
+        </div>
+        {/* Location and voice note — the two controls that used to have their
+            own buttons in the composer row. Second row rather than squeezed
+            into the three-up grid above, because those three answer "where
+            does the FILE come from?" and these two are not files at all. */}
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={pick(onShareLocation)}
+            className="flex items-center gap-2.5 px-3 py-3 rounded-ds-md transition-colors hover:bg-secondary/40"
+            style={{ background: "var(--surface-premium)", border: "0.5px solid hsl(var(--olivewood) / 0.14)" }}
+          >
+            <MapPin className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
+            <span className="text-ds-12 font-sans font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+              Location
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={pick(onRecordVoiceNote)}
+            disabled={voiceNoteDisabled}
+            className="flex items-center gap-2.5 px-3 py-3 rounded-ds-md transition-colors hover:bg-secondary/40 disabled:opacity-40 disabled:pointer-events-none"
+            style={{ background: "var(--surface-premium)", border: "0.5px solid hsl(var(--olivewood) / 0.14)" }}
+          >
+            <AudioLines className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
+            <span className="text-ds-12 font-sans font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+              Voice note
             </span>
           </button>
         </div>

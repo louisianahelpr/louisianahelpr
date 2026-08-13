@@ -7,6 +7,21 @@ require "shellwords"
 require "tmpdir"
 require "yaml"
 
+# Force UTF-8 regardless of the shell's locale.
+#
+# `sync_metadata_to_xcode!` reads capacitor.config.ts and the metadata files and
+# gsub!s them. Those files contain em-dashes and curly quotes (brand copy), so
+# when LANG/LC_ALL are unset — which is normal for non-interactive shells, cron
+# and most CI runners — Ruby picks US-ASCII as the external encoding and the
+# gsub! dies with "invalid byte sequence in US-ASCII" before anything is built.
+#
+# Observed 2026-08-13: `bundle exec fastlane ios beta` failed at Fastfile:199 on
+# a machine with an empty LANG. Setting the env var at the call site fixes that
+# invocation and nothing else, so it is set here instead — every lane, every
+# runner, whether or not the caller remembered.
+Encoding.default_external = Encoding::UTF_8
+Encoding.default_internal = Encoding::UTF_8
+
 # Helpr — iOS App Store automation
 # Local: bundle exec fastlane ios beta | release
 # CI:    invoked by .github/workflows/deploy.yml

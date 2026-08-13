@@ -45,7 +45,8 @@ function SwipeableConversationRowBase({
   // Archive trail (left swipe → negative x): sienna gradient
   const archiveOpacity = useTransform(x, [-160, -40, 0], [1, 0.55, 0]);
   const archiveScale = useTransform(x, [-160, -80, 0], [1.15, 0.85, 0.5]);
-  // Pin trail (right swipe → positive x): gold-warm gradient
+  // Pin trail (right swipe → positive x). Was a gold-warm gradient; gold is
+  // reserved for prestige (P1), so the trail now uses the bark accent below.
   const pinOpacity = useTransform(x, [0, 40, 160], [0, 0.55, 1]);
   const pinScale = useTransform(x, [0, 80, 160], [0.5, 0.85, 1.15]);
   const [dragging, setDragging] = useState(false);

@@ -17,9 +17,10 @@
  * - Honors `useReducedMotion()`: no particle confetti, no scale
  *   spring; just a flat fade. The card still auto-dismisses.
  *
- * Brand tokens (gold-warm, bark, burnt-sienna) are CSS variables in
+ * Brand tokens (bark, burnt-sienna, olivewood) are CSS variables in
  * `src/index.css`, NOT in tailwind theme.colors. Use the hsl(var(...))
- * form, never bare class names like `bg-gold-warm`.
+ * form, never bare class names like `bg-bark`. This screen deliberately
+ * carries NO gold: a payout is not a prestige signal (P1).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";

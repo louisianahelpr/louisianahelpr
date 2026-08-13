@@ -98,7 +98,6 @@ const DS_TYPE_INLINE_LEGACY = [
   "src/components/landing/HeroSection.tsx",
   "src/components/messages/ChatHeader.tsx",
   "src/components/messages/ConversationList.tsx",
-  "src/components/messages/ConversationRow.tsx",
   "src/components/messages/chatView/ChatTimeline.tsx",
   "src/components/payment/EscrowFlowExplainer.tsx",
   "src/components/postjob/AiJobBuilder.tsx",

@@ -431,7 +431,7 @@ const ProfilePage = () => {
       contentClassName="overflow-hidden"
       className="bg-premium-page"
     >
-      <div className="container mx-auto px-5 lg:px-8 xl:px-12 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" style={{ paddingTop: "var(--safe-area-top, 0px)" }}>
+      <div className="container mx-auto px-5 lg:px-8 xl:px-12 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" style={{ paddingTop: "calc(var(--safe-area-top, 0px) + 0.75rem)" }}>
         {tab === "landing" ? (
           /* Landing scrolls inside a PullToRefreshWrapper so swiping
              down re-syncs the profile, Stripe status, stats + reviews. */

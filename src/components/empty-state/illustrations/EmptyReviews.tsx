@@ -1,3 +1,35 @@
+/**
+ * Five-star row for the empty reviews state.
+ *
+ * Every star is the SAME path translated by 22px, generated from one template
+ * rather than hand-written five times. The previous version was written out by
+ * hand and two of the five were wrong: the first was a 14-vertex blob that did
+ * not resolve into a star at all (it read as a torn shape overlapping the row),
+ * and the last was truncated against the right edge of the viewBox, so its
+ * outer point folded inward. Both are visible at the size this renders.
+ *
+ * The leading star is filled to read as "the first one you'll earn"; the rest
+ * are outlines.
+ */
+const STAR_XS = [4, 26, 48, 70, 92] as const;
+
+/** One five-pointed star, top-left anchored at (x, 36). */
+function starPath(x: number): string {
+  return [
+    `M${x} 58`,
+    `L${x + 4} 50`,
+    `L${x} 44`,
+    `L${x + 8} 44`,
+    `L${x + 12} 36`,
+    `L${x + 16} 44`,
+    `L${x + 24} 44`,
+    `L${x + 18} 50`,
+    `L${x + 20} 58`,
+    `L${x + 12} 54`,
+    "Z",
+  ].join(" ");
+}
+
 export function EmptyReviews({ className }: { className?: string }) {
   return (
     <svg
@@ -10,11 +42,14 @@ export function EmptyReviews({ className }: { className?: string }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M16 60 L22 54 L20 46 L26 42 L24 34 L32 34 L34 26 L40 30 L46 26 L48 34 L42 40 L44 48 L36 46 L30 52 L26 60 Z" fill="currentColor" fillOpacity="0.15" />
-      <path d="M30 58 L34 50 L30 44 L38 44 L42 36 L46 44 L54 44 L48 50 L50 58 L42 54 Z" />
-      <path d="M52 58 L56 50 L52 44 L60 44 L64 36 L68 44 L76 44 L70 50 L72 58 L64 54 Z" />
-      <path d="M74 58 L78 50 L74 44 L82 44 L86 36 L90 44 L98 44 L92 50 L94 58 L86 54 Z" />
-      <path d="M96 58 L100 50 L96 44 L104 44 L108 36 L112 44 L116 44 L112 50 L114 58 L108 54 Z" />
+      {STAR_XS.map((x, i) => (
+        <path
+          key={x}
+          d={starPath(x)}
+          fill={i === 0 ? "currentColor" : "none"}
+          fillOpacity={i === 0 ? 0.15 : undefined}
+        />
+      ))}
     </svg>
   );
 }

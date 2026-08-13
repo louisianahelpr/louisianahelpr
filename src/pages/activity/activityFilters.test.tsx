@@ -100,7 +100,10 @@ describe("Activity — the Active bucket", () => {
     expect(appliedCounts.pending).toBe(1);
     expect(appliedCounts.in_progress).toBe(1);
     expect(appliedCounts.not_selected).toBe(1);
-    expect(appliedCounts.all).toBe(3);
+    // "All" deliberately EXCLUDES not-selected (b7576a36) — a rejected
+    // application is not something you still have. So 3 applications, 2 in
+    // All. This assertion said 3 and was left behind when that changed.
+    expect(appliedCounts.all).toBe(2);
   });
 
   it("goes empty when every application has settled — with the others still counted", () => {

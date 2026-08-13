@@ -30,6 +30,29 @@ if (typeof document !== "undefined") {
 export async function initNative() {
   if (!isNativePlatform) return;
 
+  // Pinch-zoom off — NATIVE ONLY.
+  //
+  // A packaged app that zooms doesn't read as an app: the whole UI scales,
+  // the fixed nav dock and headers scale with it, and there is no obvious way
+  // back to 100%. No native iOS app does this.
+  //
+  // Deliberately NOT done in index.html's viewport tag, because that tag also
+  // serves the website, and `user-scalable=no` there would break WCAG 1.4.4
+  // (text must reach 200%). A low-vision visitor on louisianahelpr.com keeps
+  // full zoom; only the WKWebView shell loses it.
+  //
+  // This is the narrow "true native capability" exception to the rule that the
+  // phone website and the app are one surface — it changes no layout, no nav
+  // and no behaviour, only whether the OS gesture is allowed.
+  const viewport = document.querySelector('meta[name="viewport"]');
+  if (viewport) {
+    viewport.setAttribute(
+      "content",
+      "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, " +
+        "viewport-fit=cover, interactive-widget=resizes-content",
+    );
+  }
+
   await clearNativeWebCaches();
 
   // Initialize @capgo/capacitor-social-login so the Apple/Google sign-in

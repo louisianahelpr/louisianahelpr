@@ -38,7 +38,10 @@ export interface ProfileCompletion {
   nextLabel: string | null;
 }
 
-const IDV_DONE_STATUSES = ["verified", "pending", "processing", "manual_review"];
+// Kept for callers that still ask whether IDV is settled; the completion
+// checklist no longer uses it (verification is gated at first post / first
+// accepted job, not a profile to-do).
+export const IDV_DONE_STATUSES = ["verified", "pending", "processing", "manual_review"];
 
 /**
  * Compute profile completion from whatever values the caller has on
@@ -58,12 +61,27 @@ export function getProfileCompletion(input: {
    */
   core?: boolean[];
 }): ProfileCompletion {
-  const items: ProfileCompletionItem[] = [
-    { label: "ZIP code", done: !!input.zipCode && String(input.zipCode).trim().length > 0 },
-    { label: "ID verified", done: !!input.idvStatus && IDV_DONE_STATUSES.includes(input.idvStatus) },
-    { label: "Work photos", done: (input.portfolioCount ?? 0) > 0 },
-  ];
-  const core = input.core ?? [];
+  // The checklist was wrong on all three rows, so it is now empty by default.
+  //
+  //  • ZIP code is collected at SIGNUP, so listing it told an onboarded user to
+  //    add something they already gave us. It now counts as a core field.
+  //  • ID verification is gated at the first post or first accepted job — not
+  //    a profile chore. Nagging for it on day one asks people to verify before
+  //    they have decided to use the product, and made "Verify ID" look
+  //    outstanding for accounts that will never need it.
+  //  • Work photos are OPTIONAL. An optional extra must not sit in a list
+  //    titled "Finish your profile" or count against a completion percentage —
+  //    that is how a finished profile reported 70%.
+  //
+  // What is left is nothing, which is the honest answer for a normally
+  // onboarded account: the card hides and the meter reads 100%. If a genuinely
+  // required post-signup step is ever added, it goes here.
+  const items: ProfileCompletionItem[] = [];
+
+  // ZIP joins the core set: required at signup, so it belongs in the
+  // percentage rather than the to-do list.
+  const zipDone = !!input.zipCode && String(input.zipCode).trim().length > 0;
+  const core = [...(input.core ?? []), zipDone];
   // `pct` / `done` / `total` span core + enhancements; `items` (the
   // visible checklist) stays scoped to the actionable enhancements.
   const enhancementsDone = items.filter((i) => i.done).length;

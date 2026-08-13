@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { MessageSquare, Pin, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { PageScaffold } from "@/components/ui/PageScaffold";
@@ -303,7 +302,7 @@ export function ConversationList({
               clean panel. */}
           {!isEmpty && (
             <div
-              className="shrink-0 flex items-center justify-end gap-3 px-4 py-2"
+              className="shrink-0 flex items-center justify-between gap-3 px-4 py-2.5"
               style={{ borderBottom: searchOpen ? "none" : "1px solid hsl(var(--olivewood) / 0.1)" }}
             >
               {/* Select mode keeps its live "N/3 selected" counter here. Out of
@@ -323,7 +322,26 @@ export function ConversationList({
                   `justify-end`, so the controls sit deliberately at the edge
                   with nothing pretending to balance them. The state worth
                   stating — how many threads are waiting on you — moved up into
-                  the header as "Messages / 2 unread". */}
+                  the header as "Messages / 2 unread".
+
+                  That header is now gone too (owner decision: no top nav on
+                  these screens), so both come back down here — the page name
+                  as the panel's only heading, the unread count beneath it.
+                  Omitted at zero: a caught-up inbox should say nothing rather
+                  than report an absence. */}
+              <div className="flex flex-col min-w-0 gap-0.5">
+                <h1 className="font-display font-bold text-foreground text-ds-15 truncate m-0 leading-none">
+                  Messages
+                </h1>
+                {headerSubtitle && (
+                  <span
+                    className="font-serif italic text-ds-11 truncate leading-none"
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                  >
+                    {headerSubtitle}
+                  </span>
+                )}
+              </div>
 
               <div className="flex items-center gap-1 shrink-0">
                 {!selectMode && (
@@ -671,7 +689,7 @@ export function ConversationList({
     // passes it; only this branch was missed). Phone web and the iOS app are
     // the same surface, so that was the shipped app's inbox announcing no
     // page heading to VoiceOver.
-    <PageScaffold header={<DashboardHeader titleAs="h1" title="Messages" subtitle={headerSubtitle} />}>
+    <PageScaffold>
       {listBody}
     </PageScaffold>
   );

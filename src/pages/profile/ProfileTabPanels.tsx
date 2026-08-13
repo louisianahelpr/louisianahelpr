@@ -35,6 +35,7 @@ const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m
 const CredentialsTab = lazy(() => import("@/components/profile/CredentialsTab").then(m => ({ default: m.CredentialsTab })));
 const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
 const NotificationPreferences = lazy(() => import("@/components/NotificationPreferences"));
+const AccessibilityTab = lazy(() => import("@/components/profile/AccessibilityTab").then(m => ({ default: m.AccessibilityTab })));
 const ReferralSection = lazy(() => import("@/components/ReferralSection"));
 
 const TabFallback = () => (
@@ -98,6 +99,8 @@ export interface ProfileTabPanelsProps {
   totalEarnings: number;
   avgRating: number | null;
   reviewCount: number;
+  seniorMode: boolean;
+  onToggleSeniorMode?: (enabled: boolean) => void;
 }
 
 /**
@@ -150,6 +153,8 @@ export const ProfileTabPanels = ({
   totalEarnings,
   avgRating,
   reviewCount,
+  seniorMode,
+  onToggleSeniorMode,
 }: ProfileTabPanelsProps) => {
   return (
     <>
@@ -277,6 +282,16 @@ export const ProfileTabPanels = ({
       {tab === "saved_helpers" && (
         <Suspense fallback={<TabFallback />}>
           <SavedHelpersTab onBack={() => setTab("landing")} />
+        </Suspense>
+      )}
+
+      {tab === "accessibility" && (
+        <Suspense fallback={<TabFallback />}>
+          <AccessibilityTab
+            seniorMode={seniorMode}
+            onToggleSeniorMode={onToggleSeniorMode}
+            onBack={() => setTab("landing")}
+          />
         </Suspense>
       )}
 

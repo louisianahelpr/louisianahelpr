@@ -1,5 +1,5 @@
 // Profile stats trend — small Recharts area chart showing jobs
-// completed + dollars earned over a chosen window (30d / 90d / 12mo).
+// completed + dollars earned/spent over a chosen window (30d / 90d / 12mo).
 //
 // Lives inside a collapsed disclosure on the Profile landing's hero
 // trust strip so it doesn't push everything else down the page on a
@@ -28,6 +28,7 @@ interface ProfileStatsTrendProps {
 interface JobRow {
   id: string;
   helper_id: string | null;
+  customer_id: string | null;
   status: string;
   budget: number;
   platform_fee_amount: number | null;
@@ -36,6 +37,7 @@ interface JobRow {
   is_group_job: boolean | null;
   urgent_fee: number | null;
   helper_completed_at: string | null;
+  poster_completed_at: string | null;
   created_at: string;
 }
 
@@ -52,16 +54,13 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
   const { data: jobs = [], isLoading } = useQuery<JobRow[]>({
     queryKey: ["profile", "statsTrend", helperId],
     queryFn: async () => {
-      // 12 months of completed-job rows is a reasonable upper bound
-      // for the most-zoomed window; the in-component aggregator slices
-      // it down per the active window.
       const since = new Date();
       since.setMonth(since.getMonth() - 12);
       const { data, error } = await supabase
         .from("jobs")
-        .select("id, helper_id, status, budget, platform_fee_amount, helper_fee_percent, helpers_needed, is_group_job, urgent_fee, helper_completed_at, created_at")
-        .eq("helper_id", helperId)
+        .select("id, helper_id, customer_id, status, budget, platform_fee_amount, helper_fee_percent, helpers_needed, is_group_job, urgent_fee, helper_completed_at, poster_completed_at, created_at")
         .eq("status", "completed")
+        .or(`helper_id.eq.${helperId},customer_id.eq.${helperId}`)
         .gte("created_at", since.toISOString())
         .order("created_at", { ascending: true });
       if (error) return [];
@@ -72,8 +71,6 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
     gcTime: 10 * 60_000,
   });
 
-  // Bucket the rows into the appropriate granularity for the window
-  // chosen — 30d → daily, 90d → weekly, 12mo → monthly.
   const data = useMemo(() => {
     const now = new Date();
     let bucketCount: number;
@@ -90,19 +87,17 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
       labelFmt = (d) => d.toLocaleDateString("en-US", { month: "short" });
     }
 
-    const buckets: { label: string; bucketStart: number; jobs: number; earned: number }[] = [];
+    const buckets: { label: string; bucketStart: number; jobs: number; earned: number; spent: number }[] = [];
     for (let i = bucketCount - 1; i >= 0; i--) {
       const start = now.getTime() - i * bucketSizeMs;
       const d = new Date(start);
-      buckets.push({ label: labelFmt(d), bucketStart: start, jobs: 0, earned: 0 });
+      buckets.push({ label: labelFmt(d), bucketStart: start, jobs: 0, earned: 0, spent: 0 });
     }
 
     jobs.forEach((j) => {
-      const t = j.helper_completed_at
-        ? new Date(j.helper_completed_at).getTime()
-        : new Date(j.created_at).getTime();
+      const rawTs = j.poster_completed_at ?? j.helper_completed_at ?? j.created_at;
+      const t = new Date(rawTs).getTime();
       if (t < buckets[0].bucketStart - bucketSizeMs) return;
-      // Find the rightmost bucket whose start <= t.
       let idx = -1;
       for (let i = 0; i < buckets.length; i++) {
         if (t >= buckets[i].bucketStart - bucketSizeMs / 2 && t < buckets[i].bucketStart + bucketSizeMs / 2) {
@@ -112,16 +107,25 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
       }
       if (idx === -1 && t >= buckets[buckets.length - 1].bucketStart) idx = buckets.length - 1;
       if (idx === -1) return;
-      buckets[idx].jobs += 1;
-      buckets[idx].earned += helperTakeHomeDollars(j, feeFallbackPercent);
+
+      if (j.helper_id === helperId) {
+        buckets[idx].jobs += 1;
+        buckets[idx].earned += helperTakeHomeDollars(j, feeFallbackPercent);
+      }
+      if (j.customer_id === helperId) {
+        buckets[idx].spent += j.budget;
+      }
     });
 
     return buckets.map((b) => ({
       label: b.label,
       jobs: b.jobs,
       earned: Math.round(b.earned * 100) / 100,
+      spent: Math.round(b.spent * 100) / 100,
     }));
-  }, [jobs, win, feeFallbackPercent]);
+  }, [jobs, win, feeFallbackPercent, helperId]);
+
+  const isEmpty = data.every((d) => d.jobs === 0 && d.earned === 0 && d.spent === 0);
 
   return (
     <div
@@ -151,8 +155,6 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
 
       {open && (
         <div className="mt-3 space-y-2">
-          {/* Window segmented control — uses the same look as the
-              Subscription billing pills so it reads as native chrome. */}
           <div
             className="flex items-center gap-0.5 p-0.5 rounded-full"
             style={{
@@ -197,21 +199,25 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
               <div className="h-[120px] flex items-center justify-center">
                 <Skeleton className="h-3 w-32 rounded" />
               </div>
-            ) : data.every((d) => d.jobs === 0 && d.earned === 0) ? (
+            ) : isEmpty ? (
               <p
                 className="font-serif italic text-center py-6"
                 style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                No completed jobs in the last {WINDOW_LABEL[win]}.
+                No activity in the last {WINDOW_LABEL[win]}.
               </p>
             ) : (
               <div className="h-[120px] w-full">
                 <ResponsiveContainer width="100%" height="100%" minHeight={120}>
                   <AreaChart data={data} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="profileStatsFill" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="profileStatsEarnedFill" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="hsl(20, 60%, 50%)" stopOpacity={0.35} />
                         <stop offset="100%" stopColor="hsl(20, 60%, 50%)" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="profileStatsSpentFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--stormy-sky))" stopOpacity={0.22} />
+                        <stop offset="100%" stopColor="hsl(var(--stormy-sky))" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke="hsl(var(--olivewood))" strokeOpacity={0.06} vertical={false} />
@@ -233,7 +239,9 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
                       formatter={(value, key) =>
                         String(key) === "earned"
                           ? [`$${Number(value).toFixed(2)}`, "Earned"]
-                          : [String(value), "Jobs"]
+                          : String(key) === "spent"
+                            ? [`$${Number(value).toFixed(2)}`, "Spent"]
+                            : [String(value), "Jobs"]
                       }
                       contentStyle={{
                         background: "hsl(var(--ivory-sand) / 0.95)",
@@ -244,10 +252,17 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
                     />
                     <Area
                       type="monotone"
+                      dataKey="spent"
+                      stroke="hsl(var(--stormy-sky))"
+                      strokeWidth={1.5}
+                      fill="url(#profileStatsSpentFill)"
+                    />
+                    <Area
+                      type="monotone"
                       dataKey="earned"
                       stroke="hsl(20, 60%, 50%)"
                       strokeWidth={2}
-                      fill="url(#profileStatsFill)"
+                      fill="url(#profileStatsEarnedFill)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>

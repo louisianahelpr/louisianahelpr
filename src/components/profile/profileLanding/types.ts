@@ -58,10 +58,6 @@ export interface ProfileLandingProps {
   onRetryStats?: () => void;
   /** Retries just the review-preview sub-section. */
   onRetryReviews?: () => void;
-  /** Whether senior mode is currently enabled for this profile. */
-  seniorMode?: boolean;
-  /** Called when the user toggles senior mode on/off. */
-  onToggleSeniorMode?: (enabled: boolean) => void;
   /**
    * Last-6-weeks take-home earnings, oldest → newest, for the header
    * sparkline teaser. `null` (not enough signal) hides the teaser.

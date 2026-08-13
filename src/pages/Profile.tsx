@@ -470,8 +470,6 @@ const ProfilePage = () => {
               onRetryReviews={() => { reviewsQuery.refetch(); }}
               earningsSparkline={earningsSparkline}
               totalEarnings={totalEarnings}
-              seniorMode={seniorMode}
-              onToggleSeniorMode={handleToggleSeniorMode}
             />
           </PullToRefreshWrapper>
         ) : (
@@ -529,6 +527,8 @@ const ProfilePage = () => {
             totalEarnings={totalEarnings}
             avgRating={avgRating}
             reviewCount={reviewCount}
+            seniorMode={seniorMode}
+            onToggleSeniorMode={handleToggleSeniorMode}
           />
           </div>
           </SectionBoundary>

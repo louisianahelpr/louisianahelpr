@@ -1,4 +1,3 @@
-import { useDarkMode } from "@/hooks/useDarkMode";
 import type { ProfileLandingProps } from "./profileLanding/types";
 import { useProfileLandingDerived } from "./profileLanding/useProfileLandingDerived";
 import { useIntroVideoUpload } from "./profileLanding/useIntroVideoUpload";
@@ -26,13 +25,9 @@ export function ProfileLanding({
   reviewsPreview = [],
   reviewsError = false,
   onRetryReviews,
-  seniorMode = false,
-  onToggleSeniorMode,
   earningsSparkline = null,
   totalEarnings = 0,
 }: ProfileLandingProps) {
-  const { theme, setTheme } = useDarkMode();
-
   const { videoUploading, handleVideoUpload } = useIntroVideoUpload(profile);
   const { qrOpen, setQrOpen, qrDataUrl } = useProfileQrCode(profile);
 
@@ -110,12 +105,8 @@ export function ProfileLanding({
         menuGroups={menuGroups}
         onSelectTab={onSelectTab}
         onNavigate={onNavigate}
-        seniorMode={seniorMode}
-        onToggleSeniorMode={onToggleSeniorMode}
         onRequestLogout={onRequestLogout}
         onRequestDelete={onRequestDelete}
-        theme={theme}
-        setTheme={setTheme}
       />
 
       {/* ── QR code modal ─────────────────────────────────────────────── */}

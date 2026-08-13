@@ -153,9 +153,8 @@ export function useProfileLandingDerived({
           key: "accessibility",
           label: "Accessibility",
           icon: <Type className="w-5 h-5" />,
-          desc: "Simple Mode — larger text and buttons",
+          desc: "Color mode, Senior mode & display options",
           tint: "var(--bark)",
-          href: "/accessibility",
         },
         {
           key: "family",

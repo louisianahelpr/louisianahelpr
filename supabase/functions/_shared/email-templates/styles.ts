@@ -37,9 +37,23 @@ export const brand = {
 } as const
 
 /**
- * Wordmark face. Bodoni Moda is the app's display family; mail clients can't be
- * relied on to load webfonts, so the stack degrades through Didot → Times →
- * Georgia, which all keep the high-contrast Didone silhouette.
+ * Wordmark face — NO LONGER USED FOR THE WORDMARK ITSELF (Q1).
+ *
+ * The templates used to render "Helpr" as live text in this stack. There is no
+ * @font-face and there usefully cannot be one: Gmail strips webfonts and
+ * Outlook desktop ignores them, so the fallback chain decided the brand. On a
+ * Mac it landed on Didot and looked close; on Gmail for Android and on Windows
+ * — very likely most recipients — it landed on Times New Roman. The single
+ * brand element in every transactional email, and the main thing separating an
+ * approval notice from a phishing attempt, rendered as the default word
+ * -processor serif.
+ *
+ * All eleven wordmarks are now <img> tags pointing at /helpr-wordmark.png with
+ * alt="Louisiana Helpr", which is standard email practice and also settles P3
+ * (the alt text is the full name, not the short one).
+ *
+ * This stack is kept for genuine display TEXT inside a template, where a serif
+ * fallback is acceptable because the words are content rather than logo.
  */
 export const displayFontStack =
   "'Bodoni Moda', Didot, 'Times New Roman', Georgia, serif"

@@ -75,7 +75,7 @@ function renderNotificationEmail(title: string, message: string, link: string | 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:0">
 <div style="padding:32px 28px;max-width:480px;margin:0 auto">
-  <p style="font-size:28px;font-weight:bold;color:#5E6544;margin:0 0 24px;font-family:'Bodoni Moda',Didot,'Times New Roman',Georgia,serif">Helpr</p>
+  <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
   <h1 style="font-size:20px;font-weight:bold;color:#23231A;margin:0 0 12px">${safeTitle}</h1>
   <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 8px">Hey ${safeUser},</p>
   <p style="font-size:15px;color:#5E5F4E;line-height:1.6;margin:0 0 20px">${safeMessage}</p>

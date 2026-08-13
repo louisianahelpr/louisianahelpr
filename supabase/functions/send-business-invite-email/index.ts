@@ -46,7 +46,7 @@ function renderEmail(opts: { businessName: string; inviterName: string; signupUr
 <html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
 <body style="background:#F0F2F4;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px;color:#2E2F22;">
   <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:14px;padding:32px 28px;border:1px solid #E3E4DD;">
-    <p style="font-size:28px;line-height:1;margin:0 0 24px;font-weight:700;color:#5E6544;font-family:'Bodoni Moda',Didot,'Times New Roman',Georgia,serif;">Helpr</p>
+    <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
     <h1 style="font-size:22px;font-weight:700;margin:0 0 16px;line-height:1.3;">You've been invited to join ${businessName}</h1>
     <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#5E5F4E;">
       ${inviterName} added you to the <strong style="color:#2E2F22;">${businessName}</strong> team on Helpr. Once you sign up, you'll be able to post and manage jobs on behalf of the business.

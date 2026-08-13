@@ -12,7 +12,7 @@ function wrapEmail(content: string): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:0">
 <div style="padding:32px 28px;max-width:480px;margin:0 auto">
-  <p style="font-size:28px;font-weight:bold;color:#5E6544;margin:0 0 24px;font-family:'Bodoni Moda',Didot,'Times New Roman',Georgia,serif">Louisiana Helpr</p>
+  <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
   ${content}
   <p style="font-size:12px;color:#6A6F5D;margin:32px 0 0;padding:16px 0 0;border-top:1px solid #E3E4DD">
     You're receiving this because you signed up at ${ROOT_DOMAIN}.

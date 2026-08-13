@@ -149,7 +149,7 @@ function renderEmail(t: {
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
 <body style="background:#F0F2F4;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px;color:#2E2F22;">
   <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:14px;padding:32px 28px;border:1px solid #E3E4DD;">
-    <p style="font-size:28px;line-height:1;margin:0 0 24px;font-weight:700;color:#5E6544;font-family:'Bodoni Moda',Didot,'Times New Roman',Georgia,serif;">Helpr</p>
+    <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
     <h1 style="font-size:22px;font-weight:700;margin:0 0 4px;line-height:1.3;">[${topicLabel}] ${subject}</h1>
     <p style="font-size:13px;line-height:1.6;margin:0 0 24px;color:#6A6F5D;">Submitted from the public contact form.</p>
 

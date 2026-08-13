@@ -43,7 +43,7 @@ function wrapEmail(title: string, bodyHtml: string, ctaUrl?: string, ctaLabel?: 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
 <body style="background-color:#ffffff;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
-  <p style="font-size:28px;font-weight:bold;color:#5E6544;margin:0 0 24px;font-family:'Bodoni Moda',Didot,'Times New Roman',Georgia,serif">Helpr</p>
+  <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
   <h1 style="font-size:24px;font-weight:bold;color:#23231A;margin:0 0 16px">${title}</h1>
   ${bodyHtml}
   ${cta}

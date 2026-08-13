@@ -376,13 +376,18 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 className={`boosted-pulse ${corner}`}
                 aria-label="Boosted"
                 style={{
-                  color: "color-mix(in srgb, hsl(var(--gold-warm)) 60%, hsl(var(--ink-deep)) 40%)",
-                  background: "hsl(var(--gold-warm) / 0.16)",
-                  borderColor: "hsl(var(--gold-warm) / 0.5)",
+                  // --boost, not gold (P1). A --boost token already existed for
+                  // exactly this chip; painting it gold made a paid promotion
+                  // look identical to a Pro badge, which is why gold stopped
+                  // signalling status. 25° vs 38° — barely a shade apart, but
+                  // now the two mean different things.
+                  color: "hsl(var(--boost-ink))",
+                  background: "hsl(var(--boost-tint) / 0.16)",
+                  borderColor: "hsl(var(--boost-tint) / 0.5)",
                   letterSpacing: "0.05em",
                 }}
               >
-                <Rocket className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} style={{ color: "hsl(var(--gold-warm))", fill: "hsl(var(--gold-warm) / 0.35)" }} />
+                <Rocket className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }} />
                 Boosted
               </span>
             );

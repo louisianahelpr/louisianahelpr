@@ -84,7 +84,7 @@ const Footer = () => (
         <div className="sm:col-span-4 md:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--heritage-gold))" }}
+            style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             Company
           </h3>
@@ -132,7 +132,7 @@ const Footer = () => (
         <div className="sm:col-span-4 md:col-span-2">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--heritage-gold))" }}
+            style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             Legal
           </h3>
@@ -160,7 +160,7 @@ const Footer = () => (
         <div className="sm:col-span-4 md:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--heritage-gold))" }}
+            style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             Follow
           </h3>
@@ -236,8 +236,8 @@ const Footer = () => (
           <Heart
             className="w-3 h-3"
             style={{
-              color: "hsl(var(--heritage-gold))",
-              fill: "hsl(var(--heritage-gold))",
+              color: "hsl(var(--burnt-sienna))",
+              fill: "hsl(var(--burnt-sienna))",
             }}
           />{" "}
           for Louisiana communities

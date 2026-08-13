@@ -358,14 +358,16 @@ export function ApplicantsPanel({
                               const counterPrice = localState?.price ?? bidApp.counter_price;
                               const isCounterShowing = counterShowing === app.id;
 
-                              // Countered: poster already sent a price — show amber pill.
+                              // Countered: poster already sent a price — amber pill. This said
+// "amber" and painted --heritage-gold for the whole of its life;
+// the intent was always amber, gold was the accident (P1).
                               if (negotiationStatus === "countered") {
                                 return (
                                   <span
                                     className="inline-flex items-center gap-1 mt-0.5 text-ds-12 font-sans font-semibold px-2 py-0.5 rounded-full"
                                     style={{
-                                      background: "hsl(var(--heritage-gold) / 0.15)",
-                                      color: "hsl(var(--heritage-gold) / 0.85)",
+                                      background: "hsl(var(--amber-tint) / 0.15)",
+                                      color: "hsl(var(--amber-tint) / 0.85)",
                                     }}
                                   >
                                     Countered: ${formatPrice(counterPrice ?? 0)}
@@ -422,9 +424,9 @@ export function ApplicantsPanel({
                                       onClick={(e) => { e.stopPropagation(); setCounterShowing(app.id); }}
                                       className="inline-flex items-center gap-0.5 text-ds-11 font-sans font-semibold px-2 py-0.5 rounded-full active:opacity-70 transition-opacity"
                                       style={{
-                                        background: "hsl(var(--heritage-gold) / 0.12)",
-                                        color: "hsl(var(--heritage-gold) / 0.85)",
-                                        border: "0.5px solid hsl(var(--heritage-gold) / 0.30)",
+                                        background: "hsl(var(--amber-tint) / 0.12)",
+                                        color: "hsl(var(--amber-tint) / 0.85)",
+                                        border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
                                       }}
                                     >
                                       Counter
@@ -447,7 +449,7 @@ export function ApplicantsPanel({
                                         className="w-20 text-ds-12 font-sans rounded px-2 py-0.5 outline-none"
                                         style={{
                                           background: "var(--surface-premium)",
-                                          border: "0.5px solid hsl(var(--heritage-gold) / 0.45)",
+                                          border: "0.5px solid hsl(var(--amber-tint) / 0.45)",
                                           color: "hsl(var(--ink-deep))",
                                         }}
                                         autoFocus
@@ -461,9 +463,9 @@ export function ApplicantsPanel({
                                         }}
                                         className="text-ds-11 font-semibold px-2 py-0.5 rounded-full disabled:opacity-50"
                                         style={{
-                                          background: "hsl(var(--heritage-gold) / 0.18)",
-                                          color: "hsl(var(--heritage-gold) / 0.9)",
-                                          border: "0.5px solid hsl(var(--heritage-gold) / 0.40)",
+                                          background: "hsl(var(--amber-tint) / 0.18)",
+                                          color: "hsl(var(--amber-tint) / 0.9)",
+                                          border: "0.5px solid hsl(var(--amber-tint) / 0.40)",
                                         }}
                                       >
                                         {counterSending ? "…" : "Send"}

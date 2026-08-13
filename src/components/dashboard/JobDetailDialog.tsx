@@ -168,18 +168,18 @@ const JobDetailDialog = ({
                 className="boosted-shimmer boosted-pulse absolute -top-2 -right-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-9 font-bold uppercase tracking-wider"
                 style={{
                   color: "hsl(var(--amber-ink))",
-                  border: "0.5px solid hsl(var(--gold-warm) / 0.6)",
+                  border: "0.5px solid hsl(var(--boost-tint) / 0.6)",
                   boxShadow:
                     "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                    "inset 0 -1px 1px 0 hsl(var(--gold-warm) / 0.20), " +
-                    "0 1px 2px hsl(var(--gold-warm) / 0.20), " +
-                    "0 4px 10px -3px hsl(var(--gold-warm) / 0.34)",
+                    "inset 0 -1px 1px 0 hsl(var(--boost-tint) / 0.20), " +
+                    "0 1px 2px hsl(var(--boost-tint) / 0.20), " +
+                    "0 4px 10px -3px hsl(var(--boost-tint) / 0.34)",
                 }}
               >
                 <Rocket
                   className="w-2.5 h-2.5"
                   strokeWidth={2.25}
-                  style={{ color: "hsl(var(--gold-warm))", fill: "hsl(var(--gold-warm) / 0.35)" }}
+                  style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }}
                 />
                 Boosted
               </span>
@@ -312,15 +312,15 @@ const JobDetailDialog = ({
               className="boosted-shimmer boosted-pulse absolute -top-2 -right-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-9 font-bold uppercase tracking-wider"
               style={{
                 color: "hsl(var(--amber-ink))",
-                border: "0.5px solid hsl(var(--gold-warm) / 0.6)",
+                border: "0.5px solid hsl(var(--boost-tint) / 0.6)",
                 boxShadow:
                   "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                  "inset 0 -1px 1px 0 hsl(var(--gold-warm) / 0.20), " +
-                  "0 1px 2px hsl(var(--gold-warm) / 0.20), " +
-                  "0 4px 10px -3px hsl(var(--gold-warm) / 0.34)",
+                  "inset 0 -1px 1px 0 hsl(var(--boost-tint) / 0.20), " +
+                  "0 1px 2px hsl(var(--boost-tint) / 0.20), " +
+                  "0 4px 10px -3px hsl(var(--boost-tint) / 0.34)",
               }}
             >
-              <Rocket className="w-2.5 h-2.5" strokeWidth={2.25} style={{ color: "hsl(var(--gold-warm))", fill: "hsl(var(--gold-warm) / 0.35)" }} />
+              <Rocket className="w-2.5 h-2.5" strokeWidth={2.25} style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }} />
               Boosted
             </span>
           )}

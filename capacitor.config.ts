@@ -29,7 +29,7 @@ const config: CapacitorConfig = {
     appleId: '6754470134',
     sku: 'Helpr',
     version: '1.0.4',
-    build: '4806',
+    build: '4807',
     category: 'public.app-category.lifestyle',
     supportUrl: 'https://louisianahelpr.com/support',
     privacyPolicyUrl: 'https://www.louisianahelpr.com/privacy',

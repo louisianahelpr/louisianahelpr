@@ -94,19 +94,19 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
         <div className="hidden lg:flex items-center gap-10">
           <Link
             to="/#how-it-works"
-            className="text-ds-13 font-sans font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+            className="text-ds-13 font-sans font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--bark))]"
           >
             How it works
           </Link>
           <Link
             to="/jobs"
-            className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+            className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--bark))]"
           >
             Jobs
           </Link>
           <Link
             to="/for-business"
-            className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+            className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--bark))]"
           >
             Business
           </Link>
@@ -143,7 +143,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                   asChild
                   variant="ghost"
                   size="sm"
-                  className="rounded-2xl btn-press transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                  className="rounded-2xl btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
                 >
                   <Link
                     to="/login"
@@ -270,7 +270,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               </div>
               <Link
                 to="/#how-it-works"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))]"
                 style={{
                   fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",
@@ -283,7 +283,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               </Link>
               <Link
                 to="/jobs"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))]"
                 style={{
                   fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",
@@ -296,7 +296,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               </Link>
               <Link
                 to="/for-business"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))]"
                 style={{
                   fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",
@@ -309,7 +309,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               </Link>
               <Link
                 to="/subscription"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))]"
                 style={{
                   fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",
@@ -322,7 +322,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               </Link>
               <Link
                 to="/help"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))]"
                 style={{
                   fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",

@@ -116,6 +116,25 @@
      accent everywhere it is used as a fill, border, or icon. */
   --accent-ink:   19 75% 35%;
   --stormy-sky:   198 12% 38%;  /* darkened to meet WCAG AA 4.5:1 for muted-foreground */
+  /* ── GOLD IS PRESTIGE ONLY. Enforced 2026-08-13 (P1). ───────────────────
+     ALLOWED: subscription tier badges (Pro / Elite), the verified flag, the
+     top-rated star, helper streak badges, the Elite ring. That is the whole
+     list. If your use is not one of those five, gold is the wrong token.
+
+     NOT ALLOWED — and these were all real, which is why the rule is here:
+       hover states      → use --bark      (Navbar had 9)
+       decoration        → use --burnt-sienna (Footer had 5)
+       promotions        → use --boost     (Boost/Rocket chips had 13)
+       generic chips     → use --amber-tint (ApplicantsPanel had 8)
+
+     Why it matters: when a Pro badge, a boosted job, a counter-offer pill and
+     a nav hover all glow the same amber, the user cannot learn that gold means
+     status — because it doesn't. Half of A2's four warm oranges exist BECAUSE
+     gold was already taken by everything else.
+
+     One of those uses had a comment reading "show amber pill" directly above
+     code painting --heritage-gold. The intent was amber for its whole life;
+     the gold was an accident nobody re-read. ───────────────────────────── */
   --gold-warm:    38 60% 48%;   /* #C28B2E — antique gold (matches the
                                     wrought-iron logo's fleur-de-lis finials).
                                     SCOPED to status / prestige roles only:

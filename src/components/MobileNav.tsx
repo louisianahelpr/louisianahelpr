@@ -335,7 +335,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         {isActive && (
           <motion.span
             layoutId="mobile-nav-pill"
-            className="absolute inset-x-2 inset-y-1 rounded-full pointer-events-none"
+            // Squircle, not a circle. `rounded-full` on a near-square box
+            // reads as a bubble stuck behind the glyph; the app's own shape
+            // language is the squircle (rounded-ds-md + .squircle), used for
+            // avatars, cards and every other soft container. The selected tab
+            // is the one place that was still round.
+            className="absolute inset-x-2 inset-y-1 rounded-ds-md squircle pointer-events-none"
             style={{
               background: "hsl(var(--bark) / 0.07)",
               border: "0.5px solid hsl(var(--bark) / 0.08)",

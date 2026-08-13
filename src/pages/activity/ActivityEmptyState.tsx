@@ -93,7 +93,7 @@ export function ActivityEmptyState({
   const body = isTrulyEmpty
     ? (isPosted
         ? "While you wait for the right moment to post, you can earn on the helper side — browse open jobs near you and apply."
-        : "While you scout for the right gig, post one of your own — your neighbors might be the perfect match.")
+        : "While you scout for the right task, post one of your own — your neighbors might be the perfect match.")
     : hasSearch
       ? "No jobs match your search — try a different term."
       : statusFilter === "all"

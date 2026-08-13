@@ -167,7 +167,7 @@ const Login = () => {
       await signOutWithPushCleanup();
       setLoading(false);
       hapticError();
-      toast.error("Please verify your email before logging in. Check your inbox for a verification link.");
+      toast.error("Check your inbox first — you'll need to confirm your email before signing in.");
       return;
     }
 

@@ -205,17 +205,17 @@ const CompleteProfile = () => {
     if (!user) return;
 
     const fail = (msg: string) => { hapticError(); toast.error(msg); };
-    if (!firstName.trim() || !lastName.trim()) return fail("Please enter your full name");
-    if (!dateOfBirth) return fail("Date of birth is required");
+    if (!firstName.trim() || !lastName.trim()) return fail("Add your first and last name.");
+    if (!dateOfBirth) return fail("Add your date of birth to continue.");
     if (!ageOk) return fail("You'll need to be 18 or older to join.");
-    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return fail("Valid phone number is required");
-    if (!location.trim()) return fail("City is required");
+    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return fail("Add a valid phone number — at least 10 digits.");
+    if (!location.trim()) return fail("Tell us your city to continue.");
     if (!bio.trim() || bio.trim().length < 20) return fail("Tell us a little about yourself — at least 20 characters.");
-    if (!avatarFile && !profile?.avatar_url) return fail("Profile picture is required");
+    if (!avatarFile && !profile?.avatar_url) return fail("Add a profile photo to go with your bio.");
     // Government-issued ID is no longer required here — it's optional at
     // profile completion and deferred to first-post / IDV (matches the
     // signup gate, which stopped collecting it).
-    if (!acceptedPolicies) return fail("Please accept the platform rules, terms, and privacy policy");
+    if (!acceptedPolicies) return fail("Check the box to agree to the platform rules and terms.");
 
     setSubmitting(true);
     try {

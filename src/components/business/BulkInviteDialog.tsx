@@ -102,7 +102,7 @@ export function BulkInviteDialog({
             email,
             role,
             status: valid ? "pending" : "error",
-            error: valid ? undefined : "Invalid email",
+            error: valid ? undefined : "Check this email address",
           });
         }
         setRows(parsed);

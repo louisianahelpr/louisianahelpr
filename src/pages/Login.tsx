@@ -485,15 +485,33 @@ const Login = () => {
         {/* Creating an account is the alternative to BOTH sign-in methods, so
             it closes the right column rather than floating under the card. */}
         <div className="space-y-1.5">
+          {/* Both links sit on their own line under their question. The
+              business one had to, because it wrapped mid-phrase; this one is
+              `block` for symmetry — with one link inline and the other
+              stacked, the two offers read as different KINDS of thing rather
+              than as the two halves of one choice. */}
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            New to Helpr?{" "}
-            <Link to="/signup" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+            New to Helpr?
+            <Link
+              to="/signup"
+              className="block font-semibold hover:underline"
+              style={{ color: "hsl(var(--bark))" }}
+            >
               Create a personal account
             </Link>
           </p>
+          {/* The business link is long enough that it wrapped mid-phrase —
+              "Create a" on one line and "business account" on the next, which
+              read as two broken fragments rather than one link. `block` puts
+              the whole link on its own line under the question, so it breaks
+              at the sentence seam instead of inside the call to action. */}
           <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Setting up a company?{" "}
-            <Link to="/signup?type=business" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+            Setting up a company?
+            <Link
+              to="/signup?type=business"
+              className="block font-semibold hover:underline"
+              style={{ color: "hsl(var(--bark))" }}
+            >
               Create a business account
             </Link>
           </p>

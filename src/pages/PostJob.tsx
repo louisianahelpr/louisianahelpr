@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { IDVPromptDialog } from "@/components/IDVPromptDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
@@ -49,21 +48,21 @@ const PostJob = () => {
     <div className="min-h-screen bg-premium-page relative pb-safe-nav">
       {form.redirecting && <RedirectingOverlay />}
 
-      {/* Use the real DashboardHeader so the pinned top nav here is identical
-          to the rest of the app — full-width Helpr·LA wordmark on the left and
-          the notification bell on the right — rather than PageHeader's
-          centered, bell-less brand bar, which read as a different top nav. */}
       {/* The rail inset is applied ONCE, globally: `#root` is padded by the
           sidebar width for non-app-shell document pages (index.css). This page
           must NOT re-inset itself or the content is pushed off-center by a
           second rail-width gutter. */}
-      <DashboardHeader />
+      {/* No app bar. PostJob stacked <DashboardHeader/> above its own
+          back-button header, so the screen opened with two bars before any
+          content — the same stacked-header problem removed from Messages,
+          Profile, My Jobs and My Posts. PageHeader's `topInsetHandled` is
+          dropped with it: that flag said "something above me already took the
+          safe-area inset", which is no longer true. */}
       <PageHeader
         eyebrow={header.eyebrow}
         title={header.title}
         meta={header.meta}
         onBack={form.handlePostJobBack}
-        topInsetHandled
         width="5xl"
       />
 

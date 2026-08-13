@@ -204,10 +204,19 @@ export function MessageBubble({
                   disabled={!onReact}
                   aria-label={isMine ? `Remove your ${emoji} reaction` : `React with ${emoji}`}
                   aria-pressed={isMine}
-                  className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[3px] text-ds-11 leading-none transition-transform active:scale-90 disabled:active:scale-100"
+                  className="inline-flex items-center gap-0.5 rounded-full px-1 py-[2px] text-ds-10 leading-none transition-transform active:scale-90 disabled:active:scale-100"
                   style={{
-                    background: isMine ? "hsl(var(--bark) / 0.16)" : "hsl(var(--ivory-sand))",
-                    boxShadow: `0 0 0 2px hsl(var(--premium-page, var(--parchment))), 0 1px 3px hsl(var(--olivewood) / 0.20)`,
+                    // Always a light chip. Two earlier passes got this wrong
+                    // in opposite directions: first a page-coloured ring that
+                    // read as a pale disc with a heart lost inside it, then a
+                    // solid bark fill for your OWN reaction, which turned a
+                    // 20px accent into the darkest object on the screen.
+                    // The emoji is the content — the chip is just the card it
+                    // sits on, and "mine" is worth a tinted ring, not a
+                    // different silhouette.
+                    background: "hsl(var(--ivory-sand))",
+                    border: `0.5px solid ${isMine ? "hsl(var(--bark) / 0.55)" : "hsl(var(--olivewood) / 0.16)"}`,
+                    boxShadow: "0 1px 3px hsl(var(--olivewood) / 0.22)",
                   }}
                 >
                   <span>{emoji}</span>

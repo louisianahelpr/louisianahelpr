@@ -1,7 +1,7 @@
 import { useCallback, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Plus, MapPin, X, FileText, Loader2, Mic, MicOff, Square, AudioLines } from "lucide-react";
+import { Send, Plus, X, FileText, Loader2, Mic, MicOff, Square } from "lucide-react";
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
 import { hapticLight, hapticMedium, hapticError } from "@/lib/haptics";
@@ -26,7 +26,7 @@ import type { SendAttachment, RichMessageInputProps } from "@/components/richMes
 export type { SendAttachment } from "@/components/richMessageInput/types";
 
 export const RichMessageInput = ({
-  onSend, onTyping, disabled, value, onChange, jobId, senderId,
+  onSend, onTyping, disabled, value, onChange, jobId, senderId, quickReplies,
 }: RichMessageInputProps) => {
   const [internalText, setInternalText] = useState("");
   const isControlled = value !== undefined;
@@ -507,6 +507,7 @@ export const RichMessageInput = ({
         onPickCamera={pickFromCamera}
         onPickLibrary={pickFromLibrary}
         onPickFiles={pickFromFiles}
+        quickReplies={quickReplies}
         onShareLocation={handleShareLocation}
         onRecordVoiceNote={() => void handleVoiceNoteRecord()}
         voiceNoteDisabled={disabled || uploading || !!stagedFile}

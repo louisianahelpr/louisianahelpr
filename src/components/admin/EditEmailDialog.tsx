@@ -43,12 +43,12 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
       return;
     }
     if (!email1.trim()) {
-      toast.error("New email is required");
+      toast.error("Add a new email address.");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email1)) {
-      toast.error("Invalid email format");
+      toast.error("That doesn't look like a valid email address.");
       return;
     }
 

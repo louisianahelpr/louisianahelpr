@@ -174,11 +174,11 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   const handleEmailChange = async () => {
     const trimmed = newEmail.trim();
     if (!trimmed) {
-      setEmailError("Please enter an email address.");
+      setEmailError("Add your new email address.");
       return;
     }
     if (!validateEmail(trimmed)) {
-      setEmailError("Please enter a valid email address.");
+      setEmailError("That doesn't look like a valid email — check the address and try again.");
       return;
     }
     setEmailError("");

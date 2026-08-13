@@ -43,11 +43,11 @@ const Jobs = () => {
   usePageMeta({
     title: "Browse Jobs — Helpr",
     description:
-      "Browse open jobs across Louisiana — yard work, moving help, errands, and more. Every job is escrow-protected and posted by a verified neighbor.",
+      "Browse open jobs across Louisiana — yard work, moving help, errands, and more. Every job has payment held safely until the work is done, and every poster is verified.",
     canonical: "https://www.louisianahelpr.com/jobs",
     ogTitle: "Browse open jobs on Louisiana Helpr",
     ogDescription:
-      "Find jobs near you and start earning. Helpr Escrow keeps every transaction safe.",
+      "Find jobs near you and start earning. Helpr holds every payment safely — you're paid once the work is confirmed.",
   });
   // Capture ?ref= attribution from share/external links (e.g. ?ref=share
   // from the Share Sheet) so we can attribute traffic source for job views.

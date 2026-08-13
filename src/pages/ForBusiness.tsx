@@ -207,7 +207,7 @@ const isCarryOverBullet = (feature: string) =>
   feature.startsWith("Everything in");
 
 const TRUST_ITEMS = [
-  "Stripe escrow",
+  "Payment held until work is confirmed",
   "ID-verified Helprs",
   "W-9 / 1099 handled",
 ] as const;

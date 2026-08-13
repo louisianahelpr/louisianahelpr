@@ -222,7 +222,7 @@ export function JobTracking({
         const dist = getDistanceFt(loc.lat, loc.lng, Number(job.latitude), Number(job.longitude));
         if (dist > 500) {
           hapticError();
-          toast.error(`You must be within 500ft of the job location to mark Arrived. You're about ${Math.round(dist)}ft away.`);
+          toast.error(`Couldn't mark arrived — you're about ${Math.round(dist)}ft from the job site. Move closer and try again.`);
           setUpdating(false);
           return;
         }

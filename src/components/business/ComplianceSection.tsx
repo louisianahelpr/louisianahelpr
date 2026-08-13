@@ -53,11 +53,11 @@ export function ComplianceSection() {
         >
           <p className="text-ds-13 font-semibold mb-2 flex items-center gap-1.5" style={{ color: "hsl(var(--ink-deep))" }}>
             <Lock className="w-4 h-4" strokeWidth={1.75} />
-            Escrow-secured payments
+            Funds held until work is confirmed
           </p>
           <p className="text-ds-11 text-muted-foreground leading-relaxed">
             Payments are held in{" "}
-            <span className="font-semibold text-foreground">Stripe escrow</span>{" "}
+            <span className="font-semibold text-foreground">a secure hold</span>{" "}
             until your team confirms the work is complete. No pay-before-you-see issues.
           </p>
         </div>

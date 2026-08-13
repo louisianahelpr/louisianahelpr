@@ -48,7 +48,7 @@ export default function FamilyAcceptPage() {
 
   useEffect(() => {
     if (!token) {
-      setError("Invalid invite link.");
+      setError("This invite link isn't valid — ask the sender for a fresh one.");
       setLoading(false);
       return;
     }

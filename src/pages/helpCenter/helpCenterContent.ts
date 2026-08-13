@@ -43,7 +43,7 @@ export const TOPICS: {
   },
   {
     icon: CreditCard,
-    label: "Payments & Escrow",
+    label: "Payments & How Funds Work",
     desc: "How money is held, released, and paid.",
     color: "hsl(var(--gold-warm))",
     bg: "hsl(var(--gold-warm) / 0.15)",

@@ -200,19 +200,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // own pull-state and its own "last refreshed at" timestamp so the
   // tabs feel independent and one tab's stale-while-revalidating
   // refresh doesn't visually leak into the other.
-  const lastRefreshKey = `activity:lastRefresh:${tab}`;
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(() => {
-    if (typeof window === "undefined") return null;
-    const raw = sessionStorage.getItem(lastRefreshKey);
-    const parsed = raw ? Number(raw) : NaN;
-    return Number.isFinite(parsed) ? parsed : null;
-  });
   const tabRefresh = useCallback(async () => {
     await refresh();
-    const now = Date.now();
-    setLastRefreshedAt(now);
-    try { sessionStorage.setItem(lastRefreshKey, String(now)); } catch { /* private mode */ }
-  }, [refresh, lastRefreshKey]);
+  }, [refresh]);
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: tabRefresh,
   });
@@ -259,47 +249,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const isTrulyEmpty = sourceCount === 0;
 
 
-  // Per-tab "updated Xm ago" indicator — only shown after the first
-  // user-triggered pull-to-refresh on this tab so it doesn't feel
-  // noisy on a fresh load. The relative-time string is intentionally
-  // coarse (no live ticker) since the value is only useful as a
-  // glance-confidence signal.
-  const refreshIndicator = (() => {
-    if (!lastRefreshedAt) return null;
-    const seconds = Math.max(0, Math.round((Date.now() - lastRefreshedAt) / 1000));
-    if (seconds < 10) return "Just refreshed";
-    if (seconds < 60) return `Updated ${seconds}s ago`;
-    const mins = Math.round(seconds / 60);
-    if (mins < 60) return `Updated ${mins}m ago`;
-    const hrs = Math.round(mins / 60);
-    return `Updated ${hrs}h ago`;
-  })();
-
   return (
     <>
-      <PageScaffold
-        animate
-        titleCard={
-          /* The "N jobs" count chip was removed (2026-07-25 decision) — the
-             section name already lives in the top bar and the count read as
-             redundant noise. The title card now carries ONLY the transient
-             post-refresh freshness cue (absent on a fresh load), and drops
-             out entirely when there's nothing to show so no empty frosted
-             card floats above the panel. */
-          isTrulyEmpty || !refreshIndicator ? undefined : (
-            <p
-              className="truncate font-sans font-semibold uppercase leading-none"
-              style={{
-                fontSize: "0.62rem",
-                letterSpacing: "0.16em",
-                color: "hsl(var(--olivewood) / 0.8)",
-              }}
-            >
-              <span aria-hidden="true">{refreshIndicator}</span>
-            </p>
-          )
-        }
-      >
+      <PageScaffold animate>
           {/* Secondary header (status title + search/filter) is hidden
               when there's nothing to act on — see `isTrulyEmpty`. */}
           {!isTrulyEmpty && (

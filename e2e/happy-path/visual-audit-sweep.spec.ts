@@ -273,7 +273,7 @@ sweepDescribe("UI audit evidence sweep", () => {
   for (const screen of ANON_SCREENS) {
     const i = ++index;
     test(`${String(i).padStart(3, "0")} ${screen.name} (anon)`, async ({ page }) => {
-      await installSupabaseMocks(page, screen.rules ? { rules: screen.rules } : undefined);
+      await installSupabaseMocks(page, { seed: true, rules: screen.rules });
       await captureScreen(page, i, screen.name, screen.url, "anon", screen.extraSetup ? () => screen.extraSetup!(page) : undefined);
     });
   }
@@ -290,7 +290,7 @@ sweepDescribe("UI audit evidence sweep", () => {
       const name = `${role.tag}-${screen.name}`;
       test(`${String(i).padStart(3, "0")} ${name} (${role.tag})`, async ({ context, page, baseURL }) => {
         await seedAuthedSession(context, role.user, baseURL ?? "");
-        await installSupabaseMocks(page, { user: role.user, rules: screen.rules });
+        await installSupabaseMocks(page, { user: role.user, rules: screen.rules, seed: true });
         await captureScreen(page, i, name, screen.url, "authed", screen.extraSetup ? () => screen.extraSetup!(page) : undefined);
       });
     }
@@ -301,7 +301,7 @@ sweepDescribe("UI audit evidence sweep", () => {
     const i = ++index;
     test(`${String(i).padStart(3, "0")} ${screen.name} (admin)`, async ({ context, page, baseURL }) => {
       await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-      await installSupabaseMocks(page, { user: FAKE_CUSTOMER, rules: screen.rules });
+      await installSupabaseMocks(page, { user: FAKE_CUSTOMER, rules: screen.rules, seed: true });
       await captureScreen(page, i, screen.name, screen.url, "authed", screen.extraSetup ? () => screen.extraSetup!(page) : undefined);
     });
   }

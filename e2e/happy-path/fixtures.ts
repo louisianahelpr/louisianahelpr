@@ -13,6 +13,7 @@ import {
   type BrowserContext,
 } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { SEED_TABLES } from "./seedData";
 
 // Happy-path smoke fixtures. These tests run against `npm run build && npx
 // vite preview` (the Vite preview server, no live backend) and stub every
@@ -165,6 +166,17 @@ interface MockRule {
 export interface MockSupabaseOptions {
   user?: FakeUser;
   rules?: MockRule[];
+  /**
+   * Answer table SELECTs from `SEED_TABLES` (see ./seedData) instead of the
+   * default empty array.
+   *
+   * OFF by default, deliberately. The happy-path specs drive their own flows
+   * and assert against a known-empty starting state; handing them pre-existing
+   * jobs would break them. The audit sweep opts IN, because a screenshot of an
+   * empty list proves only that the empty state renders — populated layouts are
+   * where truncation, overflow and status-pill bugs actually live.
+   */
+  seed?: boolean;
 }
 
 /**
@@ -184,6 +196,7 @@ export async function installSupabaseMocks(
 ): Promise<void> {
   const user = options.user;
   const rules = options.rules ?? [];
+  const seed = options.seed ?? false;
 
   // Clear any handler the fixture (or a prior call) registered for the
   // same URL pattern. Playwright stacks handlers most-recent-first, so
@@ -214,7 +227,7 @@ export async function installSupabaseMocks(
 
     // 3. PostgREST (table/RPC reads + writes)
     if (url.pathname.startsWith("/rest/v1/")) {
-      return route.fulfill(buildFulfill(handleRest(url, method, user)));
+      return route.fulfill(buildFulfill(handleRest(url, method, user, seed)));
     }
 
     // 4. Edge functions (e.g. complete-signup) — always 200 with an empty
@@ -284,7 +297,53 @@ function handleAuth(url: URL, method: string, user: FakeUser | undefined): Supab
   return { status: 200, body: {} };
 }
 
-function handleRest(url: URL, method: string, user: FakeUser | undefined): SupabaseResponse {
+/**
+ * Apply the PostgREST query params the seeded reads actually depend on:
+ * `order` and `limit`.
+ *
+ * Without this the mock returns rows in array order no matter what the client
+ * asked for, so a list built as "newest first" renders oldest-first. That looks
+ * exactly like an app bug in a screenshot — the message list previewed the FIRST
+ * message instead of the latest — when it is really the fixture ignoring
+ * `?order=created_at.desc`. A mock that silently disagrees with the query is
+ * worse than no mock, because it manufactures findings.
+ *
+ * Deliberately NOT a full PostgREST implementation: filters (`eq`, `in`, …) are
+ * still ignored, so a screen may show rows it would not see in production. That
+ * is acceptable for a LAYOUT audit — more rows is a harder layout test — but it
+ * means this harness cannot be used to verify data-scoping or RLS.
+ */
+function applyPostgrestQuery(rows: unknown[], url: URL): unknown[] {
+  let out = [...rows];
+
+  const order = url.searchParams.get("order");
+  if (order) {
+    // "created_at.desc" / "created_at.desc.nullslast" / "name.asc"
+    const [col, dir] = order.split(".");
+    const desc = dir === "desc";
+    out.sort((a, b) => {
+      const av = (a as Record<string, unknown>)[col];
+      const bv = (b as Record<string, unknown>)[col];
+      if (av === bv) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      const cmp = av > bv ? 1 : -1;
+      return desc ? -cmp : cmp;
+    });
+  }
+
+  const limit = url.searchParams.get("limit");
+  if (limit && Number.isFinite(Number(limit))) out = out.slice(0, Number(limit));
+
+  return out;
+}
+
+function handleRest(
+  url: URL,
+  method: string,
+  user: FakeUser | undefined,
+  seed = false,
+): SupabaseResponse {
   // /rest/v1/<table>?... or /rest/v1/rpc/<name>
   const parts = url.pathname.replace("/rest/v1/", "").split("/");
   const table = parts[0] ?? "";
@@ -298,7 +357,28 @@ function handleRest(url: URL, method: string, user: FakeUser | undefined): Supab
   // profiles SELECT by user_id → return the fake profile so the "Big 7"
   // gate in ProtectedRoute passes.
   if (table === "profiles" && method === "GET" && user) {
-    return { status: 200, body: [buildFakeProfile(user)] };
+    // The authed user's own profile must always be present — the "Big 7" gate
+    // in ProtectedRoute bounces to /complete-profile without it. When seeding,
+    // append the counterparty profiles too, otherwise this branch short-circuits
+    // before the SEED_TABLES lookup below and every other person in the seeded
+    // data renders as the fallback "User".
+    const own = buildFakeProfile(user);
+    if (!seed) return { status: 200, body: [own] };
+
+    // Honour `?user_id=eq.<uuid>` (and `id=eq.`). Returning ALL profiles here
+    // breaks the app's own profile read, which uses .single() and errors on
+    // multiple rows — the screen renders "We couldn't load your account".
+    // So resolve the filter to exactly the row asked for.
+    const wanted = (url.searchParams.get("user_id") ?? url.searchParams.get("id") ?? "")
+      .replace(/^eq\./, "");
+    const pool = [own, ...(SEED_TABLES.profiles ?? [])] as Record<string, unknown>[];
+    if (wanted) {
+      const hit = pool.filter(
+        (r) => r.user_id === wanted || r.id === wanted,
+      );
+      return { status: 200, body: hit };
+    }
+    return { status: 200, body: pool };
   }
 
   // user_roles SELECT — fake user is NOT admin, return an empty array.
@@ -312,6 +392,13 @@ function handleRest(url: URL, method: string, user: FakeUser | undefined): Supab
   // mocked SELECTs will reflect the new state.
   if (["POST", "PATCH", "DELETE", "PUT"].includes(method)) {
     return { status: 201, body: [] };
+  }
+
+  // Seeded rows for the audit sweep (opt-in via `seed: true`). Checked last,
+  // so per-test `rules` and the profiles/user_roles special cases above still
+  // win — this only replaces the blanket empty-array fallback.
+  if (seed && method === "GET" && SEED_TABLES[table]) {
+    return { status: 200, body: applyPostgrestQuery(SEED_TABLES[table], url) };
   }
 
   // Default empty array for any other SELECT.

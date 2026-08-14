@@ -31,7 +31,7 @@ versioning:
   marketing_version: "1.0.4"
   # Build number floor. CI bumps past this automatically; only set higher
   # when App Store Connect's API lags and rejects a duplicate build.
-  current_project_version: "4811"
+  current_project_version: "4812"
 
 build:
   ios_deployment_target: "15.0"

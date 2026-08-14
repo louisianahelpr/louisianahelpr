@@ -126,7 +126,7 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
 <body style="background-color:${brand.surface};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
   <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">Verification Successful ✅</h1>
+  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">Verification successful</h1>
   <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
     Hey ${greetingName},
   </p>
@@ -143,7 +143,7 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
 </div>
 </body></html>`
 
-  const text = `Verification Successful!\n\nHey ${greetingName},\n\nYour identity has been verified and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.\n\nGo to your dashboard: ${siteUrl}/dashboard\n\nWelcome to the Helpr community!`
+  const text = `Verification successful\n\nHey ${greetingName},\n\nYour identity has been verified and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.\n\nGo to your dashboard: ${siteUrl}/dashboard\n\nWelcome to the Helpr community!`
 
   return { html, text }
 }
@@ -162,7 +162,7 @@ async function renderDeniedEmail(fullName: string, userId: string, reason?: stri
 <body style="background-color:${brand.surface};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
 <div style="padding:32px 28px;max-width:480px">
   <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">Account Update</h1>
+  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">An update on your account</h1>
   <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
     Hey ${greetingName},
   </p>
@@ -183,7 +183,7 @@ async function renderDeniedEmail(fullName: string, userId: string, reason?: stri
 </div>
 </body></html>`
 
-  const text = `Account Update\n\nHey ${greetingName},\n\nWe've reviewed your account application and unfortunately we're unable to approve it at this time.${reasonPlain}\n\nYou can update your profile and resubmit for review at: ${siteUrl}/login\n\nIf you believe this was a mistake, please contact our support team.`
+  const text = `An update on your account\n\nHey ${greetingName},\n\nWe've reviewed your account application and unfortunately we're unable to approve it at this time.${reasonPlain}\n\nYou can update your profile and resubmit for review at: ${siteUrl}/login\n\nIf you believe this was a mistake, please contact our support team.`
 
   return { html, text }
 }
@@ -270,13 +270,13 @@ Deno.serve(async (req) => {
     let html: string, text: string, subject: string
     if (status === 'verified') {
       ({ html, text } = await renderVerifiedEmail(profile.full_name || '', userId))
-      subject = 'Your identity is verified ✅ — welcome to Helpr!'
+      subject = 'Your identity is verified — welcome to Louisiana Helpr'
     } else if (status === 'approved') {
       ({ html, text } = await renderApprovedEmail(profile.full_name || '', userId))
-      subject = 'Your Helpr account is approved'
+      subject = 'Your account is approved'
     } else {
       ({ html, text } = await renderDeniedEmail(profile.full_name || '', userId, reason))
-      subject = 'Helpr Account Update'
+      subject = 'An update on your account'
     }
 
     const messageId = crypto.randomUUID()

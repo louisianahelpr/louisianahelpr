@@ -17,7 +17,6 @@ import {
   Loader2,
 } from "lucide-react";
 import type { HelprActivity } from "@/hooks/useHelprActivity";
-import { EscrowFlowExplainer } from "@/components/payment/EscrowFlowExplainer";
 import { formatPrice } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
 
@@ -383,11 +382,16 @@ export function CheckoutStep({
               reading as confidence and starts reading as protesting too much.
               The screen sounded nervous about its own payment flow.
 
-              Two survive, and they're the two that do different jobs: the
-              three-step panel below (teaches a first-time poster what their
-              money is actually doing) and the microline under the CTA (the
-              best writing on the screen — it carries the weight in one line).
-              The pill + popover and the duplicate sentence are gone.
+              ONE survives (owner decision): the microline under the CTA —
+              "Held safely until the job's done." It is the best writing on the
+              screen and says the whole thing in six words.
+
+              The three-step EscrowFlowExplainer panel went with the rest. The
+              tradeoff is real and was accepted knowingly: a first-time poster
+              no longer gets a walkthrough of hold → verify → release before
+              paying. If that turns out to cost conversions, the panel is one
+              import away — but five explanations of one mechanism read as a
+              screen nervous about its own payment flow, and that costs more.
 
               The confirmation checkbox keeps its escrow wording deliberately:
               that is a consent record, not reassurance, and trimming it would
@@ -410,13 +414,6 @@ export function CheckoutStep({
           committed, and "here's what this kind of job usually needs" is
           genuinely useful prep rather than a distraction from checkout. */}
 
-      {/* Trust Signals — replaced the previous two-icon strip ("Secure
-          Payment" / "Money-Back Guarantee") with a full inline explainer
-          of the hold → verify → release escrow flow. The numbered
-          three-step panel does the same reassurance work AND teaches
-          first-time posters what their money is actually doing, instead
-          of hiding the explanation behind a popover trigger above. */}
-      <EscrowFlowExplainer />
 
       {/* "Save card for next time" — optional opt-in passed through to
           the create-payment edge function. Default off, sticky in
@@ -541,7 +538,8 @@ export function CheckoutStep({
         </Button>
         {/* Escrow-trust microline — sits right under the pay CTA so the
             reassurance lands at the moment of commitment, in the poster's
-            voice. Echoes the fuller EscrowFlowExplainer above. */}
+            voice. This is now the ONLY escrow explanation on the screen (L4);
+            it no longer echoes a fuller panel above, because there isn't one. */}
         <p className="flex items-center justify-center gap-1.5 text-ds-11 text-muted-foreground">
           <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
           Held safely until the job's done.

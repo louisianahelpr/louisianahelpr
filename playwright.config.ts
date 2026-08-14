@@ -99,6 +99,12 @@ export default defineConfig({
           "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
         // Override the deployed baseURL with the local Vite preview.
         baseURL: process.env.HAPPY_PATH_BASE_URL || "http://127.0.0.1:4173",
+        // Block service worker registration so the Workbox SW (bundled in the
+        // production build) cannot intercept Supabase fetches before
+        // page.route() mocks can handle them. Without this the SW's
+        // NetworkFirst handler calls the real Supabase URL with our fake test
+        // tokens, gets 401s, and the /my-posts job list never renders.
+        serviceWorkers: "block",
       },
     },
   ],

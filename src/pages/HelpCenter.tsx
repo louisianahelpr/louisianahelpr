@@ -217,7 +217,7 @@ const HelpCenter = () => {
   };
 
   return (
-    <PublicLayout hideHomeLink>
+    <PublicLayout>
       {/* ─────────────────────── 1. Compact page header ───────────────────── */}
       {/* Back button LEFT of a normal-size title, same row shape as /jobs.
           Container + padding match every section below so the title lines up

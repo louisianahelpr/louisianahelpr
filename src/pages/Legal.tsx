@@ -464,11 +464,10 @@ const Legal = () => {
   // viewport top on scroll (the marketing Navbar scrolls away with the Framer
   // page-transition wrapper — see webBandStickyTop note above).
   //
-  // hideHomeLink: this page renders the canonical in-content <BackButton /> next
-  // to its H1, so PublicLayout's mobile-only "Back to home" link would stack a
-  // second back affordance directly above it.
+  // This page renders the canonical in-content <BackButton /> next to its H1,
+  // which is its only back affordance.
   return (
-    <PublicLayout showCtaBand={false} hideHomeLink>
+    <PublicLayout showCtaBand={false}>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         {/* Compact [BackButton] [title] row — same shape and vertical offset as
             /for-business, /subscription, /help, and /jobs. */}

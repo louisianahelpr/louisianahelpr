@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -40,13 +40,6 @@ interface PublicLayoutProps {
    * other page keeps the spacer so content starts below the nav.
    */
   noNavSpacer?: boolean;
-  /**
-   * Suppress the mobile-only "Back to home" link. Pages that render the
-   * canonical in-content `<BackButton />` next to their H1 opt in, otherwise
-   * two back affordances stack on top of each other at <lg. Default false,
-   * so every other public page keeps the link exactly as before.
-   */
-  hideHomeLink?: boolean;
 }
 
 const PublicLayout = ({
@@ -57,7 +50,6 @@ const PublicLayout = ({
   ctaLabel = "Get started",
   ctaTo = "/signup",
   noNavSpacer = false,
-  hideHomeLink = false,
 }: PublicLayoutProps) => {
   // Session-only auth (no profile round-trip) so the CTA band mirrors the
   // Navbar: an authenticated visitor sees "Open app" instead of the
@@ -142,29 +134,13 @@ const PublicLayout = ({
         />
       )}
 
-      {/* Back-to-landing link — quiet editorial arrow + label, shown on
-          non-landing public pages so mobile visitors have an obvious
-          back path (the browser back button is easy to miss, and mobile
-          hides the Helpr wordmark inside the drawer). Hidden at lg+
-          because the Helpr·LA wordmark in the top nav is already a home
-          link there and this text would just duplicate it. */}
-      {!noNavSpacer && !hideHomeLink && location.pathname !== "/" && (
-        <div className="px-5 sm:px-8 lg:px-12 pt-4 lg:hidden">
-          <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
-            <Link
-              to="/"
-              className="group inline-flex items-center gap-1.5 text-ds-11 font-sans font-semibold uppercase tracking-[0.18em] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))] tap-44"
-              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-            >
-              <ArrowLeft
-                className="w-3.5 h-3.5 transition-transform duration-300 group-hover:-translate-x-0.5"
-                strokeWidth={2}
-              />
-              Back to home
-            </Link>
-          </div>
-        </div>
-      )}
+      {/* A "Back to home" link used to live here, gated on
+          `!noNavSpacer && !hideHomeLink && pathname !== "/"`. It was dead:
+          every one of the 8 PublicLayout call sites passes `noNavSpacer` or
+          `hideHomeLink`, so the condition could never be true and the link
+          has never rendered. Removed 2026-08-14 rather than left to imply a
+          back affordance that does not exist. The now-unused
+          `hideHomeLink` prop was removed with it. */}
 
       <div className="flex-1">{children}</div>
 

@@ -38,7 +38,9 @@ const EMPTY: CredentialFields = {
   insurance_rejection_reason: null,
 };
 
-export function CredentialsTab({ userId }: { userId: string }) {
+import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
+
+export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () => void }) {
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"license" | "insurance" | null>(null);
@@ -201,6 +203,11 @@ export function CredentialsTab({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-4">
+      {/* Header lives HERE, like every other Profile tab. It used to be
+          rendered by ProfileTabPanels on this tab's behalf — same pixels, but a
+          second ownership model for the same element, which is why the tabs
+          read as differently built. */}
+      <ProfileTabHeader title="Licensed &amp; insured" onBack={onBack} />
       {showReverifyBanner && (
         <div
           className="rounded-2xl p-4 flex items-start gap-3"

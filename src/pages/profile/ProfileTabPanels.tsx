@@ -353,12 +353,8 @@ export const ProfileTabPanels = ({
 
       {tab === "credentials" && user && (
         <div className="space-y-4">
-          <ProfileTabHeader
-            title="Licensed &amp; insured"
-            onBack={() => setTab("landing")}
-          />
           <Suspense fallback={<TabFallback />}>
-            <CredentialsTab userId={user.id} />
+            <CredentialsTab userId={user.id} onBack={() => setTab("landing")} />
           </Suspense>
         </div>
       )}

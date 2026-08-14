@@ -119,7 +119,11 @@ export function CheckoutStep({
 }: CheckoutStepProps) {
   return (
     <>
-      <p className="text-muted-foreground text-ds-11">Review your job before paying</p>
+      {/* Review card sizes are one step up from the rest of the sheet (L6).
+          The whole purpose of this card is catching a mistake before paying —
+          and the street address a stranger will be sent to was rendering at
+          the same size as a legal footnote. */}
+      <p className="text-muted-foreground text-ds-12">Review your job before paying</p>
 
       {/* ── Review & Post summary card ─────────────────────────────
           A clean read-only summary of everything the poster set. Shows
@@ -142,7 +146,7 @@ export function CheckoutStep({
         <div className="divide-y divide-border">
           {/* Title + category */}
           <div className="px-4 py-3 flex items-start justify-between gap-3">
-            <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5">Job</span>
+            <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">Job</span>
             <div className="flex-1 min-w-0 text-right">
               <p className="text-ds-13 font-semibold text-foreground truncate">{title}</p>
               <span
@@ -160,7 +164,7 @@ export function CheckoutStep({
           {/* Description (clamped to 3 lines) */}
           {description && (
             <div className="px-4 py-3 flex items-start gap-3">
-              <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5">Details</span>
+              <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">Details</span>
               <p
                 className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3"
                 style={{ wordBreak: "break-word" }}
@@ -175,7 +179,7 @@ export function CheckoutStep({
             {/* Label is "Total", not "Budget" — it names the figure that now
                 leads this row (what the poster is charged), so the label and
                 the number agree. */}
-            <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
+            <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
               <DollarSign className="w-3 h-3" />Total
             </span>
             {/* The number that LEAVES the poster's account leads; the budget
@@ -195,7 +199,7 @@ export function CheckoutStep({
             <div className="text-right">
               <p className="text-ds-13 font-bold text-foreground">${formatPrice(totalCharge)}</p>
               {budgetNum > 0 && (
-                <p className="text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   <span className="font-semibold text-foreground">${formatPrice(budgetNum)}</span>
                   {" "}budget + fees
                 </p>
@@ -206,7 +210,7 @@ export function CheckoutStep({
           {/* Location — full street address (the poster's own job, so
               showing the complete address once at checkout is fine). */}
           <div className="px-4 py-3 flex items-start gap-3">
-            <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
+            <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
               <MapPin className="w-3 h-3" />Location
             </span>
             <p className="flex-1 text-ds-13 text-foreground text-right">
@@ -218,7 +222,7 @@ export function CheckoutStep({
           {/* Date */}
           {dateNeeded && (
             <div className="px-4 py-3 flex items-start gap-3">
-              <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
+              <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
                 <Calendar className="w-3 h-3" />When
               </span>
               <p className="flex-1 text-ds-13 text-foreground text-right">
@@ -232,7 +236,7 @@ export function CheckoutStep({
           {/* Recurring schedule */}
           {isRecurring && (
             <div className="px-4 py-3 flex items-start gap-3">
-              <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
+              <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
                 <Repeat className="w-3 h-3" />Repeats
               </span>
               <p className="flex-1 text-ds-13 text-foreground text-right capitalize">
@@ -245,7 +249,7 @@ export function CheckoutStep({
           {/* Photos (thumbnail row) */}
           {imagePreviews.length > 0 && (
             <div className="px-4 py-3 flex items-start gap-3">
-              <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
+              <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
                 <ImagePlus className="w-3 h-3" />Photos
               </span>
               <div className="flex-1 flex gap-1.5 flex-wrap justify-end">
@@ -269,7 +273,7 @@ export function CheckoutStep({
           {/* Special requirements */}
           {specialRequirements && (
             <div className="px-4 py-3 flex items-start gap-3">
-              <span className="text-ds-11 text-muted-foreground w-20 shrink-0 pt-0.5">Notes</span>
+              <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5">Notes</span>
               <p className="flex-1 text-ds-13 text-foreground text-right line-clamp-2">
                 {specialRequirements}
               </p>
@@ -293,7 +297,7 @@ export function CheckoutStep({
           }}
         >
           <Users className="w-4 h-4 text-primary shrink-0" strokeWidth={2.25} />
-          <p className="text-ds-11 leading-snug text-foreground">
+          <p className="text-ds-12 leading-snug text-foreground">
             <span className="font-display font-bold tabular-nums">
               {helprActivity.count} Helprs
             </span>{" "}
@@ -314,7 +318,7 @@ export function CheckoutStep({
         </div>
         <div className="p-5 space-y-3">
           {/* What the customer pays */}
-          <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>
+          <p className="text-ds-12 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>
           <div className="flex justify-between text-ds-13">
             <span className="text-muted-foreground">Job budget</span>
             <span className="font-medium text-foreground">${formatPrice(budgetNum)}</span>
@@ -331,7 +335,7 @@ export function CheckoutStep({
           )}
           {onboardingFeeAmount > 0 && (
             <div className="flex justify-between text-ds-13">
-              <span className="text-muted-foreground">One-time account setup <span className="text-ds-11 italic">(first job only)</span></span>
+              <span className="text-muted-foreground">One-time account setup <span className="text-ds-12 italic">(first job only)</span></span>
               <span className="font-medium text-foreground">${formatPrice(onboardingFeeAmount)}</span>
             </div>
           )}

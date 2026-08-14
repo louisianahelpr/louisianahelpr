@@ -126,7 +126,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                 <Link
                   to="/profile?tab=subscription"
                   onClick={onClose}
-                  className="inline-flex items-center gap-1 mt-2 text-ds-12 font-sans font-semibold active:opacity-70"
+                  className="inline-flex items-center gap-1 mt-2 text-ds-12 font-sans font-semibold active:opacity-70 tap-44"
                   style={{ color: "hsl(var(--amber-tint))" }}
                 >
                   <Sparkles className="w-3 h-3" /> Free with Elite · See plans

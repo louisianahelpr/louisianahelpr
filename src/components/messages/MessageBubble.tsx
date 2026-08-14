@@ -58,7 +58,7 @@ export const renderMessageContent = (
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1.5 underline hover:no-underline"
+        className="flex items-center gap-1.5 underline hover:no-underline tap-44"
       >
         <MapPin className="w-3.5 h-3.5 shrink-0" />
         View location on map

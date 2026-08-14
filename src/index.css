@@ -1083,6 +1083,43 @@ input[type="radio"] {
   min-width: 44px;
 }
 
+/* `.tap-44` — give a link a 44px-tall hit area WITHOUT changing layout.
+ *
+ * The rule above deliberately covers button/[role=button]/inputs but NOT
+ * <a>, so a link styled as a button (inline-flex + an icon, no explicit
+ * height) sits at whatever its line-height gives it — measured as low as
+ * 19px, well under half the HIG/WCAG-2.5.5 minimum.
+ *
+ * `min-height` is the obvious fix and the wrong one here: on an inline-flex
+ * link it grows the box, pushing surrounding copy apart. These links sit in
+ * tight rows (a message bubble, a dialog footnote), where that is visible.
+ *
+ * Instead the ::after overlay extends the touch region symmetrically about
+ * the text's centre line while the element's own box keeps its original
+ * size — so nothing moves and the finger target is 44px. Applied per-site
+ * rather than globally to `a`, because a blanket rule would also inflate
+ * the wordmark links in AuthShell/NotFound/the header and make every page
+ * header taller.
+ *
+ * The overlay is pointer-events:none-free on purpose: it must RECEIVE the
+ * tap. It is invisible, sits behind the text (z-index 0 vs auto), and is
+ * clipped only if an ancestor sets overflow:hidden on a box shorter than
+ * 44px — none of the current call sites do.
+ */
+.tap-44 {
+  position: relative;
+}
+.tap-44::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 44px;
+  z-index: 0;
+}
+
 /* Disable Unwanted Touch Gestures */
 input[type="range"] {
   touch-action: manipulation;

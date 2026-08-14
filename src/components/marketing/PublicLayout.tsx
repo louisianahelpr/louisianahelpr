@@ -153,7 +153,7 @@ const PublicLayout = ({
           <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
             <Link
               to="/"
-              className="group inline-flex items-center gap-1.5 text-ds-11 font-sans font-semibold uppercase tracking-[0.18em] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))]"
+              className="group inline-flex items-center gap-1.5 text-ds-11 font-sans font-semibold uppercase tracking-[0.18em] transition-colors duration-200 hover:text-[hsl(var(--heritage-gold))] tap-44"
               style={{ color: "hsl(var(--olivewood) / 0.7)" }}
             >
               <ArrowLeft

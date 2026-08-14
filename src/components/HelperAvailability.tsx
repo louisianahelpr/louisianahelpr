@@ -273,9 +273,8 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                     aria-label={`Toggle ${day}`}
                   />
                   <span
-                    className="font-display italic font-bold w-10"
+                    className="font-display italic font-bold w-10 text-ds-16"
                     style={{
-                      fontSize: "1rem",
                       color: off ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--ink-deep))",
                       letterSpacing: "-0.01em",
                     }}

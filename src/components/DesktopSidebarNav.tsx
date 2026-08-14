@@ -235,8 +235,8 @@ const DesktopSidebarNav = () => {
                   )}
                 </span>
                 <span
-                  className="font-display italic"
-                  style={{ fontWeight: active ? 700 : 500, fontSize: "0.98rem" }}
+                  className="font-display italic text-ds-16"
+                  style={{ fontWeight: active ? 700 : 500 }}
                 >
                   {label}
                 </span>

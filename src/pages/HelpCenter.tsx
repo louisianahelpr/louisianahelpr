@@ -478,7 +478,14 @@ const HelpCenter = () => {
                         }
                       });
                     }}
-                    className="mt-4 inline-flex items-center gap-1.5 font-sans font-semibold text-ds-13 sm:text-ds-14 transition-transform hover:translate-x-0.5"
+                    /* mt-0.5 + py-3.5 rather than mt-4: 2px margin + 14px padding
+                       puts the text in exactly the same place as the old 16px
+                       margin, but grows the hit box from 19px to 47px so this
+                       clears the 44px HIG/WCAG-2.5.5 floor. The extra height
+                       extends into card space that was already blank, so nothing
+                       moves. Plain <a> is outside the global tap-target rule in
+                       index.css, which only covers button/[role=button]/inputs. */
+                    className="mt-0.5 py-3.5 inline-flex items-center gap-1.5 font-sans font-semibold text-ds-13 sm:text-ds-14 transition-transform hover:translate-x-0.5"
                     style={{
                       color: "hsl(var(--burnt-sienna))",
                       letterSpacing: "-0.005em",

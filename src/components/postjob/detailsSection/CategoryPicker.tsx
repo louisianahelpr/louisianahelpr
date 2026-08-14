@@ -96,7 +96,7 @@ export function CategoryPicker({
             }`}
           >
             <CloudLightning className="w-4 h-4 shrink-0 text-[hsl(210_45%_44%)] dark:text-[hsl(210_55%_70%)]" strokeWidth={2} />
-            <span className="font-display italic font-semibold text-ds-14 leading-tight text-[hsl(210_28%_36%)] dark:text-[hsl(210_32%_80%)]">
+            <span className="font-sans font-semibold text-ds-14 leading-tight text-[hsl(210_28%_36%)] dark:text-[hsl(210_32%_80%)]">
               Storm
             </span>
             {category === "storm_prep" && (

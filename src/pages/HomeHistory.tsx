@@ -141,7 +141,7 @@ const HomeHistory = () => {
               <Home className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} />
             </div>
             <div className="space-y-1">
-              <p className="font-display italic font-bold text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
+              <p className="font-sans font-semibold text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
                 No completed jobs yet
               </p>
               <p
@@ -162,7 +162,7 @@ const HomeHistory = () => {
             {/* Year group header */}
             <div className="flex items-center gap-3 mb-3">
               <span
-                className="font-display italic font-bold text-ds-13"
+                className="font-sans font-semibold text-ds-13"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 {year}

@@ -54,7 +54,7 @@ export function HeatLayer({ buckets }: { buckets: Array<{ center: [number, numbe
           }}
         >
           <Popup>
-            <p className="font-display italic font-bold text-ds-13 leading-tight">
+            <p className="font-sans font-semibold text-ds-13 leading-tight">
               {b.count} {b.count === 1 ? "job" : "jobs"} here
             </p>
             <p className="text-ds-11 text-muted-foreground">Tap the bubble to zoom in.</p>

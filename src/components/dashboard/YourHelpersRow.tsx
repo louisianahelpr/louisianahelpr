@@ -112,7 +112,7 @@ export function YourHelpersRow() {
                     />
                   ) : (
                     <span
-                      className="font-display italic font-bold text-ds-14"
+                      className="font-sans font-semibold text-ds-14"
                       style={{ color: "hsl(var(--bark))" }}
                     >
                       {initialsOf(name)}

@@ -148,7 +148,7 @@ export const JobDetailFooter = ({
           }}
         >
           <span
-            className="font-display italic font-semibold text-ds-14"
+            className="font-sans font-semibold text-ds-14"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             This is your post
@@ -168,7 +168,7 @@ export const JobDetailFooter = ({
             strokeWidth={2.5}
           />
           <span
-            className="font-display italic font-semibold text-ds-14"
+            className="font-sans font-semibold text-ds-14"
             style={{ color: "hsl(var(--success-ink-deep))" }}
           >
             Applied — #{viewerAppPosition}
@@ -188,7 +188,7 @@ export const JobDetailFooter = ({
             strokeWidth={2}
           />
           <p
-            className="font-display italic font-semibold text-ds-14"
+            className="font-sans font-semibold text-ds-14"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             {(job.credential_tier ?? 0) === 1

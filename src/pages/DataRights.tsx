@@ -132,7 +132,7 @@ const DataRights = () => {
               <Download className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} aria-hidden />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="font-display italic font-semibold text-ds-17">Download your data</h2>
+              <h2 className="font-sans font-semibold text-ds-17">Download your data</h2>
               <p className="text-ds-11 text-muted-foreground mt-1">
                 Get a complete copy of your Helpr data — profile, posted jobs, applications, and reviews — as a single JSON file.
               </p>
@@ -170,7 +170,7 @@ const DataRights = () => {
               <ShieldOff className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} aria-hidden />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="font-display italic font-semibold text-ds-17">Do not sell or share my personal information</h2>
+              <h2 className="font-sans font-semibold text-ds-17">Do not sell or share my personal information</h2>
               <p className="text-ds-11 text-muted-foreground mt-1">
                 Helpr does not sell your data. This toggle additionally opts you out of any cross-context behavioral
                 advertising that may be enabled in the future.

@@ -25,13 +25,13 @@ export function CaregiverCard({
     >
       <div className="flex items-start gap-3">
         <div
-          className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 text-ds-14 font-display italic font-bold"
+          className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 text-ds-14 font-sans font-semibold"
           style={{ background: "hsl(var(--sage) / 0.14)", color: "hsl(var(--sage))" }}
         >
           {name.slice(0, 1).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-display italic font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+          <p className="font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
             {name}
           </p>
           <p className="text-ds-12 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

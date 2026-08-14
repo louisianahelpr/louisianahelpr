@@ -376,7 +376,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               <div className="flex items-center gap-2 mb-1">
                 <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--success-ink))" }} strokeWidth={2.25} />
                 <p
-                  className="font-display italic font-semibold text-ds-13"
+                  className="font-sans font-semibold text-ds-13"
                   style={{ color: "hsl(var(--success-ink))" }}
                 >
                   Your Helpr is protected

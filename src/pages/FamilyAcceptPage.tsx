@@ -176,7 +176,7 @@ export default function FamilyAcceptPage() {
             }}
           >
             <AlertTriangle className="w-10 h-10" style={{ color: "hsl(var(--burnt-sienna))" }} />
-            <p className="font-display italic font-semibold text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
+            <p className="font-sans font-semibold text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
               Invite unavailable
             </p>
             <p className="text-ds-13 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -198,7 +198,7 @@ export default function FamilyAcceptPage() {
             }}
           >
             <CheckCircle2 className="w-10 h-10" style={{ color: "hsl(var(--sage))" }} />
-            <p className="font-display italic font-semibold text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
+            <p className="font-sans font-semibold text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
               Access granted!
             </p>
             <p className="text-ds-13 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

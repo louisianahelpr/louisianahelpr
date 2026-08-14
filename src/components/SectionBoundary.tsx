@@ -104,7 +104,7 @@ class SectionErrorBoundary extends React.Component<
           </div>
           <div className="flex-1 min-w-0">
             <p
-              className="font-display italic font-bold leading-tight text-ds-15"
+              className="font-sans font-semibold leading-tight text-ds-15"
               style={{
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.012em",

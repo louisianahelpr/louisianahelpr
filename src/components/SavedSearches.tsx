@@ -281,7 +281,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                 <AlertTriangle className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={1.75} aria-hidden="true" />
               </div>
               <p
-                className="font-display italic font-bold text-ds-15"
+                className="font-sans font-semibold text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 We couldn't load your saved searches.
@@ -319,7 +319,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                 <Bookmark className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} aria-hidden="true" />
               </div>
               <p
-                className="font-display italic font-bold text-ds-15"
+                className="font-sans font-semibold text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 No saved searches yet.
@@ -347,7 +347,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
                   className="flex-1 text-left min-w-0 active:opacity-70 transition-opacity"
                 >
                   <p
-                    className="font-display italic font-bold text-ds-15 truncate"
+                    className="font-sans font-semibold text-ds-15 truncate"
                     style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
                   >
                     {s.name}

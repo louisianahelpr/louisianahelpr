@@ -266,7 +266,7 @@ export function ApplicantsPanel({
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <span className="font-display italic font-bold text-ds-14" style={{ color: "hsl(var(--bark))" }}>
+                              <span className="font-sans font-semibold text-ds-14" style={{ color: "hsl(var(--bark))" }}>
                                 {helperInitials}
                               </span>
                             )}

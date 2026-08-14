@@ -165,7 +165,7 @@ export function InviteForm({ myUserId }: { myUserId: string }) {
         border: "0.5px solid hsl(var(--sand) / 0.6)",
       }}
     >
-      <p className="font-display italic font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+      <p className="font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
         Invite a family member
       </p>
       <p className="text-ds-12 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

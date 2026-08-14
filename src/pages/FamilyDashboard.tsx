@@ -182,7 +182,7 @@ export default function FamilyDashboard() {
           <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-                <h2 className="font-display italic font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+                <h2 className="font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
                   Managing jobs for
                 </h2>
               </div>
@@ -235,7 +235,7 @@ export default function FamilyDashboard() {
             <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4" style={{ color: "hsl(var(--sage))" }} />
-                <h2 className="font-display italic font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+                <h2 className="font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
                   Your family helper
                 </h2>
               </div>

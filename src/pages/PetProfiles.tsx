@@ -221,7 +221,7 @@ const PetProfiles = () => {
                 style={{ borderColor: "hsl(var(--olivewood) / 0.10)" }}
               >
                 <p
-                  className="font-display italic font-bold text-ds-14"
+                  className="font-sans font-semibold text-ds-14"
                   style={{ color: "hsl(var(--ink-deep))" }}
                 >
                   Your pets

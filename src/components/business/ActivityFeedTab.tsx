@@ -104,7 +104,7 @@ export function ActivityFeedTab({ businessId }: ActivityFeedTabProps) {
     return (
       <Card className="p-8 text-center">
         <EmptyStateIllustration variant="notifications" />
-        <p className="font-display italic font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+        <p className="font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
           No activity yet.
         </p>
         <p className="text-ds-13 text-muted-foreground mt-1.5 max-w-sm mx-auto">

@@ -44,7 +44,7 @@ const Accessibility = () => {
             </span>
             <div className="min-w-0 flex-1">
               <h2
-                className="font-display italic font-bold text-ds-16"
+                className="font-sans font-semibold text-ds-16"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 Simple Mode

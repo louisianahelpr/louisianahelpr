@@ -470,7 +470,7 @@ export function CheckoutStep({
           <Users className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
           <div className="flex-1 min-w-0">
             <p
-              className="font-display italic font-semibold text-ds-13"
+              className="font-sans font-semibold text-ds-13"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               Send to {preferredHelper.name ?? "your trusted helper"} first?

@@ -335,7 +335,7 @@ const ConversationRowBase = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               <p
-                className="font-display italic font-bold truncate text-ds-15"
+                className="font-sans font-semibold truncate text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
               >
                 {c.otherUserName}

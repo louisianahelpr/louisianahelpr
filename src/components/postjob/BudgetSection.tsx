@@ -142,7 +142,7 @@ export function BudgetSection({
                 strokeWidth={2}
               />
               <span
-                className="font-display italic font-semibold text-ds-12 leading-tight"
+                className="font-sans font-semibold text-ds-12 leading-tight"
                 style={{ color: active ? "hsl(var(--bark))" : "hsl(var(--foreground))" }}
               >
                 {label}

@@ -357,7 +357,7 @@ export default function PayItForward() {
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--success-ink))" }} />
                 <p
-                  className="font-display italic font-semibold text-ds-14"
+                  className="font-sans font-semibold text-ds-14"
                   style={{ color: "hsl(var(--pif-ink))" }}
                 >
                   What is this?

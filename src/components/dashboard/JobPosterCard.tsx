@@ -105,7 +105,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false
             Posted by
           </p>
           <div className="flex items-baseline gap-2">
-            <p className="font-display italic font-bold leading-tight truncate text-ds-16 min-w-0" style={{ color: "hsl(var(--ink-deep))" }}>
+            <p className="font-sans font-semibold leading-tight truncate text-ds-16 min-w-0" style={{ color: "hsl(var(--ink-deep))" }}>
               {job.posterName}
             </p>
             <span className="flex items-center gap-0.5 text-ds-11 shrink-0">

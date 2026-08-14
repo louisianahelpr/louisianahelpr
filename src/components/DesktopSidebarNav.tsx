@@ -183,7 +183,7 @@ const DesktopSidebarNav = () => {
           <button
             onClick={() => navigate("/post-job")}
             onMouseEnter={() => prefetchRoute("/post-job")}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-display italic font-semibold text-ds-15 transition-transform active:scale-[0.98]"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-sans font-semibold text-ds-15 transition-transform active:scale-[0.98]"
             style={{
               background:
                 "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-border)) 100%)",

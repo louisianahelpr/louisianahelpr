@@ -141,7 +141,7 @@ export default function BenefitsPage() {
               style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.10)" }}
             >
               <span style={{ color: "hsl(var(--bark))" }}>{section.icon}</span>
-              <h2 className="font-display italic font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+              <h2 className="font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
                 {section.title}
               </h2>
             </div>
@@ -185,7 +185,7 @@ export default function BenefitsPage() {
         <div className="rounded-ds-lg p-5" style={cardStyle}>
           <div className="flex items-center gap-2 mb-3">
             <Clock className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-            <h2 className="font-display italic font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+            <h2 className="font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
               Coming soon
             </h2>
           </div>

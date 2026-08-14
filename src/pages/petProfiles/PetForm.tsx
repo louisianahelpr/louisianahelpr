@@ -242,7 +242,7 @@ export function PetForm({
         {/* Basic info */}
         <section>
           <h3
-            className="font-display italic font-bold text-ds-14 mb-3"
+            className="font-sans font-semibold text-ds-14 mb-3"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             Basic info
@@ -368,7 +368,7 @@ export function PetForm({
         {/* Vet & medical */}
         <section>
           <h3
-            className="font-display italic font-bold text-ds-14 mb-3"
+            className="font-sans font-semibold text-ds-14 mb-3"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             Vet &amp; medical
@@ -449,7 +449,7 @@ export function PetForm({
         {/* Care instructions */}
         <section>
           <h3
-            className="font-display italic font-bold text-ds-14 mb-3"
+            className="font-sans font-semibold text-ds-14 mb-3"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             Care instructions
@@ -482,7 +482,7 @@ export function PetForm({
         {/* Evacuation */}
         <section>
           <h3
-            className="font-display italic font-bold text-ds-14 mb-3"
+            className="font-sans font-semibold text-ds-14 mb-3"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             Hurricane &amp; evacuation

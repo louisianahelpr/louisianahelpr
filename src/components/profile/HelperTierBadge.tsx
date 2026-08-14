@@ -156,7 +156,7 @@ export function HelperTierBadge(props: HelperTierBadgeProps) {
               <Icon className="w-4 h-4" strokeWidth={2.25} aria-hidden />
             </span>
             <p
-              className="font-display italic font-bold text-ds-13"
+              className="font-sans font-semibold text-ds-13"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               {meta.label} Helpr

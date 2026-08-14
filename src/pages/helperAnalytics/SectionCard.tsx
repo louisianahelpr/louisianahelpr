@@ -75,7 +75,7 @@ const SectionCard = ({
             Pro
           </span>
           <p
-            className="font-display italic font-bold text-ds-16 text-center"
+            className="font-sans font-semibold text-ds-16 text-center"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             {title}

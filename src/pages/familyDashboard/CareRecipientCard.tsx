@@ -36,7 +36,7 @@ export function CareRecipientCard({
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         <div
-          className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 text-ds-14 font-display italic font-bold"
+          className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 text-ds-14 font-sans font-semibold"
           style={{
             background: "hsl(var(--bark) / 0.12)",
             color: "hsl(var(--bark))",
@@ -45,7 +45,7 @@ export function CareRecipientCard({
           {name.slice(0, 1).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-display italic font-semibold text-ds-15 truncate" style={{ color: "hsl(var(--ink-deep))" }}>
+          <p className="font-sans font-semibold text-ds-15 truncate" style={{ color: "hsl(var(--ink-deep))" }}>
             {name}
           </p>
           <div className="flex items-center gap-1 mt-0.5">

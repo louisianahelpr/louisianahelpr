@@ -35,7 +35,12 @@ jobs:
     name: Playwright mobile viewports (320 / 375 / 414 / 768 / 1024)
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    if: github.actor != 'dependabot[bot]'
+    # NOTE: deliberately NOT excluding dependabot[bot]. This job is a REQUIRED
+    # status check on main, and GitHub counts a required check that is skipped
+    # as unsatisfied — so excluding Dependabot here made every dependency PR
+    # permanently unmergeable. Three sat open for weeks looking "green": every
+    # check that ran had passed, but the ones gating the merge never ran.
+    # A dependency bump is also exactly when an E2E smoke test earns its keep.
 
     steps:
       - name: Checkout

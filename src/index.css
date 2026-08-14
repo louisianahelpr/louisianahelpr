@@ -289,14 +289,14 @@
   /* Pay It Forward — donation "mint" identity palette. Tokenised so the page
      (built with inline-style colors) renders correctly in dark mode instead of
      painting glaring light-green blocks on the dark canvas. */
-  /* --pif-green was BYTE-IDENTICAL to --success-ink (155 50% 30%) — one
+  /* --pif-green was BYTE-IDENTICAL to --success-ink (142 50% 30%) — one
      colour, two names, in two different token families. Retired in favour of
      --success-ink, which had 25 consumers to its 7 (A2). */
-  --pif-ink:        155 50% 28%;   /* headings / amount */
-  --pif-green-soft: 155 40% 40%;   /* muted green subtext */
-  --pif-tint:       155 50% 35%;   /* base hue used at low alpha for fills/borders */
-  --pif-card-from:  155 50% 97%;   /* credit-card gradient top */
-  --pif-card-to:    155 40% 94%;   /* credit-card gradient bottom */
+  --pif-ink:        142 50% 28%;   /* headings / amount */
+  --pif-green-soft: 142 40% 40%;   /* muted green subtext */
+  --pif-tint:       142 50% 35%;   /* base hue used at low alpha for fills/borders */
+  --pif-card-from:  142 50% 97%;   /* credit-card gradient top */
+  --pif-card-to:    142 40% 94%;   /* credit-card gradient bottom */
   --pif-form-from:  220 30% 98%;   /* give-a-credit form gradient top (cool neutral) */
   --pif-form-to:    220 20% 94%;   /* give-a-credit form gradient bottom (cool neutral) */
   --pif-sheen:      hsla(0, 0%, 100%, 0.55); /* corner radial highlight */
@@ -308,12 +308,12 @@
 
   /* Success / confirmation mint — report-submitted & job-completed panels.
      One family so the green checkmark surfaces read on both canvases. */
-  --success-tint:         155 60% 96%;   /* panel fill */
-  --success-tint-strong:  155 60% 90%;   /* icon-circle fill */
-  --success-border:       155 35% 70%;   /* panel hairline */
-  --success-border-strong:155 35% 60%;   /* icon-circle ring */
-  --success-ink:          155 50% 30%;   /* check + body */
-  --success-ink-deep:     155 45% 22%;   /* emphasis text */
+  --success-tint:         142 60% 96%;   /* panel fill */
+  --success-tint-strong:  142 60% 90%;   /* icon-circle fill */
+  --success-border:       142 35% 70%;   /* panel hairline */
+  --success-border-strong:142 35% 60%;   /* icon-circle ring */
+  --success-ink:          142 50% 30%;   /* check + body */
+  --success-ink-deep:     142 45% 22%;   /* emphasis text */
 
   /* Amber "pending / awaiting revision" warning — revision banners, completion
      warnings, awaiting-response chips. Distinct from --gold-warm (boosted). */
@@ -462,23 +462,23 @@
 
   /* Pay It Forward — dark-mode mint palette: lightened greens for legible
      foreground, dark green-tinted surfaces instead of light fills. */
-  --pif-ink:        155 35% 72%;
-  --pif-green-soft: 155 20% 60%;
-  --pif-tint:       155 30% 52%;
-  --pif-card-from:  155 22% 13%;
-  --pif-card-to:    155 18% 11%;
+  --pif-ink:        142 35% 72%;
+  --pif-green-soft: 142 20% 60%;
+  --pif-tint:       142 30% 52%;
+  --pif-card-from:  142 22% 13%;
+  --pif-card-to:    142 18% 11%;
   --pif-form-from:  38 14% 14%;
   --pif-form-to:    38 12% 11%;
   --pif-sheen:      hsla(0, 0%, 100%, 0.05);
 
   --live: 142 52% 60%;  /* lightened so the dot/label reads on the dark page */
 
-  --success-tint:         155 24% 13%;
-  --success-tint-strong:  155 24% 17%;
-  --success-border:       155 22% 38%;
-  --success-border-strong:155 22% 44%;
-  --success-ink:          155 35% 64%;
-  --success-ink-deep:     155 30% 72%;
+  --success-tint:         142 24% 13%;
+  --success-tint-strong:  142 24% 17%;
+  --success-border:       142 22% 38%;
+  --success-border-strong:142 22% 44%;
+  --success-ink:          142 35% 64%;
+  --success-ink-deep:     142 30% 72%;
 
   --amber-tint:   36 65% 56%;   /* lighter base so low-alpha fills read on dark */
   --amber-ink:    36 78% 66%;   /* legible amber text on the dark canvas */

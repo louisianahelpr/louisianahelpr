@@ -263,13 +263,19 @@ serve(async (req) => {
         }
       );
 
-      await supabaseAdmin
+      const { error: completeErr } = await supabaseAdmin
         .from("instant_payouts")
         .update({
           status: "completed",
           stripe_payout_id: payout.id,
         })
         .eq("id", record.id);
+      if (completeErr) {
+        console.error(
+          `[instant-payout] DB update to completed failed for record ${record.id} (payout ${payout.id}):`,
+          completeErr.message,
+        );
+      }
 
       // Notify the helper
       await supabaseAdmin.from("notifications").insert({

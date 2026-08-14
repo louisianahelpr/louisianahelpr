@@ -202,7 +202,7 @@ const HelperAnalytics = () => {
         eyebrow="Helper dashboard"
         title="Earnings & Analytics"
         meta="Your last 6 months"
-        // Body below is `container mx-auto px-5` > `max-w-lg lg:max-w-5xl
+        // Body below is `container mx-auto px-5` > `max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]
         // xl:max-w-6xl mx-auto`. `width="lg"` pinned the title to a 512px
         // column while the body opened to 5xl/6xl at lg+, so the heading floated
         // far left of its own content. `container-lg-5xl-6xl` is the token
@@ -211,7 +211,7 @@ const HelperAnalytics = () => {
       />
 
       <div className="container mx-auto px-5 py-6">
-        <div className="max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto">
+        <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] xl:max-w-6xl mx-auto">
 
           {/* A failed fetch leaves `analytics` undefined, which would render
               $0 / 0 jobs everywhere and read as a brand-new helper rather

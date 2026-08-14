@@ -386,7 +386,7 @@ const ProfilePage = () => {
         className="bg-premium-page"
       >
         <div className="container mx-auto px-5 lg:px-8 xl:px-12 pb-4 flex-1 min-h-0 overflow-y-auto" style={{ paddingTop: "calc(var(--safe-area-top, 0px) + 1rem)" }}>
-          <div className="max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto">
+          <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
             <ProfilePageSkeleton />
           </div>
         </div>
@@ -441,7 +441,7 @@ const ProfilePage = () => {
             refreshing={refreshing}
             isPulling={isPulling}
             canTrigger={canTrigger}
-            className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pt-3 lg:pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]"
+            className="w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pt-3 lg:pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]"
           >
             <ProfileLanding
               profile={profile}
@@ -479,7 +479,7 @@ const ProfilePage = () => {
              (header, back button, tab list). The boundary is rebuilt
              every time the user switches tabs so the previous tab's
              error state is cleared automatically. */
-          <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto h-full overflow-y-auto pt-3 lg:pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]">
+          <div className="w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto h-full overflow-y-auto pt-3 lg:pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]">
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
           {/* `key={tab}` on the boundary re-mounts this wrapper on every
               tab switch, so `animate-ds-page-in` replays its entrance each

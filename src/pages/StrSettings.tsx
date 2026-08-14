@@ -194,7 +194,7 @@ export default function StrSettings() {
         width="lg-2xl-5xl-6xl"
       />
 
-      <div className="max-w-lg md:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 md:px-6 lg:px-8 mt-2 pb-8">
+      <div className="max-w-lg md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 md:px-6 lg:px-8 mt-2 pb-8">
 
         {/* Explanation card (mobile: stacked above list; desktop: sticky in left rail) */}
         <div className="lg:hidden mb-4 rounded-ds-md p-4" style={cardStyle}>

@@ -316,6 +316,59 @@ function handleAuth(url: URL, method: string, user: FakeUser | undefined): Supab
 function applyPostgrestQuery(rows: unknown[], url: URL): unknown[] {
   let out = [...rows];
 
+  // Column filters. PostgREST encodes them as `?col=op.value`, so any search
+  // param whose value carries a known operator prefix is a filter. Previously
+  // ALL of these were ignored, which meant a screen showed rows it could never
+  // see in production — e.g. every job regardless of customer_id. That makes a
+  // layout audit lie in the generous direction (more rows than reality) and
+  // makes the harness useless for anything data-shaped.
+  const OPS = ["eq", "neq", "gt", "gte", "lt", "lte", "in", "is", "like", "ilike"];
+  const RESERVED = new Set(["select", "order", "limit", "offset", "on_conflict", "columns"]);
+  for (const [key, raw] of url.searchParams.entries()) {
+    if (RESERVED.has(key)) continue;
+    const dot = raw.indexOf(".");
+    if (dot < 0) continue;
+    const op = raw.slice(0, dot);
+    if (!OPS.includes(op)) continue;
+    const val = raw.slice(dot + 1);
+    out = out.filter((r) => {
+      const cell = (r as Record<string, unknown>)[key];
+      switch (op) {
+        case "eq":
+          return String(cell) === val;
+        case "neq":
+          return String(cell) !== val;
+        case "is":
+          return val === "null" ? cell == null : String(cell) === val;
+        case "in": {
+          // in.(a,b,c) — quotes are optional per value.
+          const set = val.replace(/^\(|\)$/g, "").split(",").map((v) => v.replace(/^"|"$/g, ""));
+          return set.includes(String(cell));
+        }
+        case "gt":
+          return String(cell) > val;
+        case "gte":
+          return String(cell) >= val;
+        case "lt":
+          return String(cell) < val;
+        case "lte":
+          return String(cell) <= val;
+        case "like":
+        case "ilike": {
+          const rx = new RegExp("^" + val.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$", op === "ilike" ? "i" : "");
+          return rx.test(String(cell));
+        }
+        default:
+          return true;
+      }
+    });
+  }
+
+  // `or=(a.eq.x,b.eq.y)` is deliberately NOT implemented — the message list
+  // uses it to match either side of a conversation. Applying only half of an
+  // OR would silently hide rows, which is worse than ignoring it, so an
+  // unhandled `or` leaves the set untouched.
+
   const order = url.searchParams.get("order");
   if (order) {
     // "created_at.desc" / "created_at.desc.nullslast" / "name.asc"
@@ -371,14 +424,28 @@ function handleRest(
     // So resolve the filter to exactly the row asked for.
     const wanted = (url.searchParams.get("user_id") ?? url.searchParams.get("id") ?? "")
       .replace(/^eq\./, "");
-    const pool = [own, ...(SEED_TABLES.profiles ?? [])] as Record<string, unknown>[];
+    // Dedupe by user_id, own profile winning. SEED_PROFILES contains a row for
+    // the helper, and when the sweep runs AS the helper that row and `own` are
+    // the same person — so an `.eq("user_id", me)` lookup matched BOTH and every
+    // .maybeSingle() caller got PGRST116 "Results contain 2 rows". That showed up
+    // as "[StrikeBanner] failed to load ban status" on all 29 helper screens and
+    // looked like an app bug.
+    const seeded = (SEED_TABLES.profiles ?? []) as Record<string, unknown>[];
+    const pool = [
+      own,
+      ...seeded.filter((r) => r.user_id !== (own as Record<string, unknown>).user_id),
+    ] as Record<string, unknown>[];
     if (wanted) {
       const hit = pool.filter(
         (r) => r.user_id === wanted || r.id === wanted,
       );
       return { status: 200, body: hit };
     }
-    return { status: 200, body: pool };
+    // An UNFILTERED profiles read is essentially always "my own profile", and
+    // several callers use .single(). Returning the whole pool made those fail
+    // with PGRST116 "Results contain 2 rows" — which surfaced as a real-looking
+    // "[StrikeBanner] failed to load ban status" error on 29 screens.
+    return { status: 200, body: [own] };
   }
 
   // user_roles SELECT — fake user is NOT admin, return an empty array.

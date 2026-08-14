@@ -319,19 +319,19 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                 <div className="grid grid-cols-3 gap-2 pt-1">
                   {review.punctuality && (
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>Punctuality</span>
+                      <span className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>Punctuality</span>
                       <MiniStars value={review.punctuality} size="xs" />
                     </div>
                   )}
                   {review.quality && (
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>Quality</span>
+                      <span className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>Quality</span>
                       <MiniStars value={review.quality} size="xs" />
                     </div>
                   )}
                   {review.communication && (
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>Comms</span>
+                      <span className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>Comms</span>
                       <MiniStars value={review.communication} size="xs" />
                     </div>
                   )}

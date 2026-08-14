@@ -209,7 +209,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <div key={label} className="rounded-ds-md liquid-glass p-3 text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <Icon className="w-3 h-3 text-primary" />
-              <span className="font-serif italic uppercase" style={{ fontSize: "0.55rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+              <span className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                 {label}
               </span>
             </div>

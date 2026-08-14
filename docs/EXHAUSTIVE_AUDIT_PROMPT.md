@@ -90,77 +90,172 @@ measure it, don't eyeball it.
 
 *Overflow and fit*
 - `documentElement.scrollWidth <= clientWidth` — zero horizontal overflow. If it
-  overflows, name the widest offending element and its computed width.
+  overflows, name the widest offending element and its computed width. The
+  page-level number alone is not a finding; the culprit is.
 - No single element wider than the viewport. Walk `#root *` and compare each
-  `getBoundingClientRect().width` against `clientWidth`.
-- Check at **320, 375, 414, 768, 1024, 1440** — the same ladder
-  `mobile-viewports.yml` uses. 320 is where truncation and wrapping break first;
-  most overflow bugs here have been decorative elements bleeding past a parent
-  (`-inset-16` style halos widening the scroll area).
-- Long-content stress: a 40-character unbroken word, a very long job title, a
-  long email address in a narrow card. Confirm it wraps or truncates rather
-  than pushing the layout wide.
+  `getBoundingClientRect().width` against `clientWidth`:
 
-*The desktop rail — this has broken twice*
+  ```js
+  const de = document.documentElement, over = [];
+  document.querySelectorAll('#root *').forEach(e => {
+    const r = e.getBoundingClientRect();
+    if (r.width > de.clientWidth + 1)
+      over.push(`${e.tagName}.${String(e.className).slice(0,40)} @${Math.round(r.width)}`);
+    if (r.right > de.clientWidth + 1 || r.left < -1)
+      over.push(`OFFSCREEN ${e.tagName} L${Math.round(r.left)} R${Math.round(r.right)}`);
+  });
+  ({ pageOverflow: de.scrollWidth - de.clientWidth, offenders: over.slice(0, 5) });
+  ```
+- Check **320, 375, 414, 768, 1024, 1440** — the ladder `mobile-viewports.yml`
+  uses. 320 is where truncation and wrapping break first. Do not assume a page
+  that fits at 375 fits at 320; the failure is usually a fixed-width child or a
+  `gap` that stops fitting, not the page container.
+- **Look for the cause, not just the symptom.** Recurring ones here: decorative
+  ambient halos with negative insets (`-inset-16 sm:-inset-24 lg:-inset-32`)
+  bleeding past their parent and dragging every `w-full` sibling out with them;
+  `100vw` used where `100%` was meant (100vw includes the scrollbar on desktop);
+  a `min-width` on a flex child preventing it from shrinking; unbroken strings.
+  The repo's structural guard is `overflow-x-clip` on the layout wrapper —
+  `clip`, not `hidden`, because `hidden` creates a scroll container and breaks
+  sticky children. If you add a fix, match that choice.
+- Long-content stress, on every screen that renders user data: a 40-character
+  unbroken word, a very long job title, a long email address in a narrow card,
+  a name with no spaces. Confirm it wraps or truncates (`truncate`,
+  `break-words`, `min-w-0` on the flex child) rather than pushing the layout
+  wide. `min-w-0` is the usual missing piece — a flex item defaults to
+  `min-width: auto` and refuses to shrink below its content.
+- Tables, code blocks and wide diagrams must scroll inside their own
+  `overflow-x: auto` container. The page body must never scroll horizontally to
+  accommodate one wide child.
+- Check both scroll positions: some overflow only appears once a sticky element
+  has collapsed or a lazy image has loaded. Scroll to the bottom and re-measure.
+
+*The desktop rail — this has broken twice, the same way both times*
 - The rail inset is applied in exactly ONE layer, globally. Fixed-shell pages
   clear it via `.app-shell-frame { left: var(--desktop-sidebar-w) }`;
-  document-scroll pages via the global `html.web-desktop.desktop-rail:not(.app-shell) #root`
-  padding rule in `index.css`.
-- **A page must never re-inset itself** — no per-page `paddingLeft: var(--desktop-sidebar-w)`,
-  no `lg:pl-[248px]`, no extra flex spacer. Doing so pushes content right by a
-  *second* rail width. This exact bug shipped on PostJob: `#root` padded 248px
-  AND the page padded 248px, so the form sat at x≈496 with a dead 250px gutter.
-- After the single inset, assert the content column is centred in the
-  *post-rail* area: its visual centre should be `(rail_width + viewport) / 2`,
-  not the raw viewport centre. Measure it; a lopsided column with a blank band
-  is a failure, not a nicety.
+  document-scroll pages via the global
+  `html.web-desktop.desktop-rail:not(.app-shell) #root` padding rule in
+  `index.css`. Both live in the shared shell layer, never in a page.
+- **A page must never re-inset itself** — no per-page
+  `paddingLeft: var(--desktop-sidebar-w)`, no `lg:pl-[248px]`, no `ml-[248px]`,
+  no extra flex spacer standing in for the rail. Doing so pushes content right
+  by a *second* rail width. This shipped on PostJob: `#root` padded 248px AND
+  the page padded 248px, so the form sat at x≈496 with a dead 250px gutter on
+  the right. It looks like "the page is slightly off-centre", which is why it
+  survived review — measure, don't eyeball.
+- Grep for the smell directly: `desktop-sidebar-w`, `pl-\[248`, `ml-\[248`,
+  `lg:pl-` inside `src/pages`. Any hit outside the shell layer is suspect.
+- Assert centring in the *post-rail* area, not the viewport:
+
+  ```js
+  const rail = parseFloat(getComputedStyle(document.documentElement)
+                 .getPropertyValue('--desktop-sidebar-w')) || 0;
+  const col = /* the content column element */;
+  const r = col.getBoundingClientRect();
+  const expected = rail + (innerWidth - rail) / 2;
+  ({ colCentre: Math.round(r.left + r.width / 2), expected: Math.round(expected),
+     offBy: Math.round(r.left + r.width / 2 - expected) });   // want ≈ 0
+  ```
+- Also check the rail's own boundary: content must not slide *under* the rail
+  at the breakpoint where it appears, and must not leave a gap beside it.
+  Test at 1023 / 1024 / 1025 — right at the transition.
 
 *One width ladder*
-- The canonical content ladder is `max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]`.
-  At 1440 every content page should resolve to the **same** column width
-  (currently 1280px). Navigate several routes in one pass and assert the width
-  does not change between them — a column that jumps as you navigate is the
-  defect, and it is invisible if you only ever look at one page.
-- Forms are allowed to be narrower on purpose (PostJob is, and says so in a
-  comment). A deviation is only a finding if nothing explains it.
+- The canonical content ladder is
+  `max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]`. At 1440 every content
+  page should resolve to the **same** column width (currently 1280px).
+- **Measure across routes in one pass**, not one page at a time. A column that
+  jumps width as you navigate is the defect, and it is completely invisible if
+  you only ever look at a single screen. Navigate the list, record the widest
+  applied `max-width` per route, and assert they agree:
+
+  ```js
+  // per route: the widest max-width actually applied under #root
+  let best = null;
+  document.querySelectorAll('#root div').forEach(e => {
+    const mw = parseFloat(getComputedStyle(e).maxWidth);
+    if (mw > 200 && (!best || mw > best)) best = mw;
+  });
+  best;   // compare this number across every content route
+  ```
+- Check every breakpoint in the ladder, not just 1440: 1024, 1280, 1536 and
+  1920. A page can agree at one width and diverge at another if it is missing a
+  rung (e.g. has `lg:` and `xl:` but no `2xl:`).
+- Forms are allowed to be narrower **on purpose** — PostJob is, and says so in a
+  comment. A deviation is only a finding when nothing explains it. If you find
+  an unexplained one, the fix is to adopt the ladder, not to invent a new rung.
 
 *Shell choice*
 - Fixed-shell vs document-scroll must agree with `DOCUMENT_SCROLL_ROUTES` in
-  `src/hooks/useAppShellViewport.ts`. Assert the `app-shell` class on `<html>`
-  matches the list for every route.
-- `AppShell` owns the ONLY implementation of the 100dvh lock, the internal
-  scroll container, the safe-area top inset and bottom-nav clearance. Any page
-  re-implementing those is a finding.
-- Getting this wrong is not cosmetic: if a tall AppShell-based page is missing
+  `src/hooks/useAppShellViewport.ts`. That hook toggles the `app-shell` class on
+  `<html>`; assert the class state matches the list for every route:
+  in-list ⇒ no `app-shell` class, absent ⇒ class present.
+- `AppShell` (`src/components/AppShell.tsx`) owns the ONLY implementation of the
+  100dvh lock, the internal scroll container, the safe-area top inset and the
+  bottom-nav clearance. Any page re-implementing those is a finding. So is any
+  second `h-[100dvh]` / `h-screen` + `overflow-hidden` pair outside it.
+- `PageScaffold` is a *thin wrapper over* `AppShell` — it adds the title card and
+  bleeding panel and nothing else. If it grows its own viewport lock, that is a
+  finding.
+- Document-scroll pages use a plain `min-h-screen bg-premium-page pb-safe-nav`
+  wrapper (with `<PageHeader>` when a back button is needed) and must NOT use
+  `AppShell`.
+- Getting this wrong is not cosmetic. If a tall AppShell-based page is missing
   from the list, `html.app-shell { overflow: hidden }` clips everything below
-  the fold and the user cannot reach it. Scroll to the bottom of every
-  fixed-shell page and confirm the last actionable control is reachable.
+  the fold with no way to scroll — users are stranded above a submit button.
+  **Scroll to the bottom of every fixed-shell page and confirm the last
+  actionable control is reachable and tappable**, at 375×812 and at 375×500.
+- Two scroll containers nested inside each other is its own bug: the inner one
+  captures the gesture and the outer never moves. Confirm exactly one scrolls.
 
 *Vertical space and insets*
 - Safe-area insets: top (notch) and bottom (home indicator) respected. Content
-  must not sit under the status bar, and the last element must clear the home
-  indicator and the bottom nav.
-- Bottom-nav clearance (`pb-safe-nav`) present on pages that show the dock, and
-  **absent** where the dock does not render — an unconditional clearance is a
-  visible dead band under the footer.
+  must not sit under the status bar, and the last element must clear both the
+  home indicator and the bottom nav. These come from
+  `env(safe-area-inset-*)` — a hardcoded pixel value in their place is a finding.
+- Bottom-nav clearance (`pb-safe-nav`) present on pages that show the dock and
+  **absent where the dock does not render**. An unconditional clearance is a
+  visible dead band — this shipped on the marketing pages, where the extra `1rem`
+  in the `safe-nav` token sat under the footer on every page because the dock
+  never renders there. Express clearance in terms of `--bottom-nav-h` so it
+  collapses correctly rather than hardcoding zero.
 - No dead bands generally: an empty gutter above or below content, or a page
-  whose content floats mid-viewport with nothing anchoring it.
-- Short-viewport / landscape: at **375×500**, confirm auth and form pages still
-  scroll to their submit button. Login has stranded users this way before.
+  whose cards float mid-viewport with nothing anchoring them. Content should
+  start under the header and flow naturally.
+- Header spacing: a page's title must not crowd the nav, and the spacer that
+  clears a fixed nav must use `max(env(safe-area-inset-top), …)` so a notched
+  device wins rather than being clipped.
+- Short viewport and landscape: at **375×500** and **812×375**, confirm auth,
+  onboarding and form pages still reach their submit button. Login has stranded
+  users exactly this way, which is why it sits in `DOCUMENT_SCROLL_ROUTES`.
+- Very tall content: confirm long legal and help pages do not lose their footer
+  or leave a gap after it.
 
 *Dynamic layout*
 - Sticky and fixed elements: scroll each page and confirm headers stick where
   intended, do not overlap content, and do not double up (a sticky page header
-  under a fixed nav).
-- Modals, sheets and dialogs: open each one; confirm it fits the viewport, its
-  own content scrolls if tall, the page behind does not scroll, and it is not
-  clipped by an ancestor.
-- Keyboard: focus a text input at 375 and confirm the field is not covered.
+  under a fixed nav is a stacked-header bug this repo has fixed before). Check
+  `z-index` ordering — a sticky header must sit above content but below modals.
+- Modals, sheets and dialogs — open **every** one: confirm it fits the viewport,
+  its own content scrolls when tall, the page behind does not scroll, focus is
+  trapped inside, Escape closes it, and it is not clipped by an ancestor's
+  `overflow`. Then confirm the page is still scrollable *after* it closes — a
+  body scroll lock that fails to release leaves the page frozen.
+- Bottom sheets: confirm the sheet clears the home indicator and its primary
+  action is not under the dock.
+- Keyboard: focus a text input at 375 and confirm the field and its submit
+  button are not covered. Test the last field on the longest form.
 - Layout shift: watch for content jumping as images and async data land. Images
-  should reserve space (explicit dimensions or aspect ratio).
-- Web only: at 200% browser zoom (WCAG 1.4.4) the page must remain usable
-  without horizontal scrolling. Native disables pinch-zoom deliberately — do
-  not "fix" that.
+  need reserved space (explicit width/height or an aspect ratio). Skeletons
+  should occupy the same box as the content that replaces them — a skeleton
+  smaller than its content causes a visible jump on every load.
+- Transitions: page-transition wrappers must not clip fixed or sticky children,
+  and must not leave a transformed ancestor behind (a `transform` on an ancestor
+  makes `position: fixed` resolve against it instead of the viewport, which
+  silently breaks fixed overlays).
+- Web only: at 200% browser zoom (WCAG 1.4.4) the page must stay usable with no
+  horizontal scrolling. Native disables pinch-zoom deliberately — do not "fix"
+  that; the two surfaces differ here on purpose.
 
 **Typography**
 - Every size is a `ds-*` token. No arbitrary `text-[13px]`, no inline

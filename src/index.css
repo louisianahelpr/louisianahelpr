@@ -289,17 +289,17 @@
   /* Pay It Forward — donation "mint" identity palette. Tokenised so the page
      (built with inline-style colors) renders correctly in dark mode instead of
      painting glaring light-green blocks on the dark canvas. */
-  /* --pif-green was BYTE-IDENTICAL to --success-ink (142 50% 30%) — one
+  /* --gift-green was BYTE-IDENTICAL to --success-ink (142 50% 30%) — one
      colour, two names, in two different token families. Retired in favour of
      --success-ink, which had 25 consumers to its 7 (A2). */
-  --pif-ink:        142 50% 28%;   /* headings / amount */
-  --pif-green-soft: 142 40% 40%;   /* muted green subtext */
-  --pif-tint:       142 50% 35%;   /* base hue used at low alpha for fills/borders */
-  --pif-card-from:  142 50% 97%;   /* credit-card gradient top */
-  --pif-card-to:    142 40% 94%;   /* credit-card gradient bottom */
-  --pif-form-from:  220 30% 98%;   /* give-a-credit form gradient top (cool neutral) */
-  --pif-form-to:    220 20% 94%;   /* give-a-credit form gradient bottom (cool neutral) */
-  --pif-sheen:      hsla(0, 0%, 100%, 0.55); /* corner radial highlight */
+  --gift-ink:        142 50% 28%;   /* headings / amount */
+  --gift-green-soft: 142 40% 40%;   /* muted green subtext */
+  --gift-tint:       142 50% 35%;   /* base hue used at low alpha for fills/borders */
+  --gift-card-from:  142 50% 97%;   /* credit-card gradient top */
+  --gift-card-to:    142 40% 94%;   /* credit-card gradient bottom */
+  --gift-form-from:  220 30% 98%;   /* give-a-credit form gradient top (cool neutral) */
+  --gift-form-to:    220 20% 94%;   /* give-a-credit form gradient bottom (cool neutral) */
+  --gift-sheen:      hsla(0, 0%, 100%, 0.55); /* corner radial highlight */
 
   /* "Active now" / live-presence green — one token for every online dot &
      live label (messages list, landing heartbeat, payout ticker), so the hue
@@ -462,14 +462,14 @@
 
   /* Pay It Forward — dark-mode mint palette: lightened greens for legible
      foreground, dark green-tinted surfaces instead of light fills. */
-  --pif-ink:        142 35% 72%;
-  --pif-green-soft: 142 20% 60%;
-  --pif-tint:       142 30% 52%;
-  --pif-card-from:  142 22% 13%;
-  --pif-card-to:    142 18% 11%;
-  --pif-form-from:  38 14% 14%;
-  --pif-form-to:    38 12% 11%;
-  --pif-sheen:      hsla(0, 0%, 100%, 0.05);
+  --gift-ink:        142 35% 72%;
+  --gift-green-soft: 142 20% 60%;
+  --gift-tint:       142 30% 52%;
+  --gift-card-from:  142 22% 13%;
+  --gift-card-to:    142 18% 11%;
+  --gift-form-from:  38 14% 14%;
+  --gift-form-to:    38 12% 11%;
+  --gift-sheen:      hsla(0, 0%, 100%, 0.05);
 
   --live: 142 52% 60%;  /* lightened so the dot/label reads on the dark page */
 

@@ -85,7 +85,7 @@ serve(async (req) => {
         price_data: {
           currency: "usd",
           product_data: {
-            name: "Background Check Verification",
+            name: "Background check verification",
             description:
               "One-time background screening to earn your Background-Checked badge on Helpr.",
             // Platform service — not subject to LA sales tax.

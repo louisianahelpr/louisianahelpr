@@ -42,25 +42,25 @@ export function CreditCard({
       className="rounded-ds-md p-4"
       style={{
         background:
-          "radial-gradient(circle at 15% 0%, var(--pif-sheen) 0%, transparent 55%), " +
-          "linear-gradient(180deg, hsl(var(--pif-card-from)) 0%, hsl(var(--pif-card-to)) 100%)",
-        border: "0.5px solid hsl(var(--pif-tint) / 0.22)",
+          "radial-gradient(circle at 15% 0%, var(--gift-sheen) 0%, transparent 55%), " +
+          "linear-gradient(180deg, hsl(var(--gift-card-from)) 0%, hsl(var(--gift-card-to)) 100%)",
+        border: "0.5px solid hsl(var(--gift-tint) / 0.22)",
         boxShadow:
           "inset 0 1px 1px 0 rgba(255,255,255,0.5), " +
-          "0 1px 3px hsl(var(--pif-tint) / 0.08)",
+          "0 1px 3px hsl(var(--gift-tint) / 0.08)",
       }}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div>
           <p
             className="font-display italic font-bold leading-tight"
-            style={{ fontSize: "1.35rem", color: "hsl(var(--pif-ink))", letterSpacing: "-0.02em" }}
+            style={{ fontSize: "1.35rem", color: "hsl(var(--gift-ink))", letterSpacing: "-0.02em" }}
           >
             ${formatPrice(Number(credit.amount))}
           </p>
           <p
             className="font-serif italic mt-0.5"
-            style={{ fontSize: "0.75rem", color: "hsl(var(--pif-green-soft))" }}
+            style={{ fontSize: "0.75rem", color: "hsl(var(--gift-green-soft))" }}
           >
             {subline}
           </p>
@@ -74,7 +74,7 @@ export function CreditCard({
           style={{
             color: isExpired
               ? "hsl(var(--burnt-sienna))"
-              : "hsl(var(--pif-green-soft))",
+              : "hsl(var(--gift-green-soft))",
             letterSpacing: "0.06em",
           }}
         >

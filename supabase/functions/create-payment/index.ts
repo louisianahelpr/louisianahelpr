@@ -250,7 +250,7 @@ serve(async (req) => {
           price_data: {
             currency: "usd",
             product_data: {
-              name: "Service Fee",
+              name: "Service fee",
               description: `${customerFeePercent}% platform service fee`,
               tax_code: "txcd_00000000", // Non-taxable until LDR clarifies
             },
@@ -266,7 +266,7 @@ serve(async (req) => {
           price_data: {
             currency: "usd",
             product_data: {
-              name: "Urgent Tip",
+              name: "Urgent tip",
               description: "Urgent tip — goes directly to the helpr",
               tax_code: "txcd_00000000", // Non-taxable: passes through to helper
             },
@@ -283,7 +283,7 @@ serve(async (req) => {
           price_data: {
             currency: "usd",
             product_data: {
-              name: "One-time Account Setup",
+              name: "One-time account setup",
               description: "One-time identity verification & account setup fee. Charged once per account.",
               tax_code: "txcd_00000000",
             },

@@ -326,15 +326,15 @@ export default function PayItForward() {
           <div
             className="rounded-ds-md p-4 flex items-center gap-3 mb-6"
             style={{
-              background: "hsl(var(--pif-tint) / 0.06)",
-              border: "0.5px solid hsl(var(--pif-tint) / 0.18)",
+              background: "hsl(var(--gift-tint) / 0.06)",
+              border: "0.5px solid hsl(var(--gift-tint) / 0.18)",
             }}
           >
             <div
               className="w-4 h-4 shrink-0 rounded-full border-2 border-t-transparent motion-safe:animate-spin"
               style={{ borderColor: "hsl(var(--success-ink))", borderTopColor: "transparent" }}
             />
-            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--pif-ink))" }}>
+            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--gift-ink))" }}>
               Claiming your gift card…
             </p>
           </div>
@@ -350,15 +350,15 @@ export default function PayItForward() {
             <div
               className="rounded-ds-md p-4"
               style={{
-                background: "hsl(var(--pif-tint) / 0.06)",
-                border: "0.5px solid hsl(var(--pif-tint) / 0.18)",
+                background: "hsl(var(--gift-tint) / 0.06)",
+                border: "0.5px solid hsl(var(--gift-tint) / 0.18)",
               }}
             >
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--success-ink))" }} />
                 <p
                   className="font-sans font-semibold text-ds-14"
-                  style={{ color: "hsl(var(--pif-ink))" }}
+                  style={{ color: "hsl(var(--gift-ink))" }}
                 >
                   What is this?
                 </p>
@@ -377,8 +377,8 @@ export default function PayItForward() {
               className="rounded-ds-md p-4 space-y-4"
               style={{
                 background:
-                  "radial-gradient(circle at 20% 0%, var(--pif-sheen) 0%, transparent 60%), " +
-                  "linear-gradient(180deg, hsl(var(--pif-form-from) / 0.92) 0%, hsl(var(--pif-form-to) / 0.74) 100%)",
+                  "radial-gradient(circle at 20% 0%, var(--gift-sheen) 0%, transparent 60%), " +
+                  "linear-gradient(180deg, hsl(var(--gift-form-from) / 0.92) 0%, hsl(var(--gift-form-to) / 0.74) 100%)",
                 border: "0.5px solid hsl(var(--bark) / 0.22)",
                 boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.6)",
               }}

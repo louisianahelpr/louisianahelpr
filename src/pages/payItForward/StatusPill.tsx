@@ -1,8 +1,8 @@
 // ─── Status pill ──────────────────────────────────────────────────────────────
 export function StatusPill({ status }: { status: string }) {
   const map: Record<string, { label: string; color: string; bg: string }> = {
-    available: { label: "Available", color: "hsl(var(--success-ink))", bg: "hsl(var(--pif-tint) / 0.12)" },
-    sent: { label: "Ready to use", color: "hsl(var(--success-ink))", bg: "hsl(var(--pif-tint) / 0.12)" },
+    available: { label: "Available", color: "hsl(var(--success-ink))", bg: "hsl(var(--gift-tint) / 0.12)" },
+    sent: { label: "Ready to use", color: "hsl(var(--success-ink))", bg: "hsl(var(--gift-tint) / 0.12)" },
     redeemed: { label: "Redeemed", color: "hsl(var(--bark))", bg: "hsl(var(--bark) / 0.10)" },
     reserved: { label: "Reserved", color: "hsl(var(--amber-tint))", bg: "hsl(var(--amber-tint) / 0.12)" },
     expired: { label: "Expired", color: "hsl(var(--olivewood) / 0.8)", bg: "hsl(var(--olivewood) / 0.08)" },

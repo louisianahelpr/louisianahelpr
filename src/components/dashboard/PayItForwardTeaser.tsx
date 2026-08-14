@@ -15,8 +15,8 @@ const PayItForwardTeaser = ({ pifCount }: PayItForwardTeaserProps) => {
     <div
       className="mx-4 mb-3 rounded-ds-md p-3"
       style={{
-        background: "hsl(var(--pif-tint) / 0.08)",
-        border: "0.5px solid hsl(var(--pif-tint) / 0.2)",
+        background: "hsl(var(--gift-tint) / 0.08)",
+        border: "0.5px solid hsl(var(--gift-tint) / 0.2)",
       }}
     >
       <p
@@ -27,7 +27,7 @@ const PayItForwardTeaser = ({ pifCount }: PayItForwardTeaserProps) => {
       </p>
       <p
         className="font-serif italic text-ds-12 mt-0.5"
-        style={{ color: "hsl(var(--pif-green-soft))" }}
+        style={{ color: "hsl(var(--gift-green-soft))" }}
       >
         Gift cards ready to claim ·{" "}
         <Link to="/gift-card" className="underline">

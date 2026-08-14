@@ -133,9 +133,12 @@ serve(async (req) => {
         price_data: {
           currency: "usd",
           product_data: {
-            name: "Pay It Forward gift",
+            // User-visible: this is the Stripe line-item name, so it shows on the
+// checkout page and on the emailed receipt. The feature was renamed to
+// "gift card" at the surface; this string was missed.
+            name: "Louisiana Helpr gift card",
             description:
-              `A $${(amountCents / 100).toFixed(0)} Helpr credit for ${recipientEmail} to get help when they need it.`,
+              `A $${(amountCents / 100).toFixed(0)} Louisiana Helpr credit for ${recipientEmail} to get help when they need it.`,
             // Platform service — not subject to LA sales tax.
             tax_code: "txcd_00000000",
           },

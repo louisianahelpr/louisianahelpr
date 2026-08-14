@@ -144,7 +144,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false
                   className="tabular-nums"
                   style={{
                     color: cancellationRate < 5
-                      ? "hsl(var(--pif-tint))"
+                      ? "hsl(var(--gift-tint))"
                       : cancellationRate < 15
                         ? "hsl(var(--olivewood) / 0.8)"
                         : "hsl(var(--burnt-sienna))",

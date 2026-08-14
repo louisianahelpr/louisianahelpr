@@ -162,8 +162,12 @@ serve(async (req) => {
       try {
         const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id!);
         if (session.payment_status === "unpaid") {
-          await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
-          abandonedCount++;
+          const { error: abUpdateErr } = await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
+          if (abUpdateErr) {
+            console.error(`[void-cancelled-payments] failed to mark job ${job.id} abandoned (unpaid):`, abUpdateErr.message);
+          } else {
+            abandonedCount++;
+          }
         }
       } catch (e) {
         // Only a genuinely-missing session (404 / resource_missing) proves the
@@ -173,8 +177,12 @@ serve(async (req) => {
         // for the next run, mirroring the void loop below.
         const missing = (e as any)?.statusCode === 404 || (e as any)?.code === "resource_missing";
         if (missing) {
-          await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
-          abandonedCount++;
+          const { error: abMissingErr } = await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
+          if (abMissingErr) {
+            console.error(`[void-cancelled-payments] failed to mark job ${job.id} abandoned (session 404):`, abMissingErr.message);
+          } else {
+            abandonedCount++;
+          }
         } else {
           console.error(`[void-cancelled-payments] abandoned-check Stripe error for job ${job.id}:`, (e as Error).message);
         }
@@ -199,7 +207,10 @@ serve(async (req) => {
           const pi = session.payment_intent;
           paymentIntentId = typeof pi === "string" ? pi : pi?.id;
           if (paymentIntentId) {
-            await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
+            const { error: piBackfillErr } = await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
+            if (piBackfillErr) {
+              console.error(`[void-cancelled-payments] failed to backfill stripe_payment_intent_id for job ${job.id}:`, piBackfillErr.message);
+            }
           }
         } catch (e: any) {
           results.push({ job_id: job.id, title: job.title, status: "session_not_found", error: (e as Error).message });
@@ -209,8 +220,13 @@ serve(async (req) => {
 
       if (!paymentIntentId) {
         // No payment was ever made — just update status
-        await supabaseAdmin.from("jobs").update({ payment_status: "cancelled" }).eq("id", job.id);
-        results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated: true });
+        const { error: noPayErr } = await supabaseAdmin.from("jobs").update({ payment_status: "cancelled" }).eq("id", job.id);
+        if (noPayErr) {
+          console.error(`[void-cancelled-payments] failed to cancel job ${job.id} (no payment):`, noPayErr.message);
+          results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated: false, error: noPayErr.message });
+        } else {
+          results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated: true });
+        }
         continue;
       }
 
@@ -234,17 +250,23 @@ serve(async (req) => {
             // source_transaction link.
             const captured = await stripe.paymentIntents.retrieve(paymentIntentId);
             await payHelperCancellationFee(job, cancellationFee, captured);
-            await supabaseAdmin.from("jobs").update({
+            const { error: feeCapErr } = await supabaseAdmin.from("jobs").update({
               payment_status: "refunded",
               cancellation_fee_status: "charged",
             }).eq("id", job.id);
+            if (feeCapErr) {
+              console.error(`[void-cancelled-payments] DB update failed for job ${job.id} after fee capture (money already moved):`, feeCapErr.message);
+            }
             refunded++;
             results.push({ job_id: job.id, title: job.title, status: "fee_captured", cancellation_fee: cancellationFee });
           } else {
             // No fee owed — cancel the uncaptured hold in full; funds release to
             // the poster.
             await stripe.paymentIntents.cancel(paymentIntentId);
-            await supabaseAdmin.from("jobs").update({ payment_status: "cancelled" }).eq("id", job.id);
+            const { error: voidErr } = await supabaseAdmin.from("jobs").update({ payment_status: "cancelled" }).eq("id", job.id);
+            if (voidErr) {
+              console.error(`[void-cancelled-payments] DB update failed for job ${job.id} after PI cancel (money already voided):`, voidErr.message);
+            }
             voided++;
             results.push({ job_id: job.id, title: job.title, status: "voided", amount: pi.amount / 100 });
           }
@@ -351,10 +373,13 @@ serve(async (req) => {
           // Transfer the agreed fee to the helper (minus platform commission).
           await payHelperCancellationFee(job, cancellationFee, pi);
 
-          await supabaseAdmin.from("jobs").update({
+          const { error: refundStatusErr } = await supabaseAdmin.from("jobs").update({
             payment_status: "refunded",
             cancellation_fee_status: cancellationFee > 0 ? "charged" : null,
           }).eq("id", job.id);
+          if (refundStatusErr) {
+            console.error(`[void-cancelled-payments] DB update failed for job ${job.id} after refund (money already moved):`, refundStatusErr.message);
+          }
           refunded++;
           results.push({ job_id: job.id, title: job.title, status: refundAmount > 0 ? "refunded" : "zero_refund", amount: Math.max(0, refundAmount) / 100, cancellation_fee_transferred: cancellationFee > 0 });
         } else {
@@ -363,7 +388,10 @@ serve(async (req) => {
       } catch (e: any) {
         // Handle "already refunded" gracefully
         if (e.message?.includes("already been refunded")) {
-          await supabaseAdmin.from("jobs").update({ payment_status: "refunded" }).eq("id", job.id);
+          const { error: alreadyRefErr } = await supabaseAdmin.from("jobs").update({ payment_status: "refunded" }).eq("id", job.id);
+          if (alreadyRefErr) {
+            console.error(`[void-cancelled-payments] DB update failed for job ${job.id} (already_refunded):`, alreadyRefErr.message);
+          }
           refunded++;
           results.push({ job_id: job.id, title: job.title, status: "already_refunded" });
         } else {

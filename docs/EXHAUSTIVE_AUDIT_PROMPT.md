@@ -85,16 +85,82 @@ Cover every one of these axes. A route is not audited until all apply:
 
 ## 4. What to check on every screen
 
-**Layout**
+**Layout** — the largest and least forgiving section. Every item is measurable;
+measure it, don't eyeball it.
+
+*Overflow and fit*
 - `documentElement.scrollWidth <= clientWidth` — zero horizontal overflow. If it
-  overflows, name the widest offending element.
-- No element wider than the viewport.
-- Content column centred in the *post-rail* area at 1440, with no rail-width
-  dead gutter. The desktop rail inset is applied in exactly ONE layer, globally
-  — a page must never re-inset itself.
-- Fixed-shell vs document-scroll choice agrees with `DOCUMENT_SCROLL_ROUTES` in
+  overflows, name the widest offending element and its computed width.
+- No single element wider than the viewport. Walk `#root *` and compare each
+  `getBoundingClientRect().width` against `clientWidth`.
+- Check at **320, 375, 414, 768, 1024, 1440** — the same ladder
+  `mobile-viewports.yml` uses. 320 is where truncation and wrapping break first;
+  most overflow bugs here have been decorative elements bleeding past a parent
+  (`-inset-16` style halos widening the scroll area).
+- Long-content stress: a 40-character unbroken word, a very long job title, a
+  long email address in a narrow card. Confirm it wraps or truncates rather
+  than pushing the layout wide.
+
+*The desktop rail — this has broken twice*
+- The rail inset is applied in exactly ONE layer, globally. Fixed-shell pages
+  clear it via `.app-shell-frame { left: var(--desktop-sidebar-w) }`;
+  document-scroll pages via the global `html.web-desktop.desktop-rail:not(.app-shell) #root`
+  padding rule in `index.css`.
+- **A page must never re-inset itself** — no per-page `paddingLeft: var(--desktop-sidebar-w)`,
+  no `lg:pl-[248px]`, no extra flex spacer. Doing so pushes content right by a
+  *second* rail width. This exact bug shipped on PostJob: `#root` padded 248px
+  AND the page padded 248px, so the form sat at x≈496 with a dead 250px gutter.
+- After the single inset, assert the content column is centred in the
+  *post-rail* area: its visual centre should be `(rail_width + viewport) / 2`,
+  not the raw viewport centre. Measure it; a lopsided column with a blank band
+  is a failure, not a nicety.
+
+*One width ladder*
+- The canonical content ladder is `max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]`.
+  At 1440 every content page should resolve to the **same** column width
+  (currently 1280px). Navigate several routes in one pass and assert the width
+  does not change between them — a column that jumps as you navigate is the
+  defect, and it is invisible if you only ever look at one page.
+- Forms are allowed to be narrower on purpose (PostJob is, and says so in a
+  comment). A deviation is only a finding if nothing explains it.
+
+*Shell choice*
+- Fixed-shell vs document-scroll must agree with `DOCUMENT_SCROLL_ROUTES` in
   `src/hooks/useAppShellViewport.ts`. Assert the `app-shell` class on `<html>`
-  matches the list.
+  matches the list for every route.
+- `AppShell` owns the ONLY implementation of the 100dvh lock, the internal
+  scroll container, the safe-area top inset and bottom-nav clearance. Any page
+  re-implementing those is a finding.
+- Getting this wrong is not cosmetic: if a tall AppShell-based page is missing
+  from the list, `html.app-shell { overflow: hidden }` clips everything below
+  the fold and the user cannot reach it. Scroll to the bottom of every
+  fixed-shell page and confirm the last actionable control is reachable.
+
+*Vertical space and insets*
+- Safe-area insets: top (notch) and bottom (home indicator) respected. Content
+  must not sit under the status bar, and the last element must clear the home
+  indicator and the bottom nav.
+- Bottom-nav clearance (`pb-safe-nav`) present on pages that show the dock, and
+  **absent** where the dock does not render — an unconditional clearance is a
+  visible dead band under the footer.
+- No dead bands generally: an empty gutter above or below content, or a page
+  whose content floats mid-viewport with nothing anchoring it.
+- Short-viewport / landscape: at **375×500**, confirm auth and form pages still
+  scroll to their submit button. Login has stranded users this way before.
+
+*Dynamic layout*
+- Sticky and fixed elements: scroll each page and confirm headers stick where
+  intended, do not overlap content, and do not double up (a sticky page header
+  under a fixed nav).
+- Modals, sheets and dialogs: open each one; confirm it fits the viewport, its
+  own content scrolls if tall, the page behind does not scroll, and it is not
+  clipped by an ancestor.
+- Keyboard: focus a text input at 375 and confirm the field is not covered.
+- Layout shift: watch for content jumping as images and async data land. Images
+  should reserve space (explicit dimensions or aspect ratio).
+- Web only: at 200% browser zoom (WCAG 1.4.4) the page must remain usable
+  without horizontal scrolling. Native disables pinch-zoom deliberately — do
+  not "fix" that.
 
 **Typography**
 - Every size is a `ds-*` token. No arbitrary `text-[13px]`, no inline
@@ -154,9 +220,11 @@ So:
   every other instance of it in one pass. Most findings here follow the pattern
   *"a rule existed, was applied to two or three places, then never swept"* —
   one route sweep found 10 orphaned bells and 9 stray props.
-- **Fan out 2–3 parallel agents max** over disjoint files. More than that
-  degrades the machine. Each agent should `git checkout origin/main` first —
-  worktrees fork from local HEAD, which may be stale.
+- **Parallelise across disjoint files.** Split the route surface and fan out.
+  Two constraints, both learned the hard way: agents must not share files (they
+  leak commits into each other and into the shared repo — verify every diff
+  before you trust it), and each agent should `git checkout origin/main` first,
+  because worktrees fork from local HEAD, which may be stale.
 - Run the gate before every commit: `npm run typecheck`, plus `npx vitest run`
   when touching tested code. Lint runs on commit; CI runs the rest.
 - Commit directly to `main`. End messages with:

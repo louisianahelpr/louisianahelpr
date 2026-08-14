@@ -160,7 +160,7 @@ export function PostedJobActions({
                 <Button
                   variant="outline" size="sm"
                   className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
-                  style={{ background: "hsl(var(--destructive) / 0.11)", color: "hsl(var(--destructive))", border: "0.5px solid hsl(var(--cancel-tint) / 0.32)" }}
+                  style={{ background: "hsl(var(--destructive) / 0.11)", color: "hsl(var(--destructive-ink))", border: "0.5px solid hsl(var(--destructive) / 0.32)" }}
                   onClick={() => onCancel(job)}
                 >
                   <XCircle className="w-4 h-4" />

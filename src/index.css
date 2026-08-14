@@ -187,6 +187,7 @@
      near-identical reds is not a colour language, it's three chances to pick
      the wrong one. */
   --destructive: 6 64% 46%;
+  --destructive-ink: 6 64% 38%;   /* text on low-alpha destructive tint — needs 4.5:1 on ~#f0e2e2 */
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:         var(--parchment);
   --sidebar-foreground:         var(--olivewood);
@@ -411,6 +412,7 @@
   --info:                 78 12% 55%;
   --info-foreground:      0 0% 100%;
   --destructive:          6 60% 52%;
+  --destructive-ink: 6 60% 72%;   /* text on low-alpha destructive tint on the dark canvas */
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:   var(--parchment);
   --sidebar-foreground:   var(--olivewood);

@@ -149,6 +149,6 @@ export function stateToneColors(tone: StateTone): { fg: string; bg: string } {
       return { fg: "hsl(var(--olivewood))", bg: "hsl(var(--olivewood) / 0.10)" };
     case "neutral":
     default:
-      return { fg: "hsl(var(--olivewood) / 0.85)", bg: "hsl(var(--olivewood) / 0.06)" };
+      return { fg: "hsl(var(--olivewood))", bg: "hsl(var(--olivewood) / 0.06)" };
   }
 }

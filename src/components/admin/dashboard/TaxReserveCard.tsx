@@ -77,7 +77,7 @@ export const TaxReserveCard = ({
             <Landmark className="w-4 h-4 sm:w-5 sm:h-5" />
           </span>
           <div className="min-w-0">
-            <p className="font-display italic font-bold leading-tight" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+            <p className="font-sans font-semibold leading-tight" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               Tax reserve
             </p>
             <p className="text-ds-11 text-muted-foreground leading-tight">

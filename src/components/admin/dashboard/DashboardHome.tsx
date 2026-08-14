@@ -65,7 +65,7 @@ export const DashboardHome = ({
         }}
       >
         <h1
-          className="font-display italic font-bold leading-tight"
+          className="font-sans font-semibold leading-tight"
           style={{ fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.85rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
         >
           Welcome back

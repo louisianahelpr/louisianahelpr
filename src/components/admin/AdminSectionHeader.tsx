@@ -5,7 +5,11 @@ const AdminSectionHeader = ({ title, onBack }: { title: string; onBack: () => vo
     <BackButton onClick={onBack} />
     <div className="flex flex-col leading-none min-w-0">
       <h1
-        className="font-display italic font-bold leading-tight truncate"
+        // Montserrat, not Bodoni italic (M5). Admin is a moderation and
+        // dispute queue — someone reads rows here for eight hours, and that
+        // wants density and scanability rather than brand expression. The
+        // editorial voice stops at the product boundary.
+        className="font-sans font-semibold leading-tight truncate"
         style={{
           fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.85rem)",
           color: "hsl(var(--ink-deep))",

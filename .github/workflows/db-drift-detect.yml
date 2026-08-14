@@ -98,8 +98,28 @@ jobs:
             exit 1
           fi
 
-          awk 'NR>2 && $1 ~ /^[0-9]{14}$/ { print $1 }' /tmp/remote-raw.txt \
-            | sort -u > /tmp/remote.txt
+          # Parse the REMOTE column, splitting on the table's "|" separators.
+          #
+          # Two bugs lived here. The CLI renders versions wrapped in backticks:
+          #
+          #     Local            | Remote           | Time (UTC)
+          #     `20260311000404` | `20260311000404` | `2026-03-11 00:04:04`
+          #
+          # (1) The old awk matched $1 against /^[0-9]{14}$/, but with backticks
+          #     the field is `20260311000404`, which never matches — so it
+          #     parsed ZERO remote versions and every local migration looked
+          #     unapplied. That is the 399-drift false alarm.
+          # (2) $1 is the LOCAL column. Even with the backticks stripped it was
+          #     comparing local against local, which is always identical — so a
+          #     "working" version of this check could never report drift at all.
+          #     It was broken in both directions at once.
+          #
+          # Field 2 is Remote. An empty Remote cell means the migration is in
+          # the repo but NOT applied to prod, which is exactly the drift we want
+          # to catch — it simply fails the 14-digit test and is left out of
+          # remote.txt, so `comm` reports it.
+          awk -F'|' 'NR>2 { gsub(/[` \t]/, "", $2); if ($2 ~ /^[0-9]{14}$/) print $2 }' \
+            /tmp/remote-raw.txt | sort -u > /tmp/remote.txt
 
           REMOTE_COUNT=$(wc -l < /tmp/remote.txt | tr -d ' ')
 

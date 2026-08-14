@@ -53,8 +53,6 @@ const DS_TYPE_INLINE_LEGACY = [
   "src/pages/SubscriptionPage.tsx",
   "src/pages/helperAnalytics/MonthlyGoalCard.tsx",
   "src/pages/helperAnalytics/RatingsReviewsCard.tsx",
-  "src/pages/strSettings/AddCalendarForm.tsx",
-  "src/pages/strSettings/ConnectionCard.tsx",
 ];
 
 export default tseslint.config(

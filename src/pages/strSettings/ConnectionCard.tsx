@@ -50,7 +50,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
         {/* Sync status */}
         <div className="flex items-center gap-1 shrink-0">
           <StatusIcon className="w-3.5 h-3.5" style={{ color: statusColor }} />
-          <span style={{ fontSize: "0.72rem", color: statusColor }}>
+          <span className="text-ds-12" style={{ color: statusColor }}>
             {hasError ? "Error" : formatSyncTime(conn.last_synced_at)}
           </span>
         </div>
@@ -58,7 +58,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
 
       {/* Address */}
       {conn.property_address && (
-        <p style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+        <p className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           {conn.property_address}
         </p>
       )}
@@ -72,7 +72,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
             border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
           }}
         >
-          <p style={{ fontSize: "0.75rem", color: "hsl(var(--burnt-sienna))" }}>
+          <p className="text-ds-12" style={{ color: "hsl(var(--burnt-sienna))" }}>
             {conn.last_sync_error}
           </p>
         </div>
@@ -93,7 +93,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
           style={{ background: "hsl(var(--burnt-sienna) / 0.08)", border: "0.5px solid hsl(var(--burnt-sienna) / 0.2)" }}
         >
           <Home className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-          <span style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <span className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Auto-creates <strong style={{ color: "hsl(var(--ink-deep))" }}>cleaning jobs</strong> at{" "}
             <strong style={{ color: "hsl(var(--ink-deep))" }}>
               ${conn.cleaning_budget ?? 80}
@@ -106,7 +106,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
           style={{ background: "hsl(var(--olivewood) / 0.06)", border: "0.5px solid hsl(var(--olivewood) / 0.15)" }}
         >
           <CalendarOff className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-          <span style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <span className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             <strong style={{ color: "hsl(var(--ink-deep))" }}>No jobs auto-created.</strong>{" "}
             Helpr keeps this calendar in sync but won't post a cleaning job at
             checkout. Reconnect the calendar with auto-create on to change that.
@@ -119,10 +119,10 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
         <Button
           size="sm"
           variant="outline"
-          className="flex-1 rounded-ds-md"
+          className="flex-1 rounded-ds-md text-ds-13"
           disabled={syncing}
           onClick={() => onSync(conn.id)}
-          style={{ fontSize: "0.8rem", height: 36 }}
+          style={{ height: 36 }}
         >
           {syncing ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -76,7 +76,7 @@ export function AddCalendarForm({
     <div className="space-y-4">
       {/* Platform selector */}
       <div>
-        <Label style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+        <Label className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Platform
         </Label>
         <div className="flex flex-wrap gap-2 mt-1.5">
@@ -85,9 +85,8 @@ export function AddCalendarForm({
               key={p}
               type="button"
               onClick={() => set("platform", p)}
-              className="rounded-ds-md px-3 py-1 font-serif italic font-semibold transition-all"
+              className="rounded-ds-md px-3 py-1 font-serif italic font-semibold transition-all text-ds-12"
               style={{
-                fontSize: "0.78rem",
                 background:
                   form.platform === p
                     ? "hsl(var(--bark))"
@@ -105,7 +104,7 @@ export function AddCalendarForm({
       {/* iCal URL */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <Label htmlFor="ical-url" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <Label htmlFor="ical-url" className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Calendar URL (iCal / .ics)
           </Label>
           {helpUrl && (
@@ -113,7 +112,7 @@ export function AddCalendarForm({
               href={helpUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ fontSize: "0.72rem", color: "hsl(var(--burnt-sienna))" }}
+              className="text-ds-12" style={{ color: "hsl(var(--burnt-sienna))" }}
             >
               How to find this →
             </a>
@@ -132,7 +131,7 @@ export function AddCalendarForm({
       {/* Property name + address */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="str-property-name" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <Label htmlFor="str-property-name" className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Property name
           </Label>
           <Input
@@ -144,7 +143,7 @@ export function AddCalendarForm({
           />
         </div>
         <div>
-          <Label htmlFor="str-property-address" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <Label htmlFor="str-property-address" className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             City / Address
           </Label>
           <Input
@@ -170,7 +169,7 @@ export function AddCalendarForm({
             <p className="font-medium text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
               Auto-create cleaning job
             </p>
-            <p style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Post a job automatically after each checkout
             </p>
           </div>
@@ -181,7 +180,7 @@ export function AddCalendarForm({
         </div>
         {form.auto_create_cleaning && (
           <div>
-            <Label htmlFor="str-cleaning-budget" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <Label htmlFor="str-cleaning-budget" className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Cleaning budget ($)
             </Label>
             <Input
@@ -212,7 +211,7 @@ export function AddCalendarForm({
 
       {/* Notes */}
       <div>
-        <Label htmlFor="str-cleaning-notes" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+        <Label htmlFor="str-cleaning-notes" className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Cleaning notes (optional)
         </Label>
         <Input

@@ -88,6 +88,13 @@ const PostJob = () => {
           box and produced a large empty band above AND below them on a phone —
           the cards floated in the middle of the screen with nothing anchoring
           them. Content now starts under the header and flows naturally. */}
+      {/* This page stops at lg:max-w-5xl instead of continuing to the app's
+          canonical content ladder (5xl → 6xl → 7xl → 90rem). That is on
+          purpose, not an unswept ladder: this is a FORM, and a 90rem-wide
+          input row is harder to fill in than a narrow one — the reading
+          column is the feature. M2 unified the CONTENT pages, which were
+          disagreeing with each other; forms are a different problem and
+          keep their own width. */}
       <div className="container mx-auto px-4 py-6">
         {form.step === "entry" ? (
           <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto space-y-6">

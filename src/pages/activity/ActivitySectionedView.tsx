@@ -153,9 +153,8 @@ export function ActivitySectionedView<TItem>({
                     aria-hidden="true"
                   />
                   <span
-                    className="font-serif italic uppercase truncate"
+                    className="font-serif italic uppercase truncate text-ds-11"
                     style={{
-                      fontSize: "0.7rem",
                       letterSpacing: "0.18em",
                       color: "hsl(var(--ink-deep))",
                     }}

@@ -104,8 +104,8 @@ export const ProfileHeaderCard = ({
         >
           <ShieldCheck className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.5} />
           <span
-            className="font-sans font-bold uppercase tracking-wider"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--gold-warm))", letterSpacing: "0.16em" }}
+            className="font-sans font-bold uppercase tracking-wider text-ds-10"
+            style={{ color: "hsl(var(--gold-warm))", letterSpacing: "0.16em" }}
           >
             Verified
           </span>
@@ -161,8 +161,8 @@ export const ProfileHeaderCard = ({
         </h1>
         {profile.location && (
           <p
-            className="font-serif italic flex items-center justify-center gap-1 mt-0.5"
-            style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)" }}
+            className="font-serif italic flex items-center justify-center gap-1 mt-0.5 text-ds-13"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             <MapPin className="w-3 h-3" />{profile.location}
           </p>
@@ -398,8 +398,8 @@ export const ProfileHeaderCard = ({
         {!isOwnProfile && hasCleanRecord && (
           <div className="flex items-center justify-center mt-1.5">
             <span
-              className="font-serif italic"
-              style={{ fontSize: "0.78rem", color: "hsl(var(--success-ink))" }}
+              className="font-serif italic text-ds-12"
+              style={{ color: "hsl(var(--success-ink))" }}
             >
               ✓ No disputes on record
             </span>
@@ -409,8 +409,8 @@ export const ProfileHeaderCard = ({
         {petCareSignal && petCareSignal.distinctPets > 0 && (
           <div className="flex items-center justify-center mt-1.5">
             <span
-              className="inline-flex items-center gap-1 font-serif italic"
-              style={{ fontSize: "0.78rem", color: "hsl(var(--petcare-ink))" }}
+              className="inline-flex items-center gap-1 font-serif italic text-ds-12"
+              style={{ color: "hsl(var(--petcare-ink))" }}
             >
               <ClipboardList className="w-3 h-3" />
               Cared for {petCareSignal.distinctPets} {petCareSignal.distinctPets === 1 ? "pet" : "pets"} · {petCareSignal.reportCount} {petCareSignal.reportCount === 1 ? "report" : "reports"} sent
@@ -418,14 +418,14 @@ export const ProfileHeaderCard = ({
           </div>
         )}
         {profile.phone && (
-          <p className="font-serif italic mt-1.5 flex items-center justify-center gap-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-serif italic mt-1.5 flex items-center justify-center gap-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             <Phone className="w-3 h-3" />{profile.phone}
           </p>
         )}
         {profile.bio && (
           <p
-            className="font-serif italic mt-3 leading-relaxed text-left"
-            style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep) / 0.88)" }}
+            className="font-serif italic mt-3 leading-relaxed text-left text-ds-14"
+            style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
           >
             {profile.bio}
           </p>

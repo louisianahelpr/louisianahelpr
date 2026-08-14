@@ -211,14 +211,14 @@ export default function StrSettings() {
             </div>
             <div>
               <p
-                className="font-display italic font-bold"
-                style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}
+                className="font-display italic font-bold text-ds-16"
+                style={{ color: "hsl(var(--ink-deep))" }}
               >
                 Never scramble for a cleaner again
               </p>
               <p
-                className="mt-1"
-                style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)", lineHeight: 1.5 }}
+                className="mt-1 text-ds-13"
+                style={{ color: "hsl(var(--olivewood) / 0.8)", lineHeight: 1.5 }}
               >
                 Connect your Airbnb or VRBO calendar. When a guest checks out,
                 Helpr automatically posts a cleaning job — so you always have
@@ -243,14 +243,14 @@ export default function StrSettings() {
                 <Home className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} />
               </div>
               <p
-                className="font-display italic font-bold"
-                style={{ fontSize: "1.1rem", color: "hsl(var(--ink-deep))" }}
+                className="font-display italic font-bold text-ds-18"
+                style={{ color: "hsl(var(--ink-deep))" }}
               >
                 Never scramble for a cleaner again
               </p>
               <p
-                className="mt-2"
-                style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.85)", lineHeight: 1.55 }}
+                className="mt-2 text-ds-14"
+                style={{ color: "hsl(var(--olivewood) / 0.85)", lineHeight: 1.55 }}
               >
                 Connect your Airbnb or VRBO calendar. When a guest checks out,
                 Helpr automatically posts a cleaning job — so you always have
@@ -309,8 +309,8 @@ export default function StrSettings() {
                     style={{ color: "hsl(var(--bark))" }}
                   />
                   <span
-                    className="font-display italic font-semibold"
-                    style={{ fontSize: "0.9rem", color: "hsl(var(--ink-deep))" }}
+                    className="font-display italic font-semibold text-ds-14"
+                    style={{ color: "hsl(var(--ink-deep))" }}
                   >
                     Add a calendar
                   </span>
@@ -334,8 +334,8 @@ export default function StrSettings() {
 
             {/* Help note */}
             <p
-              className="text-center px-2"
-              style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}
+              className="text-center px-2 text-ds-12"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Helpr fetches your calendar every few hours. Cleaning jobs are created
               for checkouts up to 7 days out. Jobs you created manually are never

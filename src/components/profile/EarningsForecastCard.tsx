@@ -192,16 +192,16 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
           </div>
           <div className="min-w-0">
             <h3
-              className="font-display italic font-bold leading-tight"
-              style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}
+              className="font-display italic font-bold leading-tight text-ds-17"
+              style={{ color: "hsl(var(--ink-deep))" }}
             >
               No jobs lined up yet
             </h3>
           </div>
         </div>
         <p
-          className="font-serif italic"
-          style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
+          className="font-serif italic text-ds-12"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Pick up a job before Sunday and we'll project your earnings here.
         </p>
@@ -232,9 +232,8 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
         </div>
         <div className="min-w-0">
           <p
-            className="font-serif italic uppercase flex items-center gap-1.5"
+            className="font-serif italic uppercase flex items-center gap-1.5 text-ds-10"
             style={{
-              fontSize: "0.62rem",
               color: "hsl(var(--burnt-sienna))",
               letterSpacing: "0.18em",
             }}
@@ -268,8 +267,8 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
             </Popover>
           </p>
           <h3
-            className="font-display italic font-bold leading-tight"
-            style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}
+            className="font-display italic font-bold leading-tight text-ds-17"
+            style={{ color: "hsl(var(--ink-deep))" }}
           >
             By Sunday
           </h3>
@@ -277,9 +276,8 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
       </div>
 
       <p
-        className="font-display italic font-bold tabular-nums leading-none"
+        className="font-display italic font-bold tabular-nums leading-none text-ds-28"
         style={{
-          fontSize: "1.85rem",
           color: "hsl(var(--ink-deep))",
           letterSpacing: "-0.02em",
         }}
@@ -289,8 +287,8 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
       </p>
 
       <p
-        className="font-serif italic mt-1.5"
-        style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
+        className="font-serif italic mt-1.5 text-ds-12"
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         {inProgressCount === 0
           ? "Estimate — assumes all scheduled jobs complete."

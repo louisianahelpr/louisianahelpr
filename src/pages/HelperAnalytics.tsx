@@ -88,8 +88,8 @@ const KpiTile = ({ label, value, sub, icon, isLoading }: KpiTileProps) => {
       ) : (
         <>
           <p
-            className="font-display italic font-bold tabular-nums"
-            style={{ fontSize: "1.5rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+            className="font-display italic font-bold tabular-nums text-ds-24"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             {value}
           </p>

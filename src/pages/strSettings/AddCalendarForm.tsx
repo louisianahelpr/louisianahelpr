@@ -167,7 +167,7 @@ export function AddCalendarForm({
       >
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-medium" style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}>
+            <p className="font-medium text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
               Auto-create cleaning job
             </p>
             <p style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -200,8 +200,8 @@ export function AddCalendarForm({
               <p
                 id="str-cleaning-budget-error"
                 role="alert"
-                className="mt-1"
-                style={{ fontSize: "0.74rem", color: "hsl(var(--burnt-sienna))" }}
+                className="mt-1 text-ds-12"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
               >
                 {budgetError}
               </p>

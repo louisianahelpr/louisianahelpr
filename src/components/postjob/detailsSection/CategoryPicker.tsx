@@ -171,9 +171,8 @@ export function CategoryPicker({
                 />
               </span>
               <span
-                className="font-sans font-semibold leading-tight truncate"
+                className="font-sans font-semibold leading-tight truncate text-ds-12"
                 style={{
-                  fontSize: "0.78rem",
                   color: active ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.85)",
                 }}
               >

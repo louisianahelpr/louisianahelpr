@@ -249,9 +249,8 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
 
             <div className="flex-1 min-w-0">
               <h3
-                className="font-display italic font-bold leading-tight"
+                className="font-display italic font-bold leading-tight text-ds-18"
                 style={{
-                  fontSize: "1.15rem",
                   color: "hsl(var(--ink-deep))",
                   letterSpacing: "-0.02em",
                 }}
@@ -259,9 +258,8 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
                 You earned {formatUsdCents(totalCents)}
               </h3>
               <p
-                className="font-serif italic truncate"
+                className="font-serif italic truncate text-ds-12"
                 style={{
-                  fontSize: "0.74rem",
                   color: "hsl(var(--olivewood) / 0.8)",
                 }}
               >

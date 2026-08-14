@@ -51,8 +51,8 @@ export const ApplicantQueueBanner = ({ guest, applicationCount, viewerAppPositio
         >
           <Check className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--success-ink))" }} strokeWidth={2.5} />
           <p
-            className="font-serif italic leading-snug"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+            className="font-serif italic leading-snug text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
             <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--success-ink-deep))" }}>
               You've applied.
@@ -71,8 +71,8 @@ export const ApplicantQueueBanner = ({ guest, applicationCount, viewerAppPositio
         >
           <Users className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
           <p
-            className="font-serif italic leading-snug"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+            className="font-serif italic leading-snug text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
             <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
               {applicationCount} Helpr{applicationCount === 1 ? "" : "s"} already applied.

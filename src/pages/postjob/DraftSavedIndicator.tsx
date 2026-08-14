@@ -61,9 +61,8 @@ export function DraftSavedIndicator({ savedAt }: DraftSavedIndicatorProps) {
     <div
       role="status"
       aria-live="polite"
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-sans"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-sans text-ds-11"
       style={{
-        fontSize: "0.7rem",
         color: "hsl(var(--olivewood))",
         background: "hsl(var(--parchment) / 0.6)",
         border: "0.5px solid hsl(var(--olivewood) / 0.18)",

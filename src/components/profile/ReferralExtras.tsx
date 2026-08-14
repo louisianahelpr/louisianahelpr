@@ -111,21 +111,21 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
         </div>
         <div className="flex-1 min-w-0">
           <h3
-            className="font-display italic font-bold leading-tight"
-            style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+            className="font-display italic font-bold leading-tight text-ds-16"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
           >
             In-person QR code
           </h3>
           <p
-            className="font-serif italic mt-1 leading-snug"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
+            className="font-serif italic mt-1 leading-snug text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Show this to a friend at a job site — they scan, sign up, and your code is auto-applied.
           </p>
           {qrError && (
             <p
-              className="font-serif italic mt-1.5 leading-snug"
-              style={{ fontSize: "0.72rem", color: "hsl(var(--burnt-sienna))" }}
+              className="font-serif italic mt-1.5 leading-snug text-ds-12"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
             >
               Couldn't draw the QR — use the share button above instead.
             </p>
@@ -138,22 +138,22 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
         <div className="flex items-baseline justify-between gap-2 mb-3">
           <div>
             <h3
-              className="font-display italic font-bold leading-tight"
-              style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              className="font-display italic font-bold leading-tight text-ds-16"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Your referral rank
             </h3>
           </div>
           <div className="text-right shrink-0">
             <p
-              className="font-display italic font-bold tabular-nums leading-none"
-              style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}
+              className="font-display italic font-bold tabular-nums leading-none text-ds-16"
+              style={{ color: "hsl(var(--ink-deep))" }}
             >
               ${formatPrice(totalEarned)}
             </p>
             <p
-              className="font-serif italic"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--olivewood) / 0.8)" }}
+              className="font-serif italic text-ds-10"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               earned
             </p>
@@ -207,21 +207,20 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
                   }}
                 />
                 <p
-                  className="font-display italic font-bold tabular-nums leading-none"
-                  style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))" }}
+                  className="font-display italic font-bold tabular-nums leading-none text-ds-15"
+                  style={{ color: "hsl(var(--ink-deep))" }}
                 >
                   {m.goal}
                 </p>
                 <p
-                  className="font-serif italic mt-0.5 leading-snug"
-                  style={{ fontSize: "0.66rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                  className="font-serif italic mt-0.5 leading-snug text-ds-11"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   {m.label}
                 </p>
                 <p
-                  className="font-sans font-semibold mt-1"
+                  className="font-sans font-semibold mt-1 text-ds-10"
                   style={{
-                    fontSize: "0.62rem",
                     color: cleared ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
                     letterSpacing: "0.02em",
                   }}
@@ -240,8 +239,8 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
           <div className="mt-3 pt-3" style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.12)" }}>
             <div className="flex items-baseline justify-between gap-2 mb-1.5">
               <p
-                className="font-serif italic"
-                style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                className="font-serif italic text-ds-12"
+                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
               >
                 <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                   {Math.max(0, nextRung.goal - referralCount)}

@@ -194,11 +194,10 @@ const HeroSection = () => {
           <Button
             asChild
             size="xl"
-            className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
+            className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] text-ds-17"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,
-              fontSize: "1.0625rem",
               lineHeight: 1,
               letterSpacing: "-0.005em",
               color: "hsl(var(--parchment))",
@@ -217,11 +216,10 @@ const HeroSection = () => {
             asChild
             size="xl"
             variant="outline"
-            className="group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-all duration-200 hover:-translate-y-0.5"
+            className="group h-16 sm:h-[4.25rem] lg:h-[5rem] w-full sm:w-auto sm:min-w-[19rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-all duration-200 hover:-translate-y-0.5 text-ds-17"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 600,
-              fontSize: "1.0625rem",
               lineHeight: 1,
               letterSpacing: "-0.005em",
               color: "hsl(var(--bark))",

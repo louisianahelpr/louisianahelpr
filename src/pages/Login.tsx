@@ -299,8 +299,8 @@ const Login = () => {
                 Two-step verification
               </h2>
               <p
-                className="font-serif italic"
-                style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                className="font-serif italic text-ds-14"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Enter the 6-digit code from your authenticator app to finish signing in.
               </p>

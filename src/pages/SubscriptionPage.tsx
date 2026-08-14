@@ -712,11 +712,10 @@ export default function SubscriptionPage() {
                       ) : isFree ? (
                         <Link
                           to={user ? "/dashboard" : "/signup"}
-                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full transition-all duration-200 hover:-translate-y-0.5"
+                          className="group inline-flex items-center justify-center h-11 sm:h-12 px-6 rounded-2xl w-full transition-all duration-200 hover:-translate-y-0.5 text-ds-15"
                           style={{
                             fontFamily: "Montserrat, system-ui, sans-serif",
                             fontWeight: 600,
-                            fontSize: "0.9375rem",
                             letterSpacing: "-0.005em",
                             color: "hsl(var(--bark))",
                             background: "rgba(255, 255, 255, 0.45)",

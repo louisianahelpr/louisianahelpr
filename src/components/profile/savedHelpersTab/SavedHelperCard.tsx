@@ -69,12 +69,12 @@ export function SavedHelperCard({
         <div className="flex-1 min-w-0">
           <Link
             to={`/user/${h.helper_id}`}
-            className="font-display italic font-bold leading-tight hover:text-primary transition-colors block truncate"
-            style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+            className="font-display italic font-bold leading-tight hover:text-primary transition-colors block truncate text-ds-16"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
           >
             {formatName(h.full_name)}
           </Link>
-          <div className="flex items-center gap-x-2 gap-y-0.5 mt-1 font-serif italic flex-wrap" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <div className="flex items-center gap-x-2 gap-y-0.5 mt-1 font-serif italic flex-wrap text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {h.completed_jobs_together > 0 && (
               <span className="flex items-center gap-1 text-primary">
                 <Star className="w-3 h-3 fill-primary" />
@@ -91,7 +91,7 @@ export function SavedHelperCard({
             )}
           </div>
           {h.skills && (
-            <p className="font-serif italic mt-1.5 line-clamp-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic mt-1.5 line-clamp-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {h.skills}
             </p>
           )}

@@ -201,8 +201,8 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
               </div>
             ) : isEmpty ? (
               <p
-                className="font-serif italic text-center py-6"
-                style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                className="font-serif italic text-center py-6 text-ds-12"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 No activity in the last {WINDOW_LABEL[win]}.
               </p>

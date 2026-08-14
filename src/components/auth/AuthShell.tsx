@@ -179,9 +179,8 @@ const AuthShell = ({
             <div className="text-center mb-7">
               <Link to="/" className="inline-flex items-baseline gap-1">
                 <span
-                  className="font-display italic font-bold leading-none"
+                  className="font-display italic font-bold leading-none text-ds-32"
                   style={{
-                    fontSize: "2.25rem",
                     color: "hsl(var(--olivewood))",
                     letterSpacing: "-0.02em",
                   }}
@@ -189,9 +188,8 @@ const AuthShell = ({
                   Helpr
                 </span>
                 <span
-                  className="font-display italic font-bold leading-none"
+                  className="font-display italic font-bold leading-none text-ds-22"
                   style={{
-                    fontSize: "1.4rem",
                     color: "hsl(var(--burnt-sienna))",
                     letterSpacing: "0.22em",
                     marginLeft: "0.12em",

@@ -80,7 +80,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
           <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} />
         </div>
         <div className="flex-1 min-w-0 break-words">
-          <p className="font-display italic font-bold" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+          <p className="font-display italic font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
             Try the AI Job Builder
           </p>
           <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

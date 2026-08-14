@@ -106,9 +106,8 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
           </div>
         ) : error ? (
           <div
-            className="rounded-ds-md p-4 font-serif italic"
+            className="rounded-ds-md p-4 font-serif italic text-ds-14"
             style={{
-              fontSize: "0.85rem",
               background: "hsl(var(--burnt-sienna) / 0.08)",
               border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
               color: "hsl(var(--burnt-sienna))",
@@ -142,10 +141,10 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
                 className="flex justify-between items-baseline pt-2 mt-1.5"
                 style={{ borderTop: "0.5px dashed hsl(var(--bark) / 0.22)" }}
               >
-                <span className="font-display italic font-bold" style={{ fontSize: "0.9rem", color: "hsl(var(--ink-deep))" }}>You receive</span>
+                <span className="font-display italic font-bold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>You receive</span>
                 <span
-                  className="font-display italic font-bold tabular-nums"
-                  style={{ fontSize: "1.4rem", color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
+                  className="font-display italic font-bold tabular-nums text-ds-22"
+                  style={{ color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
                 >
                   {fmt(quote.net_cents)}
                 </span>
@@ -157,7 +156,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
               style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}
             >
               <Clock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-              <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Arrives in ~30 minutes. Prefer to wait? Standard payouts are{" "}
                 <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>free</strong> and take 1–2 business days.
               </p>

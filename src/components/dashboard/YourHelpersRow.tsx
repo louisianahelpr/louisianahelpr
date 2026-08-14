@@ -58,8 +58,8 @@ export function YourHelpersRow() {
     <div className="shrink-0 px-4 pt-1 pb-1.5">
       <div className="flex items-center justify-between mb-1.5">
         <span
-          className="font-serif italic uppercase tracking-[0.18em]"
-          style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))" }}
+          className="font-serif italic uppercase tracking-[0.18em] text-ds-10"
+          style={{ color: "hsl(var(--burnt-sienna))" }}
         >
           Your Helprs
         </span>

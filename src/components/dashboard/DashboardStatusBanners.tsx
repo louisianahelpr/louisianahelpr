@@ -56,10 +56,10 @@ const DashboardStatusBanners = ({
             onClick={onPendingClick}
             className="flex-1 text-left min-w-0 active:opacity-70 transition-opacity"
           >
-            <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
+            <p className="font-display italic font-bold leading-tight text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}>
               Verification in progress — browse and apply now.
             </p>
-            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Review usually finishes in 24–48 hours. You'll just need it cleared before you can accept a job. Tap to track status.
             </p>
           </button>

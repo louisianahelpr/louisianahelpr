@@ -20,9 +20,8 @@ export const MessagesEmptyThread = () => (
       />
     </div>
     <p
-      className="font-display italic font-bold"
+      className="font-display italic font-bold text-ds-18"
       style={{
-        fontSize: "1.15rem",
         color: "hsl(var(--ink-deep))",
         letterSpacing: "-0.015em",
       }}

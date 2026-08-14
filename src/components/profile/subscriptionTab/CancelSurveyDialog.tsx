@@ -70,8 +70,8 @@ export const CancelSurveyDialog = ({
           }}
         >
           <p
-            className="font-serif italic leading-snug"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+            className="font-serif italic leading-snug text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
             <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
               Reach out before you cancel.

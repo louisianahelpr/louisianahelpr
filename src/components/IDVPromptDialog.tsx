@@ -152,12 +152,12 @@ export function IDVPromptDialog({
               </div>
               <div className="min-w-0">
                 <p
-                  className="font-display italic font-bold leading-tight"
-                  style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                  className="font-display italic font-bold leading-tight text-ds-15"
+                  style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
                 >
                   Photo of your government ID
                 </p>
-                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-serif italic mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Driver's license, passport, or state ID
                 </p>
               </div>
@@ -177,19 +177,19 @@ export function IDVPromptDialog({
               </div>
               <div className="min-w-0">
                 <p
-                  className="font-display italic font-bold leading-tight"
-                  style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                  className="font-display italic font-bold leading-tight text-ds-15"
+                  style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
                 >
                   A quick selfie
                 </p>
-                <p className="font-serif italic mt-0.5" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-serif italic mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   We compare it to your ID to make sure it's really you
                 </p>
               </div>
             </div>
             <p
-              className="font-serif italic px-1 pt-1"
-              style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
+              className="font-serif italic px-1 pt-1 text-ds-12"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Verification is handled securely by Stripe Identity. Most checks finish in under 2 minutes.
             </p>
@@ -198,8 +198,8 @@ export function IDVPromptDialog({
 
         {isPending && (
           <p
-            className="font-serif italic px-1 py-2"
-            style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
+            className="font-serif italic px-1 py-2 text-ds-13"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             You'll get a notification as soon as the review finishes. No need to do anything else right now.
           </p>

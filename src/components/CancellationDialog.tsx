@@ -350,8 +350,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               />
               <div>
                 <p
-                  className="font-sans font-bold"
-                  style={{ fontSize: "0.82rem", color: "hsl(var(--destructive))", letterSpacing: "-0.01em" }}
+                  className="font-sans font-bold text-ds-13"
+                  style={{ color: "hsl(var(--destructive))", letterSpacing: "-0.01em" }}
                 >
                   A cancellation fee of ${formatPrice(cancellationFee)} applies
                 </p>
@@ -394,8 +394,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           <div className="space-y-1.5">
             <label
               htmlFor="cancel-reason"
-              className="font-serif italic uppercase block"
-              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+              className="font-serif italic uppercase block text-ds-10"
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               Reason — optional
             </label>

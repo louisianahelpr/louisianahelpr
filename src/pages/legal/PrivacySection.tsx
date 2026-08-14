@@ -211,8 +211,8 @@ export const PrivacyContent = () => (
         </div>
         <div className="min-w-0">
           <p
-            className="font-display italic font-bold leading-tight"
-            style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+            className="font-display italic font-bold leading-tight text-ds-16"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
           >
             We never sell your data.
           </p>

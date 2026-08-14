@@ -238,8 +238,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               </h2>
               {expiresAt && (
                 <p
-                  className="font-serif italic mt-1"
-                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                  className="font-serif italic mt-1 text-ds-13"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Renews{" "}
                   <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -338,8 +338,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         >
           <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.25} />
           <p
-            className="font-serif italic leading-snug"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}
+            className="font-serif italic leading-snug text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
             <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
               Lock in {new Date().getFullYear()} pricing.
@@ -406,8 +406,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <h3
-                      className="font-display italic font-bold leading-none"
-                      style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
+                      className="font-display italic font-bold leading-none text-ds-16"
+                      style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
                     >
                       {tier.name}
                     </h3>
@@ -417,8 +417,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       </span>
                     )}
                     <span
-                      className="font-serif italic truncate"
-                      style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                      className="font-serif italic truncate text-ds-11"
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {tier.forWhom}
                     </span>
@@ -432,8 +432,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     if (!inclusive) return null;
                     return (
                       <p
-                        className="font-serif italic mt-1 leading-none"
-                        style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.04em" }}
+                        className="font-serif italic mt-1 leading-none text-ds-10"
+                        style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.04em" }}
                       >
                         + {inclusive}
                       </p>
@@ -447,8 +447,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       .map((feature) => (
                         <li
                           key={feature}
-                          className="inline-flex items-center gap-1 font-sans"
-                          style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                          className="inline-flex items-center gap-1 font-sans text-ds-11"
+                          style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                         >
                           <CheckCircle
                             className="w-2.5 h-2.5 shrink-0"
@@ -464,8 +464,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 {/* Price + CTA on the right edge */}
                 <div className="shrink-0 flex flex-col items-end gap-1">
                   <p
-                    className="font-display italic font-bold tabular-nums leading-none"
-                    style={{ fontSize: "1rem", color: accent, letterSpacing: "-0.02em" }}
+                    className="font-display italic font-bold tabular-nums leading-none text-ds-16"
+                    style={{ color: accent, letterSpacing: "-0.02em" }}
                   >
                     {getPrice(tier)}
                   </p>
@@ -474,8 +474,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       /subscription page instead of hiding the economic
                       benefit behind perk bullets alone. */}
                   <span
-                    className="font-sans font-semibold tabular-nums leading-none"
-                    style={{ fontSize: "0.6rem", color: accent, letterSpacing: "0.02em" }}
+                    className="font-sans font-semibold tabular-nums leading-none text-ds-10"
+                    style={{ color: accent, letterSpacing: "0.02em" }}
                   >
                     {tier.feePercent}% fee
                   </span>

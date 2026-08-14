@@ -221,9 +221,8 @@ const AccountPending = () => {
             </div>
             <span className="text-display-eyebrow mb-2">One more step</span>
             <h1
-              className="font-display italic font-bold leading-tight mb-3 mt-1"
+              className="font-display italic font-bold leading-tight mb-3 mt-1 text-ds-26"
               style={{
-                fontSize: "1.65rem",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.02em",
               }}
@@ -259,9 +258,8 @@ const AccountPending = () => {
                 </div>
                 <span className="text-display-eyebrow mb-1">Almost ready</span>
                 <h1
-                  className="font-display italic font-bold leading-tight mb-1.5 mt-1"
+                  className="font-display italic font-bold leading-tight mb-1.5 mt-1 text-ds-24"
                   style={{
-                    fontSize: "1.5rem",
                     color: "hsl(var(--ink-deep))",
                     letterSpacing: "-0.02em",
                   }}

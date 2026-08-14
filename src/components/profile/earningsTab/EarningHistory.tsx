@@ -127,24 +127,24 @@ export function EarningHistory({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                      <h3 className="font-display italic font-bold leading-tight truncate text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                         {job.title}
                       </h3>
                       <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${jobStatusColorClasses(job.status)}`}>{jobStatusLabel(job.status)}</span>
                     </div>
-                    <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                    <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       {job.location} <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span> {formatShortDate(job.date_needed)}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
                     {payout !== null && (
-                      <p className="font-display italic font-bold tabular-nums" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}>
+                      <p className="font-display italic font-bold tabular-nums text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
                         ${formatPrice(payout)}
                       </p>
                     )}
                     {tipTotal > 0 && <p className="text-ds-11 text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${formatPrice(tipTotal)}</p>}
                     {job.status === "in_progress" && (
-                      <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                      <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                           ${formatPrice(job.budget)} budget
                       </p>
                     )}

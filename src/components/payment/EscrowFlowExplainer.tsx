@@ -37,8 +37,8 @@ export function EscrowFlowExplainer() {
         </span>
         <div className="min-w-0">
           <p
-            className="font-display italic font-bold leading-tight"
-            style={{ fontSize: "1.0rem", color: "hsl(var(--ink-deep))" }}
+            className="font-display italic font-bold leading-tight text-ds-16"
+            style={{ color: "hsl(var(--ink-deep))" }}
           >
             How your payment is held
           </p>
@@ -94,9 +94,8 @@ export function EscrowFlowExplainer() {
                   style={{ color: "hsl(var(--ink-deep))" }}
                 >
                   <span
-                    className="inline-flex items-center justify-center w-4 h-4 rounded-full font-bold tabular-nums mr-1.5"
+                    className="inline-flex items-center justify-center w-4 h-4 rounded-full font-bold tabular-nums mr-1.5 text-ds-10"
                     style={{
-                      fontSize: "0.6rem",
                       background: "hsl(var(--bark))",
                       color: "hsl(var(--parchment))",
                     }}

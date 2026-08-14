@@ -37,7 +37,7 @@ export const PauseOfferDialog = ({
             border: "0.5px solid hsl(var(--amber-tint) / 0.32)",
           }}
         >
-          <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.85)" }}>
+          <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
             <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
               What you keep:
             </span>{" "}

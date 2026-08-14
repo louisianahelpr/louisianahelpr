@@ -113,15 +113,15 @@ export function JobConfirmation({
           </h3>
         </div>
         <p
-          className="font-serif italic leading-relaxed"
-          style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.85)" }}
+          className="font-serif italic leading-relaxed text-ds-14"
+          style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         >
           Tap to let the other party know it's a go.
           {hoursUntilJob > 0 && ` Scheduled in ${urgencyText}.`}
         </p>
         <p
-          className="font-serif italic"
-          style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}
+          className="font-serif italic text-ds-12"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {jobDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
           {hoursUntilJob > 0 && ` · ${urgencyText} away`}
@@ -153,7 +153,7 @@ export function JobConfirmation({
         </div>
 
         {myConfirmed && (
-          <p className="font-serif italic inline-flex items-center gap-1" style={{ fontSize: "0.7rem", color: "hsl(var(--bark) / 0.85)" }}>
+          <p className="font-serif italic inline-flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--bark) / 0.85)" }}>
             <ShieldCheck className="w-3 h-3" />
             Confirmed {new Date(myConfirmed).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
           </p>
@@ -193,14 +193,14 @@ export function JobConfirmation({
               }}
             >
               <p
-                className="font-serif italic uppercase mb-0.5"
-                style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                className="font-serif italic uppercase mb-0.5 text-ds-10"
+                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
                 Scheduled for
               </p>
               <p
-                className="font-display italic font-bold leading-tight"
-                style={{ fontSize: "0.98rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                className="font-display italic font-bold leading-tight text-ds-16"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
               >
                 {jobDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
               </p>
@@ -213,8 +213,8 @@ export function JobConfirmation({
               }}
             >
               <p
-                className="font-serif italic leading-snug flex items-start gap-2"
-                style={{ fontSize: "0.78rem", color: "hsl(var(--burnt-sienna))" }}
+                className="font-serif italic leading-snug flex items-start gap-2 text-ds-12"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
               >
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.</span>

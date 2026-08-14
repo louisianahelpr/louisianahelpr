@@ -137,8 +137,8 @@ export function ChatHeader({
         aria-label={`View ${activeConvo.otherUserName}'s profile`}
       >
         <span
-          className="font-display italic font-bold leading-tight truncate"
-          style={{ fontSize: "1.02rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+          className="font-display italic font-bold leading-tight truncate text-ds-16"
+          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
         >
           {activeConvo.otherUserName}
         </span>

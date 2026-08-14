@@ -30,9 +30,8 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
         <div className="flex items-center gap-2 min-w-0">
           {/* Platform badge */}
           <span
-            className="shrink-0 rounded-full px-2 py-0.5 font-serif italic font-semibold uppercase"
+            className="shrink-0 rounded-full px-2 py-0.5 font-serif italic font-semibold uppercase text-ds-10"
             style={{
-              fontSize: "0.62rem",
               letterSpacing: "0.1em",
               background: "hsl(var(--bark) / 0.1)",
               color: "hsl(var(--bark))",
@@ -42,8 +41,8 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
             {PLATFORM_LABELS[conn.platform]}
           </span>
           <p
-            className="font-display font-semibold truncate"
-            style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))" }}
+            className="font-display font-semibold truncate text-ds-15"
+            style={{ color: "hsl(var(--ink-deep))" }}
           >
             {conn.property_name || "Unnamed property"}
           </p>

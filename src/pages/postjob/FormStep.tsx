@@ -247,8 +247,8 @@ export function FormStep({ form }: FormStepProps) {
               <span className="truncate min-w-0">{submitLabel}</span>
               {formReady && form.budgetNum > 0 && (
                 <span
-                  className="font-display italic font-bold tabular-nums shrink-0"
-                  style={{ fontSize: "1rem", letterSpacing: "-0.01em" }}
+                  className="font-display italic font-bold tabular-nums shrink-0 text-ds-16"
+                  style={{ letterSpacing: "-0.01em" }}
                 >
                   · ${formatPrice(form.budgetNum)}
                 </span>

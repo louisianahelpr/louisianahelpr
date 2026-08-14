@@ -28,12 +28,12 @@ export function RecentTransfers({ payoutLedger }: RecentTransfersProps) {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-display italic font-bold leading-tight truncate" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                    <h3 className="font-display italic font-bold leading-tight truncate text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                       {jobTitle}
                     </h3>
                     <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${tone}`}>{payoutStatusLabel(t.status)}</span>
                   </div>
-                  <p className="font-serif italic" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     {date}
                     {t.stripe_transfer_id && (
                       <span className="ml-2 text-ds-10 font-mono opacity-60" title="Stripe transfer ID">{t.stripe_transfer_id.slice(-8)}</span>
@@ -44,11 +44,11 @@ export function RecentTransfers({ payoutLedger }: RecentTransfersProps) {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-display italic font-bold tabular-nums" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}>
+                  <p className="font-display italic font-bold tabular-nums text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
                     ${amount}
                   </p>
                   {t.platform_fee_cents > 0 && (
-                    <p className="font-serif italic" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                    <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       fee ${fee}
                     </p>
                   )}

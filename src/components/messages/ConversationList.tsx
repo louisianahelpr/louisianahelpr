@@ -442,8 +442,8 @@ export function ConversationList({
                 <Search className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
               </div>
               <p
-                className="font-display italic font-bold"
-                style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                className="font-display italic font-bold text-ds-16"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 No conversations match
               </p>

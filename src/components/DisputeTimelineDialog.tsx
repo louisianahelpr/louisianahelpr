@@ -226,7 +226,7 @@ export const DisputeTimelineDialog = ({
                 )}
               </p>
               {reason && (
-                <p className="font-serif italic mt-1.5 leading-snug" style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep) / 0.88)" }}>
+                <p className="font-serif italic mt-1.5 leading-snug text-ds-14" style={{ color: "hsl(var(--ink-deep) / 0.88)" }}>
                   "{reason}"
                 </p>
               )}
@@ -244,7 +244,7 @@ export const DisputeTimelineDialog = ({
                 </span>
               </p>
               {evidenceUrls.length === 0 ? (
-                <p className="font-serif italic mt-1.5" style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-serif italic mt-1.5 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   No evidence uploaded yet.
                 </p>
               ) : (
@@ -274,7 +274,7 @@ export const DisputeTimelineDialog = ({
                   </span>
                 </p>
                 {decisionText && (
-                  <p className="font-serif italic mt-1.5 leading-snug" style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep) / 0.88)" }}>
+                  <p className="font-serif italic mt-1.5 leading-snug text-ds-14" style={{ color: "hsl(var(--ink-deep) / 0.88)" }}>
                     "{decisionText}"
                   </p>
                 )}

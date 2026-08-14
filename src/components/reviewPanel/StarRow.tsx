@@ -22,22 +22,22 @@ export const StarRow = ({
     <div className="flex items-center justify-between gap-3 rounded-2xl liquid-glass p-3.5">
       <div className="flex-1 min-w-0">
         <p
-          className="font-display italic font-bold leading-tight flex items-center gap-1.5"
-          style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+          className="font-display italic font-bold leading-tight flex items-center gap-1.5 text-ds-15"
+          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
         >
           {label}
           {optional && (
             <span
-              className="font-serif italic"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.04em" }}
+              className="font-serif italic text-ds-10"
+              style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.04em" }}
             >
               Optional
             </span>
           )}
         </p>
         <p
-          className="font-serif italic mt-0.5"
-          style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
+          className="font-serif italic mt-0.5 text-ds-12"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {sublabel}
         </p>

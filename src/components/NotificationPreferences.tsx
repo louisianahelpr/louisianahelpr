@@ -191,8 +191,8 @@ const NotificationPreferences = () => {
           </span>
           <div className="min-w-0">
             <Label
-              className="font-display italic font-bold leading-tight block"
-              style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              className="font-display italic font-bold leading-tight block text-ds-15"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Push Notifications
             </Label>
@@ -231,14 +231,14 @@ const NotificationPreferences = () => {
       >
         <div className="flex items-center gap-6">
           <div
-            className="flex items-center justify-center gap-1 w-[51px] font-serif italic uppercase"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.12em" }}
+            className="flex items-center justify-center gap-1 w-[51px] font-serif italic uppercase text-ds-10"
+            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.12em" }}
           >
             <Smartphone className="w-3 h-3 shrink-0" /> App
           </div>
           <div
-            className="flex items-center justify-center gap-1 w-[51px] font-serif italic uppercase"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.12em" }}
+            className="flex items-center justify-center gap-1 w-[51px] font-serif italic uppercase text-ds-10"
+            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.12em" }}
           >
             <Mail className="w-3 h-3 shrink-0" /> Email
           </div>
@@ -272,12 +272,12 @@ const NotificationPreferences = () => {
           </span>
           <div className="min-w-0">
             <Label
-              className="font-sans font-semibold block truncate"
-              style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+              className="font-sans font-semibold block truncate text-ds-14"
+              style={{ color: "hsl(var(--ink-deep))" }}
             >
               Daily match digest
             </Label>
-            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Batch non-urgent matches into one push per day. Urgent jobs still fire instantly.
             </p>
           </div>
@@ -296,8 +296,8 @@ const NotificationPreferences = () => {
               honest so the row reads as "app only, intentionally". */}
           <div className="w-[51px] flex justify-center" aria-hidden>
             <span
-              className="font-serif"
-              style={{ color: "hsl(var(--olivewood) / 0.35)", fontSize: "0.85rem" }}
+              className="font-serif text-ds-14"
+              style={{ color: "hsl(var(--olivewood) / 0.35)",}}
             >
               —
             </span>
@@ -328,12 +328,12 @@ const NotificationPreferences = () => {
             </span>
             <div className="min-w-0">
               <Label
-                className="font-sans font-semibold block truncate"
-                style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+                className="font-sans font-semibold block truncate text-ds-14"
+                style={{ color: "hsl(var(--ink-deep))" }}
               >
                 Quiet hours
               </Label>
-              <p className="font-serif italic mt-0.5" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Mute non-critical pushes overnight. Security alerts still fire.
               </p>
             </div>
@@ -349,8 +349,8 @@ const NotificationPreferences = () => {
             </div>
             <div className="w-[51px] flex justify-center" aria-hidden>
               <span
-                className="font-serif"
-                style={{ color: "hsl(var(--olivewood) / 0.35)", fontSize: "0.85rem" }}
+                className="font-serif text-ds-14"
+                style={{ color: "hsl(var(--olivewood) / 0.35)",}}
               >
                 —
               </span>
@@ -417,12 +417,12 @@ const NotificationPreferences = () => {
           </span>
           <div className="min-w-0">
             <Label
-              className="font-sans font-semibold block truncate"
-              style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+              className="font-sans font-semibold block truncate text-ds-14"
+              style={{ color: "hsl(var(--ink-deep))" }}
             >
               Send a test
             </Label>
-            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {pushTokenCount === 0
                 ? "No devices registered yet — open the app on your phone first."
                 : `Push to ${pushTokenCount} registered device${pushTokenCount === 1 ? "" : "s"}.`}
@@ -474,8 +474,8 @@ const NotificationPreferences = () => {
               {item.icon}
             </span>
             <Label
-              className="font-sans font-semibold truncate"
-              style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+              className="font-sans font-semibold truncate text-ds-14"
+              style={{ color: "hsl(var(--ink-deep))" }}
             >
               {item.label}
             </Label>
@@ -511,8 +511,8 @@ const NotificationPreferences = () => {
       >
         <Lock className="w-3 h-3 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
         <p
-          className="font-serif italic leading-snug"
-          style={{ fontSize: "0.66rem", color: "hsl(var(--olivewood) / 0.8)" }}
+          className="font-serif italic leading-snug text-ds-11"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Critical security alerts — logins, disputes — can't be turned off.
         </p>

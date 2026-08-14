@@ -97,14 +97,14 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             {isSubscriber ? (
               <>
                 <p
-                  className="font-display italic font-bold leading-none"
-                  style={{ fontSize: "1.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+                  className="font-display italic font-bold leading-none text-ds-28"
+                  style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
                 >
                   Free boost.
                 </p>
                 <p
-                  className="font-serif italic mt-1.5"
-                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                  className="font-serif italic mt-1.5 text-ds-13"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>24 hours</span>
                 </p>
@@ -112,14 +112,14 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             ) : (
               <>
                 <p
-                  className="font-display italic font-bold tabular-nums leading-none"
-                  style={{ fontSize: "2.5rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
+                  className="font-display italic font-bold tabular-nums leading-none text-ds-40"
+                  style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
                 >
                   {BOOST_PRICE}
                 </p>
                 <p
-                  className="font-serif italic mt-1.5"
-                  style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                  className="font-serif italic mt-1.5 text-ds-13"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   One-time · runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>24 hours</span>
                 </p>
@@ -142,8 +142,8 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             ].map((perk) => (
               <li
                 key={perk}
-                className="font-serif italic flex items-start gap-2"
-                style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+                className="font-serif italic flex items-start gap-2 text-ds-14"
+                style={{ color: "hsl(var(--ink-deep))" }}
               >
                 <span
                   className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-ds-10 font-bold mt-0.5"

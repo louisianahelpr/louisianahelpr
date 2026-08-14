@@ -40,9 +40,8 @@ export function CheckoutStepIndicator({ onBackToForm }: CheckoutStepIndicatorPro
           <Check className="h-3 w-3" strokeWidth={3} />
         </span>
         <span
-          className="font-sans font-semibold uppercase tracking-wider"
+          className="font-sans font-semibold uppercase tracking-wider text-ds-10"
           style={{
-            fontSize: "0.62rem",
             color: "hsl(var(--bark))",
           }}
         >
@@ -72,9 +71,8 @@ export function CheckoutStepIndicator({ onBackToForm }: CheckoutStepIndicatorPro
           2
         </span>
         <span
-          className="font-sans font-semibold uppercase tracking-wider"
+          className="font-sans font-semibold uppercase tracking-wider text-ds-10"
           style={{
-            fontSize: "0.62rem",
             color: "hsl(var(--ink-deep))",
           }}
         >

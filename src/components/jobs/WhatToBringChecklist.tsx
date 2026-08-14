@@ -116,9 +116,8 @@ export function WhatToBringChecklist({ jobId, category }: WhatToBringChecklistPr
             aria-hidden="true"
           />
           <span
-            className="font-serif italic uppercase truncate"
+            className="font-serif italic uppercase truncate text-ds-11"
             style={{
-              fontSize: "0.66rem",
               color: "hsl(var(--bark))",
               letterSpacing: "0.16em",
             }}

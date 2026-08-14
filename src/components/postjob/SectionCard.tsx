@@ -45,9 +45,8 @@ export function SectionCard({
               <Icon className="w-[18px] h-[18px] text-primary" strokeWidth={2} />
             </div>
             <span
-              className="absolute -top-1.5 -left-1.5 flex h-5 w-5 items-center justify-center rounded-full font-sans font-bold tabular-nums"
+              className="absolute -top-1.5 -left-1.5 flex h-5 w-5 items-center justify-center rounded-full font-sans font-bold tabular-nums text-ds-10"
               style={{
-                fontSize: "0.62rem",
                 background: complete ? "hsl(var(--bark))" : "hsl(var(--parchment))",
                 color: complete ? "hsl(var(--parchment))" : "hsl(var(--bark))",
                 boxShadow: "0 0 0 1.5px hsl(var(--bark) / 0.45)",
@@ -58,9 +57,8 @@ export function SectionCard({
           </div>
           <div className="leading-none min-w-0">
             <h2
-              className="font-display italic font-bold"
+              className="font-display italic font-bold text-ds-18"
               style={{
-                fontSize: "1.15rem",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.018em",
               }}
@@ -71,9 +69,8 @@ export function SectionCard({
         </div>
         {complete && (
           <span
-            className="shrink-0 rounded-full px-2.5 py-1 font-sans font-semibold uppercase tracking-wider"
+            className="shrink-0 rounded-full px-2.5 py-1 font-sans font-semibold uppercase tracking-wider text-ds-10"
             style={{
-              fontSize: "0.6rem",
               background: "hsl(var(--bark) / 0.1)",
               color: "hsl(var(--bark))",
             }}

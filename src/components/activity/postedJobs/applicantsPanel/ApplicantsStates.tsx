@@ -80,8 +80,8 @@ export function ApplicantsEmptyState({ selectedJob }: { selectedJob: Job }) {
       </div>
       <div className="space-y-1.5">
         <p
-          className="font-display italic font-bold"
-          style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+          className="font-display italic font-bold text-ds-17"
+          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
         >
           No one has applied yet
         </p>

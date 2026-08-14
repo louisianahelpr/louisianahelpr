@@ -106,8 +106,8 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
         <div className="rounded-2xl liquid-glass px-5 py-4 flex items-center gap-4">
           <div className="shrink-0 text-center">
             <p
-              className="font-display italic font-bold tabular-nums leading-none"
-              style={{ fontSize: "2.25rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
+              className="font-display italic font-bold tabular-nums leading-none text-ds-32"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
             >
               {avgRating.toFixed(1)}
             </p>
@@ -153,11 +153,11 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
             { label: "Communication", v: communicationAvg },
           ].map((cat) => (
             <div key={cat.label} className="text-center">
-              <p className="font-serif italic uppercase mb-1.5" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+              <p className="font-serif italic uppercase mb-1.5 text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                 {cat.label}
               </p>
               <div className="flex justify-center mb-1"><MiniStars value={cat.v} /></div>
-              <p className="font-display italic font-bold tabular-nums" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))" }}>
+              <p className="font-display italic font-bold tabular-nums text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
                 {cat.v > 0 ? cat.v.toFixed(1) : "—"}
               </p>
             </div>
@@ -230,7 +230,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                 align="center"
               >
                 <p className="text-display-eyebrow mb-2">After every job</p>
-                <p className="font-display italic font-bold leading-tight mb-2" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                <p className="font-display italic font-bold leading-tight mb-2 text-ds-16" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   Customers score you on four things.
                 </p>
                 <ul className="space-y-1.5 font-serif italic text-ds-11 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -307,11 +307,11 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                       />
                     ))}
                   </div>
-                  <span className="font-display italic font-bold tabular-nums" style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}>
+                  <span className="font-display italic font-bold tabular-nums text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
                     {review.rating}/5
                   </span>
                 </div>
-                <span className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                <span className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   {formatTimestamp(review.created_at)}
                 </span>
               </div>
@@ -338,11 +338,11 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                 </div>
               )}
               {review.feedback && (
-                <p className="font-serif italic leading-relaxed" style={{ fontSize: "0.92rem", color: "hsl(var(--ink-deep))" }}>
+                <p className="font-serif italic leading-relaxed text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
                   &ldquo;{review.feedback}&rdquo;
                 </p>
               )}
-              <div className="flex items-center gap-2 font-serif italic pt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+              <div className="flex items-center gap-2 font-serif italic pt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <span>By <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{review.reviewerName}</span></span>
                 <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                 <span>{review.jobTitle}</span>

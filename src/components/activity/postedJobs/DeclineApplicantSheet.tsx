@@ -58,8 +58,8 @@ export function DeclineApplicantSheet({
               {/* Quick-tap reason chips */}
               <div role="group" aria-label="Decline reason">
                 <p
-                  className="font-serif italic mb-2"
-                  style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                  className="font-serif italic mb-2 text-ds-12"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Choose a reason (optional)
                 </p>
@@ -97,8 +97,8 @@ export function DeclineApplicantSheet({
               <div className="space-y-1">
                 <label
                   htmlFor="decline-note"
-                  className="font-serif italic uppercase block"
-                  style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                  className="font-serif italic uppercase block text-ds-10"
+                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                 >
                   Add a note (optional)
                 </label>

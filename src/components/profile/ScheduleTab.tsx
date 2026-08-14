@@ -175,7 +175,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
             </div>
             <div className="grid grid-cols-7 gap-1 mb-1">
               {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                <div key={d} className="text-center font-serif italic uppercase py-1" style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+                <div key={d} className="text-center font-serif italic uppercase py-1 text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                   {d}
                 </div>
               ))}
@@ -308,7 +308,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                   >
                     <CalendarDays className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
                   </div>
-                  <p className="font-serif italic max-w-[260px]" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <p className="font-serif italic max-w-[260px] text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     Nothing scheduled for this day.
                   </p>
                 </div>
@@ -343,10 +343,10 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     <CalendarDays className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
                   </div>
                   <div className="space-y-1">
-                    <p className="font-display italic font-bold" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                    <p className="font-display italic font-bold text-ds-16" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                       Calendar's clear.
                     </p>
-                    <p className="font-serif italic max-w-[260px]" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                    <p className="font-serif italic max-w-[260px] text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       No upcoming jobs yet — book one and it'll show up here.
                     </p>
                   </div>

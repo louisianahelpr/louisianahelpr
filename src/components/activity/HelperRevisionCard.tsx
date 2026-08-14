@@ -138,15 +138,15 @@ export function HelperRevisionCard({
       {/* Header */}
       <div>
         <span
-          className="font-serif italic uppercase inline-flex items-center gap-1.5"
-          style={{ fontSize: "0.62rem", color: "hsl(var(--amber-ink))", letterSpacing: "0.18em" }}
+          className="font-serif italic uppercase inline-flex items-center gap-1.5 text-ds-10"
+          style={{ color: "hsl(var(--amber-ink))", letterSpacing: "0.18em" }}
         >
           <AlertTriangle className="w-3 h-3" />
           Revision requested
         </span>
         <p
-          className="font-display italic font-bold leading-snug mt-0.5"
-          style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+          className="font-display italic font-bold leading-snug mt-0.5 text-ds-15"
+          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
         >
           Poster wants a small fix
         </p>
@@ -154,8 +154,8 @@ export function HelperRevisionCard({
 
       {/* Description */}
       <p
-        className="font-serif italic leading-relaxed"
-        style={{ fontSize: "0.84rem", color: "hsl(var(--olivewood) / 0.85)" }}
+        className="font-serif italic leading-relaxed text-ds-13"
+        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
       >
         "{revision.description}"
       </p>
@@ -179,7 +179,7 @@ export function HelperRevisionCard({
       )}
 
       {/* Dispute-avoidance tips — collapsible to keep the card compact */}
-      <details className="group text-left" style={{ fontSize: "0.78rem" }}>
+      <details className="group text-left text-ds-12">
         <summary
           className="cursor-pointer select-none font-medium list-none flex items-center gap-1"
           style={{ color: "hsl(var(--amber-ink))", opacity: 0.75 }}

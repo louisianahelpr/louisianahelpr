@@ -127,8 +127,7 @@ export function SkillEndorsements({
             >
               {skill.skill}
               <span
-                className="tabular-nums opacity-75"
-                style={{ fontSize: "0.65rem" }}
+                className="tabular-nums opacity-75 text-ds-10"
               >
                 · {count}
               </span>

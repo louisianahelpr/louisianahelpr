@@ -937,11 +937,10 @@ const PricingSection = () => {
                   <Button
                     asChild
                     size="lg"
-                    className="btn-grad-primary group w-full h-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
+                    className="btn-grad-primary group w-full h-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] text-ds-15"
                     style={{
                       fontFamily: "Montserrat, system-ui, sans-serif",
                       fontWeight: 600,
-                      fontSize: "0.9375rem",
                       lineHeight: 1,
                       letterSpacing: "-0.005em",
                       color: "hsl(var(--parchment))",
@@ -963,11 +962,10 @@ const PricingSection = () => {
                     asChild
                     size="lg"
                     variant="outline"
-                    className="group w-full h-14 rounded-2xl tracking-tight transition-all duration-200 hover:-translate-y-0.5"
+                    className="group w-full h-14 rounded-2xl tracking-tight transition-all duration-200 hover:-translate-y-0.5 text-ds-15"
                     style={{
                       fontFamily: "Montserrat, system-ui, sans-serif",
                       fontWeight: 600,
-                      fontSize: "0.9375rem",
                       lineHeight: 1,
                       letterSpacing: "-0.005em",
                       color: "hsl(var(--bark))",
@@ -1077,11 +1075,10 @@ const ClosingSection = () => (
     <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex flex-col items-center text-center">
       {/* Trust band — Montserrat semibold caps, separated by gold-warm dots. */}
       <div
-        className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-12 sm:mb-16 lg:mb-20"
+        className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-12 sm:mb-16 lg:mb-20 text-ds-12"
         style={{
           fontFamily: "Montserrat, system-ui, sans-serif",
           fontWeight: 600,
-          fontSize: "0.72rem",
           letterSpacing: "0.16em",
           textTransform: "uppercase",
           color: "hsl(var(--olivewood) / 0.6)",
@@ -1145,11 +1142,10 @@ const ClosingSection = () => (
         <Button
           asChild
           size="xl"
-          className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98]"
+          className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] text-ds-17"
           style={{
             fontFamily: "Montserrat, system-ui, sans-serif",
             fontWeight: 600,
-            fontSize: "1.0625rem",
             lineHeight: 1,
             letterSpacing: "-0.005em",
             color: "hsl(var(--parchment))",

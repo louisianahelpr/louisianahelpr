@@ -207,9 +207,8 @@ export function BrowseTasksToolbar({
                 </span>
               )}
               <h1
-                className="font-display italic font-bold leading-tight"
+                className="font-display italic font-bold leading-tight text-ds-20"
                 style={{
-                  fontSize: "1.25rem",
                   color: "hsl(var(--ink-deep))",
                   letterSpacing: "-0.018em",
                   marginTop: filters.hasFilters ? "0.25rem" : 0,

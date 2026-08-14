@@ -60,12 +60,12 @@ export function WalletCard({
             <Wallet className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
+            <h2 className="font-display italic font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
               Wallet
             </h2>
           </div>
         </div>
-        <p className="font-serif italic" style={{ fontSize: "0.85rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+        <p className="font-serif italic text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Connect your payout account to see your live balance.
         </p>
         <Button variant="primary" size="sm" className="w-full" onClick={onNavigatePayment}>Set up payouts</Button>
@@ -81,7 +81,7 @@ export function WalletCard({
             <Wallet className="w-4 h-4 text-primary" />
           </div>
           <div className="flex items-center gap-2">
-            <h2 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
+            <h2 className="font-display italic font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
               Wallet
             </h2>
             <span className="text-ds-9 font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary" style={{ letterSpacing: "0.05em" }}>LIVE</span>
@@ -100,28 +100,28 @@ export function WalletCard({
         <div>
           <div className="flex items-center gap-1.5 mb-1">
             <Banknote className="w-3 h-3 text-primary" />
-            <span className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+            <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               Available
             </span>
           </div>
-          <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+          <p className="font-display italic font-bold tabular-nums leading-none text-ds-28" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
             {formatCents(availableTotal)}
           </p>
-          <p className="font-serif italic mt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             ready to pay out
           </p>
         </div>
         <div className="border-l border-border/40 pl-4">
           <div className="flex items-center gap-1.5 mb-1">
             <Loader2 className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-            <span className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+            <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
               Pending
             </span>
           </div>
-          <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
+          <p className="font-display italic font-bold tabular-nums leading-none text-ds-28" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
             {formatCents(pendingTotal)}
           </p>
-          <p className="font-serif italic mt-1" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             clearing soon
           </p>
         </div>

@@ -22,8 +22,8 @@ const ProfileViewsCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Profil
       {analytics && (
         <div className="text-center py-2 space-y-1">
           <p
-            className="font-display italic font-bold"
-            style={{ fontSize: "2.2rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
+            className="font-display italic font-bold text-ds-32"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
           >
             {analytics.profileViewCount}
           </p>

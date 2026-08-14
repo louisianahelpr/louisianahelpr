@@ -242,14 +242,14 @@ describe("create-payment edge function", () => {
       // Pro-tier 10% customer fee → a $10 service-fee line item (1000 cents)
       const feeItem = args.line_items.find(
         (li: { price_data: { product_data: { name: string } } }) =>
-          li.price_data.product_data.name === "Service Fee",
+          li.price_data.product_data.name === "Service fee",
       );
       expect(feeItem.price_data.unit_amount).toBe(1000);
       // poster already paid onboarding fee → no setup line item
       expect(
         args.line_items.some(
           (li: { price_data: { product_data: { name: string } } }) =>
-            li.price_data.product_data.name === "One-time Account Setup",
+            li.price_data.product_data.name === "One-time account setup",
         ),
       ).toBe(false);
     });
@@ -286,7 +286,7 @@ describe("create-payment edge function", () => {
       const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
       const setupItem = args.line_items.find(
         (li: { price_data: { product_data: { name: string } } }) =>
-          li.price_data.product_data.name === "One-time Account Setup",
+          li.price_data.product_data.name === "One-time account setup",
       );
       expect(setupItem).toBeDefined();
       expect(setupItem.price_data.unit_amount).toBe(200);

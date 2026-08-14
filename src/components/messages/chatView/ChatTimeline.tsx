@@ -139,8 +139,8 @@ export function ChatTimeline({
           </div>
           <div className="space-y-1">
             <p
-              className="font-display italic font-bold"
-              style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              className="font-display italic font-bold text-ds-17"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Couldn't load this conversation.
             </p>
@@ -175,8 +175,8 @@ export function ChatTimeline({
           </div>
           <div className="space-y-1">
             <p
-              className="font-display italic font-bold"
-              style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              className="font-display italic font-bold text-ds-17"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Say hello.
             </p>
@@ -209,9 +209,8 @@ export function ChatTimeline({
                 style={{ background: "hsl(var(--olivewood) / 0.15)" }}
               />
               <span
-                className="font-serif italic uppercase tracking-wider whitespace-nowrap"
+                className="font-serif italic uppercase tracking-wider whitespace-nowrap text-ds-10"
                 style={{
-                  fontSize: "0.62rem",
                   letterSpacing: "0.16em",
                   color: "hsl(var(--olivewood) / 0.8)",
                 }}
@@ -251,9 +250,8 @@ export function ChatTimeline({
                   {ev.label}
                 </p>
                 <p
-                  className="font-sans uppercase tracking-wider mt-0.5"
+                  className="font-sans uppercase tracking-wider mt-0.5 text-ds-9"
                   style={{
-                    fontSize: "9px",
                     letterSpacing: "0.12em",
                     color: "hsl(var(--olivewood) / 0.8)",
                   }}

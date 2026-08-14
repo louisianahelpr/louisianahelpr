@@ -276,10 +276,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                     {label}
                   </span>
                 </div>
-                <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.15rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                <p className="font-display italic font-bold tabular-nums leading-none text-ds-18" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                   {value}
                 </p>
-                <p className="font-serif italic mt-1" style={{ fontSize: "0.66rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-serif italic mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   {sub}
                 </p>
               </div>

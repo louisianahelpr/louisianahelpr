@@ -190,8 +190,8 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             />
           ))}
           <p
-            className="font-serif italic"
-            style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
+            className="font-serif italic text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Only the Overall rating is needed — the rest are optional. You can skip them and still post your review.
           </p>
@@ -275,14 +275,14 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                   }}
                 >
                   <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} />
-                  <span className="font-serif italic" style={{ fontSize: "0.58rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <span className="font-serif italic text-ds-9" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     {photoFiles.length === 0 ? "Add photo" : "Add more"}
                   </span>
                 </button>
               )}
             </div>
             {photoFiles.length > 0 && (
-              <p className="font-serif italic" style={{ fontSize: "0.68rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {photoFiles.length}/{MAX_PHOTOS} photo{photoFiles.length !== 1 ? "s" : ""} attached
               </p>
             )}

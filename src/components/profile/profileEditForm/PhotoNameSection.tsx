@@ -72,7 +72,7 @@ export function PhotoNameSection({
           <p className="font-display italic font-bold leading-tight truncate text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
             {`${firstName} ${lastName}`.trim() || "Your name"}
           </p>
-          <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-serif italic mt-1 leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Tap the photo to change it.
           </p>
         </div>

@@ -227,20 +227,20 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           </span>
           <div className="flex-1 min-w-0">
             <p
-              className="font-serif italic uppercase"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--destructive))", letterSpacing: "0.18em" }}
+              className="font-serif italic uppercase text-ds-10"
+              style={{ color: "hsl(var(--destructive))", letterSpacing: "0.18em" }}
             >
               Re-verify needed
             </p>
             <h3
-              className="font-display italic font-bold leading-tight"
-              style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              className="font-display italic font-bold leading-tight text-ds-16"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Your {reverifyKind === "both" ? "license and insurance need" : `${reverifyKind} needs`} another look.
             </h3>
             <p
-              className="font-serif italic mt-1 leading-snug"
-              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
+              className="font-serif italic mt-1 leading-snug text-ds-12"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               Re-upload a clearer copy and we'll review it within one business day. Until then, your verified badge isn't visible to posters.
             </p>
@@ -283,9 +283,8 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
               </div>
               <div className="flex-1 min-w-0">
                 <p
-                  className="font-serif italic uppercase"
+                  className="font-serif italic uppercase text-ds-10"
                   style={{
-                    fontSize: "0.62rem",
                     color: anyVerified ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna) / 0.78)",
                     letterSpacing: "0.18em",
                   }}
@@ -295,7 +294,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                   Professional credentials
                 </h2>
-                <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Proof of license and insurance earns verified badges on your profile.
                 </p>
               </div>
@@ -307,11 +306,10 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 <CredentialBadge credentials={data} size="md" />
               ) : (
                 <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-sans font-medium"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-sans font-medium text-ds-12"
                   style={{
                     background: "hsl(var(--burnt-sienna) / 0.10)",
                     color: "hsl(var(--burnt-sienna))",
-                    fontSize: "0.72rem",
                     border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
                   }}
                 >
@@ -330,9 +328,8 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
             <p
-              className="font-serif italic uppercase"
+              className="font-serif italic uppercase text-ds-10"
               style={{
-                fontSize: "0.62rem",
                 color:
                   licensedOn && data.license_status === "verified"
                     ? "hsl(var(--bark))"
@@ -353,7 +350,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             <Label htmlFor="lic-toggle" className="font-display italic font-bold leading-tight cursor-pointer text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               I am licensed
             </Label>
-            <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {licensedOn
                 ? "Upload your professional license to earn the verified badge."
                 : "Toggle on if you hold a professional license — upload to verify."}
@@ -426,9 +423,8 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
             <p
-              className="font-serif italic uppercase"
+              className="font-serif italic uppercase text-ds-10"
               style={{
-                fontSize: "0.62rem",
                 color:
                   insuredOn && data.insurance_status === "verified"
                     ? "hsl(var(--bark))"
@@ -449,7 +445,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             <Label htmlFor="ins-toggle" className="font-display italic font-bold leading-tight cursor-pointer text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               I am insured
             </Label>
-            <p className="font-serif italic mt-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {insuredOn
                 ? "Upload your Certificate of Insurance (COI) to earn the verified badge."
                 : "Toggle on if you carry professional insurance — upload to verify."}
@@ -521,7 +517,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
         style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}
       >
         <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-        <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+        <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Documents are reviewed by Helpr admins before badges go live. We never share them publicly.
         </p>
       </div>

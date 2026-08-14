@@ -129,7 +129,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                 <button
                   type="button"
                   onClick={dismiss}
-                  className="mt-5 inline-flex items-center gap-1.5 px-5 h-10 rounded-full active:scale-[0.97] transition-transform"
+                  className="mt-5 inline-flex items-center gap-1.5 px-5 h-10 rounded-full active:scale-[0.97] transition-transform text-ds-12"
                   style={{
                     background: "hsl(var(--bark))",
                     color: "hsl(var(--parchment))",
@@ -137,7 +137,6 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                     fontFamily: "Montserrat, system-ui, sans-serif",
                     fontWeight: 600,
                     letterSpacing: "0.01em",
-                    fontSize: "0.78rem",
                     boxShadow:
                       "inset 0 1px 0 0 rgba(255,255,255,0.12), " +
                       "0 1px 2px hsl(var(--bark) / 0.18), " +

@@ -36,14 +36,14 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
       </span>
       <div className="flex-1 min-w-0">
         <h3
-          className="font-display italic font-bold leading-tight"
-          style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+          className="font-display italic font-bold leading-tight text-ds-16"
+          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
         >
           You've crossed the $600 mark for {ytdYear}.
         </h3>
         <p
-          className="font-serif italic mt-1 leading-snug"
-          style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
+          className="font-serif italic mt-1 leading-snug text-ds-12"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           You may receive a 1099-K from Stripe. Download a payout statement now so you're not scrambling in April.
         </p>

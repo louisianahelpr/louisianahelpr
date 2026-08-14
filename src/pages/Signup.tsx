@@ -419,9 +419,8 @@ const Signup = () => {
               </div>
               {stepHeading.subtitle && (
                 <p
-                  className="font-sans"
+                  className="font-sans text-ds-15"
                   style={{
-                    fontSize: "0.95rem",
                     color: "hsl(var(--olivewood) / 0.8)",
                     letterSpacing: "0.01em",
                   }}

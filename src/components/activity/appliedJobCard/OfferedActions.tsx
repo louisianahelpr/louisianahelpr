@@ -38,12 +38,12 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           }}
         >
           <p
-            className="font-serif italic uppercase mb-1 inline-flex items-center gap-1"
-            style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+            className="font-serif italic uppercase mb-1 inline-flex items-center gap-1 text-ds-10"
+            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
           >
             <MessageSquare className="w-3 h-3" /> Message from poster
           </p>
-          <p className="font-serif italic leading-relaxed" style={{ fontSize: "0.88rem", color: "hsl(var(--ink-deep))" }}>
+          <p className="font-serif italic leading-relaxed text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
             "{app.offer_message}"
           </p>
         </div>

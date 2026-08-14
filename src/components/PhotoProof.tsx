@@ -109,8 +109,8 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
             {existingUrls.length > 0 && (
               <div className="space-y-1.5">
                 <p
-                  className="font-serif italic uppercase"
-                  style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                  className="font-serif italic uppercase text-ds-10"
+                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
                 >
                   Already uploaded
                 </p>
@@ -177,8 +177,8 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                   >
                     <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
                     <span
-                      className="font-sans font-semibold mt-1"
-                      style={{ fontSize: "0.62rem", color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
+                      className="font-sans font-semibold mt-1 text-ds-10"
+                      style={{ color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
                     >
                       Add photo
                     </span>
@@ -193,8 +193,8 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                   >
                     <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
                     <span
-                      className="font-sans font-semibold mt-1"
-                      style={{ fontSize: "0.62rem", color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
+                      className="font-sans font-semibold mt-1 text-ds-10"
+                      style={{ color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
                     >
                       Add photo
                     </span>

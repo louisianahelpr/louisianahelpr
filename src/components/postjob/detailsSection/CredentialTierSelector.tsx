@@ -72,9 +72,8 @@ export function CredentialTierSelector({
               </span>
               <span className="flex flex-col min-w-0">
                 <span
-                  className="font-sans font-semibold leading-tight truncate"
+                  className="font-sans font-semibold leading-tight truncate text-ds-12"
                   style={{
-                    fontSize: "0.78rem",
                     color: active
                       ? "hsl(var(--ink-deep))"
                       : "hsl(var(--olivewood) / 0.85)",
@@ -83,9 +82,8 @@ export function CredentialTierSelector({
                   {label}
                 </span>
                 <span
-                  className="font-serif italic leading-tight truncate"
+                  className="font-serif italic leading-tight truncate text-ds-11"
                   style={{
-                    fontSize: "0.67rem",
                     color: active
                       ? "hsl(var(--olivewood) / 0.8)"
                       : "hsl(var(--olivewood) / 0.8)",

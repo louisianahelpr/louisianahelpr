@@ -91,7 +91,7 @@ export function PostedJobApplicants({
               }}
             >
               <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-destructive" />
-              <p className="font-serif italic flex-1" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.85)" }}>
+              <p className="font-serif italic flex-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
                 Couldn't load applicants.
               </p>
               <button
@@ -115,14 +115,14 @@ export function PostedJobApplicants({
               }}
             >
               <p
-                className="font-display italic font-bold"
-                style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                className="font-display italic font-bold text-ds-14"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
               >
                 No applicants yet
               </p>
               <p
-                className="font-serif italic leading-snug"
-                style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                className="font-serif italic leading-snug text-ds-12"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Share your job or Boost it (below) to reach more Helprs nearby.
               </p>
@@ -176,8 +176,8 @@ export function PostedJobApplicants({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1 flex-wrap">
                           <p
-                            className="font-display italic font-bold truncate"
-                            style={{ fontSize: "0.82rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                            className="font-display italic font-bold truncate text-ds-13"
+                            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
                           >
                             {name}
                           </p>

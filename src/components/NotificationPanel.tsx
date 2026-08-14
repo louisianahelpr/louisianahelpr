@@ -425,9 +425,8 @@ const NotificationPanel = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p
-                                className="min-w-0 flex-1 font-display italic font-bold leading-tight truncate"
+                                className="min-w-0 flex-1 font-display italic font-bold leading-tight truncate text-ds-15"
                                 style={{
-                                  fontSize: "0.92rem",
                                   color: !n.read ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",
                                   letterSpacing: "-0.012em",
                                 }}
@@ -442,8 +441,8 @@ const NotificationPanel = () => {
                               )}
                             </div>
                             <p
-                              className="font-serif italic mt-0.5 line-clamp-2"
-                              style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                              className="font-serif italic mt-0.5 line-clamp-2 text-ds-12"
+                              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                             >
                               {n.message}
                             </p>
@@ -493,8 +492,8 @@ const NotificationPanel = () => {
                               );
                             })()}
                             <p
-                              className="font-serif italic mt-1"
-                              style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                              className="font-serif italic mt-1 text-ds-11"
+                              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                             >
                               {timeAgo(n.created_at)}
                             </p>

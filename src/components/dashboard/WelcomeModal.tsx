@@ -83,8 +83,8 @@ export function WelcomeModal({ open, onDismiss }: Props) {
             </span>
             <div className="min-w-0 w-full">
               <p
-                className="font-display italic font-bold leading-tight"
-                style={{ fontSize: "0.88rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                className="font-display italic font-bold leading-tight text-ds-14"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 Need help?
               </p>
@@ -125,8 +125,8 @@ export function WelcomeModal({ open, onDismiss }: Props) {
             </span>
             <div className="min-w-0 w-full">
               <p
-                className="font-display italic font-bold leading-tight"
-                style={{ fontSize: "0.88rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                className="font-display italic font-bold leading-tight text-ds-14"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 Want to earn?
               </p>

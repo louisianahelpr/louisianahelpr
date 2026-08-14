@@ -104,8 +104,8 @@ export function PostedJobActions({
               >
                 <Rocket className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.25} />
                 <p
-                  className="font-serif italic leading-snug"
-                  style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                  className="font-serif italic leading-snug text-ds-12"
+                  style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                 >
                   <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                     Boosted until {boostExp.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}.

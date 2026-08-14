@@ -161,7 +161,7 @@ export function SkillsManager({ userId }: SkillsManagerProps) {
             >
               {skill.skill}
               {skill.endorsement_count > 0 && (
-                <span className="tabular-nums opacity-75" style={{ fontSize: "0.65rem" }}>
+                <span className="tabular-nums opacity-75 text-ds-10">
                   · {skill.endorsement_count}
                 </span>
               )}

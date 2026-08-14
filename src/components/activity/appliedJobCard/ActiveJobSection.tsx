@@ -193,7 +193,7 @@ export function ActiveJobSection({
                 {label === "Mark Complete" ? "I'm done — request payout" : label}
               </Button>
               {tooEarly && (
-                <p className="font-serif italic text-center" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-serif italic text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Available 30 minutes after arrival to ensure quality.
                 </p>
               )}

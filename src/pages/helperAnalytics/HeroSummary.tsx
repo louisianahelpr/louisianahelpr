@@ -25,8 +25,8 @@ const HeroSummary = ({ analytics, isLoading }: HeroSummaryProps) => {
       ) : (
         <>
           <p
-            className="font-display italic font-bold"
-            style={{ fontSize: "1.8rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
+            className="font-display italic font-bold text-ds-28"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
             {analytics ? fmtDollars(analytics.totalEarnings) : "$0"}
             <span className="text-ds-14 font-normal ml-2 text-muted-foreground">gross earned</span>

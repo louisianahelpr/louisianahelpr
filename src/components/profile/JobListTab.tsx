@@ -50,7 +50,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
                   <p className="font-display italic font-bold leading-tight truncate text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                     {job.title}
                   </p>
-                  <div className="flex items-center gap-x-2 gap-y-0.5 mt-1.5 font-serif italic flex-wrap" style={{ color: "hsl(var(--olivewood) / 0.8)", fontSize: "0.78rem" }}>
+                  <div className="flex items-center gap-x-2 gap-y-0.5 mt-1.5 font-serif italic flex-wrap text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)",}}>
                     <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>
                     <span style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
                     <span>{formatShortDate(job.date_needed)}</span>

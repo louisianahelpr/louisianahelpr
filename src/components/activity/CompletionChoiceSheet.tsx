@@ -209,14 +209,14 @@ export function CompletionChoiceSheet({
                   </div>
                   <div>
                     <p
-                      className="font-display italic font-bold leading-tight"
-                      style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                      className="font-display italic font-bold leading-tight text-ds-16"
+                      style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
                     >
                       All done — looks great!
                     </p>
                     <p
-                      className="font-serif italic mt-0.5"
-                      style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                      className="font-serif italic mt-0.5 text-ds-12"
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Release payment to {helperName}
                     </p>
@@ -244,14 +244,14 @@ export function CompletionChoiceSheet({
                   </div>
                   <div>
                     <p
-                      className="font-display italic font-bold leading-tight"
-                      style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                      className="font-display italic font-bold leading-tight text-ds-16"
+                      style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
                     >
                       I need something fixed first
                     </p>
                     <p
-                      className="font-serif italic mt-0.5"
-                      style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                      className="font-serif italic mt-0.5 text-ds-12"
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Request a revision — payment stays held
                     </p>
@@ -287,7 +287,7 @@ export function CompletionChoiceSheet({
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <SheetDescription className="font-serif italic leading-relaxed pt-1.5" style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.85)" }}>
+              <SheetDescription className="font-serif italic leading-relaxed pt-1.5 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
                 {helperName} will be notified and can respond before the job closes.
               </SheetDescription>
             </SheetHeader>
@@ -364,8 +364,8 @@ export function CompletionChoiceSheet({
               >
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--amber-ink))" }} />
                 <p
-                  className="font-serif italic leading-snug"
-                  style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.85)" }}
+                  className="font-serif italic leading-snug text-ds-12"
+                  style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                 >
                   Payment stays held until you mark it complete. If {helperName} doesn't fix it, you can open a dispute.
                 </p>

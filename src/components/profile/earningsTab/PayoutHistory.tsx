@@ -26,7 +26,7 @@ export function PayoutHistory({
     <div className="pt-2">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div>
-          <h3 className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
+          <h3 className="font-display italic font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
             Payout history
           </h3>
         </div>
@@ -48,14 +48,14 @@ export function PayoutHistory({
         // bare "No payouts recorded" line.
         <div className="text-center py-6 space-y-1.5">
           <p
-            className="font-display italic font-bold leading-tight"
-            style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+            className="font-display italic font-bold leading-tight text-ds-15"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
           >
             No payouts in {exportYear}.
           </p>
           <p
-            className="font-serif italic"
-            style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
+            className="font-serif italic text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             Payouts land within 2 business days of a completed job.
           </p>
@@ -67,14 +67,14 @@ export function PayoutHistory({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-display italic font-bold tabular-nums" style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))" }}>
+                    <span className="font-display italic font-bold tabular-nums text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
                       {formatCents(p.amount, p.currency)}
                     </span>
                     <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium ${payoutStatusColors[p.status] || "bg-secondary text-secondary-foreground"}`}>
                       {payoutStatusLabel(p.status)}
                     </span>
                   </div>
-                  <p className="font-serif italic" style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     Arrives {formatDate(p.arrival_date)} · {p.method === "instant" ? "Instant" : "Standard"}
                   </p>
                 </div>

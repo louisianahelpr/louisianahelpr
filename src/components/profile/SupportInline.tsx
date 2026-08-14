@@ -206,10 +206,10 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
               <div className="w-9 h-9 rounded-full flex items-center justify-center mb-2.5 bg-primary/10 text-primary">
                 {c.icon}
               </div>
-              <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+              <p className="font-display italic font-bold leading-tight text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                 {c.label}
               </p>
-              <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-serif italic mt-1 leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {c.description}
               </p>
             </button>
@@ -228,10 +228,10 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
             <BookOpen className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-display italic font-bold leading-tight" style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+            <p className="font-display italic font-bold leading-tight text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
               Browse the Help Center
             </p>
-            <p className="font-serif italic mt-1 leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic mt-1 leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Search answers about jobs, payments, and your account
             </p>
           </div>

@@ -68,8 +68,8 @@ const MonthlyGoalCard = ({
             <Flame className="w-4 h-4" />
           </span>
           <h2
-            className="font-display italic font-bold"
-            style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+            className="font-display italic font-bold text-ds-17"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
           >
             Monthly goal
           </h2>
@@ -179,8 +179,8 @@ const MonthlyGoalCard = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <p
-              className="font-display italic font-bold"
-              style={{ fontSize: "1.4rem", color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
+              className="font-display italic font-bold text-ds-22"
+              style={{ color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
             >
               Goal reached!
             </p>
@@ -203,8 +203,8 @@ const MonthlyGoalCard = ({
         <div className="space-y-2">
           <div className="flex items-end justify-between">
             <p
-              className="font-display italic font-bold"
-              style={{ fontSize: "1.4rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+              className="font-display italic font-bold text-ds-22"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
             >
               {fmtDollars(currentMonthEarnings)}
             </p>

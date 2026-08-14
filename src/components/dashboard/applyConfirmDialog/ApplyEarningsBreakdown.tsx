@@ -59,10 +59,10 @@ export function ApplyEarningsBreakdown({
           className="flex justify-between pt-1.5 mt-1.5 items-baseline"
           style={{ borderTop: "0.5px dashed hsl(var(--bark) / 0.22)" }}
         >
-          <span className="font-display italic font-bold" style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}>Take-home</span>
+          <span className="font-display italic font-bold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>Take-home</span>
           <span
-            className="font-display italic font-bold tabular-nums"
-            style={{ fontSize: "1.15rem", color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
+            className="font-display italic font-bold tabular-nums text-ds-18"
+            style={{ color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
           >
             ${formatPrice(payout)}
           </span>

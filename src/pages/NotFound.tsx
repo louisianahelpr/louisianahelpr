@@ -39,9 +39,8 @@ const NotFound = () => {
         <div className="text-center space-y-7 max-w-md">
           <Link to="/" className="inline-flex items-baseline gap-1">
             <span
-              className="font-display italic font-bold leading-none"
+              className="font-display italic font-bold leading-none text-ds-32"
               style={{
-                fontSize: "2rem",
                 color: "hsl(var(--olivewood))",
                 letterSpacing: "-0.02em",
               }}
@@ -49,9 +48,8 @@ const NotFound = () => {
               Helpr
             </span>
             <span
-              className="font-display italic font-bold leading-none"
+              className="font-display italic font-bold leading-none text-ds-20"
               style={{
-                fontSize: "1.25rem",
                 color: "hsl(var(--burnt-sienna))",
                 letterSpacing: "0.22em",
                 marginLeft: "0.12em",

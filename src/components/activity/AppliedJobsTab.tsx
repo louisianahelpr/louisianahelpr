@@ -351,8 +351,8 @@ export const AppliedJobsTab = ({
 
           <fieldset className="mt-5 space-y-1.5" disabled={!!withdrawingAppId}>
             <legend
-              className="font-serif italic uppercase block mb-1.5"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+              className="font-serif italic uppercase block mb-1.5 text-ds-10"
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               Why are you withdrawing?
             </legend>

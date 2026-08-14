@@ -162,10 +162,10 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           background: "radial-gradient(70% 90% at 50% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%), hsl(var(--parchment) / 0.5)",
         }}
       >
-        <p className="font-serif italic uppercase" style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+        <p className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
           Your referral code
         </p>
-        <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "2.5rem", color: "hsl(var(--primary))", letterSpacing: "0.18em" }}>
+        <p className="font-display italic font-bold tabular-nums leading-none text-ds-40" style={{ color: "hsl(var(--primary))", letterSpacing: "0.18em" }}>
           {referralCode}
         </p>
         <div className="grid grid-cols-3 gap-2">
@@ -194,7 +194,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             {copied ? "Copied" : "Copy"}
           </Button>
         </div>
-        <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+        <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           When a friend completes their first job using your code, <span className="font-semibold not-italic" style={{ color: "hsl(var(--ink-deep))" }}>you both earn $5</span>. Up to 5 friends ($25 max).
         </p>
       </div>
@@ -213,7 +213,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
                 {label}
               </span>
             </div>
-            <p className="font-display italic font-bold tabular-nums leading-none" style={{ fontSize: "1.15rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+            <p className="font-display italic font-bold tabular-nums leading-none text-ds-18" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               {value}
             </p>
           </div>
@@ -223,10 +223,10 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       {unredeemedCredits > 0 && (
         <div className="rounded-2xl liquid-glass p-4 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-display italic font-bold leading-tight" style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))" }}>
+            <p className="font-display italic font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
               Cash out credits
             </p>
-            <p className="font-serif italic leading-snug truncate" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic leading-snug truncate text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {hasStripeAccount ? `$${formatPriceExact(unredeemedCredits)} → Stripe payout account` : "Connect Stripe to cash out"}
             </p>
           </div>
@@ -259,10 +259,10 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             "Cash out directly to your Stripe account",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-display italic font-bold" style={{ fontSize: "0.78rem" }}>
+              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-display italic font-bold text-ds-12">
                 {i + 1}
               </span>
-              <p className="font-serif italic leading-snug pt-0.5" style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}>
+              <p className="font-serif italic leading-snug pt-0.5 text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
                 {step}
               </p>
             </div>

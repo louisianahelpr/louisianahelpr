@@ -177,8 +177,8 @@ export function HelperTierBadge(props: HelperTierBadgeProps) {
               }}
             >
               <p
-                className="font-sans uppercase tracking-wider mb-1"
-                style={{ fontSize: "0.6rem", color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.14em" }}
+                className="font-sans uppercase tracking-wider mb-1 text-ds-10"
+                style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.14em" }}
               >
                 To reach {TIER_META[progress.nextTier as Exclude<HelperTier, 0>].label}
               </p>

@@ -389,8 +389,8 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
                   user in the middle of the tour always knows where they
                   are without hunting for the progress bar. */}
               <span
-                className="font-serif italic uppercase block"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                className="font-serif italic uppercase block text-ds-10"
+                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
                 Step {state.currentStep + 1} of {steps.length}
               </span>

@@ -270,9 +270,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               </div>
               <Link
                 to="/#how-it-works"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"
                 style={{
-                  fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",
                   borderBottom: "1px solid hsl(var(--olivewood) / 0.1)",
                 }}
@@ -283,9 +282,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               </Link>
               <Link
                 to="/jobs"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"
                 style={{
-                  fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",
                   borderBottom: "1px solid hsl(var(--olivewood) / 0.1)",
                 }}
@@ -296,9 +294,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               </Link>
               <Link
                 to="/for-business"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"
                 style={{
-                  fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",
                   borderBottom: "1px solid hsl(var(--olivewood) / 0.1)",
                 }}
@@ -309,9 +306,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               </Link>
               <Link
                 to="/subscription"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"
                 style={{
-                  fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",
                   borderBottom: "1px solid hsl(var(--olivewood) / 0.1)",
                 }}
@@ -322,9 +318,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               </Link>
               <Link
                 to="/help"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"
                 style={{
-                  fontSize: "1rem",
                   color: "hsl(var(--ink-deep))",
                   borderBottom: "1px solid hsl(var(--olivewood) / 0.1)",
                 }}

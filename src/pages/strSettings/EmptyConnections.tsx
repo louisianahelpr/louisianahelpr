@@ -17,14 +17,14 @@ export function EmptyConnections() {
         <CalendarDays className="w-7 h-7" style={{ color: "hsl(var(--bark))" }} />
       </div>
       <p
-        className="font-display italic font-semibold"
-        style={{ fontSize: "0.98rem", color: "hsl(var(--ink-deep))" }}
+        className="font-display italic font-semibold text-ds-16"
+        style={{ color: "hsl(var(--ink-deep))" }}
       >
         No calendars connected yet
       </p>
       <p
-        className="text-center max-w-xs"
-        style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}
+        className="text-center max-w-xs text-ds-13"
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       >
         Add your first rental calendar below and Helpr will auto-post
         cleaning jobs after every guest checkout.

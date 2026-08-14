@@ -87,13 +87,13 @@ const DashboardInProgressBadge = ({ job, onView }: DashboardInProgressBadgeProps
             {label}
           </span>
           <p
-            className="font-display font-bold leading-snug mt-1"
-            style={{ fontSize: "0.98rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+            className="font-display font-bold leading-snug mt-1 text-ds-16"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
           >
             {job.title}
           </p>
           {dateLine && (
-            <p className="font-serif italic mt-0.5" style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic mt-0.5 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {dateLine}
             </p>
           )}

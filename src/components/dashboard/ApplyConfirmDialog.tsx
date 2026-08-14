@@ -204,15 +204,15 @@ export function ApplyConfirmDialog({
             <div className="space-y-1 mt-3">
               <label
                 htmlFor="bid-price"
-                className="font-serif italic uppercase block"
-                style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+                className="font-serif italic uppercase block text-ds-10"
+                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
                 Your bid price
               </label>
               <div className="relative">
                 <span
-                  className="absolute left-3 top-1/2 -translate-y-1/2 font-sans"
-                  style={{ fontSize: "0.84rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 font-sans text-ds-13"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   $
                 </span>
@@ -229,8 +229,8 @@ export function ApplyConfirmDialog({
               </div>
               {confirmApplyJob && (confirmApplyJob.budget ?? 0) > 0 && (
                 <p
-                  className="font-serif italic"
-                  style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                  className="font-serif italic text-ds-11"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Poster's budget: ${formatPrice(confirmApplyJob.budget)}
                 </p>
@@ -241,8 +241,8 @@ export function ApplyConfirmDialog({
           <div className="space-y-1.5 mt-3">
             <label
               htmlFor="apply-message"
-              className="font-serif italic uppercase block"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+              className="font-serif italic uppercase block text-ds-10"
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               Your pitch — optional
             </label>
@@ -255,8 +255,8 @@ export function ApplyConfirmDialog({
             {applyMessage.length < MAX_PITCH_LENGTH - 20 && (
               <div role="group" aria-label="Suggested opening sentences">
                 <div
-                  className="flex items-center gap-1 mb-1.5 font-serif italic"
-                  style={{ fontSize: "0.66rem", color: "hsl(var(--burnt-sienna) / 0.75)", letterSpacing: "0.04em" }}
+                  className="flex items-center gap-1 mb-1.5 font-serif italic text-ds-11"
+                  style={{ color: "hsl(var(--burnt-sienna) / 0.75)", letterSpacing: "0.04em" }}
                 >
                   <Sparkles className="w-3 h-3 shrink-0" strokeWidth={2.25} aria-hidden />
                   <span>Tap a suggested opener</span>
@@ -434,8 +434,8 @@ export function ApplyConfirmDialog({
                 an input label. Render as <p> so screen readers don't
                 announce it as an unfulfilled label promise. */}
             <p
-              className="font-serif italic uppercase block"
-              style={{ fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+              className="font-serif italic uppercase block text-ds-10"
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               Certs or previous work — optional
             </p>

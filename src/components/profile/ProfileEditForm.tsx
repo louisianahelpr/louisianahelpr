@@ -164,9 +164,8 @@ export function ProfileEditForm({
               Profile completion
             </p>
             <span
-              className="font-display italic font-bold tabular-nums"
+              className="font-display italic font-bold tabular-nums text-ds-15"
               style={{
-                fontSize: "0.95rem",
                 color: completionPct === 100 ? "hsl(var(--bark))" : "hsl(var(--ink-deep))",
                 letterSpacing: "-0.01em",
               }}
@@ -273,7 +272,7 @@ export function ProfileEditForm({
             autoCapitalize="sentences"
             className="min-h-[112px] resize-none text-ds-13 leading-relaxed"
           />
-          <p className="font-serif italic leading-snug" style={{ fontSize: "0.74rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Customers read this when deciding who to hire. The more specific, the better.
           </p>
         </div>
@@ -285,7 +284,7 @@ export function ProfileEditForm({
             <span className={`text-ds-9 px-1.5 py-0.5 rounded-full font-medium not-italic ${idBadge.cls}`}>{idBadge.label}</span>
           </div>
           <div className="flex items-center gap-3">
-            <p className="font-serif italic leading-snug flex-1" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic leading-snug flex-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Upload a government-issued ID. Encrypted in transit, used only for identity verification and fraud prevention.
             </p>
             <label className="shrink-0">
@@ -338,8 +337,8 @@ export function ProfileEditForm({
           </Link>
         )}
         <p
-          className="text-center font-serif italic px-6 leading-snug"
-          style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.8)" }}
+          className="text-center font-serif italic px-6 leading-snug text-ds-12"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Photos &amp; ID save automatically. Your other edits save from the{" "}
           <span className="not-italic font-sans font-medium">bar below</span>.

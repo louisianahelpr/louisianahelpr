@@ -335,8 +335,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   }}
                 />
                 <span
-                  className="font-sans font-bold uppercase not-italic"
-                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.07em", fontSize: "9px" }}
+                  className="font-sans font-bold uppercase not-italic text-ds-9"
+                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.07em",}}
                 >
                   New
                 </span>
@@ -483,9 +483,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                     ? `Approximately ${drivingLabel} drive, ${distanceLabel} away`
                     : `Approximately ${distanceLabel} away`
                 }
-                className="inline-flex items-center gap-0.5 px-1.5 py-px rounded-full font-sans font-semibold whitespace-nowrap"
+                className="inline-flex items-center gap-0.5 px-1.5 py-px rounded-full font-sans font-semibold whitespace-nowrap text-ds-9"
                 style={{
-                  fontSize: "9.5px",
                   letterSpacing: "0.02em",
                   background: "hsl(var(--burnt-sienna) / 0.10)",
                   color: "hsl(var(--burnt-sienna))",

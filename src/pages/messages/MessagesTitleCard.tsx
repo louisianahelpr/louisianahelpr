@@ -28,9 +28,8 @@ export const MessagesTitleCard = ({
     <div className="flex items-center justify-end gap-3 w-[340px]">
       {unreadLabel ? (
         <span
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-sans font-bold uppercase"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-sans font-bold uppercase text-ds-10"
           style={{
-            fontSize: "0.62rem",
             letterSpacing: "0.12em",
             color: "hsl(var(--parchment))",
             background: "hsl(var(--burnt-sienna))",

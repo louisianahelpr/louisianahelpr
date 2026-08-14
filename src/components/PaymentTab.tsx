@@ -146,14 +146,14 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
                 </span>
                 <div className="flex-1 min-w-0">
                   <p
-                    className="font-display italic font-bold leading-tight"
-                    style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                    className="font-display italic font-bold leading-tight text-ds-16"
+                    style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
                   >
                     Last payout · ${dollars} on {niceDate(paidAt)}
                   </p>
                   <p
-                    className="font-serif italic mt-1 leading-snug"
-                    style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                    className="font-serif italic mt-1 leading-snug text-ds-12"
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Next expected: <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>~{niceDate(nextExpected)}</span>
                     {" "}· Stripe rolls weekly, give or take a business day.
@@ -194,14 +194,14 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
                 <DollarSign className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
               </div>
               <p
-                className="font-display italic font-bold leading-tight"
-                style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+                className="font-display italic font-bold leading-tight text-ds-16"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 No activity yet
               </p>
               <p
-                className="font-serif italic leading-snug max-w-[260px]"
-                style={{ fontSize: "0.8rem", color: "hsl(var(--olivewood) / 0.8)" }}
+                className="font-serif italic leading-snug max-w-[260px] text-ds-13"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Post a job or complete one — your spending and earnings will show up here.
               </p>
@@ -246,30 +246,30 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+              <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                 Total spent
               </p>
               <AnimatedCounter
                 value={totalSpent}
                 prefix="$"
-                className="font-display italic font-bold tabular-nums leading-none mt-1 block"
-                style={{ fontSize: "1.6rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+                className="font-display italic font-bold tabular-nums leading-none mt-1 block text-ds-26"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
               />
-              <p className="font-serif italic mt-1" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-serif italic mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {spentCount === 0 ? "no jobs yet" : `across ${spentCount} job${spentCount === 1 ? "" : "s"}`}
               </p>
             </div>
             <div className="border-l border-border/40 pl-4">
-              <p className="font-serif italic uppercase" style={{ fontSize: "0.58rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+              <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                 Total earned
               </p>
               <AnimatedCounter
                 value={totalEarnedView}
                 prefix="$"
-                className="font-display italic font-bold tabular-nums leading-none mt-1 block"
-                style={{ fontSize: "1.6rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+                className="font-display italic font-bold tabular-nums leading-none mt-1 block text-ds-26"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
               />
-              <p className="font-serif italic mt-1" style={{ fontSize: "0.7rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-serif italic mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {earnedCount === 0 ? "no jobs yet" : `from ${earnedCount} completed`}
               </p>
             </div>
@@ -291,7 +291,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
 
           <div className="mt-4 rounded-ds-md flex items-start gap-2.5 px-3 py-2.5" style={{ background: "hsl(var(--ivory-sand) / 0.4)" }}>
             <CreditCard className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-            <p className="font-serif italic leading-snug" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Payment methods are managed securely through Stripe at checkout.
             </p>
           </div>

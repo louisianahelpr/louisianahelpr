@@ -97,8 +97,8 @@ export function EntryChoice({ form }: EntryChoiceProps) {
         </span>
         <span className="min-w-0 flex-1">
           <span
-            className="block font-display italic font-bold"
-            style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+            className="block font-display italic font-bold text-ds-17"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
           >
             Start fresh
           </span>
@@ -125,8 +125,8 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           </span>
           <span className="min-w-0 flex-1">
             <span
-              className="block font-display italic font-bold"
-              style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+              className="block font-display italic font-bold text-ds-17"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
             >
               Pick up your draft
             </span>
@@ -156,8 +156,8 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             </span>
             <span className="min-w-0 flex-1">
               <span
-                className="block font-display italic font-bold"
-                style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+                className="block font-display italic font-bold text-ds-17"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
               >
                 Repost a recent job
               </span>
@@ -204,8 +204,8 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                       </span>
                       <span className="min-w-0 flex-1">
                         <span
-                          className="block font-sans font-semibold leading-tight truncate"
-                          style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+                          className="block font-sans font-semibold leading-tight truncate text-ds-14"
+                          style={{ color: "hsl(var(--ink-deep))" }}
                         >
                           {job.title}
                         </span>
@@ -247,8 +247,8 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           </span>
           <span className="min-w-0 flex-1">
             <span
-              className="block font-display italic font-bold"
-              style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+              className="block font-display italic font-bold text-ds-17"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
             >
               Use a template
             </span>
@@ -291,8 +291,8 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                     {sample.icon}
                   </span>
                   <p
-                    className="font-sans font-semibold leading-tight"
-                    style={{ fontSize: "0.85rem", color: "hsl(var(--ink-deep))" }}
+                    className="font-sans font-semibold leading-tight text-ds-14"
+                    style={{ color: "hsl(var(--ink-deep))" }}
                   >
                     {sample.title}
                   </p>

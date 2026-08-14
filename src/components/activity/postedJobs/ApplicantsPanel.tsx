@@ -162,8 +162,8 @@ export function ApplicantsPanel({
           </Button>
           <div className="min-w-0 flex-1">
             <h2
-              className="font-display italic font-bold leading-tight truncate"
-              style={{ fontSize: "1.05rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              className="font-display italic font-bold leading-tight truncate text-ds-17"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Applicants
             </h2>
@@ -277,8 +277,8 @@ export function ApplicantsPanel({
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <a
                                 href={`/user/${app.helper_id}`}
-                                className="font-display italic font-bold truncate hover:underline"
-                                style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+                                className="font-display italic font-bold truncate hover:underline text-ds-15"
+                                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
                               >
                                 {helperName}
                               </a>
@@ -342,8 +342,8 @@ export function ApplicantsPanel({
                             {/* Trust signals row */}
                             {visibleSignals.length > 0 && (
                               <p
-                                className="font-serif italic mt-0.5 leading-snug"
-                                style={{ fontSize: "0.72rem", color: "hsl(var(--olivewood) / 0.80)" }}
+                                className="font-serif italic mt-0.5 leading-snug text-ds-12"
+                                style={{ color: "hsl(var(--olivewood) / 0.80)" }}
                               >
                                 {visibleSignals.join(" · ")}
                               </p>

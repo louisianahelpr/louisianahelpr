@@ -268,12 +268,12 @@ export function PayoutSetupForm() {
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} />
           <div>
             <p
-              className="font-display italic font-bold leading-tight"
-              style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              className="font-display italic font-bold leading-tight text-ds-16"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Connect to start earning
             </p>
-            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Set up your payout account through Stripe so completed jobs pay out straight to your bank.
             </p>
           </div>
@@ -285,12 +285,12 @@ export function PayoutSetupForm() {
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--amber-solid))" }} />
           <div>
             <p
-              className="font-display italic font-bold leading-tight"
-              style={{ fontSize: "1rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              className="font-display italic font-bold leading-tight text-ds-16"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               One more step
             </p>
-            <p className="font-serif italic mt-1" style={{ fontSize: "0.82rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+            <p className="font-serif italic mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Stripe needs a few more details before payouts can run. Pick up where you left off below.
             </p>
           </div>
@@ -385,7 +385,7 @@ export function PayoutSetupForm() {
           >
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-              <p className="font-serif italic" style={{ fontSize: "0.78rem", color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Payouts run automatically to your default method when jobs are completed.
               </p>
             </div>

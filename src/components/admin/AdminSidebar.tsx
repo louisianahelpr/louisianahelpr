@@ -150,8 +150,8 @@ const AdminSidebar = ({
           {!collapsed && (
             <div className="min-w-0">
               <p
-                className="font-sans font-semibold leading-tight truncate"
-                style={{ fontSize: "0.95rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
+                className="font-sans font-semibold leading-tight truncate text-ds-15"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
               >
                 Helpr Admin
               </p>

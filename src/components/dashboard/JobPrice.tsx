@@ -113,10 +113,9 @@ export function JobPrice({
   if (variant === "chip") {
     const amountNode = (
       <span
-        className="font-display leading-none tabular-nums"
+        className="font-display leading-none tabular-nums text-ds-17"
         style={{
           fontWeight: 800,
-          fontSize: "1.05rem",
           color: "hsl(var(--bark))",
           letterSpacing: "-0.02em",
         }}
@@ -143,8 +142,8 @@ export function JobPrice({
       return (
         <div className={chipClass} style={chipSurface}>
           <span
-            className="font-serif italic uppercase leading-tight"
-            style={{ fontSize: "0.6rem", letterSpacing: "0.1em", color: "hsl(var(--bark) / 0.85)" }}
+            className="font-serif italic uppercase leading-tight text-ds-10"
+            style={{ letterSpacing: "0.1em", color: "hsl(var(--bark) / 0.85)" }}
           >
             Open to bids
           </span>
@@ -249,15 +248,15 @@ export function JobPrice({
           a plain prompt instead of the big dollar figure + reference budget. */}
       {isBidMode ? (
         <p
-          className="font-display font-bold leading-none mt-1"
-          style={{ fontSize: "1.15rem", color: "hsl(var(--bark))", letterSpacing: "-0.01em" }}
+          className="font-display font-bold leading-none mt-1 text-ds-18"
+          style={{ color: "hsl(var(--bark))", letterSpacing: "-0.01em" }}
         >
           Send your bid
         </p>
       ) : (
         <p
-          className="font-display font-bold tabular-nums leading-none mt-1"
-          style={{ fontSize: "1.5rem", color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
+          className="font-display font-bold tabular-nums leading-none mt-1 text-ds-24"
+          style={{ color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
         >
           ${earnings}
         </p>

@@ -79,9 +79,8 @@ export function CompactJobCard({
             with the row button so the whole row remains tappable. */}
         {recommended && (
           <span
-            className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full"
+            className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-ds-10"
             style={{
-              fontSize: "10px",
               background: "hsl(var(--burnt-sienna) / 0.10)",
               color: "hsl(var(--burnt-sienna))",
             }}

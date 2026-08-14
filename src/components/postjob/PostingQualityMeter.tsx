@@ -32,14 +32,14 @@ export function PostingQualityMeter({
       {/* Header row: label + score percent */}
       <div className="flex items-center justify-between gap-2">
         <span
-          className="font-display italic font-semibold"
-          style={{ fontSize: "0.8rem", color }}
+          className="font-display italic font-semibold text-ds-13"
+          style={{ color }}
         >
           Post quality: {label}
         </span>
         <span
-          className="tabular-nums font-sans font-semibold"
-          style={{ fontSize: "0.75rem", color: "hsl(var(--olivewood) / 0.8)" }}
+          className="tabular-nums font-sans font-semibold text-ds-12"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {score}%
         </span>
@@ -67,8 +67,8 @@ export function PostingQualityMeter({
           {completedChecks.map((check) => (
             <span
               key={check}
-              className="inline-flex items-center gap-1 font-serif italic"
-              style={{ fontSize: "0.68rem", color: score >= 85 ? "hsl(var(--success-ink))" : "hsl(var(--bark))" }}
+              className="inline-flex items-center gap-1 font-serif italic text-ds-11"
+              style={{ color: score >= 85 ? "hsl(var(--success-ink))" : "hsl(var(--bark))" }}
             >
               <CheckCircle2 className="w-3 h-3 shrink-0" strokeWidth={2.25} aria-hidden />
               {check}
@@ -77,8 +77,8 @@ export function PostingQualityMeter({
           {shownMissing.map((check) => (
             <span
               key={check}
-              className="inline-flex items-center gap-1 font-serif italic"
-              style={{ fontSize: "0.68rem", color: "hsl(var(--amber-solid))" }}
+              className="inline-flex items-center gap-1 font-serif italic text-ds-11"
+              style={{ color: "hsl(var(--amber-solid))" }}
             >
               <Circle className="w-3 h-3 shrink-0" strokeWidth={2.25} aria-hidden />
               {check}

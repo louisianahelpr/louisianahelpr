@@ -191,16 +191,15 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
         <div className="rounded-2xl liquid-glass p-4">
           <div className="flex items-baseline justify-between gap-2 mb-1 flex-wrap">
             <p
-              className="font-serif italic uppercase"
-              style={{ fontSize: "0.6rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+              className="font-serif italic uppercase text-ds-10"
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
               {ytdYear} vs {priorYtdYear}
             </p>
             {yoyPct !== null && (
               <span
-                className="font-display italic font-bold tabular-nums"
+                className="font-display italic font-bold tabular-nums text-ds-14"
                 style={{
-                  fontSize: "0.85rem",
                   color: yoyDelta >= 0 ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
                 }}
               >

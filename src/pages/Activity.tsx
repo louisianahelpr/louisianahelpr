@@ -253,7 +253,19 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     <>
       <PageScaffold animate>
           {/* Secondary header (status title + search/filter) is hidden
-              when there's nothing to act on — see `isTrulyEmpty`. */}
+              when there's nothing to act on — see `isTrulyEmpty`.
+
+              ActivityHeader carries this page's ONLY <h1>, so suppressing it
+              left the empty view with zero headings — a screen reader landed
+              on an unlabelled page with nothing to navigate by. The visible
+              design is deliberate and unchanged; the title is restored to the
+              accessibility tree only, so the document always has exactly one
+              h1 whether or not there is anything to list. */}
+          {isTrulyEmpty && (
+            <h1 className="sr-only">
+              {tab === "posted" ? "My Posts" : "My Jobs"}
+            </h1>
+          )}
           {!isTrulyEmpty && (
             <ActivityHeader
               title={tab === "posted" ? "My Posts" : "My Jobs"}

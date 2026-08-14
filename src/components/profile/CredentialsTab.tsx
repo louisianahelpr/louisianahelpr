@@ -66,8 +66,14 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
 
   // Render the form immediately with empty defaults; no full-page spinner.
   const data: CredentialFields = fetched ?? EMPTY;
-  const licensedOn = data.is_licensed;
-  const insuredOn = data.is_insured;
+  // `?? false`, not the raw column. Both are nullable, so before the row loads
+  // `checked` was `undefined` — which makes Radix's Switch UNCONTROLLED — and
+  // then became a boolean once data arrived, flipping it to controlled. React
+  // warns on that switch ("Switch is changing from controlled to uncontrolled")
+  // and, more practically, an uncontrolled toggle silently keeps its own state,
+  // so a fast tap during load could disagree with the server.
+  const licensedOn = data.is_licensed ?? false;
+  const insuredOn = data.is_insured ?? false;
 
   const patchCache = (patch: Partial<CredentialFields>) => {
     qc.setQueryData<CredentialFields>(queryKeys.credentials.byUser(userId), (prev) => ({

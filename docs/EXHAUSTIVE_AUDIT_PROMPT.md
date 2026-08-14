@@ -63,6 +63,19 @@ a ratio of exactly 1.0) means your measurement is broken, not the app.
   any scripted JSX edit.
 - **Theme is `data-theme` on `<html>`**, not `prefers-color-scheme`. Setting the
   browser's colour scheme tests nothing. Set the attribute.
+- **The Playwright sweep can test a STALE BUILD.** `playwright.config.ts` sets
+  `reuseExistingServer: !process.env.CI`, so if anything is already listening on
+  4173 the `npm run build` step is skipped and you audit the previous bundle.
+  Fixes to app source then appear to have no effect — the numbers barely move
+  and the same offenders come back, which reads as "my fix didn't work" rather
+  than "I measured yesterday's code". Kill it first:
+  `lsof -ti:4173 | xargs -r kill -9`. Fixture and harness edits DO take effect
+  immediately, because those run in the test process, not the built app — so a
+  run where harness changes land but source changes don't is the tell.
+- **A Playwright `page.route("**/*")` catch-all runs BEFORE earlier handlers**
+  (most-recent-first). One added to stub unmocked third-party hosts swallowed
+  every Supabase call, the app got no data, and 9 screens silently rendered
+  their empty variant. Delegate known hosts with `route.fallback()`.
 
 ## 3. The surface you must cover — all of it
 

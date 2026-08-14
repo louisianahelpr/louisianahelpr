@@ -156,9 +156,16 @@ export const ProfileHeaderCard = ({
         )}
       </div>
       <div>
-        <h1 className="text-page-title leading-tight">
+        {/* h2, not h1: UserProfile already renders a <PageHeader> whose title
+            ("Profile" / "Profile Review") is this page's h1, so making the
+            person's name a second h1 gave /user/:id TWO top-level headings and
+            broke the document outline for screen readers. Purely a semantic
+            change — `text-page-title` carries all the styling, and the only
+            bare-tag rule in index.css is a print block that treats h1–h6
+            identically, so nothing moves visually. */}
+        <h2 className="text-page-title leading-tight">
           {displayName}
-        </h1>
+        </h2>
         {profile.location && (
           <p
             className="font-serif italic flex items-center justify-center gap-1 mt-0.5 text-ds-13"

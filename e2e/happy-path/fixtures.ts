@@ -120,12 +120,16 @@ function buildFakeProfile(user: FakeUser) {
     id: `${user.id}-profile`,
     user_id: user.id,
     full_name: user.fullName,
-    avatar_url: "https://example.com/avatar.png",
+    // data: URI, not a real URL — "https://example.com/avatar.png" was
+    // actually fetched by the browser and 404'd, which showed up as a
+    // console error on every screen that renders an avatar and read as an
+    // app bug in the sweep report.
+    avatar_url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
     bio: "Smoke-test profile bio with at least twenty characters.",
     date_of_birth: "1990-01-01",
     phone: "5045550100",
     location: "New Orleans, LA",
-    id_document_url: "https://example.com/id.png",
+    id_document_url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
     approval_status: "approved",
     ban_status: "active",
     is_legacy_user: true,
@@ -255,6 +259,42 @@ export async function installSupabaseMocks(
   await page.route("**/vitals.vercel-insights.com/**", (r) => r.fulfill({ status: 204, body: "" }));
   await page.route("**/vercel.live/**", (r) => r.fulfill({ status: 204, body: "" }));
   await page.route("**/_vercel/**", (r) => r.fulfill({ status: 204, body: "" }));
+
+  // Catch-all for any OTHER third-party host. The named stubs above cover the
+  // services we know about, but anything else — a map SDK, a font CDN, an
+  // avatar host — still hits the real network, fails offline/in CI, and lands
+  // in the sweep's console report as "Failed to load resource: 404". That
+  // reads as an app defect when it is really an unmocked dependency.
+  //
+  // Scoped to CROSS-ORIGIN only: same-origin requests must still be served by
+  // the preview server, otherwise the app's own chunks and assets would be
+  // stubbed out and nothing would render.
+  await page.route("**/*", async (route) => {
+    const target = new URL(route.request().url());
+    const base = new URL(page.url() === "about:blank" ? "http://127.0.0.1:4173" : page.url());
+
+    // Same-origin: the preview server owns it (app chunks, assets).
+    if (target.host === base.host) return route.fallback();
+
+    // Hosts that ALREADY have a specific handler registered above. Playwright
+    // runs handlers most-recent-first, so this catch-all is reached FIRST and
+    // must hand them back — otherwise it answered every Supabase call with an
+    // empty 204, the app got no data, and screens silently rendered their
+    // loading/empty variant. That showed up as h1 counts changing on 9 screens:
+    // a mock intercepting more than it meant to, not an app change.
+    const DELEGATED = [
+      SUPABASE_URL,
+      "posthog.com",
+      "sentry.io",
+      "vercel-insights.com",
+      "vercel.live",
+    ];
+    if (DELEGATED.some((h) => target.host.includes(h.replace(/^https?:\/\//, "")))) {
+      return route.fallback();
+    }
+
+    return route.fulfill({ status: 204, body: "" });
+  });
 }
 
 function buildFulfill(resp: SupabaseResponse) {

@@ -18,7 +18,6 @@ import { ChatView } from "@/components/messages/ChatView";
 import { ConversationList } from "@/components/messages/ConversationList";
 import { SectionBoundary } from "@/components/SectionBoundary";
 import { PageScaffold } from "@/components/ui/PageScaffold";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 
 import { useMessagesData } from "./messages/useMessagesData";
@@ -289,7 +288,6 @@ const Messages = () => {
     <>
       {isWebDesktop ? (
         <PageScaffold
-          header={<DashboardHeader titleAs="h1" title="Messages" />}
           titleCard={
             <MessagesTitleCard conversations={conversations} loading={loading} />
           }

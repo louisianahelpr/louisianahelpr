@@ -159,7 +159,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // it's reachable directly from the Payment settings surface.
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <ProfileTabHeader
         title="My earnings"
         onBack={onBack}

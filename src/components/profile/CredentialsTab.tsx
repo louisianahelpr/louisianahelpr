@@ -200,7 +200,7 @@ export function CredentialsTab({ userId }: { userId: string }) {
     : licNeedsReverify ? "license" : "insurance";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {showReverifyBanner && (
         <div
           className="rounded-2xl p-4 flex items-start gap-3"

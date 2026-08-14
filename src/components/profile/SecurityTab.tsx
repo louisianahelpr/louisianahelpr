@@ -243,7 +243,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <ProfileTabHeader
         title="Security"
         onBack={onBack}

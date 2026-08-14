@@ -36,7 +36,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
     // ("Operations & Safety") scrolls clear of the MobileNav dock + FAB
     // on iPhone without leaving a large empty dead-zone below it.
     <div
-      className="space-y-6"
+      className="space-y-4"
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}
     >
       <ProfileTabHeader

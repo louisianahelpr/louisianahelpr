@@ -45,17 +45,17 @@ function renderEmail(opts: { businessName: string; inviterName: string; signupUr
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
 <body style="background:#F0F2F4;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px;color:#2E2F22;">
-  <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:14px;padding:32px 28px;border:1px solid #E3E4DD;">
+  <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:14px;padding:32px 28px;border:1px solid #CBCFD8;">
     <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
     <h1 style="font-size:22px;font-weight:700;margin:0 0 16px;line-height:1.3;">You've been invited to join ${businessName}</h1>
-    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#5E5F4E;">
+    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#55656D;">
       ${inviterName} added you to the <strong style="color:#2E2F22;">${businessName}</strong> team on Helpr. Once you sign up, you'll be able to post and manage jobs on behalf of the business.
     </p>
-    <p style="font-size:15px;line-height:1.6;margin:0 0 24px;color:#5E5F4E;">
+    <p style="font-size:15px;line-height:1.6;margin:0 0 24px;color:#55656D;">
       Sign up using <strong>${recipientEmail}</strong> — that's the address that matches your invite.
     </p>
     <a href="${signupUrl}" style="display:inline-block;background:#5E6544;color:#fff;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:600;font-size:15px;">Sign up + join team</a>
-    <p style="font-size:12px;line-height:1.6;margin:32px 0 0;color:#6A6F5D;">
+    <p style="font-size:12px;line-height:1.6;margin:32px 0 0;color:#6E7C83;">
       If you didn't expect this invite you can ignore it — your seat will stay pending until you sign up.
     </p>
   </div>

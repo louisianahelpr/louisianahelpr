@@ -27,11 +27,17 @@ export const brand = {
   /** --parchment  hsl(220 14% 95%) — page canvas. */
   parchment: '#F0F2F4',
   /** Muted olive body copy — readable at 15px on white (6.5:1). Replaces the old cool grey. */
-  bodyOlive: '#5E5F4E',
+  // #55656D — the exact hex of --stormy-sky (198 12% 38%), the app's
+  // secondary-text token. Was #5E5F4E, an olive-grey that existed nowhere
+  // in the app, so email and product disagreed about what quiet text looks
+  // like (Q5).
+  bodyOlive: '#55656D',
   /** Softer olive for 12–13px legal/footer copy — still passes AA (5.2:1). */
-  footerOlive: '#6A6F5D',
+  // Same family, one step quieter. Was #6A6F5D — a second invented olive.
+  footerOlive: '#6E7C83',
   /** Hairline rule / card border in the olive family. */
-  hairline: '#E3E4DD',
+  // #CBCFD8 — the hex of --border (220 14% 82%). Was #E3E4DD, warm.
+  hairline: '#CBCFD8',
   /** Card + email surface. */
   surface: '#ffffff',
 } as const

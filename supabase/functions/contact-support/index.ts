@@ -148,21 +148,21 @@ function renderEmail(t: {
   const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
 <body style="background:#F0F2F4;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px;color:#2E2F22;">
-  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:14px;padding:32px 28px;border:1px solid #E3E4DD;">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:14px;padding:32px 28px;border:1px solid #CBCFD8;">
     <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
     <h1 style="font-size:22px;font-weight:700;margin:0 0 4px;line-height:1.3;">[${topicLabel}] ${subject}</h1>
-    <p style="font-size:13px;line-height:1.6;margin:0 0 24px;color:#6A6F5D;">Submitted from the public contact form.</p>
+    <p style="font-size:13px;line-height:1.6;margin:0 0 24px;color:#6E7C83;">Submitted from the public contact form.</p>
 
-    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;font-size:14px;color:#5E5F4E;">
-      <tr><td style="padding:4px 0;width:88px;color:#6A6F5D;">From</td><td style="padding:4px 0;color:#2E2F22;"><strong>${name}</strong></td></tr>
-      <tr><td style="padding:4px 0;color:#6A6F5D;">Email</td><td style="padding:4px 0;color:#2E2F22;">${email}</td></tr>
-      <tr><td style="padding:4px 0;color:#6A6F5D;">Topic</td><td style="padding:4px 0;color:#2E2F22;">${topicLabel}</td></tr>
-      <tr><td style="padding:4px 0;color:#6A6F5D;">Account</td><td style="padding:4px 0;color:#2E2F22;">${accountLine}</td></tr>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;font-size:14px;color:#55656D;">
+      <tr><td style="padding:4px 0;width:88px;color:#6E7C83;">From</td><td style="padding:4px 0;color:#2E2F22;"><strong>${name}</strong></td></tr>
+      <tr><td style="padding:4px 0;color:#6E7C83;">Email</td><td style="padding:4px 0;color:#2E2F22;">${email}</td></tr>
+      <tr><td style="padding:4px 0;color:#6E7C83;">Topic</td><td style="padding:4px 0;color:#2E2F22;">${topicLabel}</td></tr>
+      <tr><td style="padding:4px 0;color:#6E7C83;">Account</td><td style="padding:4px 0;color:#2E2F22;">${accountLine}</td></tr>
     </table>
 
-    <div style="border-top:1px solid #E3E4DD;padding-top:20px;font-size:15px;line-height:1.6;color:#2E2F22;white-space:normal;">${messageHtml}</div>
+    <div style="border-top:1px solid #CBCFD8;padding-top:20px;font-size:15px;line-height:1.6;color:#2E2F22;white-space:normal;">${messageHtml}</div>
 
-    <p style="font-size:12px;line-height:1.6;margin:28px 0 0;padding-top:16px;border-top:1px solid #E3E4DD;color:#6A6F5D;">
+    <p style="font-size:12px;line-height:1.6;margin:28px 0 0;padding-top:16px;border-top:1px solid #CBCFD8;color:#6E7C83;">
       Reply directly to <strong>${email}</strong> to answer this person.
     </p>
   </div>

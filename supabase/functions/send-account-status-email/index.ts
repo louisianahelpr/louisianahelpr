@@ -91,8 +91,8 @@ async function renderApprovedEmail(fullName: string, userId: string): Promise<{ 
   const greetingName = getGreetingName(fullName)
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:${brand.surface};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
-<div style="padding:32px 28px;max-width:480px">
+<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
+<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
   <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
   <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">You're approved.</h1>
   <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
@@ -123,8 +123,8 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
   const greetingName = getGreetingName(fullName)
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:${brand.surface};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
-<div style="padding:32px 28px;max-width:480px">
+<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
+<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
   <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
   <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">Verification successful</h1>
   <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
@@ -159,8 +159,8 @@ async function renderDeniedEmail(fullName: string, userId: string, reason?: stri
   const reasonPlain = reason ? `\nReason: ${reason}` : ''
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:${brand.surface};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif">
-<div style="padding:32px 28px;max-width:480px">
+<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
+<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
   <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
   <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">An update on your account</h1>
   <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">

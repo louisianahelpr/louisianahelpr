@@ -35,10 +35,10 @@ import { useDarkMode } from "@/hooks/useDarkMode";
 // otherwise-unused JS on the landing page where no toast fires and no tooltip
 // is visible). Lazy-loading them keeps the libs out of the critical entry
 // bundle — they hydrate after first paint when the wrappers actually mount.
-const _Toaster = lazy(() =>
+const Toaster = lazy(() =>
   import("@/components/ui/toaster").then((m) => ({ default: m.Toaster }))
 );
-const _Sonner = lazy(() =>
+const Sonner = lazy(() =>
   import("@/components/ui/sonner").then((m) => ({ default: m.Toaster }))
 );
 // Global host for the imperative SuccessMoment overlay (job posted /
@@ -445,24 +445,17 @@ const DeferredToasters = () => {
   if (!mounted) return null;
   return (
     <Suspense fallback={null}>
-      {/* TOASTS ARE OFF (owner decision 2026-08-13).
+      {/* Failures surface, confirmations don't (owner decision 2026-08-13).
       
-          <Toaster /> and <Sonner /> are deliberately not mounted. Sonner's
-          `toast()` is a no-op when no Toaster is in the tree, so all ~665 call
-          sites stay in place and stay harmless — no churn, and restoring the
-          two lines below turns them all back on at once.
+          The toasters are mounted, but `toast.success` is neutered at boot in
+          src/lib/toastPolicy.ts. So "Job saved" / "Notifications on" — the
+          clutter that was covering page headers — never appear, while a
+          declined card, a blocked message or a failed payout still tells the
+          user something went wrong.
       
-          Why they went: the confirmations ("Job saved", "Availability saved",
-          "Notifications on") read as clutter, and after they were moved from
-          bottom to top they began covering page headers — the "Notifications
-          on" banner sat on top of the Messages title.
-      
-          KNOWN COST, stated plainly because it is real: 429 of those call
-          sites are `toast.error`. With no toaster mounted, a failed action now
-          gives NO feedback at all — including money paths (a declined card, a
-          blocked message, a failed payout). Any screen where failure needs to
-          be visible has to surface it inline, on that screen, before this is
-          safe to rely on. Until then, silence is the failure mode. */}
+          They were briefly off entirely. That silenced 429 error paths,
+          including money ones, which is a worse failure than the noise it
+          removed. */}
       <SuccessMomentHost />
     </Suspense>
   );

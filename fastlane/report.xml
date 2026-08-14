@@ -5,77 +5,77 @@
     
     
       
-      <testcase classname="fastlane.lanes" name="00: default_platform" time="0.000236">
+      <testcase classname="fastlane.lanes" name="00: default_platform" time="0.000237">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="01: cd .. &amp;&amp; npm run build:ios" time="3.099551">
+      <testcase classname="fastlane.lanes" name="01: cd .. &amp;&amp; npm run build:ios" time="3.517644">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="02: cd .. &amp;&amp; npx cap sync ios" time="0.85337">
+      <testcase classname="fastlane.lanes" name="02: cd .. &amp;&amp; npx cap sync ios" time="1.228461">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="03: app_store_connect_api_key" time="0.004097">
+      <testcase classname="fastlane.lanes" name="03: app_store_connect_api_key" time="0.010625">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="04: sigh" time="0.913724">
+      <testcase classname="fastlane.lanes" name="04: sigh" time="1.050126">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="05: update_code_signing_settings" time="0.039855">
+      <testcase classname="fastlane.lanes" name="05: update_code_signing_settings" time="0.036145">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="06: get_version_number" time="0.018053">
+      <testcase classname="fastlane.lanes" name="06: get_version_number" time="0.018871">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="07: get_build_number" time="0.07397">
+      <testcase classname="fastlane.lanes" name="07: get_build_number" time="0.074911">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="08: latest_testflight_build_number" time="0.491366">
+      <testcase classname="fastlane.lanes" name="08: latest_testflight_build_number" time="0.540978">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="09: latest_testflight_build_number" time="0.61278">
+      <testcase classname="fastlane.lanes" name="09: latest_testflight_build_number" time="0.469075">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="10: increment_build_number" time="0.18401">
+      <testcase classname="fastlane.lanes" name="10: increment_build_number" time="0.170773">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="11: xcodebuild -workspace /Users/lexilombas/louisianahelpr/ios/App/App.xcworkspace -scheme App -allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath /Users/lexilombas/Downloads/Helpr\ Project/AuthKey_ZJD3DSB6W4.p8 -authenticationKeyID ZJD3DSB6W4 -authenticationKeyIssuerID 55c4b380-75fe-460c-b538-e9297d246bce DEVELOPMENT_TEAM\=P85MCK558V -resolvePackageDependencies -configuration Release" time="2.674083">
+      <testcase classname="fastlane.lanes" name="11: xcodebuild -workspace /Users/lexilombas/louisianahelpr/ios/App/App.xcworkspace -scheme App -allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath /Users/lexilombas/Downloads/Helpr\ Project/AuthKey_ZJD3DSB6W4.p8 -authenticationKeyID ZJD3DSB6W4 -authenticationKeyIssuerID 55c4b380-75fe-460c-b538-e9297d246bce DEVELOPMENT_TEAM\=P85MCK558V -resolvePackageDependencies -configuration Release" time="2.984479">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="12: set -o pipefail &amp;&amp; xcodebuild -workspace /Users/lexilombas/louisianahelpr/ios/App/App.xcworkspace -scheme App -allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath /Users/lexilombas/Downloads/Helpr\ Project/AuthKey_ZJD3DSB6W4.p8 -authenticationKeyID ZJD3DSB6W4 -authenticationKeyIssuerID 55c4b380-75fe-460c-b538-e9297d246bce DEVELOPMENT_TEAM\=P85MCK558V -configuration Release -destination generic/platform\=iOS -archivePath /Users/lexilombas/louisianahelpr/build/archives/Helpr.xcarchive clean archive | xcbeautify --disable-colored-output" time="37.754207">
+      <testcase classname="fastlane.lanes" name="12: set -o pipefail &amp;&amp; xcodebuild -workspace /Users/lexilombas/louisianahelpr/ios/App/App.xcworkspace -scheme App -allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath /Users/lexilombas/Downloads/Helpr\ Project/AuthKey_ZJD3DSB6W4.p8 -authenticationKeyID ZJD3DSB6W4 -authenticationKeyIssuerID 55c4b380-75fe-460c-b538-e9297d246bce DEVELOPMENT_TEAM\=P85MCK558V -configuration Release -destination generic/platform\=iOS -archivePath /Users/lexilombas/louisianahelpr/build/archives/Helpr.xcarchive clean archive | xcbeautify --disable-colored-output" time="42.637001">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="13: set -o pipefail &amp;&amp; xcodebuild -exportArchive -archivePath /Users/lexilombas/louisianahelpr/build/archives/Helpr.xcarchive -exportPath /Users/lexilombas/louisianahelpr/build/export -exportOptionsPlist /var/folders/sz/69lrntgn0pnb1bfz0tkfnjc80000gn/T/helpr-export-options.plist -allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath /Users/lexilombas/Downloads/Helpr\ Project/AuthKey_ZJD3DSB6W4.p8 -authenticationKeyID ZJD3DSB6W4 -authenticationKeyIssuerID 55c4b380-75fe-460c-b538-e9297d246bce DEVELOPMENT_TEAM\=P85MCK558V | xcbeautify --disable-colored-output" time="12.476332">
+      <testcase classname="fastlane.lanes" name="13: set -o pipefail &amp;&amp; xcodebuild -exportArchive -archivePath /Users/lexilombas/louisianahelpr/build/archives/Helpr.xcarchive -exportPath /Users/lexilombas/louisianahelpr/build/export -exportOptionsPlist /var/folders/sz/69lrntgn0pnb1bfz0tkfnjc80000gn/T/helpr-export-options.plist -allowProvisioningUpdates -allowProvisioningDeviceRegistration -authenticationKeyPath /Users/lexilombas/Downloads/Helpr\ Project/AuthKey_ZJD3DSB6W4.p8 -authenticationKeyID ZJD3DSB6W4 -authenticationKeyIssuerID 55c4b380-75fe-460c-b538-e9297d246bce DEVELOPMENT_TEAM\=P85MCK558V | xcbeautify --disable-colored-output" time="13.283976">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="14: upload_to_testflight" time="220.072391">
+      <testcase classname="fastlane.lanes" name="14: upload_to_testflight" time="223.871277">
         
       </testcase>
     

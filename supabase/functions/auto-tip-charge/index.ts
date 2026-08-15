@@ -155,11 +155,22 @@ serve(async (req) => {
       };
 
       try {
-        const { data: helperProfile } = await supabase
+        const { data: helperProfile, error: helperProfileErr } = await supabase
           .from("profiles")
           .select("stripe_account_id")
           .eq("user_id", c.helper_id)
           .maybeSingle();
+
+        if (helperProfileErr) {
+          // Transient read failure — delete the claim so the next cron tick can
+          // retry rather than permanently mis-labelling the tip as failed and
+          // setting auto_prompt_sent_at (which giveUp does), which would block
+          // all future retry attempts for this job's auto-tip.
+          log("ERROR reading helper profile — deleting claim for retry", { jobId, error: helperProfileErr.message });
+          await supabase.from("tips").delete().eq("id", tipRow.id);
+          results.failed++;
+          continue;
+        }
 
         // No connected account means the helper cannot receive money at all.
         // Charging the poster and holding it on the platform would be taking
@@ -170,7 +181,15 @@ serve(async (req) => {
           continue;
         }
 
-        const { data: authUser } = await supabase.auth.admin.getUserById(c.customer_id as string);
+        const { data: authUser, error: authUserErr } = await supabase.auth.admin.getUserById(c.customer_id as string);
+        if (authUserErr) {
+          // Same reasoning as helperProfileErr above: don't call giveUp on a
+          // transient auth read failure — delete the claim and retry next tick.
+          log("ERROR reading poster auth record — deleting claim for retry", { jobId, error: authUserErr.message });
+          await supabase.from("tips").delete().eq("id", tipRow.id);
+          results.failed++;
+          continue;
+        }
         const email = authUser?.user?.email;
         if (!email) {
           await giveUp("no_poster_email", false);

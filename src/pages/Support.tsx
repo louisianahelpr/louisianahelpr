@@ -39,10 +39,9 @@ import {
  * the real form lived behind auth in the Profile tab.
  *
  * Shape notes:
- *   • Renders inside PublicLayout with `hideHomeLink`, matching /help and
- *     /for-business — the compact header below carries the canonical
- *     BackButton, so PublicLayout's mobile "Back to home" link would stack a
- *     second back affordance on top of it.
+ *   • Renders inside PublicLayout, matching /help and /for-business — the
+ *     compact header below carries the canonical BackButton, which is the
+ *     page's only back affordance.
  *   • Magazine layout (left masthead / right content) on the standard
  *     `max-w-5xl → 2xl:max-w-[90rem]` container, so the form fills the page at
  *     every breakpoint instead of floating in a narrow column with dead side
@@ -290,8 +289,8 @@ const Support = () => {
   };
 
   return (
-    // hideHomeLink: the compact header below carries the canonical BackButton.
-    <PublicLayout hideHomeLink>
+    // The compact header below carries the canonical BackButton.
+    <PublicLayout>
       <PageIntro />
 
       <section className="container mx-auto px-5 pt-0 pb-8">

@@ -13,6 +13,7 @@ import {
   type BrowserContext,
 } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { SEED_TABLES } from "./seedData";
 
 // Happy-path smoke fixtures. These tests run against `npm run build && npx
 // vite preview` (the Vite preview server, no live backend) and stub every
@@ -119,12 +120,16 @@ function buildFakeProfile(user: FakeUser) {
     id: `${user.id}-profile`,
     user_id: user.id,
     full_name: user.fullName,
-    avatar_url: "https://example.com/avatar.png",
+    // data: URI, not a real URL — "https://example.com/avatar.png" was
+    // actually fetched by the browser and 404'd, which showed up as a
+    // console error on every screen that renders an avatar and read as an
+    // app bug in the sweep report.
+    avatar_url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
     bio: "Smoke-test profile bio with at least twenty characters.",
     date_of_birth: "1990-01-01",
     phone: "5045550100",
     location: "New Orleans, LA",
-    id_document_url: "https://example.com/id.png",
+    id_document_url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
     approval_status: "approved",
     ban_status: "active",
     is_legacy_user: true,
@@ -165,6 +170,17 @@ interface MockRule {
 export interface MockSupabaseOptions {
   user?: FakeUser;
   rules?: MockRule[];
+  /**
+   * Answer table SELECTs from `SEED_TABLES` (see ./seedData) instead of the
+   * default empty array.
+   *
+   * OFF by default, deliberately. The happy-path specs drive their own flows
+   * and assert against a known-empty starting state; handing them pre-existing
+   * jobs would break them. The audit sweep opts IN, because a screenshot of an
+   * empty list proves only that the empty state renders — populated layouts are
+   * where truncation, overflow and status-pill bugs actually live.
+   */
+  seed?: boolean;
 }
 
 /**
@@ -184,6 +200,7 @@ export async function installSupabaseMocks(
 ): Promise<void> {
   const user = options.user;
   const rules = options.rules ?? [];
+  const seed = options.seed ?? false;
 
   // Clear any handler the fixture (or a prior call) registered for the
   // same URL pattern. Playwright stacks handlers most-recent-first, so
@@ -214,7 +231,7 @@ export async function installSupabaseMocks(
 
     // 3. PostgREST (table/RPC reads + writes)
     if (url.pathname.startsWith("/rest/v1/")) {
-      return route.fulfill(buildFulfill(handleRest(url, method, user)));
+      return route.fulfill(buildFulfill(handleRest(url, method, user, seed)));
     }
 
     // 4. Edge functions (e.g. complete-signup) — always 200 with an empty
@@ -242,6 +259,42 @@ export async function installSupabaseMocks(
   await page.route("**/vitals.vercel-insights.com/**", (r) => r.fulfill({ status: 204, body: "" }));
   await page.route("**/vercel.live/**", (r) => r.fulfill({ status: 204, body: "" }));
   await page.route("**/_vercel/**", (r) => r.fulfill({ status: 204, body: "" }));
+
+  // Catch-all for any OTHER third-party host. The named stubs above cover the
+  // services we know about, but anything else — a map SDK, a font CDN, an
+  // avatar host — still hits the real network, fails offline/in CI, and lands
+  // in the sweep's console report as "Failed to load resource: 404". That
+  // reads as an app defect when it is really an unmocked dependency.
+  //
+  // Scoped to CROSS-ORIGIN only: same-origin requests must still be served by
+  // the preview server, otherwise the app's own chunks and assets would be
+  // stubbed out and nothing would render.
+  await page.route("**/*", async (route) => {
+    const target = new URL(route.request().url());
+    const base = new URL(page.url() === "about:blank" ? "http://127.0.0.1:4173" : page.url());
+
+    // Same-origin: the preview server owns it (app chunks, assets).
+    if (target.host === base.host) return route.fallback();
+
+    // Hosts that ALREADY have a specific handler registered above. Playwright
+    // runs handlers most-recent-first, so this catch-all is reached FIRST and
+    // must hand them back — otherwise it answered every Supabase call with an
+    // empty 204, the app got no data, and screens silently rendered their
+    // loading/empty variant. That showed up as h1 counts changing on 9 screens:
+    // a mock intercepting more than it meant to, not an app change.
+    const DELEGATED = [
+      SUPABASE_URL,
+      "posthog.com",
+      "sentry.io",
+      "vercel-insights.com",
+      "vercel.live",
+    ];
+    if (DELEGATED.some((h) => target.host.includes(h.replace(/^https?:\/\//, "")))) {
+      return route.fallback();
+    }
+
+    return route.fulfill({ status: 204, body: "" });
+  });
 }
 
 function buildFulfill(resp: SupabaseResponse) {
@@ -284,7 +337,106 @@ function handleAuth(url: URL, method: string, user: FakeUser | undefined): Supab
   return { status: 200, body: {} };
 }
 
-function handleRest(url: URL, method: string, user: FakeUser | undefined): SupabaseResponse {
+/**
+ * Apply the PostgREST query params the seeded reads actually depend on:
+ * `order` and `limit`.
+ *
+ * Without this the mock returns rows in array order no matter what the client
+ * asked for, so a list built as "newest first" renders oldest-first. That looks
+ * exactly like an app bug in a screenshot — the message list previewed the FIRST
+ * message instead of the latest — when it is really the fixture ignoring
+ * `?order=created_at.desc`. A mock that silently disagrees with the query is
+ * worse than no mock, because it manufactures findings.
+ *
+ * Deliberately NOT a full PostgREST implementation: filters (`eq`, `in`, …) are
+ * still ignored, so a screen may show rows it would not see in production. That
+ * is acceptable for a LAYOUT audit — more rows is a harder layout test — but it
+ * means this harness cannot be used to verify data-scoping or RLS.
+ */
+function applyPostgrestQuery(rows: unknown[], url: URL): unknown[] {
+  let out = [...rows];
+
+  // Column filters. PostgREST encodes them as `?col=op.value`, so any search
+  // param whose value carries a known operator prefix is a filter. Previously
+  // ALL of these were ignored, which meant a screen showed rows it could never
+  // see in production — e.g. every job regardless of customer_id. That makes a
+  // layout audit lie in the generous direction (more rows than reality) and
+  // makes the harness useless for anything data-shaped.
+  const OPS = ["eq", "neq", "gt", "gte", "lt", "lte", "in", "is", "like", "ilike"];
+  const RESERVED = new Set(["select", "order", "limit", "offset", "on_conflict", "columns"]);
+  for (const [key, raw] of url.searchParams.entries()) {
+    if (RESERVED.has(key)) continue;
+    const dot = raw.indexOf(".");
+    if (dot < 0) continue;
+    const op = raw.slice(0, dot);
+    if (!OPS.includes(op)) continue;
+    const val = raw.slice(dot + 1);
+    out = out.filter((r) => {
+      const cell = (r as Record<string, unknown>)[key];
+      switch (op) {
+        case "eq":
+          return String(cell) === val;
+        case "neq":
+          return String(cell) !== val;
+        case "is":
+          return val === "null" ? cell == null : String(cell) === val;
+        case "in": {
+          // in.(a,b,c) — quotes are optional per value.
+          const set = val.replace(/^\(|\)$/g, "").split(",").map((v) => v.replace(/^"|"$/g, ""));
+          return set.includes(String(cell));
+        }
+        case "gt":
+          return String(cell) > val;
+        case "gte":
+          return String(cell) >= val;
+        case "lt":
+          return String(cell) < val;
+        case "lte":
+          return String(cell) <= val;
+        case "like":
+        case "ilike": {
+          const rx = new RegExp("^" + val.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$", op === "ilike" ? "i" : "");
+          return rx.test(String(cell));
+        }
+        default:
+          return true;
+      }
+    });
+  }
+
+  // `or=(a.eq.x,b.eq.y)` is deliberately NOT implemented — the message list
+  // uses it to match either side of a conversation. Applying only half of an
+  // OR would silently hide rows, which is worse than ignoring it, so an
+  // unhandled `or` leaves the set untouched.
+
+  const order = url.searchParams.get("order");
+  if (order) {
+    // "created_at.desc" / "created_at.desc.nullslast" / "name.asc"
+    const [col, dir] = order.split(".");
+    const desc = dir === "desc";
+    out.sort((a, b) => {
+      const av = (a as Record<string, unknown>)[col];
+      const bv = (b as Record<string, unknown>)[col];
+      if (av === bv) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      const cmp = av > bv ? 1 : -1;
+      return desc ? -cmp : cmp;
+    });
+  }
+
+  const limit = url.searchParams.get("limit");
+  if (limit && Number.isFinite(Number(limit))) out = out.slice(0, Number(limit));
+
+  return out;
+}
+
+function handleRest(
+  url: URL,
+  method: string,
+  user: FakeUser | undefined,
+  seed = false,
+): SupabaseResponse {
   // /rest/v1/<table>?... or /rest/v1/rpc/<name>
   const parts = url.pathname.replace("/rest/v1/", "").split("/");
   const table = parts[0] ?? "";
@@ -298,7 +450,42 @@ function handleRest(url: URL, method: string, user: FakeUser | undefined): Supab
   // profiles SELECT by user_id → return the fake profile so the "Big 7"
   // gate in ProtectedRoute passes.
   if (table === "profiles" && method === "GET" && user) {
-    return { status: 200, body: [buildFakeProfile(user)] };
+    // The authed user's own profile must always be present — the "Big 7" gate
+    // in ProtectedRoute bounces to /complete-profile without it. When seeding,
+    // append the counterparty profiles too, otherwise this branch short-circuits
+    // before the SEED_TABLES lookup below and every other person in the seeded
+    // data renders as the fallback "User".
+    const own = buildFakeProfile(user);
+    if (!seed) return { status: 200, body: [own] };
+
+    // Honour `?user_id=eq.<uuid>` (and `id=eq.`). Returning ALL profiles here
+    // breaks the app's own profile read, which uses .single() and errors on
+    // multiple rows — the screen renders "We couldn't load your account".
+    // So resolve the filter to exactly the row asked for.
+    const wanted = (url.searchParams.get("user_id") ?? url.searchParams.get("id") ?? "")
+      .replace(/^eq\./, "");
+    // Dedupe by user_id, own profile winning. SEED_PROFILES contains a row for
+    // the helper, and when the sweep runs AS the helper that row and `own` are
+    // the same person — so an `.eq("user_id", me)` lookup matched BOTH and every
+    // .maybeSingle() caller got PGRST116 "Results contain 2 rows". That showed up
+    // as "[StrikeBanner] failed to load ban status" on all 29 helper screens and
+    // looked like an app bug.
+    const seeded = (SEED_TABLES.profiles ?? []) as Record<string, unknown>[];
+    const pool = [
+      own,
+      ...seeded.filter((r) => r.user_id !== (own as Record<string, unknown>).user_id),
+    ] as Record<string, unknown>[];
+    if (wanted) {
+      const hit = pool.filter(
+        (r) => r.user_id === wanted || r.id === wanted,
+      );
+      return { status: 200, body: hit };
+    }
+    // An UNFILTERED profiles read is essentially always "my own profile", and
+    // several callers use .single(). Returning the whole pool made those fail
+    // with PGRST116 "Results contain 2 rows" — which surfaced as a real-looking
+    // "[StrikeBanner] failed to load ban status" error on 29 screens.
+    return { status: 200, body: [own] };
   }
 
   // user_roles SELECT — fake user is NOT admin, return an empty array.
@@ -312,6 +499,13 @@ function handleRest(url: URL, method: string, user: FakeUser | undefined): Supab
   // mocked SELECTs will reflect the new state.
   if (["POST", "PATCH", "DELETE", "PUT"].includes(method)) {
     return { status: 201, body: [] };
+  }
+
+  // Seeded rows for the audit sweep (opt-in via `seed: true`). Checked last,
+  // so per-test `rules` and the profiles/user_roles special cases above still
+  // win — this only replaces the blanket empty-array fallback.
+  if (seed && method === "GET" && SEED_TABLES[table]) {
+    return { status: 200, body: applyPostgrestQuery(SEED_TABLES[table], url) };
   }
 
   // Default empty array for any other SELECT.

@@ -129,7 +129,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                 <button
                   type="button"
                   onClick={dismiss}
-                  className="mt-5 inline-flex items-center gap-1.5 px-5 h-10 rounded-full active:scale-[0.97] transition-transform text-ds-12"
+                  className="mt-5 inline-flex items-center gap-1.5 px-5 h-10 rounded-ds-md active:scale-[0.97] transition-transform text-ds-12"
                   style={{
                     background: "hsl(var(--bark))",
                     color: "hsl(var(--parchment))",

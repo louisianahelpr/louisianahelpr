@@ -25,6 +25,14 @@ const RatingsReviewsCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Rati
             <>
               {/* Average rating headline */}
               <div className="flex items-end gap-3 mb-4">
+                {/* 2.8rem = 44.8px, DELIBERATELY above the ds-* scale's ds-40
+                    ceiling — owner decision, do not "fix" this to ds-40 in a
+                    type sweep. It is a single display figure whose size is
+                    tuned to sit beside the star row, not body copy that needs
+                    to march in step with the ladder. The scale's job is to keep
+                    running text consistent; a one-off hero numeral is the case
+                    it does not need to cover. If a ds-44 rung is ever added,
+                    move this onto it. */}
                 <p
                   className="font-display italic font-bold leading-none"
                   style={{ fontSize: "2.8rem", color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}

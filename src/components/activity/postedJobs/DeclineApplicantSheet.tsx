@@ -75,7 +75,7 @@ export function DeclineApplicantSheet({
                           hapticLight();
                           setDeclineReason(active ? null : reason);
                         }}
-                        className="px-3 py-1.5 rounded-full text-ds-12 font-sans font-semibold transition-all duration-150 active:scale-95"
+                        className="px-3 py-1.5 rounded-ds-md text-ds-12 font-sans font-semibold transition-all duration-150 active:scale-95"
                         style={{
                           background: active ? "hsl(var(--bark) / 0.10)" : "hsla(0, 0%, 100%, 0.55)",
                           color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.8)",

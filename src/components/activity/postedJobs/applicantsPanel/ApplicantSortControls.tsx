@@ -32,7 +32,7 @@ export function ApplicantSortControls({
             type="button"
             onClick={() => setApplicantSort(opt)}
             aria-pressed={active}
-            className="px-3 py-1.5 rounded-full text-ds-11 font-sans font-semibold transition-all duration-150 active:scale-95"
+            className="px-3 py-1.5 rounded-ds-md text-ds-11 font-sans font-semibold transition-all duration-150 active:scale-95"
             style={{
               background: active ? "hsl(var(--bark) / 0.10)" : "hsla(0, 0%, 100%, 0.45)",
               color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.80)",
@@ -60,7 +60,7 @@ export function ApplicantSortControls({
                   type="button"
                   onClick={() => setApplicantSort(opt)}
                   aria-pressed={active}
-                  className="px-3 py-1.5 rounded-full text-ds-11 font-sans font-semibold transition-all duration-150 active:scale-95"
+                  className="px-3 py-1.5 rounded-ds-md text-ds-11 font-sans font-semibold transition-all duration-150 active:scale-95"
                   style={{
                     background: active ? "hsl(var(--heritage-gold) / 0.15)" : "hsl(var(--parchment) / 0.5)",
                     color: active ? "hsl(var(--heritage-gold))" : "hsl(var(--olivewood) / 0.80)",

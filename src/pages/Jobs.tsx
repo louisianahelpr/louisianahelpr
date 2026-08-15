@@ -269,10 +269,9 @@ const Jobs = () => {
     // spacer and hand-roll `pt-20` instead, which put its H1 8px lower than
     // /for-business, /subscription, and /help. All four now clear the fixed
     // Navbar through the SAME spacer, so their titles land at one offset.
-    // `hideHomeLink` because this page renders the canonical in-content
-    // <BackButton /> next to its H1 — without it the mobile-only "Back to
-    // home" link stacks a second back affordance directly above it.
-    <PublicLayout showCtaBand={false} hideHomeLink>
+    // This page renders the canonical in-content <BackButton /> next to its
+    // H1, which is its only back affordance.
+    <PublicLayout showCtaBand={false}>
       {/* The bottom padding clears the floating MobileNav (96px) plus
           the iOS home-indicator safe area, with a 16px gap so the
           last action isn't kissing the dock. pb-32 was barely 2px

@@ -606,6 +606,12 @@ serve(async (req) => {
         console.error(`[create-payment] tip — helper profile read failed for ${helperId}:`, helperProfileErr);
         throw new Error("Could not verify the helper's payout account — please try again");
       }
+      if (!helperProfile?.stripe_account_id) {
+        return new Response(
+          JSON.stringify({ error: "This helper hasn't set up their payout account yet and cannot receive tips at this time." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+        );
+      }
 
       // The tip covers its OWN Stripe processing fee — the platform never eats
       // it. On a destination charge the Stripe fee is debited from the platform
@@ -626,12 +632,12 @@ serve(async (req) => {
           quantity: 1,
         }],
         mode: "payment",
-        payment_intent_data: helperProfile?.stripe_account_id ? {
+        payment_intent_data: {
           transfer_data: {
             destination: helperProfile.stripe_account_id,
           },
           application_fee_amount: tipFeeCents,
-        } : undefined,
+        },
         success_url: `${getAppUrl()}/my-posts?tip=success`,
         cancel_url: `${getAppUrl()}/my-posts`,
         metadata: { job_id: jobId, tipper_id: user.id, helper_id: helperId, type: "tip" },

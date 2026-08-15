@@ -1184,10 +1184,9 @@ const ForBusiness = () => {
   });
 
   return (
-    // hideHomeLink: the compact header below carries the canonical
-    // BackButton, so PublicLayout's mobile-only "Back to home" link would
-    // stack a second back affordance directly above it.
-    <PublicLayout hideHomeLink>
+    // The compact header below carries the canonical BackButton, which is
+    // this page's only back affordance.
+    <PublicLayout>
       <PageIntro />
       {/* Pricing leads, mirroring /subscription (header → plans immediately).
           A visitor arriving from the footer's "Business" link is comparing

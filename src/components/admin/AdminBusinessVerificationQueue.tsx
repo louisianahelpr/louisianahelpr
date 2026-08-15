@@ -129,7 +129,7 @@ const AdminBusinessVerificationQueue = () => {
                       href={r.document_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-ds-11 text-primary hover:underline"
+                      className="inline-flex items-center gap-1 text-ds-11 text-primary hover:underline tap-44"
                     >
                       Open <ExternalLink className="w-3 h-3" />
                     </a>

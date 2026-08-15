@@ -134,7 +134,7 @@ export function MaterialsPanel({ category, className }: MaterialsPanelProps) {
                     href={item.searchUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-ds-11 font-semibold mt-0.5"
+                    className="inline-flex items-center gap-1 text-ds-11 font-semibold mt-0.5 tap-44"
                     style={{ color: "hsl(var(--primary))" }}
                     onClick={(e) => e.stopPropagation()}
                   >

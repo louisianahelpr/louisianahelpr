@@ -143,7 +143,7 @@ export const ReviewsSection = ({
                       onSetReviewCategoryFilter(active ? null : cat);
                       onResetVisibleCount(PAGE_SIZE);
                     }}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-ds-11 font-sans font-semibold transition-colors"
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-ds-md text-ds-11 font-sans font-semibold transition-colors"
                     style={{
                       color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
                       background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
@@ -176,7 +176,7 @@ export const ReviewsSection = ({
                     onSetReviewRatingFilter(bucket.key);
                     onResetVisibleCount(PAGE_SIZE);
                   }}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-ds-11 font-sans font-semibold transition-colors tabular-nums"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-ds-md text-ds-11 font-sans font-semibold transition-colors tabular-nums"
                   style={{
                     color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
                     background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",

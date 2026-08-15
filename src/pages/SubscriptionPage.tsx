@@ -1058,9 +1058,8 @@ export default function SubscriptionPage() {
   // pt-safe-top is required now that the page opens with a compact header
   // instead of the old pt-24/32/40 hero — without it the title row sits
   // under the status bar / notch on device.
-  // Web: shared marketing chrome (top nav + footer). hideHomeLink because the
-  // compact header already carries the canonical BackButton; PublicLayout's
-  // mobile-only "Back to home" link would stack a second one above it.
+  // Web: shared marketing chrome (top nav + footer). The compact header
+  // below carries the canonical BackButton.
   if (isNativePlatform) {
     return (
       <div className="min-h-screen bg-premium-page pt-safe-top pb-safe-nav">
@@ -1069,7 +1068,7 @@ export default function SubscriptionPage() {
     );
   }
   return (
-    <PublicLayout showCtaBand={false} hideHomeLink>
+    <PublicLayout showCtaBand={false}>
       {inner}
     </PublicLayout>
   );

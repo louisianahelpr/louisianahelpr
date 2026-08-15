@@ -56,18 +56,80 @@ interface ViolationSummary {
   targets: string[];
 }
 
+/**
+ * Layout measurements taken per screen.
+ *
+ * The sweep used to capture only a screenshot + an axe report, which meant a
+ * human had to open 78 PNGs to notice anything. These are the checks that CAN
+ * be decided mechanically, so they land in the JSON report as findings rather
+ * than as pictures someone has to interpret.
+ */
+interface LayoutReport {
+  /** documentElement.scrollWidth - clientWidth. Must be 0. */
+  overflowPx: number;
+  /** Elements wider than the viewport — the CAUSE, not just the symptom. */
+  overflowOffenders: string[];
+  /** Visible text computed below the ds-9 (9px) floor. */
+  belowTypeFloor: string[];
+  /** Standalone controls under the 44px HIG/WCAG-2.5.5 minimum. */
+  smallTapTargets: string[];
+  /** Should be exactly 1. */
+  h1Count: number;
+  /** console.error / warn / unhandled rejection seen while loading. */
+  consoleIssues: string[];
+}
+
 interface ScreenResult {
   index: number;
   name: string;
   url: string;
   auth: "anon" | "authed";
+  /** Viewport + theme this row was captured at. */
+  variant?: string;
   status: "ok" | "skipped" | "failed";
   screenshot?: string;
   totalViolations?: number;
   topViolations?: ViolationSummary[];
+  layout?: LayoutReport;
   error?: string;
   notes?: string;
 }
+
+/**
+ * Viewport + theme matrix.
+ *
+ * The sweep previously ran ONLY at the project's fixed 375x812 in light mode,
+ * so nothing desktop-specific and nothing dark-mode-specific was ever seen —
+ * which is precisely where this app's known layout bugs live (the desktop rail
+ * double-inset, the width-ladder divergence). 320 is included because that is
+ * where truncation and wrapping fail first.
+ *
+ * Controlled by SWEEP_VARIANTS so a quick run stays quick:
+ *   (unset)          → phone-light only, the old behaviour, ~3 min
+ *   SWEEP_VARIANTS=all → every variant below, ~4x the wall clock
+ *
+ * Theme is set via the `data-theme` attribute, NOT prefers-color-scheme —
+ * this app reads the attribute, so emulating the OS colour scheme tests
+ * nothing at all.
+ */
+interface Variant {
+  tag: string;
+  width: number;
+  height: number;
+  theme: "light" | "dark";
+}
+
+const ALL_VARIANTS: Variant[] = [
+  { tag: "phone-light", width: 375, height: 812, theme: "light" },
+  { tag: "phone-dark", width: 375, height: 812, theme: "dark" },
+  { tag: "small-light", width: 320, height: 640, theme: "light" },
+  { tag: "desktop-light", width: 1440, height: 900, theme: "light" },
+];
+
+const VARIANTS: Variant[] =
+  process.env.SWEEP_VARIANTS === "all"
+    ? ALL_VARIANTS
+    : [ALL_VARIANTS[0]];
 
 const results: ScreenResult[] = [];
 
@@ -87,6 +149,72 @@ test.afterAll(() => {
   writeReport();
 });
 
+/**
+ * Measure the layout rules that can be decided without a human eye.
+ *
+ * Runs in the page. Every check filters to VISIBLE elements first — a hidden
+ * 0x0 desktop-only node measured at 375px was a false-positive class in a
+ * previous audit, so absence of that filter is itself a bug.
+ */
+async function measureLayout(
+  page: import("@playwright/test").Page,
+): Promise<LayoutReport> {
+  return page.evaluate(() => {
+    const de = document.documentElement;
+    const vis = (e: Element) => {
+      const r = e.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return false;
+      const cs = getComputedStyle(e);
+      return cs.visibility !== "hidden" && cs.display !== "none" && parseFloat(cs.opacity) > 0.05;
+    };
+
+    const overflowOffenders: string[] = [];
+    document.querySelectorAll("#root *").forEach((e) => {
+      if (!vis(e)) return;
+      const r = e.getBoundingClientRect();
+      if (r.width > de.clientWidth + 1) {
+        overflowOffenders.push(
+          `${e.tagName}.${String((e as HTMLElement).className || "").slice(0, 36)} @${Math.round(r.width)}px`,
+        );
+      }
+    });
+
+    const belowTypeFloor: string[] = [];
+    const smallTapTargets: string[] = [];
+    document.querySelectorAll("#root *").forEach((e) => {
+      if (!vis(e)) return;
+      if (e.children.length === 0 && (e.textContent ?? "").trim()) {
+        const fs = parseFloat(getComputedStyle(e).fontSize);
+        if (fs < 9) belowTypeFloor.push(`${fs}px "${(e.textContent ?? "").trim().slice(0, 24)}"`);
+      }
+    });
+    document.querySelectorAll("#root button,#root a[href],#root [role=button]").forEach((e) => {
+      if (!vis(e)) return;
+      // Skip links inside running prose — an inline link in a sentence is not
+      // a standalone control and is not expected to be 44px tall.
+      if (e.closest("p") || e.closest("li")) return;
+      if (getComputedStyle(e).display === "inline") return;
+      // Skip-to-content links are deliberately 1px until focused; they are an
+      // accessibility feature, not an undersized control.
+      if (/skip to/i.test((e.textContent ?? "").trim())) return;
+      const r = e.getBoundingClientRect();
+      if (r.height < 44) {
+        const label = (e.textContent ?? "").trim().slice(0, 20) || e.getAttribute("aria-label") || e.tagName;
+        smallTapTargets.push(`${label} @${Math.round(r.height)}px`);
+      }
+    });
+
+    return {
+      overflowPx: de.scrollWidth - de.clientWidth,
+      overflowOffenders: overflowOffenders.slice(0, 5),
+      belowTypeFloor: [...new Set(belowTypeFloor)].slice(0, 5),
+      smallTapTargets: [...new Set(smallTapTargets)].slice(0, 8),
+      h1Count: document.querySelectorAll("#root h1").length,
+      consoleIssues: [],
+    };
+  });
+}
+
 async function captureScreen(
   page: import("@playwright/test").Page,
   index: number,
@@ -94,10 +222,45 @@ async function captureScreen(
   url: string,
   auth: "anon" | "authed",
   extraSetup?: () => Promise<void>,
+  variant: Variant = VARIANTS[0],
 ): Promise<void> {
-  const result: ScreenResult = { index, name, url, auth, status: "failed" };
+  const result: ScreenResult = { index, name, url, auth, variant: variant.tag, status: "failed" };
+  // Console noise is a per-screen finding, so listen BEFORE navigating —
+  // attaching after goto() misses everything logged during first paint.
+  const consoleIssues: string[] = [];
+  // Noise the HARNESS causes, not the app. Left unfiltered these appear on
+  // every screen and drown the real findings.
+  const HARNESS_NOISE = [
+    /Service Worker registration blocked by Playwright/i,
+    /Download the React DevTools/i,
+    /\[vite\] connect/i,
+  ];
+  page.on("console", (m) => {
+    if (m.type() !== "error" && m.type() !== "warning") return;
+    const text = m.text();
+    if (HARNESS_NOISE.some((rx) => rx.test(text))) return;
+    consoleIssues.push(`${m.type()}: ${text.slice(0, 110)}`);
+  });
+  page.on("pageerror", (e) => consoleIssues.push(`uncaught: ${String(e.message).slice(0, 110)}`));
   try {
+    await page.setViewportSize({ width: variant.width, height: variant.height });
+    // Set the theme BEFORE any app JS runs, so the first paint is already in
+    // the right mode — flipping it after load can leave transition styles
+    // mid-flight in the screenshot.
+    // documentElement does not exist yet at addInitScript time on a fresh
+    // document, so guard it and fall back to DOMContentLoaded. Without the
+    // guard this threw "Cannot read properties of null" on EVERY screen and
+    // polluted the console findings for all 75 of them.
+    await page.addInitScript((theme) => {
+      const set = () => document.documentElement?.setAttribute("data-theme", theme);
+      if (document.documentElement) set();
+      else document.addEventListener("DOMContentLoaded", set, { once: true });
+    }, variant.theme);
+
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.evaluate((theme) => {
+      document.documentElement.setAttribute("data-theme", theme);
+    }, variant.theme);
     // Give SPA a chance to settle — first paint + lazy chunks.
     await page
       .waitForLoadState("networkidle", { timeout: 15_000 })
@@ -119,10 +282,13 @@ async function captureScreen(
     }
 
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const fileName = `${String(index).padStart(2, "0")}-${slug}.png`;
+    const fileName = `${String(index).padStart(3, "0")}-${slug}-${variant.tag}.png`;
     const screenshotPath = resolve(OUTPUT_DIR, fileName);
     await page.screenshot({ path: screenshotPath, fullPage: false });
     result.screenshot = screenshotPath;
+
+    result.layout = await measureLayout(page);
+    result.layout.consoleIssues = [...new Set(consoleIssues)].slice(0, 5);
 
     const axe = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -270,12 +436,14 @@ sweepDescribe("UI audit evidence sweep", () => {
 
   let index = 0;
 
-  for (const screen of ANON_SCREENS) {
-    const i = ++index;
-    test(`${String(i).padStart(3, "0")} ${screen.name} (anon)`, async ({ page }) => {
-      await installSupabaseMocks(page, screen.rules ? { rules: screen.rules } : undefined);
-      await captureScreen(page, i, screen.name, screen.url, "anon", screen.extraSetup ? () => screen.extraSetup!(page) : undefined);
-    });
+  for (const v of VARIANTS) {
+    for (const screen of ANON_SCREENS) {
+      const i = ++index;
+      test(`${String(i).padStart(3, "0")} ${screen.name} (anon/${v.tag})`, async ({ page }) => {
+        await installSupabaseMocks(page, { seed: true, rules: screen.rules });
+        await captureScreen(page, i, screen.name, screen.url, "anon", screen.extraSetup ? () => screen.extraSetup!(page) : undefined, v);
+      });
+    }
   }
 
   // The exhaustive matrix: every authed screen under BOTH roles.
@@ -284,26 +452,30 @@ sweepDescribe("UI audit evidence sweep", () => {
     { tag: "helper", user: FAKE_HELPER },
   ] as const;
 
-  for (const role of ROLES) {
-    for (const screen of AUTHED_SCREENS) {
-      const i = ++index;
-      const name = `${role.tag}-${screen.name}`;
-      test(`${String(i).padStart(3, "0")} ${name} (${role.tag})`, async ({ context, page, baseURL }) => {
-        await seedAuthedSession(context, role.user, baseURL ?? "");
-        await installSupabaseMocks(page, { user: role.user, rules: screen.rules });
-        await captureScreen(page, i, name, screen.url, "authed", screen.extraSetup ? () => screen.extraSetup!(page) : undefined);
-      });
+  for (const v of VARIANTS) {
+    for (const role of ROLES) {
+      for (const screen of AUTHED_SCREENS) {
+        const i = ++index;
+        const name = `${role.tag}-${screen.name}`;
+        test(`${String(i).padStart(3, "0")} ${name} (${role.tag}/${v.tag})`, async ({ context, page, baseURL }) => {
+          await seedAuthedSession(context, role.user, baseURL ?? "");
+          await installSupabaseMocks(page, { user: role.user, rules: screen.rules, seed: true });
+          await captureScreen(page, i, name, screen.url, "authed", screen.extraSetup ? () => screen.extraSetup!(page) : undefined, v);
+        });
+      }
     }
   }
 
   // Admin (role-elevated customer).
-  for (const screen of ADMIN_SCREENS) {
-    const i = ++index;
-    test(`${String(i).padStart(3, "0")} ${screen.name} (admin)`, async ({ context, page, baseURL }) => {
-      await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-      await installSupabaseMocks(page, { user: FAKE_CUSTOMER, rules: screen.rules });
-      await captureScreen(page, i, screen.name, screen.url, "authed", screen.extraSetup ? () => screen.extraSetup!(page) : undefined);
-    });
+  for (const v of VARIANTS) {
+    for (const screen of ADMIN_SCREENS) {
+      const i = ++index;
+      test(`${String(i).padStart(3, "0")} ${screen.name} (admin/${v.tag})`, async ({ context, page, baseURL }) => {
+        await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
+        await installSupabaseMocks(page, { user: FAKE_CUSTOMER, rules: screen.rules, seed: true });
+        await captureScreen(page, i, screen.name, screen.url, "authed", screen.extraSetup ? () => screen.extraSetup!(page) : undefined, v);
+      });
+    }
   }
 
   // Sanity: at least one screen succeeded; otherwise something fundamental

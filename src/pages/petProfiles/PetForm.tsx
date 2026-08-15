@@ -257,7 +257,7 @@ export function PetForm({
                     key={s.value}
                     type="button"
                     onClick={() => set("species", s.value)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ds-12 font-medium transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-ds-md text-ds-12 font-medium transition-all"
                     style={{
                       background:
                         form.species === s.value

@@ -55,7 +55,7 @@ export function CaregiverCard({
         <button
           aria-label="Remove access"
           onClick={() => onRevokeAccess(relationship.id)}
-          className="mt-0.5 flex items-center gap-1 h-8 px-2.5 rounded-full text-ds-12 font-sans font-medium active:scale-95 transition-all"
+          className="mt-0.5 flex items-center gap-1 h-8 px-2.5 rounded-ds-md text-ds-12 font-sans font-medium active:scale-95 transition-all"
           style={{
             background: "hsl(var(--destructive) / 0.08)",
             color: "hsl(var(--destructive))",

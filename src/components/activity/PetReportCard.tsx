@@ -181,7 +181,7 @@ export function SendReportCard({
                   key={p.id}
                   type="button"
                   onClick={() => setPetId(p.id)}
-                  className="px-3 py-1.5 rounded-full text-ds-13 font-medium transition-all"
+                  className="px-3 py-1.5 rounded-ds-md text-ds-13 font-medium transition-all"
                   style={{
                     background:
                       petId === p.id
@@ -264,7 +264,7 @@ export function SendReportCard({
                 key={value}
                 type="button"
                 onClick={() => setMood(value)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ds-12 font-medium transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-ds-md text-ds-12 font-medium transition-all"
                 style={{
                   background:
                     mood === value ? `${color}22` : "hsl(var(--olivewood) / 0.06)",

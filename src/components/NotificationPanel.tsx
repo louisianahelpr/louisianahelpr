@@ -478,7 +478,7 @@ const NotificationPanel = () => {
                                         setOpen(false);
                                         navigate(a.href);
                                       }}
-                                      className="h-6 px-2.5 text-ds-11 font-sans font-semibold rounded-full border transition-all active:scale-[0.94]"
+                                      className="h-6 px-2.5 text-ds-11 font-sans font-semibold rounded-ds-md border transition-all active:scale-[0.94]"
                                       style={{
                                         borderColor: "hsl(var(--bark) / 0.35)",
                                         color: "hsl(var(--bark))",

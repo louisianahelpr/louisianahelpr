@@ -128,6 +128,80 @@ export async function handleChargeDisputeClosed(
             });
           }
         }
+      } else if (outcome === "warning_closed") {
+        // A retrieval request (card-network inquiry, no funds ever withdrawn) was
+        // dismissed. chargeDisputeCreated treated it as a dispute and may have set
+        // payment_status = "chargeback" + disputed_at = NOW() on the job to block
+        // payout. Now that the inquiry is closed, unblock automatically:
+        //
+        // process-scheduled-payouts gates on `.is("disputed_at", null)`, and
+        // release-payout gates on `dispute_status NOT IN ['resolved', 'auto_resolved']`.
+        // Without this reset both payout paths permanently block the job with no
+        // guided recovery path — the helper never gets paid.
+        //
+        // Scoped to payment_status = "chargeback" so jobs that were already
+        // "released" when the inquiry came in (shouldBlockPayout was false in
+        // chargeDisputeCreated) are untouched. The .select() return tells us
+        // whether a row actually matched so we only notify admins when a real
+        // unblock happened.
+        const { data: unblocked, error: unblockErr } = await supabase
+          .from("jobs")
+          .update({ payment_status: "payout_pending", disputed_at: null })
+          .eq("id", closedJob.id)
+          .eq("payment_status", "chargeback")
+          .select("id");
+
+        if (unblockErr) {
+          // The payout block set by chargeDisputeCreated is still in place. Both
+          // payout paths filter this job out permanently with no further signal.
+          // Alert ops NOW before throwing (the throw rolls back the idempotency
+          // row and lets Stripe retry once the DB recovers).
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "critical",
+            title: "Stripe retrieval request dismissed — payout UNBLOCK FAILED",
+            message: `Dispute ${closedDispute.id} closed as "warning_closed" (retrieval request dismissed, no funds moved), but the job reset to payout_pending failed. The helper's payout is still blocked. Stripe will retry; if retries exhaust, manually set payment_status='payout_pending' and disputed_at=NULL on the job.`,
+            fields: {
+              "Dispute ID": closedDispute.id,
+              "Job ID": String(closedJob.id),
+              "DB error": unblockErr.message.slice(0, 200),
+            },
+            link: `https://dashboard.stripe.com/disputes/${closedDispute.id}`,
+          });
+          throw new Error(
+            `Payout unblock failed for warning_closed dispute ${closedDispute.id} (job ${closedJob.id}): ${unblockErr.message}`,
+          );
+        }
+
+        if (unblocked && unblocked.length > 0) {
+          logStep("Retrieval request dismissed — payout unblocked (payment_status → payout_pending, disputed_at cleared)", {
+            jobId: closedJob.id,
+            disputeId: closedDispute.id,
+          });
+          // Let admins know the automatic unblock happened.
+          const { data: warnAdminRoles } = await supabase
+            .from("user_roles")
+            .select("user_id")
+            .eq("role", "admin");
+          if (warnAdminRoles) {
+            for (const admin of warnAdminRoles) {
+              await supabase.from("notifications").insert({
+                user_id: admin.user_id,
+                title: "ℹ️ Retrieval request closed — payout auto-unblocked",
+                message: `A card-network retrieval request for "${closedJob.title}" was dismissed with no chargeback. The helper's temporarily-blocked payout has been automatically unblocked and will proceed on the normal schedule.`,
+                type: "info",
+                link: "/admin",
+              });
+            }
+          }
+        } else {
+          // Job was not in "chargeback" state — it was already released when the
+          // inquiry came in (shouldBlockPayout was false), so no payout was blocked.
+          logStep("Retrieval request dismissed — job was not in chargeback state; no payout unblock needed", {
+            jobId: closedJob.id,
+            disputeId: closedDispute.id,
+          });
+        }
       }
     }
   }
@@ -146,7 +220,7 @@ export async function handleChargeDisputeClosed(
         ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored — release the helper's blocked payout manually via the Admin panel.`
         : outcome === "lost"
         ? `Stripe ruled against us on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds permanently withdrawn. Reconcile the loss.`
-        : `An early-fraud warning for $${(closedDispute.amount / 100).toFixed(2)} was dismissed without a chargeback.`,
+        : `An early-fraud warning for $${(closedDispute.amount / 100).toFixed(2)} was dismissed without a chargeback. Any previously-blocked helper payout has been automatically unblocked.`,
     fields: {
       "Dispute ID": closedDispute.id,
       "Payment Intent": closedPiId ?? "—",

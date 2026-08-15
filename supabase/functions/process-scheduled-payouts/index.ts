@@ -445,7 +445,7 @@ serve(async (req) => {
             `[process-scheduled-payouts] Ledger insert failed for job ${job.id} (transfer ${transfer.id}):`,
             ledgerErr,
           );
-          postSlackOpsAlert({
+          await postSlackOpsAlert({
             kind: "payout_failed",
             severity: "critical",
             title: "Scheduled payout — transfer sent but payout_transfers ledger write FAILED",
@@ -501,7 +501,7 @@ serve(async (req) => {
             `[process-scheduled-payouts] CRITICAL: transfer sent but jobs.update failed for job ${job.id}:`,
             statusUpdateErr,
           );
-          postSlackOpsAlert({
+          await postSlackOpsAlert({
             kind: "payout_failed",
             severity: "critical",
             title: "Payout status flip failed — manual fix required",
@@ -555,7 +555,7 @@ serve(async (req) => {
           }
         }
 
-        postSlackOpsAlert({
+        await postSlackOpsAlert({
           kind: "payout_failed",
           severity: "critical",
           title: "Scheduled payout failed",

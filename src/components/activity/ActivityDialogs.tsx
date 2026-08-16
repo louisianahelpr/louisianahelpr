@@ -59,7 +59,7 @@ interface ActivityDialogsProps {
   // Deadline
   deadlineDialogApp: DeadlineDialogApp | null;
   setDeadlineDialogApp: (app: DeadlineDialogApp | null) => void;
-  onDeadlineConfirm: (hours: number, msg?: string) => void;
+  onDeadlineConfirm: (hours: number, msg?: string) => Promise<void> | void;
   // Dispute
   disputeJob: Job | null;
   setDisputeJob: (job: Job | null) => void;

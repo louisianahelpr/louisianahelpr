@@ -16,7 +16,7 @@
 // Migrations don't auto-deploy on prod, so every new RPC / column has a
 // PGRST202 / PGRST204 fallback inline.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +36,11 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import BusinessNoAccountState from "@/components/business/BusinessNoAccountState";
 import { queryKeys } from "@/lib/queryKeys";
 import BulkInviteDialog from "@/components/business/BulkInviteDialog";
-import SpendDashboardTab from "@/components/business/SpendDashboardTab";
+// SpendDashboardTab statically imports recharts (~267 kB raw / 83 kB gzip).
+// The "Spend" tab is not the default view, so defer the chunk until the
+// user actually clicks it — matching the pattern used for ProfileStatsTrend,
+// KpiSparkline, and AdminAnalyticsCharts.
+const SpendDashboardTab = lazy(() => import("@/components/business/SpendDashboardTab"));
 import ApprovalsTab from "@/components/business/ApprovalsTab";
 import ActivityFeedTab from "@/components/business/ActivityFeedTab";
 import SettingsTab from "@/components/business/SettingsTab";
@@ -385,11 +389,13 @@ const BusinessTeam = () => {
           </TabsContent>
 
           <TabsContent value="spend">
-            <SpendDashboardTab
-              businessId={business.business_id}
-              monthlyBudget={business.monthly_budget}
-              monthlyBudgetAlertAt={business.monthly_budget_alert_at}
-            />
+            <Suspense fallback={<div className="flex justify-center py-12"><HelprSpinner size={32} /></div>}>
+              <SpendDashboardTab
+                businessId={business.business_id}
+                monthlyBudget={business.monthly_budget}
+                monthlyBudgetAlertAt={business.monthly_budget_alert_at}
+              />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="activity">

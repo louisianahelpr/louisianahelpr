@@ -280,7 +280,7 @@ const HelpCenter = () => {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search answers, guides, and topics..."
                 aria-label="Search help articles"
-                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ds-15 sm:text-ds-17 placeholder:text-[hsl(var(--olivewood)/0.6)]"
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ds-15 sm:text-ds-17 placeholder:text-[hsl(var(--olivewood)/0.8)]"
                 style={{
                   fontFamily: "Montserrat, system-ui, sans-serif",
                   color: "hsl(var(--ink-deep))",
@@ -317,7 +317,7 @@ const HelpCenter = () => {
               <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2">
                 <span
                   className="font-sans font-medium text-ds-11 shrink-0"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Popular:
                 </span>

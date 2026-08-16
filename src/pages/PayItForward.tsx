@@ -548,7 +548,7 @@ export default function PayItForward() {
                 )}
                 <p
                   className="font-serif italic text-ds-11 mt-1.5"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   ${MIN_GIFT}–${MAX_GIFT} per gift card. A card-processing fee ({(STRIPE_PCT * 100).toFixed(1)}% + {STRIPE_FLAT_CENTS}¢) is added at checkout.
                 </p>

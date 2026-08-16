@@ -348,7 +348,7 @@ export function SignupStep1({
         <span
           id="marketing-consent-label"
           className="text-ds-11 leading-relaxed font-sans"
-          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           It's OK to email me occasional Helpr news, tips, and special offers. I can unsubscribe any time.
         </span>

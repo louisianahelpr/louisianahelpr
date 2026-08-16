@@ -507,7 +507,7 @@ const TierComparison = () => {
                 >
                   <span
                     className="font-sans uppercase text-ds-10 font-semibold tracking-[0.14em]"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Feature
                   </span>
@@ -604,7 +604,7 @@ const TierComparison = () => {
                         ) : (
                           <span
                             aria-label="Not included"
-                            style={{ color: "hsl(var(--olivewood) / 0.4)" }}
+                            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                           >
                             —
                           </span>
@@ -802,7 +802,7 @@ const PricingSection = () => {
 
                 <p
                   className="mt-1 font-sans text-ds-11 uppercase tracking-widest"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   {tier.seats}
                 </p>
@@ -878,7 +878,7 @@ const PricingSection = () => {
                 <div className="mt-4 flex items-center gap-2">
                   <span
                     className="font-sans text-ds-11"
-                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Your badge:
                   </span>
@@ -1081,7 +1081,7 @@ const ClosingSection = () => (
           fontWeight: 600,
           letterSpacing: "0.16em",
           textTransform: "uppercase",
-          color: "hsl(var(--olivewood) / 0.6)",
+          color: "hsl(var(--olivewood) / 0.8)",
         }}
       >
         {TRUST_ITEMS.map((item, i) => (

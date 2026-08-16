@@ -361,7 +361,7 @@ const Support = () => {
                   >
                     <p
                       className="font-sans text-ds-11 uppercase tracking-[0.14em]"
-                      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       Sending as
                     </p>
@@ -492,7 +492,7 @@ const Support = () => {
                     </Label>
                     <span
                       className="font-sans text-ds-11 tabular-nums shrink-0"
-                      style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {draft.message.length}/{MESSAGE_MAX}
                     </span>

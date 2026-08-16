@@ -8,7 +8,7 @@ import { MessageSquare } from "lucide-react";
 type Props = {
   open: boolean;
   helperName: string;
-  onConfirm: (deadlineHours: number, message?: string) => void;
+  onConfirm: (deadlineHours: number, message?: string) => Promise<void> | void;
   onClose: () => void;
 };
 
@@ -25,10 +25,15 @@ const deadlineOptions = [
 export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }: Props) => {
   const [hours, setHours] = useState("24");
   const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleConfirm = () => {
-    onConfirm(parseInt(hours), message.trim() || undefined);
-    setMessage("");
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    try {
+      await onConfirm(parseInt(hours), message.trim() || undefined);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -84,9 +89,9 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleConfirm}>
-            Send Offer
+          <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancel</Button>
+          <Button onClick={handleConfirm} disabled={submitting}>
+            {submitting ? "Sending…" : "Send Offer"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -46,7 +46,9 @@ export async function handleCheckoutSessionCompleted(
       try {
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
         matchedProductId = lineItems.data[0]?.price?.product as string || null;
-      } catch (_) {}
+      } catch (e) {
+        logStep("Could not retrieve product ID from line items (one-time pass check)", { error: String(e) });
+      }
     }
 
     if (matchedProductId && ONE_TIME_PRODUCTS.has(matchedProductId)) {

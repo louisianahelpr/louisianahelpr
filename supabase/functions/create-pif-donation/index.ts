@@ -53,7 +53,8 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return fail(401, "Please sign in to send a gift.");
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    const { data, error: authErr } = await supabaseClient.auth.getUser(token);
+    if (authErr) console.error("[create-pif-donation] auth.getUser error:", authErr.message);
     const user = data.user;
     if (!user?.email) return fail(401, "Your session expired — sign in again to continue.");
 
@@ -133,9 +134,7 @@ serve(async (req) => {
         price_data: {
           currency: "usd",
           product_data: {
-            // User-visible: this is the Stripe line-item name, so it shows on the
-// checkout page and on the emailed receipt. The feature was renamed to
-// "gift card" at the surface; this string was missed.
+            // User-visible: appears on the Stripe checkout page and emailed receipt.
             name: "Louisiana Helpr gift card",
             description:
               `A $${(amountCents / 100).toFixed(0)} Louisiana Helpr credit for ${recipientEmail} to get help when they need it.`,

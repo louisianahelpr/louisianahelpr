@@ -40,7 +40,8 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return fail(401, "Please sign in to start a background check.");
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    const { data, error: authErr } = await supabaseClient.auth.getUser(token);
+    if (authErr) console.error("[create-bgc-payment] auth.getUser error:", authErr.message);
     const user = data.user;
     if (!user?.email) return fail(401, "Your session expired — sign in again to continue.");
 

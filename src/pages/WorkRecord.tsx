@@ -22,7 +22,7 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { shareNative } from "@/lib/nativeShare";
-import { formatShortDate } from "@/lib/format";
+import { formatPrice, formatShortDate } from "@/lib/format";
 import HelprMark from "@/components/HelprMark";
 import type { Database } from "@/integrations/supabase/types";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -56,9 +56,6 @@ function formatMonthYear(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
-function formatCurrency(amount: number): string {
-  return amount.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-}
 
 const WorkRecord = () => {
   usePageTitle("Work Record — Helpr");
@@ -352,7 +349,7 @@ const WorkRecord = () => {
                   <StatBlock
                     icon={<DollarSign className="w-4 h-4" />}
                     label="Total Earnings"
-                    value={formatCurrency(data.totalEarnings)}
+                    value={`$${formatPrice(data.totalEarnings)}`}
                     sub="after platform fee"
                   />
                   {/* Date range */}
@@ -443,7 +440,7 @@ const WorkRecord = () => {
                             <p className="text-ds-10 text-muted-foreground">{label}</p>
                           </div>
                           <span className="text-ds-12 font-medium tabular-nums shrink-0" style={{ color: "hsl(var(--bark))" }}>
-                            {formatCurrency(earned)}
+                            {`$${formatPrice(earned)}`}
                           </span>
                           <span className="text-ds-11 text-muted-foreground tabular-nums shrink-0 text-right">
                             {formatShortDate(job.created_at)}

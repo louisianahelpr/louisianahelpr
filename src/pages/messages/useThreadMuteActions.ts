@@ -120,7 +120,7 @@ export function useThreadMuteActions({
         hapticSuccess();
         if (until === null) toast.success("Notifications muted");
         else if (until.getTime() <= Date.now()) toast.success("Notifications on");
-        else toast.success(`Muted until ${until.toLocaleString([], { hour: "numeric", minute: "2-digit", hour12: true })}`);
+        else toast.success(`Muted until ${until.toLocaleString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}`);
       } catch (err) {
         report(err, {
           severity: "warning",

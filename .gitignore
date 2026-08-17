@@ -20,6 +20,11 @@ dist-ssr
 build/
 ios/App/build/
 ios/App/build_sim/
+
+# fastlane's scan/gym JUnit output. Rewritten on every `bundle exec fastlane`
+# run, so it shows up as a dirty tree after each local build and gets carried
+# into unrelated commits. It is a test REPORT, not source.
+fastlane/report.xml
 ios/DerivedData/
 
 # Fastlane gem lockfile — `bundle install` regenerates per machine, and

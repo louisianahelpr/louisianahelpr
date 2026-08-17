@@ -48,7 +48,7 @@ const AccountBanned = () => {
       : "Your account has been suspended pending review.";
 
   const formattedUntil = suspendedUntil
-    ? new Date(suspendedUntil).toLocaleString(undefined, {
+    ? new Date(suspendedUntil).toLocaleString("en-US", {
         weekday: "short",
         month: "short",
         day: "numeric",

@@ -28,6 +28,23 @@ describe("queryKeys", () => {
     });
   });
 
+  describe("messages", () => {
+    it("conversations key shape: ['messages', 'conversations', userId]", () => {
+      expect(queryKeys.messages.conversations("user-1")).toEqual([
+        "messages",
+        "conversations",
+        "user-1",
+      ]);
+    });
+
+    it("domain prefix: ['messages'] — one invalidate clears the inbox cache", () => {
+      expect(queryKeys.messages.all).toEqual(["messages"]);
+      expect(queryKeys.messages.conversations("user-1")[0]).toBe(
+        queryKeys.messages.all[0],
+      );
+    });
+  });
+
   describe("jobs", () => {
     it("open key shape: ['jobs', 'open']", () => {
       expect(queryKeys.jobs.open()).toEqual(["jobs", "open"]);

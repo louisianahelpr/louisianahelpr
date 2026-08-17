@@ -55,6 +55,21 @@ export const queryKeys = {
     all: ["referral"] as const,
     byUser: (userId: string) => ["referral", userId] as const,
   },
+  /**
+   * Messages inbox. `conversations` is the whole enriched thread list the
+   * Messages screen renders — cached so re-entering the tab paints the last
+   * known inbox instantly instead of blanking to a skeleton on every visit.
+   *
+   * User-scoped, and the call site sets `meta: { persist: false }`: the rows
+   * carry message previews plus short-lived signed attachment URLs, neither of
+   * which should sit in IndexedDB for 24h (privacy + expired thumbs). The
+   * in-memory cache is what makes the revisit instant.
+   */
+  messages: {
+    all: ["messages"] as const,
+    conversations: (userId: string | undefined | null) =>
+      ["messages", "conversations", userId] as const,
+  },
   business: {
     /** Catch-all prefix — matches every business-domain key. */
     all: ["business"] as const,

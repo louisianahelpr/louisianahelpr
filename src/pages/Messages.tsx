@@ -122,22 +122,20 @@ const Messages = () => {
     activeConvoRef.current = activeConvo;
   }, [activeConvo]);
 
-  // Seed from cache for instant render
+  // Seed from cache for instant render. No explicit fetch here any more —
+  // the inbox is a React Query query keyed on the user id (see
+  // useMessagesData), so it loads (or serves cache) the moment the id is
+  // known. Kicking off a manual load from an effect is what forced a cold
+  // refetch on every visit.
   useEffect(() => {
-    if (cachedUser && !userId) {
-      setUserId(cachedUser.id);
-      loadConversations(cachedUser.id);
-    }
+    if (cachedUser && !userId) setUserId(cachedUser.id);
   }, [cachedUser]);
 
   // Fallback auth check only if useCurrentUser hasn't loaded yet
   useEffect(() => {
     if (userId || cachedUser) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUserId(session.user.id);
-        loadConversations(session.user.id);
-      }
+      if (session?.user) setUserId(session.user.id);
     });
   }, [userId, cachedUser]);
 

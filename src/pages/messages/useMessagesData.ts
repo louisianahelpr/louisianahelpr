@@ -1,13 +1,20 @@
 import {
   useCallback,
+  useEffect,
+  useMemo,
   useRef,
   useState,
+  type Dispatch,
   type MutableRefObject,
+  type SetStateAction,
 } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { NavigateFunction } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
+import { queryKeys } from "@/lib/queryKeys";
+import { isArchived } from "@/lib/archivedConversations";
 import {
   deriveJobSystemEvents,
   type JobSystemEvent,
@@ -15,8 +22,15 @@ import {
 } from "@/lib/jobSystemEvents";
 import type { Conversation, Message } from "@/components/messages/types";
 import { CHAT_PAGE_SIZE } from "./constants";
-import { createLoadConversations } from "./messagesData/loadConversations";
+import {
+  buildDeepLinkPlaceholder,
+  fetchConversations,
+} from "./messagesData/loadConversations";
 import { createSendHandlers } from "./messagesData/sendHandlers";
+
+/** Stable empty list so a cold cache doesn't hand consumers a new array
+    identity on every render (which would defeat the memoized rows). */
+const NO_CONVERSATIONS: Conversation[] = [];
 
 /**
  * The Messages page data layer — owns the inbox conversations, the active
@@ -38,9 +52,23 @@ import { createSendHandlers } from "./messagesData/sendHandlers";
  * for itself — `userId`, the cached auth user, the deep-link params, the
  * navigator, `scrollToBottom`, and the refs the realtime handlers read
  * (`activeConvoRef`, `chatContainerRef`, `bottomRef`) — and passes them in.
- * State the hook fully owns (conversations, activeConvo, messages, loading,
- * pagination flags) is returned so the page can wire it into the render and
- * into the realtime / mute hooks.
+ * State the hook fully owns (activeConvo, messages, pagination flags) is
+ * returned so the page can wire it into the render and into the realtime /
+ * mute hooks.
+ *
+ * The INBOX is React Query, not `useState`. It used to be the one main screen
+ * still holding its list in local state with `loading` initialised to `true`,
+ * so every navigation to /messages remounted the hook, blanked the list, and
+ * refetched 200 rows + five RPCs from scratch — the visible "jumps/loads every
+ * time I go on it". Now `queryKeys.messages.conversations(uid)` backs it:
+ * re-entering the tab paints the cached inbox on the first frame and
+ * revalidates behind it, matching Dashboard / My Jobs / Activity.
+ *
+ * `setConversations` is kept as a `useState`-shaped setter so every existing
+ * caller (archive, batch-archive, block, mute toggles, the optimistic
+ * mark-as-read, the realtime single-row patch) is unchanged — it just writes
+ * through `queryClient.setQueryData` instead of component state, which is what
+ * makes those optimistic edits survive the navigation too.
  */
 export function useMessagesData({
   userId,
@@ -53,7 +81,10 @@ export function useMessagesData({
   chatContainerRef,
 }: {
   userId: string | null;
-  cachedUser: { user_metadata?: { full_name?: string } } | null | undefined;
+  cachedUser:
+    | { id?: string; user_metadata?: { full_name?: string } }
+    | null
+    | undefined;
   deepLinkJobId: string | null;
   deepLinkUserId: string | null;
   navigate: NavigateFunction;
@@ -61,7 +92,13 @@ export function useMessagesData({
   activeConvoRef: MutableRefObject<Conversation | null>;
   chatContainerRef: MutableRefObject<HTMLDivElement | null>;
 }) {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const queryClient = useQueryClient();
+  // The page seeds its own `userId` from an effect, so it is null on the very
+  // first render. Falling back to the already-cached auth user means the query
+  // key is correct on frame ONE of a revisit — waiting a tick for the effect
+  // would key the query to `null`, miss the warm cache, and reintroduce the
+  // one-frame blank this change exists to remove.
+  const resolvedUserId = userId ?? cachedUser?.id ?? null;
   const [activeConvo, setActiveConvo] = useState<Conversation | null>(null);
   // Status-transition events derived from the active job's
   // timestamps — rendered as styled centered <div>s interleaved with
@@ -71,8 +108,6 @@ export function useMessagesData({
   // back to the inbox so a stale set never bleeds across threads.
   const [jobSystemEvents, setJobSystemEvents] = useState<JobSystemEvent[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
   // Tracks a failed message-thread fetch so the chat surfaces a
   // recoverable error instead of the misleading "Say hello." empty state.
   const [chatLoadError, setChatLoadError] = useState(false);
@@ -87,23 +122,142 @@ export function useMessagesData({
   // inbox poll loop doesn't re-toast on every refresh while previews fail.
   const thumbWarningShown = useRef(false);
   const deepLinkHandled = useRef(false);
-  // Tracks whether a conversations load has completed at least once, so
-  // the skeleton shows only on first load — background refreshes
-  // (realtime, returning to the page) keep the existing UI in place.
-  const loadedOnceRef = useRef(false);
 
-  const loadConversations = createLoadConversations({
+  // The inbox. Cached per user, so re-entering /messages renders the last
+  // known list immediately and revalidates behind it. `meta.persist: false`
+  // keeps message previews and short-lived signed attachment URLs out of the
+  // 24h IndexedDB persister — the in-memory cache is what the fix relies on.
+  //
+  // Holds the FULL list (archived threads included); the visible inbox is
+  // derived below. Deep links have to resolve against locally-archived
+  // threads, which is what the pre-cache loader did by matching before the
+  // archive filter ran.
+  const {
+    data: allConversations,
+    isPending: conversationsPending,
+    isError: loadError,
+  } = useQuery({
+    queryKey: queryKeys.messages.conversations(resolvedUserId),
+    queryFn: () => fetchConversations(resolvedUserId!, thumbWarningShown),
+    enabled: !!resolvedUserId,
+    // Same SWR window as the Activity feed: a quick tab round-trip serves
+    // pure cache with no request at all; anything longer repaints from cache
+    // and refetches in the background.
+    staleTime: 60 * 1000,
+    meta: { persist: false },
+  });
+
+  // Drop locally-archived threads from the inbox. A thread auto-resurfaces
+  // once a message newer than the archive moment arrives, so `isArchived`
+  // is checked against each conversation's latest-message timestamp.
+  const conversations = useMemo(() => {
+    if (!allConversations) return NO_CONVERSATIONS;
+    if (!resolvedUserId) return allConversations;
+    return allConversations.filter(
+      (c) => !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
+    );
+  }, [allConversations, resolvedUserId]);
+
+  // Only true on a genuinely cold cache — a warm cache resolves `data` on the
+  // first render, so a revisit never shows the skeleton. `isPending` is also
+  // true while the query is disabled (no user yet), which preserves the old
+  // "skeleton until we know who you are" behavior.
+  const loading = conversationsPending && !allConversations;
+
+  // `useState`-shaped setter over the query cache, so every existing optimistic
+  // caller keeps working verbatim (see the hook doc-comment).
+  const setConversations = useCallback<Dispatch<SetStateAction<Conversation[]>>>(
+    (update) => {
+      queryClient.setQueryData<Conversation[]>(
+        queryKeys.messages.conversations(resolvedUserId),
+        (prev) => {
+          const base = prev ?? [];
+          return typeof update === "function"
+            ? (update as (p: Conversation[]) => Conversation[])(base)
+            : update;
+        },
+      );
+    },
+    [queryClient, resolvedUserId],
+  );
+
+  // Kept at its original `(uid) => Promise<void>` signature — the pull-to-
+  // refresh in ConversationList, the inbox retry button, the post-send
+  // re-sort, and the "message for a thread we've never seen" fallback all
+  // call it. It now invalidates rather than re-running a setState loader, and
+  // the returned promise still resolves once the refetch settles so
+  // pull-to-refresh keeps its spinner honest.
+  const loadConversations = useCallback(
+    async (uid: string) => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.messages.conversations(uid),
+      });
+    },
+    [queryClient],
+  );
+
+  // Auto-open conversation from deep link. Ran inside the old loader; now it
+  // waits on the query's first successful result. The ref guard keeps it to
+  // once per mount exactly as before, so a background refetch never yanks the
+  // user back into a thread they navigated away from.
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    if (!resolvedUserId || !allConversations) return;
+    if (!deepLinkJobId || !deepLinkUserId) return;
+    deepLinkHandled.current = true;
+
+    const openIfMatch = (list: Conversation[]) => {
+      const match = list.find(
+        (c) => c.jobId === deepLinkJobId && c.otherUserId === deepLinkUserId,
+      );
+      if (!match) return false;
+      setActiveConvo(match);
+      navigate("/messages?chat=1", { replace: true });
+      return true;
+    };
+
+    if (openIfMatch(allConversations)) return;
+
+    void (async () => {
+      // Not in the cached inbox — but the cache may simply predate the thread
+      // this link points at (the common case: the user just applied and was
+      // sent straight here). The pre-cache code always resolved deep links off
+      // a fresh 200-row fetch, so confirm against the server before inventing
+      // a placeholder, or a real thread would open as an empty one.
+      //
+      // This awaits the refetch and then reads the cache directly rather than
+      // waiting for re-rendered query state: a refetch that returns
+      // structurally identical rows changes neither `data`'s identity nor any
+      // render-visible flag, so an effect watching those could never fire
+      // again and the deep link would be dropped on the floor.
+      await loadConversations(resolvedUserId);
+      const refreshed = queryClient.getQueryData<Conversation[]>(
+        queryKeys.messages.conversations(resolvedUserId),
+      );
+      if (refreshed && openIfMatch(refreshed)) return;
+
+      const placeholder = await buildDeepLinkPlaceholder(
+        resolvedUserId,
+        deepLinkJobId,
+        deepLinkUserId,
+      );
+      // null = dead thread (deleted user AND deleted job); the helper already
+      // toasted, so leave the inbox untouched.
+      if (!placeholder) return;
+      setConversations((prev) => [placeholder, ...prev]);
+      setActiveConvo(placeholder);
+      navigate("/messages?chat=1", { replace: true });
+    })();
+  }, [
+    allConversations,
+    resolvedUserId,
     deepLinkJobId,
     deepLinkUserId,
     navigate,
-    setLoading,
-    setLoadError,
     setConversations,
-    setActiveConvo,
-    loadedOnceRef,
-    thumbWarningShown,
-    deepLinkHandled,
-  });
+    loadConversations,
+    queryClient,
+  ]);
 
   // Stable reference so the memoized ConversationRow in the inbox list
   // skips re-rendering unchanged rows on parent state changes.

@@ -54,7 +54,11 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
       {trend && compareLabel && (
         <p className={cn(
           "text-ds-10 tabular-nums mt-0.5 leading-tight",
-          trend.up ? "text-primary/80" : "text-destructive/80",
+          // Full opacity, not /80. The 20% alpha lightened bark to #7f8469,
+          // measured 3.88:1 against the card — a fail for 16px text. The
+          // alpha bought nothing but a contrast failure; bark at full
+          // strength is the same hue, just legible. Same for destructive.
+          trend.up ? "text-primary" : "text-destructive",
         )}>
           {trend.up ? "+" : "−"}{trend.pct}% {compareLabel}
         </p>

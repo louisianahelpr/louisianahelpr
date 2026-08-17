@@ -115,7 +115,10 @@
      --burnt-sienna so raising it for legibility does not shift the brand
      accent everywhere it is used as a fill, border, or icon. */
   --accent-ink:   19 75% 35%;
-  --stormy-sky:   198 12% 38%;  /* darkened to meet WCAG AA 4.5:1 for muted-foreground */
+  --stormy-sky:   198 12% 36%;  /* WCAG AA. 38% measured 4.48:1 for 11px muted text on a
+                                   #dedfdf card — a 0.02 fail, and this repo has shipped
+                                   4.46/4.49 "basically fine" before. 36% = 4.88:1 there,
+                                   6.51:1 on white. */
   /* ── GOLD IS PRESTIGE ONLY. Enforced 2026-08-13 (P1). ───────────────────
      ALLOWED: subscription tier badges (Pro / Elite), the verified flag, the
      top-rated star, helper streak badges, the Elite ring. That is the whole
@@ -170,7 +173,10 @@
   --primary:              var(--bark);
   --primary-foreground:   var(--parchment);
   --ring:                 var(--bark);
-  --success: 110 5% 65%;
+  --success: 110 12% 35%;  /* was 110 5% 65% — measured 2.38:1 as text, barely half of
+                              WCAG AA. 35% = 4.78:1 on a #dedfdf card, 6.38:1 on white.
+                              Also used at /10 and /15 alpha as a tint background, which
+                              stays legible because the alpha does the lightening. */
   --success-foreground: 0 0% 100%;
   --warning: 33 26% 53%;
   --warning-foreground: 0 0% 100%;

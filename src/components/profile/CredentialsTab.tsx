@@ -291,7 +291,10 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 <p
                   className="font-serif italic uppercase text-ds-10"
                   style={{
-                    color: anyVerified ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna) / 0.78)",
+                    // Full opacity, not /0.78. At 10px the 22% alpha lifted
+                    // burnt-sienna to #b26b49 = 4.12:1, under WCAG AA's 4.5.
+                    // Full strength is the same hue and measures ~6.5:1.
+                    color: anyVerified ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
                     letterSpacing: "0.18em",
                   }}
                 >

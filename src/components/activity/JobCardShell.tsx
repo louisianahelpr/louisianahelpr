@@ -1,4 +1,4 @@
-import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 interface JobCardShellProps {
   /** When false, the card is non-interactive (no expand-on-click, no keyboard role). */
@@ -24,24 +24,47 @@ export function JobCardShell({
   children,
 }: JobCardShellProps) {
   const interactiveClass = expandable
-    ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    ? "cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-primary"
     : "";
   return (
     <div
       className={`rounded-2xl liquid-glass overflow-hidden hover:shadow-md transition-all duration-200 ${interactiveClass} ${className ?? ""}`.trim()}
       onClick={expandable ? onToggle : undefined}
-      {...(expandable && {
-        role: "button",
-        tabIndex: 0,
-        "aria-expanded": expanded,
-        onKeyDown: (e: ReactKeyboardEvent) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onToggle();
-          }
-        },
-      })}
     >
+      {/*
+        The keyboard affordance is a real (screen-reader-only) <button>, not
+        role="button" on this wrapper. As a wrapper role it made every card a
+        widget CONTAINING the card's own controls (Message, View, …) — axe's
+        nested-interactive, and a real trap: a screen reader announced the
+        whole card as one button, so the controls inside it were not reachable
+        as the separate controls they are, and Space/Enter on any of them raced
+        the wrapper's own key handler.
+
+        Pointer behaviour is untouched — the wrapper keeps its onClick, so a
+        click anywhere on the card still toggles exactly as before, and the
+        inner controls still stop propagation as they always did.
+
+        The ring moved from focus-visible on the wrapper to focus-within, so
+        focusing this button paints the identical ring around the identical
+        box. Nothing moves: the button is sr-only, and an earlier attempt that
+        stretched it across the card with pointer-events-none broke six specs
+        by swallowing clicks meant for real controls.
+      */}
+      {expandable && (
+        <button
+          type="button"
+          className="sr-only"
+          aria-expanded={expanded}
+          onClick={(e) => {
+            // Without this the wrapper's onClick fires too and toggles twice,
+            // returning the card to the state it started in.
+            e.stopPropagation();
+            onToggle();
+          }}
+        >
+          {expanded ? "Collapse job details" : "Expand job details"}
+        </button>
+      )}
       {children}
     </div>
   );

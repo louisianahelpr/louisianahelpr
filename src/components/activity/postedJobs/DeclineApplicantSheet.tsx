@@ -77,7 +77,12 @@ export function DeclineApplicantSheet({
                         }}
                         className="px-3 py-1.5 rounded-ds-md text-ds-12 font-sans font-semibold transition-all duration-150 active:scale-95"
                         style={{
-                          background: active ? "hsl(var(--bark) / 0.10)" : "hsla(0, 0%, 100%, 0.55)",
+                          // Third instance of the same defect (see 48ad36cd and
+                          // ApplicantSortControls): a hardcoded white with no
+                          // dark sibling, so the inactive chip painted 55% pure
+                          // white onto a dark sheet. --ivory-sand is `0 0% 100%`
+                          // in light mode, so light is unchanged.
+                          background: active ? "hsl(var(--bark) / 0.10)" : "hsl(var(--ivory-sand) / 0.55)",
                           color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.8)",
                           border: active
                             ? "0.5px solid hsl(var(--bark) / 0.35)"

@@ -54,6 +54,8 @@ interface ViolationSummary {
   help: string;
   nodes: number;
   targets: string[];
+  /** axe's own measured numbers, e.g. "#aaa on #fff = 2.3:1 (needs 4.5, 11px)". */
+  detail: string[];
 }
 
 /**
@@ -318,6 +320,24 @@ async function captureScreen(
       help: v.help,
       nodes: v.nodes.length,
       targets: v.nodes.slice(0, 3).flatMap((n) => n.target.map(String)),
+      /**
+       * axe already computed the exact foreground, background and ratio for
+       * a colour-contrast failure — surfacing it here saves re-deriving those
+       * numbers by hand, which is where contrast audits go wrong: a naive
+       * getComputedStyle read misses rgba alpha and gradient backgrounds and
+       * invents failures that do not exist. Take axe's numbers.
+       */
+      detail: v.nodes.slice(0, 3).flatMap((n) =>
+        [...(n.any ?? []), ...(n.all ?? []), ...(n.none ?? [])]
+          .filter((c) => c.data && typeof c.data === "object")
+          .map((c) => {
+            const d = c.data as Record<string, unknown>;
+            return d.contrastRatio
+              ? `${String(d.fgColor)} on ${String(d.bgColor)} = ${String(d.contrastRatio)}:1 (needs ${String(d.expectedContrastRatio ?? "?")}, ${String(d.fontSize ?? "?")})`
+              : "";
+          })
+          .filter(Boolean),
+      ),
     }));
     result.status = "ok";
   } catch (err) {

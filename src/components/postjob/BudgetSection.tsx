@@ -8,6 +8,11 @@ import { SectionCard } from "@/components/postjob/SectionCard";
 import { categoryPricing, getSmartPrice } from "@/lib/pricingGuide";
 import { formatPrice } from "@/lib/format";
 
+// "smart_price" is RETIRED but deliberately still in the union: the composer
+// persists a draft to localStorage (`helpr_draft_job`), so a draft saved
+// before the merge can still carry it. Dropping it from the type would make
+// such a draft render NEITHER branch — a blank Budget section. It is coerced
+// to "set_price" at render instead. Nothing new ever writes it.
 export type PricingMode = "set_price" | "accept_bids" | "smart_price";
 
 interface BudgetSuggestion {
@@ -49,11 +54,63 @@ interface BudgetSectionProps {
 }
 
 // ── Pricing mode card data ────────────────────────────────────────────────────
-const MODES: { id: PricingMode; icon: React.ElementType; label: string; sub: string }[] = [
+// TWO modes, not three. "Smart Price" used to be a third card, but it was
+// never a different pricing MODEL — getSmartPrice() returns the midpoint of
+// the very same categoryPricing range that "Set my price" already displays as
+// "Suggested: $min–$max". Picking it just pre-filled that midpoint and made
+// the field readOnly, and its own escape hatch ("Change it anyway") dropped
+// you straight back into set_price.
+//
+// So it cost a whole mode to deliver one number the adjacent mode was already
+// showing you. That number is now a one-tap chip inside the suggestion itself,
+// where the poster is already looking. Nothing downstream ever branched on
+// "smart_price" — every consumer only ever tests for "accept_bids" — so the
+// merge changes no behaviour beyond the composer.
+const MODES: { id: Exclude<PricingMode, "smart_price">; icon: React.ElementType; label: string; sub: string }[] = [
   { id: "set_price",    icon: DollarSign, label: "Set my price",  sub: "I name it"       },
   { id: "accept_bids",  icon: Gavel,      label: "Accept bids",   sub: "Pros propose"    },
-  { id: "smart_price",  icon: Sparkles,   label: "Smart Price",   sub: "Helpr picks"     },
 ];
+
+/**
+ * The static category suggestion, with a one-tap way to take it.
+ *
+ * This is where the retired "Smart Price" mode went. That mode's entire
+ * contribution was the midpoint of this very range, pre-filled — so it is
+ * offered here as a chip instead of as a third card the poster has to choose
+ * between. Reading the suggestion and accepting it are now one gesture rather
+ * than two screens.
+ *
+ * The chip is hidden when the midpoint is already the current budget: an
+ * action that would change nothing should not look available.
+ */
+function SuggestionBox({
+  suggested,
+  smartPrice,
+  onUse,
+}: {
+  suggested: BudgetSuggestion;
+  smartPrice: number | null;
+  onUse: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">
+      <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0" strokeWidth={2} />
+      <p className="text-ds-11 text-muted-foreground">
+        Suggested: <span className="font-semibold text-primary">${suggested.min}–${suggested.max}</span> for {suggested.label} jobs
+      </p>
+      {smartPrice != null && (
+        <button
+          type="button"
+          onClick={() => onUse(smartPrice.toFixed(2))}
+          className="ml-auto shrink-0 inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-ds-11 font-semibold tabular-nums text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Sparkles className="w-3 h-3 shrink-0" aria-hidden />
+          Use ${smartPrice}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function BudgetSection({
   stepNumber,
@@ -90,8 +147,13 @@ export function BudgetSection({
 
   // Lowball threshold: below 70% of the category minimum
   const lowballFloor = catPricing ? Math.round(catPricing.min * 0.7) : null;
+  // A retired "smart_price" draft behaves exactly as set_price did once you
+  // tapped "Change it anyway", which is where that flow always ended up.
+  const effectiveMode: Exclude<PricingMode, "smart_price"> =
+    pricingMode === "smart_price" ? "set_price" : pricingMode;
+
   const showLowballWarning =
-    pricingMode === "set_price" &&
+    effectiveMode === "set_price" &&
     budgetNum > 0 &&
     lowballFloor != null &&
     budgetNum < lowballFloor;
@@ -110,19 +172,15 @@ export function BudgetSection({
       complete={budgetComplete}
     >
       {/* ── MODE SELECTOR ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-2 gap-2 mb-4">
         {MODES.map(({ id, icon: Icon, label, sub }) => {
-          const active = pricingMode === id;
+          const active = effectiveMode === id;
           return (
             <button
               key={id}
               type="button"
               onClick={() => {
                 setPricingMode(id);
-                // Smart Price: auto-fill budget with midpoint
-                if (id === "smart_price" && smartPrice != null) {
-                  setBudget(smartPrice.toFixed(2));
-                }
                 // Accept bids: budget is optional — clear any lowball lock
               }}
               aria-pressed={active}
@@ -159,7 +217,7 @@ export function BudgetSection({
       </div>
 
       {/* ── SET MY PRICE MODE ────────────────────────────────────────────── */}
-      {pricingMode === "set_price" && (
+      {effectiveMode === "set_price" && (
         <div className="space-y-3">
           <Label htmlFor="budget">Budget <span className="text-destructive">*</span></Label>
           {/* CurrencyInput stores the value as a number, but the parent form
@@ -237,23 +295,13 @@ export function BudgetSection({
             </div>
           )}
           {!priceStatsLoading && priceStats && priceStats.source === "static" && suggested && (
-            <div className="flex items-center gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">
-              <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0" strokeWidth={2} />
-              <p className="text-ds-11 text-muted-foreground">
-                Suggested: <span className="font-semibold text-primary">${suggested.min}–${suggested.max}</span> for {suggested.label} jobs
-              </p>
-            </div>
+            <SuggestionBox suggested={suggested} smartPrice={smartPrice} onUse={setBudget} />
           )}
           {/* If the stats hook hasn't run yet at all (no category) but a
               static suggestion exists, still show it — keeps parity with
               the previous behavior. */}
           {!priceStats && !priceStatsLoading && suggested && (
-            <div className="flex items-center gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">
-              <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0" strokeWidth={2} />
-              <p className="text-ds-11 text-muted-foreground">
-                Suggested: <span className="font-semibold text-primary">${suggested.min}–${suggested.max}</span> for {suggested.label} jobs
-              </p>
-            </div>
+            <SuggestionBox suggested={suggested} smartPrice={smartPrice} onUse={setBudget} />
           )}
           {/* Quick-tap budget presets — outline pills so they stay
               secondary to the budget input above. Only the selected
@@ -281,43 +329,8 @@ export function BudgetSection({
         </div>
       )}
 
-      {/* ── SMART PRICE MODE ─────────────────────────────────────────────── */}
-      {pricingMode === "smart_price" && (
-        <div className="space-y-3">
-          <Label htmlFor="budget-smart">Budget (auto-set)</Label>
-          <CurrencyInput
-            id="budget-smart"
-            value={budget === "" ? undefined : Number.parseFloat(budget) || undefined}
-            onChange={(next) => setBudget(next === undefined ? "" : next.toString())}
-            placeholder="0.00"
-            className="text-ds-15 font-medium opacity-60 cursor-not-allowed"
-            aria-label="Auto-set budget in dollars"
-            readOnly
-            enterKeyHint="done"
-          />
-          {smartPrice != null && (
-            <p className="text-ds-12 text-muted-foreground">
-              Helpr set{" "}
-              <span className="font-semibold text-foreground tabular-nums">${smartPrice}</span>{" "}
-              based on typical <span className="lowercase">{catPricing?.label ?? category}</span> jobs nearby
-            </p>
-          )}
-          <button
-            type="button"
-            className="text-ds-12 underline underline-offset-2"
-            style={{ color: "hsl(var(--bark))" }}
-            onClick={() => {
-              // Switch to set_price, preserving the smart price as a starting point
-              setPricingMode("set_price");
-            }}
-          >
-            Change it anyway
-          </button>
-        </div>
-      )}
-
       {/* ── ACCEPT BIDS MODE ─────────────────────────────────────────────── */}
-      {pricingMode === "accept_bids" && (
+      {effectiveMode === "accept_bids" && (
         <div className="space-y-4">
           {/* Explanatory note */}
           <div className="flex items-start gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">

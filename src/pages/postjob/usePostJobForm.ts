@@ -113,7 +113,11 @@ export function usePostJobForm() {
   // Persisted to jobs.department by the consolidated migration
   // 20260609170000_business_team_roles.sql.
   const [department, setDepartment] = useState("");
-  // Pricing mode — 'set_price' (default), 'accept_bids', 'smart_price'.
+  // Pricing mode — 'set_price' (default) or 'accept_bids'. ('smart_price' is
+  // retired: it only ever pre-filled the midpoint of the suggested range that
+  // set_price already displays, so it is a one-tap chip there now. The value
+  // survives in the type because a localStorage draft saved before the merge
+  // can still carry it.)
   // Default to 'accept_bids' for credentialTier >= 2 (licensed/insured jobs).
   const [pricingMode, setPricingModeState] = useState<PricingMode>("set_price");
   // Accept-bids sub-fields
@@ -132,14 +136,19 @@ export function usePostJobForm() {
   const [onboardingFeePaid, setOnboardingFeePaid] = useState(true);
   const salesTaxRate = 10;
 
-  // Wraps the raw state setter to handle smart-price auto-fill and the
-  // accept_bids → set_price default-tier logic.
+  // Normalizes the retired 'smart_price' value. Nothing in the UI can select
+  // it any more, but a draft restored from localStorage may still hold it —
+  // and its old behaviour (pre-fill the category midpoint, then behave exactly
+  // like set_price) is reproduced here so such a draft opens with the budget
+  // it had, under the mode that now owns that behaviour.
   const setPricingMode = (next: PricingMode) => {
-    setPricingModeState(next);
     if (next === "smart_price") {
+      setPricingModeState("set_price");
       const sp = getSmartPrice(category);
       if (sp != null) setBudget(sp.toFixed(2));
+      return;
     }
+    setPricingModeState(next);
   };
   // True once the user has restored the saved draft via loadDraft. The inline
   // "Pick up draft" pill hides after this so an accidental re-tap can't replace

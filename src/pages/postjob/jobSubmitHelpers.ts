@@ -59,7 +59,8 @@ export interface BuildJobInsertPayloadInput {
    *  Only included in the INSERT when > 0 so a pre-push prod still accepts
    *  the payload (migration 20260612150000). */
   credentialTier?: number;
-  /** Pricing mode — 'set_price' | 'accept_bids' | 'smart_price'.
+  /** Pricing mode — 'set_price' | 'accept_bids'. ('smart_price' is retired and
+   *  accepted only so a pre-merge localStorage draft still parses.)
    *  Stored in jobs.pricing_mode (migration 20260612180000). Omitted when
    *  not provided so a pre-push prod (without the column) still accepts the
    *  payload via the retry path. */

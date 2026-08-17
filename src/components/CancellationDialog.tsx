@@ -111,7 +111,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         await createNotification({
           user_id: jobData.helper_id,
           title: "Job cancelled — you'll be compensated",
-          message: `"${jobTitle}" was cancelled by the poster. You'll receive approximately $${helperPayout.toFixed(2)} as a cancellation fee (${serverFeePercent}% of the budget minus platform fee), processed within the hour.`,
+          message: `"${jobTitle}" was cancelled by the poster. You'll receive approximately $${formatPrice(helperPayout)} as a cancellation fee (${serverFeePercent}% of the budget minus platform fee), processed within the hour.`,
           type: "payment",
           link: "/my-jobs",
         });

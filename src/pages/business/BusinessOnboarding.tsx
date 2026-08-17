@@ -196,7 +196,10 @@ const BusinessOnboarding = () => {
           <p className="text-ds-12 text-muted-foreground">Step {state.step} of {STEPS.length}</p>
           <p className="text-ds-12 font-semibold">{pct}%</p>
         </div>
-        <Progress value={pct} />
+        {/* A <Progress> with no accessible name announces only a percentage,
+            so a screen-reader user hears a number with nothing to attach it to
+            (axe: aria-progressbar-name). */}
+        <Progress value={pct} aria-label="Business onboarding progress" />
         <div className="flex justify-between mt-3 -mx-1">
           {STEPS.map((s) => {
             const Icon = s.icon;

@@ -69,7 +69,10 @@ const SectionCard = ({
         >
           <span
             className="inline-flex items-center gap-1 mb-2 font-sans font-semibold uppercase text-ds-10 tracking-[0.16em]"
-            style={{ color: "hsl(var(--bark) / 0.8)" }}
+            // Full opacity: the 20% alpha lightened bark to #7c8267 = 3.63:1
+            // at 10px, under WCAG AA. Same alpha-lightening pattern as the
+            // admin KPI trend and the credential labels.
+            style={{ color: "hsl(var(--bark))" }}
           >
             <Crown className="w-3 h-3" strokeWidth={2} />
             Pro

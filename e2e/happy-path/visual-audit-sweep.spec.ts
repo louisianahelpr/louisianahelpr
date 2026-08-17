@@ -399,6 +399,27 @@ const ANON_SCREENS: ScreenSpec[] = [
   { name: "legal-terms", url: "/legal?tab=terms" },
   { name: "legal-privacy", url: "/legal?tab=privacy" },
   { name: "legal-community", url: "/legal?tab=community" },
+  // Public marketing / info routes — added 2026-08-15 with the coverage audit
+  // (see the note in AUTHED_SCREENS). These are reachable without a session,
+  // so they are the routes a stranger and a search crawler actually hit.
+  { name: "help", url: "/help" },
+  { name: "support", url: "/support" },
+  { name: "accessibility", url: "/accessibility" },
+  { name: "how-it-works", url: "/how-it-works" },
+  { name: "become-a-partner", url: "/become-a-partner" },
+  { name: "benefits", url: "/benefits" },
+  { name: "community", url: "/community" },
+  { name: "enterprise", url: "/enterprise" },
+  { name: "evacuation", url: "/evacuation" },
+  { name: "gift-card", url: "/gift-card" },
+  { name: "impact", url: "/impact" },
+  { name: "local-guide", url: "/local-guide" },
+  { name: "parishes", url: "/parishes" },
+  { name: "parish-detail", url: "/parish/orleans" },
+  { name: "browse-jobs", url: "/browse-jobs" },
+  { name: "privacy", url: "/privacy" },
+  { name: "terms", url: "/terms" },
+  { name: "rules", url: "/rules" },
   { name: "data-rights", url: "/data-rights" },
   { name: "browse-guest", url: "/browse" },
   { name: "not-found", url: "/this-route-does-not-exist" },
@@ -441,6 +462,38 @@ const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "profile-warnings", url: "/profile?tab=warnings" },
   { name: "profile-credentials", url: "/profile?tab=credentials" },
   { name: "profile-saved-helpers", url: "/profile?tab=saved_helpers" },
+
+  // ── Routes added 2026-08-15 after a coverage audit ────────────────────────
+  // The sweep reported "75 screens" but that counted theme/role VARIANTS, not
+  // distinct routes — it was actually reaching 26 of the router's 68 paths.
+  // A headline screen count that flatters coverage is worse than no count, so
+  // every remaining route is enumerated here. Dynamic segments get concrete
+  // fixture values; a route that redirects (many of these do, depending on
+  // profile state) still gets audited, just as whatever it lands on.
+  { name: "activity", url: "/activity" },
+  { name: "analytics", url: "/analytics" },
+  { name: "auto-tip", url: "/auto-tip" },
+  { name: "availability", url: "/availability" },
+  { name: "earnings", url: "/earnings" },
+  { name: "family", url: "/family" },
+  { name: "family-accept", url: "/family/accept/test-invite-token" },
+  { name: "home-history", url: "/home-history" },
+  { name: "job-history", url: "/job-history" },
+  { name: "job-detail", url: "/jobs/10000000-0000-4000-8000-000000000001" },  // first SEED_JOBS row
+  { name: "pay-it-forward", url: "/pay-it-forward" },
+  { name: "pets", url: "/pets" },
+  { name: "saved-helpers", url: "/saved-helpers" },
+  { name: "schedule", url: "/schedule" },
+  { name: "settings", url: "/settings" },
+  { name: "settings-profile", url: "/settings/profile" },
+  { name: "str-settings", url: "/str-settings" },
+  { name: "subscription", url: "/subscription" },
+  { name: "work-record", url: "/work-record" },
+  { name: "wrapped", url: "/wrapped" },
+  { name: "post-login", url: "/dashboard/post-login" },
+  { name: "business-billing", url: "/business/billing" },
+  { name: "business-exports", url: "/business/exports" },
+  { name: "business-onboarding", url: "/business/onboarding" },
 ];
 
 // Admin surface — gated by AdminRoute, which redirects to /dashboard unless

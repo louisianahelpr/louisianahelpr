@@ -344,7 +344,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                     ? "hsl(var(--bark))"
                     : licensedOn && data.license_status === "rejected"
                       ? "hsl(var(--destructive))"
-                      : "hsl(var(--burnt-sienna) / 0.78)",
+                      : "hsl(var(--burnt-sienna))",
                 letterSpacing: "0.18em",
               }}
             >
@@ -439,7 +439,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                     ? "hsl(var(--bark))"
                     : insuredOn && data.insurance_status === "rejected"
                       ? "hsl(var(--destructive))"
-                      : "hsl(var(--burnt-sienna) / 0.78)",
+                      : "hsl(var(--burnt-sienna))",
                 letterSpacing: "0.18em",
               }}
             >

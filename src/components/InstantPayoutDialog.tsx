@@ -9,6 +9,7 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { requireBiometric } from "@/lib/biometricGate";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { INSTANT_PAYOUT_FEE_PERCENT } from "@/lib/instantPayoutFee";
+import { formatPriceExact } from "@/lib/format";
 
 interface Props {
   open: boolean;
@@ -71,12 +72,12 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
     }
 
     hapticSuccess();
-    toast.success(`$${(data.net_cents / 100).toFixed(2)} is on the way to your debit card!`);
+    toast.success(`$${formatPriceExact(data.net_cents / 100)} is on the way to your debit card!`);
     onOpenChange(false);
     onSuccess?.();
   };
 
-  const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const fmt = (cents: number) => `$${formatPriceExact(cents / 100)}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

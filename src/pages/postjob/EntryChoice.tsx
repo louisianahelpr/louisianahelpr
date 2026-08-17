@@ -138,7 +138,29 @@ export function EntryChoice({ form }: EntryChoiceProps) {
         </button>
       )}
 
-      {/* 3 — REPOST A RECENT TASK (collapsed by default) */}
+      {/* 3 — REPOST A RECENT TASK (collapsed by default)
+
+          While useRecentPostedJobs is still loading it returns null, so this
+          row used to be absent and then APPEAR, shoving everything below it
+          down after the poster was already reading the page — "it loads after
+          I'm already on the page". Reserve the collapsed row's height for the
+          loading window so the layout is stable from first paint; the
+          placeholder is inert and unlabelled, so nothing announces it. Once
+          the query resolves the row either fills in or collapses to nothing
+          for a first-time poster, and only that second case moves anything —
+          by which point it has usually already happened. */}
+      {recentPosted === null && (
+        <div className="rounded-2xl liquid-glass p-4" aria-hidden>
+          <div className="flex items-center gap-4">
+            <span className="w-11 h-11 rounded-full shrink-0 animate-pulse" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} />
+            <span className="min-w-0 flex-1">
+              <span className="block h-4 w-40 rounded animate-pulse" style={{ background: "hsl(var(--olivewood) / 0.10)" }} />
+              <span className="block h-3 w-28 rounded mt-1.5 animate-pulse" style={{ background: "hsl(var(--olivewood) / 0.07)" }} />
+            </span>
+          </div>
+        </div>
+      )}
+
       {hasRecent && (
         <div className="rounded-2xl liquid-glass p-4">
           <button

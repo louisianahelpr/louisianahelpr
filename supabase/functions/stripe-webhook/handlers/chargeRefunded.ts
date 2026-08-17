@@ -121,5 +121,63 @@ export async function handleChargeRefunded(
       isFullRefund,
       isOnboardingFeeCorrection,
     });
+
+    // Write a payment_refunds ledger row for partial Dashboard refunds.
+    // Onboarding-fee corrections are excluded: checkoutSessionCompleted already
+    // writes their ledger row at refund time, so writing one here would be a
+    // duplicate (even though upsert ignores it, the intent is different enough
+    // to keep the two paths separate and explicit).
+    // Without this block, any admin-issued partial refund is invisible in
+    // payment_refunds, creating a Stripe↔DB gap that breaks finance reconciliation
+    // and leaves the audit trail unprovable.
+    if (!isOnboardingFeeCorrection && latestRefund?.id) {
+      // Non-fatal job lookup — partial refunds can exist without a matching job
+      // (e.g. direct PI refunds from the Dashboard). job_id and customer_id are
+      // nullable on payment_refunds for exactly this case.
+      let partialJobId: string | null = null;
+      let partialCustomerId: string | null = null;
+      const { data: partialJob } = await supabase
+        .from("jobs")
+        .select("id, customer_id")
+        .eq("stripe_payment_intent_id", refundPiId)
+        .maybeSingle();
+      if (partialJob) {
+        partialJobId = partialJob.id;
+        partialCustomerId = partialJob.customer_id;
+      }
+
+      const { error: partialLedgerErr } = await supabase
+        .from("payment_refunds")
+        .upsert(
+          {
+            job_id: partialJobId,
+            customer_id: partialCustomerId,
+            stripe_refund_id: latestRefund.id,
+            stripe_payment_intent_id: refundPiId,
+            amount_cents: latestRefund.amount,
+            currency: charge.currency,
+            is_partial: true,
+            reason: latestRefund.reason ?? null,
+            source: "stripe_dashboard",
+          },
+          { onConflict: "stripe_refund_id", ignoreDuplicates: true },
+        );
+      if (partialLedgerErr) {
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "warning",
+          title: "Partial refund ledger write failed (charge.refunded)",
+          message: `Could not write payment_refunds row for partial refund ${latestRefund.id}.`,
+          fields: {
+            "Stripe Refund ID": latestRefund.id,
+            "Payment Intent": refundPiId,
+            ...(partialJobId ? { "Job ID": partialJobId } : {}),
+            "Error": partialLedgerErr.message,
+          },
+        });
+        throw new Error(`charge.refunded partial payment_refunds upsert failed: ${partialLedgerErr.message}`);
+      }
+      logStep("Partial refund ledger row written", { refundId: latestRefund.id, pi: refundPiId });
+    }
   }
 }

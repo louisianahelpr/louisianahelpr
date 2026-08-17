@@ -66,6 +66,25 @@ export function PermissionRationaleDialog() {
           eyebrow={eyebrow}
           title={copy.title}
         />
+        {/* The rationale BODY is the entire point of this dialog and had been
+            dropped: `copy.body` existed in usePermissionRationale but nothing
+            rendered it, so the sheet read "Location" followed by two buttons
+            and gave the user no reason to say yes. (The file's own header
+            comment still described a "Garamond italic body" — comment rot.)
+
+            It went missing as fallout from the app-wide "one main title" pass
+            that stripped hero subtitles on 2026-07-25. That rule is right for
+            a page header and wrong here: this sheet exists ONLY to explain why
+            a permission is being asked for, immediately before the OS prompt.
+            Without the explanation it is a bare demand, and Apple's own
+            guidance is to say why first. Rendered here rather than by
+            restoring subtitles globally, so the wider rule stands. */}
+        <p
+          className="text-ds-14 font-serif italic leading-relaxed -mt-1"
+          style={{ color: "hsl(var(--olivewood))" }}
+        >
+          {copy.body}
+        </p>
         <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
           <AlertDialogCancel
             onClick={() => __resolveRationale(false)}

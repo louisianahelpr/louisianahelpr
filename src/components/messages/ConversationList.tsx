@@ -300,7 +300,18 @@ export function ConversationList({
               in select mode it swaps to a live "N/3 selected" count.
               Hidden on an empty inbox so the empty state reads as one
               clean panel. */}
-          {!isEmpty && (
+          {/* The header renders ALWAYS, including when the inbox is empty.
+              It used to be gated on `!isEmpty`, which meant an empty Messages
+              had no title bar at all — the screen just opened on the empty
+              illustration with nothing naming it, while My Jobs beside it kept
+              its title. It also left the page with ZERO h1, so a screen reader
+              landed on an unnamed screen. (The route sweep missed this because
+              it seeds conversations, so Messages is never empty there — the
+              owner hit it on a real device with no messages.)
+
+              Only the Select/Search actions are gated now: those genuinely
+              have nothing to act on when the list is empty. */}
+          {(
             <div
               className="shrink-0 flex items-center gap-3 px-4"
               style={{ minHeight: "52px", borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
@@ -360,7 +371,7 @@ export function ConversationList({
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className={`flex items-center gap-1 shrink-0 ${isEmpty ? "hidden" : ""}`}>
                     <button
                       onClick={enterSelectMode}
                       aria-label="Select conversations"

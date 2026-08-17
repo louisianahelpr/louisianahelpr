@@ -50,6 +50,9 @@ declare global {
 const SCRIPT_SRC = "https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js";
 const SCRIPT_ID = "apple-mapkit-js";
 
+/** How long to wait for MapKit to report its authorization outcome. */
+const AUTH_CONFIRM_TIMEOUT_MS = 5_000;
+
 let cachedStatus: MapKitStatus = "idle";
 let pending: Promise<MapKitStatus> | null = null;
 
@@ -80,11 +83,62 @@ function loadScript(): Promise<MapKitStatus> {
     };
 
     const initMapKit = () => {
+      const mk = window.mapkit;
+      // Optional chaining used to hide this: if the script loaded but did not
+      // define `mapkit`, `window.mapkit?.init(...)` quietly did nothing and we
+      // still reported "ready".
+      if (!mk) return finish("error");
+
       try {
-        window.mapkit?.init({
-          authorizationCallback: (done) => done(token),
-        });
-        finish("ready");
+        // `init()` is ASYNCHRONOUS authorization. It returns immediately and
+        // tells us nothing about whether Apple accepted the token — which is
+        // why this used to call finish("ready") on the next line and be wrong
+        // whenever VITE_APPLE_MAPKIT_TOKEN had expired. A stale token then
+        // produced a "ready" MapKit whose Geocoder never invokes its
+        // callback, hanging every caller that awaited one (see
+        // CurrentLocationPill: the "use my location" button stuck on
+        // "Locating…" forever).
+        //
+        // So wait for MapKit to actually report its authorization outcome.
+        // Listeners are attached BEFORE init() because the events can fire
+        // synchronously during initialization.
+        const events = mk as unknown as {
+          addEventListener?: (t: string, fn: (e: { status?: string }) => void) => void;
+          removeEventListener?: (t: string, fn: (e: { status?: string }) => void) => void;
+        };
+
+        let onConfig: ((e: { status?: string }) => void) | undefined;
+        let onError: ((e: { status?: string }) => void) | undefined;
+        let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+
+        const settle = (status: MapKitStatus) => {
+          clearTimeout(fallbackTimer);
+          if (onConfig) events.removeEventListener?.("configuration-change", onConfig);
+          if (onError) events.removeEventListener?.("error", onError);
+          finish(status);
+        };
+
+        if (typeof events.addEventListener === "function") {
+          onConfig = (e) => {
+            // "Initialized" on first auth, "Refreshed" on token renewal.
+            if (e?.status === "Initialized" || e?.status === "Refreshed") settle("ready");
+          };
+          onError = () => settle("error");
+          events.addEventListener("configuration-change", onConfig);
+          events.addEventListener("error", onError);
+
+          // Deliberate optimism on timeout. If a future MapKit stops emitting
+          // these events, falling back to "ready" keeps address autocomplete
+          // working exactly as it does today rather than silently disabling it
+          // across all six consumers. The per-call timeout in
+          // CurrentLocationPill covers the hang this leaves open.
+          fallbackTimer = setTimeout(() => settle("ready"), AUTH_CONFIRM_TIMEOUT_MS);
+        }
+
+        mk.init({ authorizationCallback: (done) => done(token) });
+
+        // No event support at all — preserve the old behaviour.
+        if (typeof events.addEventListener !== "function") finish("ready");
       } catch {
         finish("error");
       }

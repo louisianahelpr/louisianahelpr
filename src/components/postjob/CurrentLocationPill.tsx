@@ -22,6 +22,21 @@ interface CurrentLocationPillProps {
 const isNativePlatform = Capacitor.isNativePlatform();
 
 /**
+ * Wall-clock budgets for the two reverse-geocoders.
+ *
+ * Neither of these is a nicety. Both APIs can hang indefinitely — MapKit by
+ * never calling its callback when unauthorized, fetch by never settling on a
+ * stalled connection — and a hang here is INVISIBLE to the user: the button
+ * just says "Locating…" until they give up. A timeout converts a dead end
+ * into the next link of the fallback chain.
+ *
+ * Sized under the 12s geolocation timeout above so the whole interaction
+ * still resolves in a tolerable window even when every step is slow.
+ */
+const MAPKIT_REVERSE_TIMEOUT_MS = 8_000;
+const NOMINATIM_TIMEOUT_MS = 8_000;
+
+/**
  * Normalize a reverse-geocoder's state value (full name or abbreviation)
  * to a 2-letter code, then test whether it's Louisiana. Returns null when
  * the state can't be determined (so we don't wrongly block the user).
@@ -68,14 +83,39 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
     return new Promise((resolve) => {
       const mk = window.mapkit;
       if (!mk) return resolve(null);
+
+      // Settle EXACTLY once, and settle no matter what.
+      //
+      // This is the bug behind "use my location doesn't work". reverseLookup
+      // is a callback API, and an unauthorized MapKit (expired
+      // VITE_APPLE_MAPKIT_TOKEN — and useMapKitJs reports "ready" without
+      // ever confirming the token was accepted) simply NEVER INVOKES THE
+      // CALLBACK. No error, no rejection. So this promise never settled, the
+      // await below it never returned, setLoading(false) never ran, and the
+      // Nominatim fallback was never reached: the pill sat on "Locating…"
+      // forever with no toast to explain itself.
+      //
+      // A geocode is a network round trip against a wall-clock budget, so a
+      // timeout is the correct shape here regardless of the auth bug — it is
+      // what makes the fallback chain in this component's header comment
+      // actually a chain rather than a dead end.
+      let settled = false;
+      const done = (value: ResolvedAddress | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      };
+      const timer = setTimeout(() => done(null), MAPKIT_REVERSE_TIMEOUT_MS);
+
       try {
         // mapkit.Geocoder isn't in our minimal type — call defensively.
         const GeocoderCtor = (mk as unknown as { Geocoder?: new () => any }).Geocoder;
-        if (!GeocoderCtor) return resolve(null);
+        if (!GeocoderCtor) return done(null);
         const geocoder = new GeocoderCtor();
         const coord = new mk.Coordinate(lat, lng);
         geocoder.reverseLookup(coord, (err: any, data: any) => {
-          if (err || !data?.results?.length) return resolve(null);
+          if (err || !data?.results?.length) return done(null);
           const place: any = data.results[0];
           const sub = place.subThoroughfare ?? "";
           const thor = place.thoroughfare ?? "";
@@ -84,10 +124,10 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
           // administrativeArea is the state (e.g. "LA" / "Louisiana").
           const state = place.administrativeArea ?? place.administrativeAreaCode ?? "";
           const zipCode = place.postCode ?? place.postalCode ?? "";
-          resolve({ street, city, state, zipCode });
+          done({ street, city, state, zipCode });
         });
       } catch {
-        resolve(null);
+        done(null);
       }
     });
   };
@@ -101,7 +141,13 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
       url.searchParams.set("lat", String(lat));
       url.searchParams.set("lon", String(lng));
       url.searchParams.set("format", "json");
-      const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
+      // Abort rather than wait forever: this is the LAST link in the chain,
+      // so a stall here strands the user on "Locating…" with nothing behind
+      // it to recover — the same failure the MapKit timeout above prevents.
+      const res = await fetch(url.toString(), {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(NOMINATIM_TIMEOUT_MS),
+      });
       if (!res.ok) return null;
       const body: any = await res.json();
       const a = body?.address ?? {};

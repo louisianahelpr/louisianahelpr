@@ -41,8 +41,9 @@ const fetchCurrentUser = async (userId: string): Promise<{ profile: Profile | nu
   // on one round trip instead of two halves that blocking time.
   //
   // The admin-role query always runs (it is not gated behind `pathname ===
-  // "/admin"`): the Dashboard navbar uses `isAdmin` to decide whether to
-  // render the admin Shield button, and gating it meant the button was
+  // "/admin"`): the Profile settings list uses `isAdmin` to decide whether to
+  // render the "Admin panel" row (it was the Dashboard app bar's Shield button
+  // until that bar was removed), and gating it meant the entry point was
   // permanently invisible on every other page, so admins had no way to
   // *reach* /admin in the first place.
   // The profile lookup is essential — if it fails, the caller SHOULD see an

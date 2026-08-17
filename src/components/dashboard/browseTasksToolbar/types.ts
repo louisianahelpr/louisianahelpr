@@ -20,6 +20,30 @@ export interface BrowseTasksToolbarProps {
    *  Dashboard uses this to scroll the feed back to the top so the user
    *  doesn't end up mid-list in a freshly unfiltered feed. */
   onClearAllFilters?: () => void;
+  /**
+   * Drop the icon cluster (view toggle · saved searches · search · filters)
+   * from this row because the caller renders `<BrowseTasksActions>` itself,
+   * somewhere else, with the SAME `filters` / `view` state.
+   *
+   * Home does exactly that: the cluster is lifted into PageScaffold's title
+   * card beside the emblem and the bell, so this row carries only the large
+   * "Browse jobs" title. The guest dashboard leaves this false and keeps the
+   * cluster inline, sharing the row with the title.
+   *
+   * Nothing else changes — the search input, the recent/popular dropdown, the
+   * FilterSheet and the chip rows all still live here, driven by the same
+   * `searchOpen` / `filtersOpen` flags the lifted buttons toggle.
+   */
+  hideActions?: boolean;
+  /**
+   * Rendered at the trailing edge of the title row, opposite the heading.
+   * Home puts its live in-progress job pill here: at 375px the title card
+   * above has ~295px of usable width, and the emblem + five 40px icons
+   * already claim ~250px of it, so a ~90px pill in that row overflows. This
+   * row has the space now that the icons left it. Hidden while the search
+   * input has taken the row over.
+   */
+  titleRowTrailing?: ReactNode;
 }
 
 // Active-filter recap chip definition. Only render when 3+ filters are

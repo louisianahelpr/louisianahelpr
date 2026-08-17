@@ -1,11 +1,12 @@
 import {
-  Shield, Bell, Users, PawPrint, ClipboardList,
+  Shield, ShieldAlert, Bell, Users, PawPrint, ClipboardList,
   CalendarDays, BarChart2, Heart, ShieldCheck, Home, Star,
   TrendingUp, CreditCard, Crown, FileText, Gavel, HelpCircle,
   AlertTriangle, Type,
 } from "lucide-react";
 import { getProfileCompletion } from "@/lib/profileCompletion";
 import { hapticLight } from "@/lib/haptics";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { MenuItem, Profile } from "./types";
 
 interface UseProfileLandingDerivedArgs {
@@ -26,6 +27,12 @@ export function useProfileLandingDerived({
   onSelectTab,
   onNavigate,
 }: UseProfileLandingDerivedArgs) {
+  // The admin-panel shortcut used to be a Shield icon button in the Dashboard
+  // app bar. Home no longer has an app bar, and /admin is an account-level
+  // destination rather than per-screen chrome, so it is a row in this settings
+  // list now — gated on the same `isAdmin` flag, so non-admins never see it.
+  const { isAdmin } = useCurrentUser();
+
   // Derived state — drives "Action needed" dots on menu items so the
   // user sees blockers at a glance without having to navigate into each
   // tab to discover them.
@@ -137,6 +144,22 @@ export function useProfileLandingDerived({
   // → Work; credits/referrals/earnings docs → Money; warnings/support →
   // Legal).
   const menuGroups: { title: string; items: MenuItem[] }[] = [
+    // Staff-only, and first so an admin doesn't scroll past four groups of
+    // their own account settings to reach the moderation queue. It renders
+    // for nobody else, so it costs a normal user nothing.
+    ...(isAdmin
+      ? [{
+          title: "Admin",
+          items: [{
+            key: "admin",
+            label: "Admin panel",
+            icon: <ShieldAlert className="w-5 h-5" />,
+            desc: "Moderation queue, users & platform tools",
+            tint: "var(--destructive)",
+            href: "/admin",
+          }],
+        }]
+      : []),
     {
       title: "Account",
       items: [

@@ -6,10 +6,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { toast } from "sonner";
-import { DashboardSkeleton, DashboardTitleSkeleton } from "@/components/SkeletonLoaders";
+import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { DashboardTitleBar } from "@/components/dashboard/DashboardTitleBar";
+import DashboardInProgressBadge from "@/components/dashboard/DashboardInProgressBadge";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
@@ -49,6 +50,14 @@ import { useApplyFlow } from "./dashboard/useApplyFlow";
 import { useDetailJob } from "./dashboard/useDetailJob";
 import { DismissJobDialog } from "./dashboard/DismissJobDialog";
 
+
+// PageScaffold's title card defaults to `py-4 lg:py-5`, which is sized for a
+// two-line greeting block. Home's title card holds a single row of 44px
+// controls (emblem + feed actions + bell), so the default padding would leave
+// it floating in ~32px of dead space. `!` because both paddings are
+// same-specificity utilities — class order in the attribute does not decide
+// the winner, stylesheet order does.
+const TITLE_BAR_PADDING = "!py-2 lg:!py-2.5";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -206,17 +215,28 @@ const Dashboard = () => {
 
   if (loading) {
     // Loading state mirrors the *exact* loaded layout: the same
-    // PageScaffold two-card shell (greeting title card over a raised
-    // panel) with skeleton bodies, not a bare AppShell + stack of cards.
+    // PageScaffold two-card shell (brand title card over a raised panel)
+    // with a skeleton body, not a bare AppShell + stack of cards.
     // Sharing the scaffold means the title card and panel keep their
-    // size and position, so when the data resolves the greeting and feed
-    // settle in place instead of popping in and shoving the feed down.
+    // size and position, so when the data resolves the feed settles in
+    // place instead of popping in and shoving everything down. The title
+    // bar is the REAL one rather than a skeleton: it is static chrome
+    // (emblem + bell) that needs none of the pending data, so rendering
+    // the placeholder would only make it flicker into itself.
     return (
       <PageScaffold
         animate
         panelElevation="raised"
-        header={<DashboardHeader />}
-        titleCard={<DashboardTitleSkeleton />}
+        titleCard={
+          <DashboardTitleBar
+            filters={filters}
+            user={user}
+            view={isWebDesktop ? "list" : view}
+            setView={setView}
+            hideViewToggle={isWebDesktop}
+          />
+        }
+        titleCardClassName={TITLE_BAR_PADDING}
       >
         <DashboardSkeleton />
       </PageScaffold>
@@ -266,22 +286,21 @@ const Dashboard = () => {
     <PageScaffold
       animate
       panelElevation="raised"
-      header={
-        <>
-          <DashboardHeader
-            inProgressJob={upcomingJob}
-            // An in-progress job is one the user is DOING, so this belongs on
-            // the applied/"My Jobs" side. It previously pointed at
-            // `/activity?tab=myjobs` — a redirect that drops the query string,
-            // to a tab name that never existed (Activity only accepts
-            // "posted" | "applied") — so it always landed on My Posts.
-            onViewInProgress={() => navigate("/my-jobs")}
-          />
-          <Suspense fallback={null}>
-            <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
-          </Suspense>
-        </>
+      // No `header` — Home carries no app bar, matching Messages / My Jobs /
+      // My Posts. The brand emblem and the bell moved into the title card
+      // below; the page's own name is the toolbar's "Browse jobs" h1 inside
+      // the panel. PageScaffold takes on the top safe-area inset itself when
+      // no header is passed.
+      titleCard={
+        <DashboardTitleBar
+          filters={filters}
+          user={user}
+          view={isWebDesktop ? "list" : view}
+          setView={setView}
+          hideViewToggle={isWebDesktop}
+        />
       }
+      titleCardClassName={TITLE_BAR_PADDING}
       aboveTitle={<BroadcastBanner />}
       beforePanel={
         <>
@@ -322,6 +341,22 @@ const Dashboard = () => {
               view={view}
               setView={setView}
               hideViewToggle={isWebDesktop}
+              // The icon cluster lives one row up, in the title card, beside
+              // the emblem and the bell — so this row carries only the large
+              // "Browse jobs" h1 (and the live-job pill opposite it).
+              hideActions
+              titleRowTrailing={
+                <DashboardInProgressBadge
+                  job={upcomingJob}
+                  // An in-progress job is one the user is DOING, so this
+                  // belongs on the applied/"My Jobs" side. It previously
+                  // pointed at `/activity?tab=myjobs` — a redirect that drops
+                  // the query string, to a tab name that never existed
+                  // (Activity only accepts "posted" | "applied") — so it
+                  // always landed on My Posts.
+                  onView={() => navigate("/my-jobs")}
+                />
+              }
               onClearAllFilters={() => {
                 // After clearing filters, snap the feed back to the top
                 // so the user lands on the fresh unfiltered head of the
@@ -456,6 +491,14 @@ const Dashboard = () => {
           </Suspense>
         );
       })()}
+
+      {/* Birthday greeting — a popup, not chrome. It used to be mounted as a
+          sibling of the (now removed) app bar inside PageScaffold's `header`
+          slot; it lives with the other overlays now. Still mounted on every
+          Dashboard render — it self-hides unless today is the user's birthday. */}
+      <Suspense fallback={null}>
+        <BirthdayPopup dateOfBirth={profile?.date_of_birth} firstName={firstName} />
+      </Suspense>
 
       <Suspense fallback={null}>
         <OnboardingTour profileCreatedAt={profile?.created_at} />

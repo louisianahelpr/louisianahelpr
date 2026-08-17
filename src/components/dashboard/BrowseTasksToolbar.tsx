@@ -1,7 +1,5 @@
-import { startTransition, useEffect, useRef, useState } from "react";
-import { Clock, MapPin, Search, SlidersHorizontal, X, List, Map as MapIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { SavedSearches } from "@/components/SavedSearches";
+import { useEffect, useRef, useState } from "react";
+import { Clock, MapPin, Search, X } from "lucide-react";
 import { categoryLabels } from "@/components/dashboard/JobFilters";
 import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/FilterSheet";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
@@ -16,18 +14,28 @@ import { POPULAR_CATEGORIES, budgetChipLabel } from "./browseTasksToolbar/consta
 import type { BrowseTasksToolbarProps, ChipDef } from "./browseTasksToolbar/types";
 import { SwipeableFilterChip } from "./browseTasksToolbar/SwipeableFilterChip";
 import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
+import { BrowseTasksActions } from "./browseTasksToolbar/BrowseTasksActions";
 
 // Re-export so consumers can import from a single location.
 export type { FeedDensity };
 
 /**
- * BrowseTasksToolbar — the Dashboard feed's control strip: the
- * "Browse Tasks / Filtered Results" heading row, the expandable search
+ * BrowseTasksToolbar — the Browse feed's control strip: the
+ * "Browse jobs / Filtered results" heading row, the expandable search
  * bar and filter panel, the active-filter chips, and the List / Map
  * view toggle.
  *
- * Extracted verbatim from Dashboard.tsx (a step in splitting that
- * file) — the JSX is unchanged and every value it reads is now a prop.
+ * The icon cluster is `BrowseTasksActions`, rendered inline here by default
+ * (the guest dashboard) or lifted into the page's own title card by a caller
+ * that passes `hideActions` (Home). Either way the buttons drive the same
+ * `filters.searchOpen` / `filters.filtersOpen` state this component reads, so
+ * the search input, its recent/popular dropdown, and the FilterSheet stay
+ * here, one row below the lifted buttons, and there is only ever one copy of
+ * each piece of state.
+ *
+ * Search expansion deliberately stays in THIS row rather than following the
+ * button up: the input opens directly above the results it filters, which is
+ * where the recent/popular dropdown has to hang anyway.
  */
 export function BrowseTasksToolbar({
   filters,
@@ -37,6 +45,8 @@ export function BrowseTasksToolbar({
   setView,
   hideViewToggle = false,
   onClearAllFilters,
+  hideActions = false,
+  titleRowTrailing,
 }: BrowseTasksToolbarProps) {
   // Recent searches dropdown — shown only when the search input is
   // focused AND empty AND we have history to show. We snapshot the list
@@ -156,6 +166,11 @@ export function BrowseTasksToolbar({
         {filters.searchOpen ? (
           /* Search mode — input replaces the title row inline (iOS pattern). */
           <>
+            {/* The visible h1 is swapped out for the input, which left the
+                screen with ZERO h1s for as long as search was open. Keep it in
+                the document, just not on screen, so the "exactly one h1 per
+                screen" rule holds in every state rather than only at rest. */}
+            <h1 className="sr-only">{filters.hasFilters ? "Filtered results" : "Browse jobs"}</h1>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input
@@ -218,59 +233,16 @@ export function BrowseTasksToolbar({
               </h1>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              {!hideViewToggle && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => startTransition(() => setView(view === "map" ? "list" : "map"))}
-                  className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${view === "map" ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
-                  aria-label={view === "map" ? "Show list view" : "Show map view"}
-                  aria-pressed={view === "map"}
-                >
-                  {view === "map" ? <List className="w-5 h-5" /> : <MapIcon className="w-5 h-5" />}
-                </Button>
-              )}
-              {user && (
-                <SavedSearches
-                  userId={user.id}
-                  currentFilters={{
-                    selectedCategory: filters.selectedCategory,
-                    minBudget: filters.minBudget,
-                    maxBudget: filters.maxBudget,
-                    locationFilter: filters.locationFilter,
-                  }}
-                  onApplySearch={(s) => {
-                    filters.setSelectedCategory(s.category);
-                    filters.setMinBudget(s.min_budget ? String(s.min_budget) : "");
-                    filters.setMaxBudget(s.max_budget ? String(s.max_budget) : "");
-                    filters.setLocationFilter(s.location_keyword || "");
-                  }}
+              {!hideActions && (
+                <BrowseTasksActions
+                  filters={filters}
+                  user={user}
+                  view={view}
+                  setView={setView}
+                  hideViewToggle={hideViewToggle}
                 />
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => { filters.setSearchOpen(!filters.searchOpen); if (filters.filtersOpen) filters.setFiltersOpen(false); }}
-                className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.searchQuery ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
-                aria-label="Search jobs"
-              >
-                <Search className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
-                className={`h-10 w-10 rounded-ds-md btn-press relative focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
-                aria-label={filters.activeFilterCount > 0 ? `Filters (${filters.activeFilterCount} active)` : "Filters"}
-                aria-expanded={filters.filtersOpen}
-              >
-                <SlidersHorizontal className="w-5 h-5" />
-                {filters.activeFilterCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
-                    {filters.activeFilterCount}
-                  </span>
-                )}
-              </Button>
+              {titleRowTrailing}
             </div>
           </>
         )}

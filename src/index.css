@@ -145,6 +145,11 @@
                                     flag, top-rated helpr star. Never used
                                     for body, hover, links, or general
                                     accents — Burnt Sienna does that work. */
+  /* Gold for TEXT only. --gold-warm above is the brand accent and stays
+     exactly as it is for badges, borders and tints; as readable text it
+     measures 2.89:1, well under WCAG AA. This darker gold measures 4.98:1 on
+     white. Rule: --gold-warm for surfaces, --gold-ink for anything you read. */
+  --gold-ink:     38 55% 36%;
 
   /* shadcn-style aliases mapped onto the brand palette. */
   --background:           var(--parchment);
@@ -388,6 +393,8 @@
                                     4.5:1 (52% measured ~3.3:1) */
   --stormy-sky:   198 14% 60%;  /* muted-foreground — lightened for dark bg */
   --gold-warm:    38 55% 56%;   /* antique gold — slightly brighter */
+  --gold-ink:     38 55% 62%;   /* text gold on the dark ground — lighter,
+                                   not darker, because the background inverts. */
 
   /* shadcn-style aliases — remapped to the dark brand values */
   --background:           var(--parchment);

@@ -359,9 +359,12 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
           const saveBadge = getSaveBadge(tier);
           const isPro = tier.id === "pro";
+          // --gold-ink, not --gold-warm: this value is used as TEXT below, and
+          // the brand gold measures 2.89:1 there. The accent colour itself is
+          // unchanged — accentSoft still uses --gold-warm for the tint.
           const accent =
             tier.id === "elite"
-              ? "hsl(var(--gold-warm))"
+              ? "hsl(var(--gold-ink))"
               : tier.id === "pro"
                 ? "hsl(var(--burnt-sienna))"
                 : "hsl(var(--bark))";

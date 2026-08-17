@@ -23,7 +23,15 @@ export function CredentialTierSelector({
           Require credentials for licensed trade work.
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      {/* One full-width row per tier, not a 2-up grid.
+          There are THREE tiers, so a 2-column grid left the third one —
+          "Licensed + Insured", the longest label of the set — alone on its
+          own row AND truncated to "Licensed + Insur…", which is the one
+          option a poster most needs to read in full.
+          Stacking also puts them in their real order: Open → Licensed →
+          Licensed + Insured is an escalating requirement, and a vertical
+          ladder shows that progression where a grid scrambled it. */}
+      <div className="flex flex-col gap-2">
         {CREDENTIAL_TIERS.map(({ value, label, sub, Icon }) => {
           const active = credentialTier === value;
           return (
@@ -71,8 +79,12 @@ export function CredentialTierSelector({
                 />
               </span>
               <span className="flex flex-col min-w-0">
+                {/* No `truncate` on either line any more. At full width these
+                    fit with room to spare, and clipping them was only ever a
+                    symptom of the cramped grid — under large Dynamic Type a
+                    truncated credential label is worse than a wrapped one. */}
                 <span
-                  className="font-sans font-semibold leading-tight truncate text-ds-12"
+                  className="font-sans font-semibold leading-tight text-ds-12"
                   style={{
                     color: active
                       ? "hsl(var(--ink-deep))"
@@ -82,7 +94,7 @@ export function CredentialTierSelector({
                   {label}
                 </span>
                 <span
-                  className="font-serif italic leading-tight truncate text-ds-11"
+                  className="font-serif italic leading-tight text-ds-11"
                   style={{
                     color: active
                       ? "hsl(var(--olivewood) / 0.8)"

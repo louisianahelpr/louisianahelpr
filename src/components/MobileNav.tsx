@@ -340,7 +340,19 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             // language is the squircle (rounded-ds-md + .squircle), used for
             // avatars, cards and every other soft container. The selected tab
             // is the one place that was still round.
-            className="absolute inset-x-2 inset-y-1 rounded-ds-md squircle pointer-events-none"
+            // Fills its tab slot rather than floating inside it. At inset-x-2
+            // the chip was 8px short on EACH side, so it read as a small badge
+            // parked behind the glyph instead of "this tab is selected" — the
+            // selected item looked smaller than the space it owned. 4px/2px
+            // leaves a clean 8px gutter between neighbouring tabs while making
+            // the chip read as a filled pill.
+            //
+            // Only the GEOMETRY changed. The fill stays at bark/0.07 on
+            // purpose: the note above is still in force — the Post FAB is the
+            // single loud focal point, and making this chip louder to make it
+            // bigger would trade one problem for the hierarchy problem a
+            // previous pass already fixed.
+            className="absolute inset-x-1 inset-y-0.5 rounded-ds-md squircle pointer-events-none"
             style={{
               background: "hsl(var(--bark) / 0.07)",
               border: "0.5px solid hsl(var(--bark) / 0.08)",

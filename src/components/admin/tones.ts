@@ -44,11 +44,26 @@ export const toneBadgeClasses: Record<Tone, string> = {
 /**
  * Foreground-only variant for icons/text labels next to a value.
  */
+/**
+ * -800, not -600. Three of the five -600 shades failed WCAG AA as text on
+ * white: amber 3.19:1, yellow 2.94:1, green 3.30:1. Red (4.83) and blue
+ * (5.17) passed and were darkened anyway — a status set where amber is
+ * visibly heavier than red reads as a mistake, and one consistent weight is
+ * the point of having a set.
+ *
+ * -700 was measured and rejected: it clears on white (4.92–6.70) but drops to
+ * 3.69–3.76 on a #dedfdf card surface, which is where a lot of this chrome
+ * actually sits. -800 clears ~7:1 on white and ~5.3:1 on cards, so it holds
+ * on either ground.
+ *
+ * Dark-mode -400 values are unchanged; they measure 8:1+ against the dark
+ * canvas already.
+ */
 export const toneTextClasses: Record<Tone, string> = {
-  danger: "text-red-600 dark:text-red-400",
-  warning: "text-amber-600 dark:text-amber-400",
-  notice: "text-yellow-600 dark:text-yellow-400",
-  success: "text-green-600 dark:text-green-400",
-  info: "text-blue-600 dark:text-blue-400",
+  danger: "text-red-800 dark:text-red-400",
+  warning: "text-amber-800 dark:text-amber-400",
+  notice: "text-yellow-800 dark:text-yellow-400",
+  success: "text-green-800 dark:text-green-400",
+  info: "text-blue-800 dark:text-blue-400",
   neutral: "text-muted-foreground",
 };

@@ -49,8 +49,26 @@ a ratio of exactly 1.0) means your measurement is broken, not the app.
 
 ## 2. Tooling gotchas that silently produce wrong answers
 
+- **The Playwright sweep will silently measure a STALE BUILD.** This is the
+  single most expensive trap in this repo — it produced two confident, wrong
+  reports in one session ("the sweep is fully clean" and "6 specs are failing
+  on main"; neither was true). `playwright.config.ts` sets
+  `reuseExistingServer: !process.env.CI`, so if anything is already listening
+  on port 4173 the suite attaches to it and never rebuilds — you measure
+  whatever `dist/` that server was started with, which may be hours old. Your
+  fix "not working" and a test "failing on main" look identical to a real
+  finding. **Before every sweep or e2e run:**
+
+      kill $(lsof -ti:4173) 2>/dev/null; sleep 2
+
+  Then run. If a result surprises you — a fix that changes nothing, a failure
+  you cannot explain — kill 4173 and re-run BEFORE forming a theory.
 - **zsh eats `grep --include=*.tsx`** and returns 0 matches for everything,
   including files that contain their own name. Never use `--include` here.
+- **A grep for one hook name is not a survey.** Searching `usePageMeta` to
+  find untitled pages reported 29 missing; the real number was 1, because
+  `usePageTitle` also exists. If a count looks alarming, look for the second
+  spelling before reporting it.
 - **A reported exit code may belong to a trailing `echo` or `tail`**, not the
   command you care about. Verify by artifact or log content.
 - **Never `2>/dev/null` on `git push`.** It has hidden rejected pushes and made

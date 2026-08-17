@@ -206,7 +206,7 @@ export async function handleChargeDisputeClosed(
     }
   }
 
-  postSlackOpsAlert({
+  await postSlackOpsAlert({
     kind: outcome === "won" ? "dispute_won" : outcome === "lost" ? "dispute_lost" : "custom",
     severity: outcome === "won" ? "info" : outcome === "lost" ? "critical" : "info",
     title:

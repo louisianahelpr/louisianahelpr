@@ -72,7 +72,7 @@ export async function handleCustomerSubscriptionUpdated(
       // email — so retrying won't help; ops must reconcile manually (find the
       // profile by account lookup and apply the tier by hand).
       logStep("WARNING: subscription renewal matched 0 profiles — email mismatch", { email, tier });
-      postSlackOpsAlert({
+      await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
         title: "Subscription renewal — tier not applied (no matching profile)",

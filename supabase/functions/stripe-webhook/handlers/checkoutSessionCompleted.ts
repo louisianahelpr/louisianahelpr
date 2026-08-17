@@ -119,7 +119,7 @@ export async function handleCheckoutSessionCompleted(
       // customer.subscription.updated also resolves by email, so it will hit
       // the same 0-row result — retrying won't help; ops must reconcile.
       logStep("WARNING: tier update matched 0 profiles — email mismatch", { email: customerEmail, tier });
-      postSlackOpsAlert({
+      await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
         title: "Subscription tier not granted — no matching profile",
@@ -288,7 +288,7 @@ export async function handleCheckoutSessionCompleted(
           // The helper PAID for a background check but no credential row was
           // written, so the screening is never queued for the admin/vendor and
           // the badge never clears — paid service, no delivery. Alert ops.
-          postSlackOpsAlert({
+          await postSlackOpsAlert({
             kind: "custom",
             severity: "critical",
             title: "Background check — credential not recorded",
@@ -320,7 +320,7 @@ export async function handleCheckoutSessionCompleted(
             // Don't throw: a retry would see existingBgc (status='submitted') and
             // skip the else branch, so there is no clean Stripe-retry path here.
             // Ops must manually create the verification_checks row.
-            postSlackOpsAlert({
+            await postSlackOpsAlert({
               kind: "custom",
               severity: "critical",
               title: "Background check — check run not created",
@@ -374,7 +374,7 @@ export async function handleCheckoutSessionCompleted(
       // A captured donation charge that can't be minted (bad/missing metadata)
       // is money in with no credit out — a real ledger divergence. Alert ops
       // instead of only logging, or the gift silently vanishes.
-      postSlackOpsAlert({
+      await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
         title: "Pay It Forward donation — unmintable (bad metadata)",
@@ -702,7 +702,7 @@ export async function handleCheckoutSessionCompleted(
               // The refund already left Stripe, so we never throw — but a dropped
               // ledger row is a real Stripe↔ledger divergence a human must
               // reconcile, so surface it to ops rather than leaving it in a log.
-              postSlackOpsAlert({
+              await postSlackOpsAlert({
                 kind: "custom",
                 severity: "warning",
                 title: "Refund ledger write failed",

@@ -476,16 +476,13 @@ export function IdentityHeader({
           </button>
         )}
 
-        {/* Activity-trend disclosure — small area chart, collapsed by
-            default so we don't push the rest of the page down. Self-
-            fetches its data when opened so the parent stays slim. The
-            chart queries jobs.helper_id which maps to auth.user_id —
-            *not* the profiles.id PK, so we pass user_id. */}
-        {profile?.user_id && (
-          <Suspense fallback={null}>
-            <ProfileStatsTrend helperId={profile.user_id} feeFallbackPercent={feeFallbackPercent} />
-          </Suspense>
-        )}
+        {/* Activity trend used to sit here. Moved to /analytics (owner
+            decision): the Profile landing is identity — who you are, what
+            you've done, how to reach you — and a self-fetching area chart of
+            your own job volume is analysis, not identity. It also dragged
+            recharts (~107 kB gzip) onto the landing behind a lazy boundary
+            for a panel most visits never opened. /analytics is the page that
+            exists for exactly this and already loads recharts. */}
 
 
         {/* Work & reviews — collapsed into one disclosure so the header

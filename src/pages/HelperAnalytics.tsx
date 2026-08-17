@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Eye, Star, Target, Clock, Repeat } from "lucide-react";
@@ -11,6 +11,8 @@ import { fetchAnalytics, type Analytics } from "./helperAnalytics/fetchAnalytics
 import HeroSummary from "./helperAnalytics/HeroSummary";
 import MonthlyGoalCard from "./helperAnalytics/MonthlyGoalCard";
 import EarningsByMonthCard from "./helperAnalytics/EarningsByMonthCard";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
+const ProfileStatsTrend = lazy(() => import("@/components/profile/ProfileStatsTrend"));
 import TopCategoriesCard from "./helperAnalytics/TopCategoriesCard";
 import ProfileViewsCard from "./helperAnalytics/ProfileViewsCard";
 import SuccessRateCard from "./helperAnalytics/SuccessRateCard";
@@ -272,6 +274,22 @@ const HelperAnalytics = () => {
               unreadable. Ratings & reviews also spans 2 cols at xl
               because its per-star bars need horizontal room to breathe. */}
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
+
+            {/* Activity trend — relocated from the Profile landing, where a
+                self-fetching chart of your own job volume was identity-page
+                furniture. Self-fetches, so it needs only the user id. */}
+            {user?.id && (
+              <div className="lg:col-span-2 xl:col-span-3">
+                <Suspense fallback={null}>
+                  <ProfileStatsTrend
+                    helperId={user.id}
+                    /* Same tier-derived fallback the Profile landing used, so
+                       "earned" still agrees with the other earnings surfaces. */
+                    feeFallbackPercent={tierFeePercent(analytics?.tier ?? null)}
+                  />
+                </Suspense>
+              </div>
+            )}
 
             {/* Earnings by month bar chart — wide time-series */}
             <div className="lg:col-span-2 xl:col-span-3">

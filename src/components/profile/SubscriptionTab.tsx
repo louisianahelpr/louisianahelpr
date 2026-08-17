@@ -309,7 +309,11 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     !active
                       ? {
                           background: "hsl(var(--burnt-sienna) / 0.14)",
-                          color: "hsl(var(--burnt-sienna))",
+                          // --accent-ink, not --burnt-sienna: this savings
+                          // badge is 9px, so it needs the full 4.5:1 and the
+                          // raw accent measured 4.33:1 on the 0.14 fill in
+                          // dark mode. --accent-ink is identical in light.
+                          color: "hsl(var(--accent-ink))",
                           letterSpacing: "0.06em",
                         }
                       : { letterSpacing: "0.06em" }

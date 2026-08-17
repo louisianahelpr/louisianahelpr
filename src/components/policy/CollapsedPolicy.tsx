@@ -290,7 +290,10 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
                     className="shrink-0 rounded-full px-1.5 py-0.5 text-ds-10 font-sans font-semibold uppercase tracking-wider"
                     style={{
                       background: "hsl(var(--burnt-sienna) / 0.06)",
-                      color: "hsl(var(--burnt-sienna))",
+                      // --accent-ink, not --burnt-sienna: 10px uppercase text
+                      // needs the full 4.5:1 and the raw accent measured
+                      // 4.22:1 on this fill in dark mode. Same value in light.
+                      color: "hsl(var(--accent-ink))",
                     }}
                   >
                     Caution

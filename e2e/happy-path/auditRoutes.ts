@@ -352,6 +352,46 @@ export interface LayoutReport {
 
 /**
  * Measure the layout rules that can be decided without a human eye.
+/**
+ * Block until deferred overlays have mounted AND every running CSS animation
+ * has finished, so axe never samples a half-faded element.
+ *
+ * Why this exists: OnboardingTour opens on a `setTimeout(…, 1500)` and its
+ * card fades opacity 0 → 1 over ~330ms. The sweep's fixed post-load settle
+ * lands *before* that, so axe would start scanning and the dialog would pop up
+ * mid-scan — axe then multiplied the title's near-black --ink-deep by an
+ * opacity of ~0.35 and reported impossible contrast failures on
+ * `#onboarding-tour-title` (1.39:1 / 1.83:1 / 2.78:1 on three different runs,
+ * with a DIFFERENT fg AND bg colour each time — the tell that the sample, not
+ * the colour, was wrong; settled, the same node has no violation at all).
+ *
+ * `performance.now()` is relative to navigation start, so on a screen that
+ * already took longer than the overlay delay this costs nothing.
+ */
+export async function settleAnimations(page: Page, minMs = 2200): Promise<void> {
+  await page
+    .waitForFunction((min) => performance.now() > min, minMs, { timeout: 10_000 })
+    .catch(() => undefined);
+  // Then let any in-flight fade/zoom finish. Infinite animations (spinners,
+  // pulse rings) never finish, so they are excluded rather than waited on.
+  await page
+    .waitForFunction(
+      () =>
+        !document
+          .getAnimations()
+          .some(
+            (a) =>
+              a.playState === "running" &&
+              Number.isFinite((a.effect?.getComputedTiming().activeDuration as number) ?? Infinity),
+          ),
+      undefined,
+      { timeout: 5_000, polling: 100 },
+    )
+    .catch(() => undefined);
+}
+
+/**
+ * Measure layout invariants for the current page.
  *
  * Runs in the page. Every check filters to VISIBLE elements first — a hidden
  * 0x0 desktop-only node measured at 375px was a false-positive class in a

@@ -47,6 +47,7 @@ import {
   ANON_SCREENS,
   AUTHED_SCREENS,
   measureLayout,
+  settleAnimations,
   type LayoutReport,
 } from "./auditRoutes";
 
@@ -208,6 +209,10 @@ async function captureScreen(
         .catch(() => undefined);
       await page.waitForTimeout(500);
     }
+
+    // Settle deferred overlays + fades before the screenshot and the axe scan,
+    // so neither captures a half-faded dialog. See settleAnimations' note.
+    await settleAnimations(page);
 
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const fileName = `${String(index).padStart(3, "0")}-${slug}-${variant.tag}.png`;

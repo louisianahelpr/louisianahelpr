@@ -355,7 +355,12 @@
   --boost-ink:  25 82% 28%;   /* button label */
 
   /* Cancel red — destructive "Cancel job" action button. Warmer & more
-     saturated than the muted system --destructive, kept as its own pair. */
+     saturated than the muted system --destructive, kept as its own pair.
+     The comment shipped without the token, so PostedJobActions hardcoded the
+     literal `hsl(6 62% 34%)` inline — which stayed dark-on-dark in dark mode
+     and measured 1.92:1 (axe). This value IS that literal, so light mode is
+     byte-identical; the dark sibling below is what actually changes. */
+  --danger-ink: 6 62% 34%;   /* Cancel label text */
 
   /* Premium cream surfaces — the warm parchment panel behind upgrade/payout
      sheets and sticky list-section headers. The literals were hardcoded cream
@@ -511,6 +516,10 @@
 
   --boost-tint: 25 65% 56%;   /* lighter base so low-alpha fill reads on dark */
   --boost-ink:  25 80% 70%;   /* legible orange label on dark */
+  --danger-ink: 6 78% 70%;    /* legible red Cancel label on dark — the 34% light
+                                 value measured 1.92:1 on the tinted dark pill.
+                                 Sits at the same 70% L as its --info/--boost/
+                                 --amber ink siblings so the action row stays even. */
 
 
   /* Premium cream surfaces — deep warm-charcoal so the upgrade/payout panels
@@ -859,6 +868,22 @@ html.web-desktop {
 .leaflet-container {
   touch-action: none;
   overscroll-behavior: contain;
+}
+
+/* Leaflet's default attribution control ships #0078A8 links on its own
+   80%-opaque white chip, which composites over the OSM tiles to 4.0:1 at 11px
+   — an axe AA failure on /dashboard. Attribution is REQUIRED by the Leaflet /
+   OSM licence, so it is restyled, never removed: a near-solid white chip plus
+   a darker teal-blue that still reads as a link. Deliberately NOT theme-aware
+   — the raster OSM tiles underneath are light in both themes, so a dark chip
+   here would be the unreadable one. */
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.94) !important;
+  color: hsl(220 10% 26%) !important;
+}
+.leaflet-control-attribution a {
+  color: hsl(197 100% 22%) !important;   /* #005274 — 8.5:1 on the chip */
+  text-decoration: underline;
 }
 
 /* Scrollbars are never shown — app-wide. This is a native-feel mobile UI;

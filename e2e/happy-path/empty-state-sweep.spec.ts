@@ -83,6 +83,7 @@ import {
   ANON_SCREENS,
   AUTHED_SCREENS,
   measureLayout,
+  settleAnimations,
   type LayoutReport,
   type ScreenSpec,
 } from "./auditRoutes";
@@ -236,6 +237,11 @@ async function auditEmptyScreen(
 
     const landed = new URL(page.url());
     result.landedOn = `${landed.pathname}${landed.search}`;
+
+    // Deferred overlays (the onboarding tour opens on a 1.5s timer and fades
+    // in) must be fully settled BEFORE axe runs, or axe samples them mid-fade
+    // and invents contrast failures. See settleAnimations' note.
+    await settleAnimations(page);
 
     const layout = await measureLayout(page);
     layout.consoleIssues = [...new Set(consoleIssues)].slice(0, 8);

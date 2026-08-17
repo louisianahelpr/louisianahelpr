@@ -160,7 +160,11 @@ export function PostedJobActions({
                 <Button
                   variant="outline" size="sm"
                   className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
-                  style={{ background: "hsl(var(--destructive) / 0.11)", color: "hsl(6 62% 34%)", border: "0.5px solid hsl(var(--destructive) / 0.32)" }}
+                  // --danger-ink, not the old inline `hsl(6 62% 34%)` literal:
+                  // that hardcoded dark red had no dark sibling, so on the
+                  // dark tinted pill it measured 1.92:1. The token's light
+                  // value IS that literal, so light mode is unchanged.
+                  style={{ background: "hsl(var(--destructive) / 0.11)", color: "hsl(var(--danger-ink))", border: "0.5px solid hsl(var(--destructive) / 0.32)" }}
                   onClick={() => onCancel(job)}
                 >
                   <XCircle className="w-4 h-4" />

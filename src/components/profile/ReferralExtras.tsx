@@ -188,7 +188,13 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
                     ? "hsl(var(--bark) / 0.10)"
                     : isNext
                       ? "hsl(var(--burnt-sienna) / 0.10)"
-                      : "hsla(0, 0%, 100%, 0.45)",
+                      // Was the literal `hsla(0, 0%, 100%, 0.45)` — 45% pure
+                      // white with no dark sibling, so the "upcoming" rung
+                      // stayed a mid-grey #7f7e7d slab in dark mode and every
+                      // label on it collapsed (axe: 1.11 / 2.19 / 2.9:1).
+                      // --ivory-sand is `0 0% 100%` in light mode, so this is
+                      // byte-identical there and only darkens in dark mode.
+                      : "hsl(var(--ivory-sand) / 0.45)",
                   border: cleared
                     ? "0.5px solid hsl(var(--bark) / 0.32)"
                     : isNext
@@ -221,7 +227,10 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
                 <p
                   className="font-sans font-semibold mt-1 text-ds-10"
                   style={{
-                    color: cleared ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
+                    // --accent-ink, not --burnt-sienna: this reward line is
+                    // 10px on a tinted tile, where the raw brand accent
+                    // measures 4.48:1 on dark. Identical value in light mode.
+                    color: cleared ? "hsl(var(--bark))" : "hsl(var(--accent-ink))",
                     letterSpacing: "0.02em",
                   }}
                 >

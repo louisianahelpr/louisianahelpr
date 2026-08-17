@@ -154,7 +154,11 @@ export function SettingsTab({ businessId, initial, isOwner }: SettingsTabProps) 
         </p>
         <div className="flex items-center justify-between">
           <span className="text-ds-13">{require2fa ? "Required" : "Optional"}</span>
+          {/* The adjacent "Required"/"Optional" span is status text, not a
+              <label>, so this switch had no accessible name — axe
+              button-name (critical). */}
           <Switch
+            aria-label="Require teammates to enroll in two-factor auth before posting"
             checked={require2fa}
             onCheckedChange={async (next) => {
               setRequire2fa(next);

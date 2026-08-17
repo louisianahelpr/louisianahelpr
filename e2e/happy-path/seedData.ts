@@ -351,6 +351,253 @@ export const SEED_PROFILES = [
   },
 ];
 
+/**
+ * ── Business account ──────────────────────────────────────────────────────
+ *
+ * WHY THIS BLOCK EXISTS
+ * ---------------------
+ * `businesses` / `business_members` were in NEITHER this file nor any spec, so
+ * every `/business/*` route in the catalog only ever rendered
+ * `BusinessNoAccountState` — the "you're not part of a business" empty screen.
+ * All four routes reported clean, and the actual B2B surface (Team workspace,
+ * Billing, Exports, Onboarding, the verification banner) had never been
+ * rendered in any test run. Same failure shape as the `open_jobs_browse` hole:
+ * the ROUTE was covered, the thing it renders was not.
+ *
+ * SHAPE NOTE — this is the one fixture where the wire format is non-obvious.
+ * `useMyBusiness` reads `business_members` with an EMBEDDED select
+ * (`businesses!inner(...)`) and `.maybeSingle()`, so:
+ *   1. each membership row must carry a nested `businesses` object, and
+ *   2. the `user_id=eq.…&status=eq.active` filter must resolve to exactly ONE
+ *      row — two rows make maybeSingle return PGRST116 and the hook falls back
+ *      to `null`, i.e. straight back to the empty state this exists to escape.
+ * The mock's `applyPostgrestQuery` applies those `eq` filters, so one active
+ * membership per user is the invariant to preserve when editing this list.
+ */
+export const BUSINESS_ID = "60000000-0000-4000-8000-000000000001";
+
+export type BusinessVerification = "none" | "pending" | "verified" | "rejected";
+
+/**
+ * The `businesses` row, as PostgREST embeds it under a membership. Every
+ * non-nullable column from the generated types is present.
+ *
+ * `seat_tier: "team"` deliberately: it is a PAID rung, so it also exercises
+ * `useBusinessSeatTier` → the TEAM badge on the profile header, which is the
+ * one place the business identity leaks outside `/business/*`.
+ */
+export const makeSeedBusiness = (
+  verification: BusinessVerification = "verified",
+) => ({
+  id: BUSINESS_ID,
+  name: "Bayou Logistics LLC",
+  owner_id: CUSTOMER_ID,
+  seat_tier: "team",
+  billing_mode: "card",
+  report_cadence: "monthly",
+  report_recipients: [] as string[],
+  require_2fa: false,
+  require_approval_above: 250,
+  default_payment_method_id: null,
+  monthly_budget: 4000,
+  monthly_budget_alert_at: 80,
+  seat_subscription_id: null,
+  seat_subscription_status: null,
+  seat_subscription_current_period_end: null,
+  verification_status: verification,
+  verification_document_type: verification === "none" ? null : "license",
+  verification_document_url: verification === "none" ? null : "https://example.invalid/doc.pdf",
+  verification_rejection_reason:
+    verification === "rejected" ? "The uploaded license had expired on 2026-01-31." : null,
+  verification_reviewed_at: verification === "verified" ? AGO(20) : null,
+  verification_reviewed_by: null,
+  created_at: AGO(120),
+  updated_at: NOW,
+});
+
+export const SEED_BUSINESS = makeSeedBusiness("verified");
+
+/**
+ * Owner + one active teammate + one outstanding invite, so the Members tab has
+ * a populated grid, a pending row, and a seat count that is neither 0 nor full
+ * (3 of 3 on the `team` tier would hide the invite form).
+ *
+ * FAKE_CUSTOMER owns it; FAKE_HELPER is a plain member — which means the helper
+ * pass of each sweep audits the NON-OWNER branches for free (Billing's "Only
+ * the business owner can manage billing settings", the verification card's
+ * read-only variant).
+ */
+export const makeSeedBusinessMembers = (
+  verification: BusinessVerification = "verified",
+) => {
+  const biz = makeSeedBusiness(verification);
+  return [
+    {
+      id: "61000000-0000-4000-8000-000000000001",
+      business_id: BUSINESS_ID,
+      user_id: CUSTOMER_ID,
+      invited_email: null,
+      invited_by: null,
+      role: "owner",
+      extended_role: "owner",
+      status: "active",
+      invited_at: AGO(120),
+      joined_at: AGO(120),
+      created_at: AGO(120),
+      businesses: biz,
+    },
+    {
+      id: "61000000-0000-4000-8000-000000000002",
+      business_id: BUSINESS_ID,
+      user_id: HELPER_ID,
+      invited_email: null,
+      invited_by: CUSTOMER_ID,
+      role: "member",
+      extended_role: "approver",
+      status: "active",
+      invited_at: AGO(60),
+      joined_at: AGO(58),
+      created_at: AGO(60),
+      businesses: biz,
+    },
+    {
+      // Pending invite: no user_id, long-ish address — the row that reads
+      // "invited, not joined" and the truncation probe for the email column.
+      id: "61000000-0000-4000-8000-000000000003",
+      business_id: BUSINESS_ID,
+      user_id: null,
+      invited_email: "accounts.payable@bayoulogistics-shipping.example.com",
+      invited_by: CUSTOMER_ID,
+      role: "member",
+      extended_role: "poster",
+      status: "pending",
+      invited_at: AGO(2),
+      joined_at: null,
+      created_at: AGO(2),
+      businesses: biz,
+    },
+  ];
+};
+
+export const SEED_BUSINESS_MEMBERS = makeSeedBusinessMembers("verified");
+
+/** `get_my_business_verification()` — drives BusinessVerificationCard. */
+export const makeSeedBusinessVerification = (
+  verification: BusinessVerification,
+  isOwner: boolean,
+) => {
+  const biz = makeSeedBusiness(verification);
+  return [
+    {
+      business_id: BUSINESS_ID,
+      business_name: biz.name,
+      is_owner: isOwner,
+      verification_status: verification,
+      verification_document_url: biz.verification_document_url,
+      verification_document_type: biz.verification_document_type,
+      verification_rejection_reason: biz.verification_rejection_reason,
+    },
+  ];
+};
+
+/** `business_activity_feed(p_business_id, p_limit, p_before)`. */
+export const SEED_BUSINESS_ACTIVITY = [
+  {
+    event_at: AGO(0.2),
+    actor_id: CUSTOMER_ID,
+    actor_name: "Smoke Customer",
+    event_type: "posted",
+    job_id: SEED_JOBS[0].id,
+    job_title: SEED_JOBS[0].title,
+    amount: 180,
+    department: "Facilities",
+  },
+  {
+    event_at: AGO(2),
+    actor_id: HELPER_ID,
+    actor_name: "Marcus Thibodeaux",
+    event_type: "completed",
+    job_id: SEED_JOBS[3].id,
+    job_title: SEED_JOBS[3].title,
+    amount: 120,
+    department: "Warehouse",
+  },
+  {
+    // Unknown event_type → the "did something with" fallback verb, and a long
+    // job title to probe the timeline row's wrapping.
+    event_at: AGO(5),
+    actor_id: CUSTOMER_ID,
+    actor_name: "Renée Beauchêne-Landry",
+    event_type: "budget_alert",
+    job_id: SEED_JOBS[1].id,
+    job_title: SEED_JOBS[1].title,
+    amount: 320,
+    department: null,
+  },
+];
+
+/** `business_spend_summary(p_business_id)`. */
+export const SEED_BUSINESS_SPEND = [
+  {
+    user_id: CUSTOMER_ID,
+    full_name: "Smoke Customer",
+    email: "customer.smoke@helpr.test",
+    posted_count: 7,
+    posted_amount: 1115,
+    paid_amount: 620,
+    in_escrow_amount: 320,
+    pending_amount: 175,
+  },
+  {
+    user_id: HELPER_ID,
+    full_name: "Marcus Thibodeaux",
+    email: "helper.smoke@helpr.test",
+    posted_count: 2,
+    posted_amount: 340,
+    paid_amount: 240,
+    in_escrow_amount: 0,
+    pending_amount: 100,
+  },
+];
+
+/**
+ * Jobs awaiting approval — ApprovalsTab reads `jobs` filtered by
+ * `business_id` + `status=pending_approval`, and no row in SEED_JOBS carries a
+ * business_id, so without these the tab only ever showed its empty state.
+ */
+export const SEED_BUSINESS_PENDING_JOBS = [
+  {
+    ...JOB_BASE,
+    id: "10000000-0000-4000-8000-0000000000b1",
+    title: "Quarterly deep clean of the Gretna warehouse floor",
+    description: "Two crews, degreaser supplied on site. Needs to finish before the Monday shift.",
+    category: "cleaning",
+    status: "pending_approval",
+    budget: 780,
+    location: "Gretna, LA",
+    date_needed: DATE(6),
+    created_at: AGO(1),
+    customer_id: HELPER_ID,
+    business_id: BUSINESS_ID,
+    department: "Facilities",
+  },
+  {
+    ...JOB_BASE,
+    id: "10000000-0000-4000-8000-0000000000b2",
+    title: "Pallet re-stacking, overnight",
+    description: "Roughly forty pallets. Forklift certification required.",
+    category: "moving",
+    status: "pending_approval",
+    budget: 410,
+    location: "Harahan, LA",
+    date_needed: DATE(2),
+    created_at: AGO(3),
+    customer_id: CUSTOMER_ID,
+    business_id: BUSINESS_ID,
+    department: "Warehouse",
+  },
+];
+
 export const SEED_TABLES: Record<string, unknown[]> = {
   profiles: SEED_PROFILES,
   jobs: SEED_JOBS,
@@ -358,4 +605,6 @@ export const SEED_TABLES: Record<string, unknown[]> = {
   messages: SEED_MESSAGES,
   reviews: SEED_REVIEWS,
   notifications: SEED_NOTIFICATIONS,
+  businesses: [SEED_BUSINESS],
+  business_members: SEED_BUSINESS_MEMBERS,
 };

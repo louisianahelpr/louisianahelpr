@@ -153,7 +153,16 @@ const BusinessBilling = () => {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-ds-11 text-muted-foreground">Card</span>
-            <Switch checked={invoiceMode} onCheckedChange={toggleInvoiceMode} disabled={updating} />
+            {/* The flanking "Card" / "Invoice" spans are plain text, not a
+                <label>, so the switch had NO accessible name at all — axe
+                button-name (critical): a screen reader announced "switch,
+                off" with nothing to attach it to. */}
+            <Switch
+              aria-label="Bill by monthly invoice instead of charging a card at post time"
+              checked={invoiceMode}
+              onCheckedChange={toggleInvoiceMode}
+              disabled={updating}
+            />
             <span className="text-ds-11 text-muted-foreground">Invoice</span>
           </div>
         </div>

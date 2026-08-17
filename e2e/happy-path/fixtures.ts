@@ -271,7 +271,13 @@ export async function installSupabaseMocks(
   // stubbed out and nothing would render.
   await page.route("**/*", async (route) => {
     const target = new URL(route.request().url());
-    const base = new URL(page.url() === "about:blank" ? "http://127.0.0.1:4173" : page.url());
+    // Before the first navigation page.url() is "about:blank", which has no
+    // host to compare against — fall back to the preview origin. That fallback
+    // must track HAPPY_PATH_BASE_URL (playwright.config.ts reads the same var):
+    // hardcoding :4173 made every request 204 when the suite ran against any
+    // other port, so the very first goto died with ERR_ABORTED.
+    const previewOrigin = process.env.HAPPY_PATH_BASE_URL || "http://127.0.0.1:4173";
+    const base = new URL(page.url() === "about:blank" ? previewOrigin : page.url());
 
     // Same-origin: the preview server owns it (app chunks, assets).
     if (target.host === base.host) return route.fallback();
@@ -462,8 +468,28 @@ function handleRest(
     // breaks the app's own profile read, which uses .single() and errors on
     // multiple rows — the screen renders "We couldn't load your account".
     // So resolve the filter to exactly the row asked for.
-    const wanted = (url.searchParams.get("user_id") ?? url.searchParams.get("id") ?? "")
-      .replace(/^eq\./, "");
+    const rawWanted = url.searchParams.get("user_id") ?? url.searchParams.get("id") ?? "";
+    // `in.(a,b,c)` — the batch name-hydration shape (team members, applicant
+    // lists). Before this branch existed it fell through the `eq.` strip
+    // unchanged, matched nothing, and every hydrated name rendered as the
+    // fallback: a team roster of blank rows that looks like a name-resolution
+    // bug but is really the fixture ignoring the filter it was handed.
+    if (rawWanted.startsWith("in.")) {
+      const set = new Set(
+        rawWanted
+          .slice(3)
+          .replace(/^\(|\)$/g, "")
+          .split(",")
+          .map((v) => v.replace(/^"|"$/g, "")),
+      );
+      const seededPool = (SEED_TABLES.profiles ?? []) as Record<string, unknown>[];
+      const all = [
+        own,
+        ...seededPool.filter((r) => r.user_id !== (own as Record<string, unknown>).user_id),
+      ] as Record<string, unknown>[];
+      return { status: 200, body: all.filter((r) => set.has(String(r.user_id)) || set.has(String(r.id))) };
+    }
+    const wanted = rawWanted.replace(/^eq\./, "");
     // Dedupe by user_id, own profile winning. SEED_PROFILES contains a row for
     // the helper, and when the sweep runs AS the helper that row and `own` are
     // the same person — so an `.eq("user_id", me)` lookup matched BOTH and every

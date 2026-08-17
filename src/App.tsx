@@ -226,7 +226,14 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
       <Route path="/auto-tip" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AutoTip /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/accessibility" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><Accessibility /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* PUBLIC on purpose. This is accessibility SETTINGS, not a statement
+          page: its one real control is Simple Mode, a device-local preference
+          held in localStorage (see lib/simpleMode.ts) with no user row behind
+          it. The page reads no session, profile or Supabase state at all.
+          Behind ProtectedRoute it was exactly backwards — someone who cannot
+          read the signup form was required to get through the signup form
+          before they could turn on the setting that would help them read it. */}
+      <Route path="/accessibility" element={<RouteErrorBoundary>{routeEl(<Accessibility />)}</RouteErrorBoundary>} />
       <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Legacy /pay-it-forward → /gift-card (feature renamed). */}
       <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />

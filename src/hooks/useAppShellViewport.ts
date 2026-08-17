@@ -22,6 +22,16 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/jobs", // public marketing /jobs (uses Navbar + long page)
   "/support",
 
+  // Accessibility settings. Its own file comment already declares it a
+  // document-scroll page ("plain min-h-screen wrapper, no AppShell"), but it
+  // was never added here — so the `html.app-shell { overflow: hidden }` lock
+  // described below applied to it and clipped everything past the fold. On
+  // the accessibility screen, of all of them.
+  "/accessibility",
+  // Same omission, found by the same sweep: a min-h-screen settings page with
+  // no AppShell and no entry here.
+  "/auto-tip",
+
   // Auth + onboarding flow — any AuthShell-based page that may exceed
   // the viewport height on small devices (iPhone SE) or in landscape
   // belongs here. AuthShell uses `min-h-screen` document scroll; if the

@@ -415,7 +415,13 @@ const ANON_SCREENS: ScreenSpec[] = [
   { name: "impact", url: "/impact" },
   { name: "local-guide", url: "/local-guide" },
   { name: "parishes", url: "/parishes" },
-  { name: "parish-detail", url: "/parish/orleans" },
+  { name: "parish-orleans", url: "/parish/orleans" },
+  // Slug variants: a two-word parish (hyphen), a saint-prefixed one, and a
+  // slug that does not exist. Punctuation and unknown slugs are where a
+  // params-driven page throws or renders a blank title.
+  { name: "parish-east-baton-rouge", url: "/parish/east-baton-rouge" },
+  { name: "parish-st-tammany", url: "/parish/st-tammany" },
+  { name: "parish-unknown", url: "/parish/not-a-real-parish" },
   { name: "browse-jobs", url: "/browse-jobs" },
   { name: "privacy", url: "/privacy" },
   { name: "terms", url: "/terms" },
@@ -477,9 +483,25 @@ const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "earnings", url: "/earnings" },
   { name: "family", url: "/family" },
   { name: "family-accept", url: "/family/accept/test-invite-token" },
+  { name: "family-accept-empty", url: "/family/accept/" },
   { name: "home-history", url: "/home-history" },
   { name: "job-history", url: "/job-history" },
-  { name: "job-detail", url: "/jobs/10000000-0000-4000-8000-000000000001" },  // first SEED_JOBS row
+  // Dynamic routes across SEVERAL fixture states, not one. A single instance
+  // per pattern proves the template renders, not that it survives its own
+  // data: a cancelled job, a disputed job and an in-progress job take
+  // different branches, render different action rails, and are where the
+  // layout actually breaks. Statuses come from SEED_JOBS.
+  { name: "job-detail-1", url: "/jobs/10000000-0000-4000-8000-000000000001" },
+  { name: "job-detail-2", url: "/jobs/10000000-0000-4000-8000-000000000002" },
+  { name: "job-detail-3", url: "/jobs/10000000-0000-4000-8000-000000000003" },
+  { name: "job-detail-4", url: "/jobs/10000000-0000-4000-8000-000000000004" },
+  { name: "job-detail-5", url: "/jobs/10000000-0000-4000-8000-000000000005" },
+  { name: "job-detail-6", url: "/jobs/10000000-0000-4000-8000-000000000006" },
+  // A job id that does not exist — the not-found branch is a real screen and
+  // is the one most likely to render an empty shell with no heading.
+  { name: "job-detail-missing", url: "/jobs/10000000-0000-4000-8000-00000000dead" },
+  { name: "user-profile-customer", url: `/user/${FAKE_CUSTOMER.id}` },
+  { name: "user-profile-missing", url: "/user/10000000-0000-4000-8000-00000000dead" },
   { name: "pay-it-forward", url: "/pay-it-forward" },
   { name: "pets", url: "/pets" },
   { name: "saved-helpers", url: "/saved-helpers" },

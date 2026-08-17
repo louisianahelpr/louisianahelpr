@@ -38,12 +38,17 @@ import {
   FAKE_CUSTOMER,
   FAKE_HELPER,
   installSupabaseMocks,
-  mockTable,
   seedAuthedSession,
-  type MockSupabaseOptions,
 } from "./fixtures";
-
-type MockRules = NonNullable<MockSupabaseOptions["rules"]>;
+// Route catalog + the mechanical layout probe are shared with
+// empty-state-sweep.spec.ts — see the header of ./auditRoutes for why.
+import {
+  ADMIN_SCREENS,
+  ANON_SCREENS,
+  AUTHED_SCREENS,
+  measureLayout,
+  type LayoutReport,
+} from "./auditRoutes";
 
 const OUTPUT_DIR = "/tmp/ui-review";
 mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -56,39 +61,6 @@ interface ViolationSummary {
   targets: string[];
   /** axe's own measured numbers, e.g. "#aaa on #fff = 2.3:1 (needs 4.5, 11px)". */
   detail: string[];
-}
-
-/**
- * Layout measurements taken per screen.
- *
- * The sweep used to capture only a screenshot + an axe report, which meant a
- * human had to open 78 PNGs to notice anything. These are the checks that CAN
- * be decided mechanically, so they land in the JSON report as findings rather
- * than as pictures someone has to interpret.
- */
-interface LayoutReport {
-  /** documentElement.scrollWidth - clientWidth. Must be 0. */
-  overflowPx: number;
-  /** Elements wider than the viewport — the CAUSE, not just the symptom. */
-  overflowOffenders: string[];
-  /** Visible text computed below the ds-9 (9px) floor. */
-  belowTypeFloor: string[];
-  /** Standalone controls under the 44px HIG/WCAG-2.5.5 minimum. */
-  smallTapTargets: string[];
-  /** Should be exactly 1. */
-  h1Count: number;
-  /**
-   * `document.title`. Captured because a page that never calls usePageMeta
-   * shows either index.html's landing title (cold load) or the bare "Helpr"
-   * that usePageMeta's cleanup resets to when the PREVIOUS page unmounts —
-   * so the tab, history entry and bookmark all fail to name the page, and a
-   * screen reader announces nothing useful on an SPA route change. Neither
-   * failure is visible on the page itself, which is why a screenshot sweep
-   * missed it entirely.
-   */
-  documentTitle: string;
-  /** console.error / warn / unhandled rejection seen while loading. */
-  consoleIssues: string[];
 }
 
 interface ScreenResult {
@@ -138,10 +110,20 @@ const ALL_VARIANTS: Variant[] = [
   { tag: "desktop-light", width: 1440, height: 900, theme: "light" },
 ];
 
-const VARIANTS: Variant[] =
-  process.env.SWEEP_VARIANTS === "all"
-    ? ALL_VARIANTS
-    : [ALL_VARIANTS[0]];
+// (unset) → phone-light only · "all" → the whole matrix · or a comma list of
+// tags ("phone-dark,desktop-light"). The comma list exists so a finding from
+// the empty-state sweep can be re-run SEEDED at the same variant — that is the
+// only way to tell "this breaks when the user has no data" apart from "this is
+// broken everywhere and nobody had looked at this viewport before".
+const VARIANTS: Variant[] = (() => {
+  const want = process.env.SWEEP_VARIANTS;
+  if (!want) return [ALL_VARIANTS[0]];
+  if (want === "all") return ALL_VARIANTS;
+  const tags = want.split(",").map((t) => t.trim());
+  const picked = ALL_VARIANTS.filter((v) => tags.includes(v.tag));
+  if (!picked.length) throw new Error(`SWEEP_VARIANTS=${want} matched no variant tag`);
+  return picked;
+})();
 
 const results: ScreenResult[] = [];
 
@@ -160,73 +142,6 @@ function writeReport(): void {
 test.afterAll(() => {
   writeReport();
 });
-
-/**
- * Measure the layout rules that can be decided without a human eye.
- *
- * Runs in the page. Every check filters to VISIBLE elements first — a hidden
- * 0x0 desktop-only node measured at 375px was a false-positive class in a
- * previous audit, so absence of that filter is itself a bug.
- */
-async function measureLayout(
-  page: import("@playwright/test").Page,
-): Promise<LayoutReport> {
-  return page.evaluate(() => {
-    const de = document.documentElement;
-    const vis = (e: Element) => {
-      const r = e.getBoundingClientRect();
-      if (r.width < 1 || r.height < 1) return false;
-      const cs = getComputedStyle(e);
-      return cs.visibility !== "hidden" && cs.display !== "none" && parseFloat(cs.opacity) > 0.05;
-    };
-
-    const overflowOffenders: string[] = [];
-    document.querySelectorAll("#root *").forEach((e) => {
-      if (!vis(e)) return;
-      const r = e.getBoundingClientRect();
-      if (r.width > de.clientWidth + 1) {
-        overflowOffenders.push(
-          `${e.tagName}.${String((e as HTMLElement).className || "").slice(0, 36)} @${Math.round(r.width)}px`,
-        );
-      }
-    });
-
-    const belowTypeFloor: string[] = [];
-    const smallTapTargets: string[] = [];
-    document.querySelectorAll("#root *").forEach((e) => {
-      if (!vis(e)) return;
-      if (e.children.length === 0 && (e.textContent ?? "").trim()) {
-        const fs = parseFloat(getComputedStyle(e).fontSize);
-        if (fs < 9) belowTypeFloor.push(`${fs}px "${(e.textContent ?? "").trim().slice(0, 24)}"`);
-      }
-    });
-    document.querySelectorAll("#root button,#root a[href],#root [role=button]").forEach((e) => {
-      if (!vis(e)) return;
-      // Skip links inside running prose — an inline link in a sentence is not
-      // a standalone control and is not expected to be 44px tall.
-      if (e.closest("p") || e.closest("li")) return;
-      if (getComputedStyle(e).display === "inline") return;
-      // Skip-to-content links are deliberately 1px until focused; they are an
-      // accessibility feature, not an undersized control.
-      if (/skip to/i.test((e.textContent ?? "").trim())) return;
-      const r = e.getBoundingClientRect();
-      if (r.height < 44) {
-        const label = (e.textContent ?? "").trim().slice(0, 20) || e.getAttribute("aria-label") || e.tagName;
-        smallTapTargets.push(`${label} @${Math.round(r.height)}px`);
-      }
-    });
-
-    return {
-      overflowPx: de.scrollWidth - de.clientWidth,
-      overflowOffenders: overflowOffenders.slice(0, 5),
-      belowTypeFloor: [...new Set(belowTypeFloor)].slice(0, 5),
-      smallTapTargets: [...new Set(smallTapTargets)].slice(0, 8),
-      h1Count: document.querySelectorAll("#root h1").length,
-      documentTitle: document.title,
-      consoleIssues: [],
-    };
-  });
-}
 
 async function captureScreen(
   page: import("@playwright/test").Page,
@@ -348,186 +263,6 @@ async function captureScreen(
     writeReport();
   }
 }
-
-// Toggle the dashboard map view. The control has been a Tabs/Switch/Button
-// across iterations, so we probe several selector variants.
-async function toggleDashboardMap(page: import("@playwright/test").Page): Promise<void> {
-  const candidates = [
-    page.getByRole("tab", { name: /map/i }).first(),
-    page.getByRole("button", { name: /map/i }).first(),
-    page.getByRole("switch", { name: /map/i }).first(),
-    page.locator("[data-testid='map-toggle']").first(),
-    page.getByLabel(/map view/i).first(),
-  ];
-  for (const c of candidates) {
-    try {
-      if (await c.count()) {
-        await c.click({ timeout: 2_000 });
-        return;
-      }
-    } catch {
-      /* try next */
-    }
-  }
-  const last = results[results.length - 1];
-  if (last) last.notes = (last.notes ?? "") + "map-toggle-not-found;";
-}
-
-interface ScreenSpec {
-  name: string;
-  url: string;
-  extraSetup?: (page: import("@playwright/test").Page) => Promise<void>;
-  // Extra REST/RPC overrides layered on top of the per-role defaults.
-  // Used for screens that need a different mock shape (e.g. admin needs
-  // user_roles to report role=admin so AdminRoute doesn't redirect).
-  rules?: MockRules;
-}
-
-// Public / unauthenticated surfaces. Every non-redirect anon route in
-// src/App.tsx, plus the catch-all NotFound.
-const ANON_SCREENS: ScreenSpec[] = [
-  { name: "landing", url: "/" },
-  { name: "signup", url: "/signup" },
-  { name: "login", url: "/login" },
-  { name: "forgot-password", url: "/forgot-password" },
-  { name: "reset-password", url: "/reset-password" },
-  { name: "signup-pending", url: "/signup-pending" },
-  { name: "account-pending", url: "/account-pending" },
-  { name: "account-denied", url: "/account-denied" },
-  { name: "account-banned", url: "/account-banned" },
-  { name: "for-business", url: "/for-business" },
-  { name: "legal-terms", url: "/legal?tab=terms" },
-  { name: "legal-privacy", url: "/legal?tab=privacy" },
-  { name: "legal-community", url: "/legal?tab=community" },
-  // Public marketing / info routes — added 2026-08-15 with the coverage audit
-  // (see the note in AUTHED_SCREENS). These are reachable without a session,
-  // so they are the routes a stranger and a search crawler actually hit.
-  { name: "help", url: "/help" },
-  { name: "support", url: "/support" },
-  { name: "accessibility", url: "/accessibility" },
-  { name: "how-it-works", url: "/how-it-works" },
-  { name: "become-a-partner", url: "/become-a-partner" },
-  { name: "benefits", url: "/benefits" },
-  { name: "community", url: "/community" },
-  { name: "enterprise", url: "/enterprise" },
-  { name: "evacuation", url: "/evacuation" },
-  { name: "gift-card", url: "/gift-card" },
-  { name: "impact", url: "/impact" },
-  { name: "local-guide", url: "/local-guide" },
-  { name: "parishes", url: "/parishes" },
-  { name: "parish-orleans", url: "/parish/orleans" },
-  // Slug variants: a two-word parish (hyphen), a saint-prefixed one, and a
-  // slug that does not exist. Punctuation and unknown slugs are where a
-  // params-driven page throws or renders a blank title.
-  { name: "parish-east-baton-rouge", url: "/parish/east-baton-rouge" },
-  { name: "parish-st-tammany", url: "/parish/st-tammany" },
-  { name: "parish-unknown", url: "/parish/not-a-real-parish" },
-  { name: "browse-jobs", url: "/browse-jobs" },
-  { name: "privacy", url: "/privacy" },
-  { name: "terms", url: "/terms" },
-  { name: "rules", url: "/rules" },
-  { name: "data-rights", url: "/data-rights" },
-  { name: "browse-guest", url: "/browse" },
-  { name: "not-found", url: "/this-route-does-not-exist" },
-];
-
-// Authenticated surfaces. EVERY protected route in src/App.tsx + EVERY one
-// of the 18 Profile tabs (see Tab union in src/pages/Profile.tsx). Each of
-// these is captured under BOTH the customer and helper roles, since the
-// same route renders different content per role (earnings/schedule/
-// availability/credentials are helper-rich; payment/subscription/saved-
-// helpers are customer-rich) — so this is the exhaustive matrix.
-const AUTHED_SCREENS: ScreenSpec[] = [
-  { name: "dashboard", url: "/dashboard" },
-  { name: "dashboard-map", url: "/dashboard", extraSetup: toggleDashboardMap },
-  { name: "my-posts", url: "/my-posts" },
-  { name: "my-jobs", url: "/my-jobs" },
-  { name: "jobs", url: "/jobs" },
-  { name: "messages", url: "/messages" },
-  { name: "post-job", url: "/post-job" },
-  { name: "payment-success", url: "/payment-success" },
-  { name: "complete-profile", url: "/complete-profile" },
-  { name: "business-team", url: "/business/team" },
-  { name: "user-profile", url: `/user/${FAKE_HELPER.id}` },
-  // All 18 Profile tabs.
-  { name: "profile-landing", url: "/profile" },
-  { name: "profile-edit", url: "/profile?tab=profile" },
-  { name: "profile-earnings", url: "/profile?tab=earnings" },
-  { name: "profile-schedule", url: "/profile?tab=schedule" },
-  { name: "profile-availability", url: "/profile?tab=availability" },
-  { name: "profile-payment", url: "/profile?tab=payment" },
-  { name: "profile-security", url: "/profile?tab=security" },
-  { name: "profile-legal", url: "/profile?tab=legal" },
-  { name: "profile-reviews", url: "/profile?tab=reviews" },
-  { name: "profile-referral", url: "/profile?tab=referral" },
-  { name: "profile-subscription", url: "/profile?tab=subscription" },
-  { name: "profile-support", url: "/profile?tab=support" },
-  { name: "profile-notifications", url: "/profile?tab=notifications" },
-  { name: "profile-posted-jobs", url: "/profile?tab=posted_jobs" },
-  { name: "profile-completed-jobs", url: "/profile?tab=completed_jobs" },
-  { name: "profile-warnings", url: "/profile?tab=warnings" },
-  { name: "profile-credentials", url: "/profile?tab=credentials" },
-  { name: "profile-saved-helpers", url: "/profile?tab=saved_helpers" },
-
-  // ── Routes added 2026-08-15 after a coverage audit ────────────────────────
-  // The sweep reported "75 screens" but that counted theme/role VARIANTS, not
-  // distinct routes — it was actually reaching 26 of the router's 68 paths.
-  // A headline screen count that flatters coverage is worse than no count, so
-  // every remaining route is enumerated here. Dynamic segments get concrete
-  // fixture values; a route that redirects (many of these do, depending on
-  // profile state) still gets audited, just as whatever it lands on.
-  { name: "activity", url: "/activity" },
-  { name: "analytics", url: "/analytics" },
-  { name: "auto-tip", url: "/auto-tip" },
-  { name: "availability", url: "/availability" },
-  { name: "earnings", url: "/earnings" },
-  { name: "family", url: "/family" },
-  { name: "family-accept", url: "/family/accept/test-invite-token" },
-  { name: "family-accept-empty", url: "/family/accept/" },
-  { name: "home-history", url: "/home-history" },
-  { name: "job-history", url: "/job-history" },
-  // Dynamic routes across SEVERAL fixture states, not one. A single instance
-  // per pattern proves the template renders, not that it survives its own
-  // data: a cancelled job, a disputed job and an in-progress job take
-  // different branches, render different action rails, and are where the
-  // layout actually breaks. Statuses come from SEED_JOBS.
-  { name: "job-detail-1", url: "/jobs/10000000-0000-4000-8000-000000000001" },
-  { name: "job-detail-2", url: "/jobs/10000000-0000-4000-8000-000000000002" },
-  { name: "job-detail-3", url: "/jobs/10000000-0000-4000-8000-000000000003" },
-  { name: "job-detail-4", url: "/jobs/10000000-0000-4000-8000-000000000004" },
-  { name: "job-detail-5", url: "/jobs/10000000-0000-4000-8000-000000000005" },
-  { name: "job-detail-6", url: "/jobs/10000000-0000-4000-8000-000000000006" },
-  // A job id that does not exist — the not-found branch is a real screen and
-  // is the one most likely to render an empty shell with no heading.
-  { name: "job-detail-missing", url: "/jobs/10000000-0000-4000-8000-00000000dead" },
-  { name: "user-profile-customer", url: `/user/${FAKE_CUSTOMER.id}` },
-  { name: "user-profile-missing", url: "/user/10000000-0000-4000-8000-00000000dead" },
-  { name: "pay-it-forward", url: "/pay-it-forward" },
-  { name: "pets", url: "/pets" },
-  { name: "saved-helpers", url: "/saved-helpers" },
-  { name: "schedule", url: "/schedule" },
-  { name: "settings", url: "/settings" },
-  { name: "settings-profile", url: "/settings/profile" },
-  { name: "str-settings", url: "/str-settings" },
-  { name: "subscription", url: "/subscription" },
-  { name: "work-record", url: "/work-record" },
-  { name: "wrapped", url: "/wrapped" },
-  { name: "post-login", url: "/dashboard/post-login" },
-  { name: "business-billing", url: "/business/billing" },
-  { name: "business-exports", url: "/business/exports" },
-  { name: "business-onboarding", url: "/business/onboarding" },
-];
-
-// Admin surface — gated by AdminRoute, which redirects to /dashboard unless
-// user_roles reports role=admin. Override that one table so the real Admin
-// page renders. Captured once (admin is a single role-elevated customer).
-const ADMIN_SCREENS: ScreenSpec[] = [
-  {
-    name: "admin",
-    url: "/admin",
-    rules: [mockTable("user_roles", [{ role: "admin" }])],
-  },
-];
 
 test.describe.configure({ mode: "serial" });
 

@@ -95,8 +95,23 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnl
   if (to === null) {
     return <span className={cls}>{inner}</span>;
   }
+  // `min-h-11` = the 44px minimum, on the LINK BOX only. The mark was measured
+  // at 23–24px tall across 61 screens because the box shrink-wrapped a
+  // `h-5`/`h-6` logo. Nothing changes visually: the emblem and wordmark keep
+  // their exact sizes and their left alignment, so the extra height is simply
+  // centred around them. Every consumer sits in a flex row with `items-center`
+  // inside a 56px bar, so a 44px box has room and moves nothing.
+  //
+  // HEIGHT ONLY — deliberately no `min-w-11`. Height was the failing axis (the
+  // wordmark variant is already ~100px wide). A width floor would also break
+  // DashboardTitleBar at 320px, where five 44px controls need 236 of the 246
+  // available and the emblem is the element that must be allowed to collapse;
+  // pinning it to 44px would force horizontal overflow instead.
+  //
+  // Applied ONLY to the interactive variant — the `to === null` span above is
+  // decorative chrome inside dialogs, not a tap target.
   return (
-    <Link to={to} className={cls}>
+    <Link to={to} className={`${cls} min-h-11`}>
       {inner}
     </Link>
   );

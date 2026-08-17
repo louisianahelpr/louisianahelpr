@@ -22,6 +22,16 @@ const Switch = React.forwardRef<
       className={cn(
         // iOS-style track: 31×51 px, pill shape, smooth transition.
         "peer inline-flex h-[31px] w-[51px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent",
+        // 44px hit area WITHOUT touching the 31px visual. Apple's own switch
+        // is 31pt tall and still satisfies the 44pt minimum, because UIKit
+        // gives it a hit region larger than its artwork — this reproduces
+        // that. The ::after overlay is invisible, participates in hit-testing
+        // on this element's behalf, and is absolutely positioned so it adds no
+        // layout: 31 + 2×7 = 45px tall, and the track is already 51px wide.
+        //
+        // Measured at 31px across the app, including the Simple Mode toggle on
+        // /accessibility — a sub-minimum target on the accessibility screen.
+        "relative after:absolute after:content-[''] after:-inset-y-[7px] after:inset-x-0",
         // Checked → olivewood tint; unchecked → muted neutral.
         "data-[state=checked]:bg-[hsl(var(--olivewood))]",
         "data-[state=unchecked]:bg-[hsl(var(--ink-deep)/0.18)]",

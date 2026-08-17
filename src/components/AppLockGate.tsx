@@ -48,6 +48,8 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   }, []);
   const [checking, setChecking] = useState(false);
   const backgroundedAt = useRef<number | null>(null);
+  /** Has the cold-start auto-prompt already fired this launch? */
+  const hasAutoPrompted = useRef(false);
   const promptOpen = useRef(false);
 
   const attemptUnlock = useCallback(async () => {
@@ -91,7 +93,25 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
       setLocked(false);
       return;
     }
-    if (isAppLockEnabled() && locked) void attemptUnlock();
+    // Auto-prompt ONLY on the first locked render of this launch (the cold
+    // start), never on later locked transitions.
+    //
+    // This effect used to list `locked` as a dependency, so it re-ran every
+    // time the cover went up — including the `setLocked(true)` in the
+    // appStateChange handler that covers the app on the way OUT. The result:
+    // pulling down the notification shade raised the cover, this effect saw
+    // locked=true and fired Face ID immediately, so a two-second peek at
+    // notifications demanded biometrics. The 60s grace window in
+    // shouldLockOnResume never got a say, because the prompt happened on
+    // BACKGROUND, not on resume.
+    //
+    // The resume path already prompts correctly on its own (see the
+    // appStateChange listener below), so this only ever needed to cover the
+    // cold-start case it was written for.
+    if (isAppLockEnabled() && locked && !hasAutoPrompted.current) {
+      hasAutoPrompted.current = true;
+      void attemptUnlock();
+    }
   }, [user, locked, attemptUnlock]);
 
   // Resume from background.

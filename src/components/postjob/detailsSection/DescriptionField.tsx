@@ -18,30 +18,35 @@ export function DescriptionField({
   setTitle,
   category,
 }: DescriptionFieldProps) {
+  // Template starter — offered only while the description is empty or still
+  // the raw template text, never once the poster has written their own prose.
+  const tpl = categoryTemplates[category];
+  const descTrimmed = description.trim();
+  const showTemplateButton =
+    !!tpl && (descTrimmed.length === 0 || descTrimmed === tpl.description.trim());
+
   return (
     <div className="space-y-2.5">
+      {/* The template action lives in the label row, where the character
+          counter would otherwise be, because the two are naturally exclusive:
+          the button only appears while the field is empty, and the counter
+          only means anything once you are writing. Showing "0/600" next to an
+          untouched field says nothing, so nothing is lost by swapping them.
+
+          It used to sit BETWEEN this row and the textarea — a floating
+          underlined link inside the field's own chrome, belonging to neither
+          the label above it nor the input below. Anchoring it to the label
+          row makes it read as an action ON this field. */}
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
-        <span className="text-ds-11 tabular-nums text-muted-foreground">{description.length}/{DESCRIPTION_MAX}</span>
-      </div>
-      {/* Template button — only shown when the description is empty or
-          still the raw template text (not user-written prose). Lets the
-          poster one-tap a category-specific starter instead of staring
-          at a blank textarea. */}
-      {(() => {
-        const tpl = categoryTemplates[category];
-        const descTrimmed = description.trim();
-        const showButton =
-          tpl &&
-          (descTrimmed.length === 0 || descTrimmed === tpl.description.trim());
-        return showButton ? (
+        {showTemplateButton ? (
           <button
             type="button"
             onClick={() => {
               setTitle(tpl.title);
               setDescription(tpl.description);
             }}
-            className="text-ds-12 font-sans font-semibold inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+            className="text-ds-12 font-sans font-semibold inline-flex items-center gap-1 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
             style={{
               color: "hsl(var(--burnt-sienna))",
               textDecoration: "underline",
@@ -51,8 +56,10 @@ export function DescriptionField({
             <Wand2 className="w-3 h-3 shrink-0" aria-hidden />
             Use {categories.find((c) => c.value === category)?.label ?? category} template
           </button>
-        ) : null;
-      })()}
+        ) : (
+          <span className="text-ds-11 tabular-nums text-muted-foreground">{description.length}/{DESCRIPTION_MAX}</span>
+        )}
+      </div>
       <Textarea
         id="description"
         value={description}
@@ -85,8 +92,7 @@ export function DescriptionField({
           when the description is under 100 chars to nudge the poster
           to include the details that make a post fill faster. */}
       {(() => {
-        const tpl = categoryTemplates[category];
-        if (!tpl || description.trim().length >= 100) return null;
+        if (!tpl || descTrimmed.length >= 100) return null;
         const descLower = description.toLowerCase();
         // Show up to 2 checklist items whose keywords aren't yet in the description.
         const unmet = tpl.checklist.filter(

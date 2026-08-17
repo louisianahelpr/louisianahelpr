@@ -204,7 +204,7 @@ const AutoTip = () => {
               {/* The cap is the whole reason percentage mode is safe to offer:
                   15% of a $600 job is $90, which is not what most people
                   picture when they set "15%". */}
-              <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+              <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 A percentage of a large job adds up. A maximum keeps it predictable.
               </p>
             </div>

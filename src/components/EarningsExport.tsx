@@ -295,7 +295,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
           <div>
             <label className="text-ds-11 font-semibold text-foreground mb-2 block">Date Range</label>
             <Select value={mode} onValueChange={(v) => setMode(v as RangeMode)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Date Range"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ytd">Year-to-Date</SelectItem>
                 <SelectItem value="month">Specific Month</SelectItem>
@@ -308,7 +308,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
             <div>
               <label className="text-ds-11 font-semibold text-foreground mb-2 block">Month</label>
               <Select value={month} onValueChange={setMonth}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Month"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {monthOptions.map((m) => (
                     <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>

@@ -577,7 +577,7 @@ export default function SubscriptionPage() {
                             </span>
                             <span
                               className="font-sans font-medium text-ds-13"
-                              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                             >
                               {isAnnual ? "/yr" : "/mo"}
                             </span>
@@ -628,7 +628,7 @@ export default function SubscriptionPage() {
                       <div className="mt-3 flex items-center gap-2">
                         <span
                           className="font-sans text-ds-11"
-                          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                         >
                           Your badge:
                         </span>
@@ -835,7 +835,7 @@ export default function SubscriptionPage() {
                     >
                       <span
                         className="font-sans uppercase text-ds-10 font-semibold tracking-[0.14em]"
-                        style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                       >
                         Feature
                       </span>
@@ -952,7 +952,7 @@ export default function SubscriptionPage() {
                               <span
                                 aria-label="Not included"
                                 style={{
-                                  color: "hsl(var(--olivewood) / 0.4)",
+                                  color: "hsl(var(--olivewood) / 0.8)",
                                 }}
                               >
                                 —

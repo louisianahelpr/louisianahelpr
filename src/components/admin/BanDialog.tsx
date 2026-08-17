@@ -280,7 +280,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           <div className="space-y-2">
             <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Reason</p>
             <Select value={reasonCategory} onValueChange={setReasonCategory}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Reason">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

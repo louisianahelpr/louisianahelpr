@@ -14,6 +14,22 @@ permissions:
 #
 # Note: Reduced from hourly to daily to conserve GitHub Actions minutes.
 # Real outages will be caught by Sentry / user reports much faster than CI.
+#
+# PROJECT REF: the URLs below must point at `fncmgoasalhdgfwzhsqa` — the
+# Supabase project this app actually runs on, and the only project in the
+# account. They used to point at `steigdwrpkosbiycshwz`, which no longer
+# exists: the app migrated after 2026-04-26 and this workflow did not move
+# with it.
+#
+# Nothing caught that for four months, because the automatic triggers below
+# are disabled. The last real run was 2026-04-26, when the old project was
+# still alive and the check genuinely passed — a manual-dispatch workflow
+# pointed at a dead host looks identical to a healthy one until someone runs
+# it. If the project ref changes again, this file has to move with it.
+#
+# The key below is the PUBLISHABLE (anon) key, safe to commit — it ships in
+# the client bundle. The value it replaced was the OLD project's anon JWT,
+# dead since the same migration.
 
 on:
   # DISABLED automatic triggers — was burning Actions minutes daily.
@@ -53,10 +69,10 @@ jobs:
         # once the secret is added.
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0ZWlnZHdycGtvc2JpeWNzaHd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxODUxOTUsImV4cCI6MjA4ODc2MTE5NX0.OzTZGTj86ZZyudkGVp8go0b0ORpg--h2dVh2qxKLxQI
+          SUPABASE_ANON_KEY: sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP
         run: |
           set -e
-          URL="https://steigdwrpkosbiycshwz.supabase.co/functions/v1/health-check"
+          URL="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/health-check"
           if [ -z "$CRON_SECRET" ]; then
             echo "⚠️  CRON_SECRET repo secret not set — skipping health-check probe."
             echo "    Add it under Settings → Secrets and variables → Actions to enable this check."
@@ -80,10 +96,10 @@ jobs:
         # get-stripe-public-key validates the caller's JWT, so we just confirm
         # the function boots (anything other than 5xx means the runtime is alive).
         env:
-          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0ZWlnZHdycGtvc2JpeWNzaHd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxODUxOTUsImV4cCI6MjA4ODc2MTE5NX0.OzTZGTj86ZZyudkGVp8go0b0ORpg--h2dVh2qxKLxQI
+          SUPABASE_ANON_KEY: sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP
         run: |
           set -e
-          URL="https://steigdwrpkosbiycshwz.supabase.co/functions/v1/get-stripe-public-key"
+          URL="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/get-stripe-public-key"
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             "$URL")

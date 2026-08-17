@@ -470,7 +470,7 @@ const Login = () => {
           <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
           <span
             className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+            style={{ color: "hsl(var(--burnt-sienna) / 0.9)" }}
           >
             or
           </span>
@@ -484,11 +484,17 @@ const Login = () => {
         {/* The OR rule only makes sense when the two methods are stacked. At
             lg+ they sit side by side, so the columns themselves do the
             separating. */}
+        {/* 0.9 alpha, not 0.7. Measured: burnt-sienna at 0.7 composited over
+            --parchment is 3.28:1, and this is 11px text, so WCAG AA wants 4.5.
+            0.9 measures 4.86:1. The desktop twin above carries the same value
+            for consistency — axe skips it because its wrapper is aria-hidden,
+            but aria-hidden does nothing for a sighted user reading low-contrast
+            text, so "not flagged" was never the same as "fine". */}
         <div className="flex items-center gap-3 lg:hidden">
           <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
           <span
             className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+            style={{ color: "hsl(var(--burnt-sienna) / 0.9)" }}
           >
             or
           </span>

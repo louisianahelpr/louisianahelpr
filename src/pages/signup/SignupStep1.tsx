@@ -368,7 +368,7 @@ export function SignupStep1({
         <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         <span
           className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
-          style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+          style={{ color: "hsl(var(--burnt-sienna) / 0.9)" }}
         >
           or
         </span>

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
 import BackButton from "@/components/BackButton";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // How long to disable the resend button after each send. Supabase's own
 // rate limit is at least this strict on the server; this just sets user
@@ -18,6 +19,16 @@ const VERIFY_POLL_INTERVAL_MS = 5000;
 const PENDING_EMAIL_KEY = "helpr.pendingSignupEmail";
 
 const SignupPending = () => {
+  // The only routed page that set no title. It therefore kept whatever the
+  // tab already said — index.html's landing marketing title on a cold load,
+  // or the previous route's title — so the tab, the history entry and any
+  // bookmark all failed to name the page. That matters more here than on
+  // most screens: this page explicitly tells you to leave it open and go
+  // check your email, so the user comes back to a tab strip and has to pick
+  // it out. It is also the moment a screen reader should announce where the
+  // user landed after submitting the signup form.
+  usePageTitle("Check your email — Helpr");
+
   const location = useLocation();
   const navigate = useNavigate();
   // The address arrives in router state (Signup does navigate(..., { state }))

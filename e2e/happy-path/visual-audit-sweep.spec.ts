@@ -75,6 +75,16 @@ interface LayoutReport {
   smallTapTargets: string[];
   /** Should be exactly 1. */
   h1Count: number;
+  /**
+   * `document.title`. Captured because a page that never calls usePageMeta
+   * shows either index.html's landing title (cold load) or the bare "Helpr"
+   * that usePageMeta's cleanup resets to when the PREVIOUS page unmounts —
+   * so the tab, history entry and bookmark all fail to name the page, and a
+   * screen reader announces nothing useful on an SPA route change. Neither
+   * failure is visible on the page itself, which is why a screenshot sweep
+   * missed it entirely.
+   */
+  documentTitle: string;
   /** console.error / warn / unhandled rejection seen while loading. */
   consoleIssues: string[];
 }
@@ -210,6 +220,7 @@ async function measureLayout(
       belowTypeFloor: [...new Set(belowTypeFloor)].slice(0, 5),
       smallTapTargets: [...new Set(smallTapTargets)].slice(0, 8),
       h1Count: document.querySelectorAll("#root h1").length,
+      documentTitle: document.title,
       consoleIssues: [],
     };
   });

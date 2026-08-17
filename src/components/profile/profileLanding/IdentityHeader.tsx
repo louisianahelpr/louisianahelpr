@@ -154,8 +154,16 @@ export function IdentityHeader({
                 />
               ) : initials}
             </button>
+            {/* role="img" on the badge below is load-bearing, not decoration:
+                aria-label is PROHIBITED on a bare <div> (an implicit
+                role=generic), so without a role the label is dropped and this
+                badge conveys "ID verified" to sighted users only. axe flags it
+                as aria-prohibited-attr. role="img" makes it a labelled graphic,
+                which is what it actually is — a status glyph whose entire
+                meaning lives in the label. */}
             {hasPhoto && profile?.idv_status === "verified" && (
               <div
+                role="img"
                 aria-label="ID verified"
                 className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center pointer-events-none"
                 style={{

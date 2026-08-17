@@ -144,6 +144,13 @@ export const ProfileHeaderCard = ({
         )}
         {isIdVerified && (
           <div
+            // role="img" is required for the label to survive: aria-label is
+            // PROHIBITED on a bare <div> (implicit role=generic), so without
+            // it the badge reads as "ID verified" to sighted users only.
+            // Same fix as the twin badge in
+            // components/profile/profileLanding/IdentityHeader.tsx — this is
+            // the public-profile copy of it.
+            role="img"
             aria-label="ID verified"
             className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center"
             style={{

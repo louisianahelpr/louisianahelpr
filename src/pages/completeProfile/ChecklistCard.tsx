@@ -56,7 +56,7 @@ export const ChecklistCard = ({ checklist, expanded, onToggle }: ChecklistCardPr
             className={cn(
               "flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
               item.done
-                ? "bg-success/15 text-success"
+                ? "bg-success/15 text-green-800 dark:text-green-400"
                 : "bg-destructive/10 text-destructive",
             )}
             aria-hidden

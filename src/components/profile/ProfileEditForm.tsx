@@ -45,7 +45,7 @@ export function ProfileEditForm({
   const idStatus = profile?.idv_status ?? null;
   const hasId = !!profile?.id_document_url;
   const idBadge = idStatus === "verified"
-    ? { label: "Verified", cls: "bg-success/10 text-success" }
+    ? { label: "Verified", cls: "bg-success/10 text-green-800 dark:text-green-400" }
     : (idStatus === "pending" || idStatus === "processing" || idStatus === "manual_review" || (hasId && !idStatus))
     ? { label: "Pending review", cls: "bg-warning/10 text-warning" }
     : idStatus === "failed"

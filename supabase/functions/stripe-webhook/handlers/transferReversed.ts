@@ -108,7 +108,7 @@ export async function handleTransferReversed(
   // idempotency row and returns 500 — letting Stripe retry and re-run the freeze
   // once the DB recovers.
   if (!freezeFailed) {
-    postSlackOpsAlert({
+    await postSlackOpsAlert({
       kind: "payout_reversed",
       severity: "warning",
       title: "Helpr payout reversed",

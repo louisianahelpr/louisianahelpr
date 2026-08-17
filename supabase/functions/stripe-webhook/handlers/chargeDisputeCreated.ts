@@ -150,7 +150,7 @@ export async function handleChargeDisputeCreated(
 
   // Always alert ops even when no job is matched — funds already left
   // the platform and someone must respond in Stripe Dashboard.
-  postSlackOpsAlert({
+  await postSlackOpsAlert({
     kind: "dispute_filed",
     severity: "critical",
     title: "💳 Stripe chargeback filed",

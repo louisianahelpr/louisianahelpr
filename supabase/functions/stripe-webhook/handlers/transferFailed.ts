@@ -87,7 +87,7 @@ export async function handleTransferFailed(
   }
 
   // Operator alert — failed payouts always need human eyes.
-  postSlackOpsAlert({
+  await postSlackOpsAlert({
     kind: "payout_failed",
     severity: "warning",
     title: "Helpr payout failed",

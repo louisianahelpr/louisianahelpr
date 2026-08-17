@@ -9,7 +9,7 @@ coarsened/absent everywhere). Ship once the 3 must-fix Highs are closed.
 
 **Must-fix before the next build (all quick, low-risk):**
 - [ ] **F-MONEY-01** — retire the `process-scheduled-payouts` cron (double-pay hazard vs `release-payout`; the `auto-release-payment → release-payout` path already covers payouts idempotently). **Highest priority — real money.**
-- [ ] **F-DISC-01** — close the legacy street-address leak: `DROP VIEW public.open_jobs_safe` + `DROP FUNCTION public.get_ranked_open_jobs(integer,integer)` (app uses neither — only a code comment + auto-gen FK metadata reference them), or revoke anon + wrap `location` in `mask_job_location`. Add a regression test asserting no anon open-jobs surface returns a street number. (Live post path writes full street to `jobs.location` at `jobSubmitHelpers.ts:156`; latent — current data has no street numbers.)
+- [ ] **F-DISC-01** — close the legacy street-address leak: `DROP VIEW public.open_jobs_safe` (`open_jobs_safe` is unused in src/), but `get_ranked_open_jobs` is actively called in `src/pages/jobs/useOpenJobsFeed.ts:57` so the DROP FUNCTION path is not safe — only viable fix is revoke anon + wrap `location` in `mask_job_location`. Add a regression test asserting no anon open-jobs surface returns a street number. (Live post path writes full street to `jobs.location` at `src/pages/postjob/jobSubmitHelpers.ts:156`; latent — current data has no street numbers.)
 - [x] **F-SEC-01** — `git rm --cached .env && git commit` (file stays on disk; already gitignore'd). Key rotation NOT required (publishable-only keys).
 
 **Other quick wins:**

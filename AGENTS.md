@@ -106,9 +106,8 @@ canonical.
 
 For pages that use `AppShell`, set `scrollable={true}` and AppShell
 adds the bottom padding for you. For pages that hand-roll their own
-`<div className="h-[100dvh] flex flex-col">` shell (e.g.
-`Dashboard.tsx`, `Activity.tsx`), the inner scrollable region needs
-the explicit padding above.
+`<div className="h-[100dvh] flex flex-col">` shell, the inner
+scrollable region needs the explicit padding above.
 
 ## Header double-safe-area gotcha
 

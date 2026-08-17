@@ -17,6 +17,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { readRestorableRoute } from "@/lib/lastRoute";
 
 // Routes that should "stick" on cold launch even for signed-in users.
 // Anything else falls through to the auth-aware default.
@@ -72,11 +73,24 @@ export async function resolveNativeLaunchRoute(
     const session = data.session;
 
     // Guests → /browse (dashboard-style preview of open jobs).
-    // Signed-in → /dashboard. ProtectedRoute will re-route to
+    if (!session?.user) return "/browse";
+
+    // Signed-in. Before falling back to the dashboard, honour where the user
+    // actually was: on iOS the WKWebView content process gets jetsammed while
+    // backgrounded and reloaded on resume, which re-runs our JS from `/` with
+    // the native process still very much alive (hence no splash screen). To
+    // this function that is indistinguishable from a cold launch, so it used
+    // to send the user to /dashboard every time they glanced at a
+    // notification. See lastRoute.ts for the freshness window that keeps a
+    // genuine next-morning cold start landing on the dashboard.
+    const restored = readRestorableRoute();
+    if (restored) return restored;
+
+    // Otherwise /dashboard. ProtectedRoute will re-route to
     // /account-pending, /account-denied, /account-banned, or
     // /complete-profile if the profile state requires it. Admins can
     // still reach /admin via the in-app nav.
-    return session?.user ? "/dashboard" : "/browse";
+    return "/dashboard";
   } catch {
     return "/browse";
   }

@@ -23,6 +23,7 @@ import { useNativePushSetup } from "@/lib/nativePush";
 import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility";
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
+import RouteMemory from "@/components/RouteMemory";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useAppLifecycle } from "@/lib/appLifecycle";
@@ -490,6 +491,11 @@ const App = () => (
           <Suspense fallback={null}><ScrollToTop /></Suspense>
           <SessionManager />
           <NativeLaunchRouter />
+          {/* Writes the route NativeLaunchRouter reads back on a native
+              resume. Order between the two does not matter: this records
+              subsequent navigations, that one consumes the value once at
+              mount. */}
+          <RouteMemory />
           <Suspense fallback={null}><OfflineBanner /></Suspense>
           <Suspense fallback={null}>
             <StrikeBanner />

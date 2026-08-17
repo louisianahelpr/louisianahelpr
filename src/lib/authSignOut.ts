@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unregisterPushOnSignOut } from "@/lib/nativePush";
+import { clearRememberedRoute } from "@/lib/lastRoute";
 
 type SignOutOptions = { scope?: "global" | "local" | "others" };
 
@@ -21,5 +22,12 @@ export async function signOutWithPushCleanup(options?: SignOutOptions) {
   } catch {
     /* best-effort: never block sign-out on token cleanup */
   }
+  // Same hand-off concern as the push tokens above, one notch milder: the
+  // remembered resume route is only ever read for a signed-in session, so a
+  // guest can't restore it — but without this, user B signing in on user A's
+  // phone would land on A's last screen (a job detail, someone's profile).
+  // No data leaks (ProtectedRoute and RLS still gate it), yet it plainly
+  // isn't B's app. Cheap to clear, so clear it.
+  clearRememberedRoute();
   return supabase.auth.signOut(options);
 }

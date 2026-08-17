@@ -97,4 +97,52 @@ describe("resolveNativeLaunchRoute", () => {
       expect(await resolveNativeLaunchRoute("/")).toBe("/browse");
     });
   });
+
+  // iOS jetsams the WKWebView content process while the app is backgrounded
+  // and reloads it on resume, restarting our JS at "/" with the native app
+  // still alive (so no splash screen). That is indistinguishable from a cold
+  // launch here, which is why a signed-in user kept getting yanked to
+  // /dashboard every time they checked a notification.
+  describe("resume restores the last route", () => {
+    beforeEach(() => {
+      isNativePlatformMock.mockReturnValue(true);
+      localStorage.clear();
+    });
+
+    const remember = (path: string) =>
+      localStorage.setItem("lh_last_route", JSON.stringify({ p: path, t: Date.now() }));
+
+    it("signed-in user returns to where they were, not /dashboard", async () => {
+      getSessionMock.mockResolvedValue({ data: { session: { user: { id: "u1" } } } });
+      remember("/messages");
+      expect(await resolveNativeLaunchRoute("/")).toBe("/messages");
+    });
+
+    it("falls back to /dashboard when there is nothing remembered", async () => {
+      getSessionMock.mockResolvedValue({ data: { session: { user: { id: "u1" } } } });
+      expect(await resolveNativeLaunchRoute("/")).toBe("/dashboard");
+    });
+
+    it("falls back to /dashboard when the memory is stale", async () => {
+      getSessionMock.mockResolvedValue({ data: { session: { user: { id: "u1" } } } });
+      localStorage.setItem(
+        "lh_last_route",
+        JSON.stringify({ p: "/messages", t: Date.now() - 31 * 60 * 1000 }),
+      );
+      expect(await resolveNativeLaunchRoute("/")).toBe("/dashboard");
+    });
+
+    it("never restores for a guest — a signed-out device gets /browse", async () => {
+      // Guards the hand-off case: user A's last screen must not greet user B.
+      getSessionMock.mockResolvedValue({ data: { session: null } });
+      remember("/messages");
+      expect(await resolveNativeLaunchRoute("/")).toBe("/browse");
+    });
+
+    it("does not override a deep link — non-root paths still bail early", async () => {
+      getSessionMock.mockResolvedValue({ data: { session: { user: { id: "u1" } } } });
+      remember("/messages");
+      expect(await resolveNativeLaunchRoute("/jobs/abc")).toBeNull();
+    });
+  });
 });

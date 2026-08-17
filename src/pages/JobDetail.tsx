@@ -81,10 +81,23 @@ const JobDetail = () => {
 
   const requireSignup = () => navigate("/signup");
 
+  // Every branch of this page (loading / error / not-found / job) needs its
+  // own <h1>: this is the share-link landing page, and it previously rendered
+  // NONE, so a screen-reader user arriving from a shared link got a document
+  // with no heading at all. The heading is `sr-only` rather than visible
+  // because each branch already paints its own title-styled copy — the
+  // EmptyState/ErrorState titles are <p>, and the populated branch's title
+  // lives in the JobDetailDialog's DialogTitle (an <h2> that Radix portals to
+  // <body>, outside #root). A visible h1 here would duplicate that copy, and
+  // in the populated branch would sit behind the dialog's own backdrop.
+  const headingText =
+    !authLoading && !isLoading && !isError && job ? job.title : "Job details";
+
   return (
     <PublicLayout showCtaBand={false} noNavSpacer>
       <div className="pt-20 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)] md:pb-safe-nav px-5">
         <div className="container mx-auto max-w-md">
+          <h1 className="sr-only">{headingText}</h1>
           {authLoading || isLoading ? (
             <div aria-label="Loading job">
               <JobCardSkeleton />

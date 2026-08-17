@@ -38,11 +38,10 @@ import {
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
 import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./profile/ProfileTabPanels";
-import type { Profile, Tab } from "./profile/types";
+import { TAB_TITLES, type Profile, type Tab } from "./profile/types";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
 const ProfilePage = () => {
-  usePageTitle("My Profile — Helpr");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user: cachedUser, profile: cachedProfile, isLoading: authLoading, refresh: refreshCurrentUser } = useCurrentUser();
@@ -55,6 +54,18 @@ const ProfilePage = () => {
   const [avatarBroken, setAvatarBroken] = useState(false);
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
+
+  // One title per tab. Every one of the 18 tabs used to report the same
+  // "My Profile — Helpr", so browser history, bookmarks and the tab bar could
+  // not tell Security from Payment from Legal. `?tab=` is already the URL
+  // source of truth (synced both ways below), so the title follows it.
+  // TAB_TITLES has no `landing` key — the bare profile page keeps the plain
+  // title rather than repeating itself.
+  usePageTitle(
+    tab === "landing" || !TAB_TITLES[tab]
+      ? "My Profile — Helpr"
+      : `${TAB_TITLES[tab]} — My Profile — Helpr`,
+  );
 
   // Sync tab to URL for bookmarkability; React Router owns history so browser
   // back/forward updates searchParams, which the effect below mirrors to state.

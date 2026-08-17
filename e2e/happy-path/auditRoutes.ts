@@ -68,6 +68,43 @@ export async function toggleDashboardMap(page: Page): Promise<boolean> {
   return false;
 }
 
+/**
+ * One open job as the RLS-public `open_jobs_browse` view serves it, so the
+ * guest job preview at `/jobs/:id` can be audited in its POPULATED state.
+ * Only the columns JobDetail.tsx selects are present — anything else the view
+ * exposes is masked from guests anyway. `date_needed` is a Postgres DATE, so
+ * it must be "YYYY-MM-DD": a full ISO timestamp makes the dialog's date math
+ * throw and the page falls into its error boundary.
+ */
+const GUEST_PREVIEW_JOB = {
+  id: "10000000-0000-4000-8000-000000000001",
+  title: "Help me move a couch up one flight",
+  description: "Sofa and two chairs from the truck into a second-floor apartment. Should take about an hour.",
+  category: "moving",
+  budget: 120,
+  date_needed: new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10),
+  start_time: "14:00",
+  location: "New Orleans, LA",
+  customer_id: "33333333-3333-4333-8333-333333333333",
+  status: "open",
+  created_at: new Date(Date.now() - 30 * 60_000).toISOString(),
+  updated_at: new Date(Date.now() - 30 * 60_000).toISOString(),
+  is_urgent: false,
+  urgent_fee: 0,
+  is_recurring: false,
+  is_group_job: false,
+  helpers_needed: 1,
+  estimated_hours: 1,
+  special_requirements: null,
+  photos: [],
+  boost_expires_at: null,
+  // Must be in the future: JobDetail treats an elapsed `expires_at` as "no
+  // longer browsable" and renders the not-found branch instead.
+  expires_at: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+  recurrence_interval: null,
+  pricing_mode: "fixed",
+};
+
 // Public / unauthenticated surfaces. Every non-redirect anon route in
 // src/App.tsx, plus the catch-all NotFound.
 export const ANON_SCREENS: ScreenSpec[] = [
@@ -121,7 +158,20 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // land on the dashboard and JobDetail itself had ZERO coverage in either
   // sweep, despite the catalog claiming six job-status variants. Verified from
   // the empty-state sweep's `landedOn` field, which is why that field exists.
-  { name: "job-detail-guest", url: "/jobs/10000000-0000-4000-8000-000000000001" },
+  // …and the two entries below must render DIFFERENT branches, which they did
+  // not until 2026-08-17. Neither sweep's default mocks cover
+  // `open_jobs_browse` (the RLS-public masked view JobDetail reads), so the
+  // fetch came back empty for BOTH ids and both rows audited the identical
+  // "This job isn't available." screen — the populated branch, which is what a
+  // shared link actually opens, was measured zero times. The rule below gives
+  // the first id a real row so `job-detail-guest` audits the job, while
+  // `…-dead` keeps its unmocked miss and stays the not-found case.
+  {
+    name: "job-detail-guest",
+    url: "/jobs/10000000-0000-4000-8000-000000000001",
+    // A single object, not an array: the page reads it with `.maybeSingle()`.
+    rules: [mockTable("open_jobs_browse", GUEST_PREVIEW_JOB)],
+  },
   { name: "job-detail-guest-missing", url: "/jobs/10000000-0000-4000-8000-00000000dead" },
   { name: "not-found", url: "/this-route-does-not-exist" },
 ];

@@ -93,29 +93,27 @@ const AdminSidebar = ({
           <item.icon className="w-4 h-4" />
           {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
           {!collapsed && (
-            // role="button" span, NOT a nested <button>: SidebarMenuButton
-            // already renders a <button>, and <button> inside <button> is
-            // invalid HTML (fires validateDOMNesting and confuses AT). A
-            // labelled role=button span is valid nested markup and stays
-            // keyboard-operable via onKeyDown; stopPropagation keeps a pin
-            // toggle from also selecting the row.
+            // Pointer-only affordance. It carries NO role and NO tabIndex, so
+            // it is not an interactive node nested inside SidebarMenuButton's
+            // <button> — the earlier `role="button" tabIndex={0}` span was
+            // exactly axe's `nested-interactive` (serious, 26 nodes across the
+            // admin sidebar): a widget inside a widget, which a screen reader
+            // cannot reach as the separate control it is. The keyboard/AT
+            // affordance now lives in the sr-only <button> sibling rendered
+            // below, outside this button — same pattern as
+            // JobCardShell.tsx. Mouse behaviour is untouched: the click
+            // handler (and its stopPropagation, which keeps a pin toggle from
+            // also selecting the row) is unchanged, and so are the classes,
+            // so the row renders pixel-for-pixel as before.
             <span
-              role="button"
-              tabIndex={0}
+              aria-hidden="true"
               onClick={(e) => togglePin(item.id, e)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  togglePin(item.id, e as unknown as React.MouseEvent);
-                }
-              }}
-              aria-label={isPinned ? `Unpin ${item.label}` : `Pin ${item.label}`}
               title={isPinned ? "Unpin" : "Pin to top"}
               className={cn(
                 "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-md transition-opacity cursor-pointer",
                 isPinned
                   ? "opacity-100 text-primary hover:bg-primary/10"
-                  : "opacity-0 group-hover/item:opacity-60 hover:opacity-100 text-muted-foreground hover:bg-muted",
+                  : "opacity-0 group-hover/item:opacity-60 group-focus-within/menu-item:opacity-60 hover:opacity-100 text-muted-foreground hover:bg-muted",
               )}
             >
               {isPinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
@@ -131,6 +129,23 @@ const AdminSidebar = ({
             </span>
           )}
         </SidebarMenuButton>
+        {/* The real pin control: a sibling of the row button, never a child of
+            it, so the two are separate controls to a screen reader and to
+            axe. sr-only keeps the visible row exactly as designed (the
+            hover-revealed pin glyph above is the sighted affordance); the
+            row's `group-focus-within/menu-item` reveals that glyph while this
+            button holds focus, so keyboard users see what they are about to
+            toggle. */}
+        {!collapsed && (
+          <button
+            type="button"
+            className="sr-only"
+            aria-pressed={isPinned}
+            onClick={() => togglePin(item.id)}
+          >
+            {isPinned ? `Unpin ${item.label}` : `Pin ${item.label}`}
+          </button>
+        )}
       </SidebarMenuItem>
     );
   };

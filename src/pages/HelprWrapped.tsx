@@ -10,7 +10,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareNative } from "@/lib/nativeShare";
 import { report } from "@/lib/errorLogger";
-import { formatCategory, wrappedSeasonLabel } from "@/lib/format";
+import { formatCategory, formatPrice, wrappedSeasonLabel } from "@/lib/format";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 
@@ -256,14 +256,14 @@ const HelprWrapped = () => {
     }
     if (stats.totalEarned > 0) {
       statCards.push({
-        value: `$${stats.totalEarned.toLocaleString()}`,
+        value: `$${formatPrice(stats.totalEarned)}`,
         label: "earned",
         sublabel: stats.approxHours > 0 ? `~${stats.approxHours} hrs` : undefined,
       });
     }
     if (stats.totalSpent > 0 && stats.totalEarned === 0) {
       statCards.push({
-        value: `$${stats.totalSpent.toLocaleString()}`,
+        value: `$${formatPrice(stats.totalSpent)}`,
         label: "invested in community",
       });
     }

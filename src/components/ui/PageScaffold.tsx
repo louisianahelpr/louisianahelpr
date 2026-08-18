@@ -1,6 +1,16 @@
 import type { CSSProperties, ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import AppShell from "@/components/AppShell";
+// The two-step title-card / panel material. Lives in its own module because
+// the document-scroll pages that wear the same treatment (Family & care, Home
+// History) cannot render through this scaffold — it brings AppShell's 100dvh
+// lock with it. See the note in pageCardSurfaces.ts.
+import {
+  TITLE_CARD_CLASS,
+  TITLE_CARD_STYLE,
+  panelSurfaceStyle,
+  type PanelElevation,
+} from "@/components/ui/pageCardSurfaces";
 
 /**
  * PageScaffold — the shared "two-card" page shell used by Dashboard,
@@ -48,7 +58,7 @@ interface PageScaffoldProps {
   /** Panel drop-shadow weight. "raised" is the standalone elevation used
    *  by Messages / Activity / guest; "flat" is the lighter shadow used
    *  when the panel nests its own elevated content box (Dashboard). */
-  panelElevation?: "raised" | "flat";
+  panelElevation?: PanelElevation;
   /** Play the shared page-entry transition (title card + panel rise in
    *  together, matching the `ds-page-in` keyframe used elsewhere). */
   animate?: boolean;
@@ -60,42 +70,7 @@ interface PageScaffoldProps {
   className?: string;
 }
 
-const TITLE_CARD_CLASS =
-  "liquid-glass shrink-0 px-5 py-4 lg:px-6 lg:py-5 relative overflow-hidden";
-
-const TITLE_CARD_STYLE: CSSProperties = {
-  // Intentional two-step material hierarchy: the title card sits a touch
-  // more translucent (0.85) than the crisper panel below (0.97), so the
-  // header reads as the softer "lid" over a solid content panel rather
-  // than the two stacking into one flat slab. Same hue — only the opacity
-  // steps — so they stay obviously the same material. Very faint copper /
-  // verdigris corner glows keep the card from reading as a flat block.
-  backgroundColor: "var(--glass-bg-title)",
-  backgroundImage:
-    "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.05) 0%, transparent 55%), " +
-    "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 80% / 0.12) 0%, transparent 60%)",
-  boxShadow:
-    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-    "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04), " +
-    "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-    "0 8px 18px -6px hsl(var(--olivewood) / 0.1), " +
-    "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
-};
-
 const PANEL_CLASS = "liquid-glass overflow-hidden flex-1 min-h-0 flex flex-col";
-
-const PANEL_SHADOW: Record<NonNullable<PageScaffoldProps["panelElevation"]>, string> = {
-  raised:
-    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-    "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-    "0 14px 30px -8px hsl(var(--olivewood) / 0.14), " +
-    "0 36px 64px -16px hsl(var(--olivewood) / 0.18)",
-  flat:
-    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-    "-1px 0 2px hsl(var(--olivewood) / 0.06), " +
-    "1px 0 2px hsl(var(--olivewood) / 0.06), " +
-    "0 -1px 2px hsl(var(--olivewood) / 0.06)",
-};
 
 export function PageScaffold({
   header,
@@ -124,20 +99,7 @@ export function PageScaffold({
   const columnWidth =
     (maxWidth === "narrow" ? "max-w-xl" : "max-w-3xl") + " ds-desktop-wide";
 
-  const panelStyle: CSSProperties = {
-    // Bottom corners flat + bottom border dropped so the panel bleeds
-    // beneath the floating dock instead of ending in a hard edge.
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    borderBottom: "none",
-    // Crisp near-opaque white surface (0.97) — the solid base of the
-    // two-step hierarchy, one step crisper than the softer title card
-    // (0.85) above. `.liquid-glass`'s 42%-white wash reads as muted beige
-    // over the warm page gradient, so the panel blended into the canvas; a
-    // bright near-opaque panel pops off the page as the content surface.
-    backgroundColor: "var(--glass-bg-crisp)",
-    boxShadow: PANEL_SHADOW[panelElevation],
-  };
+  const panelStyle: CSSProperties = panelSurfaceStyle(panelElevation);
 
   // Single unified page-entry: title card + panel rise together with the
   // exact same opacity/translate/timing as the `ds-page-in` keyframe used

@@ -106,20 +106,74 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       }
       return cachedShell;
     };
+    // The element whose scroll last drove the decision. Held so the observer
+    // below can notice when THAT surface stops being able to scroll — see the
+    // invariant note there.
+    let activeScroller: HTMLElement | null = null;
     const getY = (target: EventTarget | null) => {
       if (
         target instanceof HTMLElement &&
         target !== document.documentElement &&
         target !== document.body
       ) {
+        activeScroller = target;
         return target.scrollTop;
       }
       const internal = shellScroller();
-      return internal && internal.scrollTop > 0 ? internal.scrollTop : window.scrollY;
+      if (internal && internal.scrollTop > 0) {
+        activeScroller = internal;
+        return internal.scrollTop;
+      }
+      // Window/document scroll — no element to watch.
+      activeScroller = null;
+      return window.scrollY;
     };
+
+    // INVARIANT: the dock may only stay hidden while some surface is actually
+    // scrolled down. Everything else here is event-driven off `scroll`, which
+    // means a surface that simply STOPS EXISTING never fires anything and the
+    // dock is stranded off-screen with no gesture that can bring it back.
+    //
+    // Measured, not hypothesised: on Home, scroll the feed down (dock hides),
+    // then tap Map view. BrowseTasksFeed sets `display:none` on the list's
+    // PullToRefreshWrapper and renders the map in a sibling that never
+    // scrolls — so there was no scroll surface left on the route at all, and
+    // the whole bottom nav (tabs AND the Post FAB) stayed 130px below the
+    // viewport until the user navigated away. The same shape applies to any
+    // view swap that unmounts the scroller.
+    //
+    // ResizeObserver is the right tool: an observed element that becomes
+    // `display:none` (or leaves the document) reports a 0x0 box, which is
+    // exactly the "this surface can no longer justify a hidden dock" signal.
+    // It is deliberately NOT a second copy of the hide/reveal logic — it only
+    // ever REVEALS, and re-baselines `lastY` so the next real scroll event
+    // measures a delta from where the surface is now rather than from a
+    // position that belonged to a container that is gone. Coming BACK to a
+    // scrollable view therefore leaves the dock visible instead of snapping it
+    // shut on a toggle the user never scrolled.
+    let observed: HTMLElement | null = null;
+    const surfaceObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            const el = observed;
+            if (!el) return;
+            const scrollable =
+              el.isConnected && el.clientHeight > 0 && el.scrollHeight - el.clientHeight > 8;
+            lastY = scrollable ? el.scrollTop : 0;
+            if (!scrollable) setNavHidden(false);
+          });
+    const syncObserver = () => {
+      if (!surfaceObserver || activeScroller === observed) return;
+      surfaceObserver.disconnect();
+      observed = activeScroller;
+      if (observed) surfaceObserver.observe(observed);
+    };
+
     let lastY = getY(null);
     const checkScroll = (e?: Event) => {
       const y = getY(e?.target ?? null);
+      syncObserver();
       setScrolled(y > 8);
       const delta = y - lastY;
       // Ignore sub-threshold jitter and iOS rubber-band overscroll (y < 0),
@@ -144,6 +198,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     document.addEventListener("scroll", checkScroll, { capture: true, passive: true });
     return () => {
       document.removeEventListener("scroll", checkScroll, { capture: true });
+      surfaceObserver?.disconnect();
     };
   }, [location.pathname]);
 
@@ -477,6 +532,19 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         ref={ref}
         aria-label="Bottom navigation"
         aria-hidden={navHidden || undefined}
+        // `aria-hidden` alone on a bar full of buttons is an
+        // aria-hidden-focus failure, not an accommodation: the dock is
+        // translated 130px BELOW the viewport but its five tabs and the Post
+        // FAB stay in the tab order, so a keyboard or switch user tabs into
+        // controls that are announced to nobody and painted nowhere. `inert`
+        // takes them out of the tab order (and out of hit-testing) for exactly
+        // as long as the bar is off-screen.
+        //
+        // Spread rather than written as a prop: React 18's JSX types have no
+        // `inert` (it landed as a first-class boolean prop in React 19), and
+        // passing `inert={true}` on 18 logs a non-boolean-attribute warning.
+        // The empty string is the attribute's own "present" form.
+        {...(navHidden ? { inert: "" } : {})}
         className="mobile-nav-frame fixed bottom-0 left-0 right-0 z-50"
         style={{
           paddingBottom: "var(--safe-area-bottom, 0px)",

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Calendar, Home } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
+import { DocumentPageCards } from "@/components/ui/DocumentPageCards";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
@@ -101,19 +101,24 @@ const HomeHistory = () => {
   const loading = isLoading && !data;
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader
-        title="Home History"
-        eyebrow="Your maintenance record"
-        onBack={() => navigate("/profile")}
-        // Mirrors the body container below (max-w-5xl, px-4 → lg:px-8 → xl:px-12).
-        // Without it the header defaulted to a 90rem container and the title sat
-        // outside the 5xl column it heads.
-        width="5xl-p4"
-      />
-
-      <div className="mx-auto max-w-5xl px-4 lg:px-8 xl:px-12 pb-10 space-y-8 mt-2">
-        {loading && (
+    // The app's title-card + panel treatment, on a page that stays
+    // document-scroll: the record grows without bound (every completed job,
+    // for the life of the house), which is exactly what CLAUDE.md reserves
+    // document-scroll for. `/home-history` therefore STAYS in
+    // DOCUMENT_SCROLL_ROUTES — see DocumentPageCards for why the material and
+    // the viewport mode are separate decisions.
+    //
+    // `columnClassName` is the page's own previous body ladder verbatim
+    // (max-w-5xl, px-4 → lg:px-8 → xl:px-12), so the column did not move; the
+    // title just moved inside it, which also retires the PageHeader `width`
+    // prop that existed only to keep the two in the same column.
+    <DocumentPageCards
+      title="Home History"
+      onBack={() => navigate("/profile")}
+      columnClassName="max-w-5xl px-4 lg:px-8 xl:px-12"
+      panelClassName="px-4 py-5 lg:px-6 lg:py-6 space-y-8"
+    >
+      {loading && (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => <JobCardSkeleton key={i} />)}
           </div>
@@ -288,8 +293,7 @@ const HomeHistory = () => {
             </div>
           </section>
         ))}
-      </div>
-    </div>
+    </DocumentPageCards>
   );
 };
 

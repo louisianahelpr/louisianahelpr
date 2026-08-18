@@ -22,7 +22,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
-import PageHeader from "@/components/PageHeader";
+import { DocumentPageCards } from "@/components/ui/DocumentPageCards";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -147,21 +147,32 @@ export default function FamilyDashboard() {
 
   return (
     <>
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      {/* No `showBrand`: /family is a Profile sub-page. The back chevron
-          anchors to /profile (its parent) rather than the misleading Helpr
-          wordmark that read as a top-level destination. */}
-      {/* width mirrors the body container below, gutters included — a fixed
-          "lg" pinned the title to a 32rem column the body outgrows at md+. */}
-      <PageHeader title="Family & care" onBack={() => navigate("/profile")} width="lg-2xl-5xl-6xl-tight" />
-
+    {/* The app's title-card + panel treatment on a page that STAYS
+        document-scroll — `/family` keeps its DOCUMENT_SCROLL_ROUTES entry.
+        The deciding factor is the lg+ layout below: a two-column grid whose
+        right pane is `lg:sticky lg:top-6`. Sticky positions against the
+        nearest scrolling ancestor, so moving this page into AppShell's
+        internal scroll container (which is what PageScaffold would do) would
+        change what that pane sticks to, for no gain — the card treatment the
+        owner asked for is a material, not a viewport mode. See
+        DocumentPageCards.
+        `columnClassName` is the page's previous body ladder verbatim, so the
+        content column is unmoved. The back chevron and the h1 now live in the
+        title card, which also ends the long-standing mismatch between the
+        PageHeader width ("lg-2xl-5xl-6xl-tight") and the wider body ladder it
+        was supposed to mirror — they are one box now and cannot diverge. */}
+    <DocumentPageCards
+      title="Family & care"
+      onBack={() => navigate("/profile")}
+      columnClassName="max-w-lg md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-4 md:px-6 lg:px-4"
+      panelClassName="px-4 py-5 md:px-6 lg:px-6 lg:py-6"
+    >
       {/* Split-column desktop layout: on mobile/tablet this stacks as a
           single column exactly as before. At lg+ it becomes a two-column
           grid — the members lists take the wide reading column on the
           left, and the invite form + about-panel are pulled into a
-          sticky action pane on the right. Outer container widens to
-          max-w-5xl/6xl to give the two columns real breathing room. */}
-      <div className="max-w-lg md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 md:px-6 lg:px-4 pt-4 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 xl:gap-12 items-start">
+          sticky action pane on the right. */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 xl:gap-12 items-start">
 
         {/* ── LEFT COLUMN — members lists ──
             Primary reading content: who you manage, and (if applicable)
@@ -387,7 +398,7 @@ export default function FamilyDashboard() {
         </aside>
 
       </div>
-    </div>
+    </DocumentPageCards>
 
     <BrandConfirmDialog
       open={pendingRevokeId !== null}

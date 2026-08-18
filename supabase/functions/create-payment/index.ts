@@ -725,8 +725,40 @@ serve(async (req) => {
       // Errors propagate to the outer catch so the job is NOT silently
       // marked "cancelled" when the refund fails — the customer would
       // lose their money with no indication anything went wrong.
-      if (job.stripe_payment_intent_id) {
-        const pi = await stripe.paymentIntents.retrieve(job.stripe_payment_intent_id);
+      //
+      // Resolve the PI from the session if it's not already stored.
+      // Mirrors the same fallback in `release`, `admin_release_dispute`,
+      // and `process-scheduled-payouts`: all four payout/refund paths
+      // must handle the narrow race window between checkout completion
+      // and the webhook setting stripe_payment_intent_id, so none of
+      // them should skip the refund just because the column is blank.
+      let cancelPaymentIntentId = job.stripe_payment_intent_id;
+      if (!cancelPaymentIntentId && job.stripe_session_id) {
+        try {
+          const cancelSession = await stripe.checkout.sessions.retrieve(
+            job.stripe_session_id,
+            { expand: ["payment_intent"] },
+          );
+          cancelPaymentIntentId =
+            typeof cancelSession.payment_intent === "string"
+              ? cancelSession.payment_intent
+              : (cancelSession.payment_intent as any)?.id ?? null;
+          if (cancelPaymentIntentId) {
+            await supabaseAdmin
+              .from("jobs")
+              .update({ stripe_payment_intent_id: cancelPaymentIntentId })
+              .eq("id", job.id);
+          }
+        } catch (sessionErr) {
+          console.warn(
+            `[create-payment] cancel_escrow: could not retrieve session for PI (job ${jobId}):`,
+            sessionErr,
+          );
+        }
+      }
+
+      if (cancelPaymentIntentId) {
+        const pi = await stripe.paymentIntents.retrieve(cancelPaymentIntentId);
         if (pi.status === "succeeded") {
           // Service fee is non-refundable: Stripe already took 2.9%+$0.30 on the
           // full capture and does NOT return it on a refund, so a full refund
@@ -745,14 +777,14 @@ serve(async (req) => {
           // capture (Stripe rejects a $0 refund); the job still flips cancelled.
           if (refundAmount > 0) {
             const refund = await stripe.refunds.create(
-              { payment_intent: job.stripe_payment_intent_id, amount: refundAmount },
+              { payment_intent: cancelPaymentIntentId, amount: refundAmount },
               { idempotencyKey: `cancel-escrow-${jobId}` },
             );
             await recordRefund(supabaseAdmin, {
               refund,
               jobId,
               customerId: job.customer_id,
-              paymentIntentId: job.stripe_payment_intent_id,
+              paymentIntentId: cancelPaymentIntentId,
               source: "cancel_escrow",
               isPartial: nonRefundableCents > 0,
               reason: "escrow cancellation refund (minus non-refundable service fee)",
@@ -781,7 +813,7 @@ serve(async (req) => {
                 "A cancellation flipped the job to cancelled but returned nothing to the poster. Verify this was intended.",
               fields: {
                 job_id: jobId,
-                payment_intent: job.stripe_payment_intent_id,
+                payment_intent: cancelPaymentIntentId,
                 captured_cents: capturedCents,
                 service_fee_cents: serviceFeeCents,
                 non_refundable_cents: nonRefundableCents,

@@ -205,8 +205,15 @@ describe("usePullToRefresh", () => {
     const threshold = 80;
     const diff = 600;
     const expected = threshold + Math.sqrt(diff - threshold) * (Math.sqrt(threshold) * 0.8);
+    // The pull is committed on the next animation frame, not synchronously on
+    // touchmove — touchmove fires 60-120x/sec and writing state on each one
+    // re-rendered the whole feed per event, which is what made the gesture
+    // jumpy. `waitFor` lets that frame land. The asserted VALUE is unchanged;
+    // only when it becomes readable moved.
+    await waitFor(() => {
+      expect(Number(el.getAttribute("data-distance"))).toBeCloseTo(expected, 5);
+    });
     const actual = Number(el.getAttribute("data-distance"));
-    expect(actual).toBeCloseTo(expected, 5);
     // The damped value is much larger than the raw threshold but much
     // smaller than the raw diff — the contract is "feels heavier the
     // further you pull", not a fixed ceiling.

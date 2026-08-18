@@ -46,6 +46,16 @@ export const usePullToRefresh = ({
   const [pulling, setPulling] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+  // Latest pull value awaiting a frame, and the queued frame's id. Refs, not
+  // state: writing them must not itself cause a render.
+  const pendingDistance = useRef(0);
+  const rafId = useRef<number | null>(null);
+  const cancelPendingFrame = useCallback(() => {
+    if (rafId.current !== null) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
+  }, []);
 
   const startY = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,7 +93,28 @@ export const usePullToRefresh = ({
         // refresh from a small flick).
         const reduceMotion = prefersReducedMotion();
         const translated = reduceMotion ? diff : rubberBand(diff, threshold);
-        setPullDistance(translated);
+        // Coalesce to ONE state write per animation frame.
+        //
+        // touchmove fires 60-120x a second, and this used to call
+        // setPullDistance on every single one. Each call re-rendered the
+        // wrapper AND everything inside it — on Home that is the entire job
+        // feed — so the pull competed with a full React render per touch
+        // event and arrived in visible steps. Owner: "it's like not a smooth
+        // pull it's jumpy."
+        //
+        // The pull is a VISUAL, so it only needs to be correct once per
+        // painted frame. Storing the latest value in a ref and flushing it in
+        // rAF keeps the finger-tracking exact while capping renders at the
+        // refresh rate. The queued frame is cancelled on release and unmount
+        // so a flush can never land after the gesture ends and re-open the
+        // indicator.
+        pendingDistance.current = translated;
+        if (rafId.current === null) {
+          rafId.current = requestAnimationFrame(() => {
+            rafId.current = null;
+            setPullDistance(pendingDistance.current);
+          });
+        }
 
         // Fire a single haptic tick exactly when the pull crosses the
         // threshold — the "click" moment that tells the user "release
@@ -111,10 +142,16 @@ export const usePullToRefresh = ({
 
   const handleTouchEnd = useCallback(async () => {
     if (!pulling || disabled) return;
+    cancelPendingFrame();
     setPulling(false);
     didFireThresholdHaptic.current = false;
 
-    if (pullDistance >= threshold) {
+    // Read the REF, not the state. `pendingDistance` is written synchronously
+    // on every touchmove, while `pullDistance` only catches up on the next
+    // animation frame — so a quick flick-and-release fires touchend before the
+    // queued frame lands, and comparing the state would see 0 and silently
+    // refuse to refresh. The unit test caught exactly that.
+    if (pendingDistance.current >= threshold) {
       // Light confirmation tap when the refresh actually fires. This
       // explicit, user-initiated action haptic uses the `Force` variant
       // so it still fires under `prefers-reduced-motion` — the haptic
@@ -122,6 +159,7 @@ export const usePullToRefresh = ({
       // hapticImpactForce in src/lib/haptics.ts.)
       hapticImpactForce();
       setRefreshing(true);
+      pendingDistance.current = 0;
       setPullDistance(0);
       const startedAt = Date.now();
       try {
@@ -136,9 +174,10 @@ export const usePullToRefresh = ({
     } else {
       // Snap back: let CSS spring/ease do the animation; just zero the
       // distance so the transition plays from wherever the indicator is.
+      pendingDistance.current = 0;
       setPullDistance(0);
     }
-  }, [pulling, disabled, pullDistance, threshold, onRefresh]);
+  }, [pulling, disabled, cancelPendingFrame, threshold, onRefresh]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -149,6 +188,8 @@ export const usePullToRefresh = ({
     return () => {
       el.removeEventListener("touchstart", handleTouchStart);
       el.removeEventListener("touchmove", handleTouchMove);
+      // A frame queued mid-gesture must not fire after teardown.
+      if (rafId.current !== null) cancelAnimationFrame(rafId.current);
       el.removeEventListener("touchend", handleTouchEnd);
     };
   }, [handleTouchStart, handleTouchMove, handleTouchEnd]);

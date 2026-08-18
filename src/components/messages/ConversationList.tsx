@@ -358,13 +358,24 @@ export function ConversationList({
               ) : (
                 /* Normal mode — title + Select + Search. */
                 <>
-                  <div className="flex flex-col min-w-0 flex-1 gap-0.5 py-2.5">
-                    <h1 className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none">
+                  {/* Title and unread count sit on ONE line, count to the
+                      right of the name — owner: "put 1 unread to the right of
+                      messages bc i dont like it under". Stacking them made a
+                      two-line block for what is really one short phrase, and
+                      pushed the row taller than the other screens' toolbars.
+
+                      `items-baseline` so the small italic count sits on the
+                      wordmark's baseline rather than centring against a much
+                      larger cap-height. The h1 keeps `min-w-0` + truncate and
+                      the count is `shrink-0`, so a long title yields first and
+                      the count is never the thing that gets cut. */}
+                  <div className="flex items-baseline min-w-0 flex-1 gap-2 py-2.5">
+                    <h1 className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none min-w-0">
                       Messages
                     </h1>
                     {headerSubtitle && (
                       <span
-                        className="font-serif italic text-ds-11 truncate leading-none"
+                        className="font-serif italic text-ds-11 leading-none shrink-0"
                         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                       >
                         {headerSubtitle}

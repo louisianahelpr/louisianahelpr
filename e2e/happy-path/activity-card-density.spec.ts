@@ -29,6 +29,7 @@ import {
   seedAuthedSession,
   type MockRule,
 } from "./fixtures";
+import { settleAnimations } from "./auditRoutes";
 import { SEED_JOBS, SEED_APPLICATIONS, CUSTOMER_ID, HELPER_ID } from "./seedData";
 
 const SHOTS = "/tmp/ui-review/activity-density";
@@ -85,9 +86,15 @@ async function setTheme(page: Page, theme: "light" | "dark") {
   }, theme);
 }
 
-/** Settle the scaffold's page-entry transition before measuring or shooting. */
+/**
+ * Settle the scaffold's page-entry transition before measuring or shooting.
+ *
+ * Uses the suite's shared helper, not a bare timeout: axe measuring an element
+ * mid-fade reports the transitional opacity as a contrast failure, which is a
+ * finding about the animation frame rather than about the design.
+ */
 async function settle(page: Page) {
-  await page.waitForTimeout(500);
+  await settleAnimations(page);
 }
 
 /**

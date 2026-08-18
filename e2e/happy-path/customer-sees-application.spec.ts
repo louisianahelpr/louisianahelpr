@@ -1,4 +1,5 @@
 import { test, expect, FAKE_CUSTOMER, mockTable, mockRpc, installSupabaseMocks, checkA11y } from "./fixtures";
+import { settleAnimations } from "./auditRoutes";
 
 // Customer sees an application: an authed customer with one posted job
 // that has one helper application on it navigates to /my-posts and sees
@@ -100,6 +101,13 @@ test.describe("customer sees helper application", () => {
 
     // Axe at the customer's see-applications surface — this is a high
     // signal page (decision-making happens here) so a11y matters most.
+    //
+    // settleAnimations FIRST. This page fires the customer-first-bid push
+    // nudge, and scanning while that toast is still fading in measured its
+    // action button mid-opacity as 1.91:1 — a transitional state no user ever
+    // sees, and exactly the load-dependent false finding this helper exists to
+    // stop. Settled, the same button passes.
+    await settleAnimations(page);
     await checkA11y(page);
   });
 });

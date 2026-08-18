@@ -314,9 +314,22 @@ export const ProfileTabPanels = ({
       )}
 
       {tab === "reviews" && (
-        <Suspense fallback={<TabFallback />}>
-          <ReviewsTab reviews={reviews} loading={reviewsQuery.isPending} avgRating={avgRating} reviewCount={reviewCount} onBack={() => setTab("landing")} />
-        </Suspense>
+        // The error branch is not optional decoration: on a failed fetch
+        // `isPending` is false and `reviews` is `[]`, so ReviewsTab drops
+        // straight into its "no reviews yet" empty state — telling a helper
+        // nobody has reviewed them when in truth the query died. Mirrors the
+        // warnings tab below.
+        <div className="space-y-3">
+          {reviewsQuery.isError && (
+            <ProfileSectionError
+              section="your reviews"
+              onRetry={() => { reviewsQuery.refetch(); }}
+            />
+          )}
+          <Suspense fallback={<TabFallback />}>
+            <ReviewsTab reviews={reviews} loading={reviewsQuery.isPending} avgRating={avgRating} reviewCount={reviewCount} onBack={() => setTab("landing")} />
+          </Suspense>
+        </div>
       )}
 
       {tab === "referral" && user && (

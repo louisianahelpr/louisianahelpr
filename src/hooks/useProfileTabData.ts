@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -107,6 +108,17 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
         supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
         supabase.from("jobs").select("id, title").in("id", jobIds),
       ]);
+      // Enrichment only — a failure here degrades names to "User" / titles to
+      // "Job" rather than blanking the reviews, so it deliberately does NOT
+      // throw. It must still be OBSERVABLE though: dropping `.error` on the
+      // floor is how "every reviewer is called User" becomes a bug nobody can
+      // explain. (CLAUDE.md: never drop the Supabase error.)
+      if (profilesRes.error) {
+        report(profilesRes.error, { tags: { source: "useProfileReviews.reviewerNames" } });
+      }
+      if (jobsRes.error) {
+        report(jobsRes.error, { tags: { source: "useProfileReviews.jobTitles" } });
+      }
       const nameMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
       const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
       return data.map((r: any) => ({

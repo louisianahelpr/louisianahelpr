@@ -70,9 +70,9 @@ test.describe("payment lifecycle — public surfaces", () => {
     });
 
     // /payment-success is wrapped in <ProtectedRoute>. Anonymous users are
-    // bounced to login/signup; authenticated ones see the "Payment
-    // authorized" confirmation. Either way the bundle must not crash and
-    // SOMETHING must render.
+    // bounced to login/signup; authenticated ones see whichever confirmation
+    // state the job's real `payment_status` earns. Either way the bundle must
+    // not crash and SOMETHING must render.
     await page.locator("input, h1, h2").first().waitFor({ timeout: 10_000 });
 
     expect(
@@ -151,7 +151,7 @@ test.describe("payment lifecycle — authenticated post → escrow checkout", ()
     });
   });
 
-  test("post-payment landing shows the escrow confirmation for a signed-in user", async ({
+  test("post-payment landing refuses to claim escrow it cannot confirm", async ({
     page,
   }) => {
     await signIn(page);
@@ -159,11 +159,17 @@ test.describe("payment lifecycle — authenticated post → escrow checkout", ()
       waitUntil: "domcontentloaded",
     });
 
-    // Authenticated users should see the PaymentSuccess component's copy
-    // ("Payment authorized" eyebrow + heading). This confirms the
-    // post-checkout success route renders for a real session.
-    await expect(page.locator("body")).toContainText(/payment authorized/i, {
-      timeout: 10_000,
+    // `e2e-stub` is not a real job, so the screen has nothing to confirm the
+    // payment from. This assertion used to be `toContainText(/payment
+    // authorized/i)` — and it passed, because the page printed "Payment
+    // authorized. Held securely…" unconditionally, for a job id that does not
+    // exist. That was the bug, not the coverage.
+    //
+    // The truthful render is the unconfirmed state: it names the uncertainty,
+    // and it must not assert the money is held.
+    await expect(page.locator("body")).toContainText(/couldn't confirm your payment/i, {
+      timeout: 15_000,
     });
+    await expect(page.locator("body")).not.toContainText(/held securely/i);
   });
 });

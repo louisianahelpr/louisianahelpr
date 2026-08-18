@@ -512,6 +512,53 @@ export async function settleAnimations(page: Page, minMs = 2200): Promise<void> 
       { timeout: 5_000, polling: 100 },
     )
     .catch(() => undefined);
+
+  // Finally, wait for OPACITY to hold still.
+  //
+  // The two waits above are not enough, and the gap they leave produced a
+  // load-dependent false finding: `helper-jobs` (which redirects to
+  // /dashboard) failed axe with `#f9f5f3 on #f3f2f2 = 1.03:1` on four nodes —
+  // near-white text on near-white background, i.e. an element sampled at
+  // ~0 opacity — but only when the sweep ran with 3 parallel workers. Alone it
+  // passed three times out of three. The same /dashboard route reached
+  // DIRECTLY was clean in the same run.
+  //
+  // Cause: framer-motion drives page transitions with requestAnimationFrame
+  // and inline styles, NOT the Web Animations API, so `document.getAnimations()`
+  // is blind to them. And `minMs` is measured from NAVIGATION start, so a
+  // redirect that fires late (slow machine, loaded worker) can begin its fade
+  // AFTER the 2.2s mark and still be mid-flight when axe scans.
+  //
+  // So: sample every element's computed opacity and require three consecutive
+  // identical readings (~360ms of stillness). Elements with a running CSS
+  // animation are excluded — an `animate-pulse` skeleton would otherwise never
+  // stabilise and every screen would eat the full timeout.
+  await page
+    .waitForFunction(
+      () => {
+        const w = window as Window & { __sweepOpacitySig?: { v: string; n: number } };
+        const animated = new Set(
+          document
+            .getAnimations()
+            .map((a) => (a.effect as KeyframeEffect | null)?.target)
+            .filter((t): t is Element => !!t),
+        );
+        const sig = Array.from(document.querySelectorAll("#root *"))
+          .filter((e) => !animated.has(e))
+          .map((e) => getComputedStyle(e).opacity)
+          .join(",");
+        const prev = w.__sweepOpacitySig;
+        if (!prev || prev.v !== sig) {
+          w.__sweepOpacitySig = { v: sig, n: 1 };
+          return false;
+        }
+        prev.n += 1;
+        return prev.n >= 3;
+      },
+      undefined,
+      { timeout: 6_000, polling: 120 },
+    )
+    .catch(() => undefined);
 }
 
 /**

@@ -1,0 +1,211 @@
+name: UI sweep
+
+permissions:
+  contents: read
+
+# The screen-level UI gate.
+#
+# WHAT THIS RUNS AND WHY ONLY THIS
+# --------------------------------
+# There are three sweeps over the shared route catalog in
+# e2e/happy-path/auditRoutes.ts:
+#
+#   empty-state-sweep  — every collection returns [];  ASSERTS  (this gate)
+#   visual-audit-sweep — seeded/populated screens;     ASSERTS  (manual)
+#   error-state-sweep  — queries 500 / hang;           ASSERTS  (manual)
+#
+# Only the empty-state sweep runs automatically, at ONE variant (phone-light),
+# and that is a deliberate cost decision, not an oversight:
+#
+#   - The seeded sweep's describe is `mode: "serial"` (its aggregate gate test
+#     has to see every screen's result, which only works inside one worker), so
+#     it cannot be parallelised — ~166 screens x ~8s on a single worker is ~20
+#     minutes of runner time per push. Far too expensive to put on every commit
+#     for a repo whose owner already had a macOS cron disabled over ~$16/mo of
+#     Actions spend.
+#   - The error-state sweep is a NEW gate over a surface that has never been
+#     gated and currently reports real findings; wiring it in before those are
+#     closed would just red main. Same reasoning that kept the empty-state
+#     sweep opt-in until its own findings were closed.
+#
+# Both are one `workflow_dispatch` click away (see the inputs below), and the
+# full 4-variant matrix is a dispatch input rather than a push trigger.
+#
+# COST — measured, not guessed
+# ----------------------------
+# ubuntu-latest, 1x billing multiplier (NOT macOS). Measured locally on an
+# M-series Mac, 2026-08-17:
+#
+#   empty-state, phone-light, --workers=4   175 screens   2.4 min   (this gate)
+#   seeded,      phone-light, serial        186 screens   9.0 min   (not gated)
+#   error-state, phone-light, --workers=3   163 screens   2.8 min   (not gated)
+#
+# A GitHub ubuntu runner is slower than that laptop, so budget the sweep step
+# at ~5-6 min, plus ~1 min npm install, ~30s Chromium download and ~1 min
+# production build: call it ~9 minutes of billed time per run. Adding the
+# seeded sweep would roughly triple that for coverage of the SAME routes in
+# their populated state, which is why it is dispatch-only.
+#
+# The paths-filter step below reports green in seconds when nothing
+# UI-relevant changed, so backend-only and docs-only commits cost ~nothing.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sweeps:
+        description: "Which sweeps to run"
+        required: false
+        default: empty
+        type: choice
+        options:
+          - empty
+          - seeded
+          - error
+          - empty+seeded
+          - all
+      variants:
+        description: "Variant tags: phone-light | all | comma list (phone-dark,desktop-light,small-light)"
+        required: false
+        default: phone-light
+        type: string
+
+concurrency:
+  group: ui-sweep-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sweep:
+    name: Screen sweep (phone-light, assertions on)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # Same publishable Vite vars the other workflows bake in. The sweep mocks
+      # every Supabase HTTP call via page.route(), so no real traffic is sent;
+      # a value must still exist or supabase-js throws "supabaseUrl is required"
+      # at import time and the React app never mounts.
+      VITE_SUPABASE_PROJECT_ID: fncmgoasalhdgfwzhsqa
+      VITE_SUPABASE_URL: https://fncmgoasalhdgfwzhsqa.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_test_key_for_e2e_only
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Deliberately an IN-JOB filter rather than a top-level `paths:` trigger.
+      # This job is meant to be a required status check, and GitHub counts a
+      # required check that never ran as unsatisfied — a `paths:` filter would
+      # leave backend-only PRs stuck on "Expected" forever. Same pattern as
+      # .github/workflows/e2e-happy-path.yml; see the note there.
+      - name: Detect UI-relevant changes
+        id: filter
+        # Skipped on workflow_dispatch: there is no base ref to diff against
+        # there, and a manual run is by definition asking for the sweep. The
+        # `if:` on every later step falls back to the event name for that case.
+        if: github.event_name != 'workflow_dispatch'
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            ui:
+              - "src/**"
+              - "public/**"
+              - "index.html"
+              - "vite.config.ts"
+              - "tailwind.config.ts"
+              - "package.json"
+              - "package-lock.json"
+              - "playwright.config.ts"
+              - "e2e/happy-path/**"
+              - ".github/workflows/ui-sweep.yml"
+
+      # Workflow inputs are read through `env:` and never interpolated into the
+      # shell, and `specs` is emitted from a fixed case arm rather than echoed
+      # back from user text — so no dispatch input can reach the command line.
+      - name: Resolve run scope
+        id: scope
+        env:
+          SWEEPS: ${{ github.event.inputs.sweeps || 'empty' }}
+          VARIANTS: ${{ github.event.inputs.variants || 'phone-light' }}
+        run: |
+          set -euo pipefail
+          case "$SWEEPS" in
+            empty)         specs="empty-state-sweep";  empty=1; seeded=""; errors="" ;;
+            seeded)        specs="visual-audit-sweep";  empty=""; seeded=1; errors="" ;;
+            error)         specs="error-state-sweep";   empty=""; seeded=""; errors=1 ;;
+            empty+seeded)  specs="empty-state-sweep visual-audit-sweep"; empty=1; seeded=1; errors="" ;;
+            all)           specs="empty-state-sweep visual-audit-sweep error-state-sweep"; empty=1; seeded=1; errors=1 ;;
+            *)             echo "unknown sweeps value" >&2; exit 1 ;;
+          esac
+          {
+            echo "specs=$specs"
+            echo "run_empty=$empty"
+            echo "run_seeded=$seeded"
+            echo "run_error=$errors"
+          } >> "$GITHUB_OUTPUT"
+          # Variant tags are validated by the specs themselves (an unknown tag
+          # throws "matched no variant tag"), so pass the raw value through as
+          # an env var only — never onto a command line.
+          printf 'variants<<EOF\n%s\nEOF\n' "$VARIANTS" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        # See test.yml — `install` not `ci`, so a drifting lockfile heals
+        # instead of failing the run.
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Install Playwright Chromium browser
+        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run sweep
+        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        env:
+          # PLAYWRIGHT_WEB_SERVER=1 turns on the `npm run build && vite preview`
+          # auto-start in playwright.config.ts. reuseExistingServer is false
+          # under CI, so this always measures a fresh dist/ — the stale-preview
+          # trap that has produced false findings locally cannot happen here.
+          PLAYWRIGHT_WEB_SERVER: "1"
+          RUN_EMPTY_SWEEP: ${{ steps.scope.outputs.run_empty }}
+          RUN_VISUAL_SWEEP: ${{ steps.scope.outputs.run_seeded }}
+          RUN_ERROR_SWEEP: ${{ steps.scope.outputs.run_error }}
+          EMPTY_SWEEP_VARIANTS: ${{ steps.scope.outputs.variants }}
+          SWEEP_VARIANTS: ${{ steps.scope.outputs.variants }}
+          ERROR_SWEEP_VARIANTS: ${{ steps.scope.outputs.variants }}
+          SPECS: ${{ steps.scope.outputs.specs }}
+        # --workers=4 overrides playwright.config.ts's CI default of 2. The
+        # standard ubuntu runner has 4 vCPUs and these tests are dominated by
+        # page load + axe wait, not CPU, so 4 workers roughly halves the wall
+        # clock — and therefore the billed minutes — at no reliability cost.
+        # The seeded sweep's own describe is serial and ignores this.
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2086 — SPECS is a fixed, space-separated list
+          # of spec basenames produced by the case arm above, never user text.
+          npx playwright test --project=happy-path --workers=4 $SPECS
+
+      - name: Upload sweep evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-sweep-evidence
+          # Per-screen JSON + screenshots of only the screens that failed
+          # something — that pairing is what makes a red sweep triageable
+          # without re-running it locally.
+          path: |
+            /tmp/ui-review-empty/
+            /tmp/ui-review/
+            /tmp/ui-review-error/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14

@@ -15,10 +15,11 @@
 // HELPER_SCREENS) and registered in a loop, so adding coverage is a
 // one-line edit. Indices are assigned sequentially across all groups.
 //
-// This is an EVIDENCE sweep (screenshots + an a11y JSON report), not a
-// gate — it asserts nothing beyond "a screen rendered". So it is SKIPPED
-// in normal CI to avoid burning ~1.5 min of Actions minutes per run on
-// artifacts nobody reads. Run it on demand with:
+// This produces evidence (screenshots + an a11y JSON report) AND gates on it:
+// the final `zz gate` test fails the run if any screen failed to render or if
+// axe reported ANY wcag2a/2aa/21a/21aa violation. It used to record
+// `totalViolations` and assert nothing, which is how a real 1.92:1 contrast
+// failure sat green in it. Run it on demand with:
 //   RUN_VISUAL_SWEEP=1 PLAYWRIGHT_WEB_SERVER=1 \
 //     npx playwright test --project=happy-path visual-audit-sweep
 //
@@ -324,9 +325,60 @@ sweepDescribe("UI audit evidence sweep", () => {
     }
   }
 
-  // Sanity: at least one screen succeeded; otherwise something fundamental
-  // (preview server, route) is broken and we want a loud failure.
-  test("zz sanity report exists", () => {
-    expect(results.some((r) => r.status === "ok")).toBe(true);
+  /**
+   * THE GATE. Until 2026-08-17 this sweep recorded `totalViolations` and moved
+   * on, so a real 1.92:1 contrast failure sat green in it for weeks — the run
+   * was evidence dressed up as a check. It now fails.
+   *
+   * Why the assertion lives HERE rather than inside each screen's own test:
+   * this describe is `mode: "serial"` (see the configure call above), and under
+   * serial a failing test SKIPS every test after it. A per-screen `expect`
+   * would therefore stop the sweep at the first bad screen, and the
+   * a11y-report.json evidence — the whole reason this file exists — would be
+   * truncated to whatever ran before it. Collecting every screen first and
+   * asserting once at the end gives BOTH: a complete report on disk and a red
+   * run that names every offending screen in one message.
+   *
+   * Two things fail the run:
+   *   - any axe wcag2a/2aa/21a/21aa violation on any screen;
+   *   - any screen that did not render at all. A screen that threw has
+   *     `totalViolations: undefined`, which would otherwise slip past the
+   *     violation check and count as clean — a hole big enough to hide a
+   *     white-screening route in.
+   *
+   * If this is red, FIX THE SCREENS. Do not narrow the tag set or filter by
+   * impact to get it green — a muted gate is the state this change was made to
+   * get out of.
+   */
+  test("zz gate: every screen rendered and axe is clean", () => {
+    // Sanity first: an empty/all-failed run means something fundamental
+    // (preview server, route table) is broken, not that the app is clean.
+    expect(results.some((r) => r.status === "ok"), "no screen rendered at all").toBe(true);
+
+    const failedToRender = results
+      .filter((r) => r.status !== "ok")
+      .map((r) => `${r.index} ${r.name} (${r.variant}) — ${r.status}: ${r.error ?? "no error recorded"}`);
+
+    const violating = results
+      .filter((r) => (r.totalViolations ?? 0) > 0)
+      .map((r) => {
+        const detail = (r.topViolations ?? [])
+          .map(
+            (v) =>
+              `${v.id}(${v.impact ?? "?"}, ${v.nodes} node(s), ${v.targets[0] ?? "?"})` +
+              (v.detail.length ? ` [${v.detail[0]}]` : ""),
+          )
+          .join("; ");
+        return `${r.index} ${r.name} (${r.variant}) @ ${r.url} — ${r.totalViolations} violation(s): ${detail}`;
+      });
+
+    expect(
+      failedToRender,
+      `screens that never rendered (so their axe result is meaningless):\n  - ${failedToRender.join("\n  - ")}`,
+    ).toEqual([]);
+    expect(
+      violating,
+      `axe wcag2a/2aa/21a/21aa violations (full report: /tmp/ui-review/a11y-report.json):\n  - ${violating.join("\n  - ")}`,
+    ).toEqual([]);
   });
 });

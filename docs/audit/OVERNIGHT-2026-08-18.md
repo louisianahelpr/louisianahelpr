@@ -30,9 +30,14 @@ Release build 4823) plus code inspection. Owner asleep; questions saved for the 
 2. **Applicant count renders three times on one card** (/my-posts): a
    "N applicants · pick someone" pill, a "N applicants" meta row, and the
    "Applicants (N)" button. AGENT ASSIGNED.
-3. **Content clipped behind the floating bottom dock** on /my-posts AND
-   /profile — the scroll container is not reserving the dock height. Systemic,
-   seen on two screens. AGENT ASSIGNED.
+3. ~~**Content clipped behind the floating bottom dock**~~ — **I WAS WRONG.**
+   Verified rather than assumed: the dock auto-hides on scroll-down by design
+   (`MobileNav` translateY), and at the true end of the list the last card
+   clears it by **32px** with no control ever covered at any scroll position.
+   What I photographed was a floating dock over mid-scroll content, which one
+   wheel-notch resolves. The "dock clearance is solved four different ways"
+   section below is still accurate as an observation about the CODE, but it is
+   an inconsistency, not a live defect — do not "fix" it on my say-so.
 4. **Action chips are pastel multi-colour** on /my-posts cards: Share=blue,
    Boost=orange, Edit=cream, Cancel=pink. Blue appears nowhere else in the
    palette. Proposed, not shipped — taste call for the owner.
@@ -394,3 +399,53 @@ violations** across the historical corpus, none of them seat-related. CI only
 ever runs the guard over a push's changed files, so these are invisible today
 and will ambush whoever next touches one of those files. Worth a dedicated
 sweep; out of scope tonight.
+
+---
+
+# FINAL STATE — read this first
+
+## The single biggest bug found tonight
+
+**No toast host was mounted, so every error message in the app went nowhere.**
+`DeferredToasters` in `src/App.tsx` lazily imported `<Toaster />` and `<Sonner />`
+and rendered **neither**, while its own comment claimed "the toasters are
+mounted". All **427** `toast.*()` call sites — money paths included — resolved
+into nothing. Surfaced only because "share button does nothing" was chased to
+ground: the share always worked, the confirmation could never appear. Fixed in
+`971db95e`, which also resurrected a push-permission nudge that had been
+silently dead.
+
+## SEC-001 — closed, and the first fix was a lie
+
+Live, verified with `has_column_privilege`, not by trusting a green deploy:
+
+    authenticated → seat_tier UPDATE ............ false  ✅
+    authenticated → seat_subscription_id ........ false  ✅
+    anon          → seat_tier ................... false  ✅
+    authenticated → name / billing_mode / budget . true   (nothing broke)
+    service_role  → seat_tier ................... true   (Stripe reconciles)
+
+Took four commits. The first (`20260818070000`) **deployed successfully and
+changed nothing**: `REVOKE UPDATE (col)` subtracts a COLUMN-level grant, and the
+privilege came from a TABLE-level one (`relacl` = `authenticated=arwdDxtm`). A
+green migration over an open hole. Only caught by querying the live privilege.
+That is the whole argument for the verify-live-state rule.
+
+## Process failures worth keeping
+
+1. **A `git commit` swept up another agent's staged files** — `git add <path>`
+   does not scope a commit; everything already staged goes too. An un-hardened
+   migration reached main and auto-deployed because of it.
+2. **`.env.bak.*` was not gitignored** and held the Supabase keys and the MapKit
+   token. Caught by hand; now covered by `.env.*` with an `!.env.example`
+   exception.
+3. **Two agents sharing one working tree and index clobber each other.** It
+   happened twice tonight and was survivable both times only because each agent
+   re-verified its own content had landed.
+
+## Judgement calls where an agent was right and I was wrong
+- I told an agent to RENAME an already-applied migration. It refused: the file
+  was in `schema_migrations` on prod, and renaming would have stranded an orphan
+  ledger version — the exact poisoning CLAUDE.md is most emphatic about. Ledger
+  verified after: 406 files, 406 rows, symmetric difference empty.
+- I relayed a "CI-red 1440 test" as fact. The agent checked and it passes.

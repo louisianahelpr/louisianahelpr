@@ -57,6 +57,13 @@ supabase/.temp/
 
 # Environment variables (never commit secrets)
 .env
+# Any local copy of .env — `.env.bak`, `.env.bak.1787028236`, `.env.local.old`.
+# The bare `.env` rule above does NOT cover a suffixed sibling, and a backup
+# holds the same Supabase keys and MapKit token as the original. One was created
+# and left untracked-but-committable during the 2026-08-18 session; it was caught
+# by hand, which is not a control.
+.env.*
+!.env.example
 .env.local
 .env.*.local
 .env.production

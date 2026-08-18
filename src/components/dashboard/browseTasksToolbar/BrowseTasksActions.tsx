@@ -1,9 +1,9 @@
-import { startTransition } from "react";
-import { Search, SlidersHorizontal, List, Map as MapIcon } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { SavedSearches } from "@/components/SavedSearches";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
+import { BrowseViewToggle } from "./BrowseViewToggle";
 
 export interface BrowseTasksActionsProps {
   /** Dashboard filter state + setters (from useDashboardFilters). */
@@ -14,7 +14,10 @@ export interface BrowseTasksActionsProps {
   view: "list" | "map";
   setView: (next: "list" | "map") => void;
   /** Hide the List⇄Map toggle. On the desktop web the feed and map sit
-   *  side by side, so the toggle is meaningless — both panes are visible. */
+   *  side by side, so the toggle is meaningless — both panes are visible;
+   *  the guest feed sets it because it renders {@link BrowseViewToggle}
+   *  itself, in the toolbar row, to buy title-card width for its two
+   *  labelled auth controls. */
   hideViewToggle?: boolean;
 }
 
@@ -23,15 +26,16 @@ export interface BrowseTasksActionsProps {
  * filters.
  *
  * Returns a bare fragment of buttons rather than a wrapper, so the caller's
- * own flex row owns the gap. That is what lets Home line these up in the same
- * row as the notification bell at an even spacing: on Home the cluster is
- * lifted out of the panel toolbar and into PageScaffold's title card, beside
- * the emblem and the bell, leaving the toolbar row below to carry the large
- * "Browse jobs" title on its own (the iOS large-title pattern — one band of
- * chrome, big title beneath it).
+ * own flex row owns the gap. That is what lets both browse surfaces line these
+ * up evenly beside their own trailing control: the cluster is lifted out of the
+ * panel toolbar and into PageScaffold's title card — beside the emblem and the
+ * bell on Home, beside the emblem and the "Log in" / "Get started" pair on the
+ * guest feed — leaving the toolbar row below to carry the large "Browse jobs"
+ * title (the iOS large-title pattern — one band of chrome, big title beneath).
  *
- * The guest dashboard still renders it inline inside BrowseTasksToolbar,
- * where it shares the row with the title.
+ * The guest feed additionally passes `hideViewToggle` and renders
+ * {@link BrowseViewToggle} in the toolbar row instead; see that file for the
+ * measurement behind it.
  *
  * Every control here mutates `filters` / `view`, both of which are owned by
  * the page (useDashboardFilters / usePersistedBrowseView) and passed to BOTH
@@ -48,18 +52,7 @@ export function BrowseTasksActions({
 }: BrowseTasksActionsProps) {
   return (
     <>
-      {!hideViewToggle && (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => startTransition(() => setView(view === "map" ? "list" : "map"))}
-          className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${view === "map" ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
-          aria-label={view === "map" ? "Show list view" : "Show map view"}
-          aria-pressed={view === "map"}
-        >
-          {view === "map" ? <List className="w-5 h-5" /> : <MapIcon className="w-5 h-5" />}
-        </Button>
-      )}
+      {!hideViewToggle && <BrowseViewToggle view={view} setView={setView} />}
       {user && (
         <SavedSearches
           userId={user.id}

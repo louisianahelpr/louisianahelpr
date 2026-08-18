@@ -9,7 +9,10 @@ import { toast } from "sonner";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { DashboardTitleBar } from "@/components/dashboard/DashboardTitleBar";
+// TITLE_BAR_PADDING ships WITH the bar it is sized for, so Home and the
+// guest feed cannot drift apart on the one measurement that makes the row
+// read as a band of chrome rather than a card.
+import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
 import DashboardInProgressBadge from "@/components/dashboard/DashboardInProgressBadge";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
@@ -50,14 +53,6 @@ import { useApplyFlow } from "./dashboard/useApplyFlow";
 import { useDetailJob } from "./dashboard/useDetailJob";
 import { DismissJobDialog } from "./dashboard/DismissJobDialog";
 
-
-// PageScaffold's title card defaults to `py-4 lg:py-5`, which is sized for a
-// two-line greeting block. Home's title card holds a single row of 44px
-// controls (emblem + feed actions + bell), so the default padding would leave
-// it floating in ~32px of dead space. `!` because both paddings are
-// same-specificity utilities — class order in the attribute does not decide
-// the winner, stylesheet order does.
-const TITLE_BAR_PADDING = "!py-2 lg:!py-2.5";
 
 const Dashboard = () => {
   const navigate = useNavigate();

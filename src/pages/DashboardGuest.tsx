@@ -28,7 +28,8 @@ import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { usePageMeta } from "@/hooks/usePageMeta";
-import HelprMark from "@/components/HelprMark";
+import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
+import { BrowseViewToggle } from "@/components/dashboard/browseTasksToolbar/BrowseViewToggle";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 
@@ -50,7 +51,62 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
  * active-filter chip row, and the list/map toggle behave identically.
  * SavedSearches is internally gated on a signed-in user, so it correctly
  * stays hidden for guests.
+ *
+ * The chrome matches too: one band — emblem, feed actions, then "Log in" /
+ * "Get started" where Home puts its bell — over the large "Browse jobs" title
+ * in the panel. There is no app bar on either screen.
  */
+
+/**
+ * The guest feed's trailing controls — the signed-out counterpart to Home's
+ * notification bell, occupying the same slot at the end of the title bar's
+ * single row.
+ *
+ * Both are deliberately un-filled so the only solid-green element on the guest
+ * feed stays the bottom "+" FAB (the app-wide primary action, which gates
+ * guests to signup anyway). "Log in" is a plain text control; "Get started" is
+ * a quiet bark-tinted outline pill — clearly the CTA of the two, without
+ * competing with the FAB as a second filled-green target.
+ *
+ * These two are the entire conversion path of the screen, so they stay
+ * full-width labelled controls at every breakpoint: never collapsed to icons,
+ * never folded into an overflow menu, never below the 44px tap floor. What
+ * yields when the row runs out of room is the emblem (see DashboardTitleBar) —
+ * a visitor can find the front door again; they cannot guess a hidden CTA.
+ *
+ * `px-2` rather than the button default: the horizontal padding is the only
+ * slack in this row that costs nothing — the labels and the 44px tap heights
+ * are untouched, and the 8px it returns is what lets the pair survive intact
+ * at 320px, where the emblem has already collapsed to zero.
+ */
+function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup: () => void }) {
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={onLogin}
+        className="text-ds-11 h-11 px-2 rounded-ds-md font-sans font-semibold"
+        style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
+      >
+        Log in
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onSignup}
+        className="text-ds-11 h-11 px-2 rounded-ds-md font-sans font-semibold"
+        style={{
+          color: "hsl(var(--bark))",
+          borderColor: "hsl(var(--bark) / 0.45)",
+          background: "hsl(var(--bark) / 0.05)",
+        }}
+      >
+        Get started
+      </Button>
+    </>
+  );
+}
 
 const DashboardGuest = () => {
   const navigate = useNavigate();
@@ -206,57 +262,53 @@ const DashboardGuest = () => {
     <PageScaffold
       maxWidth="narrow"
       animate
-      header={
-        /* Header — matches DashboardHeader's frosted-glass treatment, with
-           guest-only Log in / Sign up actions in place of the menu/notif/etc. */
-        <header className="glass-header sticky top-0 z-50 shrink-0">
-        <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
-          <HelprMark to="/" size="md" />
-          {/* Both header actions are deliberately un-filled so the only
-              solid-green element on the guest dashboard is the bottom "+"
-              FAB (the app-wide primary action, which gates guests to signup
-              anyway). Log in is a plain text link; Get started is a quiet
-              bark-tinted outline pill — clearly the CTA of the two, without
-              competing with the FAB as a second filled-green target. */}
-          <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => navigate("/login")}
-              className="text-ds-11 h-11 rounded-ds-md font-sans font-semibold"
-              style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
-            >
-              Log in
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/signup")}
-              className="text-ds-11 h-11 rounded-ds-md font-sans font-semibold"
-              style={{
-                color: "hsl(var(--bark))",
-                borderColor: "hsl(var(--bark) / 0.45)",
-                background: "hsl(var(--bark) / 0.05)",
-              }}
-            >
-              Get started
-            </Button>
-          </div>
-        </div>
-      </header>
+      // No `header` — the guest feed carried a sticky app bar whose only job
+      // was to state the brand and hold the two auth actions. Both now live in
+      // the title card's single row below, exactly as Home's emblem + bell do,
+      // so the screen is one band of chrome over a large title instead of a
+      // bar over a card over a title. PageScaffold takes on the top safe-area
+      // inset itself when no header is passed.
+      titleCard={
+        <DashboardTitleBar
+          filters={filters}
+          // `null` keeps SavedSearches out of the cluster — it is a signed-in
+          // feature, and its absence is exactly the 44px the guest row spends
+          // on labelled auth actions instead.
+          user={null}
+          view={view}
+          setView={setView}
+          // The List⇄Map switch is the one control that does NOT fit up here:
+          // measured at 375, the emblem + three 44px icons + both labelled auth
+          // controls need ~328px of a 295px row. It moves down to the toolbar
+          // row instead (see `titleRowTrailing` below) — still visible, still
+          // 44px, still labelled — which is what keeps the emblem at full size
+          // and both CTAs at full width on a phone.
+          hideViewToggle
+          // The crest points at the marketing landing, not at this feed: a
+          // signed-out visitor tapping it wants the front door.
+          emblemTo="/"
+          trailing={<GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />}
+        />
       }
+      titleCardClassName={TITLE_BAR_PADDING}
     >
             {/* Shared Browse toolbar — identical to the authenticated
-                dashboard (title row, list/map toggle, expandable search with
-                recent/popular suggestions, the unified FilterSheet, category
-                picker row, and swipeable active-filter chips). `user={null}`
-                keeps SavedSearches hidden for guests. */}
+                dashboard (expandable search with recent/popular suggestions,
+                the unified FilterSheet, category picker row, and swipeable
+                active-filter chips). `user={null}` keeps SavedSearches hidden
+                for guests. */}
             <BrowseTasksToolbar
               filters={filters}
               user={null}
               helperAvailability={[]}
               view={view}
               setView={setView}
+              // The icon cluster lives one row up, in the title card, beside
+              // the emblem and the auth actions — so this row carries the large
+              // "Browse jobs" h1, matching Home, plus the one control the band
+              // had no room for.
+              hideActions
+              titleRowTrailing={<BrowseViewToggle view={view} setView={setView} />}
               onClearAllFilters={() => {
                 const el = containerRef.current;
                 if (el) el.scrollTo({ top: 0, behavior: "smooth" });

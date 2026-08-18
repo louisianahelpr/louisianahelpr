@@ -2,7 +2,15 @@
  * GDPR + CCPA data rights page.
  *
  * - Data export → triggers a JSON dump of profile + jobs + messages
- * - CCPA "do not sell or share" → opt-out toggle (we don't sell data, but
+ * - CCPA "do not sell or share": REMOVED 2026-08-18. The toggle was inert —
+ *   it wrote a device-local key, never reached the server and gated nothing —
+ *   and the owner confirmed Helpr does not sell or share personal information
+ *   for cross-context behavioural advertising, which is what the CPRA opt-out
+ *   requirement attaches to. A control that neither does anything nor is
+ *   required is worse than none: it implies a protection the code does not
+ *   provide. (PostHog and Sentry are present; no ad SDK. If that ever changes,
+ *   the requirement returns and the control must come back WORKING.)
+ * - (former note: we don't sell data, but
  *   the toggle still has to exist for CA residents)
  *
  * GDPR Art. 17 "right to erasure" is exercised from the Profile / Settings
@@ -10,19 +18,17 @@
  *
  * Linked from Settings, Privacy Policy, and the iOS App Store privacy listing.
  */
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { report } from "@/lib/errorLogger";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Download, ShieldOff, Loader2 } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticError } from "@/lib/haptics";
-import { safeStorage } from "@/lib/safeStorage";
 
 const DataRights = () => {
   usePageMeta({
@@ -44,12 +50,6 @@ const DataRights = () => {
   const { user } = useAuthReady();
   const userId = user?.id ?? null;
   const [exporting, setExporting] = useState(false);
-  const [doNotSell, setDoNotSell] = useState(false);
-
-  useEffect(() => {
-    const stored = safeStorage.getItem("helpr_do_not_sell");
-    if (stored === "1") setDoNotSell(true);
-  }, []);
 
   const handleExport = async () => {
     if (!userId) return;
@@ -95,12 +95,6 @@ const DataRights = () => {
     } finally {
       setExporting(false);
     }
-  };
-
-  const toggleDoNotSell = (next: boolean) => {
-    setDoNotSell(next);
-    safeStorage.setItem("helpr_do_not_sell", next ? "1" : "0");
-    toast.success(next ? "Opted out of data sharing" : "Opted in to data sharing");
   };
 
   // Signed-in only (the route is behind ProtectedRoute) and reached from the
@@ -160,33 +154,6 @@ const DataRights = () => {
           </div>
         </section>
 
-        {/* Do not sell — CCPA */}
-        <section className="rounded-2xl liquid-glass p-5 space-y-4 h-full flex flex-col">
-          <div className="flex items-start gap-3">
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: "hsl(var(--bark) / 0.10)" }}
-            >
-              <ShieldOff className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} aria-hidden />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="font-sans font-semibold text-ds-17">Do not sell or share my personal information</h2>
-              <p className="text-ds-11 text-muted-foreground mt-1">
-                Helpr does not sell your data. This toggle additionally opts you out of any cross-context behavioral
-                advertising that may be enabled in the future.
-              </p>
-            </div>
-          </div>
-          <label
-            className="mt-auto flex items-center justify-between gap-3 pt-3 cursor-pointer"
-            style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
-          >
-            <span className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {doNotSell ? "Opted out" : "Opted in"}
-            </span>
-            <Switch checked={doNotSell} onCheckedChange={toggleDoNotSell} aria-label="Do not sell my personal information" />
-          </label>
-        </section>
         </div>
 
         {/* Legal context sits BELOW the controls as a quiet footnote — it's

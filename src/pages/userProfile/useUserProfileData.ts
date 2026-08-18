@@ -346,7 +346,19 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       if (appsRes?.data && appsRes.data.length > 0) {
         const allApps = appsRes.data;
         const accepted = allApps.filter((a: any) => a.status === "accepted");
-        const acceptanceRate = allApps.length > 0 ? (accepted.length / allApps.length) * 100 : null;
+        // Needs a real sample before it means anything. One application that
+        // hasn't been answered yet made a brand-new helper show "0% accept
+        // rate" — which a poster reads as a bad record, not as no data, and it
+        // sat three lines above "they're new on Helpr" saying the opposite.
+        //
+        // 5 matches the floor the cancellation rate already uses on this same
+        // card, and for the identical reason recorded there: "so a single early
+        // cancellation doesn't read as 100% cancel rate". Below the floor the
+        // metric is null and simply does not render, the way it already
+        // behaves at zero applications.
+        const MIN_ACCEPT_RATE_SAMPLE = 5;
+        const acceptanceRate =
+          allApps.length >= MIN_ACCEPT_RATE_SAMPLE ? (accepted.length / allApps.length) * 100 : null;
         const responseTimes = accepted
           .map((a: any) => (new Date(a.updated_at).getTime() - new Date(a.created_at).getTime()) / 3_600_000)
           .filter((h: number) => h > 0 && h < 720);

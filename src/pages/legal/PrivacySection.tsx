@@ -167,8 +167,8 @@ export const PrivacyContent = () => (
         title="Deletion & portability"
         body={
           <>
-            <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from your <Link to="/data-rights" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Data Rights</Link> page — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed.</p>
-            <p><strong className="text-foreground">Data portability:</strong> Download a complete copy of your data (profile, jobs, applications, reviews) as a machine-readable JSON file from the same <Link to="/data-rights" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Data Rights</Link> page.</p>
+            <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from <Link to="/profile" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Profile settings</Link> — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed.</p>
+            <p><strong className="text-foreground">Data portability:</strong> Download a complete copy of your data (profile, jobs, applications, reviews) as a machine-readable JSON file from your <Link to="/data-rights" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Data Rights</Link> page.</p>
           </>
         }
       />

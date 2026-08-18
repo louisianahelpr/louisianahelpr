@@ -44,7 +44,12 @@ Always respond using the generate_job_posting tool.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gemini-2.5-flash",
+        // gemini-2.5-flash was retired for NEW API keys: Google returns
+        // 404 "no longer available to new users" and names 3.6-flash as the
+        // replacement. The old model kept working for keys created before the
+        // cutoff, which is why this only surfaced when a fresh key was issued
+        // — the function looked fine right up until someone configured it.
+        model: "gemini-3.6-flash",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,

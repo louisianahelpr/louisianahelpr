@@ -7,6 +7,7 @@ import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { toast } from "sonner";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
+import { LoadingHeading } from "@/components/ui/LoadingHeading";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { usePageTitle } from "@/hooks/usePageTitle";
 // TITLE_BAR_PADDING ships WITH the bar it is sized for, so Home and the
@@ -233,6 +234,10 @@ const Dashboard = () => {
         }
         titleCardClassName={TITLE_BAR_PADDING}
       >
+        {/* The loaded screen's only <h1> lives in BrowseTasksToolbar, which
+            doesn't exist yet here — so the pending screen had no heading at
+            all. Visually hidden; the skeleton stays the visible design. */}
+        <LoadingHeading title="Browse jobs" message="Loading jobs near you…" />
         <DashboardSkeleton />
       </PageScaffold>
     );

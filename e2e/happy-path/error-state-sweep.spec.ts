@@ -379,11 +379,35 @@ async function auditFailingScreen(
   // instead — a screen with zero pending requests is not actually testing a
   // pending state and should not be credited as if it were.
   const pending = new Set<string>();
+  /**
+   * When the last REST request started or ended. Drives the retry-quiet wait
+   * below — `networkidle` alone measures the wrong frame. See there.
+   */
+  let lastRestAt = Date.now();
   page.on("request", (r) => {
-    if (r.url().includes("/rest/v1/")) pending.add(r.url());
+    if (r.url().includes("/rest/v1/")) {
+      pending.add(r.url());
+      lastRestAt = Date.now();
+    }
   });
-  page.on("requestfinished", (r) => pending.delete(r.url()));
-  page.on("requestfailed", (r) => pending.delete(r.url()));
+  page.on("requestfinished", (r) => {
+    if (r.url().includes("/rest/v1/")) lastRestAt = Date.now();
+    pending.delete(r.url());
+  });
+  page.on("requestfailed", (r) => {
+    if (r.url().includes("/rest/v1/")) lastRestAt = Date.now();
+    pending.delete(r.url());
+  });
+
+  /** Block until no REST call has started or finished for RETRY_QUIET_MS. */
+  const RETRY_QUIET_MS = 3_000;
+  const waitForRetryQuiet = async (capMs = 20_000): Promise<void> => {
+    const deadline = Date.now() + capMs;
+    while (Date.now() < deadline && Date.now() - lastRestAt < RETRY_QUIET_MS) {
+      await page.waitForTimeout(150);
+    }
+    if (Date.now() >= deadline) result.notes = (result.notes ?? "") + "retry-quiet-timeout;";
+  };
 
   try {
     await page.setViewportSize({ width: variant.width, height: variant.height });
@@ -402,6 +426,21 @@ async function auditFailingScreen(
       await page.waitForLoadState("networkidle", { timeout: 12_000 }).catch(() => {
         result.notes = (result.notes ?? "") + "networkidle-timeout;";
       });
+      // …then wait for React Query to STOP retrying.
+      //
+      // `networkidle` is 500ms of network silence, and the retry backoff
+      // (queryClient.ts: 3 attempts, default 1s then 2s delay) opens gaps
+      // longer than that with nothing in flight. So networkidle fires INSIDE
+      // the retry window and the sweep photographs the skeleton — then
+      // reports "STUCK IN LOADING", which is a claim about permanence it has
+      // no evidence for. Measured on /my-posts (2026-08-17, injected 500s):
+      // skeleton from 0.9s, real error card with h1 + "Try again" from 3.8s,
+      // steady through 10.6s. The old wait landed at ~3s, every time.
+      //
+      // Quiet threshold is 3s — longer than the 2s max backoff, so the wait
+      // cannot end between two attempts. Capped so a screen that legitimately
+      // polls forever still gets measured rather than eating the test budget.
+      await waitForRetryQuiet();
     } else {
       // networkidle can never arrive while requests are deliberately held, so
       // wait a fixed beat for the shell + lazy chunk instead.
@@ -416,6 +455,9 @@ async function auditFailingScreen(
       await extraSetup(page).catch(() => undefined);
       if (mode === "error") {
         await page.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => undefined);
+        // extraSetup can kick off a whole new fetch (the map toggle mounts
+        // BrowseMap and fires its own RPC), so the retry window reopens here.
+        await waitForRetryQuiet(12_000);
       }
       await page.waitForTimeout(400);
     }

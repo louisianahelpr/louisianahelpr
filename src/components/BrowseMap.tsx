@@ -25,6 +25,7 @@ import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { BellRing, MapPin } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { ErrorState } from "@/components/ui/ErrorState";
 import {
   HEAT_AUTO_THRESHOLD,
   LA_BOUNDS,
@@ -68,6 +69,16 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
   // un-mappable, not lost.
   const [totalOpen, setTotalOpen] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  // The pin RPC used to fail SILENTLY: `if (error) { report(...); return; }`
+  // left `jobs` at [], so a 500 rendered the "Empty map for now." card — the
+  // map told the user Louisiana had no work when in truth the query died.
+  // That is the exact failure CLAUDE.md's "never drop the Supabase error"
+  // rule exists to stop, and the error-state sweep caught it on /dashboard's
+  // map view (SILENT_FAILURE: 36 failed requests, no failure wording, no way
+  // out). Tracked explicitly so the map can say so and offer a retry.
+  const [loadError, setLoadError] = useState(false);
+  /** Bumped by the retry button to re-run the fetch effect. */
+  const [reloadNonce, setReloadNonce] = useState(0);
   // Initialize from localStorage so the user's last choice survives
   // app restarts (and Capacitor cold starts).
   const [view, setView] = useState<MapLayer>(() => readStoredLayer() ?? "pins");
@@ -107,9 +118,11 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
         if (cancelled) return;
         if (error) {
           report(error, { tags: { source: "BrowseMap.rpc" } });
+          setLoadError(true);
           setLoading(false);
           return;
         }
+        setLoadError(false);
         const rows = (data as MapJob[] | null) ?? [];
         // Defensive: drop any rows that snuck through with null coords
         // despite the SQL filter (e.g. type coercion oddness).
@@ -134,9 +147,15 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     return () => {
       cancelled = true;
     };
-  }, [currentUserId]);
+  }, [currentUserId, reloadNonce]);
 
   const labels = useMemo(() => categoryLabels, []);
+
+  const retry = () => {
+    setLoadError(false);
+    setLoading(true);
+    setReloadNonce((n) => n + 1);
+  };
 
   if (loading) {
     return (
@@ -145,6 +164,24 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
       >
         <HelprSpinner size={20} />
+      </div>
+    );
+  }
+
+  // A failed fetch is NOT an empty marketplace — say which one it is. Same
+  // frosted ErrorState + "Try again" the list view shows for the same
+  // failure, so flipping list↔map during an outage reads as one screen.
+  if (loadError && jobs.length === 0) {
+    return (
+      <div
+        className="flex h-full w-full rounded-t-2xl border border-b-0 border-border bg-card/40 px-3 pt-4"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+      >
+        <ErrorState
+          title="We couldn't load the map."
+          body="The job pins didn't come back. Tap Try again — if it sticks, our end is having a hiccup, not yours."
+          onRetry={retry}
+        />
       </div>
     );
   }

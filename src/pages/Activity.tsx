@@ -6,6 +6,7 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingHeading } from "@/components/ui/LoadingHeading";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
@@ -223,6 +224,15 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         titleCard={<Skeleton className="h-3 w-44 rounded" />}
       >
         <div className="px-4 pt-3 space-y-2.5">
+          {/* The shimmer carries no words, so without this the pending screen
+              had zero headings and zero copy — the page was unnameable to a
+              screen reader and the "exactly one h1" invariant only held once
+              the data landed. Visually hidden: the skeleton stays the visible
+              design. */}
+          <LoadingHeading
+            title={tab === "posted" ? "My Posts" : "My Jobs"}
+            message={tab === "posted" ? "Loading your posts…" : "Loading your jobs…"}
+          />
           {/* On the "applied" tab use the application-card-shaped skeleton
               so the loading→loaded swap doesn't visibly thump (see #121).
               The "posted" tab keeps the original generic ActivityCardSkeleton

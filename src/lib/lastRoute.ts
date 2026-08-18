@@ -36,7 +36,18 @@ const KEY = "lh_last_route";
  * minutes of backgrounding. Long enough to cover a real errand, short enough
  * that "open the app the next day" still lands on the dashboard.
  */
-const RESTORE_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+// Three minutes, not thirty.
+//
+// This window is the only thing separating "the WebView reloaded under me" from
+// "I deliberately opened the app". JavaScript cannot tell those apart — a jetsam
+// reload and a cold launch both restart the JS with no native context — so the
+// window is a proxy: a reload lands you back within seconds of returning, while
+// opening the app on purpose is almost always a longer gap.
+//
+// Thirty minutes made a deliberate launch restore a deep screen. Owner, after
+// opening the app fresh and landing on Gift Cards: "That's wrong. If I close the
+// app completely it should open back on home."
+const RESTORE_WINDOW_MS = 3 * 60 * 1000; // 3 minutes
 
 /**
  * Routes that must never be restored.
@@ -61,6 +72,19 @@ const NEVER_RESTORE = [
   "/payment-success",
 ];
 
+/**
+ * The only paths worth reopening on.
+ *
+ * The window above is a heuristic, so it will sometimes be wrong. This list
+ * bounds the damage when it is: landing on a main tab you were already using
+ * reads as "it remembered", while landing on Gift Cards, Post a Job or Settings
+ * reads as the app being broken — which is exactly what happened.
+ *
+ * Deep screens are reached deliberately and are cheap to re-reach. Tabs are
+ * where you live. Restoring only tabs means a wrong guess costs nothing.
+ */
+const RESTORABLE_TABS = ["/dashboard", "/my-posts", "/my-jobs", "/messages", "/profile"];
+
 /** Is this a path worth coming back to? */
 export function isRestorablePath(path: string): boolean {
   if (!path) return false;
@@ -77,7 +101,11 @@ export function isRestorablePath(path: string): boolean {
 
   // Exact match or a genuine child segment. A bare startsWith would also
   // reject "/logins-report" for sharing five letters with "/login".
-  return !NEVER_RESTORE.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  if (NEVER_RESTORE.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return false;
+
+  // Main tabs only — see RESTORABLE_TABS. A thread inside /messages still
+  // qualifies via the child-segment check, since that is still the tab.
+  return RESTORABLE_TABS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 /**

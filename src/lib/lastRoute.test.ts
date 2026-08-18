@@ -32,7 +32,9 @@ describe("isRestorablePath", () => {
   it("accepts real destinations", () => {
     expect(isRestorablePath("/messages")).toBe(true);
     expect(isRestorablePath("/profile?tab=security")).toBe(true);
-    expect(isRestorablePath("/jobs/abc-123")).toBe(true);
+    // Deep screens are deliberately NOT restorable now — see RESTORABLE_TABS.
+    // Reopening on /jobs/abc-123 reads as the app being broken, not as memory.
+    expect(isRestorablePath("/jobs/abc-123")).toBe(false);
   });
 
   it("rejects the launch entrypoint itself", () => {
@@ -59,7 +61,8 @@ describe("isRestorablePath", () => {
 
   it("does not reject a route that merely shares a prefix", () => {
     // "/logins-report" is not "/login". Guard against a sloppy startsWith.
-    expect(isRestorablePath("/logins-report")).toBe(true);
+    // Still not treated as "/login", but also not a main tab, so not restorable.
+    expect(isRestorablePath("/logins-report")).toBe(false);
   });
 
   it("rejects excluded routes that carry query params", () => {
@@ -119,7 +122,7 @@ describe("remember → read round trip", () => {
 });
 
 describe("freshness window", () => {
-  const WINDOW = 30 * 60 * 1000;
+  const WINDOW = 3 * 60 * 1000; // must track RESTORE_WINDOW_MS in lastRoute.ts
 
   it("restores a route remembered seconds ago (the resume case)", () => {
     rememberRoute("/messages");

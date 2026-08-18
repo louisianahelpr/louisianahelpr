@@ -91,12 +91,12 @@ const BENEFITS: Array<{ title: string; desc: string }> = [
   {
     title: "Keep more of every job.",
     desc:
-      "Membership lowers the marketplace commission on both sides — the fee taken from a helper's payout and the service fee added to a poster's total.",
+      "Membership lowers the marketplace commission on both sides — the fee taken from a Helpr's payout and the service fee added to the hiring side's total.",
   },
   {
     title: "Get seen first.",
     desc:
-      "Paid tiers unlock early access to new jobs, priority placement in poster recommendations, and profile badges that read as trusted.",
+      "Paid tiers unlock early access to new jobs, priority placement when neighbors are searching for help, and profile badges that read as trusted.",
   },
   {
     title: "Cancel anytime.",
@@ -275,7 +275,7 @@ export default function SubscriptionPage() {
       if (url) window.location.href = url;
       else throw new Error("Couldn't open billing portal");
     } catch {
-      toast.error("Couldn't open billing portal. Please try again.");
+      toast.error("Couldn't open your billing portal — try again?");
     } finally {
       setUpgrading(false);
     }

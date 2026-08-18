@@ -71,7 +71,7 @@ const SECTIONS: BenefitSection[] = [
       },
       {
         name: "Sam's Club",
-        tagline: "Bulk supplies, cleaning products & food for helpers.",
+        tagline: "Bulk supplies, cleaning products & food for Helprs.",
         url: "https://www.samsclub.com",
       },
     ],

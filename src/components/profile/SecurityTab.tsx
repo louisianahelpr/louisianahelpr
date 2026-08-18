@@ -468,7 +468,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         ) : sessionGroups.length === 0 ? (
           <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {sessionsFetchFailed
-              ? "Couldn't load session history — try again later."
+              ? "Couldn't load session history — try again?"
               : "No recent sessions on record yet."}
           </p>
         ) : (

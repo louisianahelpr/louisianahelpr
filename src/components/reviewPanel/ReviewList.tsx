@@ -62,7 +62,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
   const qualityAvg = avg("quality");
   const communicationAvg = avg("communication");
 
-  if (loaded && loadFailed) return <p className="text-ds-11 text-destructive">Couldn't load reviews. Please try again later.</p>;
+  if (loaded && loadFailed) return <p className="text-ds-11 text-destructive">Couldn't load reviews — try again?</p>;
   if (loaded && reviews.length === 0) return <p className="text-ds-11 text-muted-foreground">No reviews yet.</p>;
   if (!loaded && reviews.length === 0) return null;
 

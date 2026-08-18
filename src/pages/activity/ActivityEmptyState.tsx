@@ -92,7 +92,7 @@ export function ActivityEmptyState({
         : `${elsewhere.slice(0, -1).join(", ")} and ${elsewhere[elsewhere.length - 1]}`;
   const body = isTrulyEmpty
     ? (isPosted
-        ? "While you wait for the right moment to post, you can earn on the helper side — browse open jobs near you and apply."
+        ? "While you wait for the right moment to post, you can earn by helping — browse open tasks near you and apply."
         : "While you scout for the right task, post one of your own — your neighbors might be the perfect match.")
     : hasSearch
       ? "No jobs match your search — try a different term."
@@ -106,8 +106,8 @@ export function ActivityEmptyState({
   // keep them on the same side they're filtering.
   const isCrossTabSuggestion = isTrulyEmpty;
   const ctaLabel = isCrossTabSuggestion
-    ? (isPosted ? "Browse jobs" : "Post a job")
-    : (isPosted ? "Post a job" : "Browse jobs");
+    ? (isPosted ? "Browse tasks" : "Post a task")
+    : (isPosted ? "Post a task" : "Browse tasks");
   const ctaTo = isCrossTabSuggestion
     ? (isPosted ? "/dashboard" : "/post-job")
     : (isPosted ? "/post-job" : "/dashboard");

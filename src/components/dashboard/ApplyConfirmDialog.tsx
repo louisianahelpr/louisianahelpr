@@ -214,7 +214,7 @@ export function ApplyConfirmDialog({
               className="pt-2 font-sans text-ds-13 leading-relaxed"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
-              Are you sure you want to apply for this job?
+              Are you sure you want to proceed?
             </p>
           )}
           {confirmApplyJob && (

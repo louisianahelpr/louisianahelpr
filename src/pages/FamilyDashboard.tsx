@@ -301,7 +301,7 @@ export default function FamilyDashboard() {
                 {
                   Icon: Users,
                   title: "Post & manage jobs on their behalf",
-                  desc: "An adult child can hire a Helpr for an aging parent — same escrow, same reviews, same trust.",
+                  desc: "An adult child can hire a Helpr for an aging parent — same protected payment, same reviews, same trust.",
                 },
                 {
                   Icon: MessageSquare,

@@ -79,10 +79,10 @@ export const TermsContent = () => (
     >
       <PolicyRowItem
         icon={DollarSign}
-        title="Escrow & charge timing"
+        title="Payment hold & charge timing"
         body={
           <>
-            <p><strong className="text-foreground">Charged upfront:</strong> Payments are processed via Stripe at booking and held in escrow until both parties confirm completion.</p>
+            <p><strong className="text-foreground">Charged upfront:</strong> Payments are processed via Stripe at booking and held securely (in escrow) until both parties confirm completion.</p>
             <p><strong className="text-foreground">Auto-release:</strong> If only one party confirms, the job auto-completes 48 hours later and payment releases to the Helpr (funds land about 72 hours after completion).</p>
             <p><strong className="text-foreground">Refunds:</strong> Refunds are evaluated case-by-case through the dispute process — see <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules → When something goes wrong</Link>.</p>
           </>

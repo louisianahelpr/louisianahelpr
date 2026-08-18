@@ -119,7 +119,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
       onClose?.();
     } catch (err) {
       hapticError();
-      const message = err instanceof Error ? err.message : "Couldn't send. Try again later.";
+      const message = err instanceof Error ? err.message : "Couldn't send your feedback — try again?";
       toast.error(message);
     } finally {
       setSubmitting(false);

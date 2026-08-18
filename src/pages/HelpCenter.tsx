@@ -245,7 +245,7 @@ const HelpCenter = () => {
               color: "hsl(var(--stormy-sky))",
             }}
           >
-            Answers, guides, and support — for posters and Helprs alike.
+            Answers, guides, and support — whether you're hiring or helping.
           </p>
 
           {/* Squircle search pill — client-side filter drives the FAQ list

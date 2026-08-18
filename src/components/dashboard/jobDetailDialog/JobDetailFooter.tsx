@@ -201,7 +201,7 @@ export const JobDetailFooter = ({
             className="font-serif italic text-ds-12 mt-0.5"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Get verified to apply for this job
+            {job.instant_book ? "Get verified to book this job" : "Get verified to apply for this job"}
           </p>
           <button
             className="mt-2 text-ds-12 font-sans font-semibold underline underline-offset-2 active:opacity-70 transition-opacity"

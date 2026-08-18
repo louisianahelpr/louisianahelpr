@@ -51,7 +51,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
         <div className="flex items-center gap-1 shrink-0">
           <StatusIcon className="w-3.5 h-3.5" style={{ color: statusColor }} />
           <span className="text-ds-12" style={{ color: statusColor }}>
-            {hasError ? "Error" : formatSyncTime(conn.last_synced_at)}
+            {hasError ? "Sync failed — reconnect?" : formatSyncTime(conn.last_synced_at)}
           </span>
         </div>
       </div>

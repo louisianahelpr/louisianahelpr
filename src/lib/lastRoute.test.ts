@@ -168,3 +168,36 @@ describe("hostile / corrupt stored values", () => {
     expect(readRestorableRoute()).toBeNull();
   });
 });
+
+// Route memory must never persist a state the user cannot leave.
+//
+// `?chat=1` makes MobileNav render null, so remembering it restored a Messages
+// screen with no bottom nav on every launch — a trap that survived force-quit,
+// because the restore put the user straight back into it. Reported from device:
+// "I am just stuck on messages now even if I close it it stays there."
+describe("rememberRoute — transient params", () => {
+  it("drops ?chat, which hides the bottom nav", () => {
+    rememberRoute("/messages?chat=1");
+    expect(readRestorableRoute()).toBe("/messages");
+  });
+
+  it("drops ?quickApply, which opens a dialog rather than naming a place", () => {
+    rememberRoute("/dashboard?quickApply=abc-123");
+    expect(readRestorableRoute()).toBe("/dashboard");
+  });
+
+  it("KEEPS ?tab — the tab is part of the place, not an overlay", () => {
+    rememberRoute("/profile?tab=security");
+    expect(readRestorableRoute()).toBe("/profile?tab=security");
+  });
+
+  it("keeps the surviving params when only some are transient", () => {
+    rememberRoute("/profile?tab=security&chat=1");
+    expect(readRestorableRoute()).toBe("/profile?tab=security");
+  });
+
+  it("leaves a param-free route alone", () => {
+    rememberRoute("/my-posts");
+    expect(readRestorableRoute()).toBe("/my-posts");
+  });
+});

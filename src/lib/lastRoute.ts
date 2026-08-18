@@ -88,10 +88,41 @@ export function isRestorablePath(path: string): boolean {
  * would restore the right page with the wrong panel open — a subtler version
  * of the same bug.
  */
+/**
+ * Query params that describe TRANSIENT UI STATE rather than a destination.
+ *
+ * A remembered route is a place to come back to. `?tab=security` is part of the
+ * place — restore it or you land on the wrong panel. `?chat=1` is not: it means
+ * "a thread is open on top of the inbox", which is a thing that happened, not
+ * somewhere the user is.
+ *
+ * This is not hypothetical tidiness. `?chat=1` makes MobileNav render null
+ * (MobileNav.tsx: `pathname === "/messages" && params.has("chat")`), so
+ * persisting it meant every relaunch restored a Messages screen with NO BOTTOM
+ * NAV and no way out — a permanent trap that survived force-quitting the app,
+ * because the restore put the user straight back into it. Reported from device:
+ * "I am just stuck on messages now even if I close it it stays there."
+ *
+ * Route memory must never be able to persist a state the user cannot leave.
+ * When adding a param here, ask: is this WHERE they were, or WHAT was open?
+ */
+const TRANSIENT_PARAMS = ["chat", "quickApply"];
+
+/** Strip transient overlay params, keeping the params that name a place. */
+function stripTransientParams(pathWithSearch: string): string {
+  const [pathname, query] = pathWithSearch.split("?");
+  if (!query) return pathname;
+  const params = new URLSearchParams(query);
+  for (const key of TRANSIENT_PARAMS) params.delete(key);
+  const rest = params.toString();
+  return rest ? `${pathname}?${rest}` : pathname;
+}
+
 export function rememberRoute(pathWithSearch: string): void {
   if (!isRestorablePath(pathWithSearch)) return;
+  const cleaned = stripTransientParams(pathWithSearch);
   try {
-    safeStorage.setItem(KEY, JSON.stringify({ p: pathWithSearch, t: Date.now() }));
+    safeStorage.setItem(KEY, JSON.stringify({ p: cleaned, t: Date.now() }));
   } catch {
     /* route memory is a convenience — never break navigation over it */
   }

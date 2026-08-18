@@ -14,10 +14,7 @@ export interface BrowseTasksActionsProps {
   view: "list" | "map";
   setView: (next: "list" | "map") => void;
   /** Hide the List⇄Map toggle. On the desktop web the feed and map sit
-   *  side by side, so the toggle is meaningless — both panes are visible;
-   *  the guest feed sets it because it renders {@link BrowseViewToggle}
-   *  itself, in the toolbar row, to buy title-card width for its two
-   *  labelled auth controls. */
+   *  side by side, so the toggle is meaningless — both panes are visible. */
   hideViewToggle?: boolean;
 }
 
@@ -25,23 +22,21 @@ export interface BrowseTasksActionsProps {
  * The Browse feed's icon cluster — view toggle · saved searches · search ·
  * filters.
  *
+ * Rendered by `BrowseTasksToolbar`, in the heading row, on both browse
+ * surfaces. It is its own component (rather than inline JSX) because it was
+ * briefly lifted into the page title card on 2026-08-17 and needed to be
+ * mountable from either row; the owner reverted that placement after seeing it
+ * on device, but the extraction is worth keeping — the cluster is ~60 lines
+ * and the toolbar it lives in is long.
+ *
  * Returns a bare fragment of buttons rather than a wrapper, so the caller's
- * own flex row owns the gap. That is what lets both browse surfaces line these
- * up evenly beside their own trailing control: the cluster is lifted out of the
- * panel toolbar and into PageScaffold's title card — beside the emblem and the
- * bell on Home, beside the emblem and the "Log in" / "Get started" pair on the
- * guest feed — leaving the toolbar row below to carry the large "Browse jobs"
- * title (the iOS large-title pattern — one band of chrome, big title beneath).
+ * own flex row owns the gap.
  *
- * The guest feed additionally passes `hideViewToggle` and renders
- * {@link BrowseViewToggle} in the toolbar row instead; see that file for the
- * measurement behind it.
- *
- * Every control here mutates `filters` / `view`, both of which are owned by
- * the page (useDashboardFilters / usePersistedBrowseView) and passed to BOTH
- * rows. Nothing is duplicated: `searchOpen` and `filtersOpen` live in that
- * shared filter state, so this cluster's search + filter buttons drive the
- * input and the sheet that BrowseTasksToolbar renders one row down.
+ * Every control here mutates `filters` / `view`, both owned by the page
+ * (useDashboardFilters / usePersistedBrowseView). `searchOpen` and
+ * `filtersOpen` live in that shared filter state, so the search + filter
+ * buttons drive the input and the sheet that BrowseTasksToolbar renders
+ * directly beneath this row.
  */
 export function BrowseTasksActions({
   filters,

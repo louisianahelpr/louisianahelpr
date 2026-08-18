@@ -103,10 +103,16 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnl
   // inside a 56px bar, so a 44px box has room and moves nothing.
   //
   // HEIGHT ONLY — deliberately no `min-w-11`. Height was the failing axis (the
-  // wordmark variant is already ~100px wide). A width floor would also break
-  // DashboardTitleBar at 320px, where five 44px controls need 236 of the 246
-  // available and the emblem is the element that must be allowed to collapse;
-  // pinning it to 44px would force horizontal overflow instead.
+  // wordmark variant is already ~100px wide). Width is also the axis this mark
+  // must stay free to LOSE: it is the one element in DashboardTitleBar without
+  // `shrink-0`, so when that row runs short the crest collapses inside the
+  // card's `overflow-hidden` and every control beside it stays reachable.
+  // Pinning it to 44px would turn that graceful degradation into horizontal
+  // overflow. (Re-measured 2026-08-18: the row does not currently run short —
+  // at 320 it holds the 37px crest, a 96px job pill and the bell with 49px to
+  // spare, now that the feed's four action icons sit in the toolbar row below.
+  // The floor stays off because the yield ORDER is the point, not because the
+  // fit is tight today.)
   //
   // Applied ONLY to the interactive variant — the `to === null` span above is
   // decorative chrome inside dialogs, not a tap target.

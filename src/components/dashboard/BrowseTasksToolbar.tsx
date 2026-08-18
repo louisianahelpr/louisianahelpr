@@ -25,17 +25,16 @@ export type { FeedDensity };
  * bar and filter panel, the active-filter chips, and the List / Map
  * view toggle.
  *
- * The icon cluster is `BrowseTasksActions`, rendered inline here by default
- * (the guest dashboard) or lifted into the page's own title card by a caller
- * that passes `hideActions` (Home). Either way the buttons drive the same
- * `filters.searchOpen` / `filters.filtersOpen` state this component reads, so
- * the search input, its recent/popular dropdown, and the FilterSheet stay
- * here, one row below the lifted buttons, and there is only ever one copy of
- * each piece of state.
+ * The icon cluster is `BrowseTasksActions`, rendered inline in the heading
+ * row — on BOTH browse surfaces, Home and the guest feed. It briefly lived in
+ * the page's title card instead (2026-08-17); the owner reverted that half of
+ * the change after seeing it on device, so the buttons sit next to the
+ * heading whose results they filter again.
  *
- * Search expansion deliberately stays in THIS row rather than following the
- * button up: the input opens directly above the results it filters, which is
- * where the recent/popular dropdown has to hang anyway.
+ * The buttons drive the same `filters.searchOpen` / `filters.filtersOpen`
+ * state this component reads, so the search input, its recent/popular
+ * dropdown, and the FilterSheet are all one row's worth of the same state —
+ * there is only ever one copy of each piece.
  */
 export function BrowseTasksToolbar({
   filters,
@@ -45,8 +44,6 @@ export function BrowseTasksToolbar({
   setView,
   hideViewToggle = false,
   onClearAllFilters,
-  hideActions = false,
-  titleRowTrailing,
   titleSrOnly = false,
 }: BrowseTasksToolbarProps) {
   // Recent searches dropdown — shown only when the search input is
@@ -242,16 +239,13 @@ export function BrowseTasksToolbar({
               </h1>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              {!hideActions && (
-                <BrowseTasksActions
-                  filters={filters}
-                  user={user}
-                  view={view}
-                  setView={setView}
-                  hideViewToggle={hideViewToggle}
-                />
-              )}
-              {titleRowTrailing}
+              <BrowseTasksActions
+                filters={filters}
+                user={user}
+                view={view}
+                setView={setView}
+                hideViewToggle={hideViewToggle}
+              />
             </div>
           </>
         )}

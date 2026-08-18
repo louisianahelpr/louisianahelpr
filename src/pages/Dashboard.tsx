@@ -209,6 +209,17 @@ const Dashboard = () => {
     setConfirmDismissJobId(null);
   }, [confirmDismissJobId, setDismissedJobIds]);
 
+  // The live in-progress / upcoming pill, which rides the title bar's
+  // trailing cluster just before the bell. Built once and used by BOTH the
+  // pending and the loaded branch below: it is fed by its own query
+  // (`helper_upcoming_job`), independent of the feed's, so gating it on
+  // `loading` would hide a live commitment for as long as the feed took to
+  // arrive and then slide it in sideways once the feed landed. Self-hides
+  // when there is no accepted / in-progress job.
+  const statusPill = (
+    <DashboardInProgressBadge job={upcomingJob} onView={(to) => navigate(to)} />
+  );
+
   if (loading) {
     // Loading state mirrors the *exact* loaded layout: the same
     // PageScaffold two-card shell (brand title card over a raised panel)
@@ -216,22 +227,14 @@ const Dashboard = () => {
     // Sharing the scaffold means the title card and panel keep their
     // size and position, so when the data resolves the feed settles in
     // place instead of popping in and shoving everything down. The title
-    // bar is the REAL one rather than a skeleton: it is static chrome
-    // (emblem + bell) that needs none of the pending data, so rendering
-    // the placeholder would only make it flicker into itself.
+    // bar is the REAL one rather than a skeleton: nothing in it depends on
+    // the pending feed query, so rendering a placeholder would only make it
+    // flicker into itself.
     return (
       <PageScaffold
         animate
         panelElevation="raised"
-        titleCard={
-          <DashboardTitleBar
-            filters={filters}
-            user={user}
-            view={isWebDesktop ? "list" : view}
-            setView={setView}
-            hideViewToggle={isWebDesktop}
-          />
-        }
+        titleCard={<DashboardTitleBar status={statusPill} />}
         titleCardClassName={TITLE_BAR_PADDING}
       >
         {/* The loaded screen's only <h1> lives in BrowseTasksToolbar, which
@@ -287,19 +290,12 @@ const Dashboard = () => {
       animate
       panelElevation="raised"
       // No `header` — Home carries no app bar, matching Messages / My Jobs /
-      // My Posts. The brand emblem and the bell moved into the title card
-      // below; the page's own name is the toolbar's "Browse jobs" h1 inside
-      // the panel. PageScaffold takes on the top safe-area inset itself when
-      // no header is passed.
-      titleCard={
-        <DashboardTitleBar
-          filters={filters}
-          user={user}
-          view={isWebDesktop ? "list" : view}
-          setView={setView}
-          hideViewToggle={isWebDesktop}
-        />
-      }
+      // My Posts. The brand emblem, the live-job pill and the bell are the
+      // whole of the title card's row; the page's own name is the toolbar's
+      // "Browse jobs" h1 inside the panel (sr-only here — owner decision,
+      // "home will not have a title just the H logo"). PageScaffold takes on
+      // the top safe-area inset itself when no header is passed.
+      titleCard={<DashboardTitleBar status={statusPill} />}
       titleCardClassName={TITLE_BAR_PADDING}
       aboveTitle={<BroadcastBanner />}
       beforePanel={
@@ -342,22 +338,6 @@ const Dashboard = () => {
               view={view}
               setView={setView}
               hideViewToggle={isWebDesktop}
-              // The icon cluster lives one row up, in the title card, beside
-              // the emblem and the bell — so this row carries only the large
-              // "Browse jobs" h1 (and the live-job pill opposite it).
-              hideActions
-              titleRowTrailing={
-                <DashboardInProgressBadge
-                  job={upcomingJob}
-                  // An in-progress job is one the user is DOING, so this
-                  // belongs on the applied/"My Jobs" side. It previously
-                  // pointed at `/activity?tab=myjobs` — a redirect that drops
-                  // the query string, to a tab name that never existed
-                  // (Activity only accepts "posted" | "applied") — so it
-                  // always landed on My Posts.
-                  onView={() => navigate("/my-jobs")}
-                />
-              }
               onClearAllFilters={() => {
                 // After clearing filters, snap the feed back to the top
                 // so the user lands on the fresh unfiltered head of the

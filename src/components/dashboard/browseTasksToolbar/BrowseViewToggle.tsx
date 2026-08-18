@@ -9,16 +9,16 @@ export interface BrowseViewToggleProps {
 }
 
 /**
- * The Browse feed's List⇄Map switch, on its own so either row can hold it.
+ * The Browse feed's List⇄Map switch — the first control in
+ * `BrowseTasksActions`, in the toolbar's heading row, on both browse surfaces.
  *
- * Home keeps it inside `BrowseTasksActions` up in the title card. The guest
- * feed puts it in the toolbar row instead (`titleRowTrailing`), beside the
- * "Browse jobs" heading, because the guest title card also has to carry two
- * labelled auth controls and at 375px there is no arrangement that fits the
- * emblem, three 44px icons and both CTAs — measured, not guessed. Moving THIS
- * control is the compromise that costs nothing: it stays visible, labelled and
- * 44px at every width, and it arguably belongs next to the heading anyway,
- * since what it switches is the panel that heading names.
+ * Split into its own file while the guest feed briefly rendered it separately
+ * from the rest of the cluster (2026-08-17, since reverted). Kept split: it is
+ * the one control in the cluster with its own `startTransition` + pressed
+ * state, and it reads better apart from the four-button fragment.
+ *
+ * Hidden only on the desktop web, where the feed and the map are both on
+ * screen at once and there is nothing to switch between.
  */
 export function BrowseViewToggle({ view, setView }: BrowseViewToggleProps) {
   return (

@@ -30,7 +30,6 @@ import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
-import { BrowseViewToggle } from "@/components/dashboard/browseTasksToolbar/BrowseViewToggle";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 
@@ -53,9 +52,10 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
  * SavedSearches is internally gated on a signed-in user, so it correctly
  * stays hidden for guests.
  *
- * The chrome matches too: one band — emblem, feed actions, then "Log in" /
- * "Get started" where Home puts its bell — over the large "Browse jobs" title
- * in the panel. There is no app bar on either screen.
+ * The chrome matches too: a brand row — emblem, then "Log in" / "Get started"
+ * where Home puts its live-job pill and its bell — over the toolbar row that
+ * carries the heading and the feed's four action icons. There is no app bar on
+ * either screen.
  */
 
 /**
@@ -72,13 +72,14 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
  * These two are the entire conversion path of the screen, so they stay
  * full-width labelled controls at every breakpoint: never collapsed to icons,
  * never folded into an overflow menu, never below the 44px tap floor. What
- * yields when the row runs out of room is the emblem (see DashboardTitleBar) —
- * a visitor can find the front door again; they cannot guess a hidden CTA.
+ * yields first if the row ever runs out of room is the emblem (see
+ * DashboardTitleBar) — a visitor can find the front door again; they cannot
+ * guess a hidden CTA. With the feed's icons back down in the toolbar row the
+ * pair now has room to spare even at 320.
  *
  * `px-2` rather than the button default: the horizontal padding is the only
  * slack in this row that costs nothing — the labels and the 44px tap heights
- * are untouched, and the 8px it returns is what lets the pair survive intact
- * at 320px, where the emblem has already collapsed to zero.
+ * are untouched.
  */
 function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup: () => void }) {
   return (
@@ -278,23 +279,10 @@ const DashboardGuest = () => {
       // inset itself when no header is passed.
       titleCard={
         <DashboardTitleBar
-          filters={filters}
-          // `null` keeps SavedSearches out of the cluster — it is a signed-in
-          // feature, and its absence is exactly the 44px the guest row spends
-          // on labelled auth actions instead.
-          user={null}
-          view={view}
-          setView={setView}
-          // The List⇄Map switch is the one control that does NOT fit up here:
-          // measured at 375, the emblem + three 44px icons + both labelled auth
-          // controls need ~328px of a 295px row. It moves down to the toolbar
-          // row instead (see `titleRowTrailing` below) — still visible, still
-          // 44px, still labelled — which is what keeps the emblem at full size
-          // and both CTAs at full width on a phone.
-          hideViewToggle
           // The crest points at the marketing landing, not at this feed: a
           // signed-out visitor tapping it wants the front door.
           emblemTo="/"
+          // No `status` — the live-job pill is a signed-in thing.
           trailing={<GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />}
         />
       }
@@ -307,17 +295,13 @@ const DashboardGuest = () => {
                 for guests. */}
             <BrowseTasksToolbar
               titleSrOnly
+              // `null` keeps SavedSearches out of the icon cluster — it is a
+              // signed-in feature.
               filters={filters}
               user={null}
               helperAvailability={[]}
               view={view}
               setView={setView}
-              // The icon cluster lives one row up, in the title card, beside
-              // the emblem and the auth actions — so this row carries the large
-              // "Browse jobs" h1, matching Home, plus the one control the band
-              // had no room for.
-              hideActions
-              titleRowTrailing={<BrowseViewToggle view={view} setView={setView} />}
               onClearAllFilters={() => {
                 const el = containerRef.current;
                 if (el) el.scrollTo({ top: 0, behavior: "smooth" });

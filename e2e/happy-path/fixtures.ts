@@ -162,7 +162,7 @@ export interface SupabaseResponse {
   headers?: Record<string, string>;
 }
 
-interface MockRule {
+export interface MockRule {
   match: (url: URL, method: string) => boolean;
   handle: (url: URL, method: string) => SupabaseResponse | null;
 }

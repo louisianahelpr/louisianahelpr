@@ -394,11 +394,19 @@ const DashboardGuest = () => {
                              wants rather than for the gate: watching for work,
                              or hiring someone. */
                           <div className="flex flex-col items-center gap-2.5">
+                            {/* `outline`, not the filled primary. This is an
+                                EMPTY state — there is nothing here to act on,
+                                so a full-weight green CTA slab was shouting
+                                about an absence. The outline keeps the way
+                                forward available without making "no jobs
+                                today" look like the most important thing on
+                                the screen. */}
                             <Button
+                              variant="outline"
                               onClick={() => navigate("/signup")}
                               className="rounded-ds-md h-11 px-5 font-semibold"
                             >
-                              Get notified when work lands
+                              Notify me when work lands
                             </Button>
                             <button
                               type="button"

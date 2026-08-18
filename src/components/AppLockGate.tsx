@@ -196,32 +196,26 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
           paddingBottom: "max(env(safe-area-inset-bottom), 1rem)",
         }}
       >
-        {/* Upper third — the mark and the greeting. */}
+        {/* Upper third — the mark, and nothing else.
+            The heading and subline were removed deliberately (owner decision):
+            iOS is about to present its own Face ID sheet, which names itself and
+            states what it wants, so a greeting underneath it is a second voice
+            saying less. The old subline ("your jobs and payouts") also only
+            described half the app — every account both posts and works, and a
+            poster has no payouts — so it read as slightly wrong to whichever
+            side of the app you were using that day.
+
+            The h1 survives as sr-only: a screen-reader user still needs the
+            screen to announce itself, and the emblem is decorative. */}
         <div className="flex flex-1 flex-col items-center justify-end pb-6">
-          {/* The real Helpr mark, not a generic padlock glyph. This asset was
-              already sitting unused in public/ while the lock screen — the
-              FIRST thing a lock user sees on every cold launch — identified
-              itself with a Lucide icon. */}
+          {/* The real Helpr mark, not a generic padlock glyph. */}
           <img
             src="/helpr-splash-icon.png"
             alt=""
             aria-hidden
             className="h-20 w-20 object-contain"
           />
-          <h1
-            className="mt-5 text-center font-display font-bold italic"
-            style={{ fontSize: "clamp(1.35rem, 2vw + 0.5rem, 1.6rem)", color: "hsl(var(--ink-deep))" }}
-          >
-            {/* "Locked" named a failure the user did not commit — they opened
-                your app. This is a front door, so it greets them. */}
-            Welcome back
-          </h1>
-          <p
-            className="mt-2 max-w-xs text-center font-sans text-ds-13 leading-relaxed"
-            style={{ color: "hsl(var(--olivewood))" }}
-          >
-            Unlock to get back to your jobs and payouts.
-          </p>
+          <h1 className="sr-only">Louisiana Helpr is locked</h1>
         </div>
 
         {/* Lower third — the single action. */}

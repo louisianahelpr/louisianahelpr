@@ -24,6 +24,7 @@ const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialo
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { fetchRatingStats } from "@/lib/reviewStats";
+import { report } from "@/lib/errorLogger";
 import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -148,6 +149,13 @@ const DashboardGuest = () => {
         fetchRatingStats(posterIds),
       ]);
 
+      // Enrichment only — deliberately non-fatal (a name lookup failure must
+      // not blank the whole feed), but never silent: without this the poster
+      // of every job quietly becomes "User" with nothing in error_logs to say
+      // why. (CLAUDE.md: never drop the Supabase error.)
+      if (profilesRes.error) {
+        report(profilesRes.error, { tags: { source: "DashboardGuest.posterNames" } });
+      }
       const nameMap = new Map(
         profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
       );
@@ -298,6 +306,7 @@ const DashboardGuest = () => {
                 active-filter chips). `user={null}` keeps SavedSearches hidden
                 for guests. */}
             <BrowseTasksToolbar
+              titleSrOnly
               filters={filters}
               user={null}
               helperAvailability={[]}

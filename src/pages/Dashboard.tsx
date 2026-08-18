@@ -335,6 +335,7 @@ const Dashboard = () => {
                 clean, personalized, vertical list; no duplication. */}
 
             <BrowseTasksToolbar
+              titleSrOnly
               filters={filters}
               user={user}
               helperAvailability={helperAvailability}

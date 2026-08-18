@@ -44,6 +44,21 @@ export interface BrowseTasksToolbarProps {
    * input has taken the row over.
    */
   titleRowTrailing?: ReactNode;
+  /**
+   * Render the page title for screen readers only.
+   *
+   * Home shows the brand emblem and nothing else — owner decision: "home will
+   * not have a title just the H logo". Every other screen keeps its visible
+   * name. The heading is NOT dropped, only hidden: "exactly one <h1> per
+   * screen" is the invariant that caught /jobs/:id rendering zero headings on
+   * the public share-link page, and a screen with no h1 leaves a screen-reader
+   * user on an unnameable document.
+   *
+   * The "Filtered · N active" eyebrow stays VISIBLE regardless — it is live
+   * state, not a title, and it is the only on-screen sign that the feed is
+   * showing a subset.
+   */
+  titleSrOnly?: boolean;
 }
 
 // Active-filter recap chip definition. Only render when 3+ filters are

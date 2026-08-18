@@ -41,7 +41,9 @@ export const JobDetailFooter = ({
     return (
       <Button
         size="lg"
-        onClick={() => { navigate("/signup"); onClose(); }}
+        // See the note on `Get verified` below: navigate() alone, never
+        // navigate() + onClose().
+        onClick={() => navigate("/signup")}
         className="btn-liquid-fill w-full rounded-ds-md h-11 sm:h-12 px-3 group relative overflow-hidden"
         style={{
           background:
@@ -206,7 +208,13 @@ export const JobDetailFooter = ({
           <button
             className="mt-2 text-ds-12 font-sans font-semibold underline underline-offset-2 active:opacity-70 transition-opacity"
             style={{ color: "hsl(var(--burnt-sienna))" }}
-            onClick={() => { navigate("/profile"); onClose(); }}
+            // Navigating AWAY unmounts this dialog with the route, so onClose() must NOT
+            // follow. It used to. The close handler on the guest feed clears ?job= via
+            // setSearchParams(..., { replace: true }), and setSearchParams acts on the
+            // CURRENT location — so it replaced the entry navigate() had just pushed and
+            // dropped the visitor back on the guest feed. The most important CTA a guest
+            // can press ("Sign up to bid") therefore went nowhere.
+            onClick={() => navigate("/profile")}
           >
             Get verified →
           </button>

@@ -70,8 +70,11 @@ const JobDetailDialog = ({
   const commissionPercent = job.helper_fee_percent ?? effectiveFee;
 
   const handleAskQuestion = () => {
+    // No onClose() — the route change unmounts this dialog on its own, and
+    // calling it here raced the navigation: the feed's close handler clears
+    // ?job= with setSearchParams(..., { replace: true }), which acts on the
+    // CURRENT location and so replaced the entry we had just pushed.
     navigate(`/messages?userId=${job.customer_id}&jobId=${job.id}`);
-    onClose();
   };
 
   return (

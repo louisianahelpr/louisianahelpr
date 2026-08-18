@@ -47,6 +47,7 @@ export function BrowseTasksToolbar({
   onClearAllFilters,
   hideActions = false,
   titleRowTrailing,
+  titleSrOnly = false,
 }: BrowseTasksToolbarProps) {
   // Recent searches dropdown — shown only when the search input is
   // focused AND empty AND we have history to show. We snapshot the list
@@ -222,12 +223,20 @@ export function BrowseTasksToolbar({
                 </span>
               )}
               <h1
-                className="font-display italic font-bold leading-tight text-ds-20"
-                style={{
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.018em",
-                  marginTop: filters.hasFilters ? "0.25rem" : 0,
-                }}
+                className={
+                  titleSrOnly
+                    ? "sr-only"
+                    : "font-display italic font-bold leading-tight text-ds-20"
+                }
+                style={
+                  titleSrOnly
+                    ? undefined
+                    : {
+                        color: "hsl(var(--ink-deep))",
+                        letterSpacing: "-0.018em",
+                        marginTop: filters.hasFilters ? "0.25rem" : 0,
+                      }
+                }
               >
                 {filters.hasFilters ? "Filtered results" : "Browse jobs"}
               </h1>

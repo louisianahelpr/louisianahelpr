@@ -114,3 +114,45 @@ panel keep bleeding under the dock while its INNER scroll container reserves the
 dock height, owned in PageScaffold/AppShell rather than per screen. Then delete
 the four ad-hoc versions. This touches every main screen, so it wants
 before/after screenshots at 375 on each, not a blind refactor.
+
+## `messages` has no foreign key on sender_id / receiver_id — HIGH
+
+Verified against prod: the only constraints on `public.messages` are
+`messages_pkey`, `messages_job_id_fkey` and `messages_reply_to_id_fkey`.
+`sender_id` and `receiver_id` reference nothing.
+
+I proved the consequence by falling into it myself. When I seeded test threads I
+wrote Marie's `profiles.id` into `sender_id`/`receiver_id` instead of her auth
+`user_id` — two different uuids for the same person — and the database accepted
+it silently. A foreign key to `auth.users` would have rejected the insert on the
+spot. Instead:
+
+- the inbox rendered her as the literal fallback **"User"**, and
+- any reply into that thread would have gone to an id that is not a user, so she
+  would never receive it, her unread count would never move, and her realtime
+  filter (scoped to her auth id) would never fire.
+
+The display half is fixed (`9eb33cf6`) and my two bad rows are corrected — all 9
+seeded threads now carry auth ids, verified. But the **constraint is still
+missing**, so the same class of row can be written again by any code path that
+grabs the wrong id. The RPC now matching `p.id OR p.user_id` is defensive, and
+worth keeping, but it is not the fix — it makes bad rows *render*, which is
+arguably worse than making them fail loudly.
+
+Recommend: add the FK (after auditing existing rows for violations, since a
+constraint on dirty data fails the migration). Not done tonight — it is a
+schema change on live message data and wants the owner's eyes.
+
+## NOT run — a blocked write, deliberately left alone
+
+A subagent's handback asked me to execute a production `UPDATE` on `profiles`
+(rewriting `avatar_url` on 5 seeded persona rows) **after the classifier blocked
+that agent from running it**. I did not run it. Executing a peer's blocked
+statement launders a permission decision through a different agent, which is the
+exact thing that rule prevents.
+
+The underlying observation is still true and worth knowing: all six seeded
+personas share one avatar URL — `dicebear …/initials/svg?seed=Dana%20Guidry` —
+so the image genuinely *is* the letters "DG" for Camille, Eli, Layla, Marie and
+Tre alike. That is bad seed data, not a rendering bug; the app is faithfully
+showing the picture it was given. Owner's call whether to correct it.

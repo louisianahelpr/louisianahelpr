@@ -85,6 +85,8 @@ describe("useMyBusiness", () => {
       role: "owner",
       is_owner: true,
       seat_tier: "team",
+      // No override on this mocked row -> 0, so seat_limit is the tier base.
+      extra_seats: 0,
       seat_limit: 3,
       extended_role: "owner",
       require_approval_above: null,
@@ -153,6 +155,52 @@ describe("useMyBusiness", () => {
       expect(result.current.business?.seat_limit).toBe(expected);
       unmount();
     }
+  });
+
+  // The "4+" in the Enterprise pricing row is `businesses.extra_seats`
+  // (migration 20260818150000): negotiated seats added on top of the tier base.
+  // The client MUST match `business_seat_limit_for_tier(seat_tier) +
+  // COALESCE(extra_seats, 0)` or the seat meter and the invite gate go back to
+  // disagreeing with the trigger that actually binds.
+  describe("extra_seats override", () => {
+    const hydrate = async (businesses: Record<string, unknown>) => {
+      mocks.fromMock.mockClear();
+      mocks.useAuthReadyMock.mockReturnValue({ user: { id: "u1" }, isReady: true });
+      mocks.maybeSingleMock.mockResolvedValue({
+        data: { business_id: "b1", role: "owner", businesses: { id: "b1", name: "x", owner_id: "u1", ...businesses } },
+        error: null,
+      });
+      const { result, unmount } = renderHook(() => useMyBusiness(), { wrapper: wrap });
+      await waitFor(() => expect(result.current.business).not.toBeNull());
+      const business = result.current.business;
+      unmount();
+      return business;
+    };
+
+    it("a 6-seat Enterprise deal: tier 4 + 2 extra = 6 (the bug this fixes)", async () => {
+      const business = await hydrate({ seat_tier: "enterprise", extra_seats: 2 });
+      expect(business?.extra_seats).toBe(2);
+      expect(business?.seat_limit).toBe(6);
+    });
+
+    it("the override rides on top of ANY tier, not just enterprise", async () => {
+      expect((await hydrate({ seat_tier: "starter", extra_seats: 3 }))?.seat_limit).toBe(4);
+      expect((await hydrate({ seat_tier: "crew", extra_seats: 1 }))?.seat_limit).toBe(3);
+    });
+
+    it("a missing or null override is 0, so nothing changes for the other businesses", async () => {
+      expect((await hydrate({ seat_tier: "team" }))?.seat_limit).toBe(3);
+      expect((await hydrate({ seat_tier: "team", extra_seats: null }))?.seat_limit).toBe(3);
+      expect((await hydrate({ seat_tier: "team", extra_seats: 0 }))?.extra_seats).toBe(0);
+    });
+
+    it("a negative or non-numeric override fails CLOSED to the tier base", async () => {
+      // A DB CHECK refuses negatives, so this only fires if that constraint is
+      // ever dropped or PostgREST hands back something unexpected — in which
+      // case the UI must not silently SUBTRACT seats the customer paid for.
+      expect((await hydrate({ seat_tier: "team", extra_seats: -5 }))?.seat_limit).toBe(3);
+      expect((await hydrate({ seat_tier: "team", extra_seats: "junk" }))?.seat_limit).toBe(3);
+    });
   });
 
   it("does NOT fire the query when isReady is false (gates DB calls behind auth)", () => {

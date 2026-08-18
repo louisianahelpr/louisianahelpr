@@ -120,7 +120,12 @@ const BusinessTeam = () => {
 
   const activeMembers = members?.filter((m) => m.status === "active") ?? [];
   const pendingMembers = members?.filter((m) => m.status === "pending") ?? [];
+  // Already the EFFECTIVE cap — useMyBusiness folds `businesses.extra_seats`
+  // (the negotiated "+" on Enterprise, migration 20260818150000) into
+  // seat_limit, so the meter, `remainingSlots` and the invite gate below all
+  // match what enforce_business_member_limit() will actually allow.
   const SEAT_LIMIT = business.seat_limit;
+  const extraSeats = business.extra_seats;
   const currentTier = business.seat_tier;
   const totalSlots = activeMembers.length + pendingMembers.length;
   const remainingSlots = Math.max(0, SEAT_LIMIT - totalSlots);
@@ -360,6 +365,7 @@ const BusinessTeam = () => {
               isAdminOrOwner={isAdminOrOwner}
               currentTier={currentTier}
               SEAT_LIMIT={SEAT_LIMIT}
+              extraSeats={extraSeats}
               totalSlots={totalSlots}
               remainingSlots={remainingSlots}
               activeMembers={activeMembers}

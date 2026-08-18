@@ -33,7 +33,16 @@ interface MembersTabProps {
   isOwner: boolean;
   isAdminOrOwner: boolean;
   currentTier: SeatTier;
+  /** EFFECTIVE cap from useMyBusiness — tier base PLUS `extraSeats`. */
   SEAT_LIMIT: number;
+  /**
+   * `businesses.extra_seats` (migration 20260818150000) — negotiated seats
+   * added on top of WHATEVER tier the business is on, which is why the seat
+   * plan grid below adds it to every row and not just the current one. 0 for
+   * every business without an override, so with no override nothing on this
+   * screen changes.
+   */
+  extraSeats: number;
   totalSlots: number;
   remainingSlots: number;
   activeMembers: Member[];
@@ -63,6 +72,7 @@ const MembersTab = ({
   isAdminOrOwner,
   currentTier,
   SEAT_LIMIT,
+  extraSeats,
   totalSlots,
   remainingSlots,
   activeMembers,
@@ -193,7 +203,15 @@ const MembersTab = ({
               const isCurrent = tier.id === currentTier;
               const isUpgrade = TIER_RANK[tier.id] > TIER_RANK[currentTier];
               const isDowngrade = TIER_RANK[tier.id] < TIER_RANK[currentTier];
-              const wouldFitCurrent = tier.seats >= totalSlots;
+              // TIERS.seats is the tier BASE (`parseInt("4+", 10)` → 4). The
+              // negotiated override rides on top of any tier — the server adds
+              // `extra_seats` to whatever `seat_tier` resolves to — so it
+              // applies to every row here, including the ones being offered as
+              // a downgrade. Using the base alone would show "4 seats" beside a
+              // meter reading "6", and would refuse a downgrade that actually
+              // fits. With no override this is a +0 and nothing changes.
+              const tierSeats = tier.seats + extraSeats;
+              const wouldFitCurrent = tierSeats >= totalSlots;
 
               return (
                 <div
@@ -206,7 +224,7 @@ const MembersTab = ({
                     <div>
                       <p className="font-medium text-ds-13">{tier.name}</p>
                       <p className="text-ds-11 text-muted-foreground">
-                        {tier.seats} seats · {tier.price}
+                        {tierSeats} seats · {tier.price}
                       </p>
                     </div>
                     {isCurrent && <Badge className="text-ds-10 h-5">Current</Badge>}
@@ -228,7 +246,7 @@ const MembersTab = ({
                       ) : isUpgrade ? (
                         "Upgrade"
                       ) : isDowngrade && !wouldFitCurrent ? (
-                        `Remove ${totalSlots - tier.seats} seat${totalSlots - tier.seats === 1 ? "" : "s"} first`
+                        `Remove ${totalSlots - tierSeats} seat${totalSlots - tierSeats === 1 ? "" : "s"} first`
                       ) : (
                         "Switch via portal"
                       )}

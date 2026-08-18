@@ -129,6 +129,79 @@ describe("seat-limit ladder parity (marketing ↔ client ↔ database)", () => {
     expect(Object.keys(clientLadder)).toHaveLength(4);
   });
 
+  // ---------------------------------------------------------------------
+  // The per-business override (migration 20260818150000).
+  //
+  // Enterprise is SOLD as "4+" but was ENFORCED at exactly 4, so the first
+  // six-seat deal would have been refused its fifth invite — the same revenue
+  // bug 20260817120000 fixed, moved to the top-paying tier. The fix adds
+  // `businesses.extra_seats` on top of the tier base. That creates a NEW way
+  // for the numbers to drift, so it gets guarded here too: the ladder above
+  // stays pure (tier → base), and every resolver of a SPECIFIC business's cap
+  // must add the override exactly ONCE.
+  // ---------------------------------------------------------------------
+  describe("per-business extra_seats override", () => {
+    it("the tier ladder helper stays PURE — the override is not folded into it", () => {
+      // If the override leaked in here, `business_seat_limit_for_tier` would
+      // need a table read inside an IMMUTABLE function and every assertion
+      // above would be measuring the wrong thing.
+      const defining = readdirSync(MIGRATIONS_DIR)
+        .filter((f) => f.endsWith(".sql"))
+        .filter((f) => readFileSync(join(MIGRATIONS_DIR, f), "utf8").includes(`FUNCTION public.${FN}(`))
+        .sort();
+      const sql = readFileSync(join(MIGRATIONS_DIR, defining[defining.length - 1]), "utf8");
+      const start = sql.indexOf(`FUNCTION public.${FN}(`);
+      const end = sql.indexOf("$$;", start);
+      expect(end).toBeGreaterThan(start);
+      expect(sql.slice(start, end)).not.toContain("extra_seats");
+    });
+
+    it.each(["get_business_seat_limit", "business_seat_limit"])(
+      "%s(uuid) returns the EFFECTIVE cap (tier base + extra_seats)",
+      (fn) => {
+        // These take a business id, so "the seat limit" for them means the
+        // enforced number. Returning the tier base while the trigger enforces
+        // base+override would be a fifth contradictory ladder.
+        expect(latestFunctionBody(fn), fn).toContain("extra_seats");
+      },
+    );
+
+    it("enforce_business_member_limit adds the override to the tier base", () => {
+      const body = latestFunctionBody("enforce_business_member_limit");
+      expect(body).toContain("extra_seats");
+    });
+
+    it("enforce_business_seat_limit picks the override up exactly ONCE", () => {
+      // This trigger delegates to get_business_seat_limit(), which already
+      // includes the override — so adding `+ extra_seats` here as well would
+      // DOUBLE-COUNT it and hand the business twice the seats it bought.
+      // Either it delegates (and stays silent about extra_seats) or it adds
+      // the override itself. Never both, never neither.
+      const body = latestFunctionBody("enforce_business_seat_limit");
+      const delegates = body.includes("get_business_seat_limit(");
+      const addsItself = body.includes("extra_seats");
+      expect(
+        delegates !== addsItself,
+        delegates && addsItself
+          ? "double-counts extra_seats: it delegates to get_business_seat_limit() AND adds the override itself"
+          : "ignores extra_seats: it neither delegates to get_business_seat_limit() nor adds the override",
+      ).toBe(true);
+    });
+
+    it("the client folds extra_seats into seat_limit, so the UI meter matches the trigger", () => {
+      const src = readFileSync(join(process.cwd(), "src", "hooks", "useMyBusiness.ts"), "utf8");
+      // The `seat_limit:` in the interface declaration comes first in the
+      // file, so match the ASSIGNMENT — the line that computes the number.
+      const line = src
+        .split("\n")
+        .find((l) => l.includes("seat_limit:") && l.includes("SEAT_LIMITS["));
+      expect(line, "no `seat_limit:` assignment found in useMyBusiness.ts").toBeTruthy();
+      // The tier base alone would under-report an overridden business and the
+      // invite gate would block invites the server would accept.
+      expect(line).toMatch(/SEAT_LIMITS\[tier\][\s\S]*\+\s*extraSeats/);
+    });
+  });
+
   it("every tier counts the OWNER inside its limit, so starter is a solo seat", () => {
     // The owner is a row in business_members and useTeamMembers returns it, so
     // "X of N seats used" already includes them. starter === 1 is the assertion

@@ -31,6 +31,18 @@ export interface BusinessMembership {
   role: "owner" | "member";
   is_owner: boolean;
   seat_tier: SeatTier;
+  /**
+   * Negotiated seats granted to THIS business on top of what its tier
+   * includes — the "+" in Enterprise's advertised "4+". Column ships in
+   * migration 20260818150000; 0 for every business that has no override, and
+   * 0 during the merge→deploy window when the column doesn't exist yet.
+   */
+  extra_seats: number;
+  /**
+   * EFFECTIVE cap: `SEAT_LIMITS[seat_tier] + extra_seats`. This is the number
+   * the server enforces, so it is the only one the meter and the invite gate
+   * may show. Do NOT re-derive it from the tier alone.
+   */
   seat_limit: number;
   extended_role: ExtendedRole;
   /** Owner-set approval threshold; NULL = no approval required. */
@@ -52,6 +64,11 @@ export interface BusinessMembership {
  * 20260817120000, the DB trigger `enforce_business_member_limit()` via
  * `business_seat_limit_for_tier()`. All three must move together or a customer
  * gets told they have seats the database will refuse.
+ *
+ * This is the tier's BASE only. The enforced cap is this plus the
+ * per-business `businesses.extra_seats` override (migration 20260818150000) —
+ * see `seat_limit` below. Keep this map pure: `seatLimitLadder.parity.test.ts`
+ * reads it verbatim and compares it to the DB's pure tier→number helper.
  */
 const SEAT_LIMITS: Record<SeatTier, number> = {
   starter: 1,
@@ -68,7 +85,7 @@ const fetchMyBusiness = async (userId: string): Promise<BusinessMembership | nul
   const wide = await supabase
     .from("business_members")
     .select(
-      "business_id, role, extended_role, businesses!inner(id, name, owner_id, seat_tier, require_approval_above, require_2fa, default_payment_method_id, monthly_budget, monthly_budget_alert_at, verification_status)" as any,
+      "business_id, role, extended_role, businesses!inner(id, name, owner_id, seat_tier, extra_seats, require_approval_above, require_2fa, default_payment_method_id, monthly_budget, monthly_budget_alert_at, verification_status)" as any,
     )
     .eq("user_id", userId)
     .eq("status", "active")
@@ -88,6 +105,14 @@ const fetchMyBusiness = async (userId: string): Promise<BusinessMembership | nul
     // the migration that introduced this wide/narrow split — so the column
     // is present on any prod that hit this fallback path and it's safe to
     // include in the narrow select too.
+    //
+    // `extra_seats` (20260818150000) is deliberately NOT in the narrow select:
+    // this path exists precisely because a newer column is missing, and asking
+    // for it again would loop the fallback. It resolves to 0 below, so during
+    // the merge→deploy window an overridden business sees its BASE tier cap —
+    // fewer seats than the server allows, never more. Under-promising is the
+    // safe direction: the meter reads low for a few minutes instead of
+    // inviting someone the trigger would reject.
     const narrow = await supabase
       .from("business_members")
       .select("business_id, role, businesses!inner(id, name, owner_id, seat_tier, verification_status)")
@@ -101,6 +126,12 @@ const fetchMyBusiness = async (userId: string): Promise<BusinessMembership | nul
 
   const biz = row.businesses;
   const tier = (biz.seat_tier ?? "starter") as SeatTier;
+  // Fail CLOSED on anything that isn't a non-negative finite number: NULL (the
+  // narrow fallback, or a pre-migration prod), a string from a stale PostgREST
+  // cache, or a negative the DB CHECK should have refused. Mirrors
+  // `COALESCE(b.extra_seats, 0)` in enforce_business_member_limit().
+  const rawExtraSeats = Number(biz.extra_seats ?? 0);
+  const extraSeats = Number.isFinite(rawExtraSeats) ? Math.max(0, Math.trunc(rawExtraSeats)) : 0;
   const isOwner = biz.owner_id === userId;
   const extendedRole: ExtendedRole = row.extended_role
     ? (row.extended_role as ExtendedRole)
@@ -111,11 +142,17 @@ const fetchMyBusiness = async (userId: string): Promise<BusinessMembership | nul
     role: row.role as "owner" | "member",
     is_owner: isOwner,
     seat_tier: tier,
+    extra_seats: extraSeats,
     // Unknown tier fails CLOSED to starter, matching the trigger's ELSE
     // branch. (A CHECK constraint keeps seat_tier to the four known values,
     // so this is belt-and-braces — but it used to say 2, which would have
     // promised a seat the DB denies.)
-    seat_limit: SEAT_LIMITS[tier] ?? SEAT_LIMITS.starter,
+    //
+    // `+ extraSeats` is what makes Enterprise's "4+" true. The server computes
+    // `business_seat_limit_for_tier(seat_tier) + COALESCE(extra_seats, 0)`
+    // (migration 20260818150000); this expression must stay identical to it or
+    // the meter and the invite gate go back to disagreeing with the trigger.
+    seat_limit: (SEAT_LIMITS[tier] ?? SEAT_LIMITS.starter) + extraSeats,
     extended_role: extendedRole,
     require_approval_above: biz.require_approval_above ?? null,
     require_2fa: !!biz.require_2fa,

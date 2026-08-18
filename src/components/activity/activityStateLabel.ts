@@ -95,10 +95,12 @@ export function postedActiveState(job: PostedJobStateInput): ActivityState | nul
       }
       const applicants = job.applicantCount ?? 0;
       if (applicants > 0) {
-        return {
-          label: applicants === 1 ? "1 applicant · pick someone" : `${applicants} applicants · pick someone`,
-          tone: "action",
-        };
+        // No count here, deliberately. The card already carries the number on
+        // its primary "Applicants (N)" button, and it used to ALSO carry it in
+        // a "N applicants" meta chip — the same figure stated three times
+        // within ~120px. The pill's job is the state ("your move"), not the
+        // tally; the button owns the tally.
+        return { label: "Pick someone", tone: "action" };
       }
       return { label: "Open · no applicants yet", tone: "neutral" };
     }

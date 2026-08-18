@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Share2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Share2 } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { toast } from "sonner";
@@ -71,6 +71,18 @@ interface ShareJobButtonProps {
  * User-cancellation of the OS sheet is normal — we silently ignore it
  * rather than toasting an error.
  *
+ * WHY THE CONFIRMATION IS INLINE AND NOT A TOAST
+ * ----------------------------------------------
+ * The clipboard rung used to confirm with `toast.success("Link copied…")`.
+ * `src/lib/toastPolicy.ts` neuters `toast.success` / `.info` / `.message`
+ * app-wide at boot (owner decision: confirmations don't surface), so that call
+ * was a guaranteed no-op: the URL landed on the clipboard and NOTHING on
+ * screen changed. That is precisely the reported "share button does nothing" —
+ * the share worked, the feedback didn't. The confirmation is therefore owned by
+ * the button itself (icon + label flip to "Copied" for 2s, plus an sr-only live
+ * region), which cannot be suppressed by the toast policy. `toast.error` is
+ * still used for genuine failures — that channel is NOT neutered.
+ *
  * The URL points at the public `/jobs/:id` preview route. Guests who tap
  * get a read-only job preview (apply gated to /signup); signed-in
  * recipients are redirected into the dashboard apply flow. See
@@ -87,6 +99,56 @@ export function ShareJobButton({
   // Disable the button while a share is in flight so impatient
   // double-taps don't queue duplicate share sheets.
   const [sharing, setSharing] = useState(false);
+  // Inline "Copied" confirmation for the clipboard rungs — see the note above
+  // on why this cannot be a toast.
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    },
+    [],
+  );
+
+  const confirmCopied = () => {
+    setCopied(true);
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setCopied(false), 2000);
+  };
+
+  /**
+   * Copy `text`, returning whether it actually landed.
+   *
+   * Two rungs: the async Clipboard API, then the legacy `execCommand("copy")`
+   * off a detached textarea — still the only clipboard available in some
+   * embedded WebViews and on insecure origins, where `navigator.clipboard` is
+   * undefined. Returning a boolean (rather than throwing) is what lets the
+   * caller tell "copied" from "could not copy" and show the right thing.
+   */
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    if (typeof document === "undefined" || typeof document.execCommand !== "function") {
+      return false;
+    }
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    // Off-screen but still selectable. `display:none` would make the
+    // selection — and therefore the copy — fail silently.
+    ta.style.position = "fixed";
+    ta.style.top = "-9999px";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    try {
+      ta.select();
+      return document.execCommand("copy");
+    } finally {
+      document.body.removeChild(ta);
+    }
+  };
 
   const handleShare = async () => {
     if (sharing) return;
@@ -103,6 +165,7 @@ export function ShareJobButton({
         ? "Open to bids"
         : `$${job.budget != null ? job.budget : "?"}`;
     const text = `${job.title} · ${priceLabel} · ${location}\n\nApply on Helpr:`;
+    const clipText = `${text}\n${url}`;
 
     try {
       // 1. Native Share Sheet — only on actual iOS/Android shells.
@@ -117,17 +180,17 @@ export function ShareJobButton({
         return;
       }
 
-      // 3. Clipboard fallback — paste-to-share.
-      const clipText = `${text}\n${url}`;
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(clipText);
-        toast.success("Link copied. Paste it anywhere.");
+      // 3. Clipboard fallback — paste-to-share, confirmed on the button.
+      if (await copyToClipboard(clipText)) {
+        confirmCopied();
         return;
       }
 
-      // 4. Last-ditch: no clipboard API. Toast the URL itself so the
-      // user can long-press to copy from the notification.
-      toast.message("Share this link", { description: url });
+      // 4. No clipboard at all. Surface the URL through the one toast
+      //    channel the policy leaves alive, so the tap is never a no-op.
+      toast.error(`Couldn't copy automatically — the link is ${url}`, {
+        duration: 10_000,
+      });
     } catch (err) {
       // The user dismissing the share sheet throws an AbortError on
       // both the Web Share API and Capacitor's bridge. That's not an
@@ -139,13 +202,30 @@ export function ShareJobButton({
           /cancel/i.test(err.message) ||
           /dismiss/i.test(err.message));
       if (isCancel) return;
-      // Anything else: clipboard fell over, OS bridge failed, etc.
-      // Show a soft toast rather than a blank failure.
+      // A real failure of the share sheet (OS bridge down, permission
+      // refused, WebView without a share provider). Don't dead-end on an
+      // error toast — the user asked to share a link and the clipboard can
+      // still deliver one, so try that before admitting defeat.
+      try {
+        if (await copyToClipboard(clipText)) {
+          confirmCopied();
+          return;
+        }
+      } catch {
+        /* clipboard unavailable too — fall through to the error below */
+      }
       toast.error("Couldn't share — try again");
     } finally {
       setSharing(false);
     }
   };
+
+  /** sr-only live region so the copy is announced, not just drawn. */
+  const liveRegion = (
+    <span className="sr-only" role="status" aria-live="polite">
+      {copied ? "Link copied to clipboard" : ""}
+    </span>
+  );
 
   if (variant === "icon") {
     return (
@@ -153,7 +233,7 @@ export function ShareJobButton({
         type="button"
         variant="ghost"
         size="icon"
-        aria-label={ariaLabel ?? "Share this job"}
+        aria-label={copied ? "Link copied to clipboard" : (ariaLabel ?? "Share this job")}
         disabled={sharing}
         onClick={handleShare}
         className={cn(
@@ -171,7 +251,12 @@ export function ShareJobButton({
           // Transition is handled by motion-safe:transition-all in className
         }}
       >
-        <Share2 className="w-4 h-4 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:-translate-y-0.5" />
+        {copied ? (
+          <Check className="w-4 h-4" strokeWidth={2.5} />
+        ) : (
+          <Share2 className="w-4 h-4 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:-translate-y-0.5" />
+        )}
+        {liveRegion}
       </Button>
     );
   }
@@ -185,7 +270,7 @@ export function ShareJobButton({
       // recolors via `style`, drop to the ghost variant (no forced text) so
       // the override actually renders; the no-style mount keeps `default`.
       variant={style ? "ghost" : "default"}
-      aria-label={ariaLabel ?? "Share this job"}
+      aria-label={copied ? "Link copied to clipboard" : (ariaLabel ?? "Share this job")}
       disabled={sharing}
       onClick={handleShare}
       style={style}
@@ -201,14 +286,22 @@ export function ShareJobButton({
     >
       {layout === "stack" ? (
         <>
-          <Share2 className="w-4 h-4" />
-          <span className="text-ds-11 leading-none font-medium">Share</span>
+          {copied ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <Share2 className="w-4 h-4" />}
+          {/* Same string length class as "Share" so the 4-up action grid
+              doesn't reflow when the label flips. */}
+          <span className="text-ds-11 leading-none font-medium">{copied ? "Copied" : "Share"}</span>
         </>
       ) : (
         <>
-          <Share2 className="w-4 h-4 mr-1" /> Share
+          {copied ? (
+            <Check className="w-4 h-4 mr-1" strokeWidth={2.5} />
+          ) : (
+            <Share2 className="w-4 h-4 mr-1" />
+          )}
+          {copied ? "Copied" : "Share"}
         </>
       )}
+      {liveRegion}
     </Button>
   );
 }

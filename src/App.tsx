@@ -454,16 +454,28 @@ const DeferredToasters = () => {
   return (
     <Suspense fallback={null}>
       {/* Failures surface, confirmations don't (owner decision 2026-08-13).
-      
-          The toasters are mounted, but `toast.success` is neutered at boot in
-          src/lib/toastPolicy.ts. So "Job saved" / "Notifications on" — the
-          clutter that was covering page headers — never appear, while a
-          declined card, a blocked message or a failed payout still tells the
-          user something went wrong.
-      
-          They were briefly off entirely. That silenced 429 error paths,
-          including money ones, which is a worse failure than the noise it
-          removed. */}
+
+          The split is enforced in src/lib/toastPolicy.ts, which neuters
+          `toast.success` / `.info` / `.message` at boot. So "Job saved" /
+          "Notifications on" — the clutter that was covering page headers —
+          never appear, while a declined card, a blocked message or a failed
+          payout still tells the user something went wrong.
+
+          The HOSTS below must stay mounted for that to hold. They were briefly
+          off entirely, and then the comment kept claiming they were mounted
+          while the JSX rendered only <SuccessMomentHost /> — which silenced all
+          427 `toast.error` call sites app-wide, money paths included. A
+          suppressed confirmation is a design choice; a suppressed error is the
+          blank-screen failure CLAUDE.md's "never drop the error" rule exists to
+          prevent. Removing either host again re-breaks every error path in the
+          app, so the policy layer — not the mount — is where suppression
+          belongs.
+
+          Both hosts are needed: <Sonner /> serves the ~430 `sonner` call sites,
+          <Toaster /> the three that still use the Radix `@/hooks/use-toast`
+          (AdminHealth, EarningsTab, useHelperMilestones). */}
+      <Toaster />
+      <Sonner />
       <SuccessMomentHost />
     </Suspense>
   );

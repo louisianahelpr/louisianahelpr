@@ -117,7 +117,7 @@ describe("ShareJobButton", () => {
     expect(capacitorShareMock).not.toHaveBeenCalled();
   });
 
-  it("falls back to clipboard + toast when no native and no Web Share API", async () => {
+  it("copies to the clipboard and confirms ON THE BUTTON when there is no share API", async () => {
     isNativePlatformMock.mockReturnValue(false);
     const writeText = vi.fn().mockResolvedValue(undefined);
     setNavigator({
@@ -134,8 +134,44 @@ describe("ShareJobButton", () => {
         "Move couch upstairs · $80 · Louisiana\n\nApply on Helpr:\nhttps://www.louisianahelpr.com/jobs/abc-123?ref=share"
       );
     });
-    expect(toastSuccessMock).toHaveBeenCalledWith("Link copied. Paste it anywhere.");
+    // The confirmation MUST be visible in the DOM, not a toast.
+    // `toast.success` is neutered app-wide at boot by src/lib/toastPolicy.ts,
+    // so the old assertion (`toastSuccessMock` called with "Link copied…")
+    // passed here while the user saw absolutely nothing — which is the whole
+    // "share button does nothing" report. Assert what a user can perceive.
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Link copied to clipboard" })).toBeTruthy();
+    });
+    expect(screen.getByText("Copied")).toBeTruthy();
+    expect(toastSuccessMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).not.toHaveBeenCalled();
     expect(capacitorShareMock).not.toHaveBeenCalled();
+  });
+
+  it("still copies a link when the share sheet itself fails, rather than dead-ending", async () => {
+    // A non-cancellation share failure (OS bridge down, permission refused)
+    // used to end at an error toast with nothing on the clipboard. The user
+    // asked for a link; the clipboard rung can still deliver one.
+    isNativePlatformMock.mockReturnValue(true);
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    capacitorShareMock.mockRejectedValue(new Error("Share plugin unavailable"));
+    setNavigator({
+      share: undefined as unknown as Navigator["share"],
+      clipboard: { writeText } as unknown as Clipboard,
+    });
+
+    render(<ShareJobButton job={job} />);
+    fireEvent.click(screen.getByRole("button", { name: "Share this job" }));
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(
+        "Move couch upstairs · $80 · Louisiana\n\nApply on Helpr:\nhttps://www.louisianahelpr.com/jobs/abc-123?ref=share"
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Copied")).toBeTruthy();
+    });
+    expect(toastErrorMock).not.toHaveBeenCalled();
   });
 
   it("silently swallows user cancellation (AbortError) without toasting an error", async () => {

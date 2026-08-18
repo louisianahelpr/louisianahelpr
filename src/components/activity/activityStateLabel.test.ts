@@ -32,14 +32,20 @@ describe("postedActiveState — what is happening to my job", () => {
     });
   });
 
-  it("counts applicants waiting on a decision, and says so when there are none", () => {
+  it("prompts a decision when applicants are waiting, and says so when there are none", () => {
+    // The pill must NOT restate the count — the card's "Applicants (N)"
+    // button already carries it. See postedActiveState for the full note.
     expect(postedActiveState({ status: "open", applicantCount: 1 })).toEqual({
-      label: "1 applicant · pick someone",
+      label: "Pick someone",
       tone: "action",
     });
-    expect(postedActiveState({ status: "open", applicantCount: 3 })).toMatchObject({
-      label: "3 applicants · pick someone",
+    expect(postedActiveState({ status: "open", applicantCount: 3 })).toEqual({
+      label: "Pick someone",
+      tone: "action",
     });
+    for (const applicantCount of [1, 3, 12]) {
+      expect(postedActiveState({ status: "open", applicantCount })?.label).not.toMatch(/\d/);
+    }
     expect(postedActiveState({ status: "open", applicantCount: 0 })).toEqual({
       label: "Open · no applicants yet",
       tone: "neutral",

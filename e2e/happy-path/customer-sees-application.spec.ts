@@ -65,8 +65,8 @@ test.describe("customer sees helper application", () => {
         // ActivityData reads jobs (posted), applications (applicant
         // counts), and helper profiles via get_safe_profiles. Returning
         // one application row for the posted job makes applicantCounts
-        // = { [POSTED_JOB_ID]: 1 }, which PostedJobCard surfaces as
-        // "1 applicant".
+        // = { [POSTED_JOB_ID]: 1 }, which PostedJobCard surfaces on its
+        // primary "Applicants (1)" button.
         mockTable("jobs", [POSTED_JOB]),
         mockTable("applications", [APPLICATION_ROW]),
         mockTable("job_checkins", []),
@@ -84,12 +84,19 @@ test.describe("customer sees helper application", () => {
     // 1. Posted job title surfaces.
     await expect(page.getByText(POSTED_JOB.title)).toBeVisible({ timeout: 15_000 });
 
-    // 2. Applicant-count surface — PostedJobCard renders "1 applicant"
-    //    when there's exactly one applicant on an open job. This is the
-    //    "customer sees that a helper has applied" contract.
-    await expect(page.getByText(/1\s+applicant/i).first()).toBeVisible({
-      timeout: 10_000,
-    });
+    // 2. Applicant-count surface — the "customer sees that a helper has
+    //    applied" contract. The count lives on the primary button, which is
+    //    also the control that acts on it.
+    const applicantsButton = page.getByRole("button", { name: /^Applicants \(1\)$/ });
+    await expect(applicantsButton).toBeVisible({ timeout: 10_000 });
+
+    // ...and it appears EXACTLY once on the card. An open job with applicants
+    // used to state the same number three times within ~120px — this button,
+    // a "1 applicant" meta chip, and a "1 applicant · pick someone" state pill
+    // — which is what the owner reported. The chip is gone and the pill now
+    // reads "Pick someone", so a second copy of the tally is a regression.
+    await expect(page.getByText(/\d+\s+applicants?\b/i)).toHaveCount(0);
+    await expect(page.getByText("Pick someone")).toBeVisible();
 
     // Axe at the customer's see-applications surface — this is a high
     // signal page (decision-making happens here) so a11y matters most.

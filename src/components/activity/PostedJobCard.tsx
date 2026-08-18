@@ -112,9 +112,14 @@ function PostedJobCardInner({
                 estimatedHours={job.estimated_hours}
                 expiresAt={!job.helper_id && job.status !== "cancelled" ? job.expires_at : null}
               >
-                {(applicantCounts[job.id] || 0) > 0 && job.status === "open" && (
-                  <span className="flex items-center gap-1 text-primary font-medium"><Users className="w-3 h-3 shrink-0" /> {applicantCounts[job.id]} applicant{applicantCounts[job.id] !== 1 ? "s" : ""}</span>
-                )}
+                {/* The applicant COUNT deliberately does not appear here.
+                    An open job with applicants used to state the same number
+                    three times inside ~120px of one card: this chip, the state
+                    pill above it ("2 applicants · pick someone"), and the
+                    primary "Applicants (2)" button below. The button is the
+                    one that keeps it — it is the actionable one, and it is
+                    where a poster goes to act on the number. The pill now says
+                    only "Pick someone" (see postedActiveState). */}
                 {viewCount != null && viewCount > 0 && (
                    <span className="flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                      <Eye className="w-3 h-3 shrink-0" />

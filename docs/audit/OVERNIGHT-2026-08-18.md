@@ -81,3 +81,36 @@ Release build 4823) plus code inspection. Owner asleep; questions saved for the 
 10. **Blue keeps appearing outside the palette** — the Share chip on /my-posts,
     the "Storm · IN SEASON" category tile, and the Delivery category dot. The
     brand is olive / burnt-sienna / parchment; blue reads as foreign.
+
+## Root cause: dock clearance is re-implemented per screen
+
+`AppShell` owns the bottom-nav clearance, but only applies it when scrolling:
+
+    const bottomPad = reserveBottomNav
+      ? "calc(env(safe-area-inset-bottom, 0px) + 96px)" : "env(safe-area-inset-bottom, 0px)";
+    ...
+    paddingBottom: scrollable ? bottomPad : undefined
+
+Every two-card screen opts OUT of that: `PageScaffold` passes `scrollable={false}`
+(deliberately — the panel is meant to bleed under the dock so there is no hard
+edge), and `Profile.tsx` passes `scrollable={false}` at BOTH of its AppShell call
+sites. So on those screens AppShell contributes no clearance at all and each
+screen is left to solve it alone. They have solved it differently:
+
+- `BrowseTasksFeed.tsx:461,491` — `paddingBottom: calc(6rem + env(safe-area-inset-bottom))`.
+  This is why HOME looks correct.
+- `AppliedJobsTab.tsx:264` — a NEGATIVE `marginBottom: calc(-1 * (env(safe-area-inset-bottom) + 96px))`,
+  i.e. deliberately pulling content DOWN under the dock.
+- `PetReportCard.tsx`, `CompletionChoiceSheet.tsx` — the `pb-safe-nav` utility.
+- /my-posts and /profile — nothing, which is why their last row is clipped.
+
+Four mechanisms (utility class, inline calc, negative margin, nothing) for one
+concern. CLAUDE.md's rule is that the 100dvh lock, the internal scroller and the
+bottom-nav clearance live in AppShell and are never re-implemented — the
+clearance half of that has drifted.
+
+**Suggested fix (needs visual verification, so proposed not shipped):** let the
+panel keep bleeding under the dock while its INNER scroll container reserves the
+dock height, owned in PageScaffold/AppShell rather than per screen. Then delete
+the four ad-hoc versions. This touches every main screen, so it wants
+before/after screenshots at 375 on each, not a blind refactor.

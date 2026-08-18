@@ -449,3 +449,29 @@ That is the whole argument for the verify-live-state rule.
   ledger version — the exact poisoning CLAUDE.md is most emphatic about. Ledger
   verified after: 406 files, 406 rows, symmetric difference empty.
 - I relayed a "CI-red 1440 test" as fact. The agent checked and it passes.
+
+## "Awarded" is a label the app can never show — needs an owner decision
+
+`ChatHeader.tsx:172-173` and `ConversationRow.tsx:181-182` both do:
+
+    const label = status === "assigned" ? "Awarded" : jobStatusLabel(status);
+    const color = status === "assigned" ? jobStatusColor("in_progress") : jobStatusColor(status);
+
+`"assigned"` is not a member of the `job_status` enum. Postgres rejects it
+outright — `select … where status = 'assigned'` fails with
+`22P02: invalid input value for enum job_status: "assigned"`. So the branch can
+never be true, and the intended "Awarded" label and in-progress colour never
+appear. An awarded job shows the generic "Accepted" instead.
+
+`QuickReplies.tsx:88` calls `"assigned"` a "legacy conversation alias", so the
+value plausibly existed once and the enum moved on without these call sites.
+Note `JobTracking.tsx:27` ALSO uses `assigned`, but as a STEP KEY in its own
+STATUSES array — that one is a different namespace and is fine. Do not "fix"
+it too.
+
+NOT changed, deliberately. Repointing the test to `"accepted"` would restore
+the author's intent, but it changes copy the user sees (Accepted → Awarded) and
+a status colour, on the messages surface. That is a product call, not a
+mechanical one. The alternative is deleting the dead branches and accepting
+"Accepted" as the label. Both are one-line changes; the question is which word
+you want.

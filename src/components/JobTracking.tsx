@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, useCallback } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
@@ -327,6 +327,31 @@ export function JobTracking({
         ? STATUSES.findIndex((s) => s.key === "confirmed")
         : (jobStatus === "accepted" ? STATUSES.findIndex((s) => s.key === "assigned") : 0);
 
+  // Bring the live step to the user, rather than making them scroll to find it.
+  //
+  // The step row scrolls horizontally (seven steps do not fit 375px legibly), so
+  // once a job passes the third or fourth step the current one sits off-screen.
+  // Every advance re-centres it. `block: "nearest"` keeps the PAGE still — the
+  // default would scroll the whole card into view and yank the feed under the
+  // reader's thumb, which is worse than the problem being solved.
+  //
+  // Guarded on the ref existing rather than on currentStatusIdx alone: the row
+  // is inside an IIFE that only renders when there is a helper, so on the first
+  // pass the node may not be mounted yet.
+  const stepRowRef = useRef<HTMLDivElement | null>(null);
+  const currentStepRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = currentStepRef.current;
+    if (!el || !stepRowRef.current) return;
+    el.scrollIntoView({
+      // Respect a reduced-motion preference — an unexpected horizontal slide is
+      // exactly the kind of movement that setting exists to suppress.
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [currentStatusIdx]);
+
   if (!helperId) return null;
 
   return (
@@ -367,15 +392,30 @@ export function JobTracking({
           return null;
         };
 
+        // Horizontally scrollable, not compress-to-fit. Seven steps sharing one
+        // 375px row via `flex-1` squeezed each to ~46px, which clipped the last
+        // label ("Done") against the card edge — the step the poster most wants
+        // to see. The row now scrolls and each step keeps a legible fixed width;
+        // stepRowRef + currentStepRef centre the active step whenever it
+        // advances, so the thing that just happened comes to the user instead of
+        // the user having to go find it. `scrollbar-hide` matches the filter-chip
+        // rows elsewhere.
         return (
-          <div className="flex items-center gap-1">
+          <div
+            ref={stepRowRef}
+            className="flex items-start gap-1 overflow-x-auto scrollbar-hide -mx-1 px-1 snap-x snap-mandatory"
+          >
             {STATUSES.map((s, idx) => {
               const isActive = idx <= currentStatusIdx;
               const isCurrent = idx === currentStatusIdx;
               const Icon = s.icon;
               const subtext = getSubtext(s.key);
               return (
-                <div key={s.key} className="flex-1 flex flex-col items-center gap-1">
+                <div
+                  key={s.key}
+                  ref={isCurrent ? currentStepRef : undefined}
+                  className="shrink-0 w-[4.5rem] flex flex-col items-center gap-1 snap-center"
+                >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
                     style={

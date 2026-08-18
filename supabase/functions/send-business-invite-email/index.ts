@@ -4,10 +4,10 @@
 // business-members trigger auto-claims their pending row by matching
 // (lower(invited_email) = lower(profile.email)).
 //
-// Auth: requires an authenticated caller (the inviting business owner).
-// We look up the row in business_members to confirm the caller actually
-// owns the business — refusing to spam emails on behalf of unauthorized
-// users.
+// Auth: requires an authenticated caller who can manage this team — the
+// business owner (businesses.owner_id) or an ACTIVE admin of that same
+// business (business_members.extended_role = 'admin'). Anyone else is
+// refused, so we never spam emails on behalf of unauthorized users.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
@@ -124,15 +124,29 @@ Deno.serve(async (req) => {
 
   const adminClient = createClient(supabaseUrl, serviceRoleKey)
 
-  // Authorization: caller must be the owner of the business
-  const { data: ownerCheck } = await adminClient
-    .from('business_members')
+  // Authorization: caller must be the owner of the business.
+  //
+  // Authorize against businesses.owner_id, NOT business_members. owner_id is the
+  // source of truth — it is what is_business_owner() reads and what the client
+  // derives is_owner from. adminClient is a service-role client, so it bypasses
+  // RLS: a business_members lookup here would trust a membership row on its face,
+  // including one RLS should never have let the caller create for a business that
+  // isn't theirs. owner_id cannot be forged: the businesses INSERT and UPDATE
+  // policies both WITH CHECK (owner_id = auth.uid()).
+  const { data: ownerCheck, error: ownerCheckError } = await adminClient
+    .from('businesses')
     .select('id')
-    .eq('business_id', businessId)
-    .eq('user_id', caller.id)
-    .eq('role', 'owner')
-    .eq('status', 'active')
+    .eq('id', businessId)
+    .eq('owner_id', caller.id)
     .maybeSingle()
+
+  if (ownerCheckError) {
+    console.error('Failed to verify business ownership', ownerCheckError)
+    return new Response(JSON.stringify({ error: 'Could not verify business ownership' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
 
   if (!ownerCheck) {
     return new Response(JSON.stringify({ error: 'Only the business owner can send invites' }), {

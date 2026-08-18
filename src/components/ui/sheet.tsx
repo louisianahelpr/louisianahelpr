@@ -41,7 +41,7 @@ const sheetVariants = cva(
           // Pad the bottom past the iOS home indicator so a sheet's last
           // control isn't tucked under it. (calc spacing must use `_` —
           // Tailwind converts it to the whitespace CSS calc() requires.)
-          "inset-x-0 bottom-0 border-t pb-[calc(1.5rem_+_env(safe-area-inset-bottom,0px))] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+          "inset-x-0 bottom-0 border-t pb-[calc(1.5rem_+_var(--safe-area-bottom,0px))] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
         left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
           "inset-y-0 right-0 h-full w-3/4  border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
@@ -75,8 +75,8 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
     const closeTop =
       side === "bottom"
         ? "1rem"
-        : "calc(env(safe-area-inset-top, 0px) + 1rem)";
-    const closeRight = "calc(env(safe-area-inset-right, 0px) + 1rem)";
+        : "calc(var(--safe-area-top, 0px) + 1rem)";
+    const closeRight = "calc(var(--safe-area-right, 0px) + 1rem)";
 
     // A hidden Radix Close lets us commit the dismiss using Radix's own
     // close path (focus restore, onOpenChange) without threading the

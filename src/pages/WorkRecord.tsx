@@ -233,29 +233,24 @@ const WorkRecord = () => {
 
         {!loading && !isError && data && (
           <>
-            {/* Official Document Card.
-                DELIBERATE deviation from the `rounded-2xl liquid-glass p-5`
-                card convention: this is the printed letterhead surface shared
-                with /home-history, /benefits and /str-settings (parchment fill,
-                olivewood hairline, section dividers that bleed edge-to-edge),
-                not an app content card — `liquid-glass`'s white fill + backdrop
-                blur + p-5 would break both the document look and the section
-                geometry. */}
-            <div
-              className="rounded-ds-lg overflow-hidden print:shadow-none"
-              style={{
-                background: "hsl(var(--parchment) / 0.90)",
-                border: "1px solid hsl(var(--olivewood) / 0.15)",
-                boxShadow:
-                  "inset 0 1px 1px rgba(255,255,255,0.6), " +
-                  "0 2px 8px hsl(var(--olivewood) / 0.06), " +
-                  "0 10px 28px -8px hsl(var(--olivewood) / 0.10)",
-              }}
-            >
+            {/* Official Document Card — the SHEET surface, `.doc-card` from
+                the document surface ladder in index.css (see the block comment
+                there). Still a deliberate deviation from the `rounded-2xl
+                liquid-glass p-5` card convention: this is a printed letterhead
+                whose sections bleed edge-to-edge, so it needs a material
+                without geometry, which is exactly what `.doc-card` is.
+
+                It replaces a hand-rolled `parchment/0.90` fill that composited
+                to within 2-6/255 of the page canvas — a document that did not
+                read as a sheet of paper on a desk, just as a slightly
+                different patch of desk. `print:shadow-none` came off with it:
+                the ladder's own @media print rule drops the shadow, and the
+                class could no longer win against `.doc-card` anyway. */}
+            <div className="doc-card rounded-ds-lg overflow-hidden">
               {/* Document header */}
               <div
                 className="px-5 pt-5 pb-4"
-                style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.10)" }}
+                style={{ borderBottom: "1px solid var(--doc-hairline)" }}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -282,7 +277,7 @@ const WorkRecord = () => {
               {/* Identity section */}
               <div
                 className="px-5 py-4 space-y-2"
-                style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.10)" }}
+                style={{ borderBottom: "1px solid var(--doc-hairline)" }}
               >
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -327,93 +322,104 @@ const WorkRecord = () => {
                 </div>
               </div>
 
-              {/* Summary stats */}
-              <div
-                className="px-5 py-4"
-                style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.10)" }}
-              >
-                <p
-                  className="font-serif italic uppercase text-ds-9 mb-3"
-                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-                >
-                  Work Summary
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Jobs completed */}
-                  <StatBlock
-                    icon={<Briefcase className="w-4 h-4" />}
-                    label="Jobs Completed"
-                    value={String(data.completedJobs.length)}
-                  />
-                  {/* Total earnings */}
-                  <StatBlock
-                    icon={<DollarSign className="w-4 h-4" />}
-                    label="Total Earnings"
-                    value={`$${formatPrice(data.totalEarnings)}`}
-                    sub="after platform fee"
-                  />
-                  {/* Date range */}
-                  <StatBlock
-                    icon={<Calendar className="w-4 h-4" />}
-                    label="Active Period"
-                    value={
-                      data.dateRange
-                        ? `${formatMonthYear(data.dateRange.first)} – ${formatMonthYear(data.dateRange.last)}`
-                        : "—"
-                    }
-                  />
-                  {/* Rating */}
-                  <StatBlock
-                    icon={<Star className="w-4 h-4" />}
-                    label="Avg Rating"
-                    value={
-                      data.avgRating !== null
-                        ? `${data.avgRating.toFixed(1)} ★ (${data.reviewCount})`
-                        : "No reviews yet"
-                    }
-                  />
+              {/* Summary stats. The "WORK SUMMARY" label is now a real BAND —
+                  a full-bleed strip filled one value step below the sheet
+                  (`.doc-band`) with its own bottom rule — instead of a line of
+                  small caps floating in the same fill as the content under it.
+                  A section header that shares its background with its own
+                  contents is not a header; it is the first row. */}
+              <div style={{ borderBottom: "1px solid var(--doc-hairline)" }}>
+                <div className="doc-band px-5 py-2">
+                  <p
+                    className="doc-band-ink font-serif italic uppercase text-ds-9"
+                    style={{ letterSpacing: "0.18em" }}
+                  >
+                    Work Summary
+                  </p>
                 </div>
-
-                {/* Top categories */}
-                {data.topCategories.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                      Top Categories
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {data.topCategories.map((cat) => {
-                        const Icon = getCategoryIcon(cat);
-                        const label = categoryLabels[cat] ?? "Other";
-                        return (
-                          <span
-                            key={cat}
-                            className="inline-flex items-center gap-1 text-ds-11 font-medium px-2.5 py-1 rounded-full"
-                            style={{
-                              background: "hsl(var(--bark) / 0.10)",
-                              color: "hsl(var(--bark))",
-                              border: "1px solid hsl(var(--bark) / 0.15)",
-                            }}
-                          >
-                            <Icon className="w-3 h-3" />
-                            {label}
-                          </span>
-                        );
-                      })}
-                    </div>
+                <div className="px-5 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Jobs completed */}
+                    <StatBlock
+                      icon={<Briefcase className="w-4 h-4" />}
+                      label="Jobs Completed"
+                      value={String(data.completedJobs.length)}
+                    />
+                    {/* Total earnings */}
+                    <StatBlock
+                      icon={<DollarSign className="w-4 h-4" />}
+                      label="Total Earnings"
+                      value={`$${formatPrice(data.totalEarnings)}`}
+                      sub="after platform fee"
+                    />
+                    {/* Date range */}
+                    <StatBlock
+                      icon={<Calendar className="w-4 h-4" />}
+                      label="Active Period"
+                      value={
+                        data.dateRange
+                          ? `${formatMonthYear(data.dateRange.first)} – ${formatMonthYear(data.dateRange.last)}`
+                          : "—"
+                      }
+                    />
+                    {/* Rating */}
+                    <StatBlock
+                      icon={<Star className="w-4 h-4" />}
+                      label="Avg Rating"
+                      value={
+                        data.avgRating !== null
+                          ? `${data.avgRating.toFixed(1)} ★ (${data.reviewCount})`
+                          : "No reviews yet"
+                      }
+                    />
                   </div>
-                )}
+
+                  {/* Top categories */}
+                  {data.topCategories.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                        Top Categories
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {data.topCategories.map((cat) => {
+                          const Icon = getCategoryIcon(cat);
+                          const label = categoryLabels[cat] ?? "Other";
+                          return (
+                            <span
+                              key={cat}
+                              className="inline-flex items-center gap-1 text-ds-11 font-medium px-2.5 py-1 rounded-full"
+                              style={{
+                                background: "hsl(var(--bark) / 0.10)",
+                                color: "hsl(var(--bark))",
+                                border: "1px solid hsl(var(--bark) / 0.15)",
+                              }}
+                            >
+                              <Icon className="w-3 h-3" />
+                              {label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Recent job history table */}
               {recentJobs.length > 0 && (
-                <div className="px-5 py-4" style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-                  <p
-                    className="font-serif italic uppercase text-ds-9 mb-3"
-                    style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-                  >
-                    Recent Jobs
-                  </p>
-                  <div className="space-y-2">
+                <div style={{ borderBottom: "1px solid var(--doc-hairline)" }}>
+                  {/* Same band treatment as Work Summary above — the two
+                      section headers on this document have to read as one
+                      device, not as two differently-weighted lines of type. */}
+                  <div className="doc-band px-5 py-2">
+                    <p
+                      className="doc-band-ink font-serif italic uppercase text-ds-9"
+                      style={{ letterSpacing: "0.18em" }}
+                    >
+                      Recent Jobs
+                    </p>
+                  </div>
+                  <div className="px-5 py-4 space-y-2">
                     {/* Table header */}
                     <div className="grid grid-cols-[1fr_auto_auto] gap-2 px-1">
                       <span className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground">Job</span>
@@ -428,10 +434,12 @@ const WorkRecord = () => {
                       return (
                         <div
                           key={job.id}
-                          className="grid grid-cols-[1fr_auto_auto] gap-2 px-3 py-2.5 rounded-ds-md"
-                          style={{
-                            background: idx % 2 === 0 ? "hsl(var(--parchment) / 0.5)" : "transparent",
-                          }}
+                          // Zebra fill from the shared ladder's quietest rung.
+                          // `parchment/0.5` over the old card composited to a
+                          // 0.3/255 delta — a zebra stripe you could not see.
+                          className={`grid grid-cols-[1fr_auto_auto] gap-2 px-3 py-2.5 rounded-ds-md${
+                            idx % 2 === 0 ? " doc-row-alt" : ""
+                          }`}
                         >
                           <div className="min-w-0">
                             <p className="text-ds-12 font-semibold truncate" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -465,10 +473,13 @@ const WorkRecord = () => {
                 </div>
               )}
 
-              {/* Document footer */}
+              {/* Document footer — same band rung as the section headers, so
+                  the sheet has exactly two surface values inside it (sheet and
+                  band) instead of a third one-off `bark/0.04` wash that read
+                  as neither. */}
               <div
                 className="px-5 py-4 text-center"
-                style={{ background: "hsl(var(--bark) / 0.04)" }}
+                style={{ background: "var(--doc-band)" }}
               >
                 <p
                   className="font-serif italic text-ds-11 leading-relaxed"
@@ -537,13 +548,13 @@ interface StatBlockProps {
 
 function StatBlock({ icon, label, value, sub }: StatBlockProps) {
   return (
-    <div
-      className="rounded-ds-md px-3 py-2.5"
-      style={{
-        background: "hsl(var(--parchment) / 0.55)",
-        border: "1px solid hsl(var(--olivewood) / 0.08)",
-      }}
-    >
+    // `.doc-tile` — the inset-well rung of the document surface ladder. The
+    // old `parchment/0.55` fill composited to within 0.3/255 of the card it
+    // sat on, so the four stats read as loose text floating in the sheet
+    // rather than as four tiles; on a document meant to be handed to a
+    // landlord or a lender, that is the difference between a figure and a
+    // stated figure.
+    <div className="doc-tile rounded-ds-md px-3 py-2.5">
       <div className="flex items-center gap-1.5 mb-1">
         <span style={{ color: "hsl(var(--bark))" }}>{icon}</span>
         <span className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground">

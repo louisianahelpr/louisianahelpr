@@ -27,9 +27,15 @@ export function RecentWorkSection({
       <div className="flex items-center justify-end gap-2">
         <span className="text-ds-11 text-muted-foreground">{portfolioUrls.length}/{MAX_PORTFOLIO}</span>
       </div>
+      {/* One paragraph, ONE typeface. The emphasis span used to carry
+          `not-italic font-sans`, so the sentence broke mid-paragraph from
+          serif italic into upright sans — two fonts inside one block of copy.
+          Emphasis now rides weight + colour while the family stays put, which
+          is the pattern the rest of this form already uses (see the "Next: …"
+          line in ProfileEditForm). */}
       <p className="font-serif italic leading-snug -mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         Show off recent jobs — applicants see these when deciding to apply.
-        {" "}<span className="not-italic font-sans font-medium" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Photos save automatically.</span>
+        {" "}<span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Photos save automatically.</span>
       </p>
       <div className="grid grid-cols-3 gap-2">
         {portfolioUrls.map((url, i) => (

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
+import { lazy, Suspense, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,120 @@ const STATUSES = [
   { key: "done", label: "Done", icon: PartyPopper, color: "text-primary" },
 ];
 
+/** Index of each step in `STATUSES`, by key. Keeps the derivation below
+    readable and stops a re-ordering of the array from silently changing
+    what "on the way" means. */
+export const STATUS_IDX = {
+  assigned: 0,
+  confirmed: 1,
+  job_confirmed: 2,
+  on_the_way: 3,
+  arrived: 4,
+  working: 5,
+  done: 6,
+} as const;
+
+/** Everything the tracker can learn about how far along a job is. All
+    optional: a caller that knows nothing still gets a sane step 0. */
+export type JobProgressEvidence = {
+  /** `status` from the latest `job_tracking` row, when one exists. */
+  trackingStatus?: string | null;
+  /** `jobs.status`. */
+  jobStatus?: string | null;
+  helperConfirmedAt?: string | null;
+  posterConfirmedAt?: string | null;
+  helperOnTheWayAt?: string | null;
+  helperArrivedAt?: string | null;
+  helperCompletedAt?: string | null;
+  posterCompletedAt?: string | null;
+};
+
+/**
+ * Which step of `STATUSES` a job is actually on.
+ *
+ * This used to read the `job_tracking` row FIRST and, if there wasn't one,
+ * fall all the way back to 0 — so a job whose helper had finished and whose
+ * poster was staring at "Approve & release payment" rendered as "Offered"
+ * with the bar at 1/7. The jobs row already carried the truth (the
+ * `helper_on_the_way_at` / `helper_arrived_at` / `helper_completed_at`
+ * stamps); it just wasn't being read.
+ *
+ * So: score the job row for the FURTHEST milestone it can evidence, score the
+ * tracking row, and take the max. A missing or stale tracking row can then
+ * never drag the tracker backwards, while a live tracking row (the helper
+ * tapping through the steps) still leads the way when it's ahead.
+ */
+export function deriveCurrentStatusIdx({
+  trackingStatus,
+  jobStatus,
+  helperConfirmedAt,
+  posterConfirmedAt,
+  helperOnTheWayAt,
+  helperArrivedAt,
+  helperCompletedAt,
+  posterCompletedAt,
+}: JobProgressEvidence): number {
+  // An unrecognised tracking status yields -1 from findIndex — treat that as
+  // "no evidence" rather than letting it blank out the whole tracker.
+  const trackingIdx = trackingStatus
+    ? STATUSES.findIndex((s) => s.key === trackingStatus)
+    : -1;
+
+  let jobIdx = -1;
+  const atLeast = (idx: number) => { if (idx > jobIdx) jobIdx = idx; };
+
+  if (jobStatus === "accepted") atLeast(STATUS_IDX.assigned);
+  // A job cannot BE in progress without having been confirmed, so the status
+  // itself is evidence of at least "Confirmed" even when no stamp survived.
+  // Without this floor the seeded/older in-progress rows — assigned, underway,
+  // but carrying none of the four timestamps — still read "Offered" with the
+  // bar at 14%, which is the same lie the owner reported on the
+  // ready-to-release job, just with a different missing column. Deliberately
+  // `job_confirmed` and not `working`: "the work has started" is a claim only
+  // an actual stamp or the helper's own tracking row gets to make.
+  if (jobStatus === "in_progress" || jobStatus === "revision_requested") {
+    atLeast(STATUS_IDX.job_confirmed);
+  }
+  if (helperConfirmedAt || posterConfirmedAt) atLeast(STATUS_IDX.confirmed);
+  if (helperConfirmedAt && posterConfirmedAt) atLeast(STATUS_IDX.job_confirmed);
+  if (helperOnTheWayAt) atLeast(STATUS_IDX.on_the_way);
+  if (helperArrivedAt) {
+    atLeast(STATUS_IDX.arrived);
+    // Arrived + still `in_progress` almost certainly means on site and
+    // working — there is no "started working" stamp on the jobs row. But
+    // that is an INFERENCE, and applying it unconditionally would make the
+    // Arrived step unreachable: the helper tapping Arrived also flips the job
+    // to `in_progress`, so every arrival would skip straight to Working. So
+    // it only fills a gap: when a tracking row exists it is the helper's own
+    // statement of where they are, and it wins.
+    if (trackingIdx < 0 && jobStatus === "in_progress") atLeast(STATUS_IDX.working);
+  }
+  if (helperCompletedAt || posterCompletedAt || jobStatus === "completed") {
+    atLeast(STATUS_IDX.done);
+  }
+
+  // Floor at 0: the tracker always shows at least "Offered".
+  return Math.max(0, trackingIdx, jobIdx);
+}
+
+/**
+ * How to phrase the assigned helper's name for the step the job is on.
+ * "Offered to Camille" is only true at step 0 — once she has accepted, is
+ * driving over, or is holding a wrench, saying "Offered to" is wrong.
+ * Returned as before/after fragments so the name itself can stay a link.
+ */
+export function helperStatusPhrase(idx: number): { before: string; after: string } {
+  switch (idx) {
+    case STATUS_IDX.confirmed: return { before: "", after: "accepted this job" };
+    case STATUS_IDX.job_confirmed: return { before: "", after: "confirmed — ready to start" };
+    case STATUS_IDX.on_the_way: return { before: "", after: "is on the way" };
+    case STATUS_IDX.arrived: return { before: "", after: "has arrived" };
+    case STATUS_IDX.working: return { before: "", after: "is working on the job" };
+    case STATUS_IDX.done: return { before: "", after: "finished the job" };
+    default: return { before: "Offered to", after: "" };
+  }
+}
+
 export type TrackingData = {
   id: string;
   status: string;
@@ -53,6 +167,10 @@ export function JobTracking({
   jobStatus,
   helperConfirmedAt: initialHelperConfirmedAt,
   posterConfirmedAt: initialPosterConfirmedAt,
+  helperOnTheWayAt: initialHelperOnTheWayAt,
+  helperArrivedAt: initialHelperArrivedAt,
+  helperCompletedAt: initialHelperCompletedAt,
+  posterCompletedAt: initialPosterCompletedAt,
   initialTracking,
   jobLatitude,
   jobLongitude,
@@ -61,11 +179,11 @@ export function JobTracking({
   helperId: string | null;
   /**
    * Display name of the assigned helper. Supplied by the poster-side card so
-   * the tracker can state WHO it is tracking in its own header. Before this,
-   * the name lived in a standalone "Offered to …" pill row floating above the
-   * tracker; the owner asked for it to move inside — "it belongs in the
-   * tracker, not in that small pop up icon thing". Optional: the helper-side
-   * mounts are tracking themselves and have no one to name.
+   * the tracker can state WHO it is tracking. It is rendered as a caption on
+   * the progress bar — "Camille is on the way" — not as a row under the
+   * heading, where the owner read it as a second title stacked on the first.
+   * Optional: the helper-side mounts are tracking themselves and have no one
+   * to name.
    */
   helperName?: string | null;
   isHelper: boolean;
@@ -75,6 +193,19 @@ export function JobTracking({
   jobStatus?: string;
   helperConfirmedAt?: string | null;
   posterConfirmedAt?: string | null;
+  /**
+   * Lifecycle stamps straight off the jobs row. All optional and all
+   * defaulting to "unknown" so existing call sites keep compiling and keep
+   * their exact current behaviour — but without them the tracker can only
+   * guess, and guesses wrong: a job whose helper has already finished shows
+   * as "Offered" because no `job_tracking` row exists to say otherwise.
+   * Pass them (`job.helper_on_the_way_at` etc.) wherever the jobs row is in
+   * hand — see `deriveCurrentStatusIdx`.
+   */
+  helperOnTheWayAt?: string | null;
+  helperArrivedAt?: string | null;
+  helperCompletedAt?: string | null;
+  posterCompletedAt?: string | null;
   /**
    * Optional pre-fetched latest tracking row. When provided (including
    * `null`, meaning "no tracking row exists yet"), the per-card initial
@@ -100,12 +231,28 @@ export function JobTracking({
   const [updating, setUpdating] = useState(false);
   const [helperConfirmedAt, setHelperConfirmedAt] = useState(initialHelperConfirmedAt);
   const [posterConfirmedAt, setPosterConfirmedAt] = useState(initialPosterConfirmedAt);
+  // Lifecycle stamps off the jobs row, mirrored into state so the realtime
+  // `jobs` UPDATE below can advance the tracker without a parent refetch.
+  const [jobStamps, setJobStamps] = useState({
+    onTheWayAt: initialHelperOnTheWayAt ?? null,
+    arrivedAt: initialHelperArrivedAt ?? null,
+    helperCompletedAt: initialHelperCompletedAt ?? null,
+    posterCompletedAt: initialPosterCompletedAt ?? null,
+  });
   const [sosOpen, setSosOpen] = useState(false);
   const { request: requestPermission } = usePermissionRationale();
 
   // Sync props
   useEffect(() => { setHelperConfirmedAt(initialHelperConfirmedAt); }, [initialHelperConfirmedAt]);
   useEffect(() => { setPosterConfirmedAt(initialPosterConfirmedAt); }, [initialPosterConfirmedAt]);
+  useEffect(() => {
+    setJobStamps({
+      onTheWayAt: initialHelperOnTheWayAt ?? null,
+      arrivedAt: initialHelperArrivedAt ?? null,
+      helperCompletedAt: initialHelperCompletedAt ?? null,
+      posterCompletedAt: initialPosterCompletedAt ?? null,
+    });
+  }, [initialHelperOnTheWayAt, initialHelperArrivedAt, initialHelperCompletedAt, initialPosterCompletedAt]);
   // Keep the batched-tracking prop in sync after activity refreshes — when
   // the parent refetches its batched job_tracking rows, the new value flows
   // back into the card (e.g. cache invalidation after a write).
@@ -159,6 +306,12 @@ export function JobTracking({
             const updated = payload.new as any;
             if (updated.helper_confirmed_at !== undefined) setHelperConfirmedAt(updated.helper_confirmed_at);
             if (updated.poster_confirmed_at !== undefined) setPosterConfirmedAt(updated.poster_confirmed_at);
+            setJobStamps((prev) => ({
+              onTheWayAt: updated.helper_on_the_way_at !== undefined ? updated.helper_on_the_way_at : prev.onTheWayAt,
+              arrivedAt: updated.helper_arrived_at !== undefined ? updated.helper_arrived_at : prev.arrivedAt,
+              helperCompletedAt: updated.helper_completed_at !== undefined ? updated.helper_completed_at : prev.helperCompletedAt,
+              posterCompletedAt: updated.poster_completed_at !== undefined ? updated.poster_completed_at : prev.posterCompletedAt,
+            }));
           }
         }
       )
@@ -325,87 +478,54 @@ export function JobTracking({
     loadTracking();
   };
 
-  // Determine current status index based on tracking data + confirmation state
+  // Determine current status index from every signal available — see
+  // `deriveCurrentStatusIdx` for why the jobs row has to be read too.
   const bothConfirmed = !!helperConfirmedAt && !!posterConfirmedAt;
-  const eitherConfirmed = !!helperConfirmedAt || !!posterConfirmedAt;
 
-  const currentStatusIdx = tracking
-    ? STATUSES.findIndex((s) => s.key === tracking.status)
-    : eitherConfirmed
-      ? STATUSES.findIndex((s) => s.key === "job_confirmed")
-      : helperConfirmedAt
-        ? STATUSES.findIndex((s) => s.key === "confirmed")
-        : (jobStatus === "accepted" ? STATUSES.findIndex((s) => s.key === "assigned") : 0);
+  const currentStatusIdx = deriveCurrentStatusIdx({
+    trackingStatus: tracking?.status,
+    jobStatus,
+    helperConfirmedAt,
+    posterConfirmedAt,
+    helperOnTheWayAt: jobStamps.onTheWayAt,
+    helperArrivedAt: jobStamps.arrivedAt,
+    helperCompletedAt: jobStamps.helperCompletedAt,
+    posterCompletedAt: jobStamps.posterCompletedAt,
+  });
 
-  // Bring the live step to the user, rather than making them scroll to find it.
-  //
-  // The step row scrolls horizontally (seven steps do not fit 375px legibly), so
-  // once a job passes the third or fourth step the current one sits off-screen.
-  // Every advance re-centres it. `block: "nearest"` keeps the PAGE still — the
-  // default would scroll the whole card into view and yank the feed under the
-  // reader's thumb, which is worse than the problem being solved.
-  //
-  // Guarded on the ref existing rather than on currentStatusIdx alone: the row
-  // is inside an IIFE that only renders when there is a helper, so on the first
-  // pass the node may not be mounted yet.
-  const stepRowRef = useRef<HTMLDivElement | null>(null);
-  const currentStepRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    const el = currentStepRef.current;
-    if (!el || !stepRowRef.current) return;
-    el.scrollIntoView({
-      // Respect a reduced-motion preference — an unexpected horizontal slide is
-      // exactly the kind of movement that setting exists to suppress.
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-      inline: "center",
-      block: "nearest",
-    });
-  }, [currentStatusIdx]);
+  // SOS is a safety control for someone who is EN ROUTE or ON SITE. It used to
+  // render for the whole of `in_progress`, which begins at the "Offered" step —
+  // so the poster saw an SOS button on a job where, in the owner's words, "no
+  // one is even there". It now appears from "On the Way" onward and stays up
+  // through Arrived / Working / Done-pending, dropping only once the job is
+  // closed out. Never deleted: it is the one control that matters if a visit
+  // goes wrong.
+  const showSos =
+    currentStatusIdx >= STATUS_IDX.on_the_way &&
+    jobStatus !== "completed" &&
+    jobStatus !== "cancelled";
+
+  // NOTE: the step row used to scroll horizontally, and an effect here
+  // re-centred the current step on every advance. Both are gone: the row no
+  // longer scrolls (it wraps to a 4 + 3 grid on phones), so there is nothing
+  // to centre — and calling scrollIntoView with no scrollable ancestor left
+  // would have walked up to the document and yanked the feed instead.
 
   if (!helperId) return null;
 
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-4">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h3
-            className="font-display italic font-bold leading-tight text-headline-card"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-          >
-            Job tracking
-          </h3>
-          {/* Who is being tracked. Moved here from the standalone pill row the
-              card used to render between the description and this card — same
-              avatar, same name, same link to their profile, one less floating
-              row. `isHelper` mounts skip it: a helper tracking their own job
-              does not need to be told whose job it is. */}
-          {!isHelper && helperName && (
-            <div className="flex items-center gap-1.5 mt-1 min-w-0">
-              <span
-                className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0"
-                aria-hidden
-              >
-                {helperName[0].toUpperCase()}
-              </span>
-              <span className="text-ds-11 text-muted-foreground shrink-0">Offered to</span>
-              {helperId ? (
-                <a
-                  href={`/user/${helperId}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-ds-11 font-medium text-primary hover:underline truncate"
-                >
-                  {helperName}
-                </a>
-              ) : (
-                <span className="text-ds-11 font-medium truncate">{helperName}</span>
-              )}
-            </div>
-          )}
-        </div>
-        {/* SOS share button — only during in_progress jobs.
-            Lets either party quickly share their location context
-            with a trusted contact for safety. */}
-        {jobStatus === "in_progress" && (
+        <h3
+          className="font-display italic font-bold leading-tight text-headline-card min-w-0"
+          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+        >
+          Job tracking
+        </h3>
+        {/* SOS share button. Lets either party quickly share their location
+            context with a trusted contact for safety — see `showSos` for why
+            it no longer appears the moment a job turns `in_progress`. */}
+        {showSos && (
           <button
             type="button"
             onClick={() => setSosOpen(true)}
@@ -429,27 +549,21 @@ export function JobTracking({
           return null;
         };
 
-        // Horizontally scrollable, not compress-to-fit. Seven steps sharing one
-        // 375px row via `flex-1` squeezed each to ~46px, which clipped the last
-        // label ("Done") against the card edge — the step the poster most wants
-        // to see. The row now scrolls and each step keeps a legible fixed width;
-        // stepRowRef + currentStepRef centre the active step whenever it
-        // advances, so the thing that just happened comes to the user instead of
-        // the user having to go find it. `scrollbar-hide` matches the filter-chip
-        // rows elsewhere.
+        // Wraps, never scrolls. Seven steps do not fit one phone-width row at a
+        // legible size, and while it scrolled the row simply sliced whatever
+        // step straddled the card edge — the reported "On the W". A scroller
+        // can always be cut mid-word, so the row is a grid instead: four steps
+        // then three on phones, all seven once there is room. Nothing is ever
+        // clipped, at 320px or anywhere else, because nothing overflows.
         return (
           <div
-            ref={stepRowRef}
-            // A scrollable region with no focusable content inside it is
-            // unreachable by keyboard — axe's `scrollable-region-focusable`,
-            // serious. The steps are read-only text, so there is nothing in
-            // here to focus; the container itself takes the tab stop, and the
-            // group role + label mean it announces as "Job progress, group"
-            // rather than as an unnamed scroller.
-            tabIndex={0}
+            // Read-only text, no longer a scrollable region, so it needs no tab
+            // stop of its own (axe's `scrollable-region-focusable` no longer
+            // applies). The group role + label keep it announcing as
+            // "Job progress, group" rather than seven loose fragments.
             role="group"
             aria-label="Job progress"
-            className="flex items-start gap-1 overflow-x-auto scrollbar-hide -mx-1 px-1 snap-x snap-mandatory rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="grid grid-cols-4 sm:grid-cols-7 gap-x-1 gap-y-3 items-start"
           >
             {STATUSES.map((s, idx) => {
               const isActive = idx <= currentStatusIdx;
@@ -459,8 +573,7 @@ export function JobTracking({
               return (
                 <div
                   key={s.key}
-                  ref={isCurrent ? currentStepRef : undefined}
-                  className="shrink-0 w-[4.5rem] flex flex-col items-center gap-1 snap-center"
+                  className="min-w-0 flex flex-col items-center gap-1"
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
@@ -479,7 +592,9 @@ export function JobTracking({
                     <Icon className="w-4 h-4" />
                   </div>
                   <span
-                    className="text-ds-10 font-sans font-semibold text-center leading-tight"
+                    // ds-9 below 360px so "Confirmed" — the longest unbreakable
+                    // label — still fits its column on a 320px phone.
+                    className="text-ds-9 min-[360px]:text-ds-10 font-sans font-semibold text-center leading-tight"
                     style={{
                       color: isCurrent
                         ? "hsl(var(--bark))"
@@ -500,7 +615,9 @@ export function JobTracking({
         );
       })()}
 
-      {/* Progress bar */}
+      {/* Progress bar — driven by the same `currentStatusIdx` as the step row
+          above, so the two can never disagree (a job sitting on "Done" used to
+          be able to paint a one-seventh sliver). */}
       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "hsl(var(--olivewood) / 0.10)" }}>
         <div
           className="h-full rounded-full motion-safe:transition-all motion-safe:duration-500"
@@ -510,6 +627,41 @@ export function JobTracking({
           }}
         />
       </div>
+
+      {/* Who is being tracked, phrased for the step the job is actually on.
+          This used to be an "Offered to <Name>" row sitting immediately under
+          the "Job tracking" heading, where it read as a second title — and it
+          still said "Offered to" for a helpr who was already holding a wrench.
+          It now captions the progress it belongs to. `isHelper` mounts skip
+          it: a helper tracking their own job needs no one named. */}
+      {!isHelper && helperName && (() => {
+        const { before, after } = helperStatusPhrase(currentStatusIdx);
+        return (
+          <div className="flex items-center justify-center gap-1.5 min-w-0">
+            <span
+              className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0"
+              aria-hidden
+            >
+              {helperName[0].toUpperCase()}
+            </span>
+            <p className="text-ds-11 text-muted-foreground truncate">
+              {before && <span>{before} </span>}
+              {helperId ? (
+                <a
+                  href={`/user/${helperId}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {helperName}
+                </a>
+              ) : (
+                <span className="font-medium">{helperName}</span>
+              )}
+              {after && <span> {after}</span>}
+            </p>
+          </div>
+        );
+      })()}
 
       {/* Live-tracking map — shown while helper is on the way and both
           positions are known. Lazy-loaded so the Leaflet chunk isn't paid

@@ -440,7 +440,7 @@ export function ConversationList({
               // space — trim it to a normal gutter when embedded.
               paddingBottom: embedded
                 ? "1rem"
-                : "calc(env(safe-area-inset-bottom, 0px) + 96px)",
+                : "calc(var(--safe-area-bottom, 0px) + 96px)",
             }}
           >
           <div className="space-y-2">
@@ -601,7 +601,7 @@ export function ConversationList({
               role="toolbar"
               aria-label="Bulk delete action bar"
               className="fixed inset-x-0 z-40 px-4"
-              style={{ bottom: embedded ? "1rem" : "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
+              style={{ bottom: embedded ? "1rem" : "calc(var(--safe-area-bottom, 0px) + 80px)" }}
             >
               <div
                 className="mx-auto max-w-xl flex items-center justify-between gap-3 px-4 py-3 rounded-ds-md"

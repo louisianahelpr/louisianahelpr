@@ -10,7 +10,7 @@ import { formatName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
   Star, ShieldAlert, Clock, MailIcon, ShieldCheck,
-  Briefcase, MapPin, CreditCard, Flag, DollarSign,
+  Briefcase, MapPin, CreditCard, Flag,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -198,13 +198,19 @@ const AdminUserRowBase = ({
                   </>
                 )}
 
-                {/* Lifetime value (earned for helpers, spent for customers) */}
+                {/* Lifetime value (earned for helpers, spent for customers).
+                    No DollarSign icon: every OTHER chip in this row pairs its
+                    icon with a value that names its own unit ("12 jobs",
+                    "3 open"), so the glyph is decoration there. Here the
+                    value is a bare number and the icon was doing the "$"'s
+                    job — rendering "$ 450", a gap through the middle of the
+                    figure. A currency symbol is typography; it goes in the
+                    text node with the digits. */}
                 {ltv > 0 && chip(
                   "ltv",
-                  <>
-                    <DollarSign className="w-3 h-3" />
-                    {ltv >= 1000 ? `${(ltv / 1000).toFixed(1)}k` : Math.round(ltv)}
-                  </>
+                  <span className="tabular-nums">
+                    ${ltv >= 1000 ? `${(ltv / 1000).toFixed(1)}k` : Math.round(ltv)}
+                  </span>
                 )}
 
                 {/* Parish — moderation/location signal */}

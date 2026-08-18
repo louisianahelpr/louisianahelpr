@@ -173,6 +173,16 @@ export default function SubscriptionPage() {
   // it inline would push the primary conversion below the fold). Toggling
   // slides it in below the "Compare all features" button.
   const [showCompare, setShowCompare] = useState(false);
+  // PHONE ONLY: which tier's feature list is expanded. Below `sm` each plan
+  // renders as a compact strip and its bullets live behind a per-card
+  // disclosure — see the layout note on the tier grid below. Single-open
+  // (a tier id, not a set) on purpose: two open lists put the recommended
+  // plan back under the fold, which is the bug this layout exists to fix.
+  // At `sm` and up the wrapper is `sm:flex` regardless, so this state has no
+  // effect on tablet/desktop and every bullet is always visible there.
+  const [openPlanDetails, setOpenPlanDetails] = useState<SubscriptionTier | null>(
+    null,
+  );
 
   // Sequential fade-in for the tier grid — mirrors HowItWorksSection.
   const tiersRef = useRef<HTMLDivElement>(null);
@@ -311,13 +321,19 @@ export default function SubscriptionPage() {
       {/* ── 2. Plans / tiers ────────────────────────────────────────────── */}
       {/* Tight pt-* — this section opens directly under the compact page
           header, so a large top pad would read as a dead band rather than
-          as section separation. */}
+          as section separation. Tighter still below `sm`: on the phone this
+          masthead is pure preamble standing between the reader and the thing
+          they came to do. */}
       <section
         id="plans"
         ref={tiersRef}
-        className="relative px-5 sm:px-8 lg:px-12 pt-6 sm:pt-8 lg:pt-10 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
+        className="relative px-5 sm:px-8 lg:px-12 pt-3 sm:pt-8 lg:pt-10 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
       >
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
+        {/* gap-6 below sm (was gap-12): at md+ the masthead and the grid are
+            side by side and the gap is horizontal, but at phone width it is a
+            48px horizontal rule of nothing between the billing toggle and the
+            first plan — pure fold budget. */}
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 lg:gap-16 md:items-start">
           {/* Left masthead */}
           <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32">
             {/* "Membership" is the canonical user-facing noun for this feature
@@ -325,18 +341,32 @@ export default function SubscriptionPage() {
                 — a second noun for the same thing. The `id="plans"` anchor is
                 internal and deliberately left alone. */}
             <span className="text-display-eyebrow">Membership tiers</span>
+            {/* Font size moved OUT of the inline style and onto classes so the
+                phone can have its own value. Inline `fontSize` beats every
+                utility, so `max-sm:` could never have reached it. The
+                `sm:` value is byte-identical to the clamp that was here — that
+                clamp sits on its 2.25rem floor until ~1059px anyway, so this
+                headline was 36px on every phone AND every tablet. At 375 that
+                is a display size on a screen with no display to fill: it, its
+                explainer and the toggle together ate 40% of the viewport and
+                pushed the recommended plan off the bottom. */}
             <h2
-              className="mt-3 font-display font-bold text-balance leading-[1.05]"
+              className="mt-2 sm:mt-3 font-display font-bold text-balance plan-masthead-title"
               style={{
-                fontSize: "clamp(2.25rem, 3.4vw, 3.25rem)",
                 letterSpacing: "-0.025em",
                 color: "hsl(var(--ink-deep))",
               }}
             >
               Pick your plan.
             </h2>
+            {/* Copy unchanged — this line is the factual statement that the
+                commission moves on BOTH sides, and it is the reason the page
+                exists. Only its measure changes: `max-w-xs` was capping it to
+                320px inside a 335px phone column, buying a fourth line for no
+                reason. Released below sm, restored at sm+ where the masthead
+                really is a narrow column. */}
             <p
-              className="mt-4 font-serif italic text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
+              className="mt-2.5 sm:mt-4 font-serif italic text-ds-13 sm:text-ds-15 leading-relaxed max-w-none sm:max-w-xs mx-auto md:mx-0"
               style={{ color: "hsl(var(--olivewood) / 0.85)" }}
             >
               The same commission % applies to both sides — Helprs keep more of
@@ -349,7 +379,7 @@ export default function SubscriptionPage() {
             <div
               role="tablist"
               aria-label="Billing cycle"
-              className="mt-6 inline-flex items-center gap-1 p-1 rounded-2xl"
+              className="mt-3 sm:mt-6 inline-flex items-center gap-1 p-1 rounded-2xl"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.06)",
                 border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
@@ -408,12 +438,42 @@ export default function SubscriptionPage() {
               jobs" broke across three lines, the subtitles hit their
               line-clamp ("For serious…", "Maximum…"), and even the button
               label wrapped to "Start / free". Two-up in the middle band gives
-              each card real width before going three-across. */}
-          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4 lg:gap-5">
+              each card real width before going three-across.
+
+              PHONE (below sm) is a different problem and gets a different
+              answer. Three cards cannot go side by side in 375px — the
+              comments above record what happened the last time this grid tried
+              at 200px each — so the phone keeps one column, and the fix is to
+              make each card SHORT enough that comparison happens by looking
+              rather than by scrolling. Measured from the element heights, the
+              full card ran ~330px (Free) to ~450px (Pro); with the old
+              masthead above it that put exactly ONE plan on a 375x812 screen
+              and cut the RECOMMENDED one off mid-price.
+
+              Three changes get Free AND Pro fully on screen together, with
+              Elite's head showing (measured ~212px per card, ~302px of
+              masthead, so Pro lands at ~742 of 812):
+                · name and price share one baseline row instead of stacking
+                  with a 20px gap between them (the `sm:hidden` price block
+                  below — same numbers, same tokens, laid out sideways);
+                · the feature bullets and the badge preview move behind a
+                  per-card "What's included" disclosure;
+                · the CTA is pulled up above that disclosure with `order-*`,
+                  so the button is never the thing below the fold.
+              At sm and up every one of those reverts (`sm:order-none`,
+              `sm:flex`, `sm:hidden`) and the card renders exactly as before.
+
+              The tier ORDER is deliberately left alone. Pro is second, not
+              first: a plan picker is read as a ladder, the Pro card's own
+              first bullet is "Everything in Free", and floating Pro to the top
+              would break both. It does not need to be first to be seen — it
+              needs to be above the fold, which it now is. */}
+          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
             {CONSUMER_TIERS.map((tier, i) => {
               const perks = TIER_PERKS[tier];
               const isActive = tier === currentTier;
               const isFree = tier === "free";
+              const detailsOpen = openPlanDetails === tier;
               // Pro is the recommended middle tier — carries a subtle warm halo
               // behind the card (matching the hero halo) and reads as the
               // primary conversion. Mirrors the in-app SubscriptionTab.
@@ -421,6 +481,20 @@ export default function SubscriptionPage() {
               const feeSavings = isFree
                 ? null
                 : TIER_PERKS.free.platformFeePercent - perks.platformFeePercent;
+              // Phone price strip. Derived from the SAME formatPaidTierPrices()
+              // call and the same billingCycle as the stacked price block
+              // below, so the two can never show different money — this is a
+              // second rendering of one number, not a second number.
+              const compactPrice = (() => {
+                if (isFree) return { amount: "$0", suffix: null, saveChip: null };
+                const info = formatPaidTierPrices(tier as "basic" | "pro" | "elite");
+                const isAnnual = billingCycle === "annual";
+                return {
+                  amount: isAnnual ? `$${info.yearlyTotal}` : `$${info.monthlyPrice}`,
+                  suffix: isAnnual ? "/yr" : "/mo",
+                  saveChip: isAnnual ? info.annualSave : null,
+                };
+              })();
 
               return (
                 <div
@@ -439,7 +513,7 @@ export default function SubscriptionPage() {
                   {isFeatured && (
                     <div
                       aria-hidden
-                      className="pointer-events-none absolute -inset-6 sm:-inset-8 -z-0"
+                      className="pointer-events-none absolute -inset-4 sm:-inset-8 -z-0"
                       style={{
                         background:
                           "radial-gradient(60% 60% at 50% 50%, hsl(var(--gold-warm) / 0.22) 0%, hsl(var(--burnt-sienna) / 0.10) 45%, transparent 78%)",
@@ -449,7 +523,11 @@ export default function SubscriptionPage() {
                   )}
 
                   <div
-                    className="relative z-10 h-full flex flex-col rounded-2xl p-6 sm:p-7 lg:p-8"
+                    // pt is spelled out per breakpoint rather than left to
+                    // `p-*`: the absolutely-positioned "Recommended" chip is
+                    // ~21px tall, so the phone's tightened 20px `p-5` would
+                    // have let it clip the top of the Pro card's title.
+                    className="relative z-10 h-full flex flex-col rounded-2xl p-5 sm:p-7 lg:p-8 pt-6 sm:pt-7 lg:pt-8"
                     style={{
                       background: "hsl(var(--burnt-sienna) / 0.04)",
                       border: isFeatured
@@ -505,16 +583,64 @@ export default function SubscriptionPage() {
                         against 30px for Basic and Elite. Same font size on all
                         four (measured 25.6px); it was purely the offset that made
                         them look mismatched. */}
-                    <h3
-                      className="font-display font-bold leading-[1.05] tracking-tight"
-                      style={{
-                        fontSize: "clamp(1.6rem, 2.4vw, 2.15rem)",
-                        letterSpacing: "-0.025em",
-                        color: "hsl(var(--ink-deep))",
-                      }}
-                    >
-                      {isFree ? "Free" : perks.name.replace(/^Helpr\s+/, "")}
-                    </h3>
+                    {/* Phone: name and price share one baseline row. Same
+                        numbers, same tokens, same tier logic as the stacked
+                        block below — only the axis differs. At sm+ the wrapper
+                        goes back to `block` and the price inside it goes to
+                        `hidden`, leaving a full-width block containing only
+                        the h3 — geometrically identical to the bare h3 that
+                        used to sit here (neither carries a margin), so the
+                        tablet/desktop card is unchanged. */}
+                    <div className="flex items-baseline justify-between gap-3 sm:block">
+                      <h3
+                        className="font-display font-bold tracking-tight plan-card-name"
+                        style={{
+                          letterSpacing: "-0.025em",
+                          color: "hsl(var(--ink-deep))",
+                        }}
+                      >
+                        {isFree ? "Free" : perks.name.replace(/^Helpr\s+/, "")}
+                      </h3>
+                      <div className="sm:hidden shrink-0 text-right">
+                        {/* One wrapping row, not a stack: the annual save chip
+                            on its own line cost every card 20px of fold budget
+                            at exactly the moment the prices got bigger (annual
+                            shows the yearly total). `flex-wrap` is the safety
+                            net for a 320px screen, where the chip drops under
+                            the price instead of squeezing the plan name. */}
+                        <div className="flex items-baseline justify-end gap-x-1.5 gap-y-1 flex-wrap">
+                          <span
+                            className="font-display font-black tabular-nums plan-card-price"
+                            style={{
+                              letterSpacing: "-0.03em",
+                              color: "hsl(var(--olivewood))",
+                            }}
+                          >
+                            {compactPrice.amount}
+                          </span>
+                          {compactPrice.suffix && (
+                            <span
+                              className="font-sans font-medium text-ds-11"
+                              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                            >
+                              {compactPrice.suffix}
+                            </span>
+                          )}
+                          {compactPrice.saveChip && (
+                            <span
+                              className="font-sans text-ds-10 font-bold uppercase px-1.5 py-0.5 rounded-full"
+                              style={{
+                                background: "hsl(var(--burnt-sienna))",
+                                color: "hsl(var(--parchment))",
+                                letterSpacing: "0.12em",
+                              }}
+                            >
+                              {compactPrice.saveChip}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Tagline — italic */}
                     <p
@@ -523,7 +649,7 @@ export default function SubscriptionPage() {
                       // neighbours didn't — so one card carried an extra line and
                       // pushed its price, fee line and CTA out of step with the
                       // other three.
-                      className="mt-2 font-serif italic text-ds-13 sm:text-ds-15 leading-relaxed line-clamp-1"
+                      className="mt-1.5 sm:mt-2 font-serif italic text-ds-13 sm:text-ds-15 leading-relaxed line-clamp-1"
                       style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                     >
                       {perks.tagline}
@@ -533,7 +659,12 @@ export default function SubscriptionPage() {
                         number is the yearly total ($100/yr), with the
                         monthly-equivalent + save chip in the caption. On
                         monthly, the big number is $X/mo. Free tier is always
-                        $0 regardless of toggle. */}
+                        $0 regardless of toggle.
+
+                        `hidden sm:block`: on the phone this same price is in
+                        the title row above, where it costs the card a shared
+                        baseline instead of its own 56px band. */}
+                    <div className="hidden sm:block">
                     {(() => {
                       if (isFree) {
                         return (
@@ -606,10 +737,15 @@ export default function SubscriptionPage() {
                         </>
                       );
                     })()}
+                    </div>
 
-                    {/* Fee line — the headline benefit */}
+                    {/* Fee line — the headline benefit. Stays outside the
+                        disclosure on every breakpoint: the commission % IS the
+                        product, and it is the one number a phone reader has to
+                        be able to compare between two cards without tapping
+                        anything. */}
                     <p
-                      className="mt-5 font-sans font-semibold text-ds-13"
+                      className="mt-2.5 sm:mt-5 font-sans font-semibold text-ds-13"
                       style={{ color: "hsl(var(--burnt-sienna))" }}
                     >
                       {perks.platformFeePercent}% platform fee
@@ -620,71 +756,112 @@ export default function SubscriptionPage() {
                           : ""}
                     </p>
 
-                    {/* What the badge looks like once you're on the plan,
-                        rendered with the real in-app treatment rather than
-                        described in words — the perk is visible before you pay
-                        for it. */}
-                    {tier !== "free" && (
-                      <div className="mt-3 flex items-center gap-2">
-                        <span
-                          className="font-sans text-ds-11"
-                          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                        >
-                          Your badge:
-                        </span>
-                        <TierBadgePreview tier={tier} />
-                      </div>
-                    )}
+                    {/* Everything from here to the CTA is the card's DETAIL —
+                        the badge preview and the feature bullets. On the phone
+                        it collapses behind the disclosure below (`hidden`
+                        unless this tier is the open one); at sm+ the wrapper is
+                        always `flex` and `order-none`, so the card is byte-for-
+                        byte the layout it was. `sm:flex-1` keeps the job the
+                        `flex-1` on the <ul> used to do on its own — pushing the
+                        CTAs of all three cards onto one line. */}
+                    <div
+                      id={`plan-details-${tier}`}
+                      className={`${
+                        detailsOpen ? "flex flex-col order-3" : "hidden"
+                      } sm:flex sm:flex-col sm:flex-1 sm:order-none`}
+                    >
+                      {/* What the badge looks like once you're on the plan,
+                          rendered with the real in-app treatment rather than
+                          described in words — the perk is visible before you pay
+                          for it. */}
+                      {tier !== "free" && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <span
+                            className="font-sans text-ds-11"
+                            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                          >
+                            Your badge:
+                          </span>
+                          <TierBadgePreview tier={tier} />
+                        </div>
+                      )}
 
-                    {/* Feature bullets — paid tiers are a strict upgrade
-                        ladder (each includes everything the tier below it
-                        has), so lead with "Everything in <tier below>" the
-                        same way the in-app Membership tab does
-                        (tierConfig.tsx), instead of only listing this tier's
-                        own new perks and implying the rest are lost. */}
-                    <ul className="mt-4 space-y-2 flex-1">
-                      {/* Name the tier ACTUALLY rendered below this one, not a
-                          hardcoded "Basic". With Basic hidden (see
-                          CONSUMER_TIERS) a literal "Everything in Basic"
-                          referenced a tier the user cannot see anywhere on the
-                          page — a dangling comparison. Deriving it from
-                          CONSUMER_TIERS keeps the ladder honest whichever tiers
-                          are on display, and restores "Basic" automatically if
-                          it is ever re-enabled. */}
-                      {tier === "pro" && (() => {
-                        const belowKey = CONSUMER_TIERS[CONSUMER_TIERS.indexOf("pro") - 1];
-                        const belowLabel = belowKey ? TIER_PERKS[belowKey]?.name ?? belowKey : null;
-                        return belowLabel ? (
+                      {/* Feature bullets — paid tiers are a strict upgrade
+                          ladder (each includes everything the tier below it
+                          has), so lead with "Everything in <tier below>" the
+                          same way the in-app Membership tab does
+                          (tierConfig.tsx), instead of only listing this tier's
+                          own new perks and implying the rest are lost. */}
+                      <ul className="mt-4 space-y-2 flex-1">
+                        {/* Name the tier ACTUALLY rendered below this one, not a
+                            hardcoded "Basic". With Basic hidden (see
+                            CONSUMER_TIERS) a literal "Everything in Basic"
+                            referenced a tier the user cannot see anywhere on the
+                            page — a dangling comparison. Deriving it from
+                            CONSUMER_TIERS keeps the ladder honest whichever tiers
+                            are on display, and restores "Basic" automatically if
+                            it is ever re-enabled. */}
+                        {tier === "pro" && (() => {
+                          const belowKey = CONSUMER_TIERS[CONSUMER_TIERS.indexOf("pro") - 1];
+                          const belowLabel = belowKey ? TIER_PERKS[belowKey]?.name ?? belowKey : null;
+                          return belowLabel ? (
+                            <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
+                              <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.25} style={{ color: "hsl(var(--burnt-sienna))" }} />
+                              <span>Everything in {belowLabel}</span>
+                            </li>
+                          ) : null;
+                        })()}
+                        {tier === "elite" && (
                           <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
                             <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.25} style={{ color: "hsl(var(--burnt-sienna))" }} />
-                            <span>Everything in {belowLabel}</span>
+                            <span>Everything in Pro</span>
                           </li>
-                        ) : null;
-                      })()}
-                      {tier === "elite" && (
-                        <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
-                          <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.25} style={{ color: "hsl(var(--burnt-sienna))" }} />
-                          <span>Everything in Pro</span>
-                        </li>
-                      )}
-                      {perks.featureBullets.map((bullet) => (
-                        <li
-                          key={bullet}
-                          className="flex items-start gap-2 font-sans text-ds-13 leading-relaxed"
-                          style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-                        >
-                          <Check
-                            className="w-4 h-4 shrink-0 mt-0.5"
-                            strokeWidth={2.25}
-                            style={{ color: "hsl(var(--burnt-sienna))" }}
-                          />
-                          <span>{bullet}</span>
-                        </li>
-                      ))}
-                    </ul>
+                        )}
+                        {perks.featureBullets.map((bullet) => (
+                          <li
+                            key={bullet}
+                            className="flex items-start gap-2 font-sans text-ds-13 leading-relaxed"
+                            style={{ color: "hsl(var(--olivewood) / 0.9)" }}
+                          >
+                            <Check
+                              className="w-4 h-4 shrink-0 mt-0.5"
+                              strokeWidth={2.25}
+                              style={{ color: "hsl(var(--burnt-sienna))" }}
+                            />
+                            <span>{bullet}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Phone-only disclosure for the block above. `sm:hidden`
+                        + `order-2` puts it under the CTA, so the tap target
+                        that converts is never the one pushed off screen by a
+                        list the reader has not asked for yet. Tablet and up
+                        never renders it — the bullets are always visible
+                        there, so there is nothing to disclose. */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenPlanDetails((open) => (open === tier ? null : tier))
+                      }
+                      aria-expanded={detailsOpen}
+                      aria-controls={`plan-details-${tier}`}
+                      className="sm:hidden order-2 mt-2.5 self-start inline-flex items-center gap-1 font-sans font-semibold text-ds-12"
+                      style={{ color: "hsl(var(--bark))" }}
+                    >
+                      {detailsOpen ? "Hide details" : "What's included"}
+                      <ChevronDown
+                        className="w-3.5 h-3.5 transition-transform duration-200"
+                        strokeWidth={2}
+                        style={{
+                          transform: detailsOpen ? "rotate(180deg)" : "rotate(0deg)",
+                        }}
+                      />
+                    </button>
 
                     {/* CTA */}
-                    <div className="mt-6">
+                    <div className="mt-4 sm:mt-6 order-1 sm:order-none">
                       {/* `&& user`: "Current plan" only makes sense for someone
                           who HAS one. This is a public page, and `currentTier`
                           defaults to "free", so a signed-out visitor saw the

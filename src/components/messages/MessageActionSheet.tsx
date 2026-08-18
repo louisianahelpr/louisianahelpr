@@ -95,7 +95,7 @@ export function MessageActionSheet({
 
   return (
     <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent side="bottom" className="rounded-t-2xl border-t-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
+      <SheetContent side="bottom" className="rounded-t-2xl border-t-0 px-4 pt-3 pb-[calc(var(--safe-area-bottom,0px)_+_1rem)]">
         {/* SheetHero is the canonical sheet header (the Sheet-side twin of
             DialogHero). This block used to compose the eyebrow → title parts
             inline because SheetHero did not exist yet; hand-copying the tokens

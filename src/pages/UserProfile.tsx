@@ -141,9 +141,9 @@ const UserProfile = () => {
   // depend on the route param + current user, not the fetched profile.
   const isOwnProfile = currentUserId === userId;
 
-  // Whether the loaded header will render a rightSlot (Save + actions).
-  // Mirrored as a placeholder in the skeleton / not-found states so the
-  // header keeps the same layout (sticky action bar + title padding)
+  // Whether the loaded header will render trailing actions (Message, Save,
+  // overflow). Mirrored as a placeholder in the skeleton / not-found states so
+  // the header keeps the same layout (one title row, actions flush right)
   // before and after the fetch resolves — no height jump.
   const headerHasActions = !isOwnProfile && !!currentUserId;
   const headerActionPlaceholder = headerHasActions ? (
@@ -172,7 +172,7 @@ const UserProfile = () => {
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
-          rightSlot={headerActionPlaceholder}
+          titleActions={headerActionPlaceholder}
         />
         <div className="container mx-auto px-5 py-6">
           <div className="max-w-2xl mx-auto space-y-5">
@@ -204,7 +204,7 @@ const UserProfile = () => {
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
-          rightSlot={headerActionPlaceholder}
+          titleActions={headerActionPlaceholder}
         />
         <div className="container mx-auto px-5 py-6">
           <div className="max-w-2xl mx-auto flex">
@@ -223,7 +223,7 @@ const UserProfile = () => {
           eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
-          rightSlot={headerActionPlaceholder}
+          titleActions={headerActionPlaceholder}
         />
         <div className="container mx-auto px-5 py-6">
           <div className="max-w-2xl mx-auto flex">
@@ -300,9 +300,22 @@ const UserProfile = () => {
         eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
         title={isOwnProfile ? "Profile Review" : "Profile"}
         meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
-        rightSlot={
+        // ONE header, not two. These used to ride in `rightSlot`, which renders
+        // its own sticky `.glass-header` bar ABOVE the title block — so this
+        // screen opened with an app bar of icons, then a second bar with the
+        // back button and "Profile", and only then any content. That is the
+        // stacked-header pattern already removed from Messages, Profile, My
+        // Jobs, My Posts and PostJob; UserProfile was the one left. On the
+        // title row they cost 0 extra vertical space (the row is taller than a
+        // 40px icon button either way) and the 56px `h-14` bar is gone.
+        //
+        // The notch inset follows them: with no top bar, PageHeader's
+        // `absorbSafeArea` branch pads the title block by
+        // `var(--safe-area-top, 0px)` — the :root-resolved var, never a bare
+        // env(), which reads 0 under <PageTransition>'s transform.
+        titleActions={
           !isOwnProfile && currentUserId ? (
-            <div className="flex items-center gap-1">
+            <>
               {/* Persistent Message button (#2). Always shown for any
                   signed-in viewer who isn't viewing themselves, no matter
                   whether there's an active job context. Hitting it deep-
@@ -337,7 +350,7 @@ const UserProfile = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
+            </>
           ) : null
         }
       />

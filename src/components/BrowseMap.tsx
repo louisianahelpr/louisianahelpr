@@ -161,7 +161,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     return (
       <div
         className="flex items-center justify-center h-full w-full rounded-t-2xl border border-b-0 border-border bg-card/40"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+        style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 1rem)" }}
       >
         <HelprSpinner size={20} />
       </div>
@@ -175,7 +175,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     return (
       <div
         className="flex h-full w-full rounded-t-2xl border border-b-0 border-border bg-card/40 px-3 pt-4"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+        style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 1rem)" }}
       >
         <ErrorState
           title="We couldn't load the map."

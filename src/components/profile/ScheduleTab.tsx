@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, DollarSign, Clock, ChevronLeft, ChevronRight, CalendarDays, Search, Plus } from "lucide-react";
+import { MapPin, Clock, ChevronLeft, ChevronRight, CalendarDays, Search, Plus } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -11,33 +11,100 @@ import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { todayLocalISO } from "@/lib/dateUtils";
+import { formatPrice } from "@/lib/format";
+import { formatTime12 } from "@/components/TimePickerSelect";
+import { inProgressBadgeTarget } from "@/components/dashboard/DashboardInProgressBadge";
+import { bucketPostedJob } from "@/pages/activity/activityFilters";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => (
-  // Card surface tint mirrors the canonical status palette so an "in
-  // progress" calendar entry reads in the same sienna family as the chip
-  // for that state elsewhere. Border is left to the canvas (`bg-card`)
-  // for terminal states so the calendar doesn't shout with cancelled
-  // jobs.
-  <div className={`rounded-ds-md border border-border/40 p-3 ${jobStatusColorClasses(job.status)}`}>
+/**
+ * Where a schedule row goes when you tap it.
+ *
+ * The list is a MIX: some rows are jobs this user POSTED, some are jobs they
+ * were ASSIGNED, and the two live on different screens — so one destination
+ * can't serve both.
+ *
+ * Neither half invents a status→route table. The assigned half delegates to
+ * {@link inProgressBadgeTarget}, the app's single router for "the helper's
+ * live job", so the calendar and the dashboard pill land in the same place
+ * for the same job. The posted half has no such router, so it reuses the
+ * other existing primitive — `bucketPostedJob`, the same classifier My Posts
+ * uses to build its own filter chips — which guarantees the filter we hand
+ * the URL is one the page actually accepts.
+ *
+ * The one place the badge router doesn't reach: it only models a LIVE job
+ * (in progress vs. upcoming), because that's all the dashboard pill ever
+ * shows. The calendar also lists settled jobs — picking a past date is the
+ * whole point of a calendar — and sending a completed job to the active list
+ * would land the user on a screen their job isn't on. So terminal statuses
+ * are mapped to the My Jobs filter key that actually holds them (each one
+ * verified against `filteredAppliedApps` in `pages/activity/activityFilters`),
+ * and everything still-running goes through the shared router untouched.
+ */
+const TERMINAL_ASSIGNED_FILTER: Record<string, string> = {
+  completed: "completed",
+  cancelled: "not_selected",
+  disputed: "disputed",
+  revision_requested: "revision",
+};
 
-    <div className="flex items-start justify-between gap-3">
-      <div className="flex-1">
-        <div className="flex items-center gap-2 flex-wrap mb-1">
-          <h4 className="font-semibold text-ds-13">{job.title}</h4>
-          <span className="text-ds-11 px-2 py-0.5 rounded-full bg-card font-medium">{isPosted ? "Posted" : "Assigned"}</span>
+function scheduleRowTarget(job: Job, isPosted: boolean): { to: string; destination: string } {
+  if (isPosted) {
+    return {
+      to: `/my-posts?filter=${bucketPostedJob(job)}`,
+      destination: "open this job in My Posts",
+    };
+  }
+  const settled = TERMINAL_ASSIGNED_FILTER[job.status];
+  if (settled) {
+    return { to: `/my-jobs?filter=${settled}`, destination: "open this job in My Jobs" };
+  }
+  return inProgressBadgeTarget(job);
+}
+
+const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => {
+  const navigate = useNavigate();
+  const { to, destination } = scheduleRowTarget(job, isPosted);
+  const time = formatTime12(job.start_time);
+
+  return (
+    // A schedule row is a shortcut to the job, so it is a real <button>, not
+    // a decorated <div>: it gets keyboard focus, an accessible name that says
+    // where it goes, and the global 44px min tap target. There are no nested
+    // interactive children, so the whole card can be the control.
+    //
+    // Card surface tint mirrors the canonical status palette so an "in
+    // progress" calendar entry reads in the same sienna family as the chip
+    // for that state elsewhere. Border is left to the canvas (`bg-card`)
+    // for terminal states so the calendar doesn't shout with cancelled
+    // jobs.
+    <button
+      type="button"
+      onClick={() => navigate(to)}
+      aria-label={`${job.title} — ${isPosted ? "posted by you" : "assigned to you"}. Tap to ${destination}.`}
+      className={`btn-press w-full text-left block rounded-ds-md border border-border/40 p-3 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${jobStatusColorClasses(job.status)}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <h4 className="font-semibold text-ds-13">{job.title}</h4>
+            <span className="text-ds-11 px-2 py-0.5 rounded-full bg-card font-medium">{isPosted ? "Posted" : "Assigned"}</span>
+          </div>
+          <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground">
+            <span className="flex items-center gap-1"><MapPin className="w-3 h-3 shrink-0" /> {job.location}</span>
+            {/* A currency symbol is typography, not an icon: the "$" belongs
+                in the same text node as the digits. A DollarSign glyph beside
+                a string that already carried one rendered as "$ $200". */}
+            <span className="tabular-nums">${formatPrice(job.budget)}</span>
+            <span className="flex items-center gap-1"><Clock className="w-3 h-3 shrink-0" /> {time}</span>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground">
-          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
-          <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> ${job.budget}</span>
-          {job.start_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {job.start_time}</span>}
-        </div>
+        <span className="text-ds-11 font-medium shrink-0">{jobStatusLabel(job.status)}</span>
       </div>
-      <span className="text-ds-11 font-medium">{jobStatusLabel(job.status)}</span>
-    </div>
-  </div>
-);
+    </button>
+  );
+};
 
 interface ScheduleTabProps {
   postedJobs: Job[];
@@ -150,8 +217,23 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
             <div className="flex items-center justify-between mb-4">
               <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} aria-label="Previous month"><ChevronLeft className="w-4 h-4" /></Button>
               <div className="flex flex-col items-center gap-1">
+                {/* The month name is editorial (Bodoni Moda italic); the YEAR
+                    is a figure, and figures in this app are set in the sans
+                    face with tabular-nums (see the headline-scale note in
+                    index.css — numeric sites sit outside the Bodoni scale on
+                    purpose). Bodoni Moda is a didone: at the ~15px this
+                    caption renders at, its italic "6" is a near-twin of "0",
+                    and this caption was read off a device as "August 2020".
+                    The date maths was never wrong — header and grid both
+                    derive from the same `currentMonth`, so they cannot
+                    disagree — the digits were simply not legible enough to
+                    trust. Splitting the year onto the numeric face removes
+                    the ambiguity without changing a single value. */}
                 <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
-                  {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                  {currentMonth.toLocaleDateString("en-US", { month: "long" })}{" "}
+                  <span className="font-sans not-italic font-semibold tabular-nums" style={{ letterSpacing: "0.01em" }}>
+                    {currentMonth.getFullYear()}
+                  </span>
                 </h2>
                 {/* "Today" reset surfaces only when the user has flipped
                     away from the current month — saves cognitive load

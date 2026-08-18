@@ -348,7 +348,7 @@ const DashboardGuest = () => {
                     aria-live="polite"
                     aria-busy="true"
                     className="space-y-2.5"
-                    style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+                    style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 1rem)" }}
                   >
                     <span className="sr-only">Loading jobs…</span>
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -470,7 +470,7 @@ const DashboardGuest = () => {
                 })() : (
                   <div
                     className="space-y-2.5 animate-in fade-in-0 duration-500"
-                    style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}
+                    style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 1rem)" }}
                   >
                     {filters.filteredJobs
                       .slice()

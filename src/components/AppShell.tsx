@@ -41,8 +41,8 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
     ref,
   ) => {
     const bottomPad = reserveBottomNav
-      ? "calc(env(safe-area-inset-bottom, 0px) + 96px)"
-      : "env(safe-area-inset-bottom, 0px)";
+      ? "calc(var(--safe-area-bottom, 0px) + 96px)"
+      : "var(--safe-area-bottom, 0px)";
 
     // The global OfflineBanner is `position: fixed; top: 0`. Because this
     // shell is also `fixed inset-0`, the banner would overlay the header.

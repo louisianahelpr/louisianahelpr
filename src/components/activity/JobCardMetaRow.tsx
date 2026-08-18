@@ -21,6 +21,12 @@ interface JobCardMetaRowProps {
   /** Optional extra chips appended to the row (e.g. applicant counts,
       recurring, group-task) — Posted uses this. */
   children?: ReactNode;
+  /** A single control pinned to the far right of the row (`ml-auto`), after
+   *  every chip. The posted card's "View details" toggle lives here so it
+   *  stops costing a full 44px row of its own — see the note at the call
+   *  site. Kept separate from `children` so it is always LAST and always
+   *  right-aligned no matter how many chips wrapped above it. */
+  trailing?: ReactNode;
 }
 
 /**
@@ -37,6 +43,7 @@ export function JobCardMetaRow({
   estimatedHours,
   expiresAt,
   children,
+  trailing,
 }: JobCardMetaRowProps) {
   return (
     <div className="flex items-center gap-2.5 flex-wrap text-ds-11 text-muted-foreground">
@@ -90,6 +97,7 @@ export function JobCardMetaRow({
           })()
         : null}
       {children}
+      {trailing ? <span className="ml-auto shrink-0">{trailing}</span> : null}
     </div>
   );
 }

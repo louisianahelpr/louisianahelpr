@@ -335,7 +335,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onNavigate={navigate}
             />
           ) : (
-            <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}>
+            <div style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px)" }}>
           {tab === "posted" && (
             <Suspense fallback={
               <div className="px-0 space-y-2.5">

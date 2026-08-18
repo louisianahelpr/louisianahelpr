@@ -7,6 +7,7 @@ import {
 import { getProfileCompletion } from "@/lib/profileCompletion";
 import { hapticLight } from "@/lib/haptics";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import type { PayoutPrompt } from "@/hooks/useStripeConnectStatus";
 import type { MenuItem, Profile } from "./types";
 
 interface UseProfileLandingDerivedArgs {
@@ -15,7 +16,12 @@ interface UseProfileLandingDerivedArgs {
   completedCount: number;
   avgRating: number | null;
   reviewCount: number;
-  stripeConnectStatus: { connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null;
+  /**
+   * Payout state, already resolved into a single verdict by
+   * `useStripeConnectStatus` — so the "Payout & Payments" row badge and the
+   * banner above it are reading the same answer, not two derivations of it.
+   */
+  payoutPrompt: PayoutPrompt;
   onSelectTab: (key: string) => void;
   onNavigate: (path: string) => void;
 }
@@ -23,7 +29,7 @@ interface UseProfileLandingDerivedArgs {
 export function useProfileLandingDerived({
   profile,
   avatarBroken,
-  stripeConnectStatus,
+  payoutPrompt,
   onSelectTab,
   onNavigate,
 }: UseProfileLandingDerivedArgs) {
@@ -59,10 +65,15 @@ export function useProfileLandingDerived({
     { ok: profile?.license_status === "verified", label: "Licensed" },
     { ok: profile?.insurance_status === "verified", label: "Insured" },
   ]).filter((b) => b.ok);
-  const stripeNeedsAction =
-    profile?.approval_status === "approved" &&
-    stripeConnectStatus !== null &&
-    !stripeConnectStatus.payouts_enabled;
+  // `setup` is the ONLY verdict that means "this account cannot receive
+  // money yet". An `error` verdict deliberately does NOT badge the row: a
+  // failed status call is not evidence that the account is broken, and
+  // <PayoutStatusRow /> already says "we couldn't check" out loud — a red
+  // "Action needed" dot on top of that would be a guess dressed as a fact.
+  // (The old code fabricated a disconnected status on failure, which is
+  // exactly that guess.)
+  const payoutNeedsSetup = payoutPrompt.kind === "setup";
+  const stripeNeedsAction = payoutNeedsSetup && profile?.approval_status === "approved";
   const subscriptionDesc =
     tier === "elite"
       ? "Elite — top visibility"
@@ -129,10 +140,7 @@ export function useProfileLandingDerived({
   const credentialsIncomplete =
     profile?.license_status !== "verified" &&
     profile?.insurance_status !== "verified";
-  const payoutIncomplete =
-    stripeConnectStatus === null
-      ? false
-      : !stripeConnectStatus.payouts_enabled;
+  const payoutIncomplete = payoutNeedsSetup;
   const bioMissing = (profile?.bio?.trim().length ?? 0) < 20;
 
   // Settings hub, grouped into four scannable editorial sections per the

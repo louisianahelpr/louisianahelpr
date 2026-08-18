@@ -2,11 +2,15 @@ import {
   LogOut, Trash2, AlertTriangle,
   ChevronRight as ChevronRightIcon,
 } from "lucide-react";
-import type { MenuItem, Profile } from "./types";
+import type { PayoutPrompt } from "@/hooks/useStripeConnectStatus";
+import { PayoutStatusRow } from "./PayoutStatusRow";
+import type { MenuItem } from "./types";
 
 interface SettingsSectionProps {
-  profile: Profile | null;
-  stripeConnectStatus: { connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null;
+  /** What to render in the payout slot — see `useStripeConnectStatus`. */
+  payoutPrompt: PayoutPrompt;
+  /** Re-ask Stripe after a failed payout-status check. */
+  onRetryPayoutStatus: () => void;
   menuGroups: { title: string; items: MenuItem[] }[];
   onSelectTab: (key: string) => void;
   onNavigate: (path: string) => void;
@@ -15,8 +19,8 @@ interface SettingsSectionProps {
 }
 
 export function SettingsSection({
-  profile,
-  stripeConnectStatus,
+  payoutPrompt,
+  onRetryPayoutStatus,
   menuGroups,
   onSelectTab,
   onNavigate,
@@ -34,23 +38,16 @@ export function SettingsSection({
       }}
     >
       <div className="px-4 pt-3 pb-4 space-y-4">
-        {/* Payout banner — slim single-row alert. The whole row taps
-            through to Payment Settings. */}
-        {profile?.approval_status === "approved" && stripeConnectStatus && !stripeConnectStatus.payouts_enabled && (
-          <button
-            type="button"
-            onClick={() => onSelectTab("payment")}
-            className="w-full flex items-center gap-2.5 rounded-ds-md border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-left active:scale-[0.99] transition-all"
-          >
-            <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-            <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
-              <span className="font-semibold">Set up your payout account</span> to accept jobs and get paid.
-            </p>
-            <span className="shrink-0 text-ds-11 font-semibold text-destructive inline-flex items-center gap-0.5">
-              Set up <ChevronRightIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
-            </span>
-          </button>
-        )}
+        {/* Payout slot — slim single-row alert whose whole row taps through
+            to Payment Settings, plus the two states it used to be missing:
+            a held-open placeholder while the (slow, Stripe-bound) status
+            call is still out, and an honest "we couldn't check" row. All
+            three share one box so nothing below moves when they swap. */}
+        <PayoutStatusRow
+          prompt={payoutPrompt}
+          onSetUp={() => onSelectTab("payment")}
+          onRetry={onRetryPayoutStatus}
+        />
 
         {/* Unified list-of-rows navigation, grouped by section. */}
         {menuGroups.map((group) => {

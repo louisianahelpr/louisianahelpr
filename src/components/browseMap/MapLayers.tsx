@@ -83,7 +83,7 @@ export function RecenterControl({ center, zoom }: { center: [number, number]; zo
         // screen. The parent map div bleeds beneath the dock so the
         // button needs to anchor above it.
         right: "0.75rem",
-        bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 0.75rem)",
+        bottom: "calc(var(--safe-area-bottom, 0px) + 96px + 0.75rem)",
         background: "hsla(0, 0%, 100%, 0.85)",
         border: "1px solid hsl(var(--olivewood) / 0.22)",
         color: "hsl(var(--olivewood))",

@@ -67,15 +67,15 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
         // nativeInit.ts), so the status bar overlaps the WebView on every
         // platform. Pad by the safe-area top inset (clamped to 0.25rem so the
         // logo isn't flush on browsers that report a zero inset).
-        paddingTop: "max(env(safe-area-inset-top), 0.25rem)",
+        paddingTop: "max(var(--safe-area-top, 0px), 0.25rem)",
         top: bannerOffset ? `${bannerOffset}px` : undefined,
       }}
     >
       <div
         className="w-full flex items-center justify-between h-14 lg:h-16
-          pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))]
-          sm:pl-[max(2rem,env(safe-area-inset-left))] sm:pr-[max(2rem,env(safe-area-inset-right))]
-          lg:pl-[max(3rem,env(safe-area-inset-left))] lg:pr-[max(3rem,env(safe-area-inset-right))]"
+          pl-[max(1.25rem,var(--safe-area-left,0px))] pr-[max(1.25rem,var(--safe-area-right,0px))]
+          sm:pl-[max(2rem,var(--safe-area-left,0px))] sm:pr-[max(2rem,var(--safe-area-right,0px))]
+          lg:pl-[max(3rem,var(--safe-area-left,0px))] lg:pr-[max(3rem,var(--safe-area-right,0px))]"
       >
         {/* Emblem + wordmark on the MARKETING nav. This is the public,
             first-impression surface, and the wrought-iron H is the most
@@ -254,8 +254,8 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                 // Push content below the status bar / dynamic island — the
                 // sheet is full-height, so without the safe-area top inset the
                 // HelprMark header clips behind the notch on iOS.
-                paddingTop: "calc(env(safe-area-inset-top, 0px) + 1.5rem)",
-                paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)",
+                paddingTop: "calc(var(--safe-area-top, 0px) + 1.5rem)",
+                paddingBottom: "calc(var(--safe-area-bottom, 0px) + 1.5rem)",
               }}
             >
               {/* Radix points `aria-labelledby` at a SheetTitle that has to

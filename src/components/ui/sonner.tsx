@@ -65,7 +65,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       // bottom-anchored to lift the toast above the BottomNav; with the anchor
       // moved to the top they would have pinned it back down to the bottom
       // edge, so they move with it.
-      mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 8px)" }}
+      mobileOffset={{ top: "calc(var(--safe-area-top, 0px) + 8px)" }}
       offset={{ top: "24px" }}
       toastOptions={{
         unstyled: false,

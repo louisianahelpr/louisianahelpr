@@ -42,7 +42,12 @@ export interface ProfileLandingProps {
   reviewCount: number;
   postedCount: number;
   completedCount: number;
-  stripeConnectStatus: { connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null;
+  /* Payout status is NOT a prop: <ProfileLanding /> owns it via
+     `useStripeConnectStatus()`, which reads the user straight from the
+     `useCurrentUser` cache. Passing it down from the page meant the (slow,
+     Stripe-bound) request couldn't start until the page had set its own
+     `profile` state — which is why the banner used to land after the rest
+     of the screen had already settled. */
   onSelectTab: (key: string) => void;
   onNavigate: (path: string) => void;
   onLoadInlineJobs: () => void;

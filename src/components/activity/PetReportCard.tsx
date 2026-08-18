@@ -138,7 +138,11 @@ export function SendReportCard({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-premium-page overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-premium-page overflow-y-auto"
+      // Same full-screen-overlay top inset as PetForm — see the note there.
+      style={{ paddingTop: "var(--safe-area-top, 0px)" }}
+    >
       {/* Header */}
       <div
         className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b"

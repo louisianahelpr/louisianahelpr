@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import {
-  DollarSign, Shield, FileText, ExternalLink, Clock,
+  DollarSign, Shield, FileText, ChevronRight, Clock,
   Crown, XCircle, AlertTriangle, Ban, Scale,
   Building2, Wallet, HeartPulse, Siren,
 } from "lucide-react";
@@ -44,7 +44,24 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
         onBack={onBack}
       />
 
-      {/* Anchor docs — dedicated full-text pages */}
+      {/* Anchor docs — dedicated full-text pages.
+          AFFORDANCE: these three rows NAVIGATE IN-APP. `/rules`, `/terms` and
+          `/privacy` are <Navigate> redirects to `/legal?tab=…` (see App.tsx),
+          which renders inside AppShell on native — nothing leaves the app, no
+          browser opens, no new window. They carried an `ExternalLink` (↗)
+          glyph, which promised exactly that. On a legal screen, where the
+          whole question is where your data goes, a lying affordance is worse
+          than cosmetic, so they now carry the app's forward chevron (›) — the
+          same glyph SupportInline's "Browse the Help Center" row uses for the
+          same behaviour.
+
+          The screen's three affordances, kept distinct:
+            ›  chevron-right  → navigates in-app        (these three rows)
+            ⌄  chevron-down   → expands in place        (PolicySection /
+                                                         PolicyRowItem below)
+            ↗  external-link  → opens outside the app   (nothing on this
+                                                         screen does; if a row
+                                                         ever does, it keeps ↗) */}
       <div>
         <div className="space-y-2">
           {([
@@ -72,7 +89,11 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
                     {body}
                   </p>
                 </div>
-                <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
+                {/* aria-hidden: the row's accessible name already comes from
+                    the title + body text ("Platform rules, How Helpr works —
+                    …"), which describes in-app navigation and never claims a
+                    new window. The glyph is decoration on top of that. */}
+                <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
               </div>
             </Link>
           ))}

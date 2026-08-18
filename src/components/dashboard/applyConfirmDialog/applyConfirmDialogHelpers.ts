@@ -33,7 +33,23 @@ function greetingByHour(hour: number) {
   if (hour < 18) return "Hi";
   return "Good evening";
 }
-export function buildStarterSentences(job: EnrichedJob | null): string[] {
+
+/**
+ * One suggested opener: a SHORT chip `label` and the full `sentence` that
+ * tapping it inserts.
+ *
+ * The chips used to be labelled with a 32-character slice of the sentence
+ * itself, which is why the row ran to 674px of max-content and had to be a
+ * horizontal scroller — and why the chip sitting at the scrollport edge was
+ * visibly cut mid-word. A chip is a label, not a preview: naming the INTENT
+ * ("Done this before") keeps every pill short enough that the row simply
+ * wraps, so nothing is clipped at 320 or 375 and the row stops contributing
+ * a runaway intrinsic width to the dialog's grid column. The inserted text
+ * is unchanged.
+ */
+export type StarterSentence = { label: string; sentence: string };
+
+export function buildStarterSentences(job: EnrichedJob | null): StarterSentence[] {
   const greet = greetingByHour(new Date().getHours());
   const cat = (job?.category ?? "this kind of work").toLowerCase().replace(/_/g, " ");
   const dayLabel = (() => {
@@ -43,9 +59,18 @@ export function buildStarterSentences(job: EnrichedJob | null): string[] {
     return d.toLocaleDateString(undefined, { weekday: "long" });
   })();
   return [
-    `${greet}, I'm available ${dayLabel ? dayLabel : "the day you need"}${job?.start_time ? ` at ${job.start_time}` : ""} and ready to go.`,
-    `I've done ${cat} before and can bring the right tools for the job.`,
-    `Happy to send a quick quote or answer any questions before you decide.`,
+    {
+      label: dayLabel ? `Free ${dayLabel}` : "I'm available",
+      sentence: `${greet}, I'm available ${dayLabel ? dayLabel : "the day you need"}${job?.start_time ? ` at ${job.start_time}` : ""} and ready to go.`,
+    },
+    {
+      label: "Done this before",
+      sentence: `I've done ${cat} before and can bring the right tools for the job.`,
+    },
+    {
+      label: "Happy to quote",
+      sentence: `Happy to send a quick quote or answer any questions before you decide.`,
+    },
   ];
 }
 

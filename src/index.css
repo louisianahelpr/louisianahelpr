@@ -68,6 +68,33 @@
      12px — on every device that simply has no home indicator, because the
      fallback only applies when env() is UNSUPPORTED, not when it is zero. */
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  /* Same story on the horizontal axis (landscape notch / rounded corners).
+     Declared here so there is ONE mechanism for all four insets rather than
+     three resolved vars and one stray env(). */
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+
+  /* ── WHY EVERY CONSUMER READS THESE VARS, NOT env() DIRECTLY ────────────
+     This is not stylistic. `env(safe-area-inset-*)` resolves to 0 for any
+     element inside a transformed / will-change:transform ancestor in WebKit,
+     and EVERY authed route in this app is wrapped in <PageTransition> — a
+     framer-motion div with a live transform. So a component that wrote
+     `env(safe-area-inset-top)` got the correct value in Chrome and 0 on the
+     device, which is why three separate screens (Add a pet, Schedule, helper
+     Analytics) all rendered their titles up under the status bar, and why
+     Activity's dock clearance under-reserved by exactly the home-indicator
+     inset and let the last card run beneath the floating dock.
+
+     Resolving at :root (no transform ancestor) and consuming the px through
+     var() sidesteps the bug everywhere at once. The Tailwind `safe-top` /
+     `safe-bottom` / `safe-left` / `safe-right` / `safe-nav` spacing tokens all
+     point here too, so `pt-safe-top` and `pb-safe-nav` are correct by default.
+
+     Consume as `max(var(--safe-area-bottom, 0px), <gap>)` when you need a
+     floor — never as a bare env() fallback: `env(safe-area-inset-bottom, 12px)`
+     resolves to 0px, not 12px, on any device with no home indicator, because
+     the fallback only applies when env() is UNSUPPORTED, not when it is
+     zero. */
   /* Named brand tokens — referenced directly by components. */
   /* ── Easing ───────────────────────────────────────────────────────────
      TWO intentional curves, named. Before this there were three, one of
@@ -648,16 +675,17 @@
 
 /* Utility Classes */
 .safe-pt {
-  padding-top: env(safe-area-inset-top);
+  /* var(), not env() — see the --safe-area-* block at :root. */
+  padding-top: var(--safe-area-top, 0px);
 }
 
 .safe-pb {
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--safe-area-bottom, 0px);
 }
 
 .safe-px {
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+  padding-left: var(--safe-area-left, 0px);
+  padding-right: var(--safe-area-right, 0px);
 }
 
 /* App Shell Viewport Lock */
@@ -2911,4 +2939,208 @@ html.simple-mode *::after {
 
   /* Olivewood — neutral content cards. */
   --elev-card: 0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12);
+}
+
+
+/* ── Modal entrance under Reduce Motion ───────────────────────────────────
+   The dialog / alert-dialog primitives enter with a scale-and-rise
+   (`zoom-in-95` + `slide-in-from-*`, see the note in ui/dialog.tsx). Scale is
+   precisely the kind of movement Reduce Motion exists to suppress, and
+   tailwindcss-animate has no built-in respect for the preference — so pin the
+   keyframe variables instead of killing the animation outright. Setting the
+   enter/exit scale and translate to their resting values leaves the opacity
+   ramp doing all the work: the modal still fades in and out, it just does not
+   move or grow. Killing `animation` entirely would also kill the fade, and a
+   modal that pops into existence with no transition at all is its own jolt. */
+@media (prefers-reduced-motion: reduce) {
+  [role="dialog"][data-state],
+  [role="alertdialog"][data-state] {
+    --tw-enter-scale: 1;
+    --tw-exit-scale: 1;
+    --tw-enter-translate-x: -50%;
+    --tw-enter-translate-y: -50%;
+    --tw-exit-translate-x: -50%;
+    --tw-exit-translate-y: -50%;
+  }
+}
+
+
+/* ── Document surface ladder ──────────────────────────────────────────────
+   The "sheet" pages — /work-record, /benefits, /home-history, /family,
+   /str-settings — are documents rather than app screens: one tall card on the
+   page canvas, divided into sections by a header band, with rows or tiles
+   inside each section. Every one of them painted those four layers within a
+   few percent of the same off-white (page #F7F8FA→#EDEFF3, card
+   `parchment/0.70-0.90` ≈ #F1F2F4 at 70-90%, section header NO fill at all,
+   rows NO fill at all) and relied on a single 10%-olivewood hairline to tell
+   them apart. Measured, the /benefits card differed from the canvas beneath it
+   by 2/255 at the bottom of the page gradient, and /work-record's stat tiles
+   differed from their own card by 0.3/255 — the tiles were, numerically, not
+   there. The result is that section headers do not read as headers, they read
+   as one more row, and the grouping those pages are built around is invisible.
+
+   This is the same bug PageScaffold already diagnosed and fixed for the app
+   shell ("`.liquid-glass`'s 42%-white wash reads as muted beige over the warm
+   page gradient, so the panel blended into the canvas; a bright near-opaque
+   panel pops off the page as the content surface"), so the fix is the same
+   move rather than a new one: reuse `--glass-bg-crisp` as the sheet surface,
+   then step DOWN from it in even, same-hue increments for the layers nested
+   inside it.
+
+   The steps are values, not colours. Every inner rung is plain `--olivewood`
+   at a low alpha — the ink hue the page already uses for its hairlines — so
+   the palette is unchanged (olive / sienna / parchment) and dark mode inverts
+   for free: `--olivewood` is near-black in light and near-white in dark, so
+   the identical declaration darkens the band on light and lightens it on dark.
+
+   Measured contrast of each rung against the surface it sits on:
+     band  : card  1.10:1 light · 1.15:1 dark
+     tile  : card  1.09:1 light · 1.13:1 dark
+     card  : page  1.05-1.14:1 light (page is a gradient) · 1.15:1 dark
+
+   `--doc-band-ink` is the one token that is NOT a pure value step. The band
+   label on /work-record is burnt-sienna, which measures 5.06:1 on the old dark
+   card but only 3.91:1 once it sits on the lightened dark band — a small-text
+   AA failure. Dark gets a lightened sienna (19 70% 68% → 6.16:1 on the dark
+   band), the same lightening the palette already does for --amber-ink,
+   --charged-ink and --gift-ink. Light keeps plain --burnt-sienna (6.00:1).
+
+   Adoption is one class per layer; see /work-record and /benefits. The three
+   sheet pages not yet migrated (/home-history, /family, /str-settings) each
+   need the same swap and nothing else. */
+:root {
+  /* Rung 1 — the sheet itself. Literally --glass-bg-crisp, the surface
+     PageScaffold's panel already uses, so an app page and a document page
+     are the same paper. */
+  --doc-surface:        var(--glass-bg-crisp);
+  --doc-surface-border: hsl(var(--olivewood) / 0.14);
+  --doc-surface-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.55),
+    0 1px 2px hsl(var(--olivewood) / 0.06),
+    0 12px 28px -10px hsl(var(--olivewood) / 0.14);
+
+  /* Rung 2 — the section-header band. The strongest inner step, because it
+     is the one carrying the grouping. */
+  --doc-band:           hsl(var(--olivewood) / 0.06);
+  --doc-band-border:    hsl(var(--olivewood) / 0.14);
+  --doc-band-ink:       var(--burnt-sienna);
+
+  /* Rung 3 — an inset tile (a stat well) inside a section. */
+  --doc-tile:           hsl(var(--olivewood) / 0.045);
+  --doc-tile-border:    hsl(var(--olivewood) / 0.12);
+
+  /* Rung 4 — the quietest step: zebra rows and the rules between rows. */
+  --doc-row-alt:        hsl(var(--olivewood) / 0.035);
+  --doc-hairline:       hsl(var(--olivewood) / 0.10);
+}
+
+[data-theme="dark"] {
+  /* --doc-surface is inherited: it resolves --glass-bg-crisp, which already
+     has a dark value, so the sheet follows the theme with no override here.
+     The alphas below step up slightly because the dark surface is much
+     darker than the light one is light, so an identical alpha lands a
+     smaller absolute delta. The shadow flips from olivewood-tinted to black,
+     matching --card-shadow's dark treatment. */
+  --doc-surface-border: hsl(var(--olivewood) / 0.16);
+  --doc-surface-shadow:
+    inset 0 1px 0 hsl(var(--olivewood) / 0.06),
+    0 1px 2px hsl(0 0% 0% / 0.30),
+    0 12px 28px -10px hsl(0 0% 0% / 0.40);
+
+  --doc-band:           hsl(var(--olivewood) / 0.07);
+  --doc-band-border:    hsl(var(--olivewood) / 0.16);
+  --doc-band-ink:       19 70% 68%;
+
+  --doc-tile:           hsl(var(--olivewood) / 0.055);
+  --doc-tile-border:    hsl(var(--olivewood) / 0.14);
+
+  --doc-row-alt:        hsl(var(--olivewood) / 0.04);
+  --doc-hairline:       hsl(var(--olivewood) / 0.14);
+}
+
+/* Deliberately no border-radius, padding or layout in these classes — a sheet
+   page keeps its own geometry (several are edge-to-edge containers whose rows
+   own the padding). These set MATERIAL only, so adopting one is a pure swap of
+   an inline `style` object for a class name. */
+.doc-card {
+  background: var(--doc-surface);
+  border: 1px solid var(--doc-surface-border);
+  box-shadow: var(--doc-surface-shadow);
+}
+
+.doc-band {
+  background: var(--doc-band);
+  border-bottom: 1px solid var(--doc-band-border);
+}
+
+/* The band's label colour. Split from `.doc-band` so a band can carry a
+   non-label child, and so a label can sit on a band that is drawn by
+   something else. */
+.doc-band-ink { color: hsl(var(--doc-band-ink)); }
+
+.doc-tile {
+  background: var(--doc-tile);
+  border: 1px solid var(--doc-tile-border);
+  box-shadow: var(--elev-inset-hairline);
+}
+
+.doc-row-alt { background: var(--doc-row-alt); }
+
+/* Rule between sibling sections of one sheet, and the border colour for a
+   `divide-y` list of rows.
+
+   `.doc-rule > *` is not a stylistic flourish, it is the only thing that
+   works. Preflight is extended here with `* { @apply border-border }` (see
+   the @layer base block at the top of this file), which sets an EXPLICIT
+   border-color on every element in the document — so a border colour set on
+   a `divide-y` parent, inline or otherwise, is never inherited by the rows
+   that actually draw the border. /benefits had exactly that bug: its rows
+   declared `borderColor: hsl(var(--olivewood) / 0.10)` on the wrapper and
+   rendered `hsl(var(--border))` regardless. Targeting the children directly
+   both beats `*` on specificity and delivers the hairline the page always
+   meant to draw. */
+.doc-section + .doc-section { border-top: 1px solid var(--doc-hairline); }
+.doc-rule,
+.doc-rule > * { border-color: var(--doc-hairline); }
+
+@media print {
+  /* The sheet is printed as a credential (income / employment verification),
+     so the structure has to survive the print pipeline. Browsers drop
+     background fills by default, which would flatten every band and tile back
+     to the blank page this ladder exists to fix. The card's own drop shadow
+     goes the other way — it is screen elevation and prints as grey mud. */
+  .doc-card { box-shadow: none; }
+  .doc-band,
+  .doc-tile,
+  .doc-row-alt {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+
+/* ── /subscription plan-picker type ramp ──────────────────────────────────
+   The three sizes on the membership page that need a PHONE value distinct
+   from the tablet/desktop one, so the plan picker can put two plans on a
+   375x812 screen instead of one-and-a-sliver.
+
+   They live here, not as Tailwind `text-[…]` arbitrary values, because the
+   design-system lint rule rejects those — correctly: an arbitrary size
+   carries no line-height. Each class pairs its size with the line-height the
+   element was already declaring. They also can't stay as inline `fontSize`,
+   which is where they started: an inline style outranks every breakpoint
+   variant, so there is no way to give the phone its own value from there.
+
+   Above 640px each is byte-identical to the clamp() it replaces, so nothing
+   at sm and up moves a pixel. Worth knowing: those clamps sat on their own
+   floor until roughly 1059px, so "clamp" was doing nothing on any phone or
+   tablet — the masthead title was a flat 36px from 320px to 1059px. */
+.plan-masthead-title { font-size: 1.85rem; line-height: 1.05; }
+.plan-card-name      { font-size: 1.5rem;  line-height: 1.05; }
+/* Phone only — its element is `sm:hidden`, so it needs no sm value. */
+.plan-card-price     { font-size: 1.6rem;  line-height: 1; }
+
+@media (min-width: 640px) {
+  .plan-masthead-title { font-size: clamp(2.25rem, 3.4vw, 3.25rem); }
+  .plan-card-name      { font-size: clamp(1.6rem, 2.4vw, 2.15rem); }
 }

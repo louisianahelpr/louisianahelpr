@@ -7,7 +7,7 @@ import AdminBadgeToggle from "@/components/admin/AdminBadgeToggle";
 
 const AdminTopBar = ({ onLogout }: { onLogout: () => void }) => (
   /* Top bar — matches user-facing DashboardHeader */
-  <header className="sticky top-0 z-40 glass border-b border-border/30" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+  <header className="sticky top-0 z-40 glass border-b border-border/30" style={{ paddingTop: "var(--safe-area-top, 0px)" }}>
     <div className="container mx-auto flex items-center justify-between h-14 px-4">
       <div className="flex items-center gap-1.5 min-w-0">
         {/* Explicit, always-visible exit back to the normal app. The logo

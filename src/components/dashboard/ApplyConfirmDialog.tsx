@@ -8,7 +8,8 @@ import {
   AlertDialogHero,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Paperclip, Trash2, WifiOff, Sparkles, BookmarkCheck, ChevronDown, Plus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FileText, Paperclip, Trash2, WifiOff, Sparkles, BookmarkCheck, ChevronDown, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { hapticMedium, hapticLight } from "@/lib/haptics";
@@ -32,9 +33,16 @@ import {
  * from the Dashboard feed: a take-home earnings breakdown for the picked
  * job, an optional pitch, and optional file attachments.
  *
- * Extracted verbatim from Dashboard.tsx — a faithful relocation. The
- * dialog body JSX is unchanged; every value it read from the page is
- * now a prop.
+ * Originally extracted verbatim from Dashboard.tsx; the body has since been
+ * reorganised. Two things it must keep doing:
+ *
+ *  1. The pitch is OPTIONAL. Nothing here may read as a required form — a
+ *     helpr who just wants to apply has to be able to hit the action without
+ *     passing through anything.
+ *  2. The earnings breakdown is the anchor. It is the only card in the dialog
+ *     on purpose (the "TIPS" panel and the dashed attachments panel were
+ *     dissolved to keep it that way), and it carries the escrow line — the
+ *     trust statement that belongs on a money surface.
  */
 export function ApplyConfirmDialog({
   open,
@@ -180,23 +188,31 @@ export function ApplyConfirmDialog({
           already past the viewport before that. AlertDialogContent ships no
           height cap, so cap it here (scoped to this dialog, not the shared
           primitive). `grid-rows-[minmax(0,1fr)_auto]` puts the overflow in the
-          BODY rather than the whole box, so Cancel / Apply now stay pinned and
-          visible instead of scrolling below the fold — which is the bug this
-          dialog is being fixed for. */}
+          BODY rather than the whole box, so the footer stays pinned and visible
+          instead of scrolling below the fold — which is the bug this dialog is
+          being fixed for. The two rows are still (body, footer); the offline
+          notice, when it renders, takes a third implicit `auto` track. */}
       <AlertDialogContent className="!gap-3 max-h-[calc(100dvh-2rem)] grid-rows-[minmax(0,1fr)_auto] lg:max-w-3xl xl:max-w-4xl">
         {/* `min-w-0` is load-bearing, not decoration. AlertDialogContent is a
             CSS *grid*, so this body is a grid item whose default
             `min-width: auto` makes the implicit column's minimum equal the
-            item's content-based minimum. The "Tap a suggested opener" chip row
-            below is `overflow-x-auto` with `shrink-0 whitespace-nowrap` chips,
-            and a horizontal scroller still contributes its full max-content
-            width to that minimum — so the single grid column measured 674px
-            inside a 341px box, and EVERY row (title, earnings, pitch counter,
-            Cancel / Apply now) stretched to 674px and ran ~356px off the right
-            edge of the screen. Measured at 320/375/414: the action buttons sat
-            at right=687 in a 375px viewport. `min-w-0` drops the item's minimum
-            contribution to 0, the column tracks the dialog width, and the chip
-            row scrolls the way it was always meant to. Do not remove it. */}
+            item's content-based minimum. The suggested-opener chip row used to
+            be `overflow-x-auto` with `shrink-0 whitespace-nowrap` chips
+            labelled by a 32-character slice of the full sentence — and a
+            horizontal scroller still contributes its full max-content width to
+            that minimum — so the single grid column measured 674px inside a
+            341px box, and EVERY row (title, earnings, pitch counter, Cancel /
+            Apply now) stretched to 674px and ran ~356px off the right edge of
+            the screen. Measured at 320/375/414: the action buttons sat at
+            right=687 in a 375px viewport. `min-w-0` drops the item's minimum
+            contribution to 0 and the column tracks the dialog width.
+
+            The chip row has since been shortened and switched to `flex-wrap`,
+            so it no longer contributes a runaway minimum of its own — but
+            `min-w-0` STAYS. It is the structural guard for this grid item
+            against any future wide child (a long unbroken job title, a pasted
+            URL in the pitch, a new chip); without it the whole column re-opens
+            the same failure mode. Do not remove it. */}
         <div className="min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain !text-left space-y-0">
           <AlertDialogHero
             eyebrow={isBidMode ? "You're bidding" : isInstantBook ? "You're booking" : "You're applying"}
@@ -262,52 +278,85 @@ export function ApplyConfirmDialog({
           )}
 
           <div className="space-y-1.5 mt-3">
+            {/* ONE prompt for the pitch, not three.
+                This block used to open with an eyebrow ("YOUR PITCH —
+                OPTIONAL"), then a second prose row ("Tap a suggested
+                opener"), then the field's own placeholder — three separate
+                invitations to write the same optional sentence, stacked. The
+                Sparkles that marked the opener row now rides this label, so
+                the "suggestions live here" cue survives while the row it used
+                to sit on is gone. The label keeps `htmlFor` (it is still the
+                field's accessible name) and keeps the word "optional" — the
+                pitch is not required and the dialog must not read as a form
+                you have to fill in. */}
             <label
               htmlFor="apply-message"
-              className="font-serif italic uppercase block text-ds-10"
+              className="flex items-center gap-1.5 font-serif italic uppercase text-ds-10"
               style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
+              <Sparkles className="w-3 h-3 shrink-0" strokeWidth={2.25} aria-hidden />
               Your pitch — optional
             </label>
-            {/* Starter sentences — clickable to insert. Surfaces the
-                "what should I even say?" question by showing concrete,
-                time-aware openers. Tapping one appends to the current
-                draft so chips compose. A labelled header makes it read as
-                "tap a suggestion," and the chips scroll horizontally on one
-                row so they don't stack three-tall and balloon the dialog. */}
+            {/* Job-specific guidance — the former "TIPS" card, dissolved.
+                It used to be a bordered sage panel titled "TIPS" sitting one
+                row under a counter line that began "Tip:" — the same word,
+                two meanings, adjacent. Pitch guidance now has exactly one
+                home: here, above the field, as plain lines. Losing the panel
+                also leaves the earnings breakdown as the ONLY card in the
+                dialog, which is what makes it read as the anchor. */}
+            {(() => {
+              const tips = getApplyTips({
+                is_urgent: confirmApplyJob?.is_urgent,
+                budget: confirmApplyJob?.budget,
+                pricing_mode: confirmApplyJob?.pricing_mode,
+                date_needed: confirmApplyJob?.date_needed,
+                category: confirmApplyJob?.category,
+              });
+              if (tips.length === 0) return null;
+              return (
+                <ul className="space-y-0.5">
+                  {tips.map((tip, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-1.5 font-serif italic text-ds-11 leading-snug"
+                      style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                    >
+                      <span aria-hidden style={{ color: "hsl(var(--sage))" }}>›</span>
+                      <span className="min-w-0">{tip}</span>
+                    </li>
+                  ))}
+                </ul>
+              );
+            })()}
+            {/* Starter chips — tap to insert. They WRAP; they no longer
+                scroll. The old row was `overflow-x-auto` with chips labelled
+                by a 32-char slice of the sentence, so the pill at the
+                scrollport edge was sliced mid-word — and that same
+                max-content width is what blew the dialog 356px off the right
+                edge in f0d11d0b. Short intent labels fit the box at 320, so
+                the row wraps to a second line instead and nothing is cut.
+                No `whitespace-nowrap` and no `max-w-full` on the pills either:
+                a chip that somehow outgrew the line must wrap its own text,
+                not spill past a capped box or push the row wide. */}
             {applyMessage.length < MAX_PITCH_LENGTH - 20 && (
-              <div role="group" aria-label="Suggested opening sentences">
-                <div
-                  className="flex items-center gap-1 mb-1.5 font-serif italic text-ds-11"
-                  style={{ color: "hsl(var(--burnt-sienna) / 0.75)", letterSpacing: "0.04em" }}
-                >
-                  <Sparkles className="w-3 h-3 shrink-0" strokeWidth={2.25} aria-hidden />
-                  <span>Tap a suggested opener</span>
-                </div>
-                <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-0.5">
-                  {starterSentences.map((sentence) => {
-                    // Show a truncated preview as the chip label —
-                    // tapping inserts the full sentence.
-                    const preview = sentence.length > 34 ? `${sentence.slice(0, 32)}…` : sentence;
-                    return (
-                      <button
-                        key={sentence}
-                        type="button"
-                        onClick={() => handleStarterTap(sentence)}
-                        className="shrink-0 whitespace-nowrap text-ds-12 font-serif italic px-2.5 py-1 rounded-full transition-colors active:scale-[0.97]"
-                        style={{
-                          background: "hsl(var(--bark) / 0.07)",
-                          color: "hsl(var(--ink-deep) / 0.88)",
-                          border: "0.5px solid hsl(var(--bark) / 0.24)",
-                          boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.5)",
-                        }}
-                        aria-label={`Insert: ${sentence}`}
-                      >
-                        {preview}
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Suggested openers — tap to insert">
+                {starterSentences.map(({ label, sentence }) => (
+                  <button
+                    key={sentence}
+                    type="button"
+                    onClick={() => handleStarterTap(sentence)}
+                    className="text-ds-12 font-serif italic px-2.5 py-1 rounded-full transition-colors active:scale-[0.97]"
+                    style={{
+                      background: "hsl(var(--bark) / 0.07)",
+                      color: "hsl(var(--ink-deep) / 0.88)",
+                      border: "0.5px solid hsl(var(--bark) / 0.24)",
+                      boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.5)",
+                    }}
+                    aria-label={`Insert: ${sentence}`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             )}
             {/* "Use saved pitch" chip — shown when a template is saved but the
@@ -336,11 +385,16 @@ export function ApplyConfirmDialog({
               rows={3}
               className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14 leading-relaxed"
             />
-            <div className="flex items-center justify-between text-ds-11">
+            <div className="flex items-center justify-between gap-2 text-ds-11">
               {/* Soft min counter — surfaces the "30+ chars feels real"
-                  guidance without blocking shorter pitches. Mirrors the
-                  ReportDialog's hint copy so the UX is consistent. */}
+                  guidance without blocking shorter pitches.
+                  The leading "Tip:" is gone: it sat one row above a panel
+                  headed "TIPS" that meant something else entirely, so the
+                  screen used the same word for two different things back to
+                  back. Length guidance belongs to the counter; what to SAY is
+                  now the job of the guidance lines under the label. */}
               <span
+                className="min-w-0"
                 style={{
                   color: underMin
                     ? "hsl(var(--burnt-sienna))"
@@ -348,7 +402,7 @@ export function ApplyConfirmDialog({
                 }}
               >
                 {trimmedLen === 0
-                  ? `Tip: ${SOFT_MIN_PITCH_LENGTH}+ characters feels personal`
+                  ? `${SOFT_MIN_PITCH_LENGTH}+ characters feels personal`
                   : underMin
                   ? `${SOFT_MIN_PITCH_LENGTH - trimmedLen} more to feel personal`
                   : "Nice — that reads personal"}
@@ -365,67 +419,53 @@ export function ApplyConfirmDialog({
               </span>
             </div>
             {/* Save as default template — lets helprs reuse a good pitch
-                across applications without retyping it every time. */}
-            <label className="flex items-center gap-2 cursor-pointer min-h-[44px] -my-1">
-              <input
-                type="checkbox"
+                across applications without retyping it every time.
+
+                The control is the SHARED <Checkbox> (Radix), not a raw
+                <input type="checkbox">, and that is the whole fix for the
+                "~48px white square" this row used to show. index.css enforces
+                the 44×44 HIG minimum with
+                  `input[type="checkbox"] { min-height:44px; min-width:44px }`
+                and min-* beats width/height, so the old `w-[18px] h-[18px]`
+                was overridden and the box rendered 44px — bigger than the
+                label beside it, reading as an empty input rather than a
+                checkbox. That rule deliberately EXCLUDES `[role="checkbox"]`,
+                which is what Radix renders, so the shared control keeps its
+                designed 20×20 box. The tap target is unchanged: the wrapping
+                label still carries `min-h-[44px]`, which is exactly the
+                "reach the target via the surrounding <label>" contract that
+                rule's comment describes. */}
+            <label htmlFor="save-default-pitch" className="flex items-center gap-2 cursor-pointer min-h-[44px] -my-1">
+              <Checkbox
+                id="save-default-pitch"
                 checked={saveAsTemplate}
-                onChange={(e) => setSaveAsTemplate(e.target.checked)}
-                className="rounded w-[18px] h-[18px] shrink-0"
+                onCheckedChange={(checked) => setSaveAsTemplate(checked === true)}
               />
               <span className="text-ds-12 text-muted-foreground">Save as my default pitch</span>
             </label>
-          </div>
-          {/* Smart apply tips — context-aware nudges based on job attributes */}
-          {(() => {
-            const tips = getApplyTips({
-              is_urgent: confirmApplyJob?.is_urgent,
-              budget: confirmApplyJob?.budget,
-              pricing_mode: confirmApplyJob?.pricing_mode,
-              date_needed: confirmApplyJob?.date_needed,
-              category: confirmApplyJob?.category,
-            });
-            if (tips.length === 0) return null;
-            return (
-              <div
-                className="rounded-ds-md px-3 py-2.5 space-y-1 mt-3"
-                style={{ background: "hsl(var(--sage) / 0.07)", border: "1px solid hsl(var(--sage) / 0.18)" }}
+            {/* Attachments disclosure — optional, and now sized like it.
+                It was a full-width dashed panel with its own "certs ·
+                previous work" sub-label, so an optional extra carried more
+                chrome than the pitch field above it and competed with the
+                earnings card for weight. Demoted to an inline text control on
+                its own line inside the pitch group; the sub-label is folded
+                into the accessible name rather than painted. Still ≥44px
+                tall, still one tap. Hidden once expanded or when a file is
+                already attached. */}
+            {!optionsExpanded && (
+              <button
+                type="button"
+                onClick={() => { hapticLight(); setShowMoreOptions(true); }}
+                className="inline-flex items-center gap-1.5 min-h-[44px] -my-1 font-serif italic text-ds-12 active:opacity-70 transition-opacity"
+                style={{ color: "hsl(var(--bark))" }}
+                aria-expanded={false}
+                aria-label="Add attachments — certificates or previous work"
               >
-                <p className="text-ds-11 font-semibold uppercase tracking-[0.1em]" style={{ color: "hsl(var(--sage))" }}>
-                  Tips
-                </p>
-                {tips.map((tip, i) => (
-                  <p key={i} className="text-ds-12 flex items-start gap-1.5" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
-                    <span style={{ color: "hsl(var(--sage))", marginTop: "2px" }}>›</span>
-                    {tip}
-                  </p>
-                ))}
-              </div>
-            );
-          })()}
-
-          {/* Attachments disclosure — keeps the default modal short by hiding
-              the (optional) attachments section behind one tasteful toggle.
-              Hidden once expanded or when a file is already attached. */}
-          {!optionsExpanded && (
-            <button
-              type="button"
-              onClick={() => { hapticLight(); setShowMoreOptions(true); }}
-              className="mt-3.5 w-full min-h-[44px] flex items-center justify-center gap-1.5 rounded-ds-md font-serif italic text-ds-12 active:scale-[0.99] transition-transform"
-              style={{
-                background: "hsl(var(--bark) / 0.05)",
-                border: "0.5px dashed hsl(var(--bark) / 0.25)",
-                color: "hsl(var(--bark))",
-              }}
-              aria-expanded={false}
-            >
-              <Plus className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />
-              <span>Add attachments</span>
-              <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                certs · previous work
-              </span>
-            </button>
-          )}
+                <Plus className="w-3.5 h-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+                <span>Add attachments</span>
+              </button>
+            )}
+          </div>
 
           {optionsExpanded && (
             <>
@@ -433,12 +473,8 @@ export function ApplyConfirmDialog({
                 <button
                   type="button"
                   onClick={() => { hapticLight(); setShowMoreOptions(false); }}
-                  className="mt-3.5 w-full min-h-[44px] flex items-center justify-center gap-1.5 rounded-ds-md font-serif italic text-ds-12 active:scale-[0.99] transition-transform"
-                  style={{
-                    background: "hsl(var(--bark) / 0.05)",
-                    border: "0.5px dashed hsl(var(--bark) / 0.25)",
-                    color: "hsl(var(--bark))",
-                  }}
+                  className="mt-2 inline-flex items-center gap-1.5 min-h-[44px] font-serif italic text-ds-12 active:opacity-70 transition-opacity"
+                  style={{ color: "hsl(var(--bark))" }}
                   aria-expanded
                 >
                   <ChevronDown className="w-3.5 h-3.5 rotate-180" strokeWidth={2.25} aria-hidden />
@@ -514,12 +550,32 @@ export function ApplyConfirmDialog({
             You're offline. We'll hold onto your pitch — apply again once you're back online.
           </p>
         )}
-        <AlertDialogFooter className="!gap-2">
+        {/* ONE footer row: dismiss on the left, commit on the right.
+            It was two stacked full-width buttons (AlertDialogFooter is
+            `flex-col-reverse` until `sm`), which gave a dismiss affordance the
+            same visual weight as the action and cost a whole extra ~56px row
+            on the smallest screens this dialog has to fit.
+
+            Grid note for the fit spec: the footer is still the SECOND child of
+            AlertDialogContent's grid and still lands in the `auto` track of
+            `grid-rows-[minmax(0,1fr)_auto]` — that template is untouched, as is
+            `min-w-0` on the body. Only this row's own flex direction changed.
+            `!flex-row` overrides the primitive's mobile `flex-col-reverse`,
+            `sm:!space-x-0` neutralises its `sm:space-x-2` so `gap-3` is the
+            single source of spacing, and `justify-between` replaces the
+            primitive's `sm:justify-end`. */}
+        <AlertDialogFooter className="!flex-row !items-center !justify-between !gap-2 sm:!space-x-0">
           <AlertDialogCancel
             disabled={applyLoading}
-            className="rounded-ds-md bg-transparent border-transparent shadow-none text-muted-foreground hover:bg-secondary/60 hover:text-foreground active:translate-y-0"
+            aria-label="Cancel"
+            /* An icon, not a word — but named for what it DOES ("Cancel"), not
+               for its glyph. `!w-11 h-11 p-0` overrides the primitive's
+               `w-full sm:w-auto` + `size="lg"` padding; 44×44 is the HIG touch
+               minimum, so the visual shrinks to an icon without the target
+               shrinking with it. */
+            className="rounded-full !w-11 h-11 p-0 shrink-0 bg-transparent border-transparent shadow-none text-muted-foreground hover:bg-secondary/60 hover:text-foreground active:translate-y-0"
           >
-            Cancel
+            <X className="w-5 h-5" strokeWidth={2} aria-hidden />
           </AlertDialogCancel>
           {/* `type="button"`: when offline we keep the dialog open (don't let
               AlertDialogAction's default close fire), so the held pitch stays
@@ -528,7 +584,18 @@ export function ApplyConfirmDialog({
             type="button"
             onClick={(e) => { if (!online) e.preventDefault(); handleConfirm(); }}
             disabled={applyLoading || !bidPriceValid}
-            className="rounded-ds-md"
+            /* `!w-auto` drops the primitive's mobile `w-full` now that the two
+               actions share a row; `flex-1` lets it take everything the 44px
+               dismiss button leaves. `size="lg"` ships `px-8`, which is a lot
+               of the width budget once 44px + a gap are spoken for — at 320 the
+               dialog's content box is 232px, so the label would be left ~124px.
+               `!px-4` on phones returns 32px of that; `sm:!px-8` restores the
+               roomier padding as soon as there is room for it. `min-w-0` is the
+               deliberate failure mode: if a label ever does outgrow the row it
+               degrades inside its own box rather than pushing the footer past
+               the dialog's right edge, which is the regression f0d11d0b fixed
+               and apply-dialog-fit.spec.ts guards. */
+            className="rounded-ds-md !w-auto flex-1 min-w-0 !px-4 sm:!px-8"
             style={{
               background: "hsl(var(--bark))",
               backgroundImage: "none",

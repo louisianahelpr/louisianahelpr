@@ -13,10 +13,36 @@ import {
 
 // ─── Invite form ─────────────────────────────────────────────────────────────
 
-export function InviteForm({ myUserId }: { myUserId: string }) {
+export function InviteForm({
+  myUserId,
+  open,
+  onOpenChange,
+  showTrigger = true,
+}: {
+  myUserId: string;
+  /**
+   * Controlled disclosure. Omit and the form keeps its own state; pass it
+   * when something outside the form opens it (the empty state's CTA).
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /**
+   * Render the built-in "Add a family member" row while the form is closed.
+   * Off when an empty state above already carries that call to action —
+   * otherwise the same invitation is on screen twice.
+   */
+  showTrigger?: boolean;
+}) {
   const [contact, setContact] = useState("");
   const [relationship, setRelationship] = useState("child");
-  const [showForm, setShowForm] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const showForm = open ?? internalOpen;
+  // Always drive the internal copy too, so a caller can pass `open` for the
+  // initial handoff without the form's own Cancel/success paths going dead.
+  const setShowForm = (next: boolean) => {
+    setInternalOpen(next);
+    onOpenChange?.(next);
+  };
   // The generated invite link is only ever shown once — keep it on screen
   // (not just in a toast) so a failed clipboard write can't lose the token.
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -135,22 +161,25 @@ export function InviteForm({ myUserId }: { myUserId: string }) {
   ) : null;
 
   if (!showForm) {
+    if (!showTrigger && !linkPanel) return null;
     return (
       <div className="space-y-2">
         {linkPanel}
-        <button
-          onClick={() => { hapticLight(); setShowForm(true); }}
-          className="w-full flex items-center gap-2.5 h-12 px-4 rounded-ds-md text-ds-14 font-sans font-medium active:scale-[0.98] transition-all"
-          style={{
-            background: "hsl(var(--bark) / 0.06)",
-            border: "0.5px dashed hsl(var(--bark) / 0.3)",
-            color: "hsl(var(--bark))",
-          }}
-        >
-          <UserPlus className="w-4 h-4" />
-          Add a family member
-          <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
-        </button>
+        {showTrigger && (
+          <button
+            onClick={() => { hapticLight(); setShowForm(true); }}
+            className="w-full flex items-center gap-2.5 h-12 px-4 rounded-ds-md text-ds-14 font-sans font-medium active:scale-[0.98] transition-all"
+            style={{
+              background: "hsl(var(--bark) / 0.06)",
+              border: "0.5px dashed hsl(var(--bark) / 0.3)",
+              color: "hsl(var(--bark))",
+            }}
+          >
+            <UserPlus className="w-4 h-4" />
+            Add a family member
+            <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+          </button>
+        )}
       </div>
     );
   }

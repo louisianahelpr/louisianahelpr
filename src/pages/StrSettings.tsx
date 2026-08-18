@@ -9,19 +9,20 @@
  */
 
 import { useState } from "react";
-import { Home, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { CalendarDays, Home, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import PageHeader from "@/components/PageHeader";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import type { AddFormState, StrConnection } from "./strSettings/types";
 import { cardStyle } from "./strSettings/strSettingsHelpers";
-import { EmptyConnections } from "./strSettings/EmptyConnections";
 import { ConnectionCard } from "./strSettings/ConnectionCard";
 import { AddCalendarForm, validateCleaningBudget } from "./strSettings/AddCalendarForm";
 
@@ -185,6 +186,19 @@ export default function StrSettings() {
   });
 
   // ── Render ────────────────────────────────────────────────────────────────
+  // The empty state OWNS the "Add a calendar" call to action, so the separate
+  // collapsible row underneath it would be the same invitation twice (and was
+  // why the old empty copy had to point "below"). Show one or the other: the
+  // empty card until the host asks to add, the form from then on.
+  const showEmptyState = !isLoading && !isError && connections.length === 0 && !addOpen;
+
+  // Factual cadence copy — verbatim in both places it renders (desktop rail /
+  // mobile footnote). Only one of the two is ever on screen.
+  const cadenceNote =
+    "Helpr fetches your calendar every few hours. Cleaning jobs are created " +
+    "for checkouts up to 7 days out. Jobs you created manually are never " +
+    "affected.";
+
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
@@ -196,40 +210,14 @@ export default function StrSettings() {
 
       <div className="max-w-lg md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 md:px-6 lg:px-8 mt-2 pb-8">
 
-        {/* Explanation card (mobile: stacked above list; desktop: sticky in left rail) */}
-        <div className="lg:hidden mb-4 rounded-ds-md p-4" style={cardStyle}>
-          <div className="flex items-start gap-3">
-            <div
-              className="rounded-full flex items-center justify-center shrink-0"
-              style={{
-                width: 44, height: 44,
-                background: "hsl(var(--burnt-sienna) / 0.12)",
-                border: "1.5px solid hsl(var(--burnt-sienna) / 0.3)",
-              }}
-            >
-              <Home className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} />
-            </div>
-            <div>
-              <p
-                className="font-display italic font-bold text-ds-16"
-                style={{ color: "hsl(var(--ink-deep))" }}
-              >
-                Never scramble for a cleaner again
-              </p>
-              <p
-                className="mt-1 text-ds-13"
-                style={{ color: "hsl(var(--olivewood) / 0.8)", lineHeight: 1.5 }}
-              >
-                Connect your Airbnb or VRBO calendar. When a guest checks out,
-                Helpr automatically posts a cleaning job — so you always have
-                someone lined up before the next guest arrives.
-              </p>
-            </div>
-          </div>
-        </div>
-
         <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
-          {/* Desktop-only left rail: explanation hero */}
+          {/* Desktop-only left rail.
+              This used to repeat the "Never scramble for a cleaner again"
+              pitch that the empty state below already makes — the same two
+              sentences twice on one screen. The pitch now lives once, in the
+              empty state; the rail carries the mechanics instead, which are
+              the thing a host still wants once calendars ARE connected and
+              the pitch has done its job. */}
           <aside className="hidden lg:block lg:col-span-4">
             <div className="rounded-ds-md p-5 lg:sticky lg:top-6" style={cardStyle}>
               <div
@@ -246,15 +234,13 @@ export default function StrSettings() {
                 className="font-display italic font-bold text-ds-18"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
-                Never scramble for a cleaner again
+                How it works
               </p>
               <p
                 className="mt-2 text-ds-14"
                 style={{ color: "hsl(var(--olivewood) / 0.85)", lineHeight: 1.55 }}
               >
-                Connect your Airbnb or VRBO calendar. When a guest checks out,
-                Helpr automatically posts a cleaning job — so you always have
-                someone lined up before the next guest arrives.
+                {cadenceNote}
               </p>
             </div>
           </aside>
@@ -276,70 +262,91 @@ export default function StrSettings() {
                   retryDisabled={isFetching}
                 />
               </div>
-            ) : connections.length === 0 ? (
-              <div className="rounded-ds-md" style={cardStyle}>
-                <EmptyConnections />
-              </div>
+            ) : showEmptyState ? (
+              /* One card for one idea and one action: what this does, and the
+                 button that does it. `surfaceStyle` keeps the page's premium
+                 card material rather than dropping a white glass tile into it. */
+              <EmptyState
+                variant="inline"
+                /* 14px = tailwind `rounded-ds-md`, the radius every other card
+                   on this page carries; the shared card is `rounded-2xl`. */
+                surfaceStyle={{ ...cardStyle, borderRadius: 14 }}
+                icon={CalendarDays}
+                eyebrow="No calendars connected yet"
+                title="Never scramble for a cleaner again"
+                body="Connect your Airbnb or VRBO calendar. When a guest checks out, Helpr automatically posts a cleaning job — so you always have someone lined up before the next guest arrives."
+                action={
+                  <BarkPillButton onClick={() => setAddOpen(true)}>
+                    <Plus className="w-4 h-4 mr-1.5" />
+                    Add a calendar
+                  </BarkPillButton>
+                }
+              />
             ) : (
-              <div className="space-y-3">
-                {connections.map((conn) => (
-                  <ConnectionCard
-                    key={conn.id}
-                    conn={conn}
-                    onSync={handleSync}
-                    onRequestRemove={setConnToRemove}
-                    syncing={syncingId === conn.id}
-                    removing={removingId === conn.id}
-                  />
-                ))}
-              </div>
+              <>
+                {connections.length > 0 && (
+                  <div className="space-y-3">
+                    {connections.map((conn) => (
+                      <ConnectionCard
+                        key={conn.id}
+                        conn={conn}
+                        onSync={handleSync}
+                        onRequestRemove={setConnToRemove}
+                        syncing={syncingId === conn.id}
+                        removing={removingId === conn.id}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Add calendar collapsible. Collapsing it with no calendars
+                    connected hands the screen back to the empty state, so the
+                    host is never left staring at a lone closed row. */}
+                <div className="rounded-ds-md overflow-hidden" style={cardStyle}>
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3.5"
+                    onClick={() => setAddOpen((v) => !v)}
+                    aria-expanded={addOpen}
+                    aria-controls="add-calendar-form"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Plus
+                        className="w-4 h-4"
+                        style={{ color: "hsl(var(--bark))" }}
+                      />
+                      <span
+                        className="font-display italic font-semibold text-ds-14"
+                        style={{ color: "hsl(var(--ink-deep))" }}
+                      >
+                        Add a calendar
+                      </span>
+                    </div>
+                    {addOpen ? (
+                      <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+                    )}
+                  </button>
+
+                  {addOpen && (
+                    <div id="add-calendar-form" className="px-4 pb-4">
+                      <AddCalendarForm
+                        onAdd={(form) => addConnection(form)}
+                        loading={adding}
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
             )}
 
-            {/* Add calendar collapsible */}
-            <div className="rounded-ds-md overflow-hidden" style={cardStyle}>
-              <button
-                className="w-full flex items-center justify-between px-4 py-3.5"
-                onClick={() => setAddOpen((v) => !v)}
-                aria-expanded={addOpen}
-                aria-controls="add-calendar-form"
-              >
-                <div className="flex items-center gap-2">
-                  <Plus
-                    className="w-4 h-4"
-                    style={{ color: "hsl(var(--bark))" }}
-                  />
-                  <span
-                    className="font-display italic font-semibold text-ds-14"
-                    style={{ color: "hsl(var(--ink-deep))" }}
-                  >
-                    Add a calendar
-                  </span>
-                </div>
-                {addOpen ? (
-                  <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-                ) : (
-                  <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-                )}
-              </button>
-
-              {addOpen && (
-                <div id="add-calendar-form" className="px-4 pb-4">
-                  <AddCalendarForm
-                    onAdd={(form) => addConnection(form)}
-                    loading={adding}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Help note */}
+            {/* Help note — the desktop rail carries the same sentences at lg+,
+                so only one of the two is ever on screen. */}
             <p
-              className="text-center px-2 text-ds-12"
+              className="lg:hidden text-center px-2 text-ds-12"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              Helpr fetches your calendar every few hours. Cleaning jobs are created
-              for checkouts up to 7 days out. Jobs you created manually are never
-              affected.
+              {cadenceNote}
             </p>
           </section>
         </div>

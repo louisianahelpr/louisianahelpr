@@ -77,8 +77,21 @@ export function ActivityHeader({
   const activeFilter =
     statusFilter === "all" ? undefined : activeStatusFilters.find((f) => f.key === statusFilter);
   const activeFilterCount = activeFilter ? activeCounts[activeFilter.key] ?? 0 : 0;
+  // COUNT FIRST: "2 Active", not "Active 2".
+  //
+  // Owner's call, and it is a parsing fix rather than a preference. "Active 2"
+  // reads as a label with a trailing number of unclear meaning — a count? a
+  // rank? part of a name? — while "2 Active" reads as a quantity of a thing,
+  // which is what it is. It also matches the Messages chip this indicator was
+  // modelled on, which has always said "1 unread" and not "unread 1".
+  //
+  // Applies to every filter value (Active / Completed / Cancelled), not just
+  // Active, and the sr-only prefix below announces the same order the sighted
+  // reader gets.
   const filterLabel = activeFilter
-    ? `${activeFilter.label}${activeFilterCount > 0 ? ` ${activeFilterCount}` : ""}`
+    ? activeFilterCount > 0
+      ? `${activeFilterCount} ${activeFilter.label}`
+      : activeFilter.label
     : undefined;
 
   return (
@@ -146,6 +159,14 @@ export function ActivityHeader({
                   className="font-serif italic text-ds-11 leading-none shrink-0"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
+                  {/* The middot is the ONLY decorative glyph in this label, and
+                      it leads. There is deliberately nothing after
+                      `filterLabel` — the owner reported "a stray character
+                      after the count"; what is actually there is the filter
+                      button's own active dot (the 8px bark pip pinned to that
+                      button's top-right, further along the row), which is a
+                      real state indicator and stays. Kept as a single leading
+                      span so a future edit can't reintroduce a trailing one. */}
                   <span aria-hidden className="mr-1">·</span>
                   <span className="sr-only">Filtered by </span>
                   {filterLabel}

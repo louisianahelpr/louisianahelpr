@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, X, ArrowRight, ChevronDown } from "lucide-react";
+import { Search, X, ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import FaqRow from "@/components/marketing/FaqRow";
@@ -12,26 +12,40 @@ import {
 } from "./helpCenter/helpCenterContent";
 
 /**
- * Help Center — editorial remodel matching the landing hero + HIW style.
+ * Help Center — ONE component serving two surfaces.
+ *
+ * `/help` is a public marketing route (a Footer destination, rendered inside
+ * <PublicLayout> with the marketing Navbar + Footer) AND the in-app help
+ * screen: on native, PublicLayout swaps its own chrome for AppShell and
+ * renders this exact body. So the page cannot simply be "de-marketing'd" —
+ * stripping the editorial voice would strip it from the website too.
+ *
+ * The split is therefore by BREAKPOINT, never by `Capacitor.isNativePlatform()`
+ * (phone-width web and the native app are one surface — they must not diverge):
+ *
+ *   < md (768px)  → APP presentation. Search + chips first, then a scannable
+ *                   category list: icon + label + one line + forward chevron.
+ *                   No display-scale section heroes, no giant numerals, no
+ *                   editorial eyebrows. This is what the iOS app shows.
+ *   ≥ md          → MARKETING presentation, unchanged: left masthead with the
+ *                   display eyebrow and the two-tone Bodoni headline, right
+ *                   magazine grid with giant burnt-sienna numerals and the
+ *                   "Learn more →" lockup, sequential IO fade-in.
  *
  * Structure:
  *   1. Compact page header — canonical BackButton to the LEFT of a
  *      normal-size "Help Center" title (same row shape as /jobs), the
- *      one-line lede, then the squircle search pill + popular-search
- *      chips. /help is a FOOTER destination, so the full-bleed hero it
- *      used to open with (display eyebrow, clamp() Bodoni H1 "How can we
- *      help?", warm halo) read as a second landing page. The search box
- *      and its chips are unchanged — they still drive the same
- *      client-side filter over FAQ_SECTIONS.
- *   2. Browse by topic — left masthead + right magazine grid, giant
- *      burnt-sienna Bodoni numerals per topic, sequential IO fade-in.
- *   3. Quick answers   — left masthead + right hairline-divider accordion,
- *      no glass panels, chevron rotates on open, sits on parchment.
- *   4. Contact band    — small horizontal band + bark rounded-2xl CTA.
+ *      one-line lede (md+ only), then the squircle search pill +
+ *      popular-search chips. The search box, its chips, and the
+ *      "Can't find it? Contact support" escape hatch are unchanged and stay
+ *      at the top on both surfaces — they are the real shortcuts.
+ *   2. Browse by topic — see the breakpoint split above.
+ *   3. Quick answers   — same split on the masthead; the accordion itself is
+ *      identical on both.
  *
  * Preserves the existing helpCenterContent data source (TOPICS, FAQ_SECTIONS,
- * SECTION_ACCENTS) verbatim — the same client-side search over FAQ_SECTIONS
- * ships as before, just presented in the editorial tone.
+ * SECTION_ACCENTS) verbatim — same client-side search, same category CONTENT.
+ * Only the presentation differs.
  */
 
 // ─── Topic anchor slugs — same order as TOPICS ────────────────────────────────
@@ -216,6 +230,25 @@ const HelpCenter = () => {
     if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  // Open a category: mark its FAQ section expanded, then scroll to it. The
+  // scroll is deferred a frame so the section has re-rendered with its body
+  // open and the target offset is the final one, not a mid-animation one.
+  // Shared by the app list and the marketing grid so the two presentations
+  // can never drift in behaviour.
+  const openTopic = (label: string) => {
+    const slug = topicSlug(label);
+    setExpandedSlugs((prev) => {
+      const next = new Set(prev);
+      next.add(slug);
+      return next;
+    });
+    requestAnimationFrame(() => {
+      const target = document.getElementById(`faq-${slug}`);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      else scrollToFaq();
+    });
+  };
+
   return (
     <PublicLayout>
       {/* ─────────────────────── 1. Compact page header ───────────────────── */}
@@ -235,9 +268,12 @@ const HelpCenter = () => {
             </div>
           </div>
 
-          {/* One-line lede — the two audiences we serve, in one flowing line. */}
+          {/* One-line lede — the two audiences we serve, in one flowing line.
+              md+ only: it is marketing framing, and on the phone/app surface
+              it was one more block queue-jumping the search box (it cost ~2
+              lines at 375px). The website keeps it. */}
           <p
-            className="max-w-xl lg:max-w-2xl text-ds-15 sm:text-ds-17 leading-relaxed text-balance"
+            className="hidden md:block max-w-xl lg:max-w-2xl text-ds-15 sm:text-ds-17 leading-relaxed text-balance"
             style={{
               fontFamily: "Montserrat, system-ui, sans-serif",
               fontWeight: 400,
@@ -258,7 +294,7 @@ const HelpCenter = () => {
               hatch for after the search fails, so it now sits under the search
               instead of in front of it — still always visible, no longer
               queue-jumping the thing people came to use. */}
-          <div className="w-full max-w-2xl mt-5">
+          <div className="w-full max-w-2xl mt-4 md:mt-5">
             <div
               className="flex items-center gap-3 rounded-2xl px-5 py-4 sm:px-6 sm:py-5 transition-shadow focus-within:shadow-md"
               style={{
@@ -369,47 +405,132 @@ const HelpCenter = () => {
       {/* ───────────────────────── 2. Browse by topic ────────────────────────── */}
       {/* Tightened pt-* — this is the first section under the compact page
           header now that the full-height hero is gone; the old pt-24 left a
-          rail-deep empty band below the search box. */}
+          rail-deep empty band below the search box. The <md ladder is tighter
+          again: on the app surface this section is the reason people opened
+          the screen, so it starts close under the search rather than a
+          section-gap below it. */}
       {!searching && (
         <section
           id="topics"
           ref={topicsRef}
           aria-labelledby="topics-heading"
-          className="px-5 sm:px-8 lg:px-12 pt-10 sm:pt-12 lg:pt-16 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
+          className="px-5 sm:px-8 lg:px-12 pt-6 md:pt-12 lg:pt-16 pb-10 md:pb-16 lg:pb-24 scroll-mt-24"
         >
-          <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16">
+          <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-10 lg:gap-16">
             {/* Left column — masthead */}
-            <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
-              <span className="text-display-eyebrow">Topics</span>
+            <div className="md:col-span-4 lg:col-span-3 text-left md:sticky md:top-32 md:self-start">
+              {/* Display eyebrow is marketing chrome — md+ only. */}
+              <span className="hidden md:inline text-display-eyebrow">Topics</span>
+              {/* ONE h2 for the section (the id `aria-labelledby` points at),
+                  wearing two presentations.
+
+                  <md it is a plain section label at the canonical
+                  `--headline-section` size — SMALLER than the page's own
+                  `.text-page-title` h1, single colour, no trailing period. It
+                  used to be a full display headline ("Find what you *need.*",
+                  36px+ two-tone Bodoni with a full stop) sitting mid-scroll
+                  BELOW a 22px page title: a second, bigger hero on a screen
+                  that already had a title.
+
+                  ≥md the editorial headline is untouched — /help is a public
+                  marketing page and that is its voice there.
+
+                  Both labels live in the same h2 and are swapped with
+                  `hidden`/`md:hidden` (display:none), so exactly one
+                  contributes to the accessible name at any width. */}
               <h2
                 id="topics-heading"
-                className="mt-3 font-display font-bold text-balance leading-[1.05] max-w-[10ch] md:max-w-none mx-auto md:mx-0"
-                style={{
-                  fontSize: "clamp(2.25rem, 3.4vw, 3.25rem)",
-                  letterSpacing: "-0.025em",
-                  color: "hsl(var(--ink-deep))",
-                }}
+                className="font-display font-bold italic md:not-italic text-balance leading-tight tracking-[-0.02em] text-[length:var(--headline-section)] md:mt-3 md:leading-[1.05] md:tracking-[-0.025em] md:text-[length:clamp(2.25rem,3.4vw,3.25rem)] md:max-w-none"
+                style={{ color: "hsl(var(--ink-deep))" }}
               >
-                Find what you{" "}
-                <em
-                  className="inline-block"
-                  style={{
-                    fontStyle: "italic",
-                    color: "hsl(var(--burnt-sienna))",
-                  }}
-                >
-                  need.
-                </em>
+                <span className="md:hidden">Browse by topic</span>
+                <span className="hidden md:inline">
+                  Find what you{" "}
+                  <em
+                    className="inline-block"
+                    style={{
+                      fontStyle: "italic",
+                      color: "hsl(var(--burnt-sienna))",
+                    }}
+                  >
+                    need.
+                  </em>
+                </span>
               </h2>
             </div>
 
-            {/* Right column — magazine grid of topics with giant Bodoni
-                numerals as the anchor. Sequential fade-in matches HIW. */}
-            <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
+            {/* APP surface (<md) — the categories as a scannable list: category
+                icon, label, one line, forward chevron. Same TOPICS data, same
+                destination, same copy as the grid below; only the presentation
+                differs. The whole row is the tap target (the grid's "Learn
+                more" link was the only hit area), and there is no entrance
+                animation — an app list should be there when the screen is.
+
+                Deliberately NOT headings: these are navigation rows, and the
+                marketing grid below already contributes the per-topic h3s at
+                the width where it renders. */}
+            <ul className="md:hidden space-y-2">
+              {TOPICS.map((topic) => {
+                const Icon = topic.icon;
+                return (
+                  <li key={topic.label}>
+                    <a
+                      href={`#faq-${topicSlug(topic.label)}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openTopic(topic.label);
+                      }}
+                      className="flex items-center gap-3 rounded-2xl px-4 py-3 text-left"
+                      style={{
+                        background: "hsl(var(--burnt-sienna) / 0.04)",
+                        border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
+                        boxShadow: "var(--elev-inset-hairline)",
+                      }}
+                    >
+                      <span
+                        aria-hidden
+                        className="shrink-0 w-9 h-9 rounded-ds-md flex items-center justify-center"
+                        style={{ background: topic.bg, color: topic.color }}
+                      >
+                        <Icon className="w-4 h-4" strokeWidth={2.25} />
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span
+                          className="block font-display font-bold text-ds-15 leading-tight"
+                          style={{ color: "hsl(var(--ink-deep))" }}
+                        >
+                          {topic.label}
+                        </span>
+                        <span
+                          className="block mt-0.5 font-sans text-ds-12 leading-snug"
+                          style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                        >
+                          {topic.desc}
+                        </span>
+                      </span>
+                      {/* › — navigates within the app. Same glyph the rest of
+                          the app uses for "goes to another screen". */}
+                      <ChevronRight
+                        aria-hidden
+                        className="w-4 h-4 shrink-0"
+                        strokeWidth={2.25}
+                        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                      />
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* MARKETING surface (≥md) — magazine grid of topics with giant
+                Bodoni numerals as the anchor. Sequential fade-in matches HIW.
+                Unchanged apart from being gated to md+ and the column ladder
+                moving from sm: to md: (it never renders below md now). */}
+            <div className="hidden md:col-span-8 lg:col-span-9 md:grid md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
               {TOPICS.map((topic, i) => (
                 <div
                   key={topic.label}
-                  className="text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 flex flex-col"
+                  className="text-left rounded-2xl p-6 sm:p-7 lg:p-8 flex flex-col"
                   style={{
                     opacity: topicsInView ? 1 : 0,
                     transform: topicsInView
@@ -444,7 +565,7 @@ const HelpCenter = () => {
                     {topic.label}
                   </h3>
                   <p
-                    className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:mx-0"
+                    className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs"
                     style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                   >
                     {topic.desc}
@@ -453,30 +574,7 @@ const HelpCenter = () => {
                     href={`#faq-${topicSlug(topic.label)}`}
                     onClick={(e) => {
                       e.preventDefault();
-                      const slug = topicSlug(topic.label);
-                      // Mark this section as expanded so the matching
-                      // FAQ TopicSection opens automatically, then
-                      // scroll to it. Delay the scroll a frame so the
-                      // section has re-rendered with its expanded body
-                      // and the scroll target is the correct position.
-                      setExpandedSlugs((prev) => {
-                        const next = new Set(prev);
-                        next.add(slug);
-                        return next;
-                      });
-                      requestAnimationFrame(() => {
-                        const target = document.getElementById(
-                          `faq-${slug}`,
-                        );
-                        if (target) {
-                          target.scrollIntoView({
-                            behavior: "smooth",
-                            block: "start",
-                          });
-                        } else {
-                          scrollToFaq();
-                        }
-                      });
+                      openTopic(topic.label);
                     }}
                     /* mt-0.5 + py-3.5 rather than mt-4: 2px margin + 14px padding
                        puts the text in exactly the same place as the old 16px
@@ -505,35 +603,38 @@ const HelpCenter = () => {
       <section
         id="faq"
         aria-labelledby="faq-heading"
-        className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-8 scroll-mt-24"
+        className="px-5 sm:px-8 lg:px-12 pt-6 md:pt-16 lg:pt-24 pb-8 scroll-mt-24"
       >
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16">
-          {/* Left column — masthead */}
-          <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
-            <span className="text-display-eyebrow">FAQ</span>
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-10 lg:gap-16">
+          {/* Left column — masthead. Same two-presentation h2 as the Topics
+              section above (see the note there): a plain section label at
+              `--headline-section` on the app surface, the editorial two-tone
+              Bodoni headline on the marketing site. Left as a display headline
+              it was a THIRD hero on the same screen. */}
+          <div className="md:col-span-4 lg:col-span-3 text-left">
+            <span className="hidden md:inline text-display-eyebrow">FAQ</span>
             <h2
               id="faq-heading"
-              className="mt-3 font-display font-bold text-balance leading-[1.05] max-w-[10ch] md:max-w-none mx-auto md:mx-0"
-              style={{
-                fontSize: "clamp(2.25rem, 3.4vw, 3.25rem)",
-                letterSpacing: "-0.025em",
-                color: "hsl(var(--ink-deep))",
-              }}
+              className="font-display font-bold italic md:not-italic text-balance leading-tight tracking-[-0.02em] text-[length:var(--headline-section)] md:mt-3 md:leading-[1.05] md:tracking-[-0.025em] md:text-[length:clamp(2.25rem,3.4vw,3.25rem)] md:max-w-none"
+              style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Quick{" "}
-              <em
-                className="inline-block"
-                style={{
-                  fontStyle: "italic",
-                  color: "hsl(var(--burnt-sienna))",
-                }}
-              >
-                answers.
-              </em>
+              <span className="md:hidden">Quick answers</span>
+              <span className="hidden md:inline">
+                Quick{" "}
+                <em
+                  className="inline-block"
+                  style={{
+                    fontStyle: "italic",
+                    color: "hsl(var(--burnt-sienna))",
+                  }}
+                >
+                  answers.
+                </em>
+              </span>
             </h2>
             {searching && (
               <p
-                className="mt-4 font-serif italic text-ds-14 leading-relaxed max-w-xs mx-auto md:mx-0"
+                className="mt-2 md:mt-4 font-serif italic text-ds-14 leading-relaxed md:max-w-xs"
                 style={{ color: "hsl(var(--olivewood) / 0.85)" }}
               >
                 Matching &ldquo;{query.trim()}&rdquo;.

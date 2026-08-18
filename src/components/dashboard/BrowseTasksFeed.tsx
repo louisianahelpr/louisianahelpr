@@ -458,7 +458,7 @@ export function BrowseTasksFeed({
                  at this row height for typical feed sizes. */
               <ul
                 style={{
-                  paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 0px))",
+                  paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))",
                 }}
               >
                 {visibleJobs.map((job) => (
@@ -488,7 +488,7 @@ export function BrowseTasksFeed({
               <div
                 className="px-3 pt-3"
                 style={{
-                  paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 0px))",
+                  paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))",
                 }}
               >
                 <VirtualizedJobList

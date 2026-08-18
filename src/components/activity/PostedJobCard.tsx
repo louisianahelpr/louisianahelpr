@@ -2,7 +2,7 @@ import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
-  MapPin, DollarSign, CheckCircle2, RotateCcw,
+  MapPin, CheckCircle2, RotateCcw,
   Users, AlertTriangle, RefreshCw, Clock,
   Check, ChevronDown, ChevronUp, Eye,
 } from "lucide-react";
@@ -129,6 +129,36 @@ function PostedJobCardInner({
                 longitude={job.longitude}
                 estimatedHours={job.estimated_hours}
                 expiresAt={!job.helper_id && job.status !== "cancelled" ? job.expires_at : null}
+                // "View details" costs no row of its own any more.
+                //
+                // It used to sit below the meta row as a standalone 44px
+                // control plus a 10px stack gap — 54px of card height for a
+                // single word pair, on a card that already stacks a status
+                // stripe, a meta row, state chips, a tracker and an action row.
+                // Pinned to the right of the meta line it costs ~8px instead.
+                //
+                // The 44px TOUCH TARGET is preserved and is deliberately larger
+                // than the visible box: `py-3.5` grows the hit area to 44px and
+                // `-my-2.5` pulls the layout box back down, so the row grows by
+                // 8px rather than 28px. The overhang lands on the card's own
+                // padding and the non-interactive status stripe, never on
+                // another control — the only other interactive thing in this
+                // row is the location link at the opposite end.
+                trailing={
+                  hasDescription || hasRequirements ? (
+                    <button
+                      type="button"
+                      aria-expanded={isExpanded}
+                      aria-label={isExpanded ? "Hide job description" : "Show job description"}
+                      className="inline-flex items-center gap-0.5 py-3.5 -my-2.5 pl-2 text-ds-11 font-medium text-primary hover:underline active:opacity-70"
+                      onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
+                    >
+                      {isExpanded
+                        ? <>Hide details <ChevronUp className="w-3 h-3" /></>
+                        : <>View details <ChevronDown className="w-3 h-3" /></>}
+                    </button>
+                  ) : null
+                }
               >
                 {/* The applicant COUNT deliberately does not appear here.
                     An open job with applicants used to state the same number
@@ -162,29 +192,22 @@ function PostedJobCardInner({
                 ONE affordance, not two: this is the same `expandedJobId`
                 toggle the card already owned, now actually gating the text it
                 sits under, rather than a second control bolted beneath copy
-                that was already fully visible. */}
-            {(hasDescription || hasRequirements) && (
+                that was already fully visible.
+
+                The toggle itself has moved up into the meta row's `trailing`
+                slot (see above) so it no longer costs a row; only the revealed
+                copy lives here, and it renders nothing at all when collapsed. */}
+            {isExpanded && (hasDescription || hasRequirements) && (
               <div className="space-y-1.5">
-                {isExpanded && hasDescription && (
+                {hasDescription && (
                   <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
                 )}
-                {isExpanded && hasRequirements && (
+                {hasRequirements && (
                   <div className="rounded-ds-sm bg-secondary/30 p-2">
                     <p className="text-ds-10 text-muted-foreground mb-0.5">Special Requirements</p>
                     <p className="text-ds-11 text-foreground">{job.special_requirements}</p>
                   </div>
                 )}
-                <button
-                  type="button"
-                  aria-expanded={isExpanded}
-                  aria-label={isExpanded ? "Hide job description" : "Show job description"}
-                  className="inline-flex items-center gap-0.5 min-h-[44px] text-ds-11 font-medium text-primary hover:underline active:opacity-70"
-                  onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
-                >
-                  {isExpanded
-                    ? <>Hide details <ChevronUp className="w-3 h-3" /></>
-                    : <>View details <ChevronDown className="w-3 h-3" /></>}
-                </button>
               </div>
             )}
 
@@ -243,7 +266,14 @@ function PostedJobCardInner({
                             border: `0.5px solid ${isCharged ? "hsl(var(--destructive) / 0.20)" : isPending ? "hsl(var(--gold-warm) / 0.30)" : "hsl(var(--olivewood) / 0.22)"}`,
                           }}
                         >
-                          <DollarSign className="w-3 h-3" /> {label}
+                          {/* No DollarSign glyph. `label` already carries the
+                              symbol (feeAmt is built as `$${…}` above), so the icon
+                              rendered "$ Fee $12.50 · charged" — the doubled money
+                              sign the owner reported. A currency symbol is
+                              typography: it belongs in the same text node as the
+                              digits, inheriting the font, weight and figure
+                              alignment, never beside them as a Lucide icon. */}
+                          <span className="tabular-nums">{label}</span>
                         </span>
                       );
                     })()}
@@ -316,7 +346,7 @@ function PostedJobCardInner({
               {/* Visible live tracking */}
               {(job.status === "accepted" || job.status === "in_progress") && job.helper_id && (
                 <div onClick={(e) => e.stopPropagation()}>
-                  <JobTracking jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} />
+                  <JobTracking jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
                 </div>
               )}
 

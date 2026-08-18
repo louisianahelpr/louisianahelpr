@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   CheckCircle2, Star, Users,
   RefreshCw, XCircle,
-  ChevronUp, ChevronDown, Eye,
+  ChevronUp, ChevronDown, Eye, Pencil,
 } from "lucide-react";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import type { AppliedApp } from "./activityConstants";
@@ -110,6 +110,7 @@ function AppliedJobCardInner({
     payout,
     isMinimalCard,
     escrowStep,
+    hasActionSection,
   } = deriveAppliedJobCardState(app, job, helperReviewedJobIds, expandedJobId);
 
   return (
@@ -180,25 +181,38 @@ function AppliedJobCardInner({
             {!isMinimalCard && isExpanded && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
               <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
             )}
-            {!isMinimalCard && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
-                aria-expanded={isExpanded}
-                aria-label={isExpanded ? "Hide job description" : "Show job description"}
-                className="inline-flex items-center gap-0.5 min-h-[44px] text-ds-11 font-medium text-primary hover:underline active:opacity-70"
-              >
-                {isExpanded
-                  ? <>Hide details <ChevronUp className="w-3 h-3" /></>
-                  : <>View details <ChevronDown className="w-3 h-3" /></>}
-              </button>
-            )}
 
-            {/* Poster name */}
-            {!isMinimalCard && app.posterName && (
-              <p className="text-ds-11 text-muted-foreground">
-                Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
-              </p>
+            {/* "Posted by" and the details toggle share ONE row.
+                They used to be two stacked bands — a 44px toggle row, then a
+                separate 17px "Posted by" line — which, with the status stripe,
+                the meta row and the action row, made five stacked bands for one
+                applied job and stopped two cards fitting on a 375 screen
+                together. They are both single-line, both secondary, and one is
+                naturally left-aligned and the other right: one row, ~44px total
+                instead of ~71px, with no information removed.
+
+                The toggle keeps its ≥44px target (it sets the row's height),
+                and it keeps `aria-expanded` + an explicit accessible name — the
+                visible words alone ("View details") do not say WHAT expands. */}
+            {!isMinimalCard && (
+              <div className="flex items-center gap-2 min-w-0">
+                {app.posterName && (
+                  <p className="text-ds-11 text-muted-foreground truncate min-w-0">
+                    Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
+                  aria-expanded={isExpanded}
+                  aria-label={isExpanded ? "Hide job description" : "Show job description"}
+                  className="ml-auto shrink-0 inline-flex items-center gap-0.5 min-h-[44px] px-1 -mr-1 text-ds-11 font-medium text-primary hover:underline active:opacity-70"
+                >
+                  {isExpanded
+                    ? <>Hide details <ChevronUp className="w-3 h-3" /></>
+                    : <>View details <ChevronDown className="w-3 h-3" /></>}
+                </button>
+              </div>
             )}
             {isMinimalCard && (
               <div className="space-y-2">
@@ -258,15 +272,26 @@ function AppliedJobCardInner({
             />
           )}
 
-          {/* Pending withdraw — now the same icon-over-label chip shape the
-              posted card's action rows use, so the two card types match.
+          {/* Pending actions — Edit alongside Withdraw, in the same
+              icon-over-label chip row the posted card uses.
 
-              A one-item row is deliberate, not a gap: the chip runs the full
-              width of the row rather than sitting as a lone cell in a wider
-              grid, and it keeps the destructive tint so it never reads as a
-              neutral "next step". The "Seen" trust chip is unchanged — it is
-              information, not an action, so it stays on its own line above the
-              row rather than being dressed up as a second button. */}
+              Withdraw used to be the only thing here, and it was the only thing
+              a waiting applicant could do: pull out entirely. The owner asked
+              for the obvious middle option — "they should be able to edit app
+              and withdraw" — and the editing surface already existed, it was
+              just unreachable without knowing that "View details" hides it.
+              PendingApplicationSection (rendered above, gated on `isExpanded`)
+              owns the message editor, the bid editor and the attachment list;
+              this chip expands the card AND opens the message editor, so Edit
+              lands the user IN the editor rather than merely near it. No new
+              editing surface was invented.
+
+              Two chips at 2-up cost exactly the height one chip cost at 1-up,
+              so the added affordance is free in vertical space. Withdraw keeps
+              the destructive tint so it never reads as a neutral "next step";
+              Edit takes the ordinary `edit` tone the posted card's Edit chip
+              already uses. The "Seen" trust chip is unchanged — it is
+              information, not an action. */}
           {!isMinimalCard && isPending && (
             <div
               className="px-4 py-2.5 space-y-1.5"
@@ -285,7 +310,18 @@ function AppliedJobCardInner({
                   <Eye className="w-3 h-3" aria-hidden="true" /> Seen
                 </span>
               )}
-              <JobActionRow columns={1}>
+              <JobActionRow columns={2}>
+                <JobActionChip
+                  icon={Pencil}
+                  label="Edit"
+                  ariaLabel="Edit your application"
+                  tone="edit"
+                  onClick={() => {
+                    setExpandedJobId(app.job_id);
+                    setEditingMessageAppId(app.id);
+                    setEditMessageText(app.message || "");
+                  }}
+                />
                 <JobActionChip
                   icon={XCircle}
                   label={withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw"}
@@ -410,6 +446,25 @@ function AppliedJobCardInner({
             </div>
           )}
 
+
+          {/* Last resort: a live application that matched NO action section.
+              Two cards in visibly the same state, one with a Withdraw button
+              and one with nothing under it, is what the owner reported — and
+              the blank one was not "no actions available", it was a state the
+              card had no branch for. The branch gap itself is fixed above
+              (`isAssigned` now trusts the application's own status), but a card
+              must never again go silent: if some future status slips through,
+              say so rather than rendering an empty band. */}
+          {!isMinimalCard && !hasActionSection && (
+            <div
+              className="px-4 py-2.5"
+              style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
+            >
+              <p className="text-ds-11 text-muted-foreground">
+                No actions available on this application right now — open the job to see where it stands.
+              </p>
+            </div>
+          )}
 
           {/* Footer: extra details (photos, requirements, group/recurring) */}
           {!isMinimalCard && (!isFullyDone || isExpanded) && ((job.photos || []).length > 0 || job.is_recurring || job.is_group_job) && (

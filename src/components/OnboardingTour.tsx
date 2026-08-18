@@ -281,7 +281,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
       <div
         className="fixed left-1/2 -translate-x-1/2 z-[55] animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
         style={{
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 5.5rem)",
+          bottom: "calc(var(--safe-area-bottom, 0px) + 5.5rem)",
         }}
       >
         <button

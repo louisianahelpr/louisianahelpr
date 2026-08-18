@@ -24,9 +24,12 @@ import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import PageHeader from "@/components/PageHeader";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users,
+  UserPlus,
   Shield,
   MessageSquare,
 } from "lucide-react";
@@ -118,6 +121,18 @@ export default function FamilyDashboard() {
   const asCaregiver = relQuery.data?.asCaregiver ?? [];
   const asRecipient = relQuery.data?.asRecipient ?? [];
 
+  // Nobody managed yet, and we know that for a fact — not mid-load, not a
+  // failed fetch. Drives the whole empty treatment: the "Managing jobs for"
+  // heading stands down (a section header over nothing reads as a rendering
+  // fault), and the empty state takes over the invite call to action so the
+  // page doesn't offer the same thing twice.
+  const caregiverEmpty =
+    !relQuery.isLoading && !relQuery.isError && asCaregiver.length === 0;
+
+  // Lifted out of InviteForm so the empty state's CTA can open it. Shared by
+  // the mobile-inline and desktop-aside instances — only one is ever visible.
+  const [inviteOpen, setInviteOpen] = useState(false);
+
   // Resolve the display name for the confirm-dialog without re-fetching.
   // profileMap only contains counterpart profiles (never self), so
   // whichever of the two ID slots isn't the current user will have a hit.
@@ -180,12 +195,15 @@ export default function FamilyDashboard() {
               on mobile it renders inline at the bottom of this section
               so the single-column flow is unchanged. ── */}
           <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-                <h2 className="font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
-                  Managing jobs for
-                </h2>
-              </div>
+              {/* Heading only when there IS a list to label — see caregiverEmpty. */}
+              {!caregiverEmpty && (
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
+                  <h2 className="font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
+                    Managing jobs for
+                  </h2>
+                </div>
+              )}
 
               {relQuery.isLoading && (
                 <div className="space-y-2">
@@ -205,10 +223,29 @@ export default function FamilyDashboard() {
                 />
               )}
 
-              {!relQuery.isLoading && !relQuery.isError && asCaregiver.length === 0 && (
-                <p className="text-ds-13 font-serif italic px-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  You're not managing jobs for anyone yet.
-                </p>
+              {/* The old empty line just stated the absence and stopped, with
+                  the explanation stranded in a grey box further down and the
+                  invite affordance in between. One card now does all three:
+                  what's missing, why the feature exists, and the way in.
+                  At lg+ the invite form opens in the sticky aside, so this
+                  card has to stay put or the left column goes blank; below lg
+                  the form opens inline right here and this steps aside. */}
+              {caregiverEmpty && (
+                <div className={inviteOpen ? "hidden lg:block" : undefined}>
+                  <EmptyState
+                    variant="inline"
+                    icon={Users}
+                    eyebrow="Just you, so far"
+                    title="No family members yet."
+                    body="Invite someone you help look after — a parent, a grandparent, a neighbor. Once they approve, you can post jobs, message helpers, and follow the work on their behalf. You can remove your access any time."
+                    action={
+                      <BarkPillButton onClick={() => setInviteOpen(true)}>
+                        <UserPlus className="w-4 h-4 mr-1.5" />
+                        Add a family member
+                      </BarkPillButton>
+                    }
+                  />
+                </div>
               )}
 
               {asCaregiver.map((rel) => (
@@ -222,10 +259,19 @@ export default function FamilyDashboard() {
 
               {/* Invite form — mobile/tablet only. At lg+ this component
                   is rendered in the sticky right column instead so the
-                  action pane always has a send-invite affordance in view. */}
+                  action pane always has a send-invite affordance in view.
+                  Its slot in the tree is deliberately fixed across the empty
+                  and populated branches: creating an invite flips the list to
+                  non-empty, and a moved slot would remount the form and lose
+                  the one-time invite link it is holding. */}
               {userId && (
                 <div className="lg:hidden">
-                  <InviteForm myUserId={userId} />
+                  <InviteForm
+                    myUserId={userId}
+                    open={inviteOpen}
+                    onOpenChange={setInviteOpen}
+                    showTrigger={!caregiverEmpty}
+                  />
                 </div>
               )}
           </section>
@@ -253,21 +299,14 @@ export default function FamilyDashboard() {
             </section>
           )}
 
-          {/* ── About section — mobile/tablet only. Duplicated in the
-              right column at lg+ where it sits below the invite form. ── */}
-          <div
-            className="lg:hidden rounded-ds-md p-4 flex gap-3"
-            style={{
-              background: "hsl(var(--bark) / 0.04)",
-              border: "0.5px solid hsl(var(--bark) / 0.1)",
-            }}
-          >
-            <MessageSquare className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "hsl(var(--bark) / 0.5)" }} />
-            <p className="text-ds-12 font-serif italic leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Family members you invite can view jobs, post new jobs, and message helpers on your behalf.
-              You can remove their access at any time.
-            </p>
-          </div>
+          {/* The mobile-only "about" box that used to sit here is gone: it
+              described inviting someone, directly beneath a button that also
+              described inviting someone. Its copy now lives inside the empty
+              state above, where it does work instead of restating the button.
+              (It also had the relationship backwards — inviting makes YOU the
+              caregiver, so it is you who can act on their behalf, not them on
+              yours.) The richer "What family accounts unlock" panel still runs
+              in the desktop aside. */}
 
         </div>
 
@@ -277,7 +316,14 @@ export default function FamilyDashboard() {
             column itself is hidden below lg — its contents render inline
             in the left column at those breakpoints. */}
         <aside className="hidden lg:block lg:col-span-5 space-y-5 lg:sticky lg:top-6 lg:self-start">
-          {userId && <InviteForm myUserId={userId} />}
+          {userId && (
+            <InviteForm
+              myUserId={userId}
+              open={inviteOpen}
+              onOpenChange={setInviteOpen}
+              showTrigger={!caregiverEmpty}
+            />
+          )}
 
           {/* Educational panel — explains what family accounts unlock so
               the right pane isn't just an invite form + hint. Fills the

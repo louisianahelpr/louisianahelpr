@@ -92,7 +92,7 @@ export function JobQuickActionSheet({
 
   return (
     <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent side="bottom" className="rounded-t-2xl border-t-0 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
+      <SheetContent side="bottom" className="rounded-t-2xl border-t-0 px-4 pt-3 pb-[calc(var(--safe-area-bottom,0px)_+_1rem)]">
         {/* Canonical sheet header. Was a hand-copied eyebrow→title stack (one of
             four sheets that drifted to four different title sizes); SheetHero is
             the single source of truth. */}

@@ -261,7 +261,7 @@ export const AppliedJobsTab = ({
           // Pull the empty-state card past the scroll container's bottom
           // safe-area padding so it bleeds all the way to the panel's
           // bottom edge — like the home page does.
-          marginBottom: "calc(-1 * (env(safe-area-inset-bottom, 0px) + 96px))",
+          marginBottom: "calc(-1 * (var(--safe-area-bottom, 0px) + 96px))",
         }}
       >
         <EmptyState
@@ -340,7 +340,7 @@ export const AppliedJobsTab = ({
       >
         <SheetContent
           side="bottom"
-          className="rounded-t-[20px] border-t-0 px-5 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)_+_24px)]"
+          className="rounded-t-[20px] border-t-0 px-5 pt-6 pb-[calc(var(--safe-area-bottom,0px)_+_24px)]"
         >
           {/* Drag-handle affordance */}
           <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-muted-foreground/25" aria-hidden />

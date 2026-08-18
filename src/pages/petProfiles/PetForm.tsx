@@ -213,6 +213,14 @@ export function PetForm({
         style={{
           background: isInline ? "transparent" : "hsl(var(--parchment))",
           borderColor: "hsl(var(--olivewood) / 0.12)",
+          // Full-screen sheet starts at y=0, so on a notched device this header
+          // sat UNDER the status bar — the owner's "top is cut off" on Add a
+          // pet, with the clock painted over the title. `var(--safe-area-top)`
+          // (resolved at :root) rather than a bare env(): this tree lives
+          // inside <PageTransition>'s transform, where WebKit reports every
+          // env(safe-area-inset-*) as 0, so the raw form would silently do
+          // nothing on exactly the devices that need it.
+          ...(isInline ? null : { paddingTop: "calc(var(--safe-area-top, 0px) + 0.75rem)" }),
         }}
       >
         <h2

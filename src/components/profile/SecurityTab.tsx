@@ -339,6 +339,15 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         secondaryLabel="Cancel"
       />
 
+      {/* Email / Password / Two-step / Face ID all share ONE card shape:
+          [icon] title (+ its real value) … [action] on the title row, with a
+          single line of prose underneath. The two cards below used to spend a
+          whole second 44px row hosting the button plus a masked-password
+          placeholder. The dots were pure decoration — everyone's password is
+          dots — so they're gone. The EMAIL ADDRESS is not a placeholder: it's
+          the account you're signed into and the inbox the confirmation link
+          lands in, so it stays, promoted into the title block where it costs
+          no extra row. */}
       <div className="rounded-2xl liquid-glass p-5 space-y-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -348,24 +357,23 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               Email address
             </h2>
-          </div>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-ds-13 font-medium text-foreground truncate">{email}</p>
-            <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              We'll send a confirmation link to verify changes.
-            </p>
+            {email && (
+              <p className="text-ds-12 font-medium text-foreground truncate mt-0.5">{email}</p>
+            )}
           </div>
           <Button
             size="sm"
             variant="outline"
             className="shrink-0"
+            aria-label="Change email address"
             onClick={handleOpenEmailDialog}
           >
             Change
           </Button>
         </div>
+        <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          We'll send a confirmation link to verify changes.
+        </p>
       </div>
 
       <div className="rounded-2xl liquid-glass p-5 space-y-3">
@@ -378,19 +386,15 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               Password
             </h2>
           </div>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-ds-13 font-medium text-foreground tracking-widest">••••••••</p>
-            <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Reset via secure email link.
-            </p>
-          </div>
           <Button
             size="sm"
             variant="outline"
             className="shrink-0"
-            disabled={resettingPassword}
+            // Reset needs an address to mail the link to. It used to be
+            // enabled-but-inert without one (the handler early-returned in
+            // silence), which reads as a broken button.
+            disabled={!email || resettingPassword}
+            aria-label="Email me a password reset link"
             onClick={async () => {
               if (!email || resettingPassword) return;
               setResettingPassword(true);
@@ -405,6 +409,9 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             {resettingPassword ? "Sending…" : "Reset"}
           </Button>
         </div>
+        <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          Reset via secure email link.
+        </p>
       </div>
 
       <TwoFactorCard />

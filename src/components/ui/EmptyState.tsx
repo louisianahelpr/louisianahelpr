@@ -30,6 +30,16 @@ interface EmptyStateProps {
   action?: ReactNode;
   /** Card treatment — see EmptyStateVariant. Defaults to `dock`. */
   variant?: EmptyStateVariant;
+  /**
+   * Surface override, merged last over the card's own background / border /
+   * shadow. Only for the handful of pages that deliberately run a different
+   * card material than `.liquid-glass` — /str-settings shares
+   * SubscriptionPage's premium-surface treatment so the two paid-feature
+   * screens read as one product tier, and a white glass tile in the middle
+   * of it would break that. Omit everywhere else: one material per surface
+   * is the point of this component.
+   */
+  surfaceStyle?: CSSProperties;
 }
 
 /**
@@ -52,10 +62,11 @@ export function EmptyState({
   body,
   action,
   variant = "dock",
+  surfaceStyle,
 }: EmptyStateProps) {
   const isDock = variant === "dock";
 
-  const cardStyle: CSSProperties = isDock
+  const variantStyle: CSSProperties = isDock
     ? {
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
@@ -65,9 +76,13 @@ export function EmptyState({
           "-1px 0 2px hsl(var(--olivewood) / 0.05), " +
           "1px 0 2px hsl(var(--olivewood) / 0.05), " +
           "0 -1px 3px hsl(var(--olivewood) / 0.05)",
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 2rem)",
+        paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 2rem)",
       }
     : {};
+
+  const cardStyle: CSSProperties = surfaceStyle
+    ? { ...variantStyle, ...surfaceStyle }
+    : variantStyle;
 
   // Frosted icon bubble — a deeper bark-tinted base gives the icon more
   // visual anchor while the inner cream highlight keeps it from looking

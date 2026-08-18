@@ -43,6 +43,12 @@ export function TwoFactorCard() {
 
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-3">
+      {/* Same shape as the Email / Password / Face ID cards: the action sits
+          on the title row and the prose runs full width underneath, instead of
+          the button owning a second 44px row. The "Off" pill is gone — a pill
+          reading "Off" beside a button reading "Turn on" is the same fact
+          twice. The "On" pill stays: that one is a state worth advertising,
+          and "Turn off" is the action, not the state. */}
       <div className="flex items-center gap-2.5">
         <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
           <ShieldCheck className="w-4 h-4 text-primary" />
@@ -55,33 +61,19 @@ export function TwoFactorCard() {
             Two-step verification
           </h2>
         </div>
-        {!isLoading && (
+        {!isLoading && verified && (
           <span
             className="shrink-0 text-ds-10 font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
             style={{
-              background: verified
-                ? "hsl(var(--bark) / 0.12)"
-                : "hsl(var(--olivewood) / 0.10)",
-              color: verified ? "hsl(var(--bark))" : "hsl(var(--olivewood))",
+              background: "hsl(var(--bark) / 0.12)",
+              color: "hsl(var(--bark))",
               letterSpacing: "0.06em",
             }}
           >
-            {verified ? "On" : "Off"}
+            On
           </span>
         )}
-      </div>
-
-      {isLoading ? (
-        <Skeleton className="h-9 rounded-ds-md" />
-      ) : verified ? (
-        <div className="flex items-center justify-between gap-3">
-          <p
-            className="text-ds-11 font-serif italic"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            An authenticator app is required at sign-in. Keep it safe — if you
-            lose access, contact support to remove it.
-          </p>
+        {!isLoading && (verified ? (
           <Button
             size="sm"
             variant="outline"
@@ -90,29 +82,35 @@ export function TwoFactorCard() {
               borderColor: "hsl(var(--burnt-sienna) / 0.32)",
               color: "hsl(var(--burnt-sienna))",
             }}
+            aria-label="Turn off two-step verification"
             onClick={() => setDisableOpen(true)}
           >
             Turn off
           </Button>
-        </div>
-      ) : (
-        <div className="flex items-center justify-between gap-3">
-          <p
-            className="text-ds-11 font-serif italic"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Add a code from an authenticator app at sign-in for extra account
-            security.
-          </p>
+        ) : (
           <Button
             size="sm"
             variant="outline"
             className="shrink-0"
+            aria-label="Turn on two-step verification"
             onClick={() => setEnrollOpen(true)}
           >
             Turn on
           </Button>
-        </div>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="h-9 rounded-ds-md" />
+      ) : (
+        <p
+          className="text-ds-11 font-serif italic"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+        >
+          {verified
+            ? "An authenticator app is required at sign-in. Keep it safe — if you lose access, contact support to remove it."
+            : "Add a code from an authenticator app at sign-in for extra account security."}
+        </p>
       )}
 
       {enrollOpen && (

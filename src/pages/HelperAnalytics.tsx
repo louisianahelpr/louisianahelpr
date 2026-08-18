@@ -19,6 +19,7 @@ import SuccessRateCard from "./helperAnalytics/SuccessRateCard";
 import OnTimeArrivalCard from "./helperAnalytics/OnTimeArrivalCard";
 import RepeatHireCard from "./helperAnalytics/RepeatHireCard";
 import BestDaysCard from "./helperAnalytics/BestDaysCard";
+import { ProUpsellHeader } from "./helperAnalytics/SectionCard";
 import RatingsReviewsCard from "./helperAnalytics/RatingsReviewsCard";
 
 // Helpers whose subscription tier gives access to analytics.
@@ -189,6 +190,17 @@ const HelperAnalytics = () => {
     ? ANALYTICS_TIERS.has(analytics.tier)
     : false;
 
+  // How many locked panels the free tier will actually see. Counted rather
+  // than hardcoded because two of them (on-time arrival, repeat-hire) only
+  // render once the underlying RPC has enough history to return a value — so a
+  // literal "7" would over-promise for a newer helper. The five always-present
+  // panels are earnings-by-month, top categories, best days, success rate and
+  // profile views; ratings & reviews makes six.
+  const lockedInsightCount =
+    6 +
+    (analytics?.onTimeRate !== null && analytics?.onTimeRate !== undefined ? 1 : 0) +
+    (analytics?.repeatHirePercent !== null && analytics?.repeatHirePercent !== undefined ? 1 : 0);
+
   // Current-month earnings: last entry in earningsMonths (always current month).
   const earningsMonthsArr = analytics?.earningsMonths ?? [];
   const currentMonthEarnings =
@@ -273,6 +285,18 @@ const HelperAnalytics = () => {
               — a bar chart squeezed into a third-column tile becomes
               unreadable. Ratings & reviews also spans 2 cols at xl
               because its per-star bars need horizontal room to breathe. */}
+          {/* ONE upgrade action for the page, not one per locked panel.
+              Free tier used to get five identical "Unlock →" cards in a
+              column — the shape of an ad break. Each locked panel is now a
+              single scannable row (see SectionCard) and this states the offer
+              once, above them. The upgrade path is more prominent than it was,
+              not less; it is just no longer repeated five times. */}
+          {!hasAnalyticsAccess && !isLoadingData && (
+            <div className="mt-6">
+              <ProUpsellHeader onUpgrade={onUpgrade} count={lockedInsightCount} />
+            </div>
+          )}
+
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
 
             {/* Activity trend — relocated from the Profile landing, where a

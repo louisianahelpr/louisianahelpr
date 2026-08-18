@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, DollarSign, Calendar, Home } from "lucide-react";
+import { MapPin, Calendar, Home } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -13,6 +13,7 @@ import { categoryColors, categoryLabels } from "@/components/activity/activityCo
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -126,58 +127,60 @@ const HomeHistory = () => {
           />
         )}
 
+        {/* House empty state — the same eyebrow / title / body / CTA shape
+            (and shared card) that Browse and Messages use, instead of the
+            bespoke copy of it this page used to carry. Same message, one
+            fewer hand-rolled surface. */}
         {!loading && !isError && (data ?? []).length === 0 && (
-          <div
-            className="flex flex-col items-center justify-center gap-4 rounded-ds-lg px-6 py-12 text-center"
-            style={{
-              background: "hsl(var(--parchment) / 0.55)",
-              border: "1px solid hsl(var(--olivewood) / 0.12)",
-            }}
-          >
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center"
-              style={{ background: "hsl(var(--bark) / 0.10)" }}
-            >
-              <Home className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} />
-            </div>
-            <div className="space-y-1">
-              <p className="font-sans font-semibold text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
-                No completed jobs yet
-              </p>
-              <p
-                className="font-serif italic text-ds-13 leading-snug max-w-[26rem]"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                When a job is done, it lives here forever — your home&rsquo;s permanent service history.
-              </p>
-            </div>
-            <BarkPillButton onClick={() => navigate("/post-job")} className="mt-1">
-              Post your first job
-            </BarkPillButton>
-          </div>
+          <EmptyState
+            variant="inline"
+            icon={Home}
+            eyebrow="Nothing on record yet"
+            title="No finished jobs yet."
+            body="When a job is done it lands here for good — who came out, what it cost, and when. It's your home's permanent service history."
+            action={
+              <BarkPillButton onClick={() => navigate("/post-job")}>
+                Post your first job
+              </BarkPillButton>
+            }
+          />
         )}
 
+        {/* The year rule is a DIVIDER, so it only earns its place when there
+            is something to divide. With a single year on the page it labels
+            the whole list twice over — every card already prints its own full
+            date — and "2026 ——— 1 job" was heavier chrome than the one entry
+            underneath it. Two or more years and it goes back to doing real
+            work. */}
         {!loading && !isError && grouped.map(({ year, jobs }) => (
           <section key={year}>
-            {/* Year group header */}
-            <div className="flex items-center gap-3 mb-3">
-              <span
-                className="font-sans font-semibold text-ds-13"
-                style={{ color: "hsl(var(--ink-deep))" }}
-              >
-                {year}
-              </span>
-              <div className="flex-1 h-px" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
-              <span className="text-ds-10 text-muted-foreground">{jobs.length} {jobs.length === 1 ? "job" : "jobs"}</span>
-            </div>
+            {grouped.length > 1 && (
+              <div className="flex items-center gap-3 mb-3">
+                <span
+                  className="font-sans font-semibold text-ds-13 tabular-nums"
+                  style={{ color: "hsl(var(--ink-deep))" }}
+                >
+                  {year}
+                </span>
+                <div className="flex-1 h-px" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
+                <span className="text-ds-10 text-muted-foreground">{jobs.length} {jobs.length === 1 ? "job" : "jobs"}</span>
+              </div>
+            )}
 
-            {/* Timeline */}
-            <div className="relative pl-5">
+            {/* Timeline. The spine (dot + connector line) is only drawn once
+                there are at least TWO entries to connect: with one card the
+                line has nothing to run between and the lone dot reads as a
+                stray UI artifact hanging off the left edge rather than as a
+                timeline. Below the threshold the group renders as a plain
+                stack and reclaims the 20px rail. */}
+            <div className={jobs.length > 1 ? "relative pl-5" : "relative"}>
               {/* Vertical connector line */}
-              <div
-                className="absolute left-[7px] top-3 bottom-3 w-px"
-                style={{ background: "hsl(var(--olivewood) / 0.15)" }}
-              />
+              {jobs.length > 1 && (
+                <div
+                  className="absolute left-[7px] top-3 bottom-3 w-px"
+                  style={{ background: "hsl(var(--olivewood) / 0.15)" }}
+                />
+              )}
 
               <div className="space-y-3">
                 {jobs.map((job) => {
@@ -189,13 +192,15 @@ const HomeHistory = () => {
                   return (
                     <div key={job.id} className="relative">
                       {/* Timeline dot */}
-                      <div
-                        className="absolute -left-5 top-4 w-3.5 h-3.5 rounded-full border-2 z-10"
-                        style={{
-                          background: "hsl(var(--parchment))",
-                          borderColor: "hsl(var(--bark) / 0.35)",
-                        }}
-                      />
+                      {jobs.length > 1 && (
+                        <div
+                          className="absolute -left-5 top-4 w-3.5 h-3.5 rounded-full border-2 z-10"
+                          style={{
+                            background: "hsl(var(--parchment))",
+                            borderColor: "hsl(var(--bark) / 0.35)",
+                          }}
+                        />
+                      )}
 
                       {/* Job card. DELIBERATE deviation from the
                           `rounded-2xl liquid-glass p-5` card convention: this
@@ -248,10 +253,14 @@ const HomeHistory = () => {
                             <Calendar className="w-3 h-3 shrink-0" />
                             {formatDate(job.created_at)}
                           </span>
+                          {/* A currency symbol is typography, not an icon: the
+                              "$" belongs in the same text node as the digits.
+                              A DollarSign glyph beside the amount rendered as
+                              "$ 200" — wrong stroke weight, a gap in the
+                              middle of the figure, and no tabular alignment. */}
                           {(job.budget ?? 0) > 0 && (
-                            <span className="inline-flex items-center gap-1 text-ds-11 font-medium" style={{ color: "hsl(var(--bark))" }}>
-                              <DollarSign className="w-3 h-3 shrink-0" />
-                              {formatPrice(job.budget ?? 0)}
+                            <span className="inline-flex items-center text-ds-11 font-medium tabular-nums" style={{ color: "hsl(var(--bark))" }}>
+                              ${formatPrice(job.budget ?? 0)}
                             </span>
                           )}
                           {job.location && (

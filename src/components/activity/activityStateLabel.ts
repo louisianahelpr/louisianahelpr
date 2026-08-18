@@ -57,6 +57,7 @@ export interface AppliedStateInput {
     helper_confirmed_at?: string | null;
     offered_to_helper_id?: string | null;
     direct_offer_status?: string | null;
+    is_group_job?: boolean | null;
   } | null;
 }
 
@@ -134,7 +135,17 @@ export function appliedActiveState(app: AppliedStateInput): ActivityState | null
   if (job.status === "revision_requested") return { label: "Revision requested", tone: "action" };
   if (job.status === "disputed") return null;
 
-  if (job.status === "accepted") {
+  // An ACCEPTED application is an accepted application, whatever the job row
+  // says. Reading `job.status` alone was the bug behind "why doesn't the
+  // bottom one have it": `accept_group_application` deliberately holds a group
+  // job at status `open` until the final slot is filled (see
+  // useOfferHandlers.confirmAcceptWithDeadline), so a helper who has been hired
+  // onto a partially-staffed roster has app.status = "accepted" while
+  // job.status is still "open". That fell through every branch below to
+  // "Applied · awaiting decision" — telling a hired helper nobody had decided
+  // yet — and matched none of AppliedJobCard's action sections, so the card
+  // rendered with no controls at all.
+  if (app.status === "accepted" && (job.status === "accepted" || job.status === "open")) {
     // Whose move is it? Unconfirmed means the ball is with the helper — this
     // is the one card in the list that needs a tap, so it gets the loud tone.
     return job.helper_confirmed_at
@@ -156,7 +167,34 @@ export function stateToneColors(tone: StateTone): { fg: string; bg: string } {
     case "action":
       return { fg: "hsl(var(--burnt-sienna))", bg: "hsl(var(--burnt-sienna) / 0.10)" };
     case "live":
-      return { fg: "hsl(var(--bark))", bg: "hsl(var(--bark) / 0.10)" };
+      // YELLOW, on the owner's device call: "In progress" rendered in bark and
+      // read as "a muted olive" — indistinguishable at a glance from the
+      // olivewood "waiting" band right above it, which is the opposite of what
+      // a live job should signal.
+      //
+      // `--live-pill-tint` / `--live-pill-ink` are not a new colour: they are
+      // the purpose-built pair already in index.css, described there as the
+      // "Live 'In progress / Upcoming' header pill — a yellower, brighter hue
+      // (45° vs amber's 36°) so the live-status chip reads distinctly sunny".
+      //
+      // Better than that: they are ALREADY the app's "in progress" colour —
+      // DashboardInProgressBadge paints the Dashboard's live-job pill with
+      // exactly this pair. So the two surfaces that say "in progress" now say
+      // it in the same colour, which they did not before: the Dashboard badge
+      // was yellow and the Activity stripe was bark green, for the same fact.
+      //
+      // Shape is TINT + dark ink, like every other passing chip in this app —
+      // never ink on a saturated fill, which is where the 3.24:1 SampleTag
+      // failure came from. Measured with @axe-core/playwright, not by eye.
+      //
+      // JUDGEMENT CALL: `live` also carries "Booked", so a booked job turns
+      // yellow too. That is deliberate rather than collateral — the token is
+      // documented as "In progress / Upcoming", and the result is a colour
+      // language where yellow means "this job is in flight" (booked or
+      // running), distinct from grey (open), sienna (your move), green
+      // (finished) and red (ended badly). Splitting Booked onto a seventh tone
+      // would have meant two greens or two ambers meaning different things.
+      return { fg: "hsl(var(--live-pill-ink))", bg: "hsl(var(--live-pill-tint) / 0.16)" };
     case "waiting":
       return { fg: "hsl(var(--olivewood))", bg: "hsl(var(--olivewood) / 0.10)" };
     case "success":

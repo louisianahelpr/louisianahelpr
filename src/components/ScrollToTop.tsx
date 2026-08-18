@@ -143,7 +143,7 @@ const ScrollToTop = () => {
           // overlaps the dock's controls.
           className="fixed right-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full active:scale-[0.94]"
           style={{
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 112px)",
+            bottom: "calc(var(--safe-area-bottom, 0px) + 112px)",
             background: "var(--surface-premium)",
             border: "1px solid hsl(var(--olivewood) / 0.18)",
             color: "hsl(var(--olivewood))",

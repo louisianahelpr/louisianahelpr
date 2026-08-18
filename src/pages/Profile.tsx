@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -12,6 +12,7 @@ import { hapticSuccess, hapticError } from "@/lib/haptics";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { stripeConnectStatusKey } from "@/hooks/useStripeConnectStatus";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { lookupParishByZip } from "@/lib/parishLookup";
@@ -88,8 +89,6 @@ const ProfilePage = () => {
     const urlTab = (searchParams.get("tab") as Tab | null) || "landing";
     setTab((prev) => (prev === urlTab ? prev : urlTab));
   }, [searchParams]);
-
-  const [stripeConnectStatus, setStripeConnectStatus] = useState<{ connected: boolean; details_submitted: boolean; payouts_enabled: boolean } | null>(null);
 
   const userId = user?.id;
 
@@ -204,30 +203,35 @@ const ProfilePage = () => {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ["profile", userId, "stats"] }),
           queryClient.invalidateQueries({ queryKey: ["profile", userId, "reviews"] }),
+          // The comment above has always claimed pull-to-refresh re-syncs the
+          // Stripe-connect status; until this line it did not — the old effect
+          // was guarded on `!stripeConnectStatus`, so once it had any answer
+          // (including a failed one) nothing could re-ask.
+          queryClient.invalidateQueries({ queryKey: stripeConnectStatusKey(userId) }),
         ]);
       }
     },
   });
 
+  // Stripe payout status is fetched by `useStripeConnectStatus()` inside
+  // <ProfileLanding />, not here — it used to be a `useState` + `useEffect`
+  // pair on this page that could not start until `profile` had been set, and
+  // that re-asked Stripe on every single mount. What stays here is the other
+  // half of caching it: the two moments the answer can actually have changed.
+  //
+  // Leaving the Payment tab is one of them — that is where the user finishes
+  // (or repairs) payout onboarding, so the landing's cached "no payout
+  // account" verdict is exactly what would otherwise go on lying to them.
+  // Invalidating an unmounted query is fine: it marks the key stale and the
+  // refetch happens when the landing next mounts.
+  const prevTabRef = useRef<Tab>(tab);
   useEffect(() => {
-    if (profile?.approval_status === "approved" && !stripeConnectStatus) {
-      checkStripeConnect();
+    const leftPaymentTab = prevTabRef.current === "payment" && tab !== "payment";
+    prevTabRef.current = tab;
+    if (leftPaymentTab && userId) {
+      queryClient.invalidateQueries({ queryKey: stripeConnectStatusKey(userId) });
     }
-  }, [profile]);
-
-  const checkStripeConnect = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
-      if (error) throw error;
-      setStripeConnectStatus(data);
-    } catch (err) {
-      console.error("[Profile] checkStripeConnect failed:", err);
-      // Default to disconnected so payout-setup banner stays visible
-      // rather than silently hiding when the edge function is unreachable.
-      setStripeConnectStatus({ connected: false, details_submitted: false, payouts_enabled: false });
-    }
-  };
-
+  }, [tab, userId, queryClient]);
 
   const handleToggleSeniorMode = async (enabled: boolean) => {
     if (!user) return;
@@ -452,7 +456,7 @@ const ProfilePage = () => {
             refreshing={refreshing}
             isPulling={isPulling}
             canTrigger={canTrigger}
-            className="w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pt-3 lg:pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]"
+            className="w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pt-3 lg:pt-5 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]"
           >
             <ProfileLanding
               profile={profile}
@@ -465,7 +469,6 @@ const ProfilePage = () => {
               reviewCount={reviewCount}
               postedCount={postedCount}
               completedCount={completedCount}
-              stripeConnectStatus={stripeConnectStatus}
               onSelectTab={(key) => setTab(key as Tab)}
               onNavigate={navigate}
               /* Inline job lists now load via an enabled-gated query that
@@ -490,7 +493,7 @@ const ProfilePage = () => {
              (header, back button, tab list). The boundary is rebuilt
              every time the user switches tabs so the previous tab's
              error state is cleared automatically. */
-          <div className="w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto h-full overflow-y-auto pt-3 lg:pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+96px+1rem)]">
+          <div className="w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto h-full overflow-y-auto pt-3 lg:pt-5 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
           {/* `key={tab}` on the boundary re-mounts this wrapper on every
               tab switch, so `animate-ds-page-in` replays its entrance each

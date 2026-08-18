@@ -140,7 +140,9 @@ export function ApplicantsPanel({
   return (
     <>
       {/* Applicants full-screen comparison view */}
-      <div className="fixed inset-0 z-50 flex flex-col motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200" style={{ background: "hsl(var(--parchment))" }}>
+      <div className="fixed inset-0 z-50 flex flex-col motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200"
+        // Same full-screen-overlay top inset as PetForm — see the note there.
+        style={{ background: "hsl(var(--parchment))", paddingTop: "var(--safe-area-top, 0px)" }}>
         {/* Header */}
         <div
           className="flex items-center gap-2 px-4 py-3"

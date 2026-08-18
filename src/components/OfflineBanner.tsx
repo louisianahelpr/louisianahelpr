@@ -68,13 +68,13 @@ const OfflineBanner = () => {
   // Outer wrapper paints the safe-area (notch) region; the inner content
   // row is what we measure + reserve. Keeping the inset on the OUTER element
   // (not the content row) is what makes the reported offset already net of
-  // `env(safe-area-inset-top)` — see offlineBannerLayout.
+  // `var(--safe-area-top, 0px)` — see offlineBannerLayout.
   return (
     <div
       role="status"
       aria-live="polite"
       className="fixed top-0 left-0 right-0 z-[60] bg-[hsl(var(--burnt-sienna)/0.80)] text-[hsl(var(--parchment))] shadow-md"
-      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      style={{ paddingTop: "var(--safe-area-top, 0px)" }}
     >
       <div
         ref={contentRef}

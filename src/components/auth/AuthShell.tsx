@@ -128,7 +128,7 @@ const AuthShell = ({
           would drift to the middle with it, so pin it to the top-left
           of the viewport instead. */}
       {align === "center" && !hideBack && (
-        <div className="absolute left-5 sm:left-8 top-[calc(env(safe-area-inset-top)+24px)] sm:top-12 z-20">
+        <div className="absolute left-5 sm:left-8 top-[calc(var(--safe-area-top,0px)_+_24px)] sm:top-12 z-20">
           {backLink}
         </div>
       )}
@@ -141,7 +141,7 @@ const AuthShell = ({
           {backLink}
         </div>
       )}
-      <div className={`relative z-10 flex flex-col ${centered ? "items-center" : alignClass} ${centered ? "lg:justify-center" : ""} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(env(safe-area-inset-top)+10px)] sm:pt-10" : "pt-[calc(env(safe-area-inset-top)+24px)] sm:pt-8 lg:pt-6"}`}>
+      <div className={`relative z-10 flex flex-col ${centered ? "items-center" : alignClass} ${centered ? "lg:justify-center" : ""} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(var(--safe-area-top,0px)_+_10px)] sm:pt-10" : "pt-[calc(var(--safe-area-top,0px)_+_24px)] sm:pt-8 lg:pt-6"}`}>
         {/* Brand mark hero — desktop-only. Sits as a sibling INSIDE the
             same vertically-centered flex column as the form so hero +
             form read as one composed unit centered on the viewport

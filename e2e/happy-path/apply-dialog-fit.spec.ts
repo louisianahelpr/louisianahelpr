@@ -66,8 +66,9 @@ const POSTER_PROFILE = {
 /**
  * Walks every element inside the open alert dialog and reports the ones whose
  * box escapes the dialog's content box. Elements inside a horizontal scroll
- * container are excluded — the chip row is *meant* to scroll, and its
- * off-screen chips are clipped by the scrollport rather than painted.
+ * container are excluded, because a scrollport clips its overflow rather than
+ * painting it. The suggested-opener chips USED to rely on that exclusion; they
+ * wrap now, so they are walked like everything else and must fit.
  */
 const MEASURE = `(() => {
   const dlg = document.querySelector('[role="alertdialog"]');
@@ -85,8 +86,7 @@ const MEASURE = `(() => {
         const ox = getComputedStyle(p).overflowX;
         if (ox === "auto" || ox === "scroll" || ox === "hidden") { clipped = true; break; }
       }
-      // 4px of slack: the chip row deliberately bleeds -mx-1/px-1 past the
-      // content box so a chip's edge isn't clipped mid-pill.
+      // 4px of slack for sub-pixel rounding on bled/negative-margin rows.
       if (!clipped && cr.width > 0 && (cr.right - contentRight > 4 || contentLeft - cr.left > 4)) {
         offenders.push({
           tag: child.tagName.toLowerCase(),
@@ -100,12 +100,18 @@ const MEASURE = `(() => {
     }
   };
   walk(dlg);
+  // Match on the ACCESSIBLE NAME, not on textContent. The dismiss action is an
+  // icon button now (an "x" with aria-label="Cancel"), so its textContent is
+  // empty — matching text alone would silently drop it from the actions list
+  // and the "both actions are on screen and tappable" assertions would pass
+  // vacuously. aria-label first, visible text otherwise.
+  const accName = (b) => ((b.getAttribute("aria-label") || b.textContent || "").trim());
   const actions = [...dlg.querySelectorAll("button")]
-    .filter((b) => /apply now|submit bid|book now|^cancel$|try again/i.test((b.textContent || "").trim()))
+    .filter((b) => /apply now|submit bid|book now|^cancel$|try again/i.test(accName(b)))
     .map((b) => {
       const br = b.getBoundingClientRect();
       return {
-        text: (b.textContent || "").trim(),
+        text: accName(b),
         left: +br.left.toFixed(1),
         right: +br.right.toFixed(1),
         height: +br.height.toFixed(1),

@@ -16,8 +16,20 @@ export function deriveAppliedJobCardState(
   expandedJobId: string | null,
 ) {
   const status = job.status;
-  const isOffered = app.status === "accepted" && status === "accepted" && !job.helper_confirmed_at;
-  const isConfirmed = app.status === "accepted" && status === "accepted" && !!job.helper_confirmed_at;
+  // An accepted application whose JOB row is still `open` is not a data
+  // anomaly — `accept_group_application` holds a group job open until its last
+  // slot is filled, so every helper hired onto a partially-staffed roster looks
+  // like this. Matching on `status === "accepted"` alone meant those cards hit
+  // none of the six action sections and none of the minimal-card branches, so
+  // they rendered with a status stripe, a meta row and then nothing: no
+  // Withdraw, no Accept/Decline, no tracker. That is the "why doesn't the
+  // bottom one have it" report. Treat the APPLICATION's own status as the
+  // source of truth for "am I on this job", and use the job row only to decide
+  // how far along it is.
+  const isAssigned =
+    app.status === "accepted" && (status === "accepted" || status === "open");
+  const isOffered = isAssigned && !job.helper_confirmed_at;
+  const isConfirmed = isAssigned && !!job.helper_confirmed_at;
   const isActive = app.status === "accepted" && (status === "in_progress" || status === "revision_requested");
   const isDisputed = app.status === "accepted" && status === "disputed";
   const isCompleted = app.status === "accepted" && status === "completed";
@@ -43,6 +55,14 @@ export function deriveAppliedJobCardState(
   // (pending applications, rejected/cancelled, no payment intent).
   const escrowStep = isMinimalCard || isPending ? null : deriveEscrowStepFromJob(job);
 
+  // Does ANY branch of the card own the action area? Every state above renders
+  // its own section; this is the "none of the above" detector. Silence is the
+  // defect the owner spotted — two cards in visibly the same state, one with a
+  // control and one with a blank space where a control should be — so when
+  // this is false the card says why instead of rendering nothing.
+  const hasActionSection =
+    isMinimalCard || isPending || isOffered || isConfirmed || isActive || isDisputed || isCompleted;
+
   return {
     status,
     isOffered,
@@ -59,5 +79,6 @@ export function deriveAppliedJobCardState(
     payout,
     isMinimalCard,
     escrowStep,
+    hasActionSection,
   };
 }

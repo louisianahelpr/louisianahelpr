@@ -105,6 +105,54 @@ describe("ApplyConfirmDialog", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
   });
 
+  it("uses the shared checkbox, not a native input inflated to 44px", () => {
+    // index.css forces `input[type="checkbox"] { min-width/height: 44px }` for
+    // the HIG touch minimum, which overrode this control's `w-[18px]` and drew
+    // a 44px empty square next to a 12px label. The rule excludes
+    // `[role="checkbox"]`, so the shared Radix control is the fix — assert the
+    // native input is gone rather than trusting a class name.
+    const { container } = render(<ApplyConfirmDialog {...makeProps()} />);
+    expect(screen.getByRole("checkbox", { name: /save as my default pitch/i })).toBeInTheDocument();
+    expect(container.ownerDocument.querySelector('input[type="checkbox"]')).toBeNull();
+  });
+
+  it("toggles the save-as-default checkbox exactly once per label click", () => {
+    // The label both wraps the control and points at it with htmlFor; a
+    // double-forwarded click would toggle twice and land back on unchecked.
+    render(<ApplyConfirmDialog {...makeProps()} />);
+    const box = screen.getByRole("checkbox", { name: /save as my default pitch/i });
+    expect(box).toHaveAttribute("data-state", "unchecked");
+    fireEvent.click(screen.getByText("Save as my default pitch"));
+    expect(box).toHaveAttribute("data-state", "checked");
+  });
+
+  it("dismisses with an icon button that is still named Cancel", () => {
+    render(<ApplyConfirmDialog {...makeProps()} />);
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    // Icon-only: the name comes from aria-label, not from visible text.
+    expect(cancel.textContent?.trim()).toBe("");
+  });
+
+  it("gives pitch guidance exactly one home", () => {
+    // "Tip: 30+ characters feels personal" used to sit directly above a panel
+    // headed "TIPS" — same word, two meanings, adjacent rows.
+    render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ is_urgent: true }) })} />);
+    expect(screen.queryByText("Tips")).not.toBeInTheDocument();
+    expect(screen.getByText(/30\+ characters feels personal/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Tip:/)).not.toBeInTheDocument();
+    // The job-specific nudge survives the panel it used to live in.
+    expect(screen.getByText(/earliest available start time/)).toBeInTheDocument();
+  });
+
+  it("labels the opener chips by intent, not by a sliced sentence", () => {
+    // The chips used to be labelled with a 32-char slice of the sentence, so
+    // the row had to scroll and the pill at the edge was cut mid-word.
+    render(<ApplyConfirmDialog {...makeProps()} />);
+    const chip = screen.getByRole("button", { name: /^Insert: I've done/ });
+    expect(chip.textContent).toBe("Done this before");
+    expect(screen.getByRole("group", { name: /suggested openers/i })).toBeInTheDocument();
+  });
+
   it("lists attached files", () => {
     const file = new File(["resume contents"], "resume.pdf", { type: "application/pdf" });
     render(<ApplyConfirmDialog {...makeProps({ applyFiles: [file] })} />);

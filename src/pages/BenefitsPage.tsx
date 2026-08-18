@@ -85,20 +85,17 @@ const COMING_SOON: string[] = [
   "Background check fee coverage",
 ];
 
-// Calm parchment card — matches HomeHistory / WorkRecord / StrSettings so
-// /benefits reads like the rest of the profile-linked surface (no saturated
-// hero, no cream fills). One shared style keeps the sections cohesive.
+// The shared SHEET surface — `.doc-card` from the document surface ladder in
+// index.css, the same rung /work-record uses. It replaces a hand-rolled
+// `parchment/0.70` fill that measured 2/255 away from the page canvas at the
+// bottom of the page gradient: the card was, numerically, the page.
 //
-// DELIBERATE deviation from the app's `rounded-2xl liquid-glass p-5` card
-// convention, for exactly that reason: the parchment family is its own
-// documented surface. These sections are also edge-to-edge containers with
-// their own header/row padding, so a blanket p-5 would double-pad them.
-const cardStyle: React.CSSProperties = {
-  background: "hsl(var(--parchment) / 0.70)",
-  border: "1px solid hsl(var(--olivewood) / 0.10)",
-  boxShadow:
-    "0 1px 3px hsl(var(--olivewood) / 0.06), 0 4px 10px -4px hsl(var(--olivewood) / 0.08)",
-};
+// Still a DELIBERATE deviation from the app's `rounded-2xl liquid-glass p-5`
+// card convention — these sections are edge-to-edge containers whose header
+// and rows own their own padding, so a blanket p-5 would double-pad them.
+// `.doc-card` sets material only (fill, border, shadow) and leaves geometry
+// to the page, which is what makes it adoptable here at all.
+const CARD_CLASS = "doc-card rounded-ds-lg overflow-hidden";
 
 export default function BenefitsPage() {
   usePageTitle("Benefits & Perks — Helpr");
@@ -130,16 +127,15 @@ export default function BenefitsPage() {
       <div className="mx-auto max-w-5xl px-4 lg:px-8 xl:px-12 pb-10 space-y-6 mt-2">
         {/* Sections */}
         {SECTIONS.map((section) => (
-          <div
-            key={section.title}
-            className="rounded-ds-lg overflow-hidden"
-            style={cardStyle}
-          >
-            {/* Section header */}
-            <div
-              className="flex items-center gap-2 px-5 py-3.5"
-              style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.10)" }}
-            >
+          <div key={section.title} className={CARD_CLASS}>
+            {/* Section header. `.doc-band` gives it a fill one value step
+                below the card plus a stronger bottom rule, so it reads as a
+                HEADER rather than as one more partner row. Before, the band
+                had no fill at all and was separated from the rows below it by
+                the same 10%-olivewood hairline that separates the rows from
+                each other — three identical layers, so the grouping this page
+                is built around was invisible. */}
+            <div className="doc-band flex items-center gap-2 px-5 py-3.5">
               <span style={{ color: "hsl(var(--bark))" }}>{section.icon}</span>
               <h2 className="font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
                 {section.title}
@@ -147,7 +143,7 @@ export default function BenefitsPage() {
             </div>
 
             {/* Items */}
-            <div className="divide-y" style={{ borderColor: "hsl(var(--olivewood) / 0.10)" }}>
+            <div className="divide-y doc-rule">
               {section.items.map((item) => (
                 <a
                   key={item.name}
@@ -182,7 +178,7 @@ export default function BenefitsPage() {
         ))}
 
         {/* Coming soon */}
-        <div className="rounded-ds-lg p-5" style={cardStyle}>
+        <div className={`${CARD_CLASS} p-5`}>
           <div className="flex items-center gap-2 mb-3">
             <Clock className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
             <h2 className="font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>

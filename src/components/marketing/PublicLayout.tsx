@@ -71,7 +71,7 @@ const PublicLayout = ({
       <div
         aria-hidden
         style={{
-          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingTop: "var(--safe-area-top, 0px)",
           background: "hsl(var(--surface-band))",
         }}
       />
@@ -107,7 +107,7 @@ const PublicLayout = ({
        Still expressed in terms of `--bottom-nav-h` rather than hardcoded to
        zero: if a PublicLayout route ever does show the dock, the footer must
        not slide underneath it. */
-    <div className="min-h-screen page-warmth pb-[calc(env(safe-area-inset-bottom,0px)+var(--bottom-nav-h,96px))] relative flex flex-col overflow-x-clip">
+    <div className="min-h-screen page-warmth pb-[calc(var(--safe-area-bottom,0px)_+_var(--bottom-nav-h,96px))] relative flex flex-col overflow-x-clip">
       {/* Global mesh behind every section — matches the landing surface. */}
       <div aria-hidden className="mesh-gradient-global" />
 
@@ -130,7 +130,7 @@ const PublicLayout = ({
       {!noNavSpacer && (
         <div
           aria-hidden
-          style={{ height: "calc(max(env(safe-area-inset-top), 1.5rem) + 3rem)" }}
+          style={{ height: "calc(max(var(--safe-area-top, 0px), 1.5rem) + 3rem)" }}
         />
       )}
 

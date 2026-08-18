@@ -346,7 +346,7 @@ const AdminPayoutBatches = () => {
         <div
           className="fixed left-0 right-0 z-40 px-4 py-3 bg-background/95 backdrop-blur border-t border-border shadow-[0_-4px_12px_-4px_rgba(0,0,0,0.08)]"
           style={{
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 4.5rem)",
+            bottom: "calc(var(--safe-area-bottom, 0px) + 4.5rem)",
           }}
         >
           <div className="max-w-2xl mx-auto flex items-center gap-3 flex-wrap">

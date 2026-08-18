@@ -25,24 +25,31 @@ import {
 } from "./legal/legalSections";
 
 /* ─────────────────────────  PER-TAB TITLE  ───────────────────────── */
-// Per-tab H1 text, stored split into a leading phrase + a trailing accent.
-// NATIVE renders the split form (accent italic burnt-sienna) in its compact
-// in-app header. WEB joins the halves back into one plain string for the
-// shared compact [BackButton] [title] row (see `webTitle` below). Copy here is
-// framing only; every clause of the legal text is preserved verbatim inside
-// TermsContent / CommunityContent / PrivacyContent.
-const TAB_TITLES: Record<TabKey, { lead: string; accent: string }> = {
-  terms: { lead: "Terms of", accent: "service." },
-  community: { lead: "Community", accent: "rules." },
-  privacy: { lead: "Privacy", accent: "policy." },
+// Per-tab H1 text for the NATIVE in-app header. Plain single-colour strings,
+// no trailing full stop — rendered through the shared `.text-page-title`
+// utility, which is literally what <PageHeader> paints on every other in-app
+// screen ("Work Record", "Security", "Benefits & Perks", "Home History",
+// "Host Automation", "Family & care").
+//
+// These used to be stored SPLIT into a leading phrase plus a trailing accent
+// ({ lead: "Privacy", accent: "policy." }) and painted two-tone: first word in
+// ink, second word italic burnt-sienna, closing on a period. That is
+// landing-page display typography, and the three legal tabs were the only
+// place in the app wearing it, so they read as a web page embedded in the
+// native shell. Flattened to plain strings so the two-tone form can't come
+// back by accident.
+//
+// This does NOT touch the marketing/landing surface: the WEB branch of this
+// page renders a static "Legal" title (see `webHeader`) and never consumed
+// these strings — the split map fed the native header only.
+//
+// Copy here is framing only; every clause of the legal text is preserved
+// verbatim inside TermsContent / CommunityContent / PrivacyContent.
+const TAB_TITLES: Record<TabKey, string> = {
+  terms: "Terms of service",
+  community: "Community rules",
+  privacy: "Privacy policy",
 };
-
-// WEB title: the two halves joined, minus the trailing period. That period is
-// a leftover of the old poster-scale editorial hero ("Terms of *service.*") —
-// a compact page-title row never ends in one ("Business", "Help Center",
-// "Browse jobs"), so it's stripped rather than duplicated into a second map.
-const webTitle = (t: TabKey) =>
-  `${TAB_TITLES[t].lead} ${TAB_TITLES[t].accent}`.replace(/\.$/, "");
 
 // Tab → content element, used by the cross-tab search view (which renders
 // all three at once). Outside of search, the panels render these inside
@@ -136,25 +143,23 @@ const Legal = () => {
     setParams(nextParams, { replace: true });
   };
 
-  // NATIVE header: back button + compact per-tab title, with the trailing word
-  // kept as an italic burnt-sienna accent. No explicit `to` on BackButton: it
-  // falls back to history.back(), which works for authenticated users from
-  // /profile?tab=legal and unauthenticated visitors from the signup agreement
-  // checkbox.
+  // NATIVE header: back button + compact per-tab title.
+  //
+  // The markup below is the title block <PageHeader> renders, verbatim
+  // (`flex items-center gap-3` > BackButton + `flex flex-col leading-none
+  // min-w-0` > `h1.text-page-title.leading-tight.text-balance`), so these
+  // three screens get the app's standard page title by REUSING the same
+  // utility rather than re-deriving a font/size/weight. PageHeader itself is
+  // not mounted here because it brings its own `mx-auto max-w-*` frame and
+  // safe-area top padding, both of which this AppShell layout already
+  // supplies (the container below + `statusBarCap`) — mounting it would
+  // double-count them.
   const nativeHeaderRow = (
     <div className="flex items-center gap-3">
       <div data-print-hide className="shrink-0"><BackButton to="/" /></div>
       <div className="flex flex-col leading-none min-w-0 mb-1">
         <h1 className="text-page-title leading-tight text-balance">
-          {TAB_TITLES[tab].lead}{" "}
-          <em
-            style={{
-              fontStyle: "italic",
-              color: "hsl(var(--burnt-sienna))",
-            }}
-          >
-            {TAB_TITLES[tab].accent}
-          </em>
+          {TAB_TITLES[tab]}
         </h1>
       </div>
     </div>
@@ -418,7 +423,7 @@ const Legal = () => {
       <div
         aria-hidden
         style={{
-          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingTop: "var(--safe-area-top, 0px)",
           background: "hsl(var(--surface-band))",
         }}
       />

@@ -138,10 +138,10 @@ export default {
         "ds-8": "32px",
         "ds-10": "40px",
         "ds-12": "48px",
-        "safe-top": "env(safe-area-inset-top)",
-        "safe-bottom": "env(safe-area-inset-bottom)",
-        "safe-left": "env(safe-area-inset-left)",
-        "safe-right": "env(safe-area-inset-right)",
+        "safe-top": "var(--safe-area-top, 0px)",
+        "safe-bottom": "var(--safe-area-bottom, 0px)",
+        "safe-left": "var(--safe-area-left, 0px)",
+        "safe-right": "var(--safe-area-right, 0px)",
         // Bottom clearance for content above the floating MobileNav dock + FAB
         // (96px dock/FAB height + 1rem breathing room) plus the iOS safe-area
         // inset. Consumed via `pb-safe-nav` on full-scroll pages.
@@ -151,7 +151,7 @@ export default {
         // files use `pb-safe-nav`; without this they would each reserve ~112px
         // of empty space below the last element on every guest page. See
         // `html.no-bottom-nav` in index.css.
-        "safe-nav": "calc(env(safe-area-inset-bottom, 0px) + var(--bottom-nav-h, 96px) + 1rem)",
+        "safe-nav": "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 1rem)",
       },
       transitionTimingFunction: {
         "ds-out": "cubic-bezier(0.22, 1, 0.36, 1)",

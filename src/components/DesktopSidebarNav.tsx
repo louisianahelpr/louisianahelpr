@@ -166,7 +166,7 @@ const DesktopSidebarNav = () => {
         // any safe-area inset the header reserves) so the header — which spans
         // the entire viewport width and paints in a separate stacking context
         // — is never covered by the rail's top band.
-        top: "calc(env(safe-area-inset-top, 0px) + 3.5rem)",
+        top: "calc(var(--safe-area-top, 0px) + 3.5rem)",
         width: "var(--desktop-sidebar-w, 248px)",
         background: "var(--glass-bg-crisp, hsl(0 0% 100% / 0.97))",
         borderRight: "1px solid hsl(var(--olivewood) / 0.12)",

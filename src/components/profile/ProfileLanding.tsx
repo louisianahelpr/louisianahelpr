@@ -1,3 +1,4 @@
+import { useStripeConnectStatus } from "@/hooks/useStripeConnectStatus";
 import type { ProfileLandingProps } from "./profileLanding/types";
 import { useProfileLandingDerived } from "./profileLanding/useProfileLandingDerived";
 import { useIntroVideoUpload } from "./profileLanding/useIntroVideoUpload";
@@ -17,7 +18,6 @@ export function ProfileLanding({
   avgRating,
   reviewCount,
   completedCount,
-  stripeConnectStatus,
   onSelectTab,
   onNavigate,
   onRequestDelete,
@@ -30,6 +30,10 @@ export function ProfileLanding({
 }: ProfileLandingProps) {
   const { videoUploading, handleVideoUpload } = useIntroVideoUpload(profile);
   const { qrOpen, setQrOpen, qrDataUrl } = useProfileQrCode(profile);
+  // Owned here rather than passed in — see the note in `types.ts`. Cached,
+  // so re-opening Profile in the same session paints the payout state on
+  // the first frame instead of re-asking Stripe every mount.
+  const { payoutPrompt, refetchStatus } = useStripeConnectStatus();
 
   const {
     tier,
@@ -48,7 +52,7 @@ export function ProfileLanding({
     completedCount,
     avgRating,
     reviewCount,
-    stripeConnectStatus,
+    payoutPrompt,
     onSelectTab,
     onNavigate,
   });
@@ -100,8 +104,8 @@ export function ProfileLanding({
           category tiles + a separate row list — list-of-rows scales
           cleaner and is easier to scan.) */}
       <SettingsSection
-        profile={profile}
-        stripeConnectStatus={stripeConnectStatus}
+        payoutPrompt={payoutPrompt}
+        onRetryPayoutStatus={refetchStatus}
         menuGroups={menuGroups}
         onSelectTab={onSelectTab}
         onNavigate={onNavigate}

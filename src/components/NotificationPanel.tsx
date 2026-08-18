@@ -196,7 +196,7 @@ const NotificationPanel = () => {
       </SheetTrigger>
       <SheetContent
         className="w-full sm:max-w-md p-0 gap-0 flex flex-col h-[100dvh]"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        style={{ paddingTop: "var(--safe-area-top, 0px)" }}
       >
         <SheetHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0 text-left sm:text-left space-y-3">
           {/* Canonical sheet header (SheetHero bakes in the pr-12 lane for the
@@ -282,7 +282,7 @@ const NotificationPanel = () => {
           isPulling={isPulling}
           canTrigger={canTrigger}
           className="flex-1 min-h-0 no-scrollbar overscroll-contain"
-          style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+          style={{ paddingBottom: "var(--safe-area-bottom, 0px)" }}
         >
           {loadError && notifications.length === 0 ? (
             // A failed initial load takes precedence over the "All caught

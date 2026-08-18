@@ -496,7 +496,7 @@ const Admin = () => {
           <AdminTopBar onLogout={() => setShowLogoutDialog(true)} />
 
           <main
-            className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-[calc(2rem+env(safe-area-inset-bottom,0px))]"
+            className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-[calc(2rem_+_var(--safe-area-bottom,0px))]"
           >
             {view !== "home" && (
               <AdminSectionHeader title={viewLabels[view]} onBack={() => handleViewChange("home")} />

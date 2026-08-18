@@ -17,7 +17,14 @@ export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarPro
   return (
     <div
       className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-2 pointer-events-none"
-      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)" }}
+      // `var(--safe-area-bottom)`, never a bare `env(safe-area-inset-bottom)`.
+      // This bar is `position: fixed` inside <PageTransition>, whose motion.div
+      // carries `will-change: transform` permanently — and WebKit resolves
+      // env() to 0 for a fixed descendant of a transformed/promoted ancestor.
+      // The inset silently vanished and the bar sat flush on the home
+      // indicator. The var is resolved once at :root (no transform above it),
+      // which is the whole reason it exists — see the note in index.css.
+      style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 0.5rem)" }}
     >
       <div
         className="pointer-events-auto max-w-2xl mx-auto rounded-2xl flex items-center gap-2 p-2"

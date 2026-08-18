@@ -62,7 +62,29 @@ const DialogContent = React.forwardRef<
         }
       }}
       className={cn(
-        "glass-modal fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg max-h-[88dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 p-5 sm:p-7 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        // WHY THE FOUR slide-* CLASSES ARE LOAD-BEARING (they are not decoration)
+        //
+        // tailwindcss-animate's `enter` keyframe writes a whole `transform`:
+        //   translate3d(var(--tw-enter-translate-x,0), var(--tw-enter-translate-y,0), 0)
+        //   scale3d(var(--tw-enter-scale,1), …)
+        // Its `from` frame therefore REPLACES this element's own
+        // `translate-x-[-50%] translate-y-[-50%]` centering for the duration of
+        // the animation. Without the slide-* utilities those vars default to 0,
+        // so the dialog opens with its top-left corner at the viewport centre —
+        // pushed right by half its width and down by half its height, hanging
+        // off the screen — and then swoops up-left into place as the keyframe
+        // ends. At 375px that is a ~171px horizontal travel, and it reads
+        // exactly as the owner described it: "when I open this it's big then
+        // gets smaller", because the frames where it overhangs the edge look
+        // oversized and the landing looks like a correction.
+        //
+        // `slide-in-from-left-1/2` sets --tw-enter-translate-x to -50% and
+        // `slide-in-from-top-[48%]` sets --tw-enter-translate-y to -48%, so the
+        // keyframe now runs (-50%, -48%) scale .95 → (-50%, -50%) scale 1: a
+        // conventional grow-and-settle from just under, with a 2%-of-height
+        // rise and NO positional jump. Resting geometry is unchanged. The
+        // matching slide-out-* pair fixes the same inversion on close.
+        "glass-modal fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg max-h-[88dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 p-5 sm:p-7 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]",
         className,
       )}
       // Radix warns once per open when a Content has no `Description` and no

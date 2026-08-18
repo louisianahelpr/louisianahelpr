@@ -192,8 +192,8 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
         // leaves the OS somewhere to land.
         className="bg-premium-page fixed inset-0 z-[100] flex flex-col items-center px-8"
         style={{
-          paddingTop: "max(env(safe-area-inset-top), 1rem)",
-          paddingBottom: "max(env(safe-area-inset-bottom), 1rem)",
+          paddingTop: "max(var(--safe-area-top, 0px), 1rem)",
+          paddingBottom: "max(var(--safe-area-bottom, 0px), 1rem)",
         }}
       >
         {/* Upper third — the mark, and nothing else.

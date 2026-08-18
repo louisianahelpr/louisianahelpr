@@ -11,7 +11,30 @@ interface PageHeaderProps {
       editorial brand pattern. */
   meta?: ReactNode;
   onBack?: () => void;
+  /**
+   * Actions rendered in a SEPARATE sticky top bar ABOVE the title block.
+   * That bar is a second band of chrome, so it only earns its place on a page
+   * that also wants the brand mark pinned (`showBrand`). If all you have is a
+   * couple of icon actions, use `titleActions` instead — it puts them on the
+   * title row and keeps the page to ONE header.
+   */
   rightSlot?: ReactNode;
+  /**
+   * Trailing actions for the title row itself — rendered flush right, on the
+   * same line as the back button and the `title`.
+   *
+   * This exists so a page with header actions does not have to stack a second
+   * bar above its own back-button header. UserProfile did exactly that (an app
+   * bar carrying message / favourite / overflow, then the "Profile" header
+   * beneath it) — two bands of chrome before any content, the same pattern
+   * already removed from Messages, Profile, My Jobs, My Posts and PostJob.
+   *
+   * It also keeps the top safe-area inset correct by construction: `rightSlot`
+   * moves the notch clearance onto `.glass-header`, so a page that dropped the
+   * bar would lose the inset with it. `titleActions` leaves `showTopBar` false,
+   * which is what makes the title block absorb `var(--safe-area-top)` below.
+   */
+  titleActions?: ReactNode;
   hideBack?: boolean;
   /** Render the pinned brand top-nav (HelprMark on the left, matching the
    *  dashboard's top bar) above the title block. Use on standalone flows
@@ -56,7 +79,7 @@ interface PageHeaderProps {
    * Set when a sibling header (e.g. DashboardHeader) already sits ABOVE this
    * PageHeader and has already cleared the notch/status-bar safe-area inset.
    * Without this, PostJob-style pages that stack DashboardHeader + PageHeader
-   * double-count `env(safe-area-inset-top)` and render a large dead band
+   * double-count `var(--safe-area-top, 0px)` and render a large dead band
    * between the top bar and the title block. When true, use plain top padding.
    */
   topInsetHandled?: boolean;
@@ -109,7 +132,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
   },
 };
 
-const PageHeader = ({ title, meta, onBack, rightSlot, hideBack = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
+const PageHeader = ({ title, meta, onBack, rightSlot, titleActions, hideBack = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
   // `eyebrow` is accepted by PageHeaderProps for call-site compatibility but
   // intentionally not destructured/rendered — see the removal note below.
   const { outer, inner } = WIDTH_CLASS[width];
@@ -159,7 +182,7 @@ const PageHeader = ({ title, meta, onBack, rightSlot, hideBack = false, showBran
 
       {frame(
         "pt-3 pb-2",
-        absorbSafeArea ? { paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" } : undefined,
+        absorbSafeArea ? { paddingTop: "calc(var(--safe-area-top, 0px) + 0.75rem)" } : undefined,
         <>
           {/* Back button sits to the LEFT of the title block (not stacked above
               it) so the chevron reads as a lead-in to the heading and the title
@@ -195,6 +218,16 @@ const PageHeader = ({ title, meta, onBack, rightSlot, hideBack = false, showBran
                 {title}
               </h1>
             </div>
+            {/* Trailing actions on the TITLE row, not in a bar of their own.
+                `ml-auto` (rather than `justify-between` on the row, or
+                `flex-1` on the title column) is deliberate: it pushes the
+                actions right without changing a single pixel of layout for the
+                ~140 call sites that pass no `titleActions`. `shrink-0` keeps
+                the icon buttons at full size when the title is long enough to
+                claim the rest of the row. */}
+            {titleActions && (
+              <div className="ml-auto flex items-center gap-1 shrink-0">{titleActions}</div>
+            )}
           </div>
         </>,
       )}

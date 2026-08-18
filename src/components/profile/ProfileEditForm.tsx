@@ -50,6 +50,16 @@ export function ProfileEditForm({
     ? { label: "Pending review", cls: "bg-warning/10 text-amber-800 dark:text-amber-400" }
     : idStatus === "failed"
     ? { label: "Action needed", cls: "bg-destructive/10 text-destructive" }
+    // The chip and the button must never disagree, and they used to. This
+    // fallback said "Not uploaded" for ANY status the chain above doesn't
+    // name — and `not_started` is a real value the tier code writes, as is
+    // any status a future Stripe IDV revision adds. A profile with a document
+    // already on file therefore rendered the chip "Not uploaded" next to a
+    // button reading "Replace": you cannot replace something never uploaded.
+    // Both now branch on the same `hasId`, so the pair is consistent by
+    // construction whatever `idv_status` happens to hold.
+    : hasId
+    ? { label: "Uploaded", cls: "bg-muted text-muted-foreground" }
     : { label: "Not uploaded", cls: "bg-muted text-muted-foreground" };
   const bioOk = bio.trim().length >= 20;
   const phoneValid = phone.replace(/\D/g, "").length >= 10;
@@ -131,9 +141,12 @@ export function ProfileEditForm({
   const completionPct = completion.pct;
 
   return (
-    // Bottom padding clears the new sticky save bar (16+44+16 = 76px) plus
-    // a safe-area buffer so the last form field doesn't tuck under the bar.
-    <div className="space-y-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6.5rem)" }}>
+    // Bottom padding clears the sticky save bar (16+44+16 = 76px) plus a
+    // safe-area buffer so the last form field doesn't tuck under the bar.
+    // `var(--safe-area-bottom)` for the same reason as SaveBar's own padding:
+    // a bare env() reads 0 under <PageTransition>'s promoted ancestor, so the
+    // clearance quietly lost the home-indicator allowance.
+    <div className="space-y-3" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 6.5rem)" }}>
       <ProfileTabHeader
         title="Edit profile"
         onBack={onBack}
@@ -298,8 +311,15 @@ export function ProfileEditForm({
                 {idUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                 {hasId ? "Replace" : "Upload"}
               </span>
+              {/* The accessible name goes on the INPUT, not the <label> — a
+                  bare <label> has no implicit ARIA role, so `aria-label` on it
+                  is ignored (same trap already documented in PhotoNameSection).
+                  Without this the control announced as just "Replace" / a bare
+                  file input; now it says what is being replaced, and it tracks
+                  `hasId` exactly like the visible word does. */}
               <input
                 type="file"
+                aria-label={hasId ? "Replace your ID document" : "Upload your ID document"}
                 accept="image/jpeg,image/png,image/webp,application/pdf"
                 className="hidden"
                 onChange={onIdUpload}
@@ -336,12 +356,16 @@ export function ProfileEditForm({
             Preview my public profile
           </Link>
         )}
+        {/* Same one-paragraph-one-typeface rule as RecentWorkSection: this
+            sentence used to switch from serif italic to upright sans halfway
+            through ("…save from the" / "bar below"). Emphasis is weight +
+            colour now; the family runs unbroken. */}
         <p
           className="text-center font-serif italic px-6 leading-snug text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           Photos &amp; ID save automatically. Your other edits save from the{" "}
-          <span className="not-italic font-sans font-medium">bar below</span>.
+          <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>bar below</span>.
         </p>
       </form>
 

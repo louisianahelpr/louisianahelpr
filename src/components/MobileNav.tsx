@@ -89,6 +89,23 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     // container, and document-scroll routes scroll the window. A capture-phase
     // listener (below) hands us the true scroll target, so prefer its
     // scrollTop; fall back to the AppShell container, then the window.
+    //
+    // The `.app-shell-scroll` lookup is resolved ONCE per route, not per event.
+    // It used to run inside `getY`, i.e. on every scroll event — and on any
+    // route rendering `<AppShell scrollable={false}>` (Profile, Activity,
+    // Messages) that element does not exist, so every single scroll event paid
+    // for a full-document querySelector that was always going to miss. Measured
+    // at ~8x the cost of a hit. `null` is a valid cached answer here: we want
+    // "already looked, not present", not "look again".
+    let cachedShell: HTMLElement | null = null;
+    let shellResolved = false;
+    const shellScroller = () => {
+      if (!shellResolved) {
+        cachedShell = document.querySelector<HTMLElement>(".app-shell-scroll");
+        shellResolved = true;
+      }
+      return cachedShell;
+    };
     const getY = (target: EventTarget | null) => {
       if (
         target instanceof HTMLElement &&
@@ -97,7 +114,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       ) {
         return target.scrollTop;
       }
-      const internal = document.querySelector<HTMLElement>(".app-shell-scroll");
+      const internal = shellScroller();
       return internal && internal.scrollTop > 0 ? internal.scrollTop : window.scrollY;
     };
     let lastY = getY(null);
@@ -345,24 +362,27 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         {isActive && (
           <motion.span
             layoutId="mobile-nav-pill"
-            // Squircle, not a circle. `rounded-full` on a near-square box
-            // reads as a bubble stuck behind the glyph; the app's own shape
-            // language is the squircle (rounded-ds-md + .squircle), used for
-            // avatars, cards and every other soft container. The selected tab
-            // is the one place that was still round.
-            // Fills its tab slot rather than floating inside it. At inset-x-2
-            // the chip was 8px short on EACH side, so it read as a small badge
-            // parked behind the glyph instead of "this tab is selected" — the
-            // selected item looked smaller than the space it owned. 4px/2px
-            // leaves a clean 8px gutter between neighbouring tabs while making
-            // the chip read as a filled pill.
+            // ROUND, deliberately — reversing the squircle note that used to
+            // live here. That note argued `rounded-full` on a near-square box
+            // "reads as a bubble stuck behind the glyph" and that the app's
+            // shape language is the squircle. On device the owner read the
+            // result the other way round: "the selected button on home needs a
+            // more circular fill so it fills the space to the left" — the
+            // squircle's flat sides left a visible band of dead dock either
+            // side of the chip, most obvious on Home because it is the FIRST
+            // tab and that band sits against the dock's own rounded end.
+            //
+            // So the geometry goes the other way: `rounded-full` on a slot that
+            // is ~54×56 renders as a circle, and the insets shrink from 4px/2px
+            // to 2px/2px so the circle actually occupies its slot. Paired with
+            // the container's px-2 → px-1.5 below, the gap between the dock's
+            // inner edge and the Home chip goes 12px → 8px.
             //
             // Only the GEOMETRY changed. The fill stays at bark/0.07 on
-            // purpose: the note above is still in force — the Post FAB is the
-            // single loud focal point, and making this chip louder to make it
-            // bigger would trade one problem for the hierarchy problem a
-            // previous pass already fixed.
-            className="absolute inset-x-1 inset-y-0.5 rounded-ds-md squircle pointer-events-none"
+            // purpose: the Post FAB is the single loud focal point in this bar,
+            // and making this chip louder to make it bigger would trade one
+            // problem for the hierarchy problem a previous pass already fixed.
+            className="absolute inset-x-0.5 inset-y-0.5 rounded-full pointer-events-none"
             style={{
               background: "hsl(var(--bark) / 0.07)",
               border: "0.5px solid hsl(var(--bark) / 0.08)",
@@ -459,12 +479,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         aria-hidden={navHidden || undefined}
         className="mobile-nav-frame fixed bottom-0 left-0 right-0 z-50"
         style={{
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          paddingBottom: "var(--safe-area-bottom, 0px)",
           // Slide the whole bar (incl. the upward-extending frosted curtain)
           // fully off-screen when hidden. Offset = safe-area + a margin large
           // enough to clear the curtain band (safe-area + 96 + 24px tall).
           transform: navHidden
-            ? "translateY(calc(env(safe-area-inset-bottom, 0px) + 130px))"
+            ? "translateY(calc(var(--safe-area-bottom, 0px) + 130px))"
             : "translateY(0)",
           transition: reducedMotion ? "none" : "transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)",
           willChange: "transform",
@@ -498,8 +518,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             // true screen bottom) and give it a fixed height that covers
             // the full dock clearance the pages reserve (safe-area + 96px)
             // plus a 24px overhang so the fade begins in clear content.
-            bottom: "calc(-1 * env(safe-area-inset-bottom, 0px))",
-            height: "calc(env(safe-area-inset-bottom, 0px) + 96px + 24px)",
+            bottom: "calc(-1 * var(--safe-area-bottom, 0px))",
+            height: "calc(var(--safe-area-bottom, 0px) + 96px + 24px)",
             backdropFilter: "blur(32px) saturate(170%)",
             WebkitBackdropFilter: "blur(32px) saturate(170%)",
             // Longer fade (35% solid → transparent) so the blur ramps in
@@ -544,7 +564,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 : "inset 0 1px 1px 0 var(--nav-inset-hi), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.08), 0 -10px 40px rgba(0,0,0,0.05), 0 1px 2px hsl(var(--olivewood) / 0.06), 0 18px 36px -8px hsl(var(--olivewood) / 0.16), 0 40px 72px -16px hsl(var(--olivewood) / 0.20)",
             }}
           >
-            <div className="flex items-stretch h-14 px-2">
+            {/* px-1.5, not px-2 — the last 2px of "fills the space to the left".
+                The active chip is inset 2px inside its own tab, so with 8px of
+                container padding the Home chip sat 10px in from the dock's inner
+                edge; at 6px it sits 8px in. Height is untouched (h-14). */}
+            <div className="flex items-stretch h-14 px-1.5">
               {[...leftItems, ...rightItems].map((item) => (
                 <div key={item.path} className="flex flex-1 items-stretch relative">
                   {renderItem(item)}

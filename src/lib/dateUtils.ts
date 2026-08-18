@@ -81,3 +81,52 @@ export function todayLocalISO(date: Date = new Date()): string {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * A job's scheduled start as a LOCAL Date, from the two columns that carry it:
+ * `date_needed` (a Postgres `date`, wire format "YYYY-MM-DD") and `start_time`
+ * (a `time without time zone`, wire format "HH:MM:SS").
+ *
+ * Both halves are local wall-clock values with no zone attached, so they must
+ * be assembled through {@link parseLocalDate} and `setHours` — never
+ * `new Date("2026-08-18T09:00:00")`-style string parsing, and never anything
+ * that touches UTC. A 9:00 AM job is 9:00 AM where the user is standing.
+ *
+ * A flexible-schedule job has no `start_time`. It is treated as starting at
+ * local midnight on its date, i.e. "the day has begun" is the strongest
+ * statement the data supports.
+ *
+ * Returns null when there is no date at all.
+ */
+export function jobStartDateTime(
+  dateNeeded: string | null | undefined,
+  startTime?: string | null,
+): Date | null {
+  if (!dateNeeded) return null;
+  const start = parseLocalDate(dateNeeded);
+  if (Number.isNaN(start.getTime())) return null;
+  if (startTime) {
+    const [h, m] = startTime.split(":").map(Number);
+    if (!Number.isNaN(h)) start.setHours(h, Number.isNaN(m) ? 0 : m, 0, 0);
+  }
+  return start;
+}
+
+/**
+ * Has the job's scheduled start time come and gone?
+ *
+ * Owner's rule for the No-Show action: it is tied to the CLOCK, not to whether
+ * the helper accepted — hidden while the job has not started yet, shown once
+ * the start time has passed. A 9:00 AM job must not offer No-Show at 8:00 AM.
+ *
+ * Unknown date → false: never accuse anyone on the strength of missing data.
+ */
+export function hasJobStarted(
+  dateNeeded: string | null | undefined,
+  startTime?: string | null,
+  now: Date = new Date(),
+): boolean {
+  const start = jobStartDateTime(dateNeeded, startTime);
+  if (!start) return false;
+  return now.getTime() >= start.getTime();
+}

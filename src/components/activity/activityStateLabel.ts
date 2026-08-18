@@ -22,7 +22,17 @@
  * sparingly so it keeps meaning something.
  */
 
-export type StateTone = "action" | "waiting" | "live" | "neutral";
+/**
+ * `action` / `waiting` / `live` / `neutral` describe a LIVE item — they are
+ * what the Active-bucket pill has always used. `success` / `danger` were added
+ * for the full-width card status stripe, which (unlike the pill) also has to
+ * colour the three terminal statuses the pill deliberately says nothing about.
+ * They are not a second palette: both pairs are lifted verbatim from the
+ * tint+ink chips already rendered on these same cards (the "Arrival confirmed"
+ * success chip and the Cancel chip's `--danger-ink`), so there is still exactly
+ * one status→colour mapping in this file and nowhere else.
+ */
+export type StateTone = "action" | "waiting" | "live" | "neutral" | "success" | "danger";
 
 export interface ActivityState {
   label: string;
@@ -149,8 +159,61 @@ export function stateToneColors(tone: StateTone): { fg: string; bg: string } {
       return { fg: "hsl(var(--bark))", bg: "hsl(var(--bark) / 0.10)" };
     case "waiting":
       return { fg: "hsl(var(--olivewood))", bg: "hsl(var(--olivewood) / 0.10)" };
+    case "success":
+      // Same pair as the "Arrival confirmed" / "marked revision as fixed"
+      // chips already on these cards — a tint fill with the dark ink on top,
+      // which is the shape that passes contrast in BOTH themes. Never ink on
+      // a saturated fill.
+      return { fg: "hsl(var(--success-ink))", bg: "hsl(var(--success-tint))" };
+    case "danger":
+      // Same pair as the Cancel chip in the four-chip action row. `--danger-ink`
+      // (not a hardcoded dark red) is load-bearing: the literal it replaced had
+      // no dark sibling and measured 1.92:1 on the dark tint.
+      return { fg: "hsl(var(--danger-ink))", bg: "hsl(var(--destructive) / 0.11)" };
     case "neutral":
     default:
       return { fg: "hsl(var(--olivewood) / 0.85)", bg: "hsl(var(--olivewood) / 0.06)" };
   }
+}
+
+/**
+ * Status for the full-width stripe at the top of a POSTED job card.
+ *
+ * The stripe answers "what is this job?" for EVERY status, including the three
+ * terminal ones {@link postedActiveState} deliberately returns null for — a
+ * card in the Completed section still needs its band. So this delegates to the
+ * Active-bucket vocabulary wherever one exists (no second wording, no second
+ * palette) and only adds the terminal statuses on top.
+ */
+export function postedCardState(job: PostedJobStateInput): ActivityState {
+  switch (job.status) {
+    case "completed":
+      return { label: "Completed", tone: "success" };
+    case "cancelled":
+      return { label: "Cancelled", tone: "danger" };
+    case "disputed":
+      return { label: "Disputed", tone: "action" };
+    default:
+      // Every non-terminal status is covered by postedActiveState; the `??`
+      // is a type guard, not a real branch.
+      return postedActiveState(job) ?? { label: "Open", tone: "neutral" };
+  }
+}
+
+/**
+ * Status for the full-width stripe at the top of an APPLIED (My Jobs) card.
+ *
+ * Note these are APPLICATION states, not job states — "Not selected" is a fact
+ * about this helper's application, while the job itself may still be open. Same
+ * rule as the poster side: delegate to the existing Active vocabulary and only
+ * add the endings it stays silent about.
+ */
+export function appliedCardState(app: AppliedStateInput): ActivityState {
+  const job = app.job;
+  if (app.status === "rejected") return { label: "Not selected", tone: "neutral" };
+  if (app.status === "withdrawn") return { label: "Withdrawn", tone: "neutral" };
+  if (job?.status === "cancelled") return { label: "Job cancelled", tone: "danger" };
+  if (job?.status === "completed") return { label: "Completed", tone: "success" };
+  if (job?.status === "disputed") return { label: "Disputed", tone: "action" };
+  return appliedActiveState(app) ?? { label: "Applied", tone: "neutral" };
 }

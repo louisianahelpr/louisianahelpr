@@ -6,6 +6,37 @@ import { FirstMessageChips } from "../FirstMessageChips";
 import type { Conversation, Message } from "../types";
 
 /**
+ * Bottom inset for the composer dock — the ONE place the chat screen accounts
+ * for the home indicator, applied to the dock itself because AppShell is
+ * mounted `scrollable={false}` here and so reserves nothing.
+ *
+ * Two things were wrong with the `env(safe-area-inset-bottom, 12px)` this
+ * replaces, and both produced the same symptom on device: the input row sat
+ * flush on the bottom edge with the dock's white material running underneath
+ * it, clipped by the screen ("the bottom doesn't fit the screen", owner).
+ *
+ *  1. An env() FALLBACK is only used when env() is unsupported — not when the
+ *     inset is zero. So every device without a home indicator (and every
+ *     browser) got `0px`, never the intended 12px of breathing room.
+ *  2. WebKit reports 0 for env(safe-area-inset-*) inside a `position: fixed`
+ *     descendant of a transformed ancestor, which is what this dock is. The
+ *     project already hit this at the top of the screen and solved it by
+ *     resolving the inset at `:root` and reading it back through a var —
+ *     `--safe-area-bottom` is the bottom half of that pair (see index.css).
+ *
+ * `max(...)` rather than `calc(... + 12px)` deliberately: a home-indicator
+ * phone keeps exactly its 34px inset (unchanged from what shipped, no fatter
+ * white band), while everything else gets a 12px floor instead of nothing.
+ *
+ * With the keyboard up, the home indicator is covered by the keyboard and the
+ * wrapper in ChatView has already lifted the dock by `keyboardInset`, so the
+ * inset must NOT be added again — a flat 8px gap is all that's wanted.
+ */
+export function dockPaddingBottom(keyboardInset: number): string {
+  return keyboardInset > 0 ? "8px" : "max(var(--safe-area-bottom, 0px), 12px)";
+}
+
+/**
  * The composer dock — the poster-first lock card, the empty-thread
  * ice-breaker chips, the status-aware quick replies, and the rich
  * message input. Extracted verbatim from ChatView — markup unchanged.
@@ -54,7 +85,7 @@ export function ChatComposer({
     return (
       <div
         className="pt-2 pb-3 glass-dock sticky bottom-0"
-        style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
+        style={{ paddingBottom: dockPaddingBottom(keyboardInset) }}
       >
         <div
           className="flex items-start gap-2.5 rounded-ds-md px-3.5 py-3"
@@ -87,7 +118,7 @@ export function ChatComposer({
   return (
     <div
       className="pt-2 pb-3 glass-dock sticky bottom-0"
-      style={{ paddingBottom: keyboardInset > 0 ? "8px" : "env(safe-area-inset-bottom, 12px)" }}
+      style={{ paddingBottom: dockPaddingBottom(keyboardInset) }}
     >
       {/* First-message chips — three ice-breaker suggestions shown
           ONLY when the thread is brand-new (zero messages) and the

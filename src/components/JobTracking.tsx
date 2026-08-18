@@ -45,6 +45,7 @@ export type TrackingData = {
 export function JobTracking({
   jobId,
   helperId,
+  helperName,
   isHelper,
   isOwner: _isOwner,
   jobDateNeeded,
@@ -58,6 +59,15 @@ export function JobTracking({
 }: {
   jobId: string;
   helperId: string | null;
+  /**
+   * Display name of the assigned helper. Supplied by the poster-side card so
+   * the tracker can state WHO it is tracking in its own header. Before this,
+   * the name lived in a standalone "Offered to …" pill row floating above the
+   * tracker; the owner asked for it to move inside — "it belongs in the
+   * tracker, not in that small pop up icon thing". Optional: the helper-side
+   * mounts are tracking themselves and have no one to name.
+   */
+  helperName?: string | null;
   isHelper: boolean;
   isOwner: boolean;
   jobDateNeeded?: string;
@@ -357,13 +367,40 @@ export function JobTracking({
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-4">
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <h3
             className="font-display italic font-bold leading-tight text-headline-card"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
           >
             Job tracking
           </h3>
+          {/* Who is being tracked. Moved here from the standalone pill row the
+              card used to render between the description and this card — same
+              avatar, same name, same link to their profile, one less floating
+              row. `isHelper` mounts skip it: a helper tracking their own job
+              does not need to be told whose job it is. */}
+          {!isHelper && helperName && (
+            <div className="flex items-center gap-1.5 mt-1 min-w-0">
+              <span
+                className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0"
+                aria-hidden
+              >
+                {helperName[0].toUpperCase()}
+              </span>
+              <span className="text-ds-11 text-muted-foreground shrink-0">Offered to</span>
+              {helperId ? (
+                <a
+                  href={`/user/${helperId}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-ds-11 font-medium text-primary hover:underline truncate"
+                >
+                  {helperName}
+                </a>
+              ) : (
+                <span className="text-ds-11 font-medium truncate">{helperName}</span>
+              )}
+            </div>
+          )}
         </div>
         {/* SOS share button — only during in_progress jobs.
             Lets either party quickly share their location context
@@ -403,7 +440,16 @@ export function JobTracking({
         return (
           <div
             ref={stepRowRef}
-            className="flex items-start gap-1 overflow-x-auto scrollbar-hide -mx-1 px-1 snap-x snap-mandatory"
+            // A scrollable region with no focusable content inside it is
+            // unreachable by keyboard — axe's `scrollable-region-focusable`,
+            // serious. The steps are read-only text, so there is nothing in
+            // here to focus; the container itself takes the tab stop, and the
+            // group role + label mean it announces as "Job progress, group"
+            // rather than as an unnamed scroller.
+            tabIndex={0}
+            role="group"
+            aria-label="Job progress"
+            className="flex items-start gap-1 overflow-x-auto scrollbar-hide -mx-1 px-1 snap-x snap-mandatory rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {STATUSES.map((s, idx) => {
               const isActive = idx <= currentStatusIdx;

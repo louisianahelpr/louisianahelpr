@@ -264,7 +264,11 @@ export const PhotoProofGroup = ({
           <span className="text-ds-11 font-semibold text-foreground">Photo Proof</span>
         </div>
         <div className="px-3 py-3">
-          <p className="text-ds-11 text-muted-foreground/60 italic text-center">No photos were uploaded for this job</p>
+          {/* Full `text-muted-foreground`, not `/60`: the alpha dropped this
+              11px line to 2.61:1 on the card surface (axe, serious). It was
+              invisible to the sweep because it only renders inside a completed
+              card's expanded section. */}
+          <p className="text-ds-11 text-muted-foreground italic text-center">No photos were uploaded for this job</p>
         </div>
       </div>
     );

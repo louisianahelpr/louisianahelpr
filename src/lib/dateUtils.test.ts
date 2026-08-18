@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseLocalDate, formatTimeLeft } from "./dateUtils";
+import { parseLocalDate, formatTimeLeft, jobStartDateTime, hasJobStarted } from "./dateUtils";
 
 describe("formatTimeLeft", () => {
   const now = new Date("2026-07-26T12:00:00");
@@ -75,5 +75,55 @@ describe("parseLocalDate", () => {
     expect(d.getDate()).toBe(12);
     // Must be a real Date, not NaN.
     expect(Number.isNaN(d.getTime())).toBe(false);
+  });
+});
+
+describe("hasJobStarted — the clock gate on the No-Show action", () => {
+  // The owner's rule, verbatim: No-Show is tied to the CLOCK, not to whether
+  // the helper accepted. Hidden while the job has not started; shown once the
+  // scheduled start has come and gone.
+  const JOB_DATE = "2026-08-18";
+
+  it("is false an hour BEFORE a 9:00 AM job", () => {
+    // The exact case called out: a 9:00 AM job must not offer No-Show at 8 AM.
+    expect(hasJobStarted(JOB_DATE, "09:00:00", new Date(2026, 7, 18, 8, 0, 0))).toBe(false);
+  });
+
+  it("is false one minute before the start", () => {
+    expect(hasJobStarted(JOB_DATE, "09:00:00", new Date(2026, 7, 18, 8, 59, 0))).toBe(false);
+  });
+
+  it("is true at the start minute and after it", () => {
+    expect(hasJobStarted(JOB_DATE, "09:00:00", new Date(2026, 7, 18, 9, 0, 0))).toBe(true);
+    expect(hasJobStarted(JOB_DATE, "09:00:00", new Date(2026, 7, 18, 9, 1, 0))).toBe(true);
+    expect(hasJobStarted(JOB_DATE, "09:00:00", new Date(2026, 7, 18, 23, 59, 0))).toBe(true);
+  });
+
+  it("is false for any time on an earlier day, and true on a later one", () => {
+    expect(hasJobStarted(JOB_DATE, "09:00:00", new Date(2026, 7, 17, 23, 59, 0))).toBe(false);
+    expect(hasJobStarted(JOB_DATE, "09:00:00", new Date(2026, 7, 19, 0, 1, 0))).toBe(true);
+  });
+
+  it("compares in LOCAL time, never UTC", () => {
+    // The trap this helper exists to avoid: parsing "2026-08-18" through
+    // `new Date(str)` yields UTC midnight, which in any negative-UTC zone is
+    // the PREVIOUS local day — so a job would flip to "started" hours early.
+    const start = jobStartDateTime(JOB_DATE, "09:00:00")!;
+    expect(start.getFullYear()).toBe(2026);
+    expect(start.getMonth()).toBe(7);
+    expect(start.getDate()).toBe(18);
+    expect(start.getHours()).toBe(9);
+    expect(start.getMinutes()).toBe(0);
+  });
+
+  it("treats a flexible-schedule job (no start_time) as starting at local midnight", () => {
+    expect(hasJobStarted(JOB_DATE, null, new Date(2026, 7, 17, 23, 59, 0))).toBe(false);
+    expect(hasJobStarted(JOB_DATE, null, new Date(2026, 7, 18, 0, 0, 0))).toBe(true);
+  });
+
+  it("never accuses anyone on missing data", () => {
+    expect(hasJobStarted(null, "09:00:00")).toBe(false);
+    expect(hasJobStarted(undefined, null)).toBe(false);
+    expect(jobStartDateTime(null)).toBeNull();
   });
 });

@@ -13,8 +13,14 @@ import {
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { CompletionChoiceSheet } from "@/components/activity/CompletionChoiceSheet";
-import { parseLocalDate } from "@/lib/dateUtils";
+import { hasJobStarted } from "@/lib/dateUtils";
 import { type Job } from "../activityConstants";
+import {
+  JobActionRow,
+  JobActionChip,
+  JOB_ACTION_CHIP_CLASS,
+  jobActionChipStyle,
+} from "../JobActionRow";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { DisputeLink } from "@/components/jobs/DisputeLink";
 
@@ -131,46 +137,39 @@ export function PostedJobActions({
                   its icon over a small label. Keeps every action
                   named (clearer than icon-only) while the color
                   tints still let the row read at a glance. */}
-              <div className="grid grid-cols-4 gap-1.5">
+              {/* Rendered through the shared JobActionRow/JobActionChip that
+                  was extracted FROM this row. Colours are carried across
+                  verbatim in jobActionChipStyle — the only rendered change is
+                  the 44px minimum height these were ~3px short of. */}
+              <JobActionRow columns={4}>
                 <ShareJobButton
                   job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
                   layout="stack"
-                  className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
-                  style={{ background: "hsl(var(--info-tint) / 0.12)", color: "hsl(var(--info-ink))", border: "0.5px solid hsl(var(--info-tint) / 0.32)" }}
+                  className={JOB_ACTION_CHIP_CLASS}
+                  style={jobActionChipStyle("info")}
                 />
-                <Button
-                  variant="outline" size="sm"
-                  className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
-                  style={{ background: "hsl(var(--boost-tint) / 0.14)", color: "hsl(var(--boost-ink))", border: "0.5px solid hsl(var(--boost-tint) / 0.34)" }}
+                <JobActionChip
+                  icon={Rocket}
+                  label={isBoosted ? "Boosted" : "Boost"}
+                  tone="boost"
                   disabled={!!isBoosted}
                   onClick={() => onBoost(job.id)}
-                >
-                  <Rocket className="w-4 h-4" />
-                  <span className="text-ds-11 leading-none font-medium">{isBoosted ? "Boosted" : "Boost"}</span>
-                </Button>
-                <Button
-                  variant="outline" size="sm"
-                  className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
-                  style={{ background: "hsl(var(--gold-warm) / 0.16)", color: "hsl(var(--amber-ink))", border: "0.5px solid hsl(var(--gold-warm) / 0.36)" }}
+                />
+                <JobActionChip
+                  icon={Pencil}
+                  label="Edit"
+                  ariaLabel="Edit job"
+                  tone="edit"
                   onClick={() => onEdit(job)}
-                >
-                  <Pencil className="w-4 h-4" />
-                  <span className="text-ds-11 leading-none font-medium">Edit</span>
-                </Button>
-                <Button
-                  variant="outline" size="sm"
-                  className="w-full h-auto flex-col gap-0.5 px-1 py-1.5 glass-press border-0"
-                  // --danger-ink, not the old inline `hsl(6 62% 34%)` literal:
-                  // that hardcoded dark red had no dark sibling, so on the
-                  // dark tinted pill it measured 1.92:1. The token's light
-                  // value IS that literal, so light mode is unchanged.
-                  style={{ background: "hsl(var(--destructive) / 0.11)", color: "hsl(var(--danger-ink))", border: "0.5px solid hsl(var(--destructive) / 0.32)" }}
+                />
+                <JobActionChip
+                  icon={XCircle}
+                  label="Cancel"
+                  ariaLabel="Cancel job"
+                  tone="danger"
                   onClick={() => onCancel(job)}
-                >
-                  <XCircle className="w-4 h-4" />
-                  <span className="text-ds-11 leading-none font-medium">Cancel</span>
-                </Button>
-              </div>
+                />
+              </JobActionRow>
             </div>
           </>
           );
@@ -211,30 +210,9 @@ export function PostedJobActions({
                 <span className="ml-auto text-ds-10 text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
             )}
-            {/* Confirm Arrival + No-Show side by side */}
+            {/* Confirm Arrival */}
             {job.status === "in_progress" && (
               <div className="flex items-center gap-2">
-                {!job.poster_completed_at && !job.helper_arrived_at && (() => {
-                  const now = new Date();
-                  // 1hr after start time OR 1hr after on_the_way
-                  let canNoShow = false;
-                  if (job.helper_on_the_way_at) {
-                    canNoShow = now.getTime() - new Date(job.helper_on_the_way_at).getTime() >= 60 * 60 * 1000;
-                  }
-                  if (job.start_time && job.date_needed) {
-                    const base = parseLocalDate(job.date_needed);
-                    const [h, m] = job.start_time.split(":").map(Number);
-                    base.setHours(h, m, 0, 0);
-                    const startPlus1h = new Date(base.getTime() + 60 * 60 * 1000);
-                    if (now >= startPlus1h) canNoShow = true;
-                  }
-                  if (!canNoShow) return null;
-                  return (
-                    <Button size="sm" variant="outline" className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onNoShow(job.id)}>
-                      <XCircle className="w-4 h-4 mr-1" /> No-Show
-                    </Button>
-                  );
-                })()}
                 {job.helper_arrived_at && !job.poster_confirmed_arrival_at && (
                   <Button size="sm" className="flex-1" disabled={confirmingArrivalJobId === job.id} onClick={() => onConfirmArrival(job.id)}>
                     <CheckCircle2 className="w-4 h-4 mr-1" /> {confirmingArrivalJobId === job.id ? "…" : "Confirm Arrival"}
@@ -307,24 +285,62 @@ export function PostedJobActions({
                 />
               </>
             )}
-            {/* Message — primary action while work is in progress */}
-            <Button
-              size="sm"
-              variant={job.helper_completed_at ? "outline" : "default"}
-              className="w-full"
-              onClick={() => navigate("/messages")}
-            >
-              <MessageSquare className="w-4 h-4 mr-1" /> Message Helpr
-            </Button>
-            {/* Share link — available while work is in progress so
-                the poster can still spread the word or share proof
-                of work with others. Opens the OS Share Sheet on
-                native; copies the URL on web. */}
-            <ShareJobButton
-              job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-              className="w-full glass-press border-0"
-              style={{ background: "hsl(var(--info-tint) / 0.10)", color: "hsl(var(--info-ink))", border: "0.5px solid hsl(var(--info-tint) / 0.28)" }}
-            />
+            {/* Message / Share / No-Show as one icon-over-label row.
+                These were three full-width stacked buttons, three rows deep —
+                together with the tracking card they pushed the next job almost
+                entirely off screen. Same shape as the four-chip row on an open
+                job (owner: "this can be icons but just put the words under it
+                like the other page does for shared edit etc.").
+
+                Density does NOT cost the hierarchy: Message stays the primary
+                action while work is in progress and is the only SOLID chip in
+                the row; it demotes to a muted tint once "Approve & release
+                payment" appears above and owns that job. No-Show keeps the
+                destructive tint.
+
+                Visible labels are terse ("Message", not "Message Helpr") so
+                nothing truncates in a three-up row at 320px; the full name is
+                on aria-label, so the spoken name is unabbreviated. */}
+            {(() => {
+              // Owner's rule: No-Show is tied to the CLOCK, not to whether the
+              // helper accepted — hidden until the scheduled start time has come
+              // and gone. (It used to appear as soon as the job was offered when
+              // the helper had marked themselves on-the-way an hour earlier.)
+              const showNoShow =
+                job.status === "in_progress" &&
+                !job.poster_completed_at &&
+                !job.helper_arrived_at &&
+                hasJobStarted(job.date_needed, job.start_time);
+              return (
+                <JobActionRow columns={showNoShow ? 3 : 2}>
+                  <JobActionChip
+                    icon={MessageSquare}
+                    label="Message"
+                    ariaLabel="Message Helpr"
+                    tone={job.helper_completed_at ? "neutral" : "primary"}
+                    onClick={() => navigate("/messages")}
+                  />
+                  {/* ShareJobButton renders its own <Button> (it owns the
+                      native-share fallback chain), so it takes the shared chip
+                      class + tone rather than being wrapped. */}
+                  <ShareJobButton
+                    job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
+                    layout="stack"
+                    className={JOB_ACTION_CHIP_CLASS}
+                    style={jobActionChipStyle("info")}
+                  />
+                  {showNoShow && (
+                    <JobActionChip
+                      icon={XCircle}
+                      label="No-Show"
+                      ariaLabel="Report the Helpr as a no-show"
+                      tone="danger"
+                      onClick={() => onNoShow(job.id)}
+                    />
+                  )}
+                </JobActionRow>
+              );
+            })()}
             {/* Request Revision — only after helper marks complete (Stage 2) */}
             {job.status === "in_progress" && !job.poster_completed_at && job.helper_completed_at && (
               <Button size="sm" variant="ghost" className="w-full text-muted-foreground hover:text-destructive text-ds-11" onClick={() => onRevision(job.id)}>
@@ -406,12 +422,12 @@ export function PostedJobActions({
               {!job.poster_completed_at && (
                 <>
                   {job.revision_requested_at ? (
-                    <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onDispute(job)}>
+                    <Button size="sm" variant="outline" className="w-full text-[hsl(var(--danger-ink))] border-destructive/30 hover:bg-destructive/5" onClick={() => onDispute(job)}>
                       <AlertTriangle className="w-4 h-4 mr-1" /> Dispute
                     </Button>
                   ) : (
                     <>
-                      <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
+                      <Button size="sm" variant="outline" className="w-full text-[hsl(var(--danger-ink))] border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
                         <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
                       </Button>
                       <p className="text-ds-10 text-muted-foreground text-center italic">Request a revision first before filing a dispute</p>
@@ -490,7 +506,7 @@ export function PostedJobActions({
                     setDisputeActing(false);
                   }
                 }}><CheckCircle2 className="w-4 h-4 mr-1" /> Mark Resolved</Button>
-                <Button size="sm" variant="outline" disabled={disputeActing} className="w-full text-destructive border-destructive/30 hover:bg-destructive/5 disabled:opacity-60" onClick={async (e) => {
+                <Button size="sm" variant="outline" disabled={disputeActing} className="w-full text-[hsl(var(--danger-ink))] border-destructive/30 hover:bg-destructive/5 disabled:opacity-60" onClick={async (e) => {
                   e.stopPropagation();
                   setDisputeActing(true);
                   try {

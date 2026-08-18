@@ -9,15 +9,30 @@ import { defaultStatusFilterFor } from "@/components/activity/activityConstants"
  * ActivityHeader — the title row with search/filter toggle buttons, the
  * status-filter dropdown, and the expandable search bar. Stateless: all
  * search/filter state is owned by the page and passed in.
+ *
+ * It is mounted as PageScaffold's `titleCard`, NOT as the panel's first child.
+ * That is what gives it the rounded floating liquid-glass card the panel below
+ * already uses (owner picked the card treatment over the hairline rule it used
+ * to be) — the treatment is PageScaffold's own TITLE_CARD_CLASS /
+ * TITLE_CARD_STYLE, so nothing here re-implements it.
  */
+
+/**
+ * Vertical padding override for the title card when it holds this row.
+ *
+ * Ships WITH the header it is sized for — same reason DashboardTitleBar owns
+ * TITLE_BAR_PADDING: the card's default `py-4 lg:py-5` is sized for a greeting
+ * block, and on a single 44px control row it leaves the title floating in dead
+ * space. `!` because PageScaffold concatenates rather than merges.
+ */
+export const ACTIVITY_HEADER_PADDING = "!py-1.5 lg:!py-2";
+
 export interface ActivityHeaderProps {
   /** Page name, rendered here rather than in an app bar above the panel.
    *  The bar was removed: it stated the page name a second time, directly
    *  above this row, which is the stacked-header problem already fixed on the
    *  message thread. */
   title: string;
-  /** Current filter + count ("Active", "All · 4"), under the title. */
-  subtitle?: string;
   tab: Tab;
   activeStatusFilters: StatusFilter[];
   activeCounts: Record<string, number>;
@@ -33,7 +48,6 @@ export interface ActivityHeaderProps {
 
 export function ActivityHeader({
   title,
-  subtitle,
   tab,
   activeStatusFilters,
   activeCounts,
@@ -51,12 +65,28 @@ export function ActivityHeader({
   // behaves identically after the move to the bottom sheet.
   const defaultStatus = defaultStatusFilterFor(tab);
   const isStatusFiltered = statusFilter !== defaultStatus;
+
+  // What subset am I looking at? Without this the page says "My Posts" whether
+  // it is showing everything or two of eleven, and the only clue that a filter
+  // is on is a 2px dot on the filter button.
+  //
+  // "All" says nothing, deliberately — an unfiltered list needs no caveat, and
+  // it is the one value where the extra words would be pure noise. Note this is
+  // keyed on the literal "all", NOT on the tab's default: My Posts DEFAULTS to
+  // Active, which is a subset, and the whole point is to say so.
+  const activeFilter =
+    statusFilter === "all" ? undefined : activeStatusFilters.find((f) => f.key === statusFilter);
+  const activeFilterCount = activeFilter ? activeCounts[activeFilter.key] ?? 0 : 0;
+  const filterLabel = activeFilter
+    ? `${activeFilter.label}${activeFilterCount > 0 ? ` ${activeFilterCount}` : ""}`
+    : undefined;
+
   return (
     <>
-      <div
-        className="shrink-0 flex items-center gap-3 px-4"
-        style={{ minHeight: "52px", borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
-      >
+      {/* No hairline rule and no horizontal padding of its own: this row is the
+          body of PageScaffold's title card now, so the card owns the surface,
+          the radius and the `px-5`. */}
+      <div className="flex items-center gap-3" style={{ minHeight: "44px" }}>
         {searchOpen ? (
           /* Search mode — input replaces the title row inline (iOS pattern). */
           <>
@@ -94,16 +124,31 @@ export function ActivityHeader({
         ) : (
           /* Normal mode — title + action buttons. */
           <>
-            <div className="flex flex-col min-w-0 flex-1 gap-0.5 py-2.5">
-              <h1 className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none">
+            {/* Title and active-filter indicator on ONE line, indicator to the
+                right of the name — the same shape Messages uses for "1 unread"
+                (the one the owner asked for there: "put 1 unread to the right
+                of messages bc i dont like it under").
+
+                `items-baseline` so the small italic label sits on the
+                wordmark's baseline rather than centring against a much larger
+                cap-height. The h1 keeps `min-w-0` + truncate and the label is
+                `shrink-0`, so a long title yields first and the thing telling
+                you what you are looking at is never what gets cut.
+
+                It is a <span>, never a heading — this h1 is the whole page's
+                only one. */}
+            <div className="flex items-baseline min-w-0 flex-1 gap-2 py-2.5">
+              <h1 className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none min-w-0">
                 {title}
               </h1>
-              {subtitle && (
+              {filterLabel && (
                 <span
-                  className="font-serif italic text-ds-11 truncate leading-none"
+                  className="font-serif italic text-ds-11 leading-none shrink-0"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
-                  {subtitle}
+                  <span aria-hidden className="mr-1">·</span>
+                  <span className="sr-only">Filtered by </span>
+                  {filterLabel}
                 </span>
               )}
             </div>

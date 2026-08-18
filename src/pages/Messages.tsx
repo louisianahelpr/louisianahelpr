@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -20,6 +20,12 @@ import { SectionBoundary } from "@/components/SectionBoundary";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 
+import {
+  CHAT_OPEN_PATH,
+  MESSAGES_LIST_PATH,
+  THREAD_OPEN_STATE,
+  isThreadOpenEntry,
+} from "./messages/constants";
 import { useMessagesData } from "./messages/useMessagesData";
 import { useMessagesRealtime } from "./messages/useMessagesRealtime";
 import { useThreadMuteActions } from "./messages/useThreadMuteActions";
@@ -34,9 +40,14 @@ const Messages = () => {
   // thread on the right — instead of the mobile screen-swap. False on
   // phone/native, where the either/or swap below is unchanged.
   const isWebDesktop = useIsWebDesktop();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const deepLinkJobId = searchParams.get("jobId");
   const deepLinkUserId = searchParams.get("userId");
+  // The URL's "a thread is open" flag — MobileNav hides the entire bottom
+  // dock while it is set. See the contract on CHAT_OPEN_PATH in
+  // ./messages/constants; the effect below is what keeps it honest.
+  const threadFlagInUrl = searchParams.has("chat");
   const { user: cachedUser } = useCurrentUser();
   const [userId, setUserId] = useState<string | null>(null);
   // Mirror of `activeConvo` for the realtime handlers to read. Keeping it
@@ -107,6 +118,76 @@ const Messages = () => {
     activeConvoRef,
     chatContainerRef,
   });
+
+  // ── The bottom-nav invariant ────────────────────────────────────────────
+  // `?chat=1` is present  ⟺  a thread is actually open. Both directions are
+  // enforced here, because MobileNav returns null on `/messages` whenever the
+  // flag is set: a flag left over the LIST is a dead end with no bottom nav
+  // and no way out of Messages (owner, on device: "Where is the bottom nav?
+  // I'm stuck here").
+  //
+  // The flag is in the URL and the thread is in component state, so the two
+  // desync every time the page remounts with the flag still set. Two real
+  // paths did it:
+  //   - open a thread → ⋮ → View profile → back. Same route, fresh mount:
+  //     `activeConvo` is null again, `?chat=1` is not.
+  //   - native resume. RouteMemory records `pathname + search`, so a WKWebView
+  //     jetsam-reload restores `/messages?chat=1` into a fresh app process.
+  //
+  // Two effects, not one, and each reads a DIFFERENT source of truth for the
+  // flag. That is load-bearing, not fussiness — a single effect comparing
+  // `activeConvo` against react-router's `searchParams` oscillates and closes
+  // the thread the instant you open it. React Router commits its location in a
+  // transition, so `searchParams` lags `activeConvo` by a render: the pair goes
+  // (convo, no flag) → (convo, flag), and an effect reading the first frame as
+  // "the flag was removed" nulls the thread, which then reads as "a flag with
+  // no thread" and strips the URL. Measured, not theorised: opening a thread
+  // pushed `/messages?chat=1` and replaced it back to `/messages` in the same
+  // tick, and the thread never opened.
+  //
+  // STATE → URL. Fires only when the open thread itself changes, and reads
+  // `window.location` — which `history.pushState` updates synchronously — so it
+  // can never see a stale search string and never fights the router.
+  useEffect(() => {
+    const flagged = new URLSearchParams(window.location.search).has("chat");
+    if (activeConvo && !flagged) {
+      navigate(CHAT_OPEN_PATH, { state: THREAD_OPEN_STATE });
+      return;
+    }
+    if (!activeConvo && flagged) {
+      // The stale-flag case: a mount that inherited the flag without the
+      // thread. Strip it before the user can notice the nav is missing.
+      navigate(MESSAGES_LIST_PATH, { replace: true });
+    }
+  }, [activeConvo, navigate]);
+
+  // URL → STATE, on the FALLING EDGE of the flag only. A flag that goes from
+  // present to absent is the back gesture / hardware back popping the entry
+  // `openConvo` pushed, so close the thread — otherwise the nav reappears over
+  // an open conversation. Edge-triggered rather than level-triggered so the
+  // (convo, flag-not-yet-committed) frame above is not mistaken for a close.
+  const prevThreadFlag = useRef(threadFlagInUrl);
+  useEffect(() => {
+    const wasFlagged = prevThreadFlag.current;
+    prevThreadFlag.current = threadFlagInUrl;
+    if (wasFlagged && !threadFlagInUrl) setActiveConvo(null);
+  }, [threadFlagInUrl, setActiveConvo]);
+
+  // Leave the open thread. `openConvo` PUSHED the flagged entry, so the honest
+  // close is a history pop — identical to the swipe-back / hardware back, and
+  // it leaves no duplicate `/messages` entry behind to swallow the next back
+  // press. A thread we did not push (a `?jobId=…&userId=…` deep link opened
+  // before this component owned the history entry) has no marker, so it falls
+  // back to replacing the flag away. Either way the effect above guarantees
+  // the end state: no flag, thread closed, nav visible.
+  const closeThread = useCallback(() => {
+    if (isThreadOpenEntry(location.state)) {
+      navigate(-1);
+      return;
+    }
+    setActiveConvo(null);
+    navigate(MESSAGES_LIST_PATH, { replace: true });
+  }, [location.state, navigate, setActiveConvo]);
 
   // Chat presence
   const { isOtherOnline, isOtherTyping, broadcastTyping } = useChatPresence({
@@ -253,7 +334,7 @@ const Messages = () => {
   const chatEl = activeConvo ? (
     <ChatView
       activeConvo={activeConvo}
-      setActiveConvo={setActiveConvo}
+      onCloseThread={closeThread}
       keyboardInset={keyboardInset}
       isOtherOnline={isOtherOnline}
       isOtherTyping={isOtherTyping}
@@ -353,10 +434,9 @@ const Messages = () => {
           onBlocked={() => {
             // Drop the conversation locally and exit chat view
             setConversations((prev) => prev.filter((c) => c.otherUserId !== blockTarget.id));
-            if (activeConvo?.otherUserId === blockTarget.id) {
-              setActiveConvo(null);
-              navigate("/messages", { replace: true });
-            }
+            // Same single exit as the back button — never hand-roll the
+            // close, or the `?chat=1` flag outlives the thread again.
+            if (activeConvo?.otherUserId === blockTarget.id) closeThread();
           }}
           // Block-and-report combo: after the block succeeds, open the
           // multi-step Report dialog so the trust team gets a flag in

@@ -12,7 +12,9 @@ import { EscrowProgressBar } from "@/components/payment/EscrowProgressBar";
 import { DisputeLink } from "@/components/jobs/DisputeLink";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
-import { ActivityStatePill } from "./ActivityStatePill";
+import { JobCardStatusStripe } from "./JobCardStatusStripe";
+import { appliedCardState } from "./activityStateLabel";
+import { JobActionRow, JobActionChip } from "./JobActionRow";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { SendReportCard } from "./PetReportCard";
@@ -124,6 +126,24 @@ function AppliedJobCardInner({
             amountTitle={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
           />
 
+          {/* Whose move is it? — the same full-width band the posted card
+              carries, so the two halves of Activity read as one system. These
+              are APPLICATION states, not job states ("Not selected" is a fact
+              about this application; the job itself may still be open), but
+              they come from the same single status→tone mapping. Sits directly
+              under the title/price divider on BOTH card types. */}
+          <JobCardStatusStripe
+            state={appliedCardState({
+              status: app.status,
+              job: {
+                status: job.status,
+                helper_confirmed_at: job.helper_confirmed_at,
+                offered_to_helper_id: job.offered_to_helper_id,
+                direct_offer_status: job.direct_offer_status,
+              },
+            })}
+          />
+
           {/* Escrow progress — gives the helpr context on where the
               customer's payment sits in the lifecycle (held / verified /
               released). Sits above the action area for high context
@@ -136,21 +156,6 @@ function AppliedJobCardInner({
 
           {/* Summary info line */}
           <div className="px-4 py-3 space-y-2.5">
-            {/* Whose move is it? Active spans "applied and waiting", "they
-                picked you, respond", and "already working" — states that read
-                identically without this. Renders nothing once the helper's
-                involvement has ended, which Active never contains anyway. */}
-            <ActivityStatePill
-              applied={{
-                status: app.status,
-                job: {
-                  status: job.status,
-                  helper_confirmed_at: job.helper_confirmed_at,
-                  offered_to_helper_id: job.offered_to_helper_id,
-                  direct_offer_status: job.direct_offer_status,
-                },
-              }}
-            />
             <JobCardMetaRow
               dateNeeded={job.date_needed}
               startTime={job.start_time}
@@ -161,19 +166,27 @@ function AppliedJobCardInner({
               expiresAt={isPending && !job.helper_id ? job.expires_at : null}
             />
 
-            {/* Description preview — clamped while collapsed to keep cards
-                compact, un-clamped once the card is expanded so the full
-                brief shows inline (this card IS the detail surface for an
-                applied job; there is no separate signed-in detail page). */}
-            {!isMinimalCard && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
-              <p className={`text-ds-11 text-muted-foreground leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>{job.description}</p>
+            {/* Description behind a tap — expands IN PLACE on this card (it IS
+                the detail surface for an applied job; there is no separate
+                signed-in detail page).
+
+                This card already had a "View details" control, but it sat
+                BELOW a description that was already fully readable, so the
+                toggle appeared to promise something it had mostly already
+                shown. There is still exactly ONE affordance — the same
+                `expandedJobId` toggle, unchanged in wording and position — it
+                simply now gates the description too, which is what makes it
+                coherent. Nothing was bolted on beside it. */}
+            {!isMinimalCard && isExpanded && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
+              <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
             )}
             {!isMinimalCard && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
                 aria-expanded={isExpanded}
-                className="inline-flex items-center gap-0.5 text-ds-11 font-medium text-primary hover:underline active:opacity-70"
+                aria-label={isExpanded ? "Hide job description" : "Show job description"}
+                className="inline-flex items-center gap-0.5 min-h-[44px] text-ds-11 font-medium text-primary hover:underline active:opacity-70"
               >
                 {isExpanded
                   ? <>Hide details <ChevronUp className="w-3 h-3" /></>
@@ -245,20 +258,25 @@ function AppliedJobCardInner({
             />
           )}
 
-          {/* Pending withdraw — slightly more discoverable than the
-              previous ghost text. Tucked inside a sienna-tinted pill
-              that reads as "available, low-stakes" without competing
-              with primary actions. */}
+          {/* Pending withdraw — now the same icon-over-label chip shape the
+              posted card's action rows use, so the two card types match.
+
+              A one-item row is deliberate, not a gap: the chip runs the full
+              width of the row rather than sitting as a lone cell in a wider
+              grid, and it keeps the destructive tint so it never reads as a
+              neutral "next step". The "Seen" trust chip is unchanged — it is
+              information, not an action, so it stays on its own line above the
+              row rather than being dressed up as a second button. */}
           {!isMinimalCard && isPending && (
             <div
-              className="px-4 py-2.5 flex items-center justify-between"
+              className="px-4 py-2.5 space-y-1.5"
               style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* "Seen" trust chip — visible when the poster has opened
                   the applicant list and viewed this application. Subtle
                   olivewood colour so it reads as informational, not urgent. */}
-              {bidApp.poster_viewed_at ? (
+              {bidApp.poster_viewed_at && (
                 <span
                   className="flex items-center gap-0.5 text-ds-10 font-medium"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
@@ -266,23 +284,17 @@ function AppliedJobCardInner({
                 >
                   <Eye className="w-3 h-3" aria-hidden="true" /> Seen
                 </span>
-              ) : (
-                <span />
               )}
-              <button
-                type="button"
-                disabled={withdrawingAppId === app.id}
-                onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Job", jobId: job.id ?? null })}
-                className="inline-flex items-center gap-1.5 text-ds-12 font-sans font-semibold tracking-wide px-2.5 py-1 rounded-full active:opacity-70 transition-opacity disabled:opacity-50"
-                style={{
-                  color: "hsl(var(--burnt-sienna))",
-                  background: "hsl(var(--burnt-sienna) / 0.08)",
-                  border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-                }}
-              >
-                <XCircle className="w-3.5 h-3.5" strokeWidth={2.25} />
-                {withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw application"}
-              </button>
+              <JobActionRow columns={1}>
+                <JobActionChip
+                  icon={XCircle}
+                  label={withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw"}
+                  ariaLabel="Withdraw application"
+                  tone="danger"
+                  disabled={withdrawingAppId === app.id}
+                  onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "Job", jobId: job.id ?? null })}
+                />
+              </JobActionRow>
             </div>
           )}
 

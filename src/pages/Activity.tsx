@@ -36,7 +36,7 @@ import {
   APPLIED_STATUS_FILTERS,
   useActivityFilters,
 } from "@/pages/activity/activityFilters";
-import { ActivityHeader } from "@/pages/activity/ActivityHeader";
+import { ActivityHeader, ACTIVITY_HEADER_PADDING } from "@/pages/activity/ActivityHeader";
 import { ActivityEmptyState } from "@/pages/activity/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import SectionBoundary from "@/components/SectionBoundary";
@@ -221,7 +221,14 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // bg-premium-page shell with skeleton cards inside the bottom box.
     return (
       <PageScaffold
-        titleCard={<Skeleton className="h-3 w-44 rounded" />}
+        // Same title-card padding + row height as the loaded header, so the
+        // skeleton→loaded swap doesn't thump the card taller or shorter.
+        titleCard={
+          <div className="flex items-center" style={{ minHeight: "44px" }}>
+            <Skeleton className="h-4 w-32 rounded" />
+          </div>
+        }
+        titleCardClassName={ACTIVITY_HEADER_PADDING}
       >
         <div className="px-4 pt-3 space-y-2.5">
           {/* The shimmer carries no words, so without this the pending screen
@@ -261,22 +268,15 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   return (
     <>
-      <PageScaffold animate>
-          {/* Secondary header (status title + search/filter) is hidden
-              when there's nothing to act on — see `isTrulyEmpty`.
-
-              ActivityHeader carries this page's ONLY <h1>, so suppressing it
-              left the empty view with zero headings — a screen reader landed
-              on an unlabelled page with nothing to navigate by. The visible
-              design is deliberate and unchanged; the title is restored to the
-              accessibility tree only, so the document always has exactly one
-              h1 whether or not there is anything to list. */}
-          {isTrulyEmpty && (
-            <h1 className="sr-only">
-              {tab === "posted" ? "My Posts" : "My Jobs"}
-            </h1>
-          )}
-          {!isTrulyEmpty && (
+      {/* The header is the scaffold's TITLE CARD now, not the panel's first
+          child — owner picked the card treatment, so it gets the same rounded
+          floating liquid-glass surface the panel below already has, with the
+          scaffold's own gap between them. It used to be a bare row inside the
+          panel separated by a 1px hairline. */}
+      <PageScaffold
+        animate
+        titleCard={
+          isTrulyEmpty ? undefined : (
             <ActivityHeader
               title={tab === "posted" ? "My Posts" : "My Jobs"}
               tab={tab}
@@ -291,6 +291,23 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
             />
+          )
+        }
+        titleCardClassName={ACTIVITY_HEADER_PADDING}
+      >
+          {/* Secondary header (status title + search/filter) is hidden
+              when there's nothing to act on — see `isTrulyEmpty`.
+
+              ActivityHeader carries this page's ONLY <h1>, so suppressing it
+              left the empty view with zero headings — a screen reader landed
+              on an unlabelled page with nothing to navigate by. The visible
+              design is deliberate and unchanged; the title is restored to the
+              accessibility tree only, so the document always has exactly one
+              h1 whether or not there is anything to list. */}
+          {isTrulyEmpty && (
+            <h1 className="sr-only">
+              {tab === "posted" ? "My Posts" : "My Jobs"}
+            </h1>
           )}
 
           <PullToRefreshWrapper

@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { postedActiveState, appliedActiveState } from "./activityStateLabel";
+import {
+  postedActiveState,
+  appliedActiveState,
+  postedCardState,
+  appliedCardState,
+  stateToneColors,
+} from "./activityStateLabel";
 
 /**
  * These labels exist because Active is a bucket: it folds several statuses
@@ -100,5 +106,91 @@ describe("appliedActiveState — where do I stand", () => {
   it("handles a missing job row without throwing", () => {
     // appliedApps join their job client-side; a null job is reachable.
     expect(appliedActiveState({ status: "pending", job: null })).toBeNull();
+  });
+});
+
+describe("card status stripe — every status gets a band", () => {
+  // The stripe is the full-width band under a card's title divider. Unlike the
+  // Active-bucket pill it replaced, it has to colour EVERY status: a card in
+  // the Completed or Cancelled section still needs one. These cases exist so a
+  // new job status can never silently render a blank band.
+
+  const POSTED_STATUSES = [
+    "open",
+    "pending_approval",
+    "accepted",
+    "in_progress",
+    "revision_requested",
+    "completed",
+    "cancelled",
+    "disputed",
+  ];
+
+  it("returns a labelled, toned state for every posted job status", () => {
+    for (const status of POSTED_STATUSES) {
+      const state = postedCardState({ status });
+      expect(state.label, status).toBeTruthy();
+      expect(state.tone, status).toBeTruthy();
+    }
+  });
+
+  it("names the three terminal statuses the Active pill stays silent about", () => {
+    expect(postedCardState({ status: "completed" })).toEqual({ label: "Completed", tone: "success" });
+    expect(postedCardState({ status: "cancelled" })).toEqual({ label: "Cancelled", tone: "danger" });
+    expect(postedCardState({ status: "disputed" })).toEqual({ label: "Disputed", tone: "action" });
+    // ...and the pill itself is unchanged — it still says nothing there.
+    expect(postedActiveState({ status: "completed" })).toBeNull();
+  });
+
+  it("reuses the Active vocabulary verbatim for the live statuses", () => {
+    // No second wording. Whatever the pill says, the stripe says.
+    for (const status of ["open", "accepted", "in_progress", "revision_requested", "pending_approval"]) {
+      expect(postedCardState({ status }), status).toEqual(postedActiveState({ status }));
+    }
+  });
+
+  it("covers the applied card's application states, which are not job states", () => {
+    // "Not selected" is a fact about THIS application; the job may still be open.
+    expect(appliedCardState({ status: "rejected", job: { status: "open" } })).toEqual({
+      label: "Not selected",
+      tone: "neutral",
+    });
+    expect(appliedCardState({ status: "withdrawn", job: { status: "open" } })).toEqual({
+      label: "Withdrawn",
+      tone: "neutral",
+    });
+    expect(appliedCardState({ status: "accepted", job: { status: "completed" } })).toEqual({
+      label: "Completed",
+      tone: "success",
+    });
+    expect(appliedCardState({ status: "pending", job: { status: "cancelled" } })).toEqual({
+      label: "Job cancelled",
+      tone: "danger",
+    });
+    expect(appliedCardState({ status: "accepted", job: { status: "disputed" } })).toEqual({
+      label: "Disputed",
+      tone: "action",
+    });
+    // Live states delegate, so the two sides cannot drift.
+    expect(appliedCardState({ status: "pending", job: { status: "open" } })).toEqual(
+      appliedActiveState({ status: "pending", job: { status: "open" } }),
+    );
+  });
+
+  it("never leaves a card without a band, even with a missing job row", () => {
+    const state = appliedCardState({ status: "pending", job: null });
+    expect(state.label).toBeTruthy();
+    expect(state.tone).toBeTruthy();
+  });
+
+  it("gives every tone a foreground and background from brand tokens", () => {
+    // Guards the shape that passes contrast: a TINT background with INK text.
+    // A saturated fill with light text is where this app's AA failures came
+    // from, so every pair must be var()-driven, never a raw literal.
+    for (const tone of ["action", "waiting", "live", "neutral", "success", "danger"] as const) {
+      const { fg, bg } = stateToneColors(tone);
+      expect(fg, tone).toMatch(/^hsl\(var\(--/);
+      expect(bg, tone).toMatch(/^hsl\(var\(--/);
+    }
   });
 });

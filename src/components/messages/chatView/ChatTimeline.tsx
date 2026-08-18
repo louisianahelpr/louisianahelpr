@@ -6,6 +6,11 @@ import { TypingIndicator } from "@/components/ChatPresence";
 import { MessageBubble } from "../MessageBubble";
 import type { Conversation, Message } from "../types";
 import type { TimelineItem } from "./types";
+import {
+  SystemEventRow,
+  iconForEventKind,
+  normalizeStoredSystemMessage,
+} from "./SystemEventRow";
 
 /**
  * Shape-matched placeholder bubbles shown while a newly-opened
@@ -226,57 +231,36 @@ export function ChatTimeline({
           );
         }
         if (item.type === "system") {
-          // System messages — styled centered <div>, NOT a real
-          // message row. Reads as "the app speaking" rather than
-          // either participant. Compact pill so it doesn't dominate
-          // the surrounding chat.
+          // Derived job-transition row — styled centered <div>, NOT a real
+          // message row. Reads as "the app speaking" rather than either
+          // participant. Same component as the stored `is_system` rows
+          // below, so one thread never shows two idioms for one kind of
+          // fact — see SystemEventRow.
           const ev = item.event;
           return (
-            <div key={item.key} className="flex justify-center py-1">
-              <div
-                role="note"
-                aria-label={`System update: ${ev.label}`}
-                className="max-w-[80%] px-3 py-1.5 rounded-full text-center"
-                style={{
-                  background: "hsl(var(--ivory-sand) / 0.55)",
-                  border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                  boxShadow: "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6)",
-                }}
-              >
-                <p
-                  className="font-serif italic text-ds-12 leading-snug"
-                  style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-                >
-                  {ev.label}
-                </p>
-                <p
-                  className="font-sans uppercase tracking-wider mt-0.5 text-ds-9"
-                  style={{
-                    letterSpacing: "0.12em",
-                    color: "hsl(var(--olivewood) / 0.8)",
-                  }}
-                >
-                  {new Date(ev.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
-                </p>
-              </div>
-            </div>
+            <SystemEventRow
+              key={item.key}
+              icon={iconForEventKind(ev.kind)}
+              label={ev.label}
+              at={ev.at}
+            />
           );
         }
         const m = item.message;
-        // System messages — DB rows where sender_id is NULL and
-        // is_system is true. Render as centered italic pill (same
-        // visual idiom as the derived `jobSystemEvents` rows above),
-        // no bubble, no avatar, no meta row.
+        // Stored system rows — `messages` rows flagged `is_system`, written
+        // by the job-status trigger. These used to render as bare centred
+        // text carrying the DB content's literal `✓` / `▶` glyph, so an
+        // identical kind of announcement looked like a different kind of
+        // thing depending on which mechanism produced it. Now the exact same
+        // pill as the derived rows, with the glyph mapped to a Lucide icon.
         if (m.is_system) {
+          const stored = normalizeStoredSystemMessage(m.content);
           return (
-            <div key={item.key} className="flex justify-center py-1.5">
-              <span
-                className="text-ds-11 font-serif italic px-3 py-0.5 rounded-full"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                {m.content}
-              </span>
-            </div>
+            <SystemEventRow
+              key={item.key}
+              icon={stored.icon}
+              label={stored.label}
+            />
           );
         }
         // Grouped when the previous timeline row is a non-system message

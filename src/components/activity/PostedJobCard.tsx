@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   MapPin, DollarSign, CheckCircle2, RotateCcw,
   Users, AlertTriangle, RefreshCw, Clock,
-  Check, ChevronDown, ChevronUp, Ban, Eye,
+  Check, ChevronDown, ChevronUp, Eye,
 } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobCountdown } from "@/components/activity/JobCountdown";
@@ -13,7 +13,8 @@ import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
-import { ActivityStatePill } from "./ActivityStatePill";
+import { JobCardStatusStripe } from "./JobCardStatusStripe";
+import { postedCardState } from "./activityStateLabel";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { IncomingReportCard } from "./PetReportCard";
@@ -73,6 +74,20 @@ function PostedJobCardInner({
   const meta = completedJobMeta[job.id];
   const isFullyCompleted = job.status === "completed" && meta?.tipped && meta?.reviewed;
   const isExpanded = expandedJobId === job.id;
+
+  // A description that merely restates the title is not a description.
+  const hasDescription =
+    job.description.trim().toLowerCase() !== job.title.trim().toLowerCase();
+  const hasRequirements = !!job.special_requirements?.trim();
+
+  // The tracking card carries the assigned helper's identity (see below), so
+  // the standalone "Offered to …" pill row only renders on the states where no
+  // tracker is mounted — completed / revision_requested / disputed. This is a
+  // move, not a delete: every state that showed the helper still shows them.
+  const showsTracker =
+    (job.status === "accepted" || job.status === "in_progress") && !!job.helper_id;
+  const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
+
   return (
           <JobCardShell
             expandable={isFullyCompleted}
@@ -85,23 +100,26 @@ function PostedJobCardInner({
           >
             <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} />
 
+            {/* Where this job stands — a full-width band directly under the
+                title divider, not a pill floating in the body padding. Active
+                folds several statuses into one list, so without this a job
+                awaiting a reply, one whose offer was just declined, and one
+                already underway all look alike. Unlike the old pill this also
+                colours the terminal statuses, so a Completed / Cancelled /
+                Disputed card is identifiable at a glance too. */}
+            <JobCardStatusStripe
+              state={postedCardState({
+                status: job.status,
+                helper_id: job.helper_id,
+                helper_confirmed_at: job.helper_confirmed_at,
+                offered_to_helper_id: job.offered_to_helper_id,
+                direct_offer_status: job.direct_offer_status,
+                applicantCount: applicantCounts[job.id] || 0,
+              })}
+            />
+
             {/* Summary */}
             <div className="px-4 py-3 space-y-2.5">
-              {/* Where this job stands. Active folds several statuses into one
-                  list, so without this a job awaiting a reply, one whose offer
-                  was just declined, and one already underway all look alike.
-                  Renders nothing outside the Active bucket — completed and
-                  cancelled cards already carry their own treatment below. */}
-              <ActivityStatePill
-                posted={{
-                  status: job.status,
-                  helper_id: job.helper_id,
-                  helper_confirmed_at: job.helper_confirmed_at,
-                  offered_to_helper_id: job.offered_to_helper_id,
-                  direct_offer_status: job.direct_offer_status,
-                  applicantCount: applicantCounts[job.id] || 0,
-                }}
-              />
               <JobCardMetaRow
                 dateNeeded={job.date_needed}
                 startTime={job.start_time}
@@ -133,34 +151,49 @@ function PostedJobCardInner({
                    <span className="flex items-center gap-1"><Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} Helpr${job.helpers_needed === 1 ? "" : "s"}` : "Group job"}</span>
                  )}
                </JobCardMetaRow>
-            {(job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() || job.special_requirements?.trim()) && (
+            {/* Description behind a tap.
+                The card used to print the brief in full (a short one cleared
+                the old `length > 100` gate, so no toggle was offered and the
+                two-line clamp never engaged) which made an already tall card
+                taller. It is collapsed by default now and expands IN PLACE on
+                this same card — no navigation, owner's explicit choice over
+                opening the job detail.
+
+                ONE affordance, not two: this is the same `expandedJobId`
+                toggle the card already owned, now actually gating the text it
+                sits under, rather than a second control bolted beneath copy
+                that was already fully visible. */}
+            {(hasDescription || hasRequirements) && (
               <div className="space-y-1.5">
-                {job.description.trim().toLowerCase() !== job.title.trim().toLowerCase() && (
-                  <p className={`text-ds-11 text-muted-foreground leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>{job.description}</p>
+                {isExpanded && hasDescription && (
+                  <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
                 )}
-                {isExpanded && job.special_requirements?.trim() && (
+                {isExpanded && hasRequirements && (
                   <div className="rounded-ds-sm bg-secondary/30 p-2">
                     <p className="text-ds-10 text-muted-foreground mb-0.5">Special Requirements</p>
                     <p className="text-ds-11 text-foreground">{job.special_requirements}</p>
                   </div>
                 )}
-                {(job.description.length > 100 || job.special_requirements?.trim()) && (
-                  <button
-                    type="button"
-                    aria-expanded={isExpanded}
-                    className="inline-flex items-center gap-0.5 text-ds-11 font-medium text-primary hover:underline active:opacity-70"
-                    onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
-                  >
-                    {isExpanded
-                      ? <>Hide details <ChevronUp className="w-3 h-3" /></>
-                      : <>View details <ChevronDown className="w-3 h-3" /></>}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  aria-expanded={isExpanded}
+                  aria-label={isExpanded ? "Hide job description" : "Show job description"}
+                  className="inline-flex items-center gap-0.5 min-h-[44px] text-ds-11 font-medium text-primary hover:underline active:opacity-70"
+                  onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
+                >
+                  {isExpanded
+                    ? <>Hide details <ChevronUp className="w-3 h-3" /></>
+                    : <>View details <ChevronDown className="w-3 h-3" /></>}
+                </button>
               </div>
             )}
 
-              {/* Assigned helper display */}
-              {job.helper_id && (job.status === "accepted" || job.status === "in_progress" || job.status === "revision_requested" || job.status === "completed" || job.status === "disputed") && (
+              {/* Assigned helper display — only on the states with no tracking
+                  card. Where the tracker IS mounted it carries the helper's
+                  name and avatar in its own header instead (owner: the helper
+                  "belongs in the tracker, not in that small pop up icon
+                  thing"), so this row would be the same fact stated twice. */}
+              {job.helper_id && !showsTracker && (job.status === "revision_requested" || job.status === "completed" || job.status === "disputed") && (
                 <div className="flex items-center gap-2 py-1.5 px-2.5 rounded-ds-sm bg-muted/40">
                   <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0">
                     {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
@@ -177,17 +210,11 @@ function PostedJobCardInner({
               {/* Cancelled: show fee info if a fee was recorded */}
               {job.status === "cancelled" && (
                 <div className="space-y-1.5">
+                  {/* The "Cancelled" pill that used to lead this row is gone —
+                      the full-width status stripe at the top of the card now
+                      says it, in the same destructive tint. Only the fee badge
+                      (which the stripe does NOT carry) remains. */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span
-                      className="inline-flex items-center gap-1 text-ds-11 font-medium px-2 py-0.5 rounded-full"
-                      style={{
-                        background: "hsl(var(--destructive) / 0.08)",
-                        color: "hsl(var(--destructive))",
-                        border: "0.5px solid hsl(var(--destructive) / 0.22)",
-                      }}
-                    >
-                      <Ban className="w-3 h-3" /> Cancelled
-                    </span>
                     {/* Fee status badge — only when a fee was actually assessed */}
                     {job.cancellation_fee != null && job.cancellation_fee > 0 && job.cancellation_fee_status && (() => {
                       const feeAmt = `$${formatPriceExact(job.cancellation_fee)}`;
@@ -289,7 +316,7 @@ function PostedJobCardInner({
               {/* Visible live tracking */}
               {(job.status === "accepted" || job.status === "in_progress") && job.helper_id && (
                 <div onClick={(e) => e.stopPropagation()}>
-                  <JobTracking jobId={job.id} helperId={job.helper_id} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} />
+                  <JobTracking jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} />
                 </div>
               )}
 

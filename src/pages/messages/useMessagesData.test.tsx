@@ -1,3 +1,13 @@
+// NAVIGATION CONTRACT (asserted below): opening a thread PUSHES
+// `/messages?chat=1` carrying `state.threadOpen`, it does not replace. That
+// changed deliberately. `replace: true` overwrote the `/messages` entry, so the
+// hardware/gesture back left Messages entirely — and the list it eventually
+// returned to still carried `?chat=1`, which MobileNav reads as "a thread is
+// open" and hides the whole bottom dock for. Owner, on device: "Where is the
+// bottom nav? I'm stuck here." `replace` is now reserved for RE-opening while
+// the flag is already set (retry / desktop thread switch), so one open thread
+// is always exactly one history entry. See src/pages/messages/constants.ts.
+//
 // The Messages inbox used to live in `useState` with `loading` initialised to
 // `true`, so every navigation back to /messages blanked the list and refetched
 // 200 rows + five RPCs from scratch (owner-reported: "Messages jumps/loads
@@ -162,7 +172,10 @@ describe("useMessagesData — deep links against the cache", () => {
     });
 
     await waitFor(() => expect(result.current.activeConvo).toEqual(CONVO));
-    expect(navigate).toHaveBeenCalledWith("/messages?chat=1", { replace: true });
+    expect(navigate).toHaveBeenCalledWith("/messages?chat=1", {
+      state: { threadOpen: true },
+      replace: false,
+    });
     expect(buildDeepLinkPlaceholderMock).not.toHaveBeenCalled();
   });
 
@@ -231,6 +244,9 @@ describe("useMessagesData — deep links against the cache", () => {
     );
     expect(fetchConversationsMock).toHaveBeenCalledTimes(2);
     expect(result.current.conversations[0]).toEqual(placeholder);
-    expect(navigate).toHaveBeenCalledWith("/messages?chat=1", { replace: true });
+    expect(navigate).toHaveBeenCalledWith("/messages?chat=1", {
+      state: { threadOpen: true },
+      replace: false,
+    });
   });
 });

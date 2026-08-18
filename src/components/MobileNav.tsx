@@ -211,7 +211,17 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // this guard, and GateSheet is still used elsewhere.
   if (isGuest) return null;
 
-  // Hide nav when in an active message conversation
+  // Hide nav when in an active message conversation — an open thread replaces
+  // the app chrome with its own header, iOS-style, and the way out is that
+  // header's back button.
+  //
+  // This is a HARD dependency on `?chat=1` meaning "a thread is really open".
+  // The flag lives in the URL while the thread lives in Messages' component
+  // state, and when the two desynced (a remount, a native resume restoring
+  // `/messages?chat=1` from RouteMemory) this hid the dock over the INBOX —
+  // no nav, no back button, no way out of Messages at all. The invariant is
+  // enforced in src/pages/Messages.tsx; see the contract on CHAT_OPEN_PATH in
+  // src/pages/messages/constants.ts before changing either side of it.
   const params = new URLSearchParams(location.search);
   if (location.pathname === "/messages" && params.has("chat")) return null;
 

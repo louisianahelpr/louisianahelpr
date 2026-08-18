@@ -55,6 +55,19 @@
      consuming the resolved px via var() sidesteps the bug; document-scroll
      pages read the same correct value. */
   --safe-area-top: env(safe-area-inset-top, 0px);
+  /* Bottom safe-area inset, resolved at :root for the SAME WebKit reason as
+     --safe-area-top above: a `position: fixed` descendant of a transformed
+     ancestor reads env(safe-area-inset-*) as 0. The chat composer is exactly
+     that — a dock inside the fixed AppShell — and when the inset zeroed, the
+     input row sat flush on the home indicator with the dock's white material
+     running under it to the physical edge ("the bottom doesn't fit the
+     screen", owner, on device).
+
+     Consume it as `max(var(--safe-area-bottom, 0px), <gap>)`, never as a bare
+     env() fallback: `env(safe-area-inset-bottom, 12px)` resolves to 0px — not
+     12px — on every device that simply has no home indicator, because the
+     fallback only applies when env() is UNSUPPORTED, not when it is zero. */
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   /* Named brand tokens — referenced directly by components. */
   /* ── Easing ───────────────────────────────────────────────────────────
      TWO intentional curves, named. Before this there were three, one of

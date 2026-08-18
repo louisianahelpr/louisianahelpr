@@ -25,7 +25,12 @@ interface ChatViewProps {
   /** The open conversation — this component only renders inside the
    *  activeConvo branch, so it is always non-null. */
   activeConvo: Conversation;
-  setActiveConvo: Dispatch<SetStateAction<Conversation | null>>;
+  /** Leave the thread and return to the inbox. Owned by the Messages page,
+   *  because closing has to clear the `?chat=1` flag from the URL as well as
+   *  the state — MobileNav hides the whole bottom dock while that flag is
+   *  set, so a close that only nulls the state strands the user on a list
+   *  with no navigation. See the contract on CHAT_OPEN_PATH. */
+  onCloseThread: () => void;
   /** Soft-keyboard inset (px) so the composer clears the keyboard. */
   keyboardInset: number;
   /** Presence — from the page's useChatPresence hook. */
@@ -86,6 +91,18 @@ interface ChatViewProps {
   embedded?: boolean;
 }
 
+/** localStorage key prefix for the per-user community-rules banner dismissal. */
+const CHAT_RULES_DISMISSED_KEY = "helpr.chatRulesBannerDismissed";
+
+function readBannerDismissed(key: string | null): boolean {
+  if (typeof window === "undefined" || !key) return false;
+  try {
+    return window.localStorage.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * ChatView — the active-conversation surface of the Messages page: the
  * chat header (avatar / status chip / options), the community-rules
@@ -99,7 +116,7 @@ interface ChatViewProps {
  */
 export function ChatView({
   activeConvo,
-  setActiveConvo,
+  onCloseThread,
   keyboardInset,
   isOtherOnline,
   isOtherTyping,
@@ -128,26 +145,34 @@ export function ChatView({
 }: ChatViewProps) {
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
-  // Community-rules banner dismissal — persisted to localStorage so once
-  // the user has read & dismissed it, it stays gone across thread switches
-  // and app relaunches instead of re-showing on every mount. Mirrors the
-  // lazy-init + persist-on-change pattern in usePersistedBrowseView.
-  const [bannerDismissed, setBannerDismissed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return window.localStorage.getItem("helpr.chatRulesBannerDismissed") === "1";
-    } catch {
-      return false;
-    }
-  });
+  // Community-rules banner dismissal — persisted so once the user has read &
+  // dismissed it, it stays gone across thread switches and app relaunches
+  // instead of shouting on every thread open.
+  //
+  // Keyed PER USER. The key used to be a bare `helpr.chatRulesBannerDismissed`,
+  // which meant one person dismissing it on a shared device silently suppressed
+  // the off-platform-payment warning for the next account to sign in — someone
+  // who had never seen it. This is a trust-and-safety control, so it is allowed
+  // to be quiet for the person who read it and nobody else.
+  const bannerKey = userId ? `${CHAT_RULES_DISMISSED_KEY}:${userId}` : null;
+  const [bannerDismissed, setBannerDismissed] = useState(() =>
+    readBannerDismissed(bannerKey),
+  );
+  // `userId` is seeded from an effect on the page, so it can arrive a tick
+  // after first render — re-read once it does rather than showing the banner
+  // to someone who already dismissed it.
   useEffect(() => {
-    if (typeof window === "undefined" || !bannerDismissed) return;
+    setBannerDismissed(readBannerDismissed(bannerKey));
+  }, [bannerKey]);
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    if (!bannerKey) return;
     try {
-      window.localStorage.setItem("helpr.chatRulesBannerDismissed", "1");
+      window.localStorage.setItem(bannerKey, "1");
     } catch {
       // Quota / private mode — silently ignore; in-memory state still works.
     }
-  }, [bannerDismissed]);
+  };
   // Open the snooze picker for the active thread.
   const [muteSheetOpen, setMuteSheetOpen] = useState(false);
   // Single-photo lightbox for tapped chat images — keeps the photo inside
@@ -222,7 +247,7 @@ export function ChatView({
           isOtherOnline={isOtherOnline}
           hideBack={embedded}
           ownsSafeArea={!embedded}
-          onBack={() => { setActiveConvo(null); setDraft(""); setLightboxPhoto(null); navigate("/messages", { replace: true }); }}
+          onBack={() => { setDraft(""); setLightboxPhoto(null); onCloseThread(); }}
           onOpenMuteSheet={() => setMuteSheetOpen(true)}
           onToggleMute={onToggleMute}
           onReportUser={() => setReportTarget({ type: "user", id: activeConvo.otherUserId })}
@@ -246,6 +271,20 @@ export function ChatView({
           // double-counts the inset and leaves a dead gap below the composer.
           style={{ paddingBottom: keyboardInset > 0 ? `${keyboardInset}px` : 0 }}
         >
+          {/* The standalone (phone / native) chat screen replaces the app
+              chrome with the conversation's own header, so it leaves the page
+              with no <h1> at all — a screen reader landing here was told
+              nothing about where "here" is. The visible title is the name pill
+              in ChatHeader, but that is a <button>, whose content model is
+              phrasing-only and cannot legally hold a heading. So the heading
+              is carried separately and silently. Embedded (desktop split) the
+              page already has its one <h1> from PageScaffold. */}
+          {!embedded && (
+            <h1 className="sr-only">
+              Conversation with {activeConvo.otherUserName}
+            </h1>
+          )}
+
           {/* Community rules banner — compact */}
           {!bannerDismissed && (
             <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5">
@@ -253,7 +292,7 @@ export function ChatView({
               <p className="text-ds-11 leading-snug text-accent flex-1">
                 Keep chats &amp; payments on Helpr. Sharing contact info or going off-platform = warning, then permanent ban.
               </p>
-              <button onClick={() => setBannerDismissed(true)} className="-m-2 p-2 text-accent/60 hover:text-accent shrink-0 self-start" aria-label="Dismiss">
+              <button onClick={dismissBanner} className="-m-2 p-2 text-accent/60 hover:text-accent shrink-0 self-start" aria-label="Dismiss safety reminder">
                 <X className="w-3 h-3" />
               </button>
             </div>

@@ -21,7 +21,7 @@ import {
   type JobTimestamps,
 } from "@/lib/jobSystemEvents";
 import type { Conversation, Message } from "@/components/messages/types";
-import { CHAT_PAGE_SIZE } from "./constants";
+import { CHAT_OPEN_PATH, CHAT_PAGE_SIZE, THREAD_OPEN_STATE } from "./constants";
 import {
   buildDeepLinkPlaceholder,
   fetchConversations,
@@ -123,6 +123,25 @@ export function useMessagesData({
   const thumbWarningShown = useRef(false);
   const deepLinkHandled = useRef(false);
 
+  // Put the "a thread is open" flag in the URL — see the contract on
+  // CHAT_OPEN_PATH. This PUSHES rather than replaces so the OS/gesture back
+  // pops straight back to the list (the old `replace: true` overwrote the
+  // `/messages` entry, so back left Messages entirely and the list the user
+  // returned to still carried the flag — no bottom nav, no way out).
+  //
+  // Re-opening while the flag is ALREADY set — the retry-after-failed-fetch
+  // button, or switching threads in the desktop split — replaces instead, so
+  // one open thread is always exactly one history entry. The current search is
+  // read off `window.location` rather than threaded in as state because
+  // `openConvo` is memoized for the inbox's memoized rows; taking a value that
+  // changes on every thread open as a dependency would re-render all of them.
+  const openThreadUrl = useCallback(() => {
+    const alreadyOpen =
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("chat");
+    navigate(CHAT_OPEN_PATH, { state: THREAD_OPEN_STATE, replace: alreadyOpen });
+  }, [navigate]);
+
   // The inbox. Cached per user, so re-entering /messages renders the last
   // known list immediately and revalidates behind it. `meta.persist: false`
   // keeps message previews and short-lived signed attachment URLs out of the
@@ -212,7 +231,7 @@ export function useMessagesData({
       );
       if (!match) return false;
       setActiveConvo(match);
-      navigate("/messages?chat=1", { replace: true });
+      openThreadUrl();
       return true;
     };
 
@@ -246,14 +265,14 @@ export function useMessagesData({
       if (!placeholder) return;
       setConversations((prev) => [placeholder, ...prev]);
       setActiveConvo(placeholder);
-      navigate("/messages?chat=1", { replace: true });
+      openThreadUrl();
     })();
   }, [
     allConversations,
     resolvedUserId,
     deepLinkJobId,
     deepLinkUserId,
-    navigate,
+    openThreadUrl,
     setConversations,
     loadConversations,
     queryClient,
@@ -268,7 +287,7 @@ export function useMessagesData({
     setMessages([]);
     setJobSystemEvents([]);
     setChatLoading(true);
-    navigate("/messages?chat=1", { replace: true });
+    openThreadUrl();
     // Fetch the job's transition timestamps alongside the message
     // thread so the system-event rows ("Helper marked on the way",
     // "Poster confirmed complete", …) can render in the same paint as
@@ -377,7 +396,7 @@ export function useMessagesData({
     }
     setChatLoading(false);
     scrollToBottom();
-  }, [userId, navigate, scrollToBottom]);
+  }, [userId, openThreadUrl, scrollToBottom]);
 
   // Pull-to-refresh for the open chat thread: re-fetch the most recent
   // page of messages without the navigate / clear churn that openConvo

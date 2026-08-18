@@ -4,10 +4,17 @@
 // business-members trigger auto-claims their pending row by matching
 // (lower(invited_email) = lower(profile.email)).
 //
-// Auth: requires an authenticated caller who can manage this team — the
-// business owner (businesses.owner_id) or an ACTIVE admin of that same
-// business (business_members.extended_role = 'admin'). Anyone else is
-// refused, so we never spam emails on behalf of unauthorized users.
+// Auth: requires an authenticated caller who is the business OWNER, checked
+// against businesses.owner_id — refusing to spam emails on behalf of
+// unauthorized users. See the authorization block below for why owner_id
+// rather than a business_members row.
+//
+// NOTE: this is deliberately narrower than who may invite. As of migration
+// 20260818160000 an active admin can create the pending business_members row
+// via RLS, but cannot send its email through here — the invite saves and the
+// UI falls back to "share this link manually". Widening this check to
+// `owner OR is_business_admin(businessId, caller.id)` is the follow-up that
+// makes the admin invite flow seamless.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'

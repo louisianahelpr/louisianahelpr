@@ -4,17 +4,12 @@
 // business-members trigger auto-claims their pending row by matching
 // (lower(invited_email) = lower(profile.email)).
 //
-// Auth: requires an authenticated caller who is the business OWNER, checked
-// against businesses.owner_id — refusing to spam emails on behalf of
-// unauthorized users. See the authorization block below for why owner_id
-// rather than a business_members row.
-//
-// NOTE: this is deliberately narrower than who may invite. As of migration
-// 20260818160000 an active admin can create the pending business_members row
-// via RLS, but cannot send its email through here — the invite saves and the
-// UI falls back to "share this link manually". Widening this check to
-// `owner OR is_business_admin(businessId, caller.id)` is the follow-up that
-// makes the admin invite flow seamless.
+// Auth: requires an authenticated caller who may manage this team — the
+// business OWNER (businesses.owner_id) or an ACTIVE ADMIN, tested with the
+// same public.is_business_admin() helper the RLS policies use (migration
+// 20260818160000). Anyone else is refused, so we never spam emails on behalf
+// of unauthorized users. See the authorization block below for why owner is
+// read off owner_id rather than a business_members row.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
@@ -131,15 +126,15 @@ Deno.serve(async (req) => {
 
   const adminClient = createClient(supabaseUrl, serviceRoleKey)
 
-  // Authorization: caller must be the owner of the business.
+  // Authorization: caller must be the business OWNER or an ACTIVE ADMIN.
   //
-  // Authorize against businesses.owner_id, NOT business_members. owner_id is the
-  // source of truth — it is what is_business_owner() reads and what the client
-  // derives is_owner from. adminClient is a service-role client, so it bypasses
-  // RLS: a business_members lookup here would trust a membership row on its face,
-  // including one RLS should never have let the caller create for a business that
-  // isn't theirs. owner_id cannot be forged: the businesses INSERT and UPDATE
-  // policies both WITH CHECK (owner_id = auth.uid()).
+  // Owner is checked against businesses.owner_id, NOT business_members. owner_id
+  // is the source of truth — it is what is_business_owner() reads and what the
+  // client derives is_owner from. adminClient is a service-role client, so it
+  // bypasses RLS: a raw business_members lookup here would trust a membership row
+  // on its face, including one RLS should never have let the caller create for a
+  // business that isn't theirs. owner_id cannot be forged: the businesses INSERT
+  // and UPDATE policies both WITH CHECK (owner_id = auth.uid()).
   const { data: ownerCheck, error: ownerCheckError } = await adminClient
     .from('businesses')
     .select('id')
@@ -155,11 +150,55 @@ Deno.serve(async (req) => {
     })
   }
 
-  if (!ownerCheck) {
-    return new Response(JSON.stringify({ error: 'Only the business owner can send invites' }), {
-      status: 403,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+  let authorized = Boolean(ownerCheck)
+
+  if (!authorized) {
+    // Not the owner — an active admin may also manage members, which is the
+    // role the UI advertises (roles.ts: Admin "Manages team members") and which
+    // RLS now honours for the invite row itself (migration 20260818160000).
+    //
+    // Call the SAME predicate RLS uses rather than re-implementing the
+    // membership test with a bespoke query here. One definition of "who may
+    // manage this team", honoured by both layers — a second, drifting copy is
+    // exactly what this codebase keeps paying for. is_business_admin is
+    // SECURITY DEFINER and requires status='active' AND extended_role='admin',
+    // so pending and removed rows do not qualify. The earlier objection to
+    // trusting business_members does not apply to it: since 20260818140000 +
+    // 20260818160000 an admin row can only be created by the business owner or
+    // by an existing admin of that same business, so the chain still roots at
+    // businesses.owner_id.
+    const { data: isAdmin, error: adminCheckError } = await adminClient.rpc(
+      'is_business_admin',
+      { _business_id: businessId, _user_id: caller.id },
+    )
+
+    if (adminCheckError) {
+      const code = (adminCheckError as { code?: string }).code
+      if (code === 'PGRST202') {
+        // Helper not deployed yet (the merge -> db-deploy window). Fail CLOSED
+        // to the pre-migration owner-only behaviour rather than guessing.
+        console.warn('is_business_admin not deployed yet; falling back to owner-only')
+      } else {
+        // A real backend fault. Do not silently downgrade it to "not an admin".
+        console.error('Failed to verify business admin', adminCheckError)
+        return new Response(JSON.stringify({ error: 'Could not verify team permissions' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    authorized = isAdmin === true
+  }
+
+  if (!authorized) {
+    return new Response(
+      JSON.stringify({ error: 'Only the business owner or a team admin can send invites' }),
+      {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
+    )
   }
 
   // Look up business name + inviter name for the email body

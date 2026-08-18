@@ -168,7 +168,11 @@ export const PrivacyContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from <Link to="/profile" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Profile settings</Link> — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed.</p>
-            <p><strong className="text-foreground">Data portability:</strong> Download a complete copy of your data (profile, jobs, applications, reviews) as a machine-readable JSON file from your <Link to="/data-rights" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Data Rights</Link> page.</p>
+            {/* Points at the export's real home. It lived on a standalone
+                /data-rights page until 2026-08-18; that URL still redirects
+                here, but a published policy should name where the control
+                actually is rather than lean on a redirect to stay true. */}
+            <p><strong className="text-foreground">Data portability:</strong> Download a complete copy of your data (profile, jobs, applications, reviews) as a machine-readable JSON file from <Link to="/profile?tab=legal" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Legal &amp; policies</Link> in your profile.</p>
           </>
         }
       />

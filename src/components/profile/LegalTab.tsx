@@ -1,11 +1,18 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   DollarSign, Shield, FileText, ChevronRight, Clock,
   Crown, XCircle, AlertTriangle, Ban, Scale,
-  Building2, Wallet, HeartPulse, Siren,
+  Building2, Wallet, HeartPulse, Siren, Download, Loader2,
 } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { report } from "@/lib/errorLogger";
+import { hapticError } from "@/lib/haptics";
+import { toast } from "sonner";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { BUSINESS_SEAT_TIERS, formatSeatPriceMonthly } from "@/lib/businessSeatTiers";
 import {
@@ -27,6 +34,134 @@ const fmtMo = (n: number | null) => (n == null ? "free" : `$${n.toFixed(2)}/mo`)
 // renders — so the Profile Legal tab and /legal are visually identical.
 // Those components read PolicySearchContext, which defaults to "" when
 // no provider is mounted, so they work here without any search UI.
+
+// ---------- Data rights ----------
+
+/**
+ * GDPR Art. 20 / CCPA data portability — the "Download your data" control.
+ *
+ * MERGED HERE 2026-08-18 from the standalone `/data-rights` page. That route
+ * had been reduced to a single button once its inert CCPA "do not sell or
+ * share" toggle came out (7e62af5f), and a whole route for one control is
+ * not a screen. `/data-rights` now redirects here (App.tsx) rather than 404 —
+ * the Privacy Policy promises this export IN WRITING and links to it, and the
+ * iOS App Store privacy listing points at the URL too, so the old address has
+ * to keep resolving somewhere that actually offers the download.
+ *
+ * Deliberately NOT here: account deletion (GDPR Art. 17 erasure). It lives on
+ * the Profile landing / Settings screen only, so there is exactly ONE entry
+ * point to an irreversible action rather than two that can drift apart.
+ *
+ * Own component (not inlined into LegalTab) purely so the `exporting` state
+ * transition re-renders this card instead of the whole policy document below.
+ */
+function DataExportCard() {
+  // Derive the user id from the app-wide auth snapshot (getSession-backed,
+  // local, offline-safe) rather than a network getUser() call. The null guard
+  // remains because a failed getUser() round-trip used to leave `userId` null
+  // and the export button permanently disabled even with a valid local session.
+  const { user } = useAuthReady();
+  const userId = user?.id ?? null;
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (!userId) return;
+    setExporting(true);
+    try {
+      const [profileRes, jobsRes, applicationsRes, reviewsRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("jobs").select("*").or(`customer_id.eq.${userId},helper_id.eq.${userId}`),
+        supabase.from("applications").select("*").eq("helper_id", userId),
+        supabase.from("reviews").select("*").or(`reviewer_id.eq.${userId},reviewee_id.eq.${userId}`),
+      ]);
+
+      // Never drop the Supabase `error` — a swallowed failure would hand the
+      // user a JSON file full of `null` and call it their data export.
+      const firstError = profileRes.error || jobsRes.error || applicationsRes.error || reviewsRes.error;
+      if (firstError) throw firstError;
+
+      const payload = {
+        exported_at: new Date().toISOString(),
+        profile: profileRes.data,
+        jobs: jobsRes.data,
+        applications: applicationsRes.data,
+        reviews: reviewsRes.data,
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `helpr-data-export-${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Your data has been downloaded");
+    } catch (err) {
+      report(err, { tags: { source: "LegalTab.exportData" } });
+      hapticError();
+      toast.error("We couldn't put your data together just now — try again or email support.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Same card anatomy as the three anchor-doc rows above (liquid-glass
+          squircle, 10x10 primary icon badge, display title + muted body) so
+          the tab reads as one surface — but no hover-lift, because this card
+          ACTS rather than navigates and shouldn't borrow a link's affordance. */}
+      <section className="rounded-2xl liquid-glass squircle p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Download className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-display font-bold text-foreground leading-tight text-ds-15">
+              Download your data
+            </h2>
+            <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
+              Get a complete copy of your Helpr data — profile, posted jobs, applications, and reviews — as a single JSON file.
+            </p>
+          </div>
+        </div>
+        {/* flex-wrap lets the format hint and the button stack on a narrow
+            phone instead of squeezing the 44px-tall button below target size. */}
+        <div
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3"
+          style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
+        >
+          <span className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            JSON file
+          </span>
+          <Button
+            onClick={handleExport}
+            disabled={exporting || !userId}
+            aria-busy={exporting}
+            variant="primary"
+            size="sm"
+            className="shrink-0"
+          >
+            {exporting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />Preparing…</> : "Download my data"}
+          </Button>
+        </div>
+      </section>
+
+      {/* The GDPR/CCPA footnote travels WITH the export control — it is the
+          legal context for why the right exists, and it carries the contact
+          route for every privacy question the button doesn't answer. Routes
+          to the in-app support form, not a raw `mailto:` (which needs a
+          configured mail client and does nothing inside the native app). */}
+      <p className="text-ds-11 leading-relaxed px-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        Under the EU GDPR and California CCPA, you have specific rights about how Helpr handles your personal data.
+        For any other privacy question,{" "}
+        <Link to="/support" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>contact support</Link>.
+      </p>
+    </div>
+  );
+}
 
 // ---------- Page ----------
 
@@ -99,6 +234,13 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           ))}
         </div>
       </div>
+
+      {/* Data rights sit directly under the anchor docs, ABOVE the collapsed
+          quick-reference sections. The Privacy Policy row is right above it
+          and links here for portability ("Download a complete copy of your
+          data…"), so the control it promises has to be reachable without
+          scrolling past four accordions to find it. */}
+      <DataExportCard />
 
       {/* Quick reference — concise summaries of platform-specific
           policies. Uses the shared PolicySection / PolicyRowItem so

@@ -42,7 +42,11 @@ const ROUTES: Route[] = [
   { path: "/help", auth: "anon" },
   { path: "/legal", auth: "anon" },
   { path: "/jobs", auth: "anon" },
-  { path: "/data-rights", auth: "anon" },
+  // /data-rights is not listed: since 2026-08-18 it is a redirect into
+  // /profile?tab=legal, so as an anon route it only ever measured the login
+  // page. /profile in the authed block below carries the same content
+  // container (`.container mx-auto px-5 lg:px-8 xl:px-12`) that the tab
+  // panels render inside, so the fill number is already covered there.
 
   // Auth screens render the AuthBrandPane on lg+ (see AuthShell) so the
   // desktop layout is TWO ~500px columns side by side, not one wide row.

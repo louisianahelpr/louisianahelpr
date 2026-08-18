@@ -40,7 +40,7 @@
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
-  <!-- /data-rights is intentionally NOT listed: App.tsx wraps it in
-       <ProtectedRoute>, so advertising it to crawlers only yields a login
-       redirect. Add it back here if it is ever made publicly reachable. -->
+  <!-- /data-rights is intentionally NOT listed: since 2026-08-18 it is a
+       redirect into /profile?tab=legal, which is behind <ProtectedRoute>, so
+       advertising it to crawlers only yields a login redirect. -->
 </urlset>

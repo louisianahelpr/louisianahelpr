@@ -43,8 +43,40 @@ const PROFILE_GATE_ALLOWED = new Set<string>([
   "/terms",
   "/privacy",
   "/rules",
-  "/data-rights",
 ]);
+
+/**
+ * `/data-rights` used to be on the list above so a half-onboarded user could
+ * still exercise GDPR Art. 20 portability — the Privacy Policy is public and
+ * links straight to the export, so someone mid-onboarding can and does click
+ * through to it. On 2026-08-18 that page was merged into the Profile Legal
+ * tab and the route became a redirect, which made its entry dead (a redirect
+ * renders no ProtectedRoute, so the gate never evaluates there).
+ *
+ * The RIGHT did not move when the control did, so the allowance follows it to
+ * its new address instead of being dropped. Scoped to `?tab=legal` only —
+ * bare `/profile` stays gated, so payout, settings, membership and the rest
+ * of the Profile surface are exactly as locked as they were before.
+ *
+ * ONE DELIBERATE WIDENING comes with the move, and it is not this function's
+ * doing: `/data-rights` was `<ProtectedRoute>` with default props, so
+ * `denied` / `pending` / email-unconfirmed accounts bounced to
+ * /account-denied or /account-pending before they ever saw the export.
+ * `/profile` is `<ProtectedRoute allowUnapproved>`, which skips that whole
+ * block, so the export is now reachable by every non-banned account. That is
+ * the intended outcome: GDPR Art. 20 portability does not depend on account
+ * approval, and a rejected applicant has the STRONGEST claim to a copy of
+ * what was collected about them. Banned users are unaffected — the ban check
+ * runs before `allowUnapproved` and still bounces them.
+ *
+ * Exported for unit test: this predicate widens an auth gate off a query
+ * param, so its exact contract is pinned in ProtectedRoute.test.ts rather
+ * than left to inspection.
+ */
+export const isProfileGateAllowed = (pathname: string, search: string): boolean => {
+  if (PROFILE_GATE_ALLOWED.has(pathname)) return true;
+  return pathname === "/profile" && new URLSearchParams(search).get("tab") === "legal";
+};
 
 type GateProfile = {
   full_name?: string | null;
@@ -245,7 +277,7 @@ const ProtectedRoute = ({
       !isLegacy &&
       user.email_confirmed_at &&
       !isProfileComplete(profile) &&
-      !PROFILE_GATE_ALLOWED.has(location.pathname)
+      !isProfileGateAllowed(location.pathname, location.search)
     ) {
       if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/complete-profile", reason: "profile-incomplete" });
       return <Navigate to="/complete-profile" replace />;

@@ -87,7 +87,6 @@ const Activity = lazy(() => import("./pages/Activity"));
 const Messages = lazy(() => import("./pages/Messages"));
 
 const Legal = lazy(() => import("./pages/Legal"));
-const DataRights = lazy(() => import("./pages/DataRights"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const JobDetail = lazy(() => import("./pages/JobDetail"));
@@ -168,8 +167,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
       <Route path="/earnings" element={<Navigate to="/profile" replace />} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* /support is linked from the footer, the legal pages, and /data-rights,
-          so it must resolve WITHOUT auth. It used to redirect to /help — a
+      {/* /support is linked from the footer, the legal pages, and the Profile
+          Legal tab's data-rights footnote, so it must resolve WITHOUT auth.
+          It used to redirect to /help — a
           static FAQ whose only contact affordance was a raw `mailto:` (which
           does nothing inside the native app). It now renders a real contact
           form that works signed-out AND signed-in (prefilled from the profile).
@@ -189,7 +189,15 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
       <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
-      <Route path="/data-rights" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><DataRights /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* /data-rights was a standalone page until 2026-08-18; its single
+          remaining control (the GDPR/CCPA data export) now lives on the
+          Profile Legal tab. The route is KEPT as a redirect rather than
+          deleted: the Privacy Policy links to it in writing for data
+          portability, and the iOS App Store privacy listing points at the
+          same URL, so it must keep resolving somewhere that offers the
+          download. Same shape as /schedule, /availability and /saved-helpers
+          above — a deep link into a Profile tab. */}
+      <Route path="/data-rights" element={<Navigate to="/profile?tab=legal" replace />} />
 
       {/* Public, indexable jobs landing — Jobs.tsx reads anon job data
           (get_ranked_open_jobs, granted to anon) and renders guest

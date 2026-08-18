@@ -234,6 +234,13 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "privacy", url: "/privacy" },
   { name: "terms", url: "/terms" },
   { name: "rules", url: "/rules" },
+  // Redirect since 2026-08-18 (page merged into /profile?tab=legal). Kept
+  // for the same reason /privacy, /terms and /rules are: the Privacy Policy
+  // and the App Store listing both publish this URL, so the catalog should
+  // keep proving it does not 404. Note what this row actually captures — for
+  // an ANON sweep it lands on /login (the destination is behind
+  // ProtectedRoute), exactly as it did before the merge. The real screen is
+  // covered by `profile-legal` in AUTHED_SCREENS below.
   { name: "data-rights", url: "/data-rights" },
   { name: "browse-guest", url: "/browse" },
   // The GUEST job preview — the page a shared `/jobs/{id}?ref=share` link opens.

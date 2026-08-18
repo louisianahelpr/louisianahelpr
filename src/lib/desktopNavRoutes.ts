@@ -18,8 +18,16 @@ export const AUTH_PREFIXES = [
   // content full-bleed instead of to the right of the rail. NOTE: /family is
   // deliberately excluded — its public /family/accept/:token invite sub-route
   // shares the prefix and would surface the authed rail to logged-out invitees.
-  "/gift-card", "/str-settings", "/home-history", "/work-record", "/data-rights",
+  "/gift-card", "/str-settings", "/home-history", "/work-record",
   "/benefits", "/analytics", "/pets",
+  // /data-rights is NOT a page any more — since 2026-08-18 it is a
+  // <Navigate> into /profile?tab=legal. It stays listed for the same reason
+  // /schedule, /availability and /saved-helpers do (they are also redirects
+  // into Profile tabs): <Navigate> still costs one render at the OLD
+  // pathname, and if that pathname doesn't match here the rail — and the
+  // #root inset keyed off it — flicker off for a frame before /profile
+  // turns them back on.
+  "/data-rights",
   // /family DOES get the authed desktop rail so wayfinding persists from
   // /dashboard → /family instead of dropping the rail entirely. The
   // public invite sub-route /family/accept/:token must still surface the

@@ -32,8 +32,9 @@ import {
  * /support — the public contact-support page.
  *
  * This is the ONLY contact surface a logged-OUT visitor has. Legal pages, the
- * Help Center, and /data-rights all say "contact support"; before this page
- * existed those links either bounced to a static FAQ or to a raw `mailto:`
+ * Help Center, and the Profile Legal tab's data-rights footnote all say
+ * "contact support"; before this page existed those links either bounced to
+ * a static FAQ or to a raw `mailto:`
  * (which does nothing at all inside the native app, where no mail client is
  * wired up). /support used to `<Navigate to="/help">` for the same reason —
  * the real form lived behind auth in the Profile tab.

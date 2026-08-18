@@ -289,15 +289,12 @@ export function useProfileLandingDerived({
     {
       title: "Legal",
       items: [
-        { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy & guidelines", tint: "var(--sage)" },
-        {
-          key: "data-rights",
-          label: "Data & privacy",
-          icon: <ShieldCheck className="w-5 h-5" />,
-          desc: "Export or delete your data",
-          tint: "var(--stormy-sky)",
-          href: "/data-rights",
-        },
+        // "Data & privacy → /data-rights" was a second row here until
+        // 2026-08-18. That page is now merged into this very tab, so the row
+        // would have pointed at a redirect back to its neighbour — two menu
+        // entries, one destination. The export it led to is called out in the
+        // description below so the scent survives the merge.
+        { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy, guidelines & data export", tint: "var(--sage)" },
         { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: "var(--destructive)" },
         { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: "var(--bark)" },
       ],

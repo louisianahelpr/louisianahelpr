@@ -169,8 +169,8 @@ export function ChatHeader({
           // the offered-not-yet-confirmed window, routed through the
           // sienna-tinted `in_progress` slot so it reads as "in motion".
           const palette =
-            status === "assigned" ? jobStatusColor("in_progress") : jobStatusColor(status);
-          const label = status === "assigned" ? "Awarded" : jobStatusLabel(status);
+            status === "accepted" ? jobStatusColor("in_progress") : jobStatusColor(status);
+          const label = status === "accepted" ? "Awarded" : jobStatusLabel(status);
           return (
             <span
               className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"

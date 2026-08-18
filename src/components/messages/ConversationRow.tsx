@@ -178,8 +178,8 @@ const ConversationRowBase = ({
     };
     if (!allowed[s]) return null;
     const palette =
-      s === "assigned" ? jobStatusColor("in_progress") : jobStatusColor(s);
-    const label = s === "assigned" ? "Awarded" : jobStatusLabel(s);
+      s === "accepted" ? jobStatusColor("in_progress") : jobStatusColor(s);
+    const label = s === "accepted" ? "Awarded" : jobStatusLabel(s);
     return { label, color: palette.text, bg: palette.bg };
   })();
 

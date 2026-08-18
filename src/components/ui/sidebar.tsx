@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -164,6 +164,11 @@ const Sidebar = React.forwardRef<
           }
           side={side}
         >
+          {/* Radix points `aria-labelledby` at a SheetTitle that has to exist.
+              Without one it referenced a missing id and the whole admin
+              sidebar announced as bare "dialog". Visually hidden because the
+              sheet's own content is the visible heading. */}
+          <SheetTitle className="sr-only">Sidebar navigation</SheetTitle>
           <div className="flex h-full w-full flex-col">{children}</div>
         </SheetContent>
       </Sheet>

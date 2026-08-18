@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Sparkles, Briefcase, Building2, ArrowRight } from "lucide-react";
 import { useState, forwardRef } from "react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import HelprMark from "@/components/HelprMark";
 import { cn } from "@/lib/utils";
@@ -258,6 +258,11 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                 paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)",
               }}
             >
+              {/* Radix points `aria-labelledby` at a SheetTitle that has to
+                  exist. Without one it referenced a missing id and this menu
+                  announced as bare "dialog". Visually hidden — the HelprMark
+                  below is the visible header, and it's a logo, not a heading. */}
+              <SheetTitle className="sr-only">Navigation menu</SheetTitle>
               <div
                 className="flex flex-col gap-1 pb-5 mb-2"
                 style={{

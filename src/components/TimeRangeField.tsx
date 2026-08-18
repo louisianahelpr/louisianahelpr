@@ -42,6 +42,9 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
         </button>
       </PopoverTrigger>
       <PopoverContent
+        // Radix gives PopoverContent role="dialog", so without a name a screen
+        // reader announces this hour picker as bare "dialog".
+        aria-label="Choose start and end time"
         align="end"
         sideOffset={8}
         data-allow-scroll="true"

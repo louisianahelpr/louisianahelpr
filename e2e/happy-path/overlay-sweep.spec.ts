@@ -119,14 +119,55 @@ const ROUTES = [
 ];
 
 /**
+ * The onboarding tour is a MODAL Radix dialog that auto-opens 1.5s after load
+ * for any account younger than two minutes — which every seeded sweep session
+ * is. Left running it sat on top of the whole sweep and forged two findings on
+ * every other overlay it coexisted with:
+ *
+ *   - it holds focus, so the overlay under test looked like "focus not moved
+ *     into the overlay" when focus was really inside the TOUR;
+ *   - it is the topmost dismissable layer, so it ate the Escape press and the
+ *     overlay under test looked like "Escape did not close it".
+ *
+ * Both were artifacts of the test session, not app defects. Suppressing the
+ * tour probes each route in its normal returning-user state. (`completed`
+ * short-circuits the auto-show effect before any other branch; the dismissed_at
+ * key is set too so neither the dialog nor the "Resume tour" pill appears.)
+ * The tour is worth auditing on its own terms — it just cannot be audited by
+ * sitting on top of everything else.
+ */
+async function suppressOnboardingTour(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem(
+        "helpr_onboarding",
+        JSON.stringify({ completed: true, currentStep: 0, completedSteps: [], seen: true }),
+      );
+      localStorage.setItem("helpr.onboarding_tour_dismissed_at", new Date().toISOString());
+    } catch { /* storage unavailable — tour will show and be reported */ }
+  });
+}
+
+/**
  * Check an OPEN overlay. Everything here is a failure mode a screenshot
  * cannot show, which is the whole point of probing rather than capturing.
+ *
+ * Tags the element it judged with `data-sweep-target` so the Escape check
+ * afterwards can ask "did THIS overlay close", instead of "is the document
+ * free of overlays" — see probeRoute.
  */
 async function checkOpenOverlay(page: Page): Promise<{ kind: string; issues: string[] }> {
   return page.evaluate((sel) => {
     const issues: string[] = [];
-    const el = document.querySelector(sel) as HTMLElement | null;
+    // LAST match, not first. Portals append, so the last open overlay is the
+    // topmost one — the one the click just opened. Reading the first match
+    // judged whatever happened to be earlier in the DOM and attributed its
+    // faults to this trigger.
+    const all = [...document.querySelectorAll(sel)] as HTMLElement[];
+    const el = all[all.length - 1] ?? null;
     if (!el) return { kind: "none", issues };
+    document.querySelectorAll("[data-sweep-target]").forEach((n) => n.removeAttribute("data-sweep-target"));
+    el.setAttribute("data-sweep-target", "1");
 
     const kind = el.getAttribute("role") ?? "popper";
     const r = el.getBoundingClientRect();
@@ -154,9 +195,21 @@ async function checkOpenOverlay(page: Page): Promise<{ kind: string; issues: str
 
     // 3. Focus must have moved inside. If it is still on the trigger, a
     //    keyboard user tabs through the PAGE BEHIND the overlay.
-    const active = document.activeElement;
-    if (active && active !== document.body && !el.contains(active)) {
-      issues.push("focus not moved into the overlay");
+    //
+    //    Only for overlays that are SUPPOSED to take focus. `kind === "popper"`
+    //    means the topmost match was a bare [data-radix-popper-content-wrapper]
+    //    carrying no role of its own — a tooltip. (A menu, listbox or popover
+    //    renders a roled element INSIDE that wrapper, and document order puts
+    //    the child last, so those still land in the branches above.) A tooltip
+    //    must never take focus, so demanding it does inverts the rule: the
+    //    /admin sidebar was reported for this when focus was correctly on the
+    //    sidebar's Dashboard item and the "overlay" being judged was that
+    //    item's own tooltip.
+    if (kind !== "popper") {
+      const active = document.activeElement;
+      if (active && active !== document.body && !el.contains(active)) {
+        issues.push("focus not moved into the overlay");
+      }
     }
 
     // 4. Background scroll lock. Without it the page behind scrolls under the
@@ -178,10 +231,21 @@ async function checkOpenOverlay(page: Page): Promise<{ kind: string; issues: str
     });
 
     // 6. Tap targets inside the overlay.
+    //
+    // Two exclusions, both to stop the check crying wolf:
+    //
+    //  - role=switch. A Radix Switch renders 51x31 — Apple's exact UISwitch
+    //    geometry. It clears the WCAG 2.2 AA target-size floor (24x24) and
+    //    every native iOS toggle is this size, so "fixing" it to 44 would make
+    //    the app look wrong to hit a AAA number nothing else on iOS hits.
+    //  - a 0.5px tolerance. Sub-pixel layout put chips at 43.6px on some runs
+    //    and 44.0px on others, and the report rounded 43.6 to the nonsensical
+    //    `tap target 44px`. Three /jobs category chips flapped on exactly this.
     el.querySelectorAll("button, a[href], [role=button]").forEach((n) => {
       const b = n.getBoundingClientRect();
       if (b.width < 1 || b.height < 1) return;
-      if (b.height < 44 && !n.closest("p")) {
+      if (n.getAttribute("role") === "switch") return;
+      if (b.height < 43.5 && !n.closest("p")) {
         issues.push(`tap target ${Math.round(b.height)}px: "${(n.textContent ?? "").trim().slice(0, 18)}"`);
       }
     });
@@ -256,9 +320,30 @@ async function probeRoute(page: Page, route: string): Promise<void> {
 
     // Escape must close it. A modal you cannot dismiss from the keyboard is a
     // trap, and this is the cheapest possible check for it.
-    await page.keyboard.press("Escape").catch(() => undefined);
-    await page.waitForTimeout(280);
-    if ((await page.locator(OPEN_OVERLAY).count()) > 0) {
+    //
+    // Ask whether THIS overlay closed — the one checkOpenOverlay tagged — not
+    // whether the document is now free of overlays. The old wording failed
+    // whenever layers legitimately stacked: opening the admin sidebar moves
+    // focus onto a nav item, that item's tooltip opens a popper on top, the
+    // first Escape dismisses the tooltip (correctly — Radix dismisses the
+    // topmost layer), and the sheet was reported as un-closable. Hence also the
+    // repeat: a real keyboard user presses Escape again. Something that never
+    // closes after three presses is a genuine trap; something that needs two
+    // because a tooltip was above it is not.
+    let escaped = false;
+    for (let attempt = 0; attempt < 3 && !escaped; attempt++) {
+      await page.keyboard.press("Escape").catch(() => undefined);
+      await page.waitForTimeout(280);
+      escaped = await page
+        .evaluate(() => {
+          const t = document.querySelector("[data-sweep-target]");
+          // Gone from the DOM, or still mounted for its exit animation but no
+          // longer flagged open, both count as closed.
+          return !t || t.getAttribute("data-state") === "closed" || !(t as HTMLElement).isConnected;
+        })
+        .catch(() => true);
+    }
+    if (!escaped) {
       issues.push("Escape did not close it");
       // Force it shut so the next trigger is testable.
       await page.goto(route, { waitUntil: "domcontentloaded" }).catch(() => undefined);
@@ -287,6 +372,7 @@ sweepDescribe("overlay sweep", () => {
     test(`probe ${route}`, async ({ context, page, baseURL }) => {
       test.setTimeout(180_000);
       await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
+      await suppressOnboardingTour(page);
       await installSupabaseMocks(page, {
         user: FAKE_CUSTOMER,
         seed: true,

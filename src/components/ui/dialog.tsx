@@ -37,11 +37,30 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onOpenAutoFocus, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      // Nine dialogs pass `onOpenAutoFocus={(e) => e.preventDefault()}` to stop
+      // Radix focusing their first Input, because on iOS that pops the keyboard
+      // the instant the dialog opens. The intent is right; the raw
+      // preventDefault was not. It left focus on the TRIGGER — outside the
+      // dialog — so a screen reader never announced what had opened and Tab
+      // walked the page BEHIND the modal. (Found by the overlay sweep on
+      // SavedSearches, SecurityTab's change-email, and TwoFactorCard.)
+      //
+      // Park focus on the dialog container instead: no field is focused, so no
+      // keyboard, but the dialog owns focus and Tab starts inside it. Radix's
+      // FocusScope gives Content `tabIndex={-1}`, so it accepts focus. This
+      // runs DURING the AUTOFOCUS_ON_MOUNT dispatch, before FocusScope reads
+      // `defaultPrevented`, so our focus is the one that sticks.
+      onOpenAutoFocus={(event) => {
+        onOpenAutoFocus?.(event);
+        if (event.defaultPrevented) {
+          (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
+        }
+      }}
       className={cn(
         "glass-modal fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg max-h-[88dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 p-5 sm:p-7 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className,

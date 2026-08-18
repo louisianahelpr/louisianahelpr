@@ -226,6 +226,9 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                 </button>
               </PopoverTrigger>
               <PopoverContent
+                // Radix gives PopoverContent role="dialog", so without a name a
+                // screen reader announces this disclosure as bare "dialog".
+                aria-label="How reviews work"
                 className="w-[min(92vw,320px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-4"
                 align="center"
               >

@@ -173,8 +173,31 @@ export function ApplyConfirmDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <AlertDialogContent className="!gap-3 lg:max-w-3xl xl:max-w-4xl">
-        <div className="!text-left space-y-0">
+      {/* Height cap + row template. Once the body stops overflowing sideways its
+          text wraps properly, which makes the dialog TALLER — measured 768px →
+          838px at 375×812, i.e. 13px of the job title clipped off the top of the
+          screen and 13px off the bottom; the bid and urgent variants were
+          already past the viewport before that. AlertDialogContent ships no
+          height cap, so cap it here (scoped to this dialog, not the shared
+          primitive). `grid-rows-[minmax(0,1fr)_auto]` puts the overflow in the
+          BODY rather than the whole box, so Cancel / Apply now stay pinned and
+          visible instead of scrolling below the fold — which is the bug this
+          dialog is being fixed for. */}
+      <AlertDialogContent className="!gap-3 max-h-[calc(100dvh-2rem)] grid-rows-[minmax(0,1fr)_auto] lg:max-w-3xl xl:max-w-4xl">
+        {/* `min-w-0` is load-bearing, not decoration. AlertDialogContent is a
+            CSS *grid*, so this body is a grid item whose default
+            `min-width: auto` makes the implicit column's minimum equal the
+            item's content-based minimum. The "Tap a suggested opener" chip row
+            below is `overflow-x-auto` with `shrink-0 whitespace-nowrap` chips,
+            and a horizontal scroller still contributes its full max-content
+            width to that minimum — so the single grid column measured 674px
+            inside a 341px box, and EVERY row (title, earnings, pitch counter,
+            Cancel / Apply now) stretched to 674px and ran ~356px off the right
+            edge of the screen. Measured at 320/375/414: the action buttons sat
+            at right=687 in a 375px viewport. `min-w-0` drops the item's minimum
+            contribution to 0, the column tracks the dialog width, and the chip
+            row scrolls the way it was always meant to. Do not remove it. */}
+        <div className="min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain !text-left space-y-0">
           <AlertDialogHero
             eyebrow={isBidMode ? "You're bidding" : isInstantBook ? "You're booking" : "You're applying"}
             title={confirmApplyJob ? `"${confirmApplyJob.title}"` : isBidMode ? "Submit a bid" : isInstantBook ? "Book this job" : "Apply for this job"}

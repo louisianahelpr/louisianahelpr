@@ -156,3 +156,54 @@ personas share one avatar URL — `dicebear …/initials/svg?seed=Dana%20Guidry`
 so the image genuinely *is* the letters "DG" for Camille, Eli, Layla, Marie and
 Tre alike. That is bad seed data, not a rendering bug; the app is faithfully
 showing the picture it was given. Owner's call whether to correct it.
+
+## SECURITY — read this first in the morning
+
+A security review of the (still uncommitted) seat-limit migration found one
+weakness the change would have INTRODUCED, and one pre-existing HIGH.
+
+### SEC-001 — the seat migration must not ship without a column REVOKE
+Making the member cap read `businesses.seat_tier` is correct, but that column is
+**client-writable**. The live policy "Owner can update their business" is
+`FOR UPDATE USING (owner_id = auth.uid()) WITH CHECK (owner_id = auth.uid())` —
+whole row, no column restriction — and the only BEFORE UPDATE trigger on
+`businesses` pins `verification_status` but not `seat_tier`.
+
+Before the migration the hardcoded `2` made self-editing the column pointless.
+After it, a free-tier owner can `PATCH {"seat_tier":"enterprise"}` with their own
+JWT, invite 3 teammates, and KEEP them — the cap is only checked on INSERT. That
+is a revenue bug traded for a revenue exploit. The fix is one statement in the
+same migration (`REVOKE UPDATE (seat_tier, seat_subscription_*) … FROM
+authenticated, anon`), and the Stripe reconciler is unaffected because it writes
+as service_role. Held until that is in.
+
+### SEC-002 — pre-existing HIGH, independent of this change
+The `business_members` INSERT policy admits `(role = 'owner' AND user_id =
+auth.uid())` with **no constraint on `business_id`**. Any authenticated user who
+learns a business UUID can insert themselves as an active member of it, and then
+read `business_webhooks.secret` — stored in **plaintext** — plus the API-key
+roster, job templates and every team job. A forged `role='owner'` row grants
+member, not owner, privileges (`is_business_owner` reads `businesses.owner_id`),
+and `anon` cannot enumerate business ids, which bounds it. Needs its own reviewed
+migration; the seat change makes it strictly better, not worse.
+
+### Also found
+- **SEC-003** TOCTOU: `SELECT count(*)` in a BEFORE INSERT trigger takes no lock,
+  so N concurrent invites all pass. Now that the count is the paid boundary, that
+  has cash value. Fix is `FOR UPDATE` on the `businesses` row already being read.
+- **SEC-004** `get_business_seat_limit` / `business_seat_limit` are SECURITY
+  DEFINER with default EXECUTE TO PUBLIC — any authenticated user can probe an
+  arbitrary business id for its paid plan.
+- **SampleTag fails WCAG AA at 3.24:1** (dark ≈2.6:1) — and it is the primary
+  "this money isn't real" marker on a payments screen.
+- The new 1440 Playwright test **fails deterministically** (subtracts a desktop
+  rail `/business/*` never has) and would have turned CI red.
+- The migration was **back-dated** relative to one already deployed.
+
+### Owner decisions
+- **Enterprise is sold as "4+"** but the migration hard-caps 4. The moment sales
+  agrees a 6-seat deal, the DB refuses the 5th invite — the exact bug this
+  migration exists to fix, relocated to the top-paying tier.
+- **A fifth ladder survives** in `check-business-seat-subscription` (2/5/10/15).
+- **Starter tightens 2 → 1.** Existing starter businesses with owner + 1 keep
+  that member but cannot re-invite after a removal.

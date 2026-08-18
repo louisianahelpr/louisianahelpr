@@ -44,6 +44,15 @@ export interface BusinessMembership {
   verification_status: BusinessVerificationStatus;
 }
 
+/**
+ * Seats included per tier, INCLUDING the owner — the owner is a row in
+ * `business_members`, `useTeamMembers` returns it, and BusinessTeam counts it
+ * in "X of N seats used". Mirrors the `seats` field of BUSINESS_SEAT_TIERS
+ * (the marketing/checkout source of truth) and, since migration
+ * 20260817120000, the DB trigger `enforce_business_member_limit()` via
+ * `business_seat_limit_for_tier()`. All three must move together or a customer
+ * gets told they have seats the database will refuse.
+ */
 const SEAT_LIMITS: Record<SeatTier, number> = {
   starter: 1,
   crew: 2,
@@ -102,7 +111,11 @@ const fetchMyBusiness = async (userId: string): Promise<BusinessMembership | nul
     role: row.role as "owner" | "member",
     is_owner: isOwner,
     seat_tier: tier,
-    seat_limit: SEAT_LIMITS[tier] ?? 2,
+    // Unknown tier fails CLOSED to starter, matching the trigger's ELSE
+    // branch. (A CHECK constraint keeps seat_tier to the four known values,
+    // so this is belt-and-braces — but it used to say 2, which would have
+    // promised a seat the DB denies.)
+    seat_limit: SEAT_LIMITS[tier] ?? SEAT_LIMITS.starter,
     extended_role: extendedRole,
     require_approval_above: biz.require_approval_above ?? null,
     require_2fa: !!biz.require_2fa,

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { Download, FileText, Clock, CheckCircle2, AlertCircle, Receipt } from "lucide-react";
+import { AlertTriangle, Download, FileText, Clock, CheckCircle2, AlertCircle, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -23,9 +23,18 @@ interface SampleInvoice {
   status: "outstanding" | "paid" | "overdue";
 }
 
-// Placeholder dataset — until the billing-mode-switch is plumbed through
-// to real Stripe invoices, the UI shows a sensible sample so business
-// owners can see the shape of what they're opting into.
+// FABRICATED dataset — until the billing-mode switch is plumbed through to
+// real Stripe invoices, the UI shows a sample so business owners can see the
+// shape of what they're opting into.
+//
+// These numbers are invented. Every surface that renders them MUST say so on
+// the page itself, not only in the downloaded file: this is a PAYMENTS screen,
+// so an unlabelled "$1,524 outstanding" reads as a real debt to both a real
+// business owner and an App Store reviewer (Guideline 2.1 placeholder content
+// — the same risk that got the Contracts/Reports/API pages pulled on
+// 2026-08-10). Hence `<SampleTag />` on every row, "(sample)" in every
+// heading, the banner above the list, and the SAMPLE- filename prefix. If you
+// wire these to real Stripe invoices, delete the labelling with the fixture.
 const SAMPLE_INVOICES: SampleInvoice[] = [
   { id: "1", number: "INV-2026-061", amountCents: 152_400, issuedAt: "2026-06-01", dueAt: "2026-07-01", status: "outstanding" },
   { id: "2", number: "INV-2026-053", amountCents: 89_000, issuedAt: "2026-05-01", dueAt: "2026-05-31", status: "paid" },
@@ -35,6 +44,17 @@ const SAMPLE_INVOICES: SampleInvoice[] = [
 // Money renders through the canonical `formatPrice` so it reads identically
 // to the rest of the app ($85, $85.50 — no trailing ".00").
 const fmtCents = (cents: number) => `$${formatPrice(cents / 100)}`;
+
+// Row-level marker. Sits beside the invoice number so the label travels with
+// the number no matter how the list is scanned, scrolled, or screenshotted.
+const SampleTag = () => (
+  <span
+    data-testid="sample-tag"
+    className="inline-flex items-center gap-1 px-2 h-6 rounded-ds-sm text-ds-11 font-bold uppercase tracking-wide bg-warning text-warning-foreground"
+  >
+    <AlertTriangle className="w-3 h-3" aria-hidden /> Sample
+  </span>
+);
 
 const StatusPill = ({ status }: { status: SampleInvoice["status"] }) => {
   const cfg = {
@@ -112,19 +132,24 @@ const BusinessBilling = () => {
     // Generate a quick text-based "invoice" so the Download CTA actually
     // produces a file — real PDF gen lives in a Stripe-backed followup.
     const text =
-      `Helpr Business Invoice\n\n` +
+      `*** SAMPLE — NOT A REAL INVOICE. NOTHING HERE IS OWED. ***\n\n` +
+      `Helpr Business Invoice (sample)\n\n` +
       `Business: ${business.business_name}\n` +
       `Invoice: ${invoice.number}\n` +
       `Issued: ${invoice.issuedAt}\n` +
       `Due:    ${invoice.dueAt}\n` +
       `Total:  ${fmtCents(invoice.amountCents)}\n` +
       `Status: ${invoice.status}\n\n` +
-      `(Sample preview — PDF rendering is enabled when you switch to invoice billing.)\n`;
+      `This document is a sample generated for preview. It is not a bill, not a\n` +
+      `record of any charge, and no payment is due. Real invoices are issued by\n` +
+      `Stripe once invoice billing is live on your account.\n`;
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${invoice.number}.txt`;
+    // Prefix the filename too — a bare "INV-2026-061.txt" sitting in a
+    // Downloads folder loses every bit of on-page context.
+    a.download = `SAMPLE-${invoice.number}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -174,14 +199,44 @@ const BusinessBilling = () => {
         )}
       </Card>
 
+      {/* Unmissable, above the fold of the invoice lists and impossible to
+          scroll past: the two cards below are a fixture, and this is a
+          payments screen. Solid warning fill (not a tinted footnote) so it
+          reads as a label on the data, not decoration. */}
+      <div
+        role="note"
+        aria-label="Sample data notice"
+        className="mb-5 rounded-ds-md border-2 border-warning bg-warning/15 p-4"
+      >
+        <div className="flex items-start gap-3">
+          <span className="shrink-0 mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full bg-warning text-warning-foreground">
+            <AlertTriangle className="w-4 h-4" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="font-bold text-ds-14 text-foreground">
+              Sample data — these are not real invoices
+            </p>
+            <p className="text-ds-12 text-muted-foreground mt-1">
+              Every invoice, amount and balance below is a made-up example showing how
+              invoice billing will look. <strong className="font-semibold text-foreground">You
+              do not owe any of it</strong>, and no payment is due. Your real invoices appear
+              here once invoice billing is live on your account.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <Card className="p-5 mb-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
           <h2 className="font-semibold flex items-center gap-2">
-            <Clock className="w-4 h-4" /> Outstanding invoices
+            <Clock className="w-4 h-4" /> Outstanding invoices (sample)
           </h2>
-          <Badge variant="sienna" className="text-ds-11">
-            {outstanding.length} open
-          </Badge>
+          <div className="flex items-center gap-2">
+            <SampleTag />
+            <Badge variant="sienna" className="text-ds-11">
+              {outstanding.length} sample
+            </Badge>
+          </div>
         </div>
         {outstanding.length === 0 ? (
           <p className="text-ds-12 text-muted-foreground">All caught up.</p>
@@ -192,15 +247,25 @@ const BusinessBilling = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <span className="font-mono text-ds-13 font-semibold">{inv.number}</span>
+                    <SampleTag />
                     <StatusPill status={inv.status} />
                   </div>
                   <p className="text-ds-11 text-muted-foreground">
-                    Issued {inv.issuedAt} · Due {inv.dueAt}
+                    Issued <span className="whitespace-nowrap">{inv.issuedAt}</span> ·{" "}
+                    Due <span className="whitespace-nowrap">{inv.dueAt}</span>
                   </p>
                 </div>
-                <span className="font-semibold tabular-nums text-ds-15">{fmtCents(inv.amountCents)}</span>
-                <Button variant="outline" size="sm" onClick={() => downloadInvoiceStub(inv)}>
-                  <Download className="w-3.5 h-3.5 mr-1" /> PDF
+                <span className="font-semibold tabular-nums text-ds-15 whitespace-nowrap">
+                  {fmtCents(inv.amountCents)}
+                  <span className="sr-only"> (sample amount — not owed)</span>
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label={`Download sample invoice ${inv.number}`}
+                  onClick={() => downloadInvoiceStub(inv)}
+                >
+                  <Download className="w-3.5 h-3.5 mr-1" /> Sample
                 </Button>
               </li>
             ))}
@@ -209,13 +274,16 @@ const BusinessBilling = () => {
       </Card>
 
       <Card className="p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
           <h2 className="font-semibold flex items-center gap-2">
-            <FileText className="w-4 h-4" /> Payment history
+            <FileText className="w-4 h-4" /> Payment history (sample)
           </h2>
-          <Badge variant="sienna" className="text-ds-11">
-            {history.length} paid
-          </Badge>
+          <div className="flex items-center gap-2">
+            <SampleTag />
+            <Badge variant="sienna" className="text-ds-11">
+              {history.length} sample
+            </Badge>
+          </div>
         </div>
         <ul className="divide-y divide-border/40">
           {history.map((inv) => (
@@ -223,13 +291,24 @@ const BusinessBilling = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <span className="font-mono text-ds-13 font-semibold">{inv.number}</span>
+                  <SampleTag />
                   <StatusPill status={inv.status} />
                 </div>
-                <p className="text-ds-11 text-muted-foreground">Issued {inv.issuedAt}</p>
+                <p className="text-ds-11 text-muted-foreground">
+                  Issued <span className="whitespace-nowrap">{inv.issuedAt}</span>
+                </p>
               </div>
-              <span className="font-semibold tabular-nums text-ds-15">{fmtCents(inv.amountCents)}</span>
-              <Button variant="outline" size="sm" onClick={() => downloadInvoiceStub(inv)}>
-                <Download className="w-3.5 h-3.5 mr-1" /> PDF
+              <span className="font-semibold tabular-nums text-ds-15 whitespace-nowrap">
+                {fmtCents(inv.amountCents)}
+                <span className="sr-only"> (sample amount)</span>
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label={`Download sample invoice ${inv.number}`}
+                onClick={() => downloadInvoiceStub(inv)}
+              >
+                <Download className="w-3.5 h-3.5 mr-1" /> Sample
               </Button>
             </li>
           ))}

@@ -192,6 +192,23 @@ async function recordContrast(page: Page, tag: string) {
   if (rows.length) writeFileSync(`${SHOTS}/contrast-${tag}.json`, JSON.stringify(rows, null, 2));
 }
 
+/**
+ * Dismiss the push-permission nudge.
+ *
+ * The seeded state has bids on a posted job, which fires the customer-first-bid
+ * nudge — a toast parked over the header card. Left up, it is most of what any
+ * screenshot of this screen shows. Called AFTER the axe scan, never before: the
+ * toast is part of the page and has to be scanned with it.
+ */
+async function dismissNudge(page: Page) {
+  const notNow = page.getByRole("button", { name: "Not now" });
+  if (await notNow.count()) await notNow.first().click();
+  // …and wait for it to finish LEAVING. A dismissed toast animates out over the
+  // header for another beat, which is all an element screenshot would catch.
+  await expect(page.getByText("Turn on notifications?")).toHaveCount(0);
+  await page.waitForTimeout(400);
+}
+
 /** The layout invariants that must hold on every variant of every screen. */
 async function assertFits(page: Page) {
   const overflow = await page.evaluate(() => {
@@ -255,6 +272,7 @@ test.describe("My Posts — card density + header", () => {
       await assertFits(page);
       await assertNoAxeViolations(page, `/my-posts ${v.tag}`);
       await recordContrast(page, `my-posts-${v.tag}`);
+      await dismissNudge(page);
       await page.screenshot({ path: `${SHOTS}/my-posts-all-${v.tag}.png`, fullPage: true });
     });
 
@@ -295,6 +313,7 @@ test.describe("My Posts — card density + header", () => {
     expect(box, "toggle has no box").not.toBeNull();
     expect(box!.height).toBeGreaterThanOrEqual(44);
 
+    await dismissNudge(page);
     await page.screenshot({ path: `${SHOTS}/card-collapsed-375.png`, fullPage: true });
 
     await toggle.click();
@@ -326,13 +345,18 @@ test.describe("My Posts — card density + header", () => {
     await page.waitForSelector("h1");
     await settle(page);
 
+    await dismissNudge(page);
     await expect(page.getByText("In progress", { exact: true })).toHaveCount(1);
     await expect(page.getByRole("button", { name: /no-show/i })).toHaveCount(0);
     // The rest of the row is still there — this is a gate, not an empty state,
     // and a two-item row must still look deliberate.
     await expect(page.getByRole("button", { name: "Message Helpr" })).toHaveCount(1);
     await expect(page.getByRole("button", { name: /share/i }).first()).toBeVisible();
-    await page.screenshot({ path: `${SHOTS}/actions-2up-no-noshow-375.png`, fullPage: true });
+    // This page is a fixed 100dvh shell — the DOCUMENT does not scroll, so
+    // `fullPage` captures the viewport and nothing else. Bring the row into it.
+    await page.getByRole("button", { name: "Message Helpr" }).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${SHOTS}/actions-2up-no-noshow-375.png` });
   });
 
   test("No-Show APPEARS once the start time has passed", async ({ page, context, baseURL }) => {
@@ -347,6 +371,7 @@ test.describe("My Posts — card density + header", () => {
     await page.waitForSelector("h1");
     await settle(page);
 
+    await dismissNudge(page);
     await expect(page.getByRole("button", { name: /no-show/i })).toHaveCount(1);
     await page.screenshot({ path: `${SHOTS}/actions-3up-with-noshow-375.png`, fullPage: true });
 
@@ -372,6 +397,7 @@ test.describe("My Posts — card density + header", () => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
 
+
     for (const [filter, label] of [
       ["active", "Active"],
       ["completed", "Completed"],
@@ -380,21 +406,27 @@ test.describe("My Posts — card density + header", () => {
       await page.goto(`/my-posts?filter=${filter}`);
       await page.waitForSelector("h1");
       await settle(page);
+      await dismissNudge(page);
       const header = page.locator("h1").locator("..");
       await expect(header, `filter=${filter}`).toContainText(label);
       // Still exactly one heading — the indicator is a span, never an h2.
       await assertOneH1(page);
       if (filter === "active") {
-        await page.screenshot({ path: `${SHOTS}/header-filter-active-375.png` });
+        // The HEADER CARD itself, not the viewport — a plain screenshot here
+        // caught wherever the list happened to be scrolled to and showed no
+        // header at all.
+        await page.locator("h1").locator("../..").screenshot({ path: `${SHOTS}/header-filter-active-375.png` });
       }
     }
 
     await page.goto("/my-posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);
+    await dismissNudge(page);
     const header = page.locator("h1").locator("..");
     await expect(header).toHaveText("My Posts");
     await assertOneH1(page);
+    await page.locator("h1").locator("../..").screenshot({ path: `${SHOTS}/header-filter-all-375.png` });
   });
 
   test("every job status renders its own coloured stripe", async ({ page, context, baseURL }) => {
@@ -438,6 +470,7 @@ test.describe("My Posts — card density + header", () => {
     expect(fills.size).toBeGreaterThanOrEqual(4);
 
     // Three statuses side by side, for judging the set as a system.
+    await dismissNudge(page);
     await page.screenshot({ path: `${SHOTS}/statuses-side-by-side-375.png`, fullPage: true });
     await recordContrast(page, "statuses-375-light");
   });

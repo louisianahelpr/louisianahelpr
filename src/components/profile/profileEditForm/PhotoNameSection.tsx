@@ -58,13 +58,20 @@ export function PhotoNameSection({
                 "0 1px 2px hsl(70 20% 18% / 0.22), " +
                 "0 4px 10px -2px hsl(var(--bark) / 0.4)",
             }}
-            aria-label="Change profile photo"
           >
             {avatarUploading ? (
               <Loader2 className="w-4 h-4 animate-spin" style={{ color: "hsl(var(--parchment))" }} />
             ) : (
               <Camera className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} />
             )}
+            {/* The accessible name lives on the INPUT, not the <label>.
+                axe flags `aria-label` on a bare <label> as aria-prohibited-attr
+                and it is not a nitpick: <label> has no implicit ARIA role, so
+                assistive tech IGNORES the attribute outright. The control was
+                effectively unnamed — a screen reader announced only "button".
+                A <label> names the control it wraps, so an sr-only child names
+                the file input properly and works everywhere. */}
+            <span className="sr-only">Change profile photo</span>
             <input type="file" accept="image/*" className="hidden" onChange={onAvatarUpload} disabled={avatarUploading} />
           </label>
         </div>

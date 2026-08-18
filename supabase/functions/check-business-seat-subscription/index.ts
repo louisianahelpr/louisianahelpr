@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { SEAT_PRODUCT_TO_TIER, SEAT_TIER_TO_SUBSCRIPTION } from "../_shared/seatTierGrant.ts";
+import { BUSINESS_SEAT_TIERS } from "../_shared/businessSeatTiers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -91,8 +92,19 @@ serve(async (req) => {
       }
     }
 
-    // Sync to DB
-    await supabaseAdmin
+    // Sync to DB.
+    //
+    // NEVER drop this error (CLAUDE.md). Since migration 20260817120000 the
+    // member cap READS `seat_tier`, so this statement is the only thing
+    // standing between a paying Team business and a 1-seat Starter cap:
+    // `activeTier` starts at "starter" and only rises when Stripe returns a
+    // matching active subscription, so a transient Stripe failure, an
+    // app-vs-Stripe email mismatch, or an unmapped product all write
+    // "starter" here. BusinessLayout calls this on every /business/* view, so
+    // a silent failure would strand the customer over cap with no signal
+    // anywhere. Log it loudly; the response below still returns what Stripe
+    // actually said.
+    const { error: syncError } = await supabaseAdmin
       .from("businesses")
       .update({
         seat_tier: activeTier,
@@ -101,6 +113,12 @@ serve(async (req) => {
         seat_subscription_current_period_end: periodEnd,
       })
       .eq("id", ownedBiz.id);
+    if (syncError) {
+      console.error(
+        "[check-business-seat-subscription] failed to sync seat_tier — the seat cap now reads this column",
+        { businessId: ownedBiz.id, ownerId: ownedBiz.owner_id, activeTier, error: syncError },
+      );
+    }
 
     // ── Grant the fee / early-access tier the seat plan pays for ──────────
     //
@@ -153,10 +171,14 @@ serve(async (req) => {
       );
     }
 
-    const seatLimit =
-      activeTier === "enterprise" ? 15 :
-      activeTier === "team" ? 10 :
-      activeTier === "crew" ? 5 : 2;
+    // Derived, never hardcoded. This used to be a fifth, private seat ladder
+    // (2/5/10/15) that disagreed with the pricing page, the client, and the DB
+    // trigger — the same class of drift migration 20260817120000 existed to
+    // end. BUSINESS_SEAT_TIERS is the one source of truth ("4+" -> 4).
+    const seatLimit = parseInt(
+      BUSINESS_SEAT_TIERS.find((t) => t.key === activeTier)?.seats ?? "1",
+      10,
+    );
 
     return new Response(
       JSON.stringify({

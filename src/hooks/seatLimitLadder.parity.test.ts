@@ -24,7 +24,6 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { BUSINESS_SEAT_TIERS } from "@/lib/businessSeatTiers";
-import { useMyBusiness } from "./useMyBusiness";
 
 const MIGRATIONS_DIR = join(process.cwd(), "supabase", "migrations");
 const FN = "business_seat_limit_for_tier";
@@ -48,7 +47,11 @@ function ladderFromMigrations(): Record<string, number> {
   // Narrow to that function's body so an unrelated CASE elsewhere in the file
   // cannot feed this test the wrong numbers.
   const start = sql.indexOf(`FUNCTION public.${FN}(`);
-  const body = sql.slice(start, sql.indexOf("$$;", start));
+  const end = sql.indexOf("$$;", start);
+  // `slice(start, -1)` would silently become "rest of the file" and let the
+  // regex harvest numbers out of an unrelated CASE — fail open. Refuse.
+  expect(end, `could not find the end of ${FN}()'s body`).toBeGreaterThan(start);
+  const body = sql.slice(start, end);
   const ladder: Record<string, number> = {};
   for (const m of body.matchAll(/WHEN\s+'(\w+)'\s+THEN\s+(\d+)/g)) {
     ladder[m[1]] = Number(m[2]);
@@ -56,8 +59,48 @@ function ladderFromMigrations(): Record<string, number> {
   return ladder;
 }
 
+/** Body of the newest migration that (re)defines a given plpgsql function. */
+function latestFunctionBody(fnName: string): string {
+  const defining = readdirSync(MIGRATIONS_DIR)
+    .filter((f) => f.endsWith(".sql"))
+    .filter((f) =>
+      readFileSync(join(MIGRATIONS_DIR, f), "utf8").includes(
+        `CREATE OR REPLACE FUNCTION public.${fnName}(`,
+      ),
+    )
+    .sort();
+  expect(defining, `no migration defines public.${fnName}()`).not.toHaveLength(0);
+  const sql = readFileSync(join(MIGRATIONS_DIR, defining[defining.length - 1]), "utf8");
+  const start = sql.indexOf(`CREATE OR REPLACE FUNCTION public.${fnName}(`);
+  const end = sql.indexOf("$$;", start);
+  expect(end, `could not find the end of ${fnName}()'s body`).toBeGreaterThan(start);
+  return sql.slice(start, end);
+}
+
 describe("seat-limit ladder parity (marketing ↔ client ↔ database)", () => {
   const dbLadder = ladderFromMigrations();
+
+  // Guard the guard: `it.each([])` generates ZERO cases and still reports
+  // green when the describe has other tests, so an emptied or renamed
+  // BUSINESS_SEAT_TIERS would silently switch the marketing leg off.
+  it("the marketing tier array is non-empty (so the it.each below runs)", () => {
+    expect(BUSINESS_SEAT_TIERS).toHaveLength(4);
+  });
+
+  // The ladder numbers agreeing is not the same as the CAP READING them. This
+  // is the assertion that fails if anyone puts `>= 2` back into the trigger.
+  it("the seat-cap trigger reads the helper instead of a hardcoded number", () => {
+    const body = latestFunctionBody("enforce_business_member_limit");
+    expect(body).toContain("business_seat_limit_for_tier(");
+    // No bare integer on the right of the cap comparison.
+    expect(body).not.toMatch(/>=\s*\d+/);
+  });
+
+  it("both seat-limit helper functions delegate to the canonical ladder", () => {
+    for (const fn of ["get_business_seat_limit", "business_seat_limit"]) {
+      expect(latestFunctionBody(fn), fn).toContain("business_seat_limit_for_tier(");
+    }
+  });
 
   it("the database ladder covers exactly the four canonical tiers", () => {
     expect(Object.keys(dbLadder).sort()).toEqual(["crew", "enterprise", "starter", "team"]);
@@ -84,7 +127,6 @@ describe("seat-limit ladder parity (marketing ↔ client ↔ database)", () => {
     // Guard the guard: if the regex ever stops matching, an empty object would
     // silently equal an empty object.
     expect(Object.keys(clientLadder)).toHaveLength(4);
-    expect(typeof useMyBusiness).toBe("function");
   });
 
   it("every tier counts the OWNER inside its limit, so starter is a solo seat", () => {

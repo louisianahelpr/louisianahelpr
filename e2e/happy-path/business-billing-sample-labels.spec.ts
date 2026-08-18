@@ -19,6 +19,7 @@
 // reuseExistingServer: !CI, so a stale preview silently serves an old dist/.
 
 import { mkdirSync } from "node:fs";
+import AxeBuilder from "@axe-core/playwright";
 import { businessRules } from "./auditRoutes";
 import { test, expect, FAKE_CUSTOMER, installSupabaseMocks, seedAuthedSession } from "./fixtures";
 
@@ -77,6 +78,14 @@ test.describe("/business/billing — sample invoices are labelled on the page", 
       return { scrollWidth: d.scrollWidth, clientWidth: d.clientWidth };
     });
     expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
+
+    // The labelling is only labelling if it is legible. White on `bg-warning`
+    // was 3.24:1 — this is the check that caught it and keeps it caught.
+    const axe = await new AxeBuilder({ page }).withRules(["color-contrast"]).analyze();
+    const contrast = axe.violations.flatMap((v) =>
+      v.nodes.map((n) => `${v.id}: ${n.target.join(" ")} — ${n.failureSummary?.split("\n")[1]?.trim() ?? ""}`),
+    );
+    expect(contrast).toEqual([]);
 
     await page.screenshot({
       path: `${SHOT_DIR}/business-billing-sample-labels-375.png`,

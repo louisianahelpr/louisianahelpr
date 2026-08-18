@@ -133,10 +133,27 @@ const MembersTab = ({
             </Button>
           </form>
           {remainingSlots <= 0 && (
-            <p className="text-ds-11 text-destructive mt-2">
-              You've reached your {SEAT_LIMIT}-seat limit. Upgrade your plan below to add more
-              members.
-            </p>
+            totalSlots > SEAT_LIMIT ? (
+              // OVER the plan, not merely at it. This happens without the
+              // customer doing anything wrong — a downgrade, or migration
+              // 20260817120000, which corrected the enforced cap to the tier
+              // that was actually sold (Starter went from an accidental 2 to
+              // the 1 seat the pricing page has always advertised). Telling
+              // someone in that state to "upgrade to add more members" bills
+              // them for a change they did not make and would not fix what
+              // they are looking at, which is the exact failure this screen
+              // was corrected for. State the position instead.
+              <p className="text-ds-11 text-muted-foreground mt-2">
+                Your plan includes {SEAT_LIMIT} {SEAT_LIMIT === 1 ? "seat" : "seats"} and you're
+                using {totalSlots}. Everyone keeps their access — you just can't add anyone new
+                until you upgrade or remove {totalSlots - SEAT_LIMIT}.
+              </p>
+            ) : (
+              <p className="text-ds-11 text-destructive mt-2">
+                You've reached your {SEAT_LIMIT}-seat limit. Upgrade your plan below to add more
+                members.
+              </p>
+            )
           )}
         </Card>
       )}

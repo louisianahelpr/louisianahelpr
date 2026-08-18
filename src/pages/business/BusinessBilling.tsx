@@ -13,6 +13,12 @@ import { AlertTriangle, Download, FileText, Clock, CheckCircle2, AlertCircle, Re
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
+import { report } from "@/lib/errorLogger";
+// Shared semantic tone map (src/components/admin/tones.ts). Pure constants, no
+// admin dependency — its own header asks non-admin surfaces to adopt it as they
+// are touched, so the "warning" tone has ONE definition instead of a per-file
+// shade. See SampleTag below for the measurement that made this necessary.
+import { toneTextClasses } from "@/components/admin/tones";
 
 interface SampleInvoice {
   id: string;
@@ -50,7 +56,19 @@ const fmtCents = (cents: number) => `$${formatPrice(cents / 100)}`;
 const SampleTag = () => (
   <span
     data-testid="sample-tag"
-    className="inline-flex items-center gap-1 px-2 h-6 rounded-ds-sm text-ds-11 font-bold uppercase tracking-wide bg-warning text-warning-foreground"
+    // Colour is measured, not picked. `bg-warning text-warning-foreground` is
+    // white on `--warning` (33 26% 53%) = 3.24:1, and 2.64:1 in dark where
+    // --warning lightens to 60% — both fail WCAG AA (4.5:1) at 11px, on the one
+    // label that HAS to be legible on a payments screen.
+    //
+    // The fix is the shape every other warning chip in the app already uses: a
+    // --warning tint under `toneTextClasses.warning` (amber-800 / dark
+    // amber-400), which measures ~6.3:1 on a light card and 8:1+ on the dark
+    // canvas. Deliberately NOT a bespoke one-off hue — a hand-picked
+    // `bg-[hsl(...)]` would clear AA too, but re-picking a shade per component
+    // is the exact cohesion debt tones.ts exists to retire, and billing would
+    // become the only warning chip in the app that doesn't match the set.
+    className={`inline-flex items-center gap-1 px-2 h-6 rounded-ds-sm text-ds-11 font-bold uppercase tracking-wide bg-warning/15 ${toneTextClasses.warning}`}
   >
     <AlertTriangle className="w-3 h-3" aria-hidden /> Sample
   </span>
@@ -113,16 +131,31 @@ const BusinessBilling = () => {
       toast.success(next ? "Invoice billing enabled" : "Switched back to card billing");
     } catch (err: any) {
       hapticError();
-      // PGRST202 means the column hasn't been migrated yet — softly toggle
-      // UI state so the owner can preview the experience.
-      if (err?.code === "PGRST202" || err?.code === "42703") {
-        setInvoiceMode(next);
-        toast.message(next ? "Invoice mode (preview)" : "Card mode (preview)", {
-          description: "Production database not yet migrated — your choice is saved locally.",
-        });
-      } else {
-        toast.error(err.message || "We couldn't update billing mode — try again in a moment.");
-      }
+      // This used to swallow 42703/PGRST202 into a cheerful "Invoice mode
+      // (preview) — your choice is saved locally" and flip the UI anyway.
+      // Three things were wrong with that. `billing_mode` HAS existed on
+      // `businesses` (text NOT NULL DEFAULT 'card') since 20260609180000, so
+      // "not yet migrated" cannot be true. PGRST202 is the RPC-not-found code
+      // and never applies to .from().update(). And nothing here writes
+      // storage, so "saved locally" was simply false — the toggle is
+      // useState(false) and resets on the next mount either way. Meanwhile a
+      // 42703 raised by anything else in the UPDATE path (this table has
+      // three BEFORE UPDATE triggers) got reported to the owner as success,
+      // on the screen that then tells them "Net-30 terms apply".
+      //
+      // Fail loudly, leave the switch where it was, and log it — a billing
+      // write failing in prod produced zero signal before this.
+      report(err, {
+        severity: "error",
+        tags: { source: "BusinessBilling.toggleInvoiceMode" },
+        context: { businessId: business.business_id, requestedMode: next ? "invoice" : "card" },
+      });
+      setInvoiceMode(!next);
+      toast.error(
+        err?.message
+          ? `We couldn't change your billing mode: ${err.message}`
+          : "We couldn't change your billing mode — nothing was saved. Try again in a moment.",
+      );
     } finally {
       setUpdating(false);
     }

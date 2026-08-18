@@ -1,0 +1,68 @@
+-- Lock the two seat-limit reader RPCs to the definer, and state that posture in
+-- the migrations instead of leaving it to an advisor pass.
+--
+-- SEC-004 from the security review of 20260817120000, plus the repo's own
+-- guard. That migration CREATE OR REPLACEs `get_business_seat_limit(uuid)` and
+-- `business_seat_limit(uuid)` with no GRANT or REVOKE anywhere in the corpus,
+-- so today:
+--
+--   node scripts/check-migration-grants.mjs \
+--     supabase/migrations/20260817120000_seat_limit_reads_seat_tier.sql
+--   -> EXIT 1  ("New public function(s) defined without an explicit GRANT or
+--               REVOKE")
+--
+-- and `.github/workflows/migration-lint.yml` runs that guard over the changed
+-- files of every push. The guard gathers GRANT/REVOKE across the WHOLE
+-- migrations tree, so declaring the posture once here clears both files.
+--
+-- ---------------------------------------------------------------------------
+-- WHAT THE REVIEW GOT WRONG, and why this ships anyway.
+--
+-- The review's stated impact was that both functions "have carried PostgreSQL's
+-- default EXECUTE TO PUBLIC since April, so any authenticated user can probe an
+-- arbitrary business id and learn its paid plan". That is NOT true of
+-- production. Measured (read-only) before writing this:
+--
+--   proacl, both functions:
+--     {postgres=X/postgres, service_role=X/postgres}
+--   has_function_privilege('authenticated','public.get_business_seat_limit(uuid)','EXECUTE') -> FALSE
+--   has_function_privilege('authenticated','public.business_seat_limit(uuid)','EXECUTE')     -> FALSE
+--   has_function_privilege('anon',          …same two…                       ,'EXECUTE')     -> FALSE
+--
+-- An advisor pass had already stripped the default, so there is no live
+-- information leak and this migration changes no behaviour on prod. It is a
+-- PIN, and it is still worth shipping for two concrete reasons:
+--
+--   1. That posture currently exists only as a side effect of a tool run.
+--      Nothing in the repo says it, so nothing stops the next
+--      `CREATE OR REPLACE` of these functions from being reasoned about as if
+--      PUBLIC could call them.
+--   2. A from-scratch replay (the Supabase Preview check, a rebuilt staging
+--      DB) starts on a VIRGIN database, where `CREATE FUNCTION` really does
+--      grant EXECUTE TO PUBLIC. Without these statements that rebuild comes up
+--      with the hole open — prod and a fresh build would disagree about who can
+--      read a business's paid plan.
+--
+-- ---------------------------------------------------------------------------
+-- SAFE TO LOCK: neither function is called over the wire. Grepped `src/`,
+-- `supabase/functions/` and `e2e/` — the only hits are the auto-generated
+-- `src/integrations/supabase/types.ts` entries (a type, not a call site) and
+-- comments. Their only real callers are the bodies of
+-- `enforce_business_seat_limit()` and `enforce_business_member_limit()`, which
+-- are SECURITY DEFINER and therefore keep EXECUTE as the function owner no
+-- matter what these roles hold. Matches the posture 20260505190000 set for the
+-- rest of the internal helper surface.
+--
+-- Unguarded on purpose: both functions are created by migrations strictly
+-- earlier than this one (20260426042619, re-replaced by 20260817120000), so a
+-- replay in timestamp order always finds them and there is nothing for an
+-- `IF to_regprocedure(...) IS NOT NULL` guard to protect against.
+--
+-- Scope note: SEC-001 (client-writable `seat_tier`) and SEC-003 (the
+-- count-then-insert race) are deliberately NOT here — they are closed by
+-- 20260818070000 / 071500 / 090000 and 20260818110000 respectively. Adding a
+-- third mechanism for either would recreate the "four contradictory ladders"
+-- problem this whole workstream exists to end.
+
+REVOKE ALL ON FUNCTION public.get_business_seat_limit(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.business_seat_limit(uuid)     FROM PUBLIC, anon, authenticated;

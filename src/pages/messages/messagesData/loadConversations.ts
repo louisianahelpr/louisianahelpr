@@ -2,10 +2,71 @@ import type { MutableRefObject } from "react";
 import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { getMessageAttachmentSignedUrls, isImageMime } from "@/lib/messageAttachments";
 import { getMutedThreadMap, threadMuteKey } from "@/lib/threadMutes";
 import type { Conversation, Message } from "@/components/messages/types";
+
+/**
+ * One person, resolved once.
+ *
+ * The inbox used to build the name and the avatar into two parallel `Map`s.
+ * They happened to be filled from the same RPC result, but nothing tied them
+ * together — a row could be added to one and missed by the other, and the
+ * screen would then show one person's name over another person's face. On a
+ * messaging surface that is not a cosmetic bug: the avatar is how you decide
+ * who you are talking to. Both fields now come out of a single record, so the
+ * two cannot drift apart by construction.
+ */
+type ResolvedProfile = {
+  /** Display name, already run through `formatName` ("Marie H."). */
+  name: string;
+  /** Photo URL, or null for the initials/gradient fallback. */
+  avatarUrl: string | null;
+};
+
+/** The house label for someone we genuinely could not resolve. */
+const UNRESOLVED_PERSON = formatName(null);
+
+/**
+ * Index the `get_safe_profiles` result by BOTH of a person's ids.
+ *
+ * `profiles.id` (a standalone PK) and `profiles.user_id` (the auth id) are
+ * different uuids for the same human. A message's `sender_id` / `receiver_id`
+ * is supposed to be the auth id, but those columns carry no foreign key
+ * (verified against prod: only `job_id` and `reply_to_id` are constrained), so
+ * profile ids do occur in the wild — prod has a seeded thread keyed that way.
+ * Looking up such a thread by auth id alone found nothing, and the row fell
+ * through to a literal "User" with no avatar.
+ *
+ * Keying the map by both ids resolves the thread whichever id it holds, and —
+ * because both keys point at the SAME `ResolvedProfile` — the name and the
+ * avatar still come from one row.
+ *
+ * `profile_id` is a newer column on the RPC. During the window between a merge
+ * and the migration finishing its deploy the field is simply absent, which the
+ * guard below treats as "no second key" rather than crashing.
+ */
+function indexProfiles(
+  rows: Array<{
+    user_id?: string | null;
+    profile_id?: string | null;
+    full_name?: string | null;
+    avatar_url?: string | null;
+  }> | null,
+): Map<string, ResolvedProfile> {
+  const byId = new Map<string, ResolvedProfile>();
+  for (const p of rows ?? []) {
+    const resolved: ResolvedProfile = {
+      name: formatName(p.full_name),
+      avatarUrl: p.avatar_url ?? null,
+    };
+    if (p.user_id) byId.set(p.user_id, resolved);
+    if (p.profile_id) byId.set(p.profile_id, resolved);
+  }
+  return byId;
+}
 
 /**
  * The inbox loader for the Messages page. It owns the 200-row `messages`
@@ -132,17 +193,37 @@ export async function fetchConversations(
     }
   }
 
-  const profileMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
-  const avatarMap = new Map<string, string | null>(profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || []);
+  // unwrap: identity is not enrichment. `profilesRes.data?.map(...) || []` used
+  // to swallow a failed RPC into an inbox where every thread was named "User" —
+  // a screen that looks loaded but tells you nothing about who you are talking
+  // to, and the exact mechanism that hid this whole class of bug. A failure now
+  // flips the query to its error state and the page offers a retry.
+  const profileMap = indexProfiles(unwrap(profilesRes));
+  // Job titles ARE enrichment — a thread with a "Job" placeholder title is
+  // still usable, so a failed jobs read degrades rather than blanking the
+  // inbox. But it is reported, never silently dropped.
+  if (jobsRes.error) {
+    report(jobsRes.error, {
+      severity: "warning",
+      tags: { source: "loadConversations.jobs" },
+    });
+  }
   const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, customer_id: j.customer_id }]) || []);
 
   const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => {
     const last = v.messages[0];
     const lastIsImage = !!last.attachment_url && isImageMime(last.attachment_mime);
+    // ONE lookup backs both the name and the face. The old code read two
+    // separate maps here, which is how a row could show one person's name
+    // beside another person's avatar.
+    const other = profileMap.get(v.otherUserId);
     return {
     otherUserId: v.otherUserId,
-    otherUserName: profileMap.get(v.otherUserId) || "User",
-    otherUserAvatarUrl: avatarMap.get(v.otherUserId) ?? null,
+    // Only genuinely unresolvable people (deleted, banned, never approved)
+    // reach the fallback now, and they get the house label rather than the
+    // bare word "User".
+    otherUserName: other?.name || UNRESOLVED_PERSON,
+    otherUserAvatarUrl: other?.avatarUrl ?? null,
     jobTitle: jobMap.get(v.jobId)?.title || "Job",
     jobId: v.jobId,
     jobStatus: jobMap.get(v.jobId)?.status ?? null,
@@ -202,6 +283,20 @@ export async function buildDeepLinkPlaceholder(
     supabase.from("jobs").select("id, title, status, customer_id").eq("id", deepLinkJobId).maybeSingle(),
   ]);
 
+  // A FAILED read is not the same fact as an ABSENT row, and the dead-thread
+  // guard below cannot tell them apart from `data` alone — two errored reads
+  // look exactly like a deleted user plus a deleted job. Surface the error so
+  // a transient outage is never reported to the user as "this link is gone".
+  const lookupError = profileRes.error ?? jobRes.error;
+  if (lookupError) {
+    report(lookupError, {
+      severity: "warning",
+      tags: { source: "buildDeepLinkPlaceholder" },
+    });
+    toast.error("Couldn't open that conversation — please try again.");
+    return null;
+  }
+
   // Guard: if neither the user profile nor the job record resolved,
   // the deep-link target is a "dead" thread (deleted user + deleted
   // job). Opening it would show "User / Job" placeholders and any
@@ -215,11 +310,16 @@ export async function buildDeepLinkPlaceholder(
     return null;
   }
 
-  const name = profileRes.data?.[0]?.full_name || "User";
+  // Same one-record rule as the inbox: the placeholder's name and avatar come
+  // out of a single resolved profile, keyed by either of the person's two ids
+  // (the deep link may carry a `profiles.id`). The old code passed the literal
+  // string "User" through `formatName`, which returned it verbatim — that is
+  // where the bare "User" in a thread title came from.
+  const resolved = indexProfiles(profileRes.data).get(deepLinkUserId);
   return {
     otherUserId: deepLinkUserId,
-    otherUserName: formatName(name),
-    otherUserAvatarUrl: profileRes.data?.[0]?.avatar_url ?? null,
+    otherUserName: resolved?.name || UNRESOLVED_PERSON,
+    otherUserAvatarUrl: resolved?.avatarUrl ?? null,
     jobTitle: jobRes.data?.title || "Job",
     jobId: deepLinkJobId,
     jobStatus: jobRes.data?.status ?? null,

@@ -5446,6 +5446,7 @@ export type Database = {
           is_id_verified: boolean
           location: string
           portfolio_urls: string[]
+          profile_id: string
           role: string
           skills: string
           subscription_tier: string

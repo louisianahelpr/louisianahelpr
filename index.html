@@ -255,12 +255,6 @@
       [data-theme="dark"] #boot-loader {
         background: hsl(20 15% 9%) !important;
       }
-      [data-theme="dark"] #boot-loader .boot-name {
-        color: hsl(36 15% 85%) !important;
-      }
-      [data-theme="dark"] #boot-loader .boot-la {
-        color: hsl(19 65% 52%) !important;
-      }
       /* Mirrors `[data-theme="dark"] .helpr-emblem` in src/index.css. It cannot
          reuse that class: index.css ships with the JS bundle, which has not
          parsed yet when this shell paints. The iron sits at roughly the same
@@ -289,9 +283,15 @@
            src/components/ui/HelprSpinner.tsx was written to abolish — and it
            sat on the FIRST screen anyone sees.
 
-      Now: the actual brand mark, the same asset HelprMark and HelprSpinner
-      render. 256 source at 72px display, because 72 CSS px on a 3x phone is
+      Now: the actual brand mark ALONE, the same asset HelprMark and
+      HelprSpinner render. No wordmark — the mark carries the screen by
+      itself, and the app name is already on the home screen the user just
+      tapped. 256 source at 72px display, because 72 CSS px on a 3x phone is
       216 device px and the 96 asset would upscale and go soft.
+
+      The accessible name lives on #boot-loader (role="status"
+      aria-label="Loading Helpr"), so removing the visible word costs nothing
+      to a screen reader; the <img> stays aria-hidden as pure decoration.
 
       LCP: this IS an <img>, so it IS an LCP candidate — but LCP tracks the
       LARGEST contentful paint, not the first, and the Bodoni hero H1 dwarfs a
@@ -314,7 +314,7 @@
         id="boot-loader"
         role="status"
         aria-label="Loading Helpr"
-        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:hsl(220 14% 95%);"
+        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:hsl(220 14% 95%);"
       >
         <img
           class="boot-mark"
@@ -326,10 +326,6 @@
           height="72"
           decoding="async"
         />
-        <div class="boot-word" style="font-family:'EB Garamond',Georgia,Cambria,serif;display:inline-flex;align-items:baseline;gap:0.05em;line-height:1;">
-          <span class="boot-name" style="font-size:20px;font-weight:500;letter-spacing:-0.005em;color:hsl(64 16% 12%);">Helpr</span>
-          <span class="boot-la" style="font-size:13px;font-style:italic;font-weight:400;letter-spacing:0.22em;margin-left:0.18em;color:hsl(19 75% 35%);">&#183; LA</span>
-        </div>
         <style>
           /* Same warm Olivewood lift the static mark carries everywhere else
              (.helpr-emblem, src/index.css). Dark override lives in

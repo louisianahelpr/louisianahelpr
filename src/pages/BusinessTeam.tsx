@@ -275,14 +275,18 @@ const BusinessTeam = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.business.members(business.business_id) });
   };
 
-  const handleUpgrade = async (tier: SeatTier) => {
+  const handleUpgrade = async (tier: SeatTier, interval: "month" | "year" = "month") => {
     if (tier === "starter") {
       return handleManageBilling();
     }
     setUpgrading(tier);
     try {
+      // `interval` reaches create-business-seat-checkout, which resolves the
+      // annual Price separately per tier. It used to send `{ tier }` alone, so
+      // the function always fell back to its "month" default and annual was
+      // unreachable from the UI no matter what Prices existed in Stripe.
       const { data, error } = await supabase.functions.invoke("create-business-seat-checkout", {
-        body: { tier },
+        body: { tier, interval },
       });
       if (error) throw error;
       if (!data?.url) throw new Error("No checkout URL returned");

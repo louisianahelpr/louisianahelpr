@@ -81,7 +81,7 @@ export const BUSINESS_SEAT_TIERS: readonly BusinessSeatTier[] = [
     featured: false,
     stripePriceId: "price_1TpvLSKp2H4b7tECkJALCpxj", // LIVE $20/mo (created 2026-07-05; retired old $10 price_1TQKGY…).
     annualPriceCents: 20000, // $200/yr — $20 x 10, two months free.
-    stripePriceIdAnnual: null, // TODO(owner): create a $200/yr Price, or set STRIPE_PRICE_SEAT_CREW_ANNUAL.
+    stripePriceIdAnnual: "price_1U61eMKp2H4b7tECbEcUGEmE", // LIVE $200/yr (created 2026-08-19).
   },
   {
     key: "team",
@@ -92,7 +92,7 @@ export const BUSINESS_SEAT_TIERS: readonly BusinessSeatTier[] = [
     featured: true,
     stripePriceId: "price_1TpvLdKp2H4b7tECODF3U9RJ", // LIVE $30/mo (created 2026-07-05; retired old $20 price_1TQKGZ…).
     annualPriceCents: 30000, // $300/yr — $30 x 10, two months free.
-    stripePriceIdAnnual: null, // TODO(owner): create a $300/yr Price, or set STRIPE_PRICE_SEAT_TEAM_ANNUAL.
+    stripePriceIdAnnual: "price_1U61eMKp2H4b7tECZQgcfCbE", // LIVE $300/yr (created 2026-08-19).
   },
   {
     key: "enterprise",
@@ -103,7 +103,7 @@ export const BUSINESS_SEAT_TIERS: readonly BusinessSeatTier[] = [
     featured: false,
     stripePriceId: "price_1TQKGaKp2H4b7tECp6ZNxarR", // LIVE $40/mo — already at the canonical amount, unchanged.
     annualPriceCents: 40000, // $400/yr — $40 x 10, two months free.
-    stripePriceIdAnnual: null, // TODO(owner): create a $400/yr Price, or set STRIPE_PRICE_SEAT_ENTERPRISE_ANNUAL.
+    stripePriceIdAnnual: "price_1U61eNKp2H4b7tECxbepq2XW", // LIVE $400/yr (created 2026-08-19).
   },
 ] as const;
 

@@ -1,3 +1,4 @@
+import { useState } from "react";
 // Members tab of the BusinessTeam workspace — invite form, seat plan,
 // active/pending member lists. Extracted verbatim from BusinessTeam.tsx
 // (behavior-preserving split). All JSX, strings, classNames, color
@@ -61,7 +62,7 @@ interface MembersTabProps {
   onInvite: (e: React.FormEvent) => void;
   onResendInvite: (memberEmail: string) => void;
   onChangeRole: (memberId: string, nextRole: Exclude<ExtendedRole, "owner">) => void;
-  onUpgrade: (tier: SeatTier) => void;
+  onUpgrade: (tier: SeatTier, interval: "month" | "year") => void;
   onManageBilling: () => void;
   onRemoveTarget: (m: Member) => void;
 }
@@ -95,6 +96,14 @@ const MembersTab = ({
   onManageBilling,
   onRemoveTarget,
 }: MembersTabProps) => {
+  // Billing interval for the seat-plan rows. Monthly by default: it is the
+  // smaller commitment and the one every existing subscriber is already on, so
+  // defaulting to annual would quietly re-anchor the prices they see.
+  const [billingInterval, setBillingInterval] = useState<"month" | "year">("month");
+  // Every paid tier is priced at 10x monthly, so this is 2 across the board.
+  // Derived rather than hardcoded so a future repricing cannot make the badge lie.
+  const annualMonthsFree = TIERS.find((tier) => tier.monthsFree > 0)?.monthsFree ?? 0;
+
   return (
     <>
       {isAdminOrOwner && (
@@ -198,6 +207,42 @@ const MembersTab = ({
             )}
           </div>
 
+          {/* Monthly / Annual switch. The seat plans were monthly-only until the
+              annual Stripe Prices existed (2026-08-19); the checkout function
+              has always accepted an `interval`, so this row is the only thing
+              that was missing. Annual is 10x monthly — two months free — and
+              that saving is stated on the control rather than left for the
+              reader to work out. */}
+          <div
+            role="group"
+            aria-label="Billing interval"
+            className="flex items-center gap-1 mb-3 p-0.5 rounded-ds-sm bg-muted/60 w-fit"
+          >
+            {([
+              { key: "month" as const, label: "Monthly" },
+              { key: "year" as const, label: "Annual" },
+            ]).map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                aria-pressed={billingInterval === opt.key}
+                onClick={() => setBillingInterval(opt.key)}
+                className={`h-8 px-3 rounded-ds-xs text-ds-11 font-medium transition-colors ${
+                  billingInterval === opt.key
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {opt.label}
+                {opt.key === "year" && annualMonthsFree > 0 && (
+                  <span className="ml-1.5 text-ds-10 text-primary">
+                    {annualMonthsFree} months free
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
           <div className="grid sm:grid-cols-2 gap-2">
             {TIERS.map((tier) => {
               const isCurrent = tier.id === currentTier;
@@ -224,7 +269,7 @@ const MembersTab = ({
                     <div>
                       <p className="font-medium text-ds-13">{tier.name}</p>
                       <p className="text-ds-11 text-muted-foreground">
-                        {tierSeats} seats · {tier.price}
+                        {tierSeats} seats · {billingInterval === "year" ? tier.annualPrice : tier.price}
                       </p>
                     </div>
                     {isCurrent && <Badge className="text-ds-10 h-5">Current</Badge>}
@@ -234,7 +279,7 @@ const MembersTab = ({
                       variant={isUpgrade ? "default" : "outline"}
                       size="sm"
                       className="w-full h-8 text-ds-11"
-                      onClick={() => onUpgrade(tier.id)}
+                      onClick={() => onUpgrade(tier.id, billingInterval)}
                       disabled={
                         upgrading !== null ||
                         openingPortal ||

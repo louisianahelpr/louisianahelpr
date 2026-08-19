@@ -6,7 +6,6 @@ import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
 import { DirectOfferBanner } from "./DirectOfferBanner";
-import { DraftSavedIndicator } from "./DraftSavedIndicator";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 import { formatPrice } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
@@ -70,7 +69,6 @@ export function FormStep({ form }: FormStepProps) {
           consider navigating away. */}
       {form.draftSavedAt > 0 && (
         <div className="flex justify-start">
-          <DraftSavedIndicator savedAt={form.draftSavedAt} />
         </div>
       )}
 

@@ -20,7 +20,6 @@ import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/Br
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { Skeleton } from "@/components/ui/skeleton";
-import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import DashboardStatusBanners from "@/components/dashboard/DashboardStatusBanners";
 import PayItForwardTeaser from "@/components/dashboard/PayItForwardTeaser";
@@ -306,13 +305,14 @@ const Dashboard = () => {
             onPendingClick={() => navigate("/account-pending")}
           />
 
-          {/* Quick-rebook strip — the customer's saved helprs, one tap
-              from a direct offer. Self-hides when there are none.
-              Wrapped in a SectionBoundary so a flaky `saved_helpers`
-              query can't red-screen the whole Dashboard tab. */}
-          <SectionBoundary label="your helpers">
-            <YourHelpersRow />
-          </SectionBoundary>
+          {/* The "Your Helprs" quick-rebook strip used to render here,
+              wrapped in a SectionBoundary. Removed 2026-08-19 at the owner's
+              request — it pushed the job feed down on the home tab for a
+              shortcut that only pays off for repeat customers. Rebooking a
+              saved helper still lives on Profile -> Saved Helprs, which is
+              where the full list is. The component itself
+              (components/dashboard/YourHelpersRow.tsx) is kept, unrendered,
+              in case it returns somewhere with more room. */}
           {/* The "Finish your profile" completion nudge used to render
               here. It moved off the home feed onto the Profile landing
               screen (ProfileLanding's completion meter) so the job feed

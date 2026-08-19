@@ -84,14 +84,25 @@ const MODES: { id: Exclude<PricingMode, "smart_price">; icon: React.ElementType;
  * action that would change nothing should not look available.
  */
 function SuggestionBox({
+  budget,
   suggested,
   smartPrice,
   onUse,
 }: {
   suggested: BudgetSuggestion;
+  budget: string;
   smartPrice: number | null;
   onUse: (v: string) => void;
 }) {
+  // Once the suggestion has been taken, the box has done its job — it would
+  // otherwise sit there restating a number the field already shows. Compared
+  // numerically so "60" and "60.00" both count as taken.
+  const taken =
+    smartPrice != null &&
+    budget.trim() !== "" &&
+    Number(budget) === Number(smartPrice.toFixed(2));
+  if (taken) return null;
+
   return (
     <div className="flex items-center gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">
       <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0" strokeWidth={2} />
@@ -295,13 +306,13 @@ export function BudgetSection({
             </div>
           )}
           {!priceStatsLoading && priceStats && priceStats.source === "static" && suggested && (
-            <SuggestionBox suggested={suggested} smartPrice={smartPrice} onUse={setBudget} />
+            <SuggestionBox budget={budget} suggested={suggested} smartPrice={smartPrice} onUse={setBudget} />
           )}
           {/* If the stats hook hasn't run yet at all (no category) but a
               static suggestion exists, still show it — keeps parity with
               the previous behavior. */}
           {!priceStats && !priceStatsLoading && suggested && (
-            <SuggestionBox suggested={suggested} smartPrice={smartPrice} onUse={setBudget} />
+            <SuggestionBox budget={budget} suggested={suggested} smartPrice={smartPrice} onUse={setBudget} />
           )}
           {/* Quick-tap budget presets — outline pills so they stay
               secondary to the budget input above. Only the selected

@@ -350,15 +350,6 @@ export default function SubscriptionPage() {
                 is a display size on a screen with no display to fill: it, its
                 explainer and the toggle together ate 40% of the viewport and
                 pushed the recommended plan off the bottom. */}
-            <h2
-              className="mt-2 sm:mt-3 font-display font-bold text-balance plan-masthead-title"
-              style={{
-                letterSpacing: "-0.025em",
-                color: "hsl(var(--ink-deep))",
-              }}
-            >
-              Pick your plan.
-            </h2>
             {/* Copy unchanged — this line is the factual statement that the
                 commission moves on BOTH sides, and it is the reason the page
                 exists. Only its measure changes: `max-w-xs` was capping it to

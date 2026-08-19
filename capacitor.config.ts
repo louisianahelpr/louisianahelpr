@@ -76,8 +76,15 @@ const config: CapacitorConfig = {
     SplashScreen: {
       // Show the splash immediately and hide it as soon as React mounts
       // (see src/lib/nativeInit.ts → initNative). Apple HIG: hide ASAP.
-      // A 4s safety-net timeout in nativeInit.ts guarantees the splash
-      // never hangs even if init fails.
+      // A 1.5s safety-net timeout in nativeInit.ts force-hides the splash
+      // even if init fails (this comment said 4s; it was tightened and the
+      // comment was not).
+      //
+      // NOTE that safety net hides the NATIVE splash only. If React fails to
+      // mount, hiding it just reveals index.html's #boot-loader, and the app
+      // sits on that forever. That is what a "loads but never opens" launch
+      // looks like — see the HARD CAP note in
+      // src/integrations/supabase/keychainStorageAdapter.ts.
       launchShowDuration: 0,
       launchAutoHide: false,
       backgroundColor: '#F1F2F4', // COOL parchment — the exact hex of hsl(220 14% 95%), i.e. --parchment in index.css. Matches StatusBar (below), index.html's theme-color and the #root FCP shell, so cold-start never flashes a mismatched tint as splash hands off to the WebView.

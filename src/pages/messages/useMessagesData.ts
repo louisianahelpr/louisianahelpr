@@ -386,13 +386,18 @@ export function useMessagesData({
     // leaves that notifications row unread — so the bell would keep counting
     // a message the user has already seen. Clear it here on thread open.
     if (userId) {
+      // `void <builder>` never issues the request — PostgrestBuilder fetches
+      // inside then(). The bell kept counting messages already read.
       void supabase
         .from("notifications")
         .update({ read: true })
         .eq("user_id", userId)
         .eq("type", "message")
         .eq("read", false)
-        .like("link", `%job=${convo.jobId}%`);
+        .like("link", `%job=${convo.jobId}%`)
+        .then(({ error }) => {
+          if (error) report(error, { tags: { source: "useMessagesData.clearThreadNotifs" } });
+        });
     }
     setChatLoading(false);
     scrollToBottom();

@@ -1,3 +1,4 @@
+import { logAdminAction } from "@/lib/adminAudit";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -129,12 +130,11 @@ const AdminReports = () => {
     } else {
       toast.success("Assigned to you — set to Investigating");
     }
-    void supabase.from("admin_audit_log").insert({
-      admin_id: user.id,
-      action: "report_assigned_self",
-      target_type: "report",
-      target_id: id,
-    });
+    // `void supabase.from(...).insert(...)` never sent this: PostgrestBuilder
+    // issues its fetch inside then(), so `void` evaluates the builder and
+    // discards it without ever calling then(). Trust & Safety had no audit
+    // trail at all. logAdminAction awaits and reports failures.
+    await logAdminAction("report_assigned_self", "report", id);
     loadReports();
     setUpdating(null);
   };
@@ -153,18 +153,18 @@ const AdminReports = () => {
     if (user) {
       const report = reports?.find(r => r.id === id);
       const ageHours = report ? Math.round((Date.now() - new Date(report.created_at).getTime()) / 3600_000) : null;
-      void supabase.from("admin_audit_log").insert({
-        admin_id: user.id,
-        action: status === "resolved" ? "report_resolved" : "report_dismissed",
-        target_type: "report",
-        target_id: id,
-        details: {
+      // Same dead-`void` bug as the assign path above.
+      await logAdminAction(
+        status === "resolved" ? "report_resolved" : "report_dismissed",
+        "report",
+        id,
+        {
           report_id: id,
           new_status: status,
           age_hours_at_resolution: ageHours,
           sla_breached: ageHours !== null && ageHours > SLA_BREACH_HOURS,
         },
-      });
+      );
     }
     toast.success(`Report marked as ${status}`);
     loadReports();

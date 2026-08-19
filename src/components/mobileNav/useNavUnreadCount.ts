@@ -1,3 +1,4 @@
+import { report } from "@/lib/errorLogger";
 import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
@@ -124,12 +125,18 @@ export function useNavUnreadCount(user: User | null | undefined) {
     // Keep the bell in sync with the messages badge: each chat message also
     // spawned a type='message' notifications row, so clear those too or the
     // bell would keep counting messages the user just marked read.
+    // This never ran — `void <builder>` discards the thenable without
+    // calling then(), so the request was never sent while the UI toasted
+    // "All messages marked read."
     void supabase
       .from("notifications")
       .update({ read: true })
       .eq("user_id", user.id)
       .eq("type", "message")
-      .eq("read", false);
+      .eq("read", false)
+      .then(({ error }) => {
+        if (error) report(error, { tags: { source: "useNavUnreadCount.clearMessageNotifs" } });
+      });
     toast.success("All messages marked read.");
   }, [user, unreadCount]);
 

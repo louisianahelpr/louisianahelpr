@@ -1,3 +1,4 @@
+import { report } from "@/lib/errorLogger";
 import { useEffect, type MutableRefObject } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
@@ -46,17 +47,32 @@ export function useMessagesRealtime({
           const active = activeConvoRef.current;
           if (active && msg.job_id === active.jobId) {
             setMessages((prev) => [...prev, msg]);
-            supabase.from("messages").update({ read: true }).eq("id", msg.id);
+            // A bare builder never fires — PostgrestBuilder issues its fetch
+            // inside then(). This read-receipt was never sent, so messages the
+            // user was actively reading stayed unread forever.
+            void supabase
+              .from("messages")
+              .update({ read: true })
+              .eq("id", msg.id)
+              .then(({ error }) => {
+                if (error) report(error, { tags: { source: "useMessagesRealtime.markRead" } });
+              });
             // The insert also spawned a type='message' notifications row via
             // trigger; the user is looking at this thread, so clear it now to
             // keep the bell from counting a message they're actively reading.
+            // Same dead-`void` pattern: without a .then() the request is
+            // never issued, so the bell kept counting a message the user was
+            // looking at.
             void supabase
               .from("notifications")
               .update({ read: true })
               .eq("user_id", userId)
               .eq("type", "message")
               .eq("read", false)
-              .like("link", `%job=${msg.job_id}%`);
+              .like("link", `%job=${msg.job_id}%`)
+              .then(({ error }) => {
+                if (error) report(error, { tags: { source: "useMessagesRealtime.clearMessageNotif" } });
+              });
             scrollToBottom();
           }
           // Patch just the affected conversation row instead of

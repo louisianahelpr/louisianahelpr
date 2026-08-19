@@ -255,61 +255,95 @@
       [data-theme="dark"] #boot-loader {
         background: hsl(20 15% 9%) !important;
       }
-      [data-theme="dark"] #boot-loader .boot-word {
-        color: hsl(36 15% 80% / 0.62) !important;
+      [data-theme="dark"] #boot-loader .boot-name {
+        color: hsl(36 15% 85%) !important;
       }
-      [data-theme="dark"] .boot-spinner {
-        border-color: hsl(36 15% 80% / 0.16) !important;
-        border-top-color: hsl(19 65% 52%) !important;
+      [data-theme="dark"] #boot-loader .boot-la {
+        color: hsl(19 65% 52%) !important;
       }
+      /* The crest tile is deliberately NOT themed. It is the app icon, and
+         the app icon on the user's home screen does not change with the
+         system theme either — keeping it identical is what makes the tap
+         feel like the icon opening into the app. */
     </style>
   </head>
   <body>
     <!--
-      Inline FCP shell — solid brand-color background + a small branded boot
-      loader (LH-50). Previously this rendered a 580×580 splash <img> which
+      Inline FCP shell — solid brand-color background + the Helpr crest and
+      wordmark (LH-50). Previously this rendered a 580x580 splash <img> which
       became Lighthouse's LCP element (the LCP timer doesn't reset when React
       replaces the splash, so the score waited on the splash to paint). It was
       then stripped back to a bare background, which left a blank cream screen
-      for ~2-3s on slow connections while the JS bundle parsed.
+      for ~2-3s on slow connections while the JS bundle parsed. Then it was a
+      generic 34px ring spinner + a muted italic word, which painted fast but
+      read as an unbranded loading state rather than as Helpr opening.
 
-      This loader threads that needle: a 34px CSS ring spinner + a muted
-      wordmark, all inline (no external asset, no web-font dependency). Both
-      elements are deliberately tiny so neither becomes the LCP candidate —
-      the Bodoni hero H1 still wins LCP. React's createRoot().render() clears
-      #root's children on its first commit, so this markup is removed the
-      instant the app paints; no JS teardown is needed.
+      This version is the crest as INLINE SVG. Three properties matter:
 
-      Do NOT reintroduce a large splash <img> here — that regresses LCP.
+        1. Zero network requests. The paths are in this document, so the mark
+           paints on the very first frame — no asset fetch, no web-font wait,
+           nothing that can arrive late or fail offline.
+        2. NOT an LCP candidate. LCP only considers <img>, <image> inside an
+           <svg>, <video> poster, background-image, and text blocks. An inline
+           <svg> drawn with <rect>/<path> is none of those, so the crest cannot
+           take the LCP crown no matter how large it renders. This is why the
+           mark could come back at all — an <img> of the same emblem WOULD be a
+           candidate. Do NOT swap these paths for an <img>, and do NOT
+           reintroduce a large splash <img> here; both regress LCP.
+        3. Same identity as the home-screen icon. Geometry is lifted from
+           public/app-icon-alt.svg (bark plate, cream H), so tapping the icon
+           and seeing this screen is one continuous gesture.
+
+           The sienna fleur-de-lis and keystone star from that file are
+           deliberately NOT carried over. Both are authored for a 1024px App
+           Store canvas: at 72px the fleur's side petals overrun the H's
+           columns and its banded waist paints over the crossbar, so the mark
+           stops reading as an H and becomes two posts with an orange smear
+           between them. Measured at 64/96px before cutting it. Louisiana is
+           carried by the wordmark's "- LA" tail below instead, which is where
+           HelprMark puts it anyway.
+
+      The wordmark matches src/components/HelprMark.tsx exactly — EB Garamond
+      at weight 500, NOT italic, --ink-deep, with the italic Burnt-Sienna
+      "- LA" tail at 0.22em tracking. The previous boot word was italic, grey
+      and had no LA tail, so the first wordmark a user saw was the one place in
+      the app that did not match the real mark. EB Garamond is the brand SERIF
+      (tailwind `font-serif`); Bodoni Moda is the DISPLAY face used for hero
+      headlines, and is deliberately not used here.
+
+      React's createRoot().render() clears #root's children on its first commit,
+      so this markup is removed the instant the app paints; no JS teardown.
     -->
     <div id="root" style="background:hsl(220 14% 95%);min-height:100vh;">
       <div
         id="boot-loader"
         role="status"
         aria-label="Loading Helpr"
-        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:hsl(220 14% 95%);"
+        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:hsl(220 14% 95%);"
       >
-        <div class="boot-spinner"></div>
-        <div
-          class="boot-word"
-          style="font-family:'EB Garamond',Georgia,'Times New Roman',serif;font-style:italic;font-size:15px;letter-spacing:0.05em;color:hsl(64 16% 16% / 0.80);"
-        >
-          Helpr
+        <svg class="boot-crest" width="72" height="72" viewBox="0 0 1024 1024" aria-hidden="true" focusable="false">
+          <rect width="1024" height="1024" rx="230" fill="hsl(70 20% 33%)"/>
+          <g fill="hsl(40 24% 92%)">
+            <rect x="240" y="240" width="140" height="544"/>
+            <rect x="644" y="240" width="140" height="544"/>
+            <rect x="240" y="470" width="544" height="84"/>
+          </g>
+        </svg>
+        <div class="boot-word" style="font-family:'EB Garamond',Georgia,Cambria,serif;display:inline-flex;align-items:baseline;gap:0.05em;line-height:1;">
+          <span class="boot-name" style="font-size:20px;font-weight:500;letter-spacing:-0.005em;color:hsl(64 16% 12%);">Helpr</span>
+          <span class="boot-la" style="font-size:13px;font-style:italic;font-weight:400;letter-spacing:0.22em;margin-left:0.18em;color:hsl(19 75% 35%);">&#183; LA</span>
         </div>
         <style>
-          .boot-spinner {
-            width: 34px;
-            height: 34px;
-            border-radius: 9999px;
-            border: 2.5px solid hsl(70 20% 33% / 0.16);
-            border-top-color: hsl(19 75% 35%);
-            animation: boot-spin 0.7s linear infinite;
-          }
-          @keyframes boot-spin {
-            to { transform: rotate(360deg); }
+          /* A launch screen is static by Apple HIG — no spinner, no progress.
+             The only motion is a single short fade so the first paint reads as
+             deliberate rather than as a frozen frame. It never loops. */
+          #boot-loader { animation: boot-in 260ms ease-out both; }
+          @keyframes boot-in {
+            from { opacity: 0; }
+            to   { opacity: 1; }
           }
           @media (prefers-reduced-motion: reduce) {
-            .boot-spinner { animation-duration: 1.6s; }
+            #boot-loader { animation: none; }
           }
         </style>
       </div>

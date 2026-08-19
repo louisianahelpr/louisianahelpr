@@ -8,18 +8,27 @@ permissions:
 # security issues that could put user data at risk OR get flagged by
 # App Store reviewers.
 #
+# SUPERSEDED — this workflow is MANUAL-ONLY and that is deliberate.
+#
+# GitHub's *default* CodeQL setup is enabled on this repo and already scans
+# actions / javascript / javascript-typescript / typescript on its own
+# schedule. Running this file automatically as well would double every scan
+# for identical findings, so its triggers stay off.
+#
+# Verify the default setup is still on before deleting this file:
+#   gh api repos/:owner/:repo/code-scanning/default-setup
+# If that ever reports "not-configured", uncomment the blocks below — this
+# file is the fallback, and it is the ONLY thing standing between the repo
+# and having no static analysis at all.
+#
 # Runs:
-# - On every PR to main
-# - Weekly on Wednesdays (catches newly-disclosed query patterns)
-# - Manually via workflow_dispatch
+# - Manually via workflow_dispatch (only)
 
 on:
-  # DISABLED automatic triggers — CodeQL security scanning is valuable but
-  # rarely surfaces issues in a small project, and was burning Actions
-  # minutes. Dependabot already covers most dependency CVEs. Run manually
-  # from the Actions tab before major releases.
-  #
-  # To re-enable automatic runs, uncomment the pull_request / schedule blocks.
+  # Intentionally manual-only — see the SUPERSEDED note above. The original
+  # reason given here ("was burning Actions minutes") does not hold: this is
+  # a public repo, where ubuntu runners are free and unlimited. The reason it
+  # stays off is redundancy with GitHub's default CodeQL setup, not cost.
   #
   # pull_request:
   #   branches: [main]

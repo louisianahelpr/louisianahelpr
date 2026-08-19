@@ -8,8 +8,8 @@ permissions:
 # only surface when functions are actually invoked.
 #
 # Runs:
-# - After every push to main that touches edge functions (post-deploy check)
 # - Once daily on schedule (catches secret expirations / Supabase outages)
+# - NOT on push: functions-deploy.yml already covers the post-deploy check
 # - Manually via workflow_dispatch
 #
 # Note: Reduced from hourly to daily to conserve GitHub Actions minutes.
@@ -32,16 +32,21 @@ permissions:
 # dead since the same migration.
 
 on:
-  # DISABLED automatic triggers — was burning Actions minutes daily.
-  # Sentry/user reports surface real outages faster anyway.
-  # To re-enable, uncomment the push / schedule blocks.
+  # Runs daily. This was switched off in April 2026 to stop "burning Actions
+  # minutes" — but the repo is PUBLIC, where ubuntu runners are free and
+  # unlimited, so the schedule was never costing anything. What its absence
+  # did cost was ~114 consecutive days with nothing smoke-testing the edge
+  # functions that carry the Stripe escrow paths. Re-enabled.
+  #
+  # The push-on-path trigger stays off on purpose: a functions deploy already
+  # runs functions-deploy.yml, so it would only duplicate that.
   #
   # push:
   #   branches: [main]
   #   paths:
   #     - "supabase/functions/**"
-  # schedule:
-  #   - cron: "0 13 * * *" # daily at 13:00 UTC (08:00 CT)
+  schedule:
+    - cron: "0 13 * * *" # daily at 13:00 UTC (08:00 CT)
   workflow_dispatch:
 
 concurrency:

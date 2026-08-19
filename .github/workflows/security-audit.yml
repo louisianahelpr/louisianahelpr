@@ -9,21 +9,26 @@ permissions:
 #
 # Runs:
 # - Weekly on Mondays (catches newly-disclosed CVEs in existing deps)
-# - On every PR that touches package.json (catches regressions from new deps)
+# - NOT on PRs: weekly is enough for a scan gated on lockfile changes
 # - Manually via workflow_dispatch
 
 on:
-  # DISABLED automatic triggers — was burning Actions minutes weekly + on PRs.
-  # Dependabot already alerts on CVEs. Run manually before major releases.
-  # To re-enable, uncomment the pull_request / schedule blocks.
+  # Runs weekly. The "Dependabot already covers this" rationale that switched
+  # it off was only half true: Dependabot alerts on PUBLISHED advisories for
+  # declared deps, while this runs `npm audit` against the fully resolved
+  # lockfile, so it catches transitive findings Dependabot does not open a PR
+  # for. Free on a public repo either way.
+  #
+  # The PR-path trigger stays off to keep PR checks lean — weekly is enough
+  # for a scan whose input only changes when the lockfile does.
   #
   # pull_request:
   #   branches: [main]
   #   paths:
   #     - "package.json"
   #     - "package-lock.json"
-  # schedule:
-  #   - cron: "0 8 * * 1" # Monday 08:00 UTC
+  schedule:
+    - cron: "0 8 * * 1" # Monday 08:00 UTC
   workflow_dispatch:
 
 concurrency:

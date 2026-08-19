@@ -12,12 +12,13 @@ permissions:
 # - Manually via workflow_dispatch
 
 on:
-  # DISABLED automatic triggers — was burning Actions minutes weekly.
-  # Run manually from the Actions tab before App Store submissions.
-  # To re-enable, uncomment the schedule block.
-  #
-  # schedule:
-  #   - cron: "0 9 * * 2" # Tuesday 09:00 UTC
+  # Runs weekly. "Run it manually before submissions" is exactly the failure
+  # mode this check exists to prevent — App Store reviewers click the privacy
+  # / support / terms URLs, and a 404 on any of them is grounds for rejection,
+  # so it has to catch breakage continuously rather than when someone
+  # remembers. Free on a public repo.
+  schedule:
+    - cron: "0 9 * * 2" # Tuesday 09:00 UTC
   workflow_dispatch:
 
 jobs:

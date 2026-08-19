@@ -95,14 +95,21 @@
 	  Primary "AppIcon" is managed by Assets.xcassets/AppIcon.appiconset
 	  (the ornate Garden District ironwork H).
 
-	  The alternate "AppIcon-Fleur" CFBundleAlternateIcons block is
-	  intentionally REMOVED until the rasterized PNGs are wired into
-	  the Xcode project as a folder reference. Apple's ASC validator
-	  rejects builds whose CFBundleAlternateIcons reference files that
-	  don't exist in the .ipa (ITMS-90032). Re-add after running
-	  `node scripts/generate-ios-icons.mjs` on a Mac and dragging
-	  `ios/App/App/AlternateIcons/` into Xcode App group as a
-	  folder reference (blue folder, not yellow group).
+	  There is NO alternate icon. The "AppIcon-Fleur" source
+	  (public/app-icon-alt.svg — a flat bark plate with a geometric H)
+	  was deleted 2026-08-19: it was never the brand mark, never shipped,
+	  and its CFBundleAlternateIcons block was never declared here.
+	  scripts/generate-ios-icons.mjs still has an alternate-icon branch,
+	  but it now takes its no-source path and logs
+	  "(no alternate icon - skipping)", so nothing breaks.
+
+	  If an alternate icon is ever wanted again: add the source back at
+	  public/app-icon-alt.svg, run `node scripts/generate-ios-icons.mjs`
+	  on a Mac, drag ios/App/App/AlternateIcons/ into the Xcode App group
+	  as a folder reference (blue folder, not yellow group), and only THEN
+	  declare CFBundleAlternateIcons. Apple's ASC validator rejects builds
+	  whose CFBundleAlternateIcons reference files absent from the .ipa
+	  (ITMS-90032) — declaring it first is the failure mode.
 	-->
 	<key>CFBundleIcons</key>
 	<dict>

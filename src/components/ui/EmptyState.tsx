@@ -113,10 +113,19 @@ export function EmptyState({
 
   return (
     <div
+      // `min-w-0 max-w-full` is load-bearing, not defensive dressing. A flex
+      // item defaults to `min-width: auto`, which refuses to shrink below the
+      // intrinsic width of its content — so a long unbreakable label pushed
+      // this panel WIDER than its 320px container instead of wrapping, and the
+      // whole page overflowed horizontally.
+      //
+      // It reproduced only on CI's runner, whose font metrics differ from a
+      // Mac's, which is why a local repro kept coming back clean while
+      // `device-pass-measure /dashboard @ 320-light` failed every run.
       className={
         isDock
-          ? "flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10 rounded-t-2xl"
-          : "flex-1 liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-14 rounded-2xl"
+          ? "flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10 rounded-t-2xl"
+          : "flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-14 rounded-2xl"
       }
       style={cardStyle}
     >

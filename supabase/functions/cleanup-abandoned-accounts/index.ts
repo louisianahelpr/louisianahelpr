@@ -59,12 +59,26 @@ Deno.serve(async (req) => {
 
     for (const u of candidates) {
       try {
-        // Pull profile to determine role + Stripe state
-        const { data: profile } = await supabase
+        // Pull profile to determine Stripe + approval/ban state.
+        //
+        // This used to also select `role`, a column DROPPED when accounts were
+        // unified (2026-05). PostgREST 400s the whole SELECT on an unknown
+        // column, and the error was being discarded (`const { data: profile }`),
+        // so `profile` came back null for EVERY user and the `!profile` guard
+        // below skipped all of them — this cleanup has been a silent no-op ever
+        // since. Fail-safe (nothing was wrongly deleted) but entirely dead, and
+        // invisible. The error is checked now so the next such break says so.
+        const { data: profile, error: profileErr } = await supabase
           .from("profiles")
-          .select("role, stripe_account_id, approval_status, ban_status")
+          .select("stripe_account_id, approval_status, ban_status")
           .eq("user_id", u.id)
           .maybeSingle();
+
+        if (profileErr) {
+          console.error(`[cleanup-abandoned-accounts] profile read failed for ${u.id} — skipping:`, profileErr);
+          skipped.push(u.id);
+          continue;
+        }
 
         // Never delete approved/banned/admin accounts
         if (!profile) {

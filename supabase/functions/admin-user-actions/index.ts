@@ -107,8 +107,13 @@ Deno.serve(async (req) => {
       })
     }
 
+    // NO `role`: `profiles.role` was DROPPED when accounts were unified
+    // (2026-05). PostgREST 400s the whole select on an unknown column, so the
+    // profileErr guard below fired on EVERY call and every admin account action
+    // — ban, manual verify, formal warning, the lot — returned 500 "Could not
+    // load user profile. Please try again." The value was never read anyway.
     const { data: profile, error: profileErr } = await admin.from('profiles')
-      .select('full_name, email, user_id, role')
+      .select('full_name, email, user_id')
       .eq('user_id', targetUserId).maybeSingle()
 
     // A dropped error here maps a transient DB failure to "User email not found"

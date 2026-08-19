@@ -14,8 +14,11 @@
          status-bar / browser chrome band blends into the top of the page with
          no seam (LH-18). Currently hsl(220 14% 95%) = #F1F2F4.
          The SAME value must appear in capacitor.config.ts (splash +
-         StatusBar) and manifest.webmanifest (theme_color + background_color).
-         Four files, one colour — if the palette flips warm, change all four.
+         StatusBar), manifest.webmanifest (theme_color + background_color),
+         the #root/#boot-loader inline styles BELOW, and — the one that keeps
+         getting missed — ios/App/App/Base.lproj/LaunchScreen.storyboard, which
+         holds it as sRGB floats (0.9451/0.9490/0.9569) and so never matches a
+         hex grep. FIVE places, one colour; if the palette flips, change all five.
          (This previously claimed to match "#FAF9F5" while the manifest was
          teal and Capacitor was warm #ECE9E4; three comments each asserted
          agreement that did not exist.) -->
@@ -279,12 +282,12 @@
 
       Do NOT reintroduce a large splash <img> here — that regresses LCP.
     -->
-    <div id="root" style="background:hsl(220 16% 97%);min-height:100vh;">
+    <div id="root" style="background:hsl(220 14% 95%);min-height:100vh;">
       <div
         id="boot-loader"
         role="status"
         aria-label="Loading Helpr"
-        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:hsl(220 16% 97%);"
+        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:hsl(220 14% 95%);"
       >
         <div class="boot-spinner"></div>
         <div

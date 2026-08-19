@@ -253,7 +253,8 @@
     <style id="boot-theme">
       [data-theme="dark"] #root,
       [data-theme="dark"] #boot-loader {
-        background: hsl(20 15% 9%) !important;
+        background: radial-gradient(circle at 50% 46%, hsl(20 14% 13%) 0%, hsl(20 15% 9%) 52%, hsl(20 17% 6%) 100%) !important;
+        background-color: hsl(20 15% 9%) !important;
       }
       /* Mirrors `[data-theme="dark"] .helpr-emblem` in src/index.css. It cannot
          reuse that class: index.css ships with the JS bundle, which has not
@@ -264,7 +265,8 @@
          rule in index.css changes, change this one with it. */
       [data-theme="dark"] #boot-loader .boot-mark {
         filter: brightness(1.9) saturate(1.2)
-                drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)) !important;
+                drop-shadow(0 2px 4px rgba(0, 0, 0, 0.65))
+                drop-shadow(0 10px 24px rgba(0, 0, 0, 0.7)) !important;
       }
     </style>
   </head>
@@ -309,12 +311,12 @@
       React's createRoot().render() clears #root's children on its first
       commit, so this markup is removed the instant the app paints.
     -->
-    <div id="root" style="background:hsl(220 14% 95%);min-height:100vh;">
+    <div id="root" style="background:radial-gradient(circle at 50% 46%, hsl(220 20% 98%) 0%, hsl(220 14% 95%) 52%, hsl(220 13% 91%) 100%);background-color:hsl(220 14% 95%);min-height:100vh;">
       <div
         id="boot-loader"
         role="status"
         aria-label="Loading Helpr"
-        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:hsl(220 14% 95%);"
+        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 46%, hsl(220 20% 98%) 0%, hsl(220 14% 95%) 52%, hsl(220 13% 91%) 100%);background-color:hsl(220 14% 95%);"
       >
         <img
           class="boot-mark"
@@ -331,6 +333,7 @@
              (.helpr-emblem, src/index.css). Dark override lives in
              #boot-theme in <head>. */
           .boot-mark {
+            animation: mark-in 420ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
             /* The artwork is 256x220, NOT square. Constrain HEIGHT and let
                width follow, exactly as HelprMark does with `h-* w-auto` —
                setting both to 72 stretched the mark ~14% and is the kind of
@@ -340,16 +343,27 @@
             height: 72px;
             width: auto;
             user-select: none;
-            filter: drop-shadow(0 1px 1px rgba(46, 47, 34, 0.18))
-                    drop-shadow(0 2px 6px rgba(46, 47, 34, 0.1));
+            /* Elevation, not the inline-nav lift. .helpr-emblem's shadow is
+               tuned for a 20px mark sitting IN a toolbar; at 72px on an empty
+               ground it reads as flat. This is a two-layer cast: a tight
+               contact shadow plus a wide soft one, so the ironwork looks like
+               it is floating above the parchment rather than printed on it.
+               drop-shadow follows the PNG's alpha, so the shadow is
+               scroll-shaped — a box-shadow would cast a rectangle. */
+            filter: drop-shadow(0 2px 3px rgba(46, 47, 34, 0.18))
+                    drop-shadow(0 9px 20px rgba(46, 47, 34, 0.28));
           }
-          /* A launch screen is static per Apple HIG — no spinner, no progress.
-             The only motion is one short fade so the first paint reads as
-             deliberate rather than frozen. It never loops. */
-          #boot-loader { animation: boot-in 260ms ease-out both; }
-          @keyframes boot-in { from { opacity: 0; } to { opacity: 1; } }
+          /* The GROUND paints on frame 1 — never fade the background, or the
+             handoff from the native splash flashes. Only the MARK animates: a
+             420ms grow from 0.94, which reads as the icon opening into the app
+             (the gesture iOS already trains). No spinner: a launch screen is
+             static per Apple HIG. It never loops. */
+          @keyframes mark-in {
+            from { opacity: 0; transform: scale(0.94); }
+            to   { opacity: 1; transform: scale(1); }
+          }
           @media (prefers-reduced-motion: reduce) {
-            #boot-loader { animation: none; }
+            .boot-mark { animation: none; }
           }
         </style>
       </div>

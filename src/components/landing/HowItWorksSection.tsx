@@ -94,9 +94,9 @@ const HowItWorksSection = () => {
     <section
       id="how-it-works"
       ref={sectionRef}
-      className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-16 sm:pb-24 lg:pb-32 scroll-mt-24"
+      className="px-5 sm:px-8 lg:px-12 pt-8 sm:pt-16 lg:pt-24 pb-8 sm:pb-24 lg:pb-32 scroll-mt-24"
     >
-      <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-center">
+      <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 lg:gap-16 md:items-center">
         {/* Left column — masthead. Sticky at md+ so it stays anchored
             while the reader scrolls through the numbered steps. */}
         <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
@@ -107,9 +107,9 @@ const HowItWorksSection = () => {
               three steps are FOR. The heading below carries it instead, which
               is also what the nav link pointing at #how-it-works is called. */}
           <h2
-            className="mt-3 font-display font-bold text-balance leading-[1.05] max-w-[10ch] md:max-w-none mx-auto md:mx-0"
+            className="mt-3 font-display font-bold text-balance leading-[1.05] max-w-none sm:max-w-[10ch] md:max-w-none mx-auto md:mx-0"
             style={{
-              fontSize: "clamp(2.25rem, 3.4vw, 3.25rem)",
+              fontSize: "clamp(2rem, 3.4vw, 3.25rem)",
               letterSpacing: "-0.025em",
               color: "hsl(var(--ink-deep))",
             }}
@@ -130,7 +130,7 @@ const HowItWorksSection = () => {
               selected. Same type treatment as the /subscription and
               /for-business section subheads. */}
           <p
-            className="mt-4 font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
+            className="mt-3 font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
             The basics, whether you're hiring or working.
@@ -149,7 +149,7 @@ const HowItWorksSection = () => {
           <div
             role="tablist"
             aria-label="Which side of Helpr are you on"
-            className="mt-6 inline-flex flex-nowrap items-center justify-center md:justify-start gap-1 p-1 rounded-2xl"
+            className="mt-4 inline-flex flex-nowrap items-center justify-center md:justify-start gap-1 p-1 rounded-2xl"
             style={{
               background: "hsl(var(--burnt-sienna) / 0.06)",
               border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
@@ -199,7 +199,7 @@ const HowItWorksSection = () => {
               to work" ran 247px against 225px). The floor is set per breakpoint
               because the card width, and so the wrap height, changes with the
               column count. */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3 items-stretch gap-10 sm:gap-8 lg:gap-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3 items-stretch gap-3 sm:gap-8 lg:gap-10">
             {/* Keyed by index, not title: switching sides swaps the copy in
                 the SAME three nodes instead of remounting them, so the
                 observer's staggered fade-in isn't re-armed (or skipped) on
@@ -223,7 +223,7 @@ const HowItWorksSection = () => {
                 // was inflating a two-line row card to 304px. sm/lg keep their
                 // floors because those are the 3-up stacked layouts, where the
                 // cards genuinely need matching height.
-                className="h-full flex flex-col md:flex-row md:items-start md:gap-6 lg:flex-col lg:gap-0 text-center md:text-left rounded-2xl p-6 sm:p-7 lg:p-8 sm:min-h-[19rem] md:min-h-0 lg:min-h-[21rem]"
+                className="h-full flex flex-col md:flex-row md:items-start md:gap-6 lg:flex-col lg:gap-0 text-center md:text-left rounded-2xl p-3.5 sm:p-7 lg:p-8 sm:min-h-[19rem] md:min-h-0 lg:min-h-[21rem]"
                 style={{
                   opacity: inView ? 1 : 0,
                   transform: inView ? "translateY(0)" : "translateY(24px)",
@@ -238,7 +238,7 @@ const HowItWorksSection = () => {
                   aria-hidden
                   className="block shrink-0 font-display font-black leading-none"
                   style={{
-                    fontSize: "clamp(4rem, 6.5vw, 6rem)",
+                    fontSize: "clamp(2.125rem, 6.5vw, 6rem)",
                     color: "hsl(var(--burnt-sienna) / 0.35)",
                     letterSpacing: "-0.04em",
                   }}
@@ -260,13 +260,13 @@ const HowItWorksSection = () => {
                   className="min-w-0 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300"
                 >
                 <h3
-                  className="mt-4 md:mt-0 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
+                  className="mt-2 md:mt-0 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
                   style={{ color: "hsl(var(--ink-deep))" }}
                 >
                   {step.title}
                 </h3>
                 <p
-                  className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:mx-0"
+                  className="mt-2 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:mx-0"
                   style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                 >
                   {step.desc}

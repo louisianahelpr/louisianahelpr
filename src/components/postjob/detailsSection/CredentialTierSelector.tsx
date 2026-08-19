@@ -18,7 +18,7 @@ export function CredentialTierSelector({
   return (
     <div className="space-y-2.5">
       <div className="space-y-0.5">
-        <Label>Who can apply?</Label>
+        <Label id="who-can-apply-label">Who can apply?</Label>
         <p className="text-ds-11 font-serif italic leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           Require credentials for licensed trade work.
         </p>
@@ -31,7 +31,7 @@ export function CredentialTierSelector({
           Stacking also puts them in their real order: Open → Licensed →
           Licensed + Insured is an escalating requirement, and a vertical
           ladder shows that progression where a grid scrambled it. */}
-      <div className="flex flex-col gap-2">
+      <div role="group" aria-labelledby="who-can-apply-label" className="flex flex-col gap-2">
         {CREDENTIAL_TIERS.map(({ value, label, sub, Icon }) => {
           const active = credentialTier === value;
           return (

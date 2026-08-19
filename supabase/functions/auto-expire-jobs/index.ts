@@ -28,10 +28,17 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().split("T")[0];
 
     // 1. Expire accepted jobs that were accepted 24h+ ago but never started
+    // `helper_confirmed_at IS NULL` is the real predicate for "stale
+    // acceptance". Selecting on `updated_at` alone un-booked CONFIRMED helpers:
+    // a helper who accepted and confirmed a job scheduled for next week had
+    // their booking destroyed 24h after the row was last touched, purely
+    // because nothing had written to it since. auto_start_due_jobs gets this
+    // right and requires helper_confirmed_at IS NOT NULL; this did not.
     const { data: staleAccepted, error: fetchError } = await supabase
       .from("jobs")
       .select("id, title, customer_id, helper_id")
       .eq("status", "accepted")
+      .is("helper_confirmed_at", null)
       .lt("updated_at", twentyFourHoursAgo);
 
     if (fetchError) throw fetchError;
@@ -39,10 +46,22 @@ Deno.serve(async (req) => {
     let expiredCount = 0;
 
     for (const job of staleAccepted || []) {
-      const { error: updateError } = await supabase
+      // Conditional + row-count checked. The write used to carry no status
+      // predicate, and ('in_progress','open') IS an allowed transition — so a
+      // job the helper had STARTED in the window between the read above and
+      // this write was silently reset to open with helper_id nulled, while its
+      // escrow was still held.
+      const { data: reopened, error: updateError } = await supabase
         .from("jobs")
         .update({ status: "open", helper_id: null })
-        .eq("id", job.id);
+        .eq("id", job.id)
+        .eq("status", "accepted")
+        .is("helper_confirmed_at", null)
+        .select("id");
+      if (!updateError && (reopened?.length ?? 0) === 0) {
+        console.log(`[auto-expire-jobs] job ${job.id} changed since read — skipping reopen`);
+        continue;
+      }
 
       if (updateError) {
         console.error(`Failed to expire job ${job.id}:`, updateError);
@@ -104,17 +123,31 @@ Deno.serve(async (req) => {
       if (seen.has(job.id)) continue;
       seen.add(job.id);
 
-      const { error: cancelError } = await supabase
+      // Conditional on still being open — see the reopen guard above. Without
+      // it, a helper who won this job via accept_application or
+      // instant_book_claim between the read and this write ended up accepted on
+      // a CANCELLED job: no cancellation_fee written, and void-cancelled-payments
+      // then refunded the poster in full while the helper still believed they
+      // were booked.
+      const { data: cancelledRows, error: cancelError } = await supabase
         .from("jobs")
         .update({
           status: "cancelled",
           cancelled_at: now,
           cancellation_reason: "Job listing expired — scheduled time passed with no helper assigned",
         })
-        .eq("id", job.id);
+        .eq("id", job.id)
+        .eq("status", "open")
+        .select("id");
 
       if (cancelError) {
         console.error(`Failed to cancel expired job ${job.id}:`, cancelError);
+        continue;
+      }
+      if ((cancelledRows?.length ?? 0) === 0) {
+        // Someone claimed it between the read and now. Leave it alone and do
+        // NOT notify the poster that it was cancelled — it wasn't.
+        console.log(`[auto-expire-jobs] job ${job.id} was claimed since read — skipping cancel`);
         continue;
       }
 

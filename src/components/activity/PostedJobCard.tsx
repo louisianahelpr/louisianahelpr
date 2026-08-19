@@ -471,7 +471,9 @@ function PostedJobCardInner({
 
               {/* Analytics mini-panel — reach/views readout. The applicant
                   count is intentionally NOT shown here: the Applicants button
-                  already surfaces it, so repeating it as "N applied" is noise. */}
+                  already surfaces it, so repeating it as "N applied" is noise.
+                  The bid-range line that used to close this panel is gone with
+                  the accept_bids mode itself — zero posters ever used it. */}
               {jobAnalytics && jobAnalytics.viewCount > 0 && (
                 <div
                   className="mx-4 rounded-ds-md px-3 py-2.5 space-y-1.5 mb-2"
@@ -492,12 +494,6 @@ function PostedJobCardInner({
                       </span>
                     )}
                   </div>
-                  {/* Bid range — only for accept_bids jobs */}
-                  {jobAnalytics.bidAvg !== null && (
-                    <p className="text-ds-11" style={{ color: "hsl(var(--ink-deep) / 0.55)" }}>
-                      Bids: ${formatPrice(jobAnalytics.bidMin ?? 0)}–${formatPrice(jobAnalytics.bidMax ?? 0)} · avg ${formatPrice(jobAnalytics.bidAvg)}
-                    </p>
-                  )}
                 </div>
               )}
 

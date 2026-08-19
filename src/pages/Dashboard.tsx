@@ -186,7 +186,6 @@ const Dashboard = () => {
   const {
     confirmApplyJobId, setConfirmApplyJobId, confirmApplyJob,
     applyMessage, setApplyMessage, applyLoading, applyFiles, setApplyFiles,
-    bidPrice, setBidPrice,
     handleApplyRequest, handleApplyConfirm,
   } = useApplyFlow({ user, allJobs });
 
@@ -511,8 +510,6 @@ const Dashboard = () => {
             applyFiles={applyFiles}
             setApplyFiles={setApplyFiles}
             applyLoading={applyLoading}
-            bidPrice={bidPrice}
-            setBidPrice={setBidPrice}
             handleApplyConfirm={handleApplyConfirm}
           />
         </Suspense>

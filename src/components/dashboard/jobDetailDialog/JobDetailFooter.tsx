@@ -31,13 +31,9 @@ export const JobDetailFooter = ({
 }: JobDetailFooterProps) => {
   if (guest) {
     // Mirror the authenticated footer's verb so the CTA names the real action:
-    // a bidding job invites a bid, an instant-book job a booking, else an apply.
-    const guestCtaLabel =
-      job.pricing_mode === "accept_bids"
-        ? "Sign up to bid"
-        : job.instant_book
-          ? "Sign up to book"
-          : "Sign up to apply";
+    // an instant-book job invites a booking, else an apply. (The third
+    // "Sign up to bid" branch went away with bidding — zero production usage.)
+    const guestCtaLabel = job.instant_book ? "Sign up to book" : "Sign up to apply";
     return (
       <Button
         size="lg"
@@ -112,7 +108,7 @@ export const JobDetailFooter = ({
       {viewerUserId !== job.customer_id && (
         <ShareJobButton
           variant="icon"
-          job={{ id: job.id, title: job.title, budget: job.budget, pricingMode: job.pricing_mode, category: job.category, city: getCity(job.location).replace(/,\s*LA\s*$/i, "") }}
+          job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCity(job.location).replace(/,\s*LA\s*$/i, "") }}
           ariaLabel="Share this job"
         />
       )}
@@ -213,7 +209,7 @@ export const JobDetailFooter = ({
             // setSearchParams(..., { replace: true }), and setSearchParams acts on the
             // CURRENT location — so it replaced the entry navigate() had just pushed and
             // dropped the visitor back on the guest feed. The most important CTA a guest
-            // can press ("Sign up to bid") therefore went nowhere.
+            // can press ("Sign up to apply") therefore went nowhere.
             onClick={() => navigate("/profile")}
           >
             Get verified →
@@ -249,9 +245,9 @@ export const JobDetailFooter = ({
           >
             {/* Invisible leading spacer the same width as the trailing chevron,
                 so the label sits at the button's true optical center instead of
-                being pushed left by the chevron (most visible on short "Bid"). */}
+                being pushed left by the chevron. */}
             <span aria-hidden className="w-4 h-4 shrink-0" />
-            <span className="truncate">{job.pricing_mode === "accept_bids" ? "Bid" : job.instant_book ? "Book now" : "Apply now"}</span>
+            <span className="truncate">{job.instant_book ? "Book now" : "Apply now"}</span>
             <ChevronRight
               className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
               strokeWidth={2.5}

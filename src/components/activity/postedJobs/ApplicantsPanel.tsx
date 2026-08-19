@@ -1,14 +1,11 @@
 import { useState, useCallback } from "react";
 import { formatName } from "@/lib/utils";
-import { formatPrice } from "@/lib/format";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil, Play, Plus, Sparkles, Star, X } from "lucide-react";
-import { toast } from "sonner";
 import { AttachmentLink } from "@/components/AttachmentLink";
-import { hapticLight, hapticSuccess, hapticError } from "@/lib/haptics";
+import { hapticLight } from "@/lib/haptics";
 import { type Job, type EnrichedApplication } from "../activityConstants";
-import { callUntypedRpc, type ApplicantBidFields } from "./postedJobsHelpers";
 import { useApplicantComparison } from "./useApplicantComparison";
 import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
 import { VideoPreviewModal } from "./VideoPreviewModal";
@@ -17,7 +14,10 @@ import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
 import { helperInitialsFrom, isImageAttachment } from "./applicantsPanel/applicantsPanelHelpers";
 
 interface ApplicantsPanelProps {
-  jobs: Job[];
+  /** No longer read here — the bid-mode sort default was its only consumer,
+      and bidding is gone. Kept on the interface so PostedJobsTab still
+      type-checks until it stops passing it. */
+  jobs?: Job[];
   expandedJobId: string | null;
   selectedJob: Job;
   setSelectedJob: (job: Job | null) => void;
@@ -35,7 +35,6 @@ interface ApplicantsPanelProps {
 }
 
 export function ApplicantsPanel({
-  jobs,
   expandedJobId,
   selectedJob,
   setSelectedJob,
@@ -54,16 +53,10 @@ export function ApplicantsPanel({
   // Video preview modal — stores the URL of the video currently playing.
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
 
-  // Counter-offer state — keyed by application id.
-  // `counterInputs`  — the current text in each counter price input.
-  // `counterShowing` — which app id currently has the inline counter form open.
-  // `counterSending` — set while the RPC is in-flight so the button disables.
-  const [counterInputs, setCounterInputs] = useState<Record<string, string>>({});
-  const [counterShowing, setCounterShowing] = useState<string | null>(null);
-  // Optimistic negotiation state — tracks pending/sent counters in local
-  // state so the UI updates immediately without waiting for a refetch.
-  const [localNegotiation, setLocalNegotiation] = useState<Record<string, { status: string; price: number | null }>>({});
-  const [counterSending, setCounterSending] = useState(false);
+  // The counter-offer state (bid input, optimistic negotiation status, the
+  // counter_application_bid RPC call) lived here until bidding was removed —
+  // it was never used in production. Applicants are now hired or declined
+  // outright; there is no price to negotiate.
 
   // Decline confirmation sheet — open when poster taps "Decline" on an applicant.
   // `declineTarget` holds the app being declined; the sheet collects an optional
@@ -72,36 +65,6 @@ export function ApplicantsPanel({
   const [declineNote, setDeclineNote] = useState("");
   const [declineReason, setDeclineReason] = useState<string | null>(null);
   const [declineSending, setDeclineSending] = useState(false);
-
-  const handleCounter = useCallback(async (appId: string, counterPrice: number) => {
-    setCounterSending(true);
-    try {
-      const { error } = await callUntypedRpc("counter_application_bid", {
-        p_application_id: appId,
-        p_counter_price: counterPrice,
-      });
-      if (error) {
-        hapticError();
-        if (error.code === "PGRST202") {
-          toast.error("Couldn't send your counter right now — try again?");
-        } else {
-          toast.error("Couldn't send your counter — try again?");
-        }
-        return;
-      }
-      hapticSuccess();
-      toast.success("Counter sent! Waiting for the Helpr's response.");
-      // Optimistic update so the UI reflects the sent counter immediately.
-      setLocalNegotiation((prev) => ({ ...prev, [appId]: { status: "countered", price: counterPrice } }));
-      setCounterShowing(null);
-      setCounterInputs((prev) => { const next = { ...prev }; delete next[appId]; return next; });
-    } catch {
-      hapticError();
-      toast.error("Couldn't send that — try again?");
-    } finally {
-      setCounterSending(false);
-    }
-  }, []);
 
   const handleDeclineConfirm = useCallback(async () => {
     if (!declineTarget || !selectedJob) return;
@@ -128,7 +91,6 @@ export function ApplicantsPanel({
     saveNote,
   } = useApplicantComparison({
     applications,
-    jobs,
     expandedJobId,
     neighborCountMap,
     completedCountsMap,
@@ -193,15 +155,10 @@ export function ApplicantsPanel({
                 <ApplicantSortControls
                   applicantSort={applicantSort}
                   setApplicantSort={setApplicantSort}
-                  selectedJob={selectedJob}
-                  sortedApplications={sortedApplications}
                 />
 
                 {/* Applicant cards */}
                 {sortedApplications.map(({ app, signals, neighborCount }) => {
-                  // Bid/stake columns aren't in the generated types yet
-                  // (migration lag); read them through this narrow view.
-                  const bidApp = app as EnrichedApplication & ApplicantBidFields;
                   const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
                   const isElite = helperTier === "elite";
                   const isPro = helperTier === "pro";
@@ -350,142 +307,10 @@ export function ApplicantsPanel({
                                 {visibleSignals.join(" · ")}
                               </p>
                             )}
-                            {/* Proposed bid price + counter-offer UI.
-                                Only shown on accept_bids jobs. The counter
-                                form is inline (not a modal) — minimal
-                                friction for a common negotiation action. */}
-                            {bidApp.proposed_price != null && (() => {
-                              const localState = localNegotiation[app.id];
-                              const negotiationStatus = localState?.status ?? bidApp.negotiation_status ?? "open";
-                              const counterPrice = localState?.price ?? bidApp.counter_price;
-                              const isCounterShowing = counterShowing === app.id;
-
-                              // Countered: poster already sent a price — amber pill. This said
-// "amber" and painted --heritage-gold for the whole of its life;
-// the intent was always amber, gold was the accident (P1).
-                              if (negotiationStatus === "countered") {
-                                return (
-                                  <span
-                                    className="inline-flex items-center gap-1 mt-0.5 text-ds-12 font-sans font-semibold px-2 py-0.5 rounded-full"
-                                    style={{
-                                      background: "hsl(var(--amber-tint) / 0.15)",
-                                      color: "hsl(var(--amber-tint) / 0.85)",
-                                    }}
-                                  >
-                                    Countered: ${formatPrice(counterPrice ?? 0)}
-                                  </span>
-                                );
-                              }
-
-                              // Counter accepted by helper — show green pill.
-                              if (negotiationStatus === "counter_accepted") {
-                                return (
-                                  <span
-                                    className="inline-flex items-center gap-1 mt-0.5 text-ds-12 font-sans font-semibold px-2 py-0.5 rounded-full"
-                                    style={{
-                                      background: "hsl(var(--sage) / 0.15)",
-                                      color: "hsl(var(--sage))",
-                                    }}
-                                  >
-                                    Accepted at ${formatPrice(counterPrice ?? 0)}
-                                  </span>
-                                );
-                              }
-
-                              // Counter declined by helper — show muted label.
-                              if (negotiationStatus === "counter_declined") {
-                                return (
-                                  <span
-                                    className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans px-2 py-0.5 rounded-full"
-                                    style={{
-                                      background: "hsl(var(--olivewood) / 0.08)",
-                                      color: "hsl(var(--olivewood) / 0.80)",
-                                    }}
-                                  >
-                                    Counter declined
-                                  </span>
-                                );
-                              }
-
-                              // Open: show the bid pill + a "Counter" button,
-                              // or the inline counter form.
-                              return (
-                                <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
-                                  <span
-                                    className="inline-flex items-center gap-1 text-ds-12 font-sans font-semibold px-2 py-0.5 rounded-full"
-                                    style={{
-                                      background: "hsl(var(--sage) / 0.15)",
-                                      color: "hsl(var(--sage))",
-                                    }}
-                                  >
-                                    Bid: ${formatPrice(bidApp.proposed_price ?? 0)}
-                                  </span>
-                                  {!isCounterShowing && app.status === "pending" && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => { e.stopPropagation(); setCounterShowing(app.id); }}
-                                      className="inline-flex items-center gap-0.5 text-ds-11 font-sans font-semibold px-2 py-0.5 rounded-full active:opacity-70 transition-opacity"
-                                      style={{
-                                        background: "hsl(var(--amber-tint) / 0.12)",
-                                        color: "hsl(var(--amber-tint) / 0.85)",
-                                        border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
-                                      }}
-                                    >
-                                      Counter
-                                    </button>
-                                  )}
-                                  {isCounterShowing && (
-                                    <div
-                                      className="flex items-center gap-1.5 mt-1 w-full"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <span className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>$</span>
-                                      <input
-                                        type="number"
-                                        min="1"
-                                        step="1"
-                                        placeholder="0"
-                                        value={counterInputs[app.id] ?? ""}
-                                        onChange={(e) => setCounterInputs((prev) => ({ ...prev, [app.id]: e.target.value }))}
-                                        aria-label="Counter offer amount in dollars"
-                                        className="w-20 text-ds-12 font-sans rounded px-2 py-0.5 outline-none"
-                                        style={{
-                                          background: "var(--surface-premium)",
-                                          border: "0.5px solid hsl(var(--amber-tint) / 0.45)",
-                                          color: "hsl(var(--ink-deep))",
-                                        }}
-                                        autoFocus
-                                      />
-                                      <button
-                                        type="button"
-                                        disabled={counterSending || !counterInputs[app.id] || Number(counterInputs[app.id]) <= 0}
-                                        onClick={() => {
-                                          const val = Number(counterInputs[app.id]);
-                                          if (val > 0) handleCounter(app.id, val);
-                                        }}
-                                        className="text-ds-11 font-semibold px-2 py-0.5 rounded-full disabled:opacity-50"
-                                        style={{
-                                          background: "hsl(var(--amber-tint) / 0.18)",
-                                          color: "hsl(var(--amber-tint) / 0.9)",
-                                          border: "0.5px solid hsl(var(--amber-tint) / 0.40)",
-                                        }}
-                                      >
-                                        {counterSending ? "…" : "Send"}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => setCounterShowing(null)}
-                                        className="text-ds-11 px-1.5 py-0.5 rounded-full active:opacity-70"
-                                        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                                        aria-label="Cancel counter offer"
-                                      >
-                                        ✕
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })()}
+                            {/* The bid pill and inline counter-offer form used
+                                to sit here, on accept_bids jobs only. Bidding
+                                was removed — zero production usage — so an
+                                applicant now carries no price of their own. */}
                             {/* Neighborhood trust signal — shown standalone
                                 when > 0 neighbors hired this helper near
                                 the job address (from get_neighbor_hire_count RPC).
@@ -508,7 +333,7 @@ export function ApplicantsPanel({
                                 has toggled their 4-hour availability signal
                                 and the window hasn't expired yet. */}
                             {(() => {
-                              const until = bidApp.profiles?.available_until;
+                              const until = app.profiles?.available_until;
                               const isNowAvailable = until && new Date(until) > new Date();
                               return isNowAvailable ? (
                                 <span

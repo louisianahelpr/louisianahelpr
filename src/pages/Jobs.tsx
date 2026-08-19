@@ -54,8 +54,10 @@ const Jobs = () => {
   useJobRef();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  // Pricing-style filter: "all" | "bids" (open to bids) | "budget" (set price).
-  const [pricingMode, setPricingMode] = useState<"all" | "bids" | "budget">("all");
+  // No pricing-style filter. It offered "All / Open to bids / Set budget",
+  // and with bidding removed (PRICING_MODE_REMOVED in BudgetSection) every job
+  // is a set-budget job — so two of the three options matched nothing and the
+  // third matched everything.
   // Remaining filters mirror the signed-in browse sheet 1:1 — same value
   // conventions ("" = unset budget bound, "24h"/"3d"/"7d" expiry windows,
   // "smart" default sort) so both surfaces behave identically.
@@ -114,7 +116,6 @@ const Jobs = () => {
   } = useOpenJobsFeed({
     search,
     selectedCategory,
-    pricingMode,
     minBudget,
     maxBudget,
     expiresWithin,
@@ -183,7 +184,6 @@ const Jobs = () => {
   // min AND max together, so counting both reported "2 filters active" for a
   // single tapped chip. Matches useDashboardFilters on the authed side.
   const activeFilterCount = [
-    pricingMode !== "all",
     !!selectedCategory,
     !!minBudget || !!maxBudget,
     !!expiresWithin,
@@ -197,7 +197,6 @@ const Jobs = () => {
   const isNarrowed = !!search || activeFilterCount > 0;
 
   const clearAllFilters = useCallback(() => {
-    setPricingMode("all");
     setSelectedCategory(null);
     setMinBudget("");
     setMaxBudget("");
@@ -227,31 +226,7 @@ const Jobs = () => {
     urgentOnly, setUrgentOnly,
     showNearby: false,
     showAvailability: false,
-    pricingContent: (
-      <div role="group" aria-label="Filter by pricing type" className="flex flex-wrap gap-1.5">
-        {([
-          { key: "all", label: "All" },
-          { key: "bids", label: "Open to bids" },
-          { key: "budget", label: "Set budget" },
-        ] as const).map(({ key, label }) => {
-          const isActive = pricingMode === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setPricingMode(key)}
-              aria-pressed={isActive}
-              // Shared chip recipe from JobFilters so this guest-only
-              // section looks native beside the shared sections above.
-              className={`${chipStyles.chipBase} ${isActive ? chipStyles.chipActive : chipStyles.chipIdle}`}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-    ),
-  }), [pricingMode, selectedCategory, expiresWithin, boostedOnly, urgentOnly, sortBy]);
+  }), [selectedCategory, expiresWithin, boostedOnly, urgentOnly, sortBy]);
 
   // Native app: /jobs is the WEB SEO browse surface — it carries the marketing
   // Navbar + Footer per the "every web page carries chrome" rule, which must

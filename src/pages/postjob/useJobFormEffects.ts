@@ -40,10 +40,6 @@ export interface UseJobFormEffectsParams {
     isGroupJob: boolean;
     helpersNeeded: string;
     credentialTier: number;
-    pricingMode: string;
-    bidCeiling: string;
-    bidDeadline: string;
-    bidsSealed: boolean;
     includeMaterials: boolean;
     materialsNote: string;
     department: string;
@@ -93,10 +89,6 @@ export interface UseJobFormEffectsParams {
   isGroupJob: boolean;
   helpersNeeded: string;
   credentialTier: number;
-  pricingMode: string;
-  bidCeiling: string;
-  bidDeadline: string;
-  bidsSealed: boolean;
   includeMaterials: boolean;
   materialsNote: string;
   department: string;
@@ -150,10 +142,6 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     isGroupJob,
     helpersNeeded,
     credentialTier,
-    pricingMode,
-    bidCeiling,
-    bidDeadline,
-    bidsSealed,
     includeMaterials,
     materialsNote,
     department,
@@ -302,9 +290,9 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
   const autoSave = useCallback(() => {
     const location = `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`;
     if (title || description || streetAddress || budget) {
-      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, credentialTier, pricingMode, bidCeiling, bidDeadline, bidsSealed, includeMaterials, materialsNote, department, requiresW9, offerToHelperId });
+      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, credentialTier, includeMaterials, materialsNote, department, requiresW9, offerToHelperId });
     }
-  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, credentialTier, pricingMode, bidCeiling, bidDeadline, bidsSealed, includeMaterials, materialsNote, department, requiresW9, offerToHelperId, saveDraft]);
+  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, credentialTier, includeMaterials, materialsNote, department, requiresW9, offerToHelperId, saveDraft]);
 
   useEffect(() => {
     const timer = setTimeout(autoSave, 2000);

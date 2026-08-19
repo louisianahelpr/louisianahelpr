@@ -1,26 +1,28 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { type Job, type EnrichedApplication } from "../activityConstants";
-import { callUntypedRpc, type ApplicantBidFields } from "./postedJobsHelpers";
+import { callUntypedRpc } from "./postedJobsHelpers";
 
 export type JobAnalytics = {
   viewCount: number;
   applicantCount: number;
   conversionRate: number | null;
-  bidMin: number | null;
-  bidMax: number | null;
-  bidAvg: number | null;
 };
 
 /**
  * Batch-fetches per-job view counts and derives the analytics mini-panel
- * data shown on each PostedJobCard (views, applicants, conversion, bid
- * range). Falls back to {} on PGRST202 so the feed still renders.
+ * data shown on each PostedJobCard (views, applicants, conversion).
+ * Falls back to {} on PGRST202 so the feed still renders.
+ *
+ * `_inlineApplicants` is vestigial: it existed only to derive the bid
+ * min/max/avg for accept_bids jobs, and bidding is gone (zero production
+ * usage). Kept as a parameter so the caller's arity still matches until
+ * PostedJobsTab drops the argument.
  */
 export function useJobAnalytics(
   jobs: Job[],
   applicantCounts: Record<string, number>,
-  inlineApplicants: Record<string, EnrichedApplication[]>,
+  _inlineApplicants?: Record<string, EnrichedApplication[]>,
 ) {
   // Batch-fetch view counts for all posted jobs so each PostedJobCard
   // can show "Seen by X helprs" without N+1 queries. Falls back to {}
@@ -56,8 +58,8 @@ export function useJobAnalytics(
   const viewCounts: Record<string, number> = viewCountsData ?? {};
 
   // Build per-job analytics for the PostedJobCard mini-panel.
-  // Uses the already-fetched viewCounts + applicantCounts + inlineApplicants
-  // (for bid prices on accept_bids jobs). No extra queries needed.
+  // Uses the already-fetched viewCounts + applicantCounts. No extra
+  // queries needed.
   const jobAnalyticsMap = useMemo(() => {
     const map: Record<string, JobAnalytics> = {};
     for (const job of jobs) {
@@ -65,23 +67,14 @@ export function useJobAnalytics(
       const appCount = applicantCounts[job.id] ?? 0;
       const conversionRate = views > 0 ? Math.round((appCount / views) * 100) : null;
 
-      // Bid prices — derive from inline applicants if loaded; otherwise null
-      const apps = inlineApplicants[job.id] ?? [];
-      const bids = apps
-        .map((a) => (a as EnrichedApplication & ApplicantBidFields).proposed_price)
-        .filter((p): p is number => typeof p === "number" && p > 0);
-
       map[job.id] = {
         viewCount: views,
         applicantCount: appCount,
         conversionRate,
-        bidMin: bids.length > 0 ? Math.min(...bids) : null,
-        bidMax: bids.length > 0 ? Math.max(...bids) : null,
-        bidAvg: bids.length > 0 ? bids.reduce((a, b) => a + b, 0) / bids.length : null,
       };
     }
     return map;
-  }, [jobs, viewCounts, applicantCounts, inlineApplicants]);
+  }, [jobs, viewCounts, applicantCounts]);
 
   return { viewCounts, jobAnalyticsMap };
 }

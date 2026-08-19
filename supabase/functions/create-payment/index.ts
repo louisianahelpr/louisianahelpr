@@ -764,7 +764,7 @@ serve(async (req) => {
           // leaves the platform out-of-pocket by that processing cost on every
           // free cancellation. Withhold the poster's service fee, floored at
           // Stripe's actual processing cost so the platform never loses money to
-          // fees even when the service fee is tiny/missing (legacy/accept_bids).
+          // fees even when the service fee is tiny/missing on a legacy row.
           const capturedCents = pi.amount_received ?? pi.amount;
           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
           const nonRefundableCents = Math.max(serviceFeeCents, stripeProcessingCostCents(capturedCents));

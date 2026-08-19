@@ -212,12 +212,14 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
       offer_message: null,
       attachment_urls: null,
       proposed_rate: null,
-      proposed_price: null,
-      counter_price: null,
-      negotiation_status: "none",
       poster_viewed_at: null,
       // Columns still exist on the applications row (feature removed from UI,
       // DB columns retained as harmless nullable) — set to satisfy the row shape.
+      // The bid trio joined this list when accept_bids was removed
+      // (PRICING_MODE_REMOVED in BudgetSection); nothing reads them.
+      proposed_price: null,
+      counter_price: null,
+      negotiation_status: "none",
       stake_amount: null,
       stake_status: "none",
       created_at: job.created_at,

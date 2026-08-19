@@ -167,14 +167,6 @@ export function FormStep({ form }: FormStepProps) {
             setCustomUrgentFee={form.setCustomUrgentFee}
             budgetComplete={form.budgetComplete}
             category={form.category}
-            pricingMode={form.pricingMode}
-            setPricingMode={form.setPricingMode}
-            bidCeiling={form.bidCeiling}
-            setBidCeiling={form.setBidCeiling}
-            bidDeadline={form.bidDeadline}
-            setBidDeadline={form.setBidDeadline}
-            bidsSealed={form.bidsSealed}
-            setBidsSealed={form.setBidsSealed}
           />
         </div>
 

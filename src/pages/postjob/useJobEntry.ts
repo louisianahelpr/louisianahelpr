@@ -3,7 +3,6 @@ import { track } from "@/lib/analytics";
 import type { AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 import type { SampleJob } from "@/data/sampleJobs";
 import type { JobDraft } from "@/hooks/useDraftJob";
-import type { PricingMode } from "@/components/postjob/BudgetSection";
 import type { Step } from "./postJobFormTypes";
 import { parseLocationIntoFields } from "./postJobFormHelpers";
 
@@ -43,10 +42,6 @@ export interface UseJobEntryParams {
   setIsUrgent: (v: boolean) => void;
   setUrgentFee: (v: string) => void;
   setCredentialTier: (v: number) => void;
-  setPricingMode: (v: PricingMode) => void;
-  setBidCeiling: (v: string) => void;
-  setBidDeadline: (v: string) => void;
-  setBidsSealed: (v: boolean) => void;
   setIncludeMaterials: (v: boolean) => void;
   setMaterialsNote: (v: string) => void;
   setDepartment: (v: string) => void;
@@ -85,10 +80,6 @@ export function useJobEntry(params: UseJobEntryParams) {
     setIsUrgent,
     setUrgentFee,
     setCredentialTier,
-    setPricingMode,
-    setBidCeiling,
-    setBidDeadline,
-    setBidsSealed,
     setIncludeMaterials,
     setMaterialsNote,
     setDepartment,
@@ -137,10 +128,9 @@ export function useJobEntry(params: UseJobEntryParams) {
     if (draft.isGroupJob !== undefined) setIsGroupJob(draft.isGroupJob);
     if (draft.helpersNeeded !== undefined) setHelpersNeeded(draft.helpersNeeded);
     if (draft.credentialTier !== undefined) setCredentialTier(draft.credentialTier);
-    if (draft.pricingMode !== undefined) setPricingMode(draft.pricingMode as PricingMode);
-    if (draft.bidCeiling !== undefined) setBidCeiling(draft.bidCeiling);
-    if (draft.bidDeadline !== undefined) setBidDeadline(draft.bidDeadline);
-    if (draft.bidsSealed !== undefined) setBidsSealed(draft.bidsSealed);
+    // A draft saved before bidding was removed may still carry pricingMode /
+    // bidCeiling / bidDeadline / bidsSealed. They are read and discarded — the
+    // job it restores into is a plain set-price job.
     if (draft.includeMaterials !== undefined) setIncludeMaterials(draft.includeMaterials);
     if (draft.materialsNote !== undefined) setMaterialsNote(draft.materialsNote);
     if (draft.department !== undefined) setDepartment(draft.department);

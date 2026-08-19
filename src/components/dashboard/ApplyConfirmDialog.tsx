@@ -54,19 +54,13 @@ export function ApplyConfirmDialog({
   applyFiles,
   setApplyFiles,
   applyLoading,
-  bidPrice,
-  setBidPrice,
   handleApplyConfirm,
 }: ApplyConfirmDialogProps) {
   const { online } = useOnlineStatus();
   const charsLeft = MAX_PITCH_LENGTH - applyMessage.length;
-  const isBidMode = confirmApplyJob?.pricing_mode === "accept_bids";
-  // In bid mode the price is REQUIRED — apply_to_job raises
-  // "A price is required for bid-mode jobs" on an empty submit. Gate the
-  // action button on a valid positive number so the empty-bid submit can't
-  // happen (it previously fell through to a generic failure toast).
-  const bidValue = parseFloat(bidPrice);
-  const bidPriceValid = !isBidMode || (bidPrice.trim() !== "" && Number.isFinite(bidValue) && bidValue >= 1);
+  // Bidding was removed (PRICING_MODE_REMOVED in BudgetSection), so there is
+  // no bid-price field to gate the submit on any more — a helper applies to a
+  // job at the poster's stated budget.
   const isInstantBook = !!(confirmApplyJob as any)?.instant_book;
   const trimmedLen = applyMessage.trim().length;
   const underMin = trimmedLen > 0 && trimmedLen < SOFT_MIN_PITCH_LENGTH;
@@ -215,8 +209,8 @@ export function ApplyConfirmDialog({
             the same failure mode. Do not remove it. */}
         <div className="min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain !text-left space-y-0">
           <AlertDialogHero
-            eyebrow={isBidMode ? "You're bidding" : isInstantBook ? "You're booking" : "You're applying"}
-            title={confirmApplyJob ? `"${confirmApplyJob.title}"` : isBidMode ? "Submit a bid" : isInstantBook ? "Book this job" : "Apply for this job"}
+            eyebrow={isInstantBook ? "You're booking" : "You're applying"}
+            title={confirmApplyJob ? `"${confirmApplyJob.title}"` : isInstantBook ? "Book this job" : "Apply for this job"}
           />
           {/* Restored into the body after the app-wide "one main title" sweep
               stripped `subtitle` from every hero. Everywhere else that copy was
@@ -238,45 +232,6 @@ export function ApplyConfirmDialog({
               <ApplyEarningsBreakdown confirmApplyJob={confirmApplyJob} platformFee={platformFee} />
             </div>
           )}
-          {/* Bid price — only shown when the job uses "Accept bids" pricing */}
-          {isBidMode && (
-            <div className="space-y-1 mt-3">
-              <label
-                htmlFor="bid-price"
-                className="font-serif italic uppercase block text-ds-10"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Your bid price
-              </label>
-              <div className="relative">
-                <span
-                  className="absolute left-3 top-1/2 -translate-y-1/2 font-sans text-ds-13"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  $
-                </span>
-                <input
-                  id="bid-price"
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="0"
-                  value={bidPrice}
-                  onChange={(e) => setBidPrice(e.target.value)}
-                  className="w-full min-h-[44px] rounded-ds-md border border-input bg-background pl-7 pr-3 py-2 text-ds-13 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
-              {confirmApplyJob && (confirmApplyJob.budget ?? 0) > 0 && (
-                <p
-                  className="font-serif italic text-ds-11"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Poster's budget: ${formatPrice(confirmApplyJob.budget)}
-                </p>
-              )}
-            </div>
-          )}
-
           <div className="space-y-1.5 mt-3">
             {/* ONE prompt for the pitch, not three.
                 This block used to open with an eyebrow ("YOUR PITCH —
@@ -308,7 +263,6 @@ export function ApplyConfirmDialog({
               const tips = getApplyTips({
                 is_urgent: confirmApplyJob?.is_urgent,
                 budget: confirmApplyJob?.budget,
-                pricing_mode: confirmApplyJob?.pricing_mode,
                 date_needed: confirmApplyJob?.date_needed,
                 category: confirmApplyJob?.category,
               });
@@ -583,7 +537,7 @@ export function ApplyConfirmDialog({
           <AlertDialogAction
             type="button"
             onClick={(e) => { if (!online) e.preventDefault(); handleConfirm(); }}
-            disabled={applyLoading || !bidPriceValid}
+            disabled={applyLoading}
             /* `!w-auto` drops the primitive's mobile `w-full` now that the two
                actions share a row; `flex-1` lets it take everything the 44px
                dismiss button leaves. `size="lg"` ships `px-8`, which is a lot
@@ -608,8 +562,8 @@ export function ApplyConfirmDialog({
             }}
           >
             {applyLoading
-              ? isBidMode ? "Submitting bid…" : isInstantBook ? "Booking…" : "Applying…"
-              : !online ? "Try again" : isBidMode ? "Submit bid" : isInstantBook ? "Book now" : "Apply now"}
+              ? isInstantBook ? "Booking…" : "Applying…"
+              : !online ? "Try again" : isInstantBook ? "Book now" : "Apply now"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

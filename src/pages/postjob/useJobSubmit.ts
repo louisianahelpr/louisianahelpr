@@ -12,7 +12,6 @@ import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
-import type { PricingMode } from "@/components/postjob/BudgetSection";
 import type { BusinessMembership } from "@/hooks/useMyBusiness";
 import type { Step } from "./postJobFormTypes";
 import { composeSpecialRequirements, scrollToField } from "./postJobFormHelpers";
@@ -78,10 +77,6 @@ export interface UseJobSubmitParams {
   credentialTier: number;
   department: string;
   requiresW9: boolean;
-  pricingMode: PricingMode;
-  bidCeiling: string;
-  bidDeadline: string;
-  bidsSealed: boolean;
   // Materials + card
   includeMaterials: boolean;
   materialsNote: string;
@@ -135,10 +130,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     credentialTier,
     department,
     requiresW9,
-    pricingMode,
-    bidCeiling,
-    bidDeadline,
-    bidsSealed,
     includeMaterials,
     materialsNote,
     saveCardForFuture,
@@ -168,19 +159,11 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     if (selectedDate < today) { toast.error("Date cannot be in the past"); scrollToField("date"); return; }
     if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); scrollToField("flexible"); return; }
     // special_requirements is optional — no validation needed
-    // In accept_bids mode, budget is optional — helpers set their own price.
-    if (pricingMode !== "accept_bids") {
-      if (!budget || parseFloat(budget) < MIN_JOB_BUDGET_DOLLARS) { toast.error(`Minimum budget is ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}`); scrollToField("budget"); return; }
-      if (parseFloat(budget) > MAX_JOB_BUDGET_DOLLARS) { toast.error(`Maximum budget is ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}.`); scrollToField("budget"); return; }
-    }
-    // Bid ceiling is optional in accept_bids mode, but when set it must fall
-    // within the same [MIN, MAX] budget bounds — otherwise a poster could set a
-    // $0 or $999,999 auto-accept ceiling that the set-price branch would reject.
-    if (pricingMode === "accept_bids" && bidCeiling.trim()) {
-      const ceiling = parseFloat(bidCeiling);
-      if (isNaN(ceiling) || ceiling < MIN_JOB_BUDGET_DOLLARS) { toast.error(`Bid ceiling must be at least ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}`); scrollToField("bid-ceiling"); return; }
-      if (ceiling > MAX_JOB_BUDGET_DOLLARS) { toast.error(`Bid ceiling cannot exceed ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}.`); scrollToField("bid-ceiling"); return; }
-    }
+    // The budget is always required and always bounded now. It used to be
+    // skipped entirely in "Accept bids" mode, which is how a bid job reached
+    // checkout carrying a stale hidden budget and got charged for it.
+    if (!budget || parseFloat(budget) < MIN_JOB_BUDGET_DOLLARS) { toast.error(`Minimum budget is ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}`); scrollToField("budget"); return; }
+    if (parseFloat(budget) > MAX_JOB_BUDGET_DOLLARS) { toast.error(`Maximum budget is ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}.`); scrollToField("budget"); return; }
     if (isUrgent && (parseFloat(urgentFee) < URGENT_FEE_FLOOR_DOLLARS || isNaN(parseFloat(urgentFee)))) { toast.error(`Urgent bonus must be at least ${formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)}`); scrollToField("custom-urgent-fee"); return; }
     setConfirmed(false);
     setStep("checkout");
@@ -363,10 +346,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         department: opts.withExtras ? department : null,
         initialStatus: opts.withExtras && requiresApproval ? "pending_approval" : undefined,
         requiresW9: opts.withExtras && business ? requiresW9 : false,
-        pricingMode: opts.withExtras ? pricingMode : "set_price",
-        bidCeiling: opts.withExtras ? (bidCeiling ? parseFloat(bidCeiling) : null) : null,
-        bidDeadline: opts.withExtras ? (bidDeadline ? bidDeadline : null) : null,
-        bidsSealed: opts.withExtras ? bidsSealed : false,
       });
 
     let { data: jobData, error } = await supabase

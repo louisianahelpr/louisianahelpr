@@ -14,9 +14,6 @@ interface ShareJobButtonProps {
     title: string;
     budget?: number;
     category?: string;
-    /** When "accept_bids" the job has no posted price, so the share text
-     *  says "Open to bids" instead of a dollar figure. */
-    pricingMode?: string;
     /** City string (no state suffix) shown in the share text. */
     city?: string;
   };
@@ -160,10 +157,9 @@ export function ShareJobButton({
     // the share surface (OS Share Sheet / clipboard) when they open the job.
     const url = `https://www.louisianahelpr.com/jobs/${job.id}?ref=share`;
     const title = `${job.title} — Need help in ${location}`;
-    const priceLabel =
-      job.pricingMode === "accept_bids"
-        ? "Open to bids"
-        : `$${job.budget != null ? job.budget : "?"}`;
+    // Every job now has a set budget — bidding (and its "Open to bids" share
+    // wording) was removed after zero production usage.
+    const priceLabel = `$${job.budget != null ? job.budget : "?"}`;
     const text = `${job.title} · ${priceLabel} · ${location}\n\nApply on Helpr:`;
     const clipText = `${text}\n${url}`;
 

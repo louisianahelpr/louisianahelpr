@@ -52,7 +52,6 @@ export const toEnrichedJob = (job: PublicJob): EnrichedJob => ({
   recurrence_interval: job.recurrence_interval,
   is_group_job: job.is_group_job ?? false,
   helpers_needed: job.helpers_needed,
-  pricing_mode: job.pricing_mode ?? undefined,
   isBoosted: !!job.boost_expires_at && new Date(job.boost_expires_at) > new Date(),
 });
 

@@ -19,13 +19,11 @@ import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { SendReportCard } from "./PetReportCard";
 import { formatPrice, formatShortDate, formatRecurrenceInterval } from "@/lib/format";
-import type { AppliedJobCardProps, NegotiationFields } from "./appliedJobCard/types";
+import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "./appliedJobCard/useHighlightPulse";
-import { useCounterOfferResponse } from "./appliedJobCard/useCounterOfferResponse";
 import { deriveAppliedJobCardState } from "./appliedJobCard/appliedJobCardHelpers";
 import { CancellationFeePill } from "./appliedJobCard/CancellationFeePill";
 import { PendingApplicationSection } from "./appliedJobCard/PendingApplicationSection";
-import { CounterOfferBar } from "./appliedJobCard/CounterOfferBar";
 import { OfferedActions } from "./appliedJobCard/OfferedActions";
 import { ConfirmedSection } from "./appliedJobCard/ConfirmedSection";
 import { ActiveJobSection } from "./appliedJobCard/ActiveJobSection";
@@ -73,12 +71,6 @@ function AppliedJobCardInner({
   setEditMessageText,
   savingMessage,
   handleSaveMessage,
-  editingBidAppId,
-  setEditingBidAppId,
-  editBidPrice,
-  setEditBidPrice,
-  savingBid,
-  handleSaveBid,
   handleAddAttachment,
   handleRemoveAttachment,
 }: AppliedJobCardProps) {
@@ -88,11 +80,9 @@ function AppliedJobCardInner({
 
   useHighlightPulse(highlight, cardRef);
 
-  const { counterResponding, localCounterStatus, handleRespondCounter } = useCounterOfferResponse();
-
-  // Negotiation columns aren't in the generated types yet (migration lag);
-  // read them through this narrow view rather than `as any`.
-  const bidApp = app as AppliedApp & NegotiationFields;
+  // `poster_viewed_at` isn't in the generated types yet (migration lag);
+  // read it through this narrow view rather than `as any`.
+  const viewedApp = app as AppliedApp & ApplicationViewFields;
   const job = app.job;
   if (!job) return null;
   const {
@@ -246,29 +236,8 @@ function AppliedJobCardInner({
               setEditMessageText={setEditMessageText}
               savingMessage={savingMessage}
               handleSaveMessage={handleSaveMessage}
-              editingBidAppId={editingBidAppId}
-              setEditingBidAppId={setEditingBidAppId}
-              editBidPrice={editBidPrice}
-              setEditBidPrice={setEditBidPrice}
-              savingBid={savingBid}
-              handleSaveBid={handleSaveBid}
               handleAddAttachment={handleAddAttachment}
               handleRemoveAttachment={handleRemoveAttachment}
-            />
-          )}
-
-          {/* Counter-offer notification bar — only shown when the poster
-              has sent a counter price. The helper can accept or decline
-              directly from this bar without opening the full detail view.
-              Uses optimistic local state so the response is reflected
-              immediately (no reload needed). */}
-          {!isMinimalCard && isPending && (
-            <CounterOfferBar
-              app={app}
-              bidApp={bidApp}
-              localCounterStatus={localCounterStatus}
-              counterResponding={counterResponding}
-              handleRespondCounter={handleRespondCounter}
             />
           )}
 
@@ -301,11 +270,11 @@ function AppliedJobCardInner({
               {/* "Seen" trust chip — visible when the poster has opened
                   the applicant list and viewed this application. Subtle
                   olivewood colour so it reads as informational, not urgent. */}
-              {bidApp.poster_viewed_at && (
+              {viewedApp.poster_viewed_at && (
                 <span
                   className="flex items-center gap-0.5 text-ds-10 font-medium"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                  title={`Poster viewed on ${formatShortDate(bidApp.poster_viewed_at)}`}
+                  title={`Poster viewed on ${formatShortDate(viewedApp.poster_viewed_at)}`}
                 >
                   <Eye className="w-3 h-3" aria-hidden="true" /> Seen
                 </span>

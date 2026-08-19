@@ -107,7 +107,7 @@ export const PostedJobsTab = ({
 
   // Per-job analytics (view counts + conversion + bid range) for the
   // PostedJobCard mini-panel.
-  const { viewCounts, jobAnalyticsMap } = useJobAnalytics(jobs, applicantCounts, inlineApplicants);
+  const { viewCounts, jobAnalyticsMap } = useJobAnalytics(jobs, applicantCounts);
 
   // Filter the incoming jobs through the dismissed set so a previously
   // hidden cancelled job stays hidden across re-renders. Cancelled jobs
@@ -256,7 +256,6 @@ export const PostedJobsTab = ({
       {/* Applicants full-screen comparison view */}
       {selectedJob && (
         <ApplicantsPanel
-          jobs={jobs}
           expandedJobId={expandedJobId}
           selectedJob={selectedJob}
           setSelectedJob={setSelectedJob}

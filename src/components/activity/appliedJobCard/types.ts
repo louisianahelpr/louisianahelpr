@@ -5,10 +5,17 @@ import type { Application, AppliedApp, Job } from "../activityConstants";
     regenerated into the Supabase types yet (the PGRST202 migration-lag
     pattern — see CLAUDE.md). Optional because on a production DB where the
     migration is not yet applied these keys are genuinely absent. */
-export type NegotiationFields = {
-  negotiation_status?: string | null;
-  counter_price?: number | null;
-  proposed_price?: number | null;
+/**
+ * Columns on `applications` that aren't in the generated Supabase types yet
+ * (migration lag), read through this narrow view rather than `as any`.
+ *
+ * Was `NegotiationFields` and also carried `negotiation_status`, `counter_price`
+ * and `proposed_price`. Bidding was removed (PRICING_MODE_REMOVED in
+ * BudgetSection) and those three went with it; `poster_viewed_at` has nothing
+ * to do with bidding — it drives the "poster viewed your application" stamp —
+ * so the type stays, under a name that describes what is actually left.
+ */
+export type ApplicationViewFields = {
   poster_viewed_at?: string | null;
 };
 
@@ -65,14 +72,6 @@ export interface AppliedJobCardProps {
   setEditMessageText: (value: string) => void;
   savingMessage: boolean;
   handleSaveMessage: (appId: string) => void;
-  /** Bid-price edit (bidding jobs only, parent-owned). Editable while the
-   *  application is pending and the poster hasn't viewed it. */
-  editingBidAppId: string | null;
-  setEditingBidAppId: (id: string | null) => void;
-  editBidPrice: string;
-  setEditBidPrice: (value: string) => void;
-  savingBid: boolean;
-  handleSaveBid: (appId: string) => void;
   handleAddAttachment: (appId: string, jobId: string, currentUrls: string[], file: File) => void;
   handleRemoveAttachment: (appId: string, currentUrls: string[], urlToRemove: string) => void;
 }

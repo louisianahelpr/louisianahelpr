@@ -4,7 +4,6 @@ import { useDraftJob } from "@/hooks/useDraftJob";
 import { safeStorage } from "@/lib/safeStorage";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import type { PricingMode } from "@/components/postjob/BudgetSection";
 import { getSmartPrice } from "@/lib/pricingGuide";
 import type { Step } from "./postJobFormTypes";
 import { useJobMediaUpload } from "./useJobMediaUpload";
@@ -94,14 +93,12 @@ export function usePostJobForm() {
   // 0 = open (anyone), 1 = ID-verified, 2 = licensed, 3 = licensed + insured.
   // Only relevant for trade categories; other categories always use 0.
   const [credentialTier, setCredentialTierRaw] = useState(0);
-  const setCredentialTier = (tier: number) => {
-    setCredentialTierRaw(tier);
-    // High-credential jobs (licensed / licensed+insured) default to accept_bids
-    // so the poster sees competitive quotes rather than guessing a rate.
-    if (tier >= 2) {
-      setPricingModeState("accept_bids");
-    }
-  };
+  // Setting a credential tier used to silently flip the job into "Accept bids"
+  // at tier >= 2, on the theory that a licensed job wants competitive quotes.
+  // Bidding is gone (see PRICING_MODE_REMOVED in BudgetSection), so a tier is
+  // now just a tier — it no longer changes how the job is priced behind the
+  // poster's back.
+  const setCredentialTier = setCredentialTierRaw;
   const [isUrgent, setIsUrgent] = useState(false);
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
@@ -113,17 +110,6 @@ export function usePostJobForm() {
   // Persisted to jobs.department by the consolidated migration
   // 20260609170000_business_team_roles.sql.
   const [department, setDepartment] = useState("");
-  // Pricing mode — 'set_price' (default) or 'accept_bids'. ('smart_price' is
-  // retired: it only ever pre-filled the midpoint of the suggested range that
-  // set_price already displays, so it is a one-tap chip there now. The value
-  // survives in the type because a localStorage draft saved before the merge
-  // can still carry it.)
-  // Default to 'accept_bids' for credentialTier >= 2 (licensed/insured jobs).
-  const [pricingMode, setPricingModeState] = useState<PricingMode>("set_price");
-  // Accept-bids sub-fields
-  const [bidCeiling, setBidCeiling] = useState("");
-  const [bidDeadline, setBidDeadline] = useState("");
-  const [bidsSealed, setBidsSealed] = useState(false);
   const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [customerFee, setCustomerFee] = useState<number | null>(null);
   // One-time account-setup fee — mirrors the edge function (create-payment
@@ -136,20 +122,6 @@ export function usePostJobForm() {
   const [onboardingFeePaid, setOnboardingFeePaid] = useState(true);
   const salesTaxRate = 10;
 
-  // Normalizes the retired 'smart_price' value. Nothing in the UI can select
-  // it any more, but a draft restored from localStorage may still hold it —
-  // and its old behaviour (pre-fill the category midpoint, then behave exactly
-  // like set_price) is reproduced here so such a draft opens with the budget
-  // it had, under the mode that now owns that behaviour.
-  const setPricingMode = (next: PricingMode) => {
-    if (next === "smart_price") {
-      setPricingModeState("set_price");
-      const sp = getSmartPrice(category);
-      if (sp != null) setBudget(sp.toFixed(2));
-      return;
-    }
-    setPricingModeState(next);
-  };
   // True once the user has restored the saved draft via loadDraft. The inline
   // "Pick up draft" pill hides after this so an accidental re-tap can't replace
   // the in-progress form with the (autosave-refreshed) snapshot.
@@ -253,10 +225,6 @@ export function usePostJobForm() {
     isGroupJob,
     helpersNeeded,
     credentialTier,
-    pricingMode,
-    bidCeiling,
-    bidDeadline,
-    bidsSealed,
     includeMaterials,
     materialsNote,
     department,
@@ -303,10 +271,6 @@ export function usePostJobForm() {
     setIsUrgent,
     setUrgentFee,
     setCredentialTier,
-    setPricingMode,
-    setBidCeiling,
-    setBidDeadline,
-    setBidsSealed,
     setIncludeMaterials,
     setMaterialsNote,
     setDepartment,
@@ -354,10 +318,6 @@ export function usePostJobForm() {
     credentialTier,
     department,
     requiresW9,
-    pricingMode,
-    bidCeiling,
-    bidDeadline,
-    bidsSealed,
     includeMaterials,
     materialsNote,
     saveCardForFuture,
@@ -400,7 +360,6 @@ export function usePostJobForm() {
     zipCode,
     dateNeeded,
     startTime,
-    pricingMode,
     parish,
   });
 
@@ -512,14 +471,6 @@ export function usePostJobForm() {
     credentialTier,
     setCredentialTier,
     // Pricing mode fields
-    pricingMode,
-    setPricingMode,
-    bidCeiling,
-    setBidCeiling,
-    bidDeadline,
-    setBidDeadline,
-    bidsSealed,
-    setBidsSealed,
     isUrgent,
     setIsUrgent,
     urgentFee,

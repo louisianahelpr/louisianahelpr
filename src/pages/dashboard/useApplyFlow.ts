@@ -21,7 +21,6 @@ import type { ApplyVars, ApplySnapshot, DashboardContextSlice } from "./dashboar
 // "Couldn't send your application through" fallback. Keys MUST match the RPC's
 // RAISE text verbatim — a drift here silently falls back to the generic toast.
 const APPLY_RPC_MESSAGES: Record<string, string> = {
-  "A price is required for bid-mode jobs": "Enter your bid amount before submitting.",
   "Already applied to this job": "You've already applied to this job.",
   "Cannot apply to your own job": "You can't apply to your own post.",
   "Job is no longer accepting applications": "This job isn't accepting applications anymore.",
@@ -41,8 +40,6 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
-  // Proposed bid price — only populated for accept_bids jobs.
-  const [bidPrice, setBidPrice] = useState("");
   // A deep-linked apply (?quickApply=<id>) can target a job that isn't in the
   // dashboard feed — filtered out, in another area, or the feed simply hasn't
   // loaded it. The confirm dialog needs the job object (title, budget,
@@ -100,7 +97,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   // The file-upload + insert run in the background; on error we restore
   // the snapshots so the job re-appears and the user can retry.
   const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
-    mutationFn: async ({ jobId, helperId, message, files, isInstantBook, proposedPrice }) => {
+    mutationFn: async ({ jobId, helperId, message, files, isInstantBook }) => {
       // Server-side rate limit check (10/min, 50/hr, 200/day) BEFORE any
       // attachment uploads — don't waste storage bandwidth on a blocked
       // attempt. The helper falls back to "allowed" if the RPC isn't
@@ -124,7 +121,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         }
         attachmentUrls.push(path);
       }
-      // Try the apply_to_job RPC first (supports proposed_price for bid-mode jobs).
+      // Try the apply_to_job RPC first.
       // Fall back to a direct INSERT if PGRST202 (function not yet deployed to prod).
       // apply_to_job isn't in the generated Functions map yet (migration
       // unapplied to prod), so we call it through a narrowly-typed wrapper
@@ -134,12 +131,15 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // call throws "Cannot read properties of undefined (reading 'rest')".
       const applyToJobRpc = supabase.rpc.bind(supabase) as unknown as (
         fn: "apply_to_job",
-        args: { p_job_id: string; p_message: string | null; p_proposed_price: number | null },
+        // `p_proposed_price` is deliberately NOT passed. Bidding was removed
+        // (PRICING_MODE_REMOVED in BudgetSection); the RPC still declares the
+        // parameter with a NULL default, so omitting it is both correct and
+        // forward-compatible with the migration that eventually drops it.
+        args: { p_job_id: string; p_message: string | null },
       ) => Promise<{ data: string | null; error: { code?: string; message?: string } | null }>;
       const { data: rpcData, error: rpcError } = await applyToJobRpc("apply_to_job", {
         p_job_id: jobId,
         p_message: message.trim() || null,
-        p_proposed_price: proposedPrice ?? null,
       });
       if (rpcError) {
         const errCode = (rpcError as { code?: string }).code;
@@ -334,24 +334,20 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     // `any` because EnrichedJob predates this column; the DB default is
     // false so a missing key is treated the same way.
     const isInstantBook = !!confirmApplyJob?.instant_book;
-    // Capture proposed price for bid-mode jobs (accept_bids pricing_mode).
-    const isBidJob = confirmApplyJob?.pricing_mode === "accept_bids";
-    const proposedPrice = isBidJob && bidPrice ? parseFloat(bidPrice) : null;
     // Close the dialog + reset its state synchronously so the next paint
     // already has the optimistic feed. The mutation continues in the
     // background; React Query's onError rolls things back on failure.
     setConfirmApplyJobId(null);
     setApplyMessage("");
     setApplyFiles([]);
-    setBidPrice("");
     // setApplyLoading flips off on settled (handled below) — we still
     // set it true here so a fast double-tap can't enqueue twice.
     setApplyLoading(true);
     applyMutation.mutate(
-      { jobId, helperId: user.id, message, files, isInstantBook, proposedPrice },
+      { jobId, helperId: user.id, message, files, isInstantBook },
       { onSettled: () => setApplyLoading(false) },
     );
-  }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, bidPrice, setBidPrice, applyMutation]);
+  }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, applyMutation]);
 
   return {
     confirmApplyJobId,
@@ -362,8 +358,6 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     applyLoading,
     applyFiles,
     setApplyFiles,
-    bidPrice,
-    setBidPrice,
     handleApplyRequest,
     handleApplyConfirm,
   };

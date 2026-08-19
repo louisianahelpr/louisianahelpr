@@ -26,8 +26,6 @@ export type ApplyVars = {
       same jobs UPDATE path as handleHelperResponse (helper_confirmed_at).
       Treated as false when the column isn't on prod yet (pre-push). */
   isInstantBook?: boolean;
-  /** Proposed bid price for accept_bids jobs (null for other pricing modes). */
-  proposedPrice?: number | null;
 };
 
 export type ApplySnapshot = {

@@ -53,7 +53,12 @@ export function QrCodeModal({ profile, qrOpen, setQrOpen, qrDataUrl }: QrCodeMod
               await shareNative({
                 title: "Verify me on Helpr",
                 text: `Scan or open this link to verify my identity on Helpr`,
-                url: `https://www.louisianahelpr.com/verify/${profile.user_id}`,
+                // `/user/:id`, NOT `/verify/:id`. No `/verify` route exists —
+                // App.tsx falls through to `path="*"` → NotFound, and it is
+                // absent from apple-app-site-association, so the link neither
+                // rendered a page nor opened the app. Matches the QR image
+                // itself (see useProfileQrCode).
+                url: `https://www.louisianahelpr.com/user/${profile.user_id}`,
                 dialogTitle: "Share QR Link",
               });
             }}

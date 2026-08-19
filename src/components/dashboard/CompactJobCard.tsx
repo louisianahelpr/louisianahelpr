@@ -3,7 +3,7 @@ import { Star } from "lucide-react";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { getCity } from "@/lib/locationUtils";
 import { computeNet } from "@/components/dashboard/JobPrice";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceExact } from "@/lib/format";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 interface CompactJobCardProps {
@@ -49,10 +49,15 @@ export function CompactJobCard({
   // (Bidding was removed — zero production usage — so every job now has a
   // set budget and there is no second price treatment to branch on.)
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-  const priceAmount =
-    effectiveFee != null
-      ? computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpers).netEarnings
-      : job.budget;
+  const isNet = effectiveFee != null;
+  const priceAmount = isNet
+    ? computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpers).netEarnings
+    : job.budget;
+  // Take-home to the cent, gross budget in whole dollars — the same split
+  // JobPrice makes, and for the same reason: a rounded "$84" next to the apply
+  // sheet's "$83.60" is one job quoting two payouts, with the rounded one
+  // promising money the helper won't get. See JobPrice for the full note.
+  const priceText = isNet ? formatPriceExact(priceAmount) : formatPrice(priceAmount);
 
   return (
     <li>
@@ -66,7 +71,7 @@ export function CompactJobCard({
           background: isHighlighted ? "hsl(var(--bark) / 0.07)" : "transparent",
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
         }}
-        aria-label={`${job.title}, ${effectiveFee != null ? "you earn " : ""}$${formatPrice(priceAmount)}${city ? `, ${city}` : ""}`}
+        aria-label={`${job.title}, ${isNet ? "you earn " : ""}$${priceText}${city ? `, ${city}` : ""}`}
       >
         {/* Category dot */}
         <span
@@ -117,7 +122,7 @@ export function CompactJobCard({
           className="shrink-0 font-sans font-semibold text-ds-13 tabular-nums"
           style={{ color: "hsl(var(--bark))" }}
         >
-          ${formatPrice(priceAmount)}
+          ${priceText}
         </span>
 
         {/* Time ago */}

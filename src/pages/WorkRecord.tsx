@@ -21,6 +21,8 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { shareNative } from "@/lib/nativeShare";
+import { isNativePlatform } from "@/lib/nativeInit";
+import { toast } from "sonner";
 import { formatPrice } from "@/lib/format";
 import HelprMark from "@/components/HelprMark";
 import type { Database } from "@/integrations/supabase/types";
@@ -47,6 +49,27 @@ interface WorkRecordData {
 function formatMonthYear(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
+
+// Why the Print button is conditional: `window.print()` is a NO-OP in every
+// WKWebView-hosted context this record actually gets opened from. The shipped
+// app has no `server.url` (capacitor.config.ts), so it runs the bundled dist/
+// inside WKWebView, which ships no print dialog at all; an iOS home-screen
+// install hits the same wall, because manifest.webmanifest declares
+// `display: standalone` and standalone WebKit has no print UI either. The tap
+// fired, nothing happened, and a helper standing in a leasing office concluded
+// the app was broken. So detect those contexts and never render a control that
+// promises a printer that isn't there — route them to the share path instead
+// (which already works: Capacitor Share → OS share sheet) and say plainly where
+// the printable copy lives.
+const isIosStandalonePwa =
+  typeof navigator !== "undefined" &&
+  (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+const canPrintDocument =
+  !isNativePlatform &&
+  !isIosStandalonePwa &&
+  typeof window !== "undefined" &&
+  typeof window.print === "function";
 
 
 const WorkRecord = () => {
@@ -194,6 +217,18 @@ const WorkRecord = () => {
       url: window.location.origin,
       dialogTitle: "Share my Helpr Work Record",
     });
+  }
+
+  // Even where a print dialog is supposed to exist, a throwing `print()` must
+  // not read as a dead tap — say so and point at the control that does work.
+  function handlePrint() {
+    try {
+      window.print();
+    } catch {
+      toast.error("Couldn't open the print dialog", {
+        description: "Use Share summary to send this record instead.",
+      });
+    }
   }
 
   return (
@@ -463,20 +498,37 @@ const WorkRecord = () => {
                 <Share2 className="w-4 h-4" />
                 Share summary
               </button>
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="flex items-center justify-center gap-2 rounded-ds-lg py-3.5 px-5 text-ds-14 font-semibold active:scale-[0.99] transition-all"
-                style={{
-                  background: "transparent",
-                  border: "1px solid hsl(var(--bark) / 0.32)",
-                  color: "hsl(var(--bark))",
-                }}
-              >
-                <Printer className="w-4 h-4" />
-                Print
-              </button>
+              {canPrintDocument && (
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="flex items-center justify-center gap-2 rounded-ds-lg py-3.5 px-5 text-ds-14 font-semibold active:scale-[0.99] transition-all"
+                  style={{
+                    background: "transparent",
+                    border: "1px solid hsl(var(--bark) / 0.32)",
+                    color: "hsl(var(--bark))",
+                  }}
+                >
+                  <Printer className="w-4 h-4" />
+                  Print
+                </button>
+              )}
             </div>
+
+            {/* No print dialog here (see `canPrintDocument` above). Rather than
+                leave the helper guessing why the button vanished, name the one
+                place a printable PDF really can be made. */}
+            {!canPrintDocument && (
+              <p
+                data-print-hide
+                className="font-serif italic text-ds-12 text-center leading-relaxed px-2"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              >
+                Printing isn&rsquo;t available inside the app. Share the summary above, or
+                open louisianahelpr.com in a browser and sign in to print or save
+                this record as a PDF.
+              </p>
+            )}
           </>
         )}
       </div>

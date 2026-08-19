@@ -6,6 +6,7 @@ import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { fireSuccessMoment } from "@/lib/successMoment";
+import type { NavigateFunction } from "react-router-dom";
 import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -28,6 +29,10 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
   refresh: () => void | Promise<unknown>;
   setStatusFilter: (filter: string) => void;
   checkHelperStripeConnect: ReturnType<typeof useStripeConnectCheck>["checkHelperStripeConnect"];
+  /** Router push, supplied by the calling hook — this factory is not a React
+      component, so it cannot call `useNavigate` itself. Used to make the
+      payout-setup failure tappable instead of a dead-end toast. */
+  navigate: NavigateFunction;
   triggerPushNudge: ReturnType<typeof usePushPermissionNudge>;
   selectedJob: Job | null;
   setSelectedJob: (job: Job | null) => void;
@@ -50,6 +55,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     refresh,
     setStatusFilter,
     checkHelperStripeConnect,
+    navigate,
     triggerPushNudge,
     optimisticallyPatchJob,
     rollbackActivity,
@@ -250,7 +256,18 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     try {
     if (accept) {
       const stripeCheck = await checkHelperStripeConnect();
-      if (!stripeCheck.ok) { hapticError(); toast.error(stripeCheck.reason); return; }
+      if (!stripeCheck.ok) {
+        hapticError();
+        // A blocked accept has to carry its own way out. The old copy told the
+        // helper to go find Profile -> Payment Settings themselves; the toast
+        // now takes them there, which is also why the message got shorter.
+        // Same destination the rest of the app uses for payout setup
+        // (PayoutSetupDialog, EarningsTab).
+        toast.error(stripeCheck.reason, stripeCheck.needsPayoutSetup
+          ? { action: { label: "Set up payouts", onClick: () => navigate("/profile?tab=payment") } }
+          : undefined);
+        return;
+      }
 
       // Identity verification gate — required before first accept. On a
       // transient fetch failure, `prof` is undefined and reads as
@@ -313,6 +330,9 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         rollbackActivity(snapshot);
         hapticError();
         toast.error("This offer is no longer available — it may have expired.");
+        // Same reasoning as the decline path below: re-read rather than leave
+        // the card offering an action that just bounced.
+        await refresh();
         return;
       }
       // Helper-side reject of the losing applicants. The direct UPDATE this
@@ -420,11 +440,22 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           /could not find the function|does not exist|schema cache/i.test(msg);
         if (!rpcMissing) {
           hapticError();
-          toast.error(
-            /offer_not_active/.test(msg)
-              ? "This offer is no longer active."
-              : "Couldn't record your response — please try again.",
-          );
+          if (/offer_not_active/.test(msg)) {
+            // The RPC's guard is `jobs.helper_id = auth.uid()`. This card is
+            // shown whenever the APPLICATION says accepted, which is a
+            // different fact — the two can disagree (a reopened job, a poster
+            // who reassigned, a partially-staffed group roster), and when they
+            // do the helper taps a button the server was always going to
+            // refuse. The old copy just said "no longer active" and left the
+            // card sitting there with the same two dead buttons.
+            //
+            // Refresh so the card re-renders from the truth instead of
+            // repeating the failure.
+            toast.error("This job isn't yours to respond to any more — someone else may have been booked.");
+            await refresh();
+            return;
+          }
+          toast.error("Couldn't record your response — please try again.");
           return;
         }
         // Prior violation count drives the graduated-ban ladder — a dropped

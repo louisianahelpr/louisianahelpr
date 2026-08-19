@@ -18,7 +18,7 @@ import { JobActionRow, JobActionChip } from "./JobActionRow";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { SendReportCard } from "./PetReportCard";
-import { formatPrice, formatShortDate, formatRecurrenceInterval } from "@/lib/format";
+import { formatPriceExact, formatShortDate, formatRecurrenceInterval } from "@/lib/format";
 import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "./appliedJobCard/useHighlightPulse";
 import { deriveAppliedJobCardState } from "./appliedJobCard/appliedJobCardHelpers";
@@ -113,7 +113,11 @@ function AppliedJobCardInner({
         >
           <JobCardTitleBar
             title={job.title || "Job"}
-            amount={formatPrice(payout)}
+            // Exact cents, matching Browse / the job-detail pill / the apply
+            // sheet. A helper seeing $84 here and $83.60 two taps away has
+            // been given two answers to "what do I get paid", and the rounded
+            // one overstates it.
+            amount={formatPriceExact(payout)}
             amountTitle={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
           />
 

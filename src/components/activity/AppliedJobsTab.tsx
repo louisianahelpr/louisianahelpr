@@ -20,11 +20,6 @@ import { logWithdrawReason, type WithdrawReason } from "@/lib/applicationWithdra
     on the prod `applications` table but aren't in the generated Supabase
     types yet. This narrow shape lets us build the bid-edit update + its
     server-side "locked once viewed" guard without an `as any`. */
-type LooseAppUpdateBuilder = {
-  eq: (col: string, val: string) => LooseAppUpdateBuilder;
-  is: (col: string, val: null) => LooseAppUpdateBuilder;
-  select: (cols: string) => PromiseLike<{ data: unknown[] | null; error: { message?: string } | null }>;
-};
 
 interface AppliedJobsTabProps {
   apps: AppliedApp[];
@@ -138,18 +133,46 @@ export const AppliedJobsTab = ({
     const { error: uploadErr } = await supabase.storage.from("application-attachments").upload(path, file);
     if (uploadErr) { hapticError(); toast.error("Couldn't upload that file — try again?"); setUploadingAttachment(null); return; }
     const newUrls = [...currentUrls, path];
-    const { error } = await supabase.from("applications").update({ attachment_urls: newUrls }).eq("id", appId);
-    if (error) { hapticError(); toast.error("Couldn't save that attachment — try again?"); }
-    else toast.success("Attachment added");
+    // `.select()` for the same reason it is on every other write in this file:
+    // a bare `.update().eq(...)` resolves `{data: null, error: null}` whether
+    // it changed one row or none, so an RLS-filtered write looks like success.
+    const { data: saved, error } = await supabase
+      .from("applications")
+      .update({ attachment_urls: newUrls })
+      .eq("id", appId)
+      .select("id");
     setUploadingAttachment(null);
-  }, [userId]);
+    if (error || !saved || saved.length === 0) {
+      hapticError();
+      toast.error("Couldn't save that attachment — try again?");
+      return;
+    }
+    toast.success("Attachment added");
+    // Re-read. Without this the write landed but the card kept rendering the
+    // `attachment_urls` it was given on mount — so an application that now had
+    // a file still read "No attachments yet" until something else happened to
+    // refetch. That is the reported "I added attachment but it still said no
+    // attachment".
+    onRefresh();
+  }, [userId, onRefresh]);
 
   const handleRemoveAttachment = useCallback(async (appId: string, currentUrls: string[], urlToRemove: string) => {
     const newUrls = currentUrls.filter(u => u !== urlToRemove);
-    const { error } = await supabase.from("applications").update({ attachment_urls: newUrls }).eq("id", appId);
-    if (error) { hapticError(); toast.error("Couldn't remove that — try again?"); }
-    else toast.success("Attachment removed");
-  }, []);
+    const { data: saved, error } = await supabase
+      .from("applications")
+      .update({ attachment_urls: newUrls })
+      .eq("id", appId)
+      .select("id");
+    if (error || !saved || saved.length === 0) {
+      hapticError();
+      toast.error("Couldn't remove that — try again?");
+      return;
+    }
+    toast.success("Attachment removed");
+    // Same as the add path — the list has to be re-read or the removed file
+    // stays on screen.
+    onRefresh();
+  }, [onRefresh]);
 
   // One source of truth for the per-row render so both the flat
   // list view and the grouped Sectioned view paint identical

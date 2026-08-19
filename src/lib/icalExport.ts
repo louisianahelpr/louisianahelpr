@@ -62,15 +62,61 @@ export function buildIcsString(job: CalendarJobEvent): string {
   return lines;
 }
 
-export function downloadIcs(job: CalendarJobEvent): void {
+/** What actually happened, so the caller can tell the user the truth. */
+export type CalendarExportResult = "shared" | "downloaded" | "failed";
+
+/**
+ * Hand the job to the user's calendar.
+ *
+ * The old implementation was a bare `<a download>` blob click, which is the
+ * one technique that does NOT work where most of this app's users are: iOS
+ * Safari and the Capacitor WKWebView both ignore the `download` attribute on a
+ * blob URL. Tapping "Add to Calendar" on an iPhone did nothing at all, and
+ * because the function returned `void` the button had no way to know or say so
+ * — the reported "I added to calendar but it still says add to".
+ *
+ * Order matters:
+ *  1. Web Share with a file — on iOS this opens the share sheet with the .ics
+ *     attached, and "Add to Calendar" is one of the offered actions. This is
+ *     the only path that genuinely reaches the iOS calendar from a web app.
+ *  2. Anchor download — correct on desktop browsers and Android, where the
+ *     file lands in Downloads and opens in the calendar app.
+ * A caller that gets "failed" must say so rather than pretending.
+ */
+export async function addJobToCalendar(job: CalendarJobEvent): Promise<CalendarExportResult> {
   const ics = buildIcsString(job);
+  const filename = `helpr-job-${job.id.slice(0, 8)}.ics`;
   const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `helpr-job-${job.id.slice(0, 8)}.ics`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+
+  // `canShare({ files })` is the real capability probe — `navigator.share`
+  // alone exists on browsers that reject file payloads.
+  try {
+    const file = new File([blob], filename, { type: "text/calendar" });
+    const nav = navigator as Navigator & {
+      canShare?: (data: { files?: File[] }) => boolean;
+      share?: (data: { files?: File[]; title?: string }) => Promise<void>;
+    };
+    if (nav.canShare?.({ files: [file] }) && nav.share) {
+      await nav.share({ files: [file], title: job.title });
+      return "shared";
+    }
+  } catch {
+    // A user who dismisses the share sheet lands here too. Fall through to the
+    // download rather than reporting a failure they caused on purpose — the
+    // worst case is an extra file in Downloads.
+  }
+
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return "downloaded";
+  } catch {
+    return "failed";
+  }
 }

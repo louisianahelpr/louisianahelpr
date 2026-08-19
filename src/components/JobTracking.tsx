@@ -480,15 +480,16 @@ export function JobTracking({
     posterCompletedAt: jobStamps.posterCompletedAt,
   });
 
-  // SOS is a safety control for someone who is EN ROUTE or ON SITE. It used to
-  // render for the whole of `in_progress`, which begins at the "Offered" step —
-  // so the poster saw an SOS button on a job where, in the owner's words, "no
-  // one is even there". It now appears from "On the Way" onward and stays up
-  // through Arrived / Working / Done-pending, dropping only once the job is
-  // closed out. Never deleted: it is the one control that matters if a visit
-  // goes wrong.
+  // SOS is a personal-safety escalation, so it only exists once someone is
+  // actually there: it appears at "Arrived" and stays up through Working /
+  // Done-pending, dropping only once the job is closed out. It used to start at
+  // "On the Way" (and before that, at "Offered"), which put an SOS button on a
+  // job where nobody had met anybody — owner: "SOS should be when they are
+  // there arrived and working". Offering it that early both dilutes what it
+  // means and invites a mis-tap. Never deleted once shown: it is the one
+  // control that matters if a visit goes wrong.
   const showSos =
-    currentStatusIdx >= STATUS_IDX.on_the_way &&
+    currentStatusIdx >= STATUS_IDX.arrived &&
     jobStatus !== "completed" &&
     jobStatus !== "cancelled";
 

@@ -33,7 +33,6 @@ const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialo
 const JobQuickActionSheet = lazy(() => import("@/components/dashboard/JobQuickActionSheet").then(m => ({ default: m.JobQuickActionSheet })));
 const ApplyConfirmDialog = lazy(() => import("@/components/dashboard/ApplyConfirmDialog").then(m => ({ default: m.ApplyConfirmDialog })));
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
-const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 const WelcomeModal = lazy(() => import("@/components/dashboard/WelcomeModal"));
@@ -159,7 +158,6 @@ const Dashboard = () => {
   // corresponding map pin. null = no card hovered.
   const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
 
-  const [payoutSetupDialogOpen, setPayoutSetupDialogOpen] = useState(false);
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
   const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;
 
@@ -521,11 +519,17 @@ const Dashboard = () => {
         onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}
         onConfirm={handleDismissConfirm}
       />
-      {payoutSetupDialogOpen && (
-        <Suspense fallback={null}>
-          <PayoutSetupDialog open={payoutSetupDialogOpen} onOpenChange={setPayoutSetupDialogOpen} />
-        </Suspense>
-      )}
+      {/* No payout-setup dialog here. It was mounted behind a
+          `payoutSetupDialogOpen` flag whose setter was never called from
+          anywhere, so it could not open — a lazy chunk and a piece of state
+          maintained for a dialog no user could ever see.
+
+          Nor should it open here: applying to a job does not require a payout
+          account, accepting one does, and that gate already exists in
+          useOfferHandlers (with a "Set up payouts" action on the toast). Adding
+          a second gate at apply time would put the friction at the wrong
+          moment. This was PayoutSetupDialog's only mount point, so the
+          component had no reachable caller at all and is deleted with it. */}
 
       {/* Floating-FAB removed — MobileNav already renders a Post FAB at the
           right edge of the bottom dock. Two FABs at the same screen corner

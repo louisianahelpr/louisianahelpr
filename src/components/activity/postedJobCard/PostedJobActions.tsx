@@ -320,16 +320,23 @@ export function PostedJobActions({
                 !job.poster_completed_at &&
                 !job.helper_arrived_at &&
                 hasJobStarted(job.date_needed, job.start_time);
-              // SOS is a SAFETY control, so it is gated on the visit actually
-              // being under way (the helper set off) rather than on the job
-              // merely being assigned — the same rule it had in the tracker
-              // header it moved out of.
+              // SOS is a personal-safety escalation, so it is gated on the
+              // helper actually BEING on site — the arrival stamp, not the
+              // on-the-way one (owner: "SOS should be when they are there
+              // arrived and working"). Someone still driving over is not a
+              // safety situation yet, and an SOS offered then reads as routine.
+              // Same rule as the tracker header it moved out of, which gates on
+              // the "arrived" step.
+              //
+              // `helper_arrived_at` is the only stamp for that step and is
+              // written before the helper can advance to Working, so gating on
+              // it also covers the later states.
               //
               // That rule ALSO excluded completed/cancelled jobs. Those checks
               // are not repeated here: this branch only renders for a job whose
               // status is already narrowed to "in_progress" | "revision_requested",
               // so tsc rejected them as comparisons that can never be true.
-              const showSos = !!job.helper_on_the_way_at;
+              const showSos = !!job.helper_arrived_at;
               const columns = (2 + (showSos ? 1 : 0) + (showNoShow ? 1 : 0)) as 2 | 3 | 4;
               return (
                 <JobActionRow columns={columns}>

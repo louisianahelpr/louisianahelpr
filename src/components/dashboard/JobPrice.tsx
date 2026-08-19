@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
 import { DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceExact } from "@/lib/format";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 
 export interface JobPriceProps {
@@ -95,7 +95,21 @@ export function JobPrice({
   // Bidding was removed (zero production usage), so a job's price is always the
   // poster's set budget: gross on guest/poster surfaces, net take-home otherwise.
   const amount = showBudget ? budget : netEarnings;
-  const earnings = formatPrice(amount);
+  // TAKE-HOME IS SHOWN TO THE CENT; the gross budget stays whole dollars.
+  //
+  // `formatPrice` rounds to the nearest dollar, which turned an $83.60 payout
+  // into "You earn $84" here while the apply sheet's breakdown — which must add
+  // up, so it uses exact cents — said "Take-home $83.60" two taps later. One job,
+  // two answers to "what do I get paid", and the rounder one was the OPTIMISTIC
+  // one: it promised 40c the helper never receives. A payout figure may never
+  // read higher than the payout, so the headline moved to the exact number
+  // rather than the breakdown moving to a rounded one. Whole amounts still
+  // print clean ("$90", not "$90.00"), so a round budget is unaffected — only
+  // fee-derived nets, which are exactly the figures that were wrong.
+  //
+  // The poster's gross budget is a number they typed, not a payout, so it keeps
+  // the whole-dollar treatment.
+  const earnings = showBudget ? formatPrice(amount) : formatPriceExact(amount);
 
   // ──────────────────────────────────────────────────────────────────────
   // chip — the small feed/Browse card price tile.
@@ -174,9 +188,9 @@ export function JobPrice({
             className="font-sans tabular-nums text-ds-9 tracking-[0.02em] mt-1 pt-1 whitespace-nowrap"
             style={{ color: "hsl(var(--olivewood) / 0.8)", borderTop: "0.5px solid hsl(var(--bark) / 0.18)" }}
           >
-            Budget ${formatPrice(budget)} − {effectiveFee}% fee
+            Budget ${formatPriceExact(budget)} − {effectiveFee}% fee
             {helpers > 1 ? ` ÷ ${helpers}` : ""}
-            {netUrgent > 0 ? ` + $${formatPrice(netUrgent)}` : ""}
+            {netUrgent > 0 ? ` + $${formatPriceExact(netUrgent)}` : ""}
           </span>
         )}
       </button>
@@ -224,14 +238,16 @@ export function JobPrice({
       >
         ${earnings}
       </p>
-      {/* Always-visible micro-breakdown so helpers see the math at a glance. */}
+      {/* Always-visible micro-breakdown so helpers see the math at a glance.
+          Exact cents, like the take-home it explains — a rounded term in a
+          line whose whole job is to reconcile is the bug this file just fixed. */}
       {!showBudget && (
         <p
           className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          ${formatPrice(budget)} budget{helpers > 1 ? ` ÷ ${helpers}` : ""} − {effectiveFee}% fee
-          {netUrgent > 0 ? ` + $${formatPrice(netUrgent)} urgent` : ""}
+          ${formatPriceExact(budget)} budget{helpers > 1 ? ` ÷ ${helpers}` : ""} − {effectiveFee}% fee
+          {netUrgent > 0 ? ` + $${formatPriceExact(netUrgent)} urgent` : ""}
         </p>
       )}
       {/* Only pitch the Pro fee reduction when the fee actually shown is above

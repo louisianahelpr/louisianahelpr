@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { useStripeConnectCheck } from "./useStripeConnectCheck";
+import { useStripeConnectCheck, type StripeConnectCheckResult } from "./useStripeConnectCheck";
 
 const invokeMock = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({
@@ -22,7 +22,7 @@ describe("useStripeConnectCheck", () => {
       error: null,
     });
     const { result } = renderHook(() => useStripeConnectCheck());
-    let outcome!: { ok: boolean; reason?: string };
+    let outcome!: StripeConnectCheckResult;
     await act(async () => {
       outcome = await result.current.checkHelperStripeConnect();
     });
@@ -36,12 +36,14 @@ describe("useStripeConnectCheck", () => {
       error: null,
     });
     const { result } = renderHook(() => useStripeConnectCheck());
-    let outcome!: { ok: boolean; reason?: string };
+    let outcome!: StripeConnectCheckResult;
     await act(async () => {
       outcome = await result.current.checkHelperStripeConnect();
     });
     expect(outcome.ok).toBe(false);
     expect(outcome.reason).toMatch(/connect a payout account/i);
+    // The caller renders a "Set up payouts" action off this flag.
+    expect(outcome.needsPayoutSetup).toBe(true);
   });
 
   it("ok=false with incomplete-setup reason when connected but details not submitted", async () => {
@@ -50,34 +52,39 @@ describe("useStripeConnectCheck", () => {
       error: null,
     });
     const { result } = renderHook(() => useStripeConnectCheck());
-    let outcome!: { ok: boolean; reason?: string };
+    let outcome!: StripeConnectCheckResult;
     await act(async () => {
       outcome = await result.current.checkHelperStripeConnect();
     });
     expect(outcome.ok).toBe(false);
     expect(outcome.reason).toMatch(/setup is incomplete/i);
+    expect(outcome.needsPayoutSetup).toBe(true);
   });
 
   it("ok=false with generic-failure reason when invoke errors", async () => {
     invokeMock.mockResolvedValue({ data: null, error: new Error("boom") });
     const { result } = renderHook(() => useStripeConnectCheck());
-    let outcome!: { ok: boolean; reason?: string };
+    let outcome!: StripeConnectCheckResult;
     await act(async () => {
       outcome = await result.current.checkHelperStripeConnect();
     });
     expect(outcome.ok).toBe(false);
     expect(outcome.reason).toMatch(/Unable to verify/i);
+    // Unknown status is not evidence the account is missing — no setup action.
+    expect(outcome.needsPayoutSetup).toBeFalsy();
   });
 
   it("ok=false when invoke throws", async () => {
     invokeMock.mockRejectedValue(new Error("network down"));
     const { result } = renderHook(() => useStripeConnectCheck());
-    let outcome!: { ok: boolean; reason?: string };
+    let outcome!: StripeConnectCheckResult;
     await act(async () => {
       outcome = await result.current.checkHelperStripeConnect();
     });
     expect(outcome.ok).toBe(false);
     expect(outcome.reason).toMatch(/Unable to verify/i);
+    // Unknown status is not evidence the account is missing — no setup action.
+    expect(outcome.needsPayoutSetup).toBeFalsy();
   });
 
   it("checking flag flips true during invoke and back to false after", async () => {
@@ -90,7 +97,7 @@ describe("useStripeConnectCheck", () => {
     const { result } = renderHook(() => useStripeConnectCheck());
     expect(result.current.checking).toBe(false);
 
-    let pending!: Promise<{ ok: boolean; reason?: string }>;
+    let pending!: Promise<StripeConnectCheckResult>;
     act(() => {
       pending = result.current.checkHelperStripeConnect();
     });

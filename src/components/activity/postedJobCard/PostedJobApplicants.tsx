@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Users, AlertTriangle, RotateCw, MessageSquare, Send, X, ChevronRight,
 } from "lucide-react";
-import { formatPrice } from "@/lib/format";
+
 import { type Job, type EnrichedApplication } from "../activityConstants";
 import { useBroadcastMessage } from "./useBroadcastMessage";
 

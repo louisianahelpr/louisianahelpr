@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckoutStep } from "@/components/postjob/CheckoutStep";
-import { PostingQualityMeter } from "@/components/postjob/PostingQualityMeter";
-import { usePostingQuality } from "@/hooks/usePostingQuality";
 import { CheckoutStepIndicator } from "./CheckoutStepIndicator";
 import type { usePostJobForm } from "./usePostJobForm";
 
@@ -19,18 +17,6 @@ interface CheckoutStepViewProps {
  * checkout was the page-header arrow, which the user often missed.
  */
 export function CheckoutStepView({ form }: CheckoutStepViewProps) {
-  const quality = usePostingQuality({
-    title: form.title,
-    description: form.description,
-    budget: form.budgetNum || null,
-    category: form.category,
-    photos: form.imagePreviews,
-    city: form.city,
-    scheduledDate: form.dateNeeded || null,
-    credentialTier: form.credentialTier,
-    pricingMode: form.pricingMode,
-  });
-
   // Fetch the preferred helper's name so the checkout card can show
   // "Send to [Name] first?" — only fires when there's a preferredHelperId.
   const preferredHelperId = form.preferredHelperId;
@@ -59,16 +45,13 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
   return (
     <div key="checkout-step" className="space-y-6 animate-ds-page-in">
       <CheckoutStepIndicator onBackToForm={() => form.setStep("form")} />
-      {/* Quality meter — placed above the summary card so the poster can
-          see their post strength before committing to payment. Shows
-          completed/missing signals so they know exactly what to improve. */}
-      <PostingQualityMeter
-        score={quality.score}
-        label={quality.label}
-        color={quality.color}
-        completedChecks={quality.completedChecks}
-        missingChecks={quality.missingChecks}
-      />
+      {/* The PostingQualityMeter ("Post quality: Good 73%" + a checklist) used
+          to sit here. Removed on owner instruction: this is the pay screen, and
+          grading the post at the moment of payment asks the poster to go back
+          and rewrite rather than to buy. Advice about a stronger post belongs in
+          step 1, next to the fields it is judging — not above the total. The
+          component and its usePostingQuality hook had no other callers, so both
+          were deleted with it. */}
       <CheckoutStep
         title={form.title}
         description={form.description}
@@ -102,7 +85,6 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         saving={form.saving || form.redirecting}
         uploading={form.uploading}
         uploadProgress={form.uploadProgress}
-        onEdit={() => form.setStep("form")}
         onSubmit={form.handleSubmit}
         parish={form.parish}
         preferredHelper={preferredHelper}

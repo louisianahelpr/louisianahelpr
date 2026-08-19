@@ -8,7 +8,6 @@ import {
   Repeat,
   Zap,
   CreditCard,
-  ChevronLeft,
   CheckCircle2,
   Users,
   BookOpen,
@@ -76,7 +75,6 @@ interface CheckoutStepProps {
   saving: boolean;
   uploading: boolean;
   uploadProgress?: { done: number; total: number } | null;
-  onEdit: () => void;
   onSubmit: () => void;
   /** Poster's parish — shown in the location row when available. */
   parish?: string | null;
@@ -122,7 +120,6 @@ export function CheckoutStep({
   saving,
   uploading,
   uploadProgress,
-  onEdit,
   onSubmit,
   parish,
   preferredHelper,
@@ -144,17 +141,21 @@ export function CheckoutStep({
   const totalWithTax = totalCharge + (salesTax ?? 0);
   return (
     <>
-      {/* Review card sizes are one step up from the rest of the sheet (L6).
-          The whole purpose of this card is catching a mistake before paying —
-          and the street address a stranger will be sent to was rendering at
-          the same size as a legal footnote. */}
-      <p className="text-muted-foreground text-ds-12">Review your job before paying</p>
+      {/* A "Review your job before paying" line used to open this card.
+          Removed on owner instruction: the screen is already titled "Order
+          summary" and carries a DETAILS → REVIEW AND PAY step rail, so it was
+          the third statement of the same instruction before any content. */}
 
       {/* ── Review & Post summary card ─────────────────────────────
           A clean read-only summary of everything the poster set. Shows
           the key fields at a glance so they can catch mistakes before
           committing to payment. The fee breakdown shows both sides:
-          "You pay $X · Helper earns $Y" for full transparency. */}
+          "You pay $X · Helper earns $Y" for full transparency.
+
+          Type sizes here are one step up from the rest of the sheet (L6): the
+          whole purpose of this card is catching a mistake before paying, and
+          the street address a stranger will be sent to was rendering at the
+          same size as a legal footnote. */}
       <div className="rounded-ds-md liquid-glass overflow-hidden">
         <div
           className="px-4 py-2.5 flex items-center gap-2 border-b border-border"
@@ -633,15 +634,13 @@ export function CheckoutStep({
           <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
           Held safely until the job's done.
         </p>
-        <Button
-          variant="ghost"
-          className="w-full rounded-ds-md"
-          onClick={onEdit}
-          disabled={saving}
-          style={{ color: "hsl(var(--bark))" }}
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" /> Back to edit
-        </Button>
+        {/* A second "Back to edit" ghost button used to sit under the CTA.
+            Removed on owner instruction — the step rail at the top of the
+            screen (CheckoutStepIndicator's tappable "Details" step) and the
+            page-header arrow already go back, and a back affordance directly
+            beneath the pay button competes with the one action this screen
+            exists for. It was the only consumer of the edit callback, so that
+            prop went with it. */}
       </div>
     </>
   );

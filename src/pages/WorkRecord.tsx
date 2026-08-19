@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,11 +21,11 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { shareNative } from "@/lib/nativeShare";
-import { formatPrice, formatShortDate } from "@/lib/format";
+import { formatPrice } from "@/lib/format";
 import HelprMark from "@/components/HelprMark";
 import type { Database } from "@/integrations/supabase/types";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
-import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
+import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -38,13 +37,6 @@ interface WorkRecordData {
     created_at: string;
   };
   completedJobs: Job[];
-  /**
-   * LAST-RESORT fee % for legacy rows that carry neither a stamped
-   * `platform_fee_amount` nor a frozen `helper_fee_percent`. Derived from the
-   * helper's subscription tier at fetch time. Never applied to a job that
-   * recorded its own fee — see `helperEarnings.ts`.
-   */
-  feeFallbackPercent: number;
   totalEarnings: number;
   avgRating: number | null;
   reviewCount: number;
@@ -156,7 +148,6 @@ const WorkRecord = () => {
       return {
         profile,
         completedJobs,
-        feeFallbackPercent,
         totalEarnings,
         avgRating,
         reviewCount,
@@ -166,7 +157,6 @@ const WorkRecord = () => {
     },
   });
 
-  const recentJobs = useMemo(() => (data?.completedJobs ?? []).slice(0, 10), [data]);
   const loading = isLoading && !data;
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
@@ -405,60 +395,15 @@ const WorkRecord = () => {
                 </div>
               </div>
 
-              {/* Recent job history table */}
-              {recentJobs.length > 0 && (
-                <div style={{ borderBottom: "1px solid var(--doc-hairline)" }}>
-                  {/* Same band treatment as Work Summary above — the two
-                      section headers on this document have to read as one
-                      device, not as two differently-weighted lines of type. */}
-                  <div className="doc-band px-5 py-2">
-                    <p
-                      className="doc-band-ink font-serif italic uppercase text-ds-9"
-                      style={{ letterSpacing: "0.18em" }}
-                    >
-                      Recent Jobs
-                    </p>
-                  </div>
-                  <div className="px-5 py-4 space-y-2">
-                    {/* Table header */}
-                    <div className="grid grid-cols-[1fr_auto_auto] gap-2 px-1">
-                      <span className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground">Job</span>
-                      <span className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground text-right">Earned</span>
-                      <span className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground text-right">Date</span>
-                    </div>
-                    {recentJobs.map((job, idx) => {
-                      // Same per-job resolution as the Total Earnings figure
-                      // above, so a row can never disagree with the summary.
-                      const earned = helperTakeHomeDollars(job, data.feeFallbackPercent);
-                      const label = categoryLabels[job.category ?? "other"] ?? "Other";
-                      return (
-                        <div
-                          key={job.id}
-                          // Zebra fill from the shared ladder's quietest rung.
-                          // `parchment/0.5` over the old card composited to a
-                          // 0.3/255 delta — a zebra stripe you could not see.
-                          className={`grid grid-cols-[1fr_auto_auto] gap-2 px-3 py-2.5 rounded-ds-md${
-                            idx % 2 === 0 ? " doc-row-alt" : ""
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <p className="text-ds-12 font-semibold truncate" style={{ color: "hsl(var(--ink-deep))" }}>
-                              {job.title}
-                            </p>
-                            <p className="text-ds-10 text-muted-foreground">{label}</p>
-                          </div>
-                          <span className="text-ds-12 font-medium tabular-nums shrink-0" style={{ color: "hsl(var(--bark))" }}>
-                            {`$${formatPrice(earned)}`}
-                          </span>
-                          <span className="text-ds-11 text-muted-foreground tabular-nums shrink-0 text-right">
-                            {formatShortDate(job.created_at)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              {/* The per-job "RECENT JOBS" table (title / category / amount /
+                  date, ten rows) was removed deliberately. This sheet exists to
+                  be handed to a landlord or a lender as proof of work and
+                  income, and the WORK SUMMARY above — jobs completed, total
+                  earnings, active period, rating, top categories — is the whole
+                  of what that recipient needs to verify. An itemised list of who
+                  the helper worked for and what they did in each home is client
+                  detail with no bearing on the claim being proved, so printing
+                  it just leaked other people's business to a third party. */}
 
               {/* No jobs empty state inside the document */}
               {data.completedJobs.length === 0 && (

@@ -192,11 +192,6 @@ export function ChatView({
   // inert until the gesture is clearly horizontal so vertical scrolling —
   // the primary gesture on this screen — is never stolen.
   const { reveal, handlers: revealHandlers } = useTimestampReveal();
-  // Once the user taps any first-message chip the row hides for the rest
-  // of this conversation — it's only meant to break the empty-thread
-  // ice, not stick around as the chat actually starts.
-  const [chipsDismissed, setChipsDismissed] = useState(false);
-
   // Scroll behavior — the jump-to-newest / first-unread observer, the
   // conversation-change reset, the keyboard-open re-anchor, the
   // pull-to-refresh wiring, and the merged thread ref.
@@ -360,8 +355,6 @@ export function ChatView({
             userId={userId}
             draft={draft}
             setDraft={setDraft}
-            chipsDismissed={chipsDismissed}
-            setChipsDismissed={setChipsDismissed}
             sendMessage={sendMessage}
             broadcastTyping={broadcastTyping}
             replyTo={replyTo}

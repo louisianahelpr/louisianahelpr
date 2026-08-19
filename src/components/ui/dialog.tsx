@@ -100,10 +100,14 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
+      {/* Bare X — no filled disc, border, or shadow, matching SheetContent's
+          close and BackButton's bare chevron. `rounded-md` shapes the focus
+          ring only; nothing is painted at rest. The 44x44 box is the tap
+          target and is independent of what is painted. */}
       <DialogPrimitive.Close
-        className="absolute right-3 top-3 w-11 h-11 p-0 box-border rounded-full btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+        className="absolute right-3 top-3 w-11 h-11 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
       >
-        <X className="h-4 w-4" />
+        <X className="h-5 w-5" strokeWidth={2} />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>

@@ -144,33 +144,36 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
 );
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
-/** Frosted-glass round close button shared by every sheet side. */
+/**
+ * Bare close (X) shared by every sheet side.
+ *
+ * Deliberately a BARE glyph — no filled circle, border, backdrop-blur, or
+ * shadow. It used to be a frosted-glass disc, which read as a heavy chrome
+ * "chip" floating over the sheet on every bottom sheet in the app. The disc
+ * existed to keep the glyph legible when it overlapped sheet content, but
+ * every sheet paints its own opaque `bg-background`, so the glyph has a solid
+ * ground already and the disc bought nothing but visual weight. Same reasoning
+ * as `BackButton` (bare chevron, no chrome) and `DialogContent`'s close.
+ *
+ * The 40x40 box stays — that is the tap target (>= 44pt with the surrounding
+ * p-6), independent of whether anything is painted behind the glyph.
+ *
+ * Media overlays (PhotoLightbox, VideoPreviewModal) keep their translucent
+ * disc on purpose: those Xs sit on arbitrary user photos/video, where a bare
+ * glyph can land on a matching-colour region and disappear.
+ */
 const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
   <SheetPrimitive.Close
-    className="absolute inline-flex h-10 w-10 items-center justify-center rounded-full opacity-90 ring-offset-background transition-all hover:opacity-100 active:scale-[0.94] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+    className="absolute inline-flex h-10 w-10 items-center justify-center rounded-md ring-offset-background transition-colors hover:opacity-70 active:scale-[0.94] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
     style={{
       top,
       right,
-      // `--surface-premium`, NOT a literal white. This was
-      // `hsla(0, 0%, 100%, 0.65)` with no dark sibling, while the icon colour
-      // (`--olivewood`) IS theme-aware and flips to near-white on dark. The
-      // result in dark mode was a near-white glyph on a near-white circle —
-      // the close button on EVERY sheet in the app was barely legible, and it
-      // also read as a bright blob against the dark sheet body behind it.
-      background: "var(--surface-premium)",
-      border: "1px solid hsl(var(--olivewood) / 0.18)",
+      // Theme-aware: `--olivewood` flips to near-white on dark, so the glyph
+      // stays legible against the sheet's own background in both themes.
       color: "hsl(var(--olivewood))",
-      backdropFilter: "blur(10px) saturate(150%)",
-      WebkitBackdropFilter: "blur(10px) saturate(150%)",
-      boxShadow:
-        // Inset highlight scaled back from 0.55 → 0.28: at full strength it
-        // painted a bright rim on the dark-mode surface.
-        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.28), " +
-        "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-        "0 4px 10px -4px hsl(var(--olivewood) / 0.10)",
     }}
   >
-    <X className="h-4 w-4" strokeWidth={2.25} />
+    <X className="h-5 w-5" strokeWidth={2} />
     <span className="sr-only">Close</span>
   </SheetPrimitive.Close>
 );

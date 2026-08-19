@@ -108,16 +108,49 @@ serve(async (req) => {
     });
   }
 
+  // Stripe issues a SEPARATE signing secret per endpoint object, and this
+  // project has more than one endpoint pointed at this same function URL
+  // (the account endpoint and the Connect endpoint). Verifying against a
+  // single secret therefore cannot work: whichever endpoint's secret is not
+  // in the env fails signature verification 100% of the time, silently, and
+  // the 200-to-stop-retries behaviour below means Stripe never complains.
+  //
+  // So STRIPE_WEBHOOK_SECRET accepts a COMMA-SEPARATED list and each secret
+  // is tried in turn. One secret is still perfectly valid input — a list of
+  // one is the degenerate case, so existing single-endpoint setups are
+  // unaffected.
+  const webhookSecrets = webhookSecret
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  // Returns the event or throws — keeping the single-expression `try` below
+  // means `event` stays definitely-assigned for the compiler, which a bare
+  // for-loop assignment would not.
+  const verifyAgainstAny = async (): Promise<Stripe.Event> => {
+    let lastErr: unknown = new Error("STRIPE_WEBHOOK_SECRET contained no usable secret");
+    for (const secret of webhookSecrets) {
+      try {
+        return await stripe.webhooks.constructEventAsync(body, sig, secret);
+      } catch (e) {
+        // Expected when this event came from the OTHER endpoint. Only the
+        // last failure is surfaced; a miss here is not itself an error.
+        lastErr = e;
+      }
+    }
+    throw lastErr;
+  };
+
   try {
-    event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
+    event = await verifyAgainstAny();
   } catch (err) {
     // Loud, easy-to-find log line so you can spot signature mismatches in Supabase logs
     console.error("🚨 [STRIPE-WEBHOOK] SIGNATURE VERIFICATION FAILED 🚨");
     console.error(`[STRIPE-WEBHOOK] Error: ${String(err)}`);
     console.error(`[STRIPE-WEBHOOK] Signature header (first 40 chars): ${sig.slice(0, 40)}...`);
-    console.error(`[STRIPE-WEBHOOK] Webhook secret prefix: ${webhookSecret.slice(0, 8)}... (length: ${webhookSecret.length})`);
+    console.error(`[STRIPE-WEBHOOK] Tried ${webhookSecrets.length} secret(s): ${webhookSecrets.map((s) => `${s.slice(0, 8)}…(${s.length})`).join(", ")}`);
     console.error(`[STRIPE-WEBHOOK] Body length: ${body.length} bytes`);
-    console.error("[STRIPE-WEBHOOK] → Returning 200 OK to stop Stripe retries. Fix the STRIPE_WEBHOOK_SECRET to match the endpoint that sent this event.");
+    console.error("[STRIPE-WEBHOOK] → Returning 200 OK to stop Stripe retries. Add the sending endpoint's signing secret to STRIPE_WEBHOOK_SECRET (comma-separate multiple endpoints).");
     await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",

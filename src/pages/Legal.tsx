@@ -440,18 +440,38 @@ const Legal = () => {
           <div className="px-5 pt-3">
             <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-3">
               {nativeHeaderRow}
-              <div className="flex flex-wrap items-center gap-2">
-                {/* flex-wrap: search input + full-labeled tabs together can
-                    exceed the row width on narrower viewports — wrapping to a
-                    second line beats letting content spill past the pill's
-                    rounded border. Search leads the row. Tabs stay visible
-                    either way — full-width when closed, auto-width (labels
-                    intact) when
-                    open so the input can take the freed-up space instead of
-                    splitting the row evenly with a full-size tab list. */}
-                {searchBar}
-                {searchToggle}
-                <div className={searchOpen ? "shrink-0" : "flex-1 min-w-0"}>{tabBar}</div>
+              {/* Terms / Rules / Privacy stay PUT while the policy scrolls.
+                  They used to scroll away with the body — so on a document
+                  thousands of words long, switching policy meant scrolling all
+                  the way back to the top to reach the control. The web branch
+                  below already pinned its band; the native one never did.
+
+                  `-mx-5 px-5` lets the sticky band's background bleed to the
+                  screen edges so text doesn't show through the 20px gutters as
+                  it passes underneath. */}
+              <div
+                className="sticky top-0 z-30 -mx-5 px-5 py-2 bg-premium-page"
+                data-print-hide
+              >
+                <div className="flex items-center gap-2">
+                  {/* One row, always — no wrap. Search leads; the tabs sit
+                      beside it on anything wider than a phone. On a phone the
+                      input's 220px minimum plus three tabs cannot fit, and
+                      wrapping them to a second line made the band grow and the
+                      page jump on every search toggle. Hiding them there costs
+                      nothing: this searches ALL policies, so which tab is
+                      selected has no bearing on the results, and closing the
+                      search brings them straight back. */}
+                  {searchBar}
+                  {searchToggle}
+                  <div
+                    className={
+                      searchOpen ? "shrink-0 hidden sm:block" : "flex-1 min-w-0"
+                    }
+                  >
+                    {tabBar}
+                  </div>
+                </div>
               </div>
               {body}
             </div>
@@ -480,24 +500,41 @@ const Legal = () => {
 
         <div className="px-5 sm:px-8 lg:px-12 pb-8">
           <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-3">
+            {/* Opaque, not just blurred. `backdrop-blur-md` alone left the
+                band see-through: scrolled policy text read straight through
+                the pinned control ("…liability", "…not a party" ghosting
+                behind the tabs), and the band's top edge had nothing above it
+                so text ran right up against the pill. A solid page-coloured
+                band with real vertical padding gives the passing content
+                somewhere to disappear. */}
             <div
-              className="sticky z-30 -mx-5 px-5 pt-0 pb-0 backdrop-blur-md"
-              style={{ top: webBandStickyTop }}
+              className="sticky z-30 -mx-5 px-5 py-2"
+              style={{
+                top: webBandStickyTop,
+                // Solid, not `bg-premium-page`: the web branch renders inside
+                // PublicLayout's warmth/mesh background, so the app-canvas
+                // gradient would read as a mismatched stripe here. `--background`
+                // is the base both are built on.
+                backgroundColor: "hsl(var(--background))",
+              }}
             >
               <div
-                className="rounded-2xl flex flex-wrap items-center gap-2 p-1"
+                className="rounded-2xl flex items-center gap-2 p-1"
                 style={{ border: "1px solid hsl(var(--bark) / 0.18)" }}
               >
-                {/* flex-wrap: search input + full-labeled tabs together can
-                    exceed the row width on narrower viewports — wrapping to a
-                    second line beats letting content spill past the pill's
-                    rounded border. Search leads the row. Tabs stay visible either way —
-                    full-width when closed, shrunk to icon-only pills when
-                    open so the input can take the freed-up space instead of
-                    splitting the row evenly with a full-size tab list. */}
+                {/* One row, always — see the native branch above for why the
+                    wrap went: an opened search pushed the tabs to a second
+                    line, growing the band and jumping the page. Below `sm` the
+                    tabs step aside for the input instead; search spans all
+                    three policies, so the selected tab doesn't affect results
+                    and closing search restores them. */}
                 {searchBar}
                 {searchToggle}
-                <div className={searchOpen ? "shrink-0" : "flex-1 min-w-0"}>{tabBar}</div>
+                <div
+                  className={searchOpen ? "shrink-0 hidden sm:block" : "flex-1 min-w-0"}
+                >
+                  {tabBar}
+                </div>
               </div>
             </div>
             {/* Full-width body at every breakpoint. The old lg+ two-column split

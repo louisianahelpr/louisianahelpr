@@ -255,61 +255,105 @@
       [data-theme="dark"] #boot-loader {
         background: hsl(20 15% 9%) !important;
       }
-      [data-theme="dark"] #boot-loader .boot-word {
-        color: hsl(36 15% 80% / 0.62) !important;
+      [data-theme="dark"] #boot-loader .boot-name {
+        color: hsl(36 15% 85%) !important;
       }
-      [data-theme="dark"] .boot-spinner {
-        border-color: hsl(36 15% 80% / 0.16) !important;
-        border-top-color: hsl(19 65% 52%) !important;
+      [data-theme="dark"] #boot-loader .boot-la {
+        color: hsl(19 65% 52%) !important;
+      }
+      /* Mirrors `[data-theme="dark"] .helpr-emblem` in src/index.css. It cannot
+         reuse that class: index.css ships with the JS bundle, which has not
+         parsed yet when this shell paints. The iron sits at roughly the same
+         value as the dark canvas, so dark LIFTS the mark rather than inverting
+         it — `brightness(0) invert(1)` would throw away the brass finials and
+         verdigris centre that make it a brand mark rather than a glyph. If the
+         rule in index.css changes, change this one with it. */
+      [data-theme="dark"] #boot-loader .boot-mark {
+        filter: brightness(1.9) saturate(1.2)
+                drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)) !important;
       }
     </style>
   </head>
   <body>
     <!--
-      Inline FCP shell — solid brand-color background + a small branded boot
-      loader (LH-50). Previously this rendered a 580×580 splash <img> which
-      became Lighthouse's LCP element (the LCP timer doesn't reset when React
-      replaces the splash, so the score waited on the splash to paint). It was
-      then stripped back to a bare background, which left a blank cream screen
-      for ~2-3s on slow connections while the JS bundle parsed.
+      Inline FCP shell — brand ground + the real wrought-iron Helpr mark
+      (LH-50). History, because this spot has been wrong three ways:
 
-      This loader threads that needle: a 34px CSS ring spinner + a muted
-      wordmark, all inline (no external asset, no web-font dependency). Both
-      elements are deliberately tiny so neither becomes the LCP candidate —
-      the Bodoni hero H1 still wins LCP. React's createRoot().render() clears
-      #root's children on its first commit, so this markup is removed the
-      instant the app paints; no JS teardown is needed.
+        1. A 580x580 splash <img> became Lighthouse's LCP element (the LCP
+           timer does not reset when React replaces the splash), so the score
+           waited on the splash to paint.
+        2. Stripped back to a bare background — a blank screen for ~2-3s on a
+           cold connection while the bundle parsed.
+        3. A generic 34px CSS ring spinner. Painted fast, but it is precisely
+           the "looks identical to every other React app" loader that
+           src/components/ui/HelprSpinner.tsx was written to abolish — and it
+           sat on the FIRST screen anyone sees.
 
-      Do NOT reintroduce a large splash <img> here — that regresses LCP.
+      Now: the actual brand mark, the same asset HelprMark and HelprSpinner
+      render. 256 source at 72px display, because 72 CSS px on a 3x phone is
+      216 device px and the 96 asset would upscale and go soft.
+
+      LCP: this IS an <img>, so it IS an LCP candidate — but LCP tracks the
+      LARGEST contentful paint, not the first, and the Bodoni hero H1 dwarfs a
+      72px mark and supersedes it. That is the difference from mistake 1: a
+      580x580 image stayed the largest thing on screen. Keep this small. If it
+      ever needs to grow past roughly a quarter of the viewport, re-measure LCP
+      before shipping it.
+
+      PATH: `./src/assets/...` is RELATIVE and Vite rewrites it to the hashed
+      asset (verified — it emits /assets/helpr-logo-256-<hash>.webp). Do NOT
+      write `/src/assets/...` with a leading slash: that reads as a public-dir
+      path, Vite cannot rewrite it, and it 404s in the build. That exact
+      mistake is recorded in the preload comment further up this file.
+
+      React's createRoot().render() clears #root's children on its first
+      commit, so this markup is removed the instant the app paints.
     -->
     <div id="root" style="background:hsl(220 14% 95%);min-height:100vh;">
       <div
         id="boot-loader"
         role="status"
         aria-label="Loading Helpr"
-        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:hsl(220 14% 95%);"
+        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:hsl(220 14% 95%);"
       >
-        <div class="boot-spinner"></div>
-        <div
-          class="boot-word"
-          style="font-family:'EB Garamond',Georgia,'Times New Roman',serif;font-style:italic;font-size:15px;letter-spacing:0.05em;color:hsl(64 16% 16% / 0.80);"
-        >
-          Helpr
+        <img
+          class="boot-mark"
+          src="./src/assets/helpr-logo-256.webp"
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+          width="84"
+          height="72"
+          decoding="async"
+        />
+        <div class="boot-word" style="font-family:'EB Garamond',Georgia,Cambria,serif;display:inline-flex;align-items:baseline;gap:0.05em;line-height:1;">
+          <span class="boot-name" style="font-size:20px;font-weight:500;letter-spacing:-0.005em;color:hsl(64 16% 12%);">Helpr</span>
+          <span class="boot-la" style="font-size:13px;font-style:italic;font-weight:400;letter-spacing:0.22em;margin-left:0.18em;color:hsl(19 75% 35%);">&#183; LA</span>
         </div>
         <style>
-          .boot-spinner {
-            width: 34px;
-            height: 34px;
-            border-radius: 9999px;
-            border: 2.5px solid hsl(70 20% 33% / 0.16);
-            border-top-color: hsl(19 75% 35%);
-            animation: boot-spin 0.7s linear infinite;
+          /* Same warm Olivewood lift the static mark carries everywhere else
+             (.helpr-emblem, src/index.css). Dark override lives in
+             #boot-theme in <head>. */
+          .boot-mark {
+            /* The artwork is 256x220, NOT square. Constrain HEIGHT and let
+               width follow, exactly as HelprMark does with `h-* w-auto` —
+               setting both to 72 stretched the mark ~14% and is the kind of
+               thing that reads as "slightly off" without being nameable.
+               The width/height ATTRIBUTES carry the true 84x72 ratio so the
+               box reserved before decode matches what paints (no CLS). */
+            height: 72px;
+            width: auto;
+            user-select: none;
+            filter: drop-shadow(0 1px 1px rgba(46, 47, 34, 0.18))
+                    drop-shadow(0 2px 6px rgba(46, 47, 34, 0.1));
           }
-          @keyframes boot-spin {
-            to { transform: rotate(360deg); }
-          }
+          /* A launch screen is static per Apple HIG — no spinner, no progress.
+             The only motion is one short fade so the first paint reads as
+             deliberate rather than frozen. It never loops. */
+          #boot-loader { animation: boot-in 260ms ease-out both; }
+          @keyframes boot-in { from { opacity: 0; } to { opacity: 1; } }
           @media (prefers-reduced-motion: reduce) {
-            .boot-spinner { animation-duration: 1.6s; }
+            #boot-loader { animation: none; }
           }
         </style>
       </div>

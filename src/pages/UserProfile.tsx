@@ -339,9 +339,22 @@ const UserProfile = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate(`/post-job?offerTo=${userId}`)}>
-                    <Briefcase className="w-4 h-4 mr-2" /> Offer a job directly
-                  </DropdownMenuItem>
+                  {/* Only offer work to someone who shows evidence of DOING
+                      work. The unified user model (see useUserProfileData —
+                      "every user can apply OR post") means there is no helper
+                      role to gate on, so this gates on behaviour instead: has
+                      this person ever been the helper on a job?
+
+                      Without it the action rendered on every profile, including
+                      pure posters with 0 completed and 0 worked jobs — offering
+                      a job to someone with no signal they take work is a dead
+                      end for the poster and noise for the recipient. Same shape
+                      as `canEndorse={mutualJobsCount > 0}` below. */}
+                  {workedJobs.length > 0 && (
+                    <DropdownMenuItem onClick={() => navigate(`/post-job?offerTo=${userId}`)}>
+                      <Briefcase className="w-4 h-4 mr-2" /> Offer a job directly
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => setShowReport(true)}>
                     <Flag className="w-4 h-4 mr-2" /> Report user
                   </DropdownMenuItem>

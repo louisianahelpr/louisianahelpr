@@ -28,6 +28,17 @@ interface EmptyStateProps {
   body: string;
   /** Optional CTA (button / link) rendered below the copy. */
   action?: ReactNode;
+  /**
+   * Fine print rendered INSIDE the card, below the CTA — for the note a page
+   * would otherwise strand on the bare page background under the card (which
+   * is what /str-settings did with its sync-cadence sentence, and no other
+   * Profile sub-page does).
+   *
+   * Rendered with no wrapper on purpose: the caller owns its element, so a
+   * node that hides itself at a breakpoint (`lg:hidden`) takes itself out of
+   * the flex flow entirely and leaves no gap behind.
+   */
+  footnote?: ReactNode;
   /** Card treatment — see EmptyStateVariant. Defaults to `dock`. */
   variant?: EmptyStateVariant;
   /**
@@ -61,6 +72,7 @@ export function EmptyState({
   title,
   body,
   action,
+  footnote,
   variant = "dock",
   surfaceStyle,
 }: EmptyStateProps) {
@@ -167,6 +179,8 @@ export function EmptyState({
            doesn't feel glued to the paragraph. */
         <div className="mt-1">{action}</div>
       )}
+
+      {footnote}
     </div>
   );
 }

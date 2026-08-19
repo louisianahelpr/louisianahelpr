@@ -215,13 +215,6 @@ describe("ConversationRow — the avatar agrees with the name", () => {
         convo={convo}
         currentUserId={ME}
         openConvo={vi.fn()}
-        setReportTarget={vi.fn()}
-        setBlockTarget={vi.fn()}
-        setDeleteConvoConfirm={vi.fn()}
-        onToggleMute={vi.fn()}
-        onOpenMuteSheet={vi.fn()}
-        isPinned={false}
-        onTogglePin={vi.fn()}
       />,
     );
 

@@ -247,7 +247,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           onUpgrade={() => setUpgradeOpen(true)}
         />
 
-        {/* Monthly earning goal — localStorage-backed; no DB migration needed */}
+        {/* Monthly earnings goal — the only control for it in the app
+            (/analytics carried a second one; removed). localStorage-backed,
+            so no DB migration needed. */}
         {!loading && (
           <MonthlyGoalCard
             completedJobs={completedJobs.map((j) => ({

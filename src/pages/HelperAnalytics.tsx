@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Eye, Star, Target, Clock, Repeat } from "lucide-react";
@@ -9,7 +9,6 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchAnalytics, type Analytics } from "./helperAnalytics/fetchAnalytics";
 import HeroSummary from "./helperAnalytics/HeroSummary";
-import MonthlyGoalCard from "./helperAnalytics/MonthlyGoalCard";
 import EarningsByMonthCard from "./helperAnalytics/EarningsByMonthCard";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 const ProfileStatsTrend = lazy(() => import("@/components/profile/ProfileStatsTrend"));
@@ -19,36 +18,23 @@ import SuccessRateCard from "./helperAnalytics/SuccessRateCard";
 import OnTimeArrivalCard from "./helperAnalytics/OnTimeArrivalCard";
 import RepeatHireCard from "./helperAnalytics/RepeatHireCard";
 import BestDaysCard from "./helperAnalytics/BestDaysCard";
-import { ProUpsellHeader } from "./helperAnalytics/SectionCard";
+import { AnalyticsCard, ProUpsellHeader } from "./helperAnalytics/SectionCard";
 import RatingsReviewsCard from "./helperAnalytics/RatingsReviewsCard";
 
 // Helpers whose subscription tier gives access to analytics.
 const ANALYTICS_TIERS = new Set(["pro", "elite", "business"]);
 
-// ── Earnings goal (localStorage) ─────────────────────────────────────────────
-
-const GOAL_KEY = "helpr:earnings_goal";
-
-function useEarningsGoal() {
-  const [goal, setGoalState] = useState<number | null>(() => {
-    const raw = localStorage.getItem(GOAL_KEY);
-    if (!raw) return null;
-    const n = Number(raw);
-    return Number.isFinite(n) && n > 0 ? n : null;
-  });
-
-  const saveGoal = (value: number | null) => {
-    if (value === null || value <= 0) {
-      localStorage.removeItem(GOAL_KEY);
-      setGoalState(null);
-    } else {
-      localStorage.setItem(GOAL_KEY, String(value));
-      setGoalState(value);
-    }
-  };
-
-  return { goal, saveGoal };
-}
+// The monthly earnings goal is NOT here. This page used to carry a second
+// "Monthly goal" card — its own editor, its own progress bar, its own wording
+// ("earnings goal" vs the wallet's "earning goal") — over the same
+// `helpr:earnings_goal` localStorage value the Earnings tab writes. Two
+// controls for one setting, and worse, two different answers: this page's
+// progress was computed from GROSS budget bucketed by `updated_at`, while
+// Profile → My earnings uses net take-home (`helperTakeHomeDollars`) bucketed
+// by `helper_completed_at`, so the identical goal read at two different
+// percentages depending on which screen you were on. The goal lives on the
+// wallet screen, next to the money it is measured against — see
+// `src/components/profile/MonthlyGoalCard.tsx`.
 
 // ── KPI tile (desktop-only strip) ────────────────────────────────────────────
 //
@@ -170,8 +156,6 @@ const HelperAnalytics = () => {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
 
-  const { goal, saveGoal } = useEarningsGoal();
-
   const {
     data: analyticsData,
     isLoading: isLoadingData,
@@ -200,13 +184,6 @@ const HelperAnalytics = () => {
     6 +
     (analytics?.onTimeRate !== null && analytics?.onTimeRate !== undefined ? 1 : 0) +
     (analytics?.repeatHirePercent !== null && analytics?.repeatHirePercent !== undefined ? 1 : 0);
-
-  // Current-month earnings: last entry in earningsMonths (always current month).
-  const earningsMonthsArr = analytics?.earningsMonths ?? [];
-  const currentMonthEarnings =
-    earningsMonthsArr.length > 0
-      ? earningsMonthsArr[earningsMonthsArr.length - 1].amount
-      : 0;
 
   const onUpgrade = () => navigate("/profile?tab=subscription");
 
@@ -242,18 +219,10 @@ const HelperAnalytics = () => {
           ) : (
           <>
 
-          {/* ── Header stack: hero + goal are full-width above the grid ─
-              These are page-level context, not analytics tiles, so they
-              stay stacked at every breakpoint. */}
-          <div className="space-y-5">
-            <HeroSummary analytics={analytics} isLoading={isLoadingData} />
-            <MonthlyGoalCard
-              goal={goal}
-              onSaveGoal={saveGoal}
-              currentMonthEarnings={currentMonthEarnings}
-              isLoading={isLoadingData}
-            />
-          </div>
+          {/* ── Header: the hero is full-width above the grid ───────────
+              Page-level context, not an analytics tile, so it stays
+              full-width at every breakpoint. */}
+          <HeroSummary analytics={analytics} isLoading={isLoadingData} />
 
           {/* ── KPI strip (desktop-only) ────────────────────────────────
               On lg+ we surface a 4-tile at-a-glance summary above the
@@ -301,16 +270,21 @@ const HelperAnalytics = () => {
 
             {/* Activity trend — relocated from the Profile landing, where a
                 self-fetching chart of your own job volume was identity-page
-                furniture. Self-fetches, so it needs only the user id. */}
+                furniture. Self-fetches, so it needs only the user id.
+                Wrapped in AnalyticsCard — the same shell SectionCard uses —
+                so this section reads as one more panel in the stack rather
+                than a labelled strip on the bare page. */}
             {user?.id && (
               <div className="lg:col-span-2 xl:col-span-3">
                 <Suspense fallback={null}>
-                  <ProfileStatsTrend
-                    helperId={user.id}
-                    /* Same tier-derived fallback the Profile landing used, so
-                       "earned" still agrees with the other earnings surfaces. */
-                    feeFallbackPercent={tierFeePercent(analytics?.tier ?? null)}
-                  />
+                  <AnalyticsCard>
+                    <ProfileStatsTrend
+                      helperId={user.id}
+                      /* Same tier-derived fallback the Profile landing used, so
+                         "earned" still agrees with the other earnings surfaces. */
+                      feeFallbackPercent={tierFeePercent(analytics?.tier ?? null)}
+                    />
+                  </AnalyticsCard>
                 </Suspense>
               </div>
             )}

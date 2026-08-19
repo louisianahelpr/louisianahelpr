@@ -18,6 +18,35 @@ interface SectionCardProps {
 }
 
 /**
+ * AnalyticsCard — the page's card shell: one rounded liquid-glass panel with
+ * the shared elevation.
+ *
+ * Extracted from SectionCard's unlocked branch so surfaces that are NOT
+ * Pro-gated can sit in the same box as the gated panels instead of floating
+ * on the page background. The Activity trend disclosure used to be a bare
+ * divider + section label on the canvas, which read as a different screen
+ * from the stack of cards above it (owner: "make activity look like the
+ * other box's"). One definition of the shell, so the two can't drift.
+ */
+export const AnalyticsCard = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => (
+  <div
+    className="rounded-2xl liquid-glass p-5 relative overflow-hidden"
+    style={{
+      boxShadow:
+        "inset 0 1px 1px 0 rgba(255,255,255,0.4), " +
+        "0 1px 2px hsl(var(--olivewood) / 0.06), " +
+        "0 12px 28px -10px hsl(var(--olivewood) / 0.14)",
+    }}
+  >
+    {children}
+  </div>
+);
+
+/**
  * SectionCard — one analytics panel, with the Pro gate.
  *
  * ── The locked state is a ROW, not a card ─────────────────────────────────
@@ -103,15 +132,7 @@ const SectionCard = ({
   }
 
   return (
-    <div
-      className="rounded-2xl liquid-glass p-5 relative overflow-hidden"
-      style={{
-        boxShadow:
-          "inset 0 1px 1px 0 rgba(255,255,255,0.4), " +
-          "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-          "0 12px 28px -10px hsl(var(--olivewood) / 0.14)",
-      }}
-    >
+    <AnalyticsCard>
       <div className="flex items-center gap-2 mb-4">
         <span style={{ color: "hsl(var(--burnt-sienna))" }}>{icon}</span>
         <h2
@@ -130,7 +151,7 @@ const SectionCard = ({
       ) : (
         children
       )}
-    </div>
+    </AnalyticsCard>
   );
 };
 

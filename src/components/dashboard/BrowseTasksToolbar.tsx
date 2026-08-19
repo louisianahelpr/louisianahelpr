@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Clock, MapPin, Search, X } from "lucide-react";
+import { Bookmark, ChevronRight, Clock, MapPin, Search, X } from "lucide-react";
 import { categoryLabels } from "@/components/dashboard/JobFilters";
 import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/FilterSheet";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
+import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
+import { SavedSearches } from "@/components/SavedSearches";
+import { hapticLight } from "@/lib/haptics";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 import {
   getRecentSearches,
@@ -15,6 +18,7 @@ import type { BrowseTasksToolbarProps, ChipDef } from "./browseTasksToolbar/type
 import { SwipeableFilterChip } from "./browseTasksToolbar/SwipeableFilterChip";
 import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
 import { BrowseTasksActions } from "./browseTasksToolbar/BrowseTasksActions";
+import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
 
 // Re-export so consumers can import from a single location.
 export type { FeedDensity };
@@ -22,14 +26,33 @@ export type { FeedDensity };
 /**
  * BrowseTasksToolbar — the Browse feed's control strip: the
  * "Browse jobs / Filtered results" heading row, the expandable search
- * bar and filter panel, the active-filter chips, and the List / Map
- * view toggle.
+ * bar and filter sheet, and the active-filter chips.
  *
- * The icon cluster is `BrowseTasksActions`, rendered inline in the heading
- * row — on BOTH browse surfaces, Home and the guest feed. It briefly lived in
- * the page's title card instead (2026-08-17); the owner reverted that half of
- * the change after seeing it on device, so the buttons sit next to the
- * heading whose results they filter again.
+ * ONE header row, not a band of its own. The row is the shared
+ * `<ScreenHeaderRow>` — literally the component My Posts / My Jobs render — so
+ * the browse feed carries that family's shape and height rather than an
+ * approximation of it: name on the left, live state label beside it, and a
+ * two-icon cluster (`BrowseTasksActions`: search · filters) on the right.
+ *
+ * It used to be a 52px band carrying FOUR icons — view toggle · saved searches
+ * · search · filters — with the "Filtered · N active" eyebrow stacked ABOVE the
+ * title, so a single active filter grew the band to two lines. Owner's call:
+ * "for the icons move saved filters and map view into the filter option and
+ * move the rest up into the 1 column so it's the same size layout as jobs and
+ * post". So:
+ *
+ *   - List⇄Map became the sheet's "View" section (`BrowseViewToggle`),
+ *   - Saved searches became the sheet's "Saved searches" row, which opens the
+ *     same `<SavedSearches>` dialog mounted at the bottom of this component,
+ *   - search + filters stayed in the header row, which is now 44px with the
+ *     state label inline.
+ *
+ * Nothing was dropped: the map is a real feature with its own persisted
+ * view state, and both controls gained a word-label on the way in.
+ *
+ * The icon cluster briefly lived in the page's title card instead
+ * (2026-08-17); the owner reverted that after seeing it on device, so the
+ * buttons stay next to the heading whose results they filter.
  *
  * The buttons drive the same `filters.searchOpen` / `filters.filtersOpen`
  * state this component reads, so the search input, its recent/popular
@@ -52,6 +75,11 @@ export function BrowseTasksToolbar({
   // re-reads on the next focus rather than mutating mid-typing.
   const [searchFocused, setSearchFocused] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>(() => getRecentSearches());
+
+  // Saved-searches dialog. Opened from the filter sheet's "Saved searches"
+  // row, which closes the sheet on the way — so the dialog is mounted HERE,
+  // outside the sheet, or it would unmount with the row that opened it.
+  const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
 
   // Persist non-trivial queries to history. Debounced via a ref so we
   // only push the "settled" value, not every keystroke. We wait for the
@@ -99,6 +127,10 @@ export function BrowseTasksToolbar({
       ? `within ${filters.locationFilter.slice(7)} mi`
       : filters.locationFilter
     : "";
+
+  // One source for the row's heading text, used by both the normal and the
+  // search state (search keeps it sr-only rather than dropping the h1).
+  const headingTitle = filters.hasFilters ? "Filtered results" : "Browse jobs";
 
   const recapChips: ChipDef[] = [];
   if (filters.selectedCategory) {
@@ -156,100 +188,80 @@ export function BrowseTasksToolbar({
 
   return (
     <>
-      {/* Header row — title in normal mode; inline search input in search mode. */}
-      <div
-        className="shrink-0 flex items-center gap-3 px-4"
-        style={{ minHeight: "52px", borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
-      >
-        {filters.searchOpen ? (
-          /* Search mode — input replaces the title row inline (iOS pattern). */
-          <>
-            {/* The visible h1 is swapped out for the input, which left the
-                screen with ZERO h1s for as long as search was open. Keep it in
-                the document, just not on screen, so the "exactly one h1 per
-                screen" rule holds in every state rather than only at rest. */}
-            <h1 className="sr-only">{filters.hasFilters ? "Filtered results" : "Browse jobs"}</h1>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <input
-                autoFocus
-                type="search"
-                aria-label="Search jobs"
-                placeholder="Search jobs…"
-                enterKeyHint="search"
-                inputMode="search"
-                autoComplete="off"
-                value={filters.searchQuery}
-                onChange={(e) => filters.setSearchQuery(e.target.value)}
-                onFocus={() => {
-                  setSearchFocused(true);
-                  setRecentSearches(getRecentSearches());
-                }}
-                onBlur={() => window.setTimeout(() => setSearchFocused(false), 150)}
-                className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
-              />
-              {filters.searchQuery && (
-                <button
-                  onClick={() => filters.setSearchQuery("")}
-                  aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => { filters.setSearchOpen(false); filters.setSearchQuery(""); }}
-              className="shrink-0 text-ds-13 font-medium btn-press py-2"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              Cancel
-            </button>
-          </>
-        ) : (
-          /* Normal mode — title + action buttons. */
-          <>
-            <div className="flex flex-col leading-none flex-1 min-w-0 py-2.5">
-              {filters.hasFilters && (
-                <span
-                  className="font-serif italic tracking-[0.18em] uppercase text-ds-10"
-                  style={{ color: "hsl(var(--burnt-sienna))" }}
-                >
-                  {`Filtered · ${filters.activeFilterCount} active`}
-                </span>
-              )}
-              <h1
-                className={
-                  titleSrOnly
-                    ? "sr-only"
-                    : "font-display italic font-bold leading-tight text-ds-20"
-                }
-                style={
-                  titleSrOnly
-                    ? undefined
-                    : {
-                        color: "hsl(var(--ink-deep))",
-                        letterSpacing: "-0.018em",
-                        marginTop: filters.hasFilters ? "0.25rem" : 0,
-                      }
-                }
+      {/* Header row — the SHARED <ScreenHeaderRow>, the same component My Posts
+          / My Jobs render, so this screen is that family's shape and height
+          rather than an approximation of it. 44px, no hairline, no band: the
+          two remaining icons sit in the row's trailing cluster and the feed
+          starts directly beneath.
+
+          The title is `sr-only` on both browse surfaces (owner: "home will not
+          have a title just the H logo"), so what is actually VISIBLE on the
+          left is the "Filtered · N active" label — live state, the only
+          on-screen sign that the feed is showing a subset. It rides the row's
+          baseline now instead of stacking above the title, which is what used
+          to push this band to two lines the moment a filter was on. */}
+      {filters.searchOpen ? (
+        /* Search mode — input replaces the title row inline (iOS pattern).
+           ScreenHeaderRow keeps the h1 in the document (sr-only) in this
+           state, so the screen never has ZERO headings while search is open. */
+        <ScreenHeaderRow className="shrink-0 px-4" title={headingTitle}>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              autoFocus
+              type="search"
+              aria-label="Search jobs"
+              placeholder="Search jobs…"
+              enterKeyHint="search"
+              inputMode="search"
+              autoComplete="off"
+              value={filters.searchQuery}
+              onChange={(e) => filters.setSearchQuery(e.target.value)}
+              onFocus={() => {
+                setSearchFocused(true);
+                setRecentSearches(getRecentSearches());
+              }}
+              onBlur={() => window.setTimeout(() => setSearchFocused(false), 150)}
+              className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+            />
+            {filters.searchQuery && (
+              <button
+                onClick={() => filters.setSearchQuery("")}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
               >
-                {filters.hasFilters ? "Filtered results" : "Browse jobs"}
-              </h1>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <BrowseTasksActions
-                filters={filters}
-                user={user}
-                view={view}
-                setView={setView}
-                hideViewToggle={hideViewToggle}
-              />
-            </div>
-          </>
-        )}
-      </div>
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => { filters.setSearchOpen(false); filters.setSearchQuery(""); }}
+            className="shrink-0 text-ds-13 font-medium btn-press py-2"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            Cancel
+          </button>
+        </ScreenHeaderRow>
+      ) : (
+        /* Normal mode — title + state label + action buttons. */
+        <ScreenHeaderRow
+          className="shrink-0 px-4"
+          title={headingTitle}
+          titleSrOnly={titleSrOnly}
+          meta={
+            filters.hasFilters ? (
+              <span
+                className="font-serif italic tracking-[0.18em] uppercase text-ds-10 shrink-0"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              >
+                {`Filtered · ${filters.activeFilterCount} active`}
+              </span>
+            ) : undefined
+          }
+          actions={<BrowseTasksActions filters={filters} />}
+        />
+      )}
 
       {/* Search suggestions — shown below the inline search bar when
           the input is focused and the query is empty. */}
@@ -363,7 +375,13 @@ export function BrowseTasksToolbar({
       {/* Unified filter bottom sheet — the SlidersHorizontal button above
           toggles `filtersOpen`, which opens this sheet with all the filter
           controls stacked as vertical sections. Same presentation as every
-          other surface (Activity, Guest). */}
+          other surface (Activity, Guest).
+
+          It carries two sections the header row used to carry as bare icons:
+          "View" (List⇄Map) above every filter, because it is not one — it
+          decides HOW you look at the results, before anything about which
+          results — and "Saved searches" at the bottom, next to "Clear all",
+          because like Clear all it is an action rather than a control. */}
       <FilterSheet
         open={filters.filtersOpen}
         onOpenChange={filters.setFiltersOpen}
@@ -372,19 +390,95 @@ export function BrowseTasksToolbar({
           filters.clearFilters();
           onClearAllFilters?.();
         }}
-        sections={buildJobFilterSections({
-          selectedCategory: filters.selectedCategory, setSelectedCategory: filters.setSelectedCategory,
-          locationFilter: filters.locationFilter, setLocationFilter: filters.setLocationFilter,
-          sortBy: filters.sortBy, setSortBy: filters.setSortBy,
-          expiresWithin: filters.expiresWithin, setExpiresWithin: filters.setExpiresWithin,
-          matchAvailability: filters.matchAvailability, setMatchAvailability: filters.setMatchAvailability,
-          hasAvailability: helperAvailability.length > 0,
-          boostedOnly: filters.boostedOnly, setBoostedOnly: filters.setBoostedOnly,
-          urgentOnly: filters.urgentOnly, setUrgentOnly: filters.setUrgentOnly,
-          userLocStatus: filters.userLoc?.status,
-          userLocMessage: filters.userLoc?.status === "error" ? filters.userLoc.message : undefined,
-        })}
+        sections={[
+          ...(hideViewToggle
+            ? []
+            : [{
+                key: "view",
+                title: "View",
+                content: (
+                  <BrowseViewToggle
+                    view={view}
+                    setView={setView}
+                    // Picking a view is a terminal choice — get the sheet out
+                    // of the way so you land on the thing you asked for. Only
+                    // fires on an actual change, so re-tapping the current
+                    // view does not dismiss the sheet under you.
+                    onSelect={() => filters.setFiltersOpen(false)}
+                  />
+                ),
+              }]),
+          ...buildJobFilterSections({
+            selectedCategory: filters.selectedCategory, setSelectedCategory: filters.setSelectedCategory,
+            locationFilter: filters.locationFilter, setLocationFilter: filters.setLocationFilter,
+            sortBy: filters.sortBy, setSortBy: filters.setSortBy,
+            expiresWithin: filters.expiresWithin, setExpiresWithin: filters.setExpiresWithin,
+            matchAvailability: filters.matchAvailability, setMatchAvailability: filters.setMatchAvailability,
+            hasAvailability: helperAvailability.length > 0,
+            boostedOnly: filters.boostedOnly, setBoostedOnly: filters.setBoostedOnly,
+            urgentOnly: filters.urgentOnly, setUrgentOnly: filters.setUrgentOnly,
+            userLocStatus: filters.userLoc?.status,
+            userLocMessage: filters.userLoc?.status === "error" ? filters.userLoc.message : undefined,
+          }),
+          // Signed-in only, exactly as the bookmark icon was: saved searches
+          // are rows in a per-user table.
+          ...(user
+            ? [{
+                key: "saved-searches",
+                title: "Saved searches",
+                content: (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      hapticLight();
+                      // Close the sheet FIRST — this row lives inside it, and
+                      // the dialog it opens is mounted outside it (below).
+                      filters.setFiltersOpen(false);
+                      setSavedSearchesOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
+                  >
+                    <Bookmark className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-ds-12 font-semibold text-foreground leading-snug">
+                        Saved searches
+                      </span>
+                      <span className="block text-ds-11 text-muted-foreground leading-snug">
+                        Apply a set you saved, or save these filters
+                      </span>
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                  </button>
+                ),
+              }]
+            : []),
+        ]}
       />
+
+      {/* The saved-searches dialog itself — mounted here rather than inside
+          the sheet section that opens it, because that row closes the sheet on
+          tap and would take a dialog rendered inside it down with it. Also
+          still openable by the `open-saved-searches` window event, which is
+          why the listener inside SavedSearches keeps working unchanged. */}
+      {user && (
+        <SavedSearches
+          open={savedSearchesOpen}
+          onOpenChange={setSavedSearchesOpen}
+          userId={user.id}
+          currentFilters={{
+            selectedCategory: filters.selectedCategory,
+            minBudget: filters.minBudget,
+            maxBudget: filters.maxBudget,
+            locationFilter: filters.locationFilter,
+          }}
+          onApplySearch={(saved) => {
+            filters.setSelectedCategory(saved.category);
+            filters.setMinBudget(saved.min_budget ? String(saved.min_budget) : "");
+            filters.setMaxBudget(saved.max_budget ? String(saved.max_budget) : "");
+            filters.setLocationFilter(saved.location_keyword || "");
+          }}
+        />
+      )}
 
       {/* Active filter chips — each wrapped in SwipeableFilterChip so a
           leftward drag removes the chip's filter with no confirm step.

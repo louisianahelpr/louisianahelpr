@@ -314,12 +314,7 @@ const Messages = () => {
       userId={userId}
       loadConversations={loadConversations}
       openConvo={openConvo}
-      setReportTarget={setReportTarget}
-      setBlockTarget={setBlockTarget}
       setDeleteConvoConfirm={setDeleteConvoConfirm}
-      onToggleMute={handleToggleMute}
-      onSnoozeMute={handleSnoozeMute}
-      onUnmute={handleUnmute}
       onBatchArchive={(convos) => setBatchArchiveConfirm(convos)}
       resetSelectionNonce={selectionResetNonce}
       embedded={isWebDesktop}

@@ -9,11 +9,13 @@ interface MonthlyGoalCardProps {
   completedJobs: Array<{ created_at: string; netPayout: number }>;
 }
 
-// MUST match the key `useEarningsGoal` uses in HelperAnalytics.tsx — this
-// card and the Analytics page's MonthlyGoalCard are two independent UIs for
-// the SAME goal. They used to read/write different storage keys (this one
-// had an underscore, Analytics used a colon), so a goal set on one screen
-// silently didn't show on the other. One key, one goal, everywhere.
+// The one and only monthly-earnings-goal control. /analytics used to render a
+// second, independent editor over this same key: first with a different key
+// (underscore vs colon), so a goal set on one screen silently didn't show on
+// the other; then with the key matched but the progress computed off GROSS
+// budget, so the same goal reported two different completion percentages. The
+// duplicate is gone — the goal is set here, next to the take-home dollars it
+// is measured against.
 const GOAL_KEY = "helpr:earnings_goal";
 
 function getMonthlyEarnings(
@@ -257,7 +259,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
             setEditing(true);
           }}
         >
-          <Target className="w-3.5 h-3.5 mr-1.5" /> Set a monthly earning goal
+          <Target className="w-3.5 h-3.5 mr-1.5" /> Set a monthly earnings goal
         </Button>
       )}
     </div>

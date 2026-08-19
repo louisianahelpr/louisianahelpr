@@ -360,7 +360,15 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           sane minimum spacing on shorter screens. */}
       <div className="flex-1 flex flex-col justify-between gap-3 min-h-0">
         {tierConfig.map((tier) => {
-          const isActive = currentTier?.toLowerCase() === tier.id && !isExpired;
+          // Free is the plan you are on when you are on no plan at all, so it
+          // cannot be matched by name against `subscription_tier` — that column
+          // is null for a free account, and it also holds a STALE paid tier
+          // once the subscription has expired. Both of those states are "free".
+          const isFree = tier.id === "free";
+          const onFreePlan = !currentTier || currentTier.toLowerCase() === "free" || isExpired;
+          const isActive = isFree
+            ? onFreePlan
+            : currentTier?.toLowerCase() === tier.id && !isExpired;
           const saveBadge = getSaveBadge(tier);
           const isPro = tier.id === "pro";
           // --gold-ink, not --gold-warm: this value is used as TEXT below, and
@@ -494,7 +502,12 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       {saveBadge}
                     </span>
                   )}
-                  {!isActive && (
+                  {/* Free carries no CTA in either direction: there is nothing
+                      to buy when you are already on it, and when you are on a
+                      paid tier it is context for what the fee comparison means,
+                      not a "downgrade" button — cancelling lives in the manage-
+                      membership flow, which is where it belongs. */}
+                  {!isActive && !isFree && (
                     <Button
                       variant={isPro ? "primary" : "outline"}
                       size="sm"

@@ -281,6 +281,19 @@ export default function StrSettings() {
                     Add a calendar
                   </BarkPillButton>
                 }
+                /* Fine print INSIDE the card. This sentence used to print on
+                   the bare page background underneath the card, which no other
+                   Profile sub-page does — /pets, /family and /home-history all
+                   keep their content in the card. `lg:hidden` because the
+                   desktop rail carries the same sentences at lg+. */
+                footnote={
+                  <p
+                    className="lg:hidden text-ds-12 max-w-[26rem] mx-auto"
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                  >
+                    {cadenceNote}
+                  </p>
+                }
               />
             ) : (
               <>
@@ -336,18 +349,21 @@ export default function StrSettings() {
                       />
                     </div>
                   )}
+
+                  {/* Same fine print as the empty state's, in the same place
+                      relative to the content: inside the last card rather than
+                      stranded on the page background beneath it. The desktop
+                      rail carries these sentences at lg+, so only one of the
+                      two is ever on screen. */}
+                  <p
+                    className="lg:hidden px-4 pt-0.5 pb-3.5 text-ds-12"
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                  >
+                    {cadenceNote}
+                  </p>
                 </div>
               </>
             )}
-
-            {/* Help note — the desktop rail carries the same sentences at lg+,
-                so only one of the two is ever on screen. */}
-            <p
-              className="lg:hidden text-center px-2 text-ds-12"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              {cadenceNote}
-            </p>
           </section>
         </div>
       </div>

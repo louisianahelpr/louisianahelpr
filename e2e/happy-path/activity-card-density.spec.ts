@@ -393,6 +393,145 @@ test.describe("My Posts — card density + header", () => {
     await page.screenshot({ path: `${SHOTS}/actions-3up-320.png`, fullPage: true });
   });
 
+  // ── The owner's card reorganisation, frozen ────────────────────────────
+  // Five asks that are only provable by rendering: the tracker became one
+  // scrolling line, the action row was reordered around SOS, Message stopped
+  // changing colour between cards, Message deep-links into the thread, and the
+  // description toggle lost its words.
+
+  test("the live tracker is ONE scrollable line and the helpr captions the current step", async ({ page, context, baseURL }) => {
+    await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
+    await installSupabaseMocks(page, {
+      user: FAKE_CUSTOMER,
+      seed: true,
+      rules: [jobsRule([{ ...inProgressJobStarting(-1), helper_on_the_way_at: new Date().toISOString() }])],
+    });
+    await page.goto("/my-posts?filter=all");
+    await page.waitForSelector("h1");
+    await settle(page);
+    await dismissNudge(page);
+
+    const row = page.getByRole("group", { name: "Job progress" });
+    await expect(row).toHaveCount(1);
+    await row.scrollIntoViewIfNeeded();
+
+    // ONE line: every step shares a top edge. A wrapped 4+3 grid puts the
+    // second row at a different offsetTop, so this is the assertion that the
+    // old layout cannot pass.
+    const tops = await row.evaluate((el) =>
+      Array.from(el.children).map((c) => (c as HTMLElement).offsetTop),
+    );
+    expect(tops.length, "seven tracker steps").toBe(7);
+    expect(new Set(tops).size, `steps sit on ${new Set(tops).size} lines, expected 1`).toBe(1);
+
+    // ...and it genuinely SCROLLS rather than squeezing seven steps into 375px.
+    const { scrollWidth, clientWidth, focusable } = await row.evaluate((el) => ({
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+      focusable: el.tabIndex >= 0,
+    }));
+    expect(scrollWidth).toBeGreaterThan(clientWidth);
+    // A scrollable region must be keyboard-reachable (axe scrollable-region-focusable).
+    expect(focusable, "tracker row must be focusable").toBe(true);
+
+    // The status sentence is gone from the card; the name now rides the row.
+    await expect(page.getByText(/is on the way|finished the job|Offered to/i)).toHaveCount(0);
+    // ...and it is re-stated as a caption on the step the job is ON — exactly
+    // one step carries a second line. Asserted structurally rather than by
+    // name: what the helpr resolves to here is the card's own display
+    // fallback, so matching a literal would test the fixture, not the feature.
+    const captioned = await row.evaluate((el) =>
+      Array.from(el.children).filter((c) => c.querySelectorAll("span").length > 1).length,
+    );
+    expect(captioned, "exactly one step carries the helpr caption").toBe(1);
+
+    await page.screenshot({ path: `${SHOTS}/tracker-one-line-375.png` });
+  });
+
+  test("the action row reads SOS then Share then Message, and Message is one colour everywhere", async ({ page, context, baseURL }) => {
+    await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
+    const base = { ...inProgressJobStarting(-1), helper_on_the_way_at: new Date().toISOString() };
+    // BOTH Message states on ONE page: the left card has no helper completion
+    // (Message used to be solid bark), the right one does (Message used to
+    // demote to a muted tint, and "Approve & release payment" appears above
+    // it). Same page means the two colours can be compared directly instead of
+    // across contexts, which is what the owner's "same color for all places"
+    // actually asserts.
+    await installSupabaseMocks(page, {
+      user: FAKE_CUSTOMER,
+      seed: true,
+      rules: [jobsRule([
+        { ...base, id: "job-msg-plain", title: "Tracker colour A" },
+        { ...base, id: "job-msg-done", title: "Tracker colour B", helper_completed_at: new Date().toISOString() },
+      ])],
+    });
+    await page.goto("/my-posts?filter=all");
+    await page.waitForSelector("h1");
+    await settle(page);
+    await dismissNudge(page);
+
+    const messages = page.getByRole("button", { name: "Message Helpr" });
+    await expect(messages).toHaveCount(2);
+    const colours = await messages.evaluateAll((els) =>
+      els.map((el) => getComputedStyle(el).backgroundColor),
+    );
+    expect(colours[0], `Message renders ${colours[0]} vs ${colours[1]}`).toBe(colours[1]);
+
+    // Order within the first card's row: SOS · Share · Message.
+    const order = await page.evaluate(() => {
+      const msg = document.querySelector('button[aria-label="Message Helpr"]');
+      const row = msg?.parentElement;
+      return Array.from(row?.children ?? []).map(
+        (c) => c.getAttribute("aria-label") ?? c.textContent?.trim() ?? "",
+      );
+    });
+    expect(order[0]).toMatch(/SOS/i);
+    expect(order[1]).toMatch(/share/i);
+    expect(order[2]).toMatch(/message/i);
+
+    await page.screenshot({ path: `${SHOTS}/actions-sos-share-message-375.png`, fullPage: true });
+  });
+
+  test("Message opens the thread with THIS helpr on THIS job", async ({ page, context, baseURL }) => {
+    await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
+    await installSupabaseMocks(page, {
+      user: FAKE_CUSTOMER,
+      seed: true,
+      rules: [jobsRule([inProgressJobStarting(-1)])],
+    });
+    await page.goto("/my-posts?filter=all");
+    await page.waitForSelector("h1");
+    await settle(page);
+    await dismissNudge(page);
+
+    await page.getByRole("button", { name: "Message Helpr" }).first().click();
+    await page.waitForURL(/\/messages\?/);
+    const url = new URL(page.url());
+    // Landing on the bare list — the old behaviour — leaves both params null.
+    expect(url.searchParams.get("userId"), "helpr not addressed").toBe(HELPER_ID);
+    expect(url.searchParams.get("jobId"), "job not addressed").toBeTruthy();
+  });
+
+  test("the description toggle is a bare chevron, with no words", async ({ page, context, baseURL }) => {
+    await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
+    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
+    await page.goto("/my-posts?filter=all");
+    await page.waitForSelector("h1");
+    await settle(page);
+    await dismissNudge(page);
+
+    const toggle = page.getByRole("button", { name: "Show job description" }).first();
+    await expect(toggle).toBeVisible();
+    // The control is an icon only: no rendered text, but the accessible name
+    // and aria-expanded still carry the state the words used to spell out.
+    expect((await toggle.textContent())?.trim()).toBe("");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    const box = await toggle.boundingBox();
+    expect(box!.height, "chevron tap target").toBeGreaterThanOrEqual(44);
+    await toggle.click();
+    await expect(page.getByRole("button", { name: "Hide job description" }).first()).toBeVisible();
+  });
+
   test("the active status filter is named beside the title, and All is silent", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });

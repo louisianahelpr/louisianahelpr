@@ -172,8 +172,14 @@ function SubViewToggle({
   ];
   return (
     <div role="tablist" aria-label="Schedule view" className="shrink-0">
+      {/* FULL WIDTH, not `inline-flex`. Hugging its content left the control
+          pinned to the left edge under a centred-ish title with a phone-width
+          of empty space beside it — the owner's "I don't like the toggle up
+          there it's oddly placed". The comment below already claimed this
+          matched the Subscription billing pills; those pills are full-width
+          with equal segments, and this was the one part that had not followed. */}
       <div
-        className="inline-flex p-1 rounded-ds-md"
+        className="flex w-full p-1 rounded-ds-md"
         style={{
           background: "hsl(var(--ivory-sand) / 0.55)",
           border: "1px solid hsl(var(--olivewood) / 0.12)",
@@ -189,7 +195,12 @@ function SubViewToggle({
               role="tab"
               aria-selected={active}
               onClick={() => onChange(t.id)}
-              className="inline-flex items-center gap-1.5 rounded-ds-sm px-3 py-1.5 text-ds-11 font-sans font-semibold transition-all active:scale-[0.97]"
+              // flex-1: two equal halves, so the split reads as a deliberate
+              // segmented control rather than two buttons of different widths.
+              // min-h-[44px] is the tap target — at py-1.5 these were ~32px,
+              // which only passed unnoticed while the control was small and
+              // tucked in a corner.
+              className="flex-1 min-h-[44px] inline-flex items-center justify-center gap-1.5 rounded-ds-sm px-3 py-1.5 text-ds-11 font-sans font-semibold transition-all active:scale-[0.97]"
               style={{
                 background: active ? "hsl(var(--bark))" : "transparent",
                 color: active ? "hsl(var(--parchment))" : "hsl(var(--olivewood))",

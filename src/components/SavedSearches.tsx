@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
@@ -42,10 +42,40 @@ interface Props {
   userId: string;
   /** Called when the user clicks an existing saved search to apply it */
   onApplySearch: (search: SavedSearch) => void;
+  /**
+   * Controlled open state. Pass it (with `onOpenChange`) to drive the dialog
+   * from somewhere else on the screen — the built-in bookmark icon trigger is
+   * then NOT rendered, because there is nothing for it to sit in.
+   *
+   * The browse toolbar does exactly that: "Saved searches" is a labelled row
+   * inside the filter sheet now, not a fourth icon in the feed's header, and
+   * that row cannot host the trigger itself — tapping it closes the sheet,
+   * which would unmount the trigger mid-click and take the dialog with it.
+   * So the dialog is mounted by the toolbar and opened by state instead.
+   *
+   * Omit both to keep the self-contained icon-button behaviour.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) {
-  const [open, setOpen] = useState(false);
+export function SavedSearches({
+  currentFilters,
+  userId,
+  onApplySearch,
+  open: controlledOpen,
+  onOpenChange,
+}: Props) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (!isControlled) setUncontrolledOpen(next);
+      onOpenChange?.(next);
+    },
+    [isControlled, onOpenChange],
+  );
   const [searches, setSearches] = useState<SavedSearch[]>([]);
   const [loading, setLoading] = useState(false);
   // Distinguishes "fetch failed" from "fetched, but empty" so the
@@ -70,7 +100,7 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
     const openDialog = () => setOpen(true);
     window.addEventListener("open-saved-searches", openDialog);
     return () => window.removeEventListener("open-saved-searches", openDialog);
-  }, []);
+  }, [setOpen]);
 
   const load = async () => {
     setLoading(true);
@@ -179,16 +209,20 @@ export function SavedSearches({ currentFilters, userId, onApplySearch }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Saved searches"
-          className="h-10 w-10 rounded-ds-md btn-press text-muted-foreground hover:text-foreground"
-        >
-          <Bookmark className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
-        </Button>
-      </DialogTrigger>
+      {/* Only when this component owns its own open state — a controlled
+          caller renders its own affordance (see the `open` prop). */}
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Saved searches"
+            className="h-10 w-10 rounded-ds-md btn-press text-muted-foreground hover:text-foreground"
+          >
+            <Bookmark className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent
         className="max-w-md gap-4"
         // Prevent Radix from auto-focusing the input, which pops the

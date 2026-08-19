@@ -22,7 +22,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
-import { DocumentPageCards } from "@/components/ui/DocumentPageCards";
+import PageHeader from "@/components/PageHeader";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -147,26 +147,30 @@ export default function FamilyDashboard() {
 
   return (
     <>
-    {/* The app's title-card + panel treatment on a page that STAYS
-        document-scroll — `/family` keeps its DOCUMENT_SCROLL_ROUTES entry.
-        The deciding factor is the lg+ layout below: a two-column grid whose
-        right pane is `lg:sticky lg:top-6`. Sticky positions against the
+    {/* `/family` STAYS document-scroll and keeps its DOCUMENT_SCROLL_ROUTES
+        entry. The deciding factor is the lg+ layout below: a two-column grid
+        whose right pane is `lg:sticky lg:top-6`. Sticky positions against the
         nearest scrolling ancestor, so moving this page into AppShell's
         internal scroll container (which is what PageScaffold would do) would
-        change what that pane sticks to, for no gain — the card treatment the
-        owner asked for is a material, not a viewport mode. See
-        DocumentPageCards.
-        `columnClassName` is the page's previous body ladder verbatim, so the
-        content column is unmoved. The back chevron and the h1 now live in the
-        title card, which also ends the long-standing mismatch between the
-        PageHeader width ("lg-2xl-5xl-6xl-tight") and the wider body ladder it
-        was supposed to mirror — they are one box now and cannot diverge. */}
-    <DocumentPageCards
-      title="Family & care"
-      onBack={() => navigate("/profile")}
-      columnClassName="max-w-lg md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-4 md:px-6 lg:px-4"
-      panelClassName="px-4 py-5 md:px-6 lg:px-6 lg:py-6"
-    >
+        change what that pane sticks to, for no gain.
+
+        Header + page structure match the other Profile sub-pages (/pets is
+        the reference): a plain back-chevron + serif title on the page
+        background via <PageHeader>, and the member/empty-state cards sitting
+        directly on that background. The title-card + panel treatment this
+        page used to carry wrapped the header in a card AND wrapped the
+        content in a second one — the card-in-a-card the owner flagged.
+
+        `width="lg-5xl-6xl-7xl-tight"` is the body ladder below, verbatim, so
+        the title and the content stay in one column. */}
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
+      <PageHeader
+        title="Family & care"
+        onBack={() => navigate("/profile")}
+        width="lg-5xl-6xl-7xl-tight"
+      />
+
+      <div className="max-w-lg md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 md:px-6 lg:px-4 pt-4">
       {/* Split-column desktop layout: on mobile/tablet this stacks as a
           single column exactly as before. At lg+ it becomes a two-column
           grid — the members lists take the wide reading column on the
@@ -398,7 +402,8 @@ export default function FamilyDashboard() {
         </aside>
 
       </div>
-    </DocumentPageCards>
+      </div>
+    </div>
 
     <BrandConfirmDialog
       open={pendingRevokeId !== null}

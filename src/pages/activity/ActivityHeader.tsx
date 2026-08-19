@@ -1,5 +1,6 @@
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { FilterSheet } from "@/components/dashboard/FilterSheet";
+import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 import { hapticLight } from "@/lib/haptics";
 import type { StatusFilter } from "./activityFilters";
 import type { Tab } from "@/components/activity/activityConstants";
@@ -98,82 +99,77 @@ export function ActivityHeader({
     <>
       {/* No hairline rule and no horizontal padding of its own: this row is the
           body of PageScaffold's title card now, so the card owns the surface,
-          the radius and the `px-5`. */}
-      <div className="flex items-center gap-3" style={{ minHeight: "44px" }}>
-        {searchOpen ? (
-          /* Search mode — input replaces the title row inline (iOS pattern). */
-          <>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <input
-                autoFocus
-                type="search"
-                aria-label="Search jobs"
-                placeholder="Search jobs…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => { hapticLight(); setSearchOpen(false); setSearchQuery(""); }}
-              className="shrink-0 text-ds-13 font-medium btn-press py-2"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              Cancel
-            </button>
-          </>
-        ) : (
-          /* Normal mode — title + action buttons. */
-          <>
-            {/* Title and active-filter indicator on ONE line, indicator to the
-                right of the name — the same shape Messages uses for "1 unread"
-                (the one the owner asked for there: "put 1 unread to the right
-                of messages bc i dont like it under").
+          the radius and the `px-5`.
 
-                `items-baseline` so the small italic label sits on the
-                wordmark's baseline rather than centring against a much larger
-                cap-height. The h1 keeps `min-w-0` + truncate and the label is
-                `shrink-0`, so a long title yields first and the thing telling
-                you what you are looking at is never what gets cut.
-
-                It is a <span>, never a heading — this h1 is the whole page's
-                only one. */}
-            <div className="flex items-baseline min-w-0 flex-1 gap-2 py-2.5">
-              <h1 className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none min-w-0">
-                {title}
-              </h1>
-              {filterLabel && (
-                <span
-                  className="font-serif italic text-ds-11 leading-none shrink-0"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  {/* The middot is the ONLY decorative glyph in this label, and
-                      it leads. There is deliberately nothing after
-                      `filterLabel` — the owner reported "a stray character
-                      after the count"; what is actually there is the filter
-                      button's own active dot (the 8px bark pip pinned to that
-                      button's top-right, further along the row), which is a
-                      real state indicator and stays. Kept as a single leading
-                      span so a future edit can't reintroduce a trailing one. */}
-                  <span aria-hidden className="mr-1">·</span>
-                  <span className="sr-only">Filtered by </span>
-                  {filterLabel}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
+          The row itself is the shared <ScreenHeaderRow> — the same component
+          the Browse feed's toolbar renders, so "My Posts" and Home cannot
+          drift apart on the geometry (44px floor, title block, trailing
+          `gap-1` icon cluster) that makes them read as one screen family. */}
+      {searchOpen ? (
+        /* Search mode — input replaces the title row inline (iOS pattern). */
+        <ScreenHeaderRow title={title}>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              autoFocus
+              type="search"
+              aria-label="Search jobs"
+              placeholder="Search jobs…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => { hapticLight(); setSearchOpen(false); setSearchQuery(""); }}
+            className="shrink-0 text-ds-13 font-medium btn-press py-2"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            Cancel
+          </button>
+        </ScreenHeaderRow>
+      ) : (
+        /* Normal mode — title + action buttons. */
+        <ScreenHeaderRow
+          title={title}
+          /* The active-filter indicator sits to the RIGHT of the name, the
+             same shape Messages uses for "1 unread" (the one the owner asked
+             for there: "put 1 unread to the right of messages bc i dont like
+             it under"). It is a <span>, never a heading — the row's h1 is the
+             whole page's only one. */
+          meta={
+            filterLabel ? (
+              <span
+                className="font-serif italic text-ds-11 leading-none shrink-0"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              >
+                {/* The middot is the ONLY decorative glyph in this label, and
+                    it leads. There is deliberately nothing after
+                    `filterLabel` — the owner reported "a stray character
+                    after the count"; what is actually there is the filter
+                    button's own active dot (the 8px bark pip pinned to that
+                    button's top-right, further along the row), which is a
+                    real state indicator and stays. Kept as a single leading
+                    span so a future edit can't reintroduce a trailing one. */}
+                <span aria-hidden className="mr-1">·</span>
+                <span className="sr-only">Filtered by </span>
+                {filterLabel}
+              </span>
+            ) : undefined
+          }
+          actions={
+            <>
               <button
                 type="button"
                 onClick={() => { hapticLight(); setSearchOpen(true); }}
@@ -198,10 +194,10 @@ export function ActivityHeader({
                   <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[hsl(var(--bark))] ring-2 ring-background" />
                 )}
               </button>
-            </div>
-          </>
-        )}
-      </div>
+            </>
+          }
+        />
+      )}
 
       <FilterSheet
         open={filterOpen}

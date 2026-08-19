@@ -17,7 +17,6 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSkeleton";
 import { VirtualList } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
-import { MuteSheet } from "./MuteSheet";
 import { SwipeableConversationRow } from "./SwipeableConversationRow";
 import { getPinnedSet, loadPins, pinnedKey, togglePinned } from "@/lib/pinnedConversations";
 import type { Conversation } from "./types";
@@ -35,18 +34,9 @@ interface ConversationListProps {
   loadConversations: (uid: string) => Promise<void>;
   /** Opens a conversation into the chat view. */
   openConvo: (convo: Conversation) => void;
-  setReportTarget: Dispatch<SetStateAction<{ type: "message" | "user"; id: string } | null>>;
-  setBlockTarget: Dispatch<SetStateAction<{ id: string; name: string } | null>>;
+  /** Opens the confirm dialog for hiding one thread (an honest local
+   *  archive, not a hard delete). Fired by the row's left swipe. */
   setDeleteConvoConfirm: Dispatch<SetStateAction<Conversation | null>>;
-  /** Toggle the muted state of one thread. Resolves once the server has
-   *  reconciled and the row's `isMuted` flag has been updated. Used by
-   *  legacy paths; the new mute picker uses `onSnoozeMute` + `onUnmute`. */
-  onToggleMute: (convo: Conversation) => void;
-  /** Set a snooze for the thread until a caller-supplied future time
-   *  (or `null` for forever-mute). Used by the MuteSheet picker. */
-  onSnoozeMute: (convo: Conversation, until: Date | null) => void;
-  /** Explicit unmute — clears any forever or snoozed mute. */
-  onUnmute: (convo: Conversation) => void;
   /** When true, render only the inbox body (no PageScaffold / fixed-
    *  viewport shell, no title card) so the desktop Messages page can host
    *  it as the left pane of a list+thread split. Defaults to false —
@@ -76,7 +66,7 @@ function byLastAtDesc(a: Conversation, b: Conversation): number {
  * ConversationList — the inbox surface of the Messages page: the
  * Messages title card, the "All threads" header, and the pull-to-
  * refresh, virtualized list of conversation rows (avatar, unread
- * badge, job status chip, per-row report / block / delete menu).
+ * badge, job status chip, relative timestamp).
  *
  * Extracted verbatim from Messages.tsx (a step in splitting that file)
  * — the JSX is unchanged. The "show all" toggle and the pull-to-
@@ -89,12 +79,7 @@ export function ConversationList({
   userId,
   loadConversations,
   openConvo,
-  setReportTarget,
-  setBlockTarget,
   setDeleteConvoConfirm,
-  onToggleMute,
-  onSnoozeMute,
-  onUnmute,
   embedded = false,
   activeKey = null,
   onBatchArchive,
@@ -115,10 +100,6 @@ export function ConversationList({
   // a pure local filter over `conversations`, so no debounce needed.
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  // Open the MuteSheet (snooze picker) targeted at one conversation.
-  // The row's mute action opens this rather than firing the binary
-  // toggle directly — keeps "1h / 8h / tomorrow / forever" one tap deep.
-  const [muteSheetConvo, setMuteSheetConvo] = useState<Conversation | null>(null);
   // Bump this nonce after a pin/unpin so the derived order re-reads
   // sessionStorage (the pin set is read directly to avoid a parallel
   // state branch). Cheap, scoped to a paint.
@@ -525,13 +506,6 @@ export function ConversationList({
                             convo={c}
                             currentUserId={userId}
                             openConvo={openConvo}
-                            setReportTarget={setReportTarget}
-                            setBlockTarget={setBlockTarget}
-                            setDeleteConvoConfirm={setDeleteConvoConfirm}
-                            onToggleMute={onToggleMute}
-                            onOpenMuteSheet={setMuteSheetConvo}
-                            isPinned={pinned}
-                            onTogglePin={() => handleTogglePin(c)}
                             isActive={isActive}
                             selectMode={selectMode}
                             selected={selected}
@@ -651,16 +625,6 @@ export function ConversationList({
             </div>
           )}
 
-      {/* Snooze picker — opened from any conversation row's "Mute"
-          action. Lives at the list level (rather than inside each row)
-          so a single sheet instance handles every row. */}
-      <MuteSheet
-        open={!!muteSheetConvo}
-        onOpenChange={(open) => { if (!open) setMuteSheetConvo(null); }}
-        convo={muteSheetConvo}
-        onSnoozeMute={onSnoozeMute}
-        onUnmute={onUnmute}
-      />
     </>
   );
 

@@ -149,13 +149,18 @@ function PostedJobCardInner({
                     <button
                       type="button"
                       aria-expanded={isExpanded}
+                      // The words are GONE — owner: "should not have show
+                      // details just a chevron arrow down". A chevron that
+                      // rotates is the whole control now, so the state it used
+                      // to spell out lives entirely in aria-expanded and the
+                      // aria-label; nothing about it is announced any less.
                       aria-label={isExpanded ? "Hide job description" : "Show job description"}
-                      className="inline-flex items-center gap-0.5 py-3.5 -my-2.5 pl-2 text-ds-11 font-medium text-primary hover:underline active:opacity-70"
+                      className="inline-flex items-center justify-center w-11 h-11 -my-3.5 -mr-2.5 text-primary active:opacity-70"
                       onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
                     >
-                      {isExpanded
-                        ? <>Hide details <ChevronUp className="w-3 h-3" /></>
-                        : <>View details <ChevronDown className="w-3 h-3" /></>}
+                      <ChevronDown
+                        className={`w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                      />
                     </button>
                   ) : null
                 }

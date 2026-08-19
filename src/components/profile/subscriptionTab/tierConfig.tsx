@@ -1,7 +1,7 @@
-import { Crown, Sparkles, Star } from "lucide-react";
+import { Crown, Leaf, Sparkles, Star } from "lucide-react";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
-export type TierIconName = "star" | "sparkles" | "crown";
+export type TierIconName = "leaf" | "star" | "sparkles" | "crown";
 
 interface TierDisplay {
   id: string;
@@ -58,6 +58,28 @@ function formatTierPrices(tierId: "basic" | "pro" | "elite") {
 // note instead.
 export const tierConfig: TierDisplay[] = [
   {
+    // The plan almost every Helpr is actually ON, and it was the one plan the
+    // membership tab never drew — the owner opened it and saw only the three
+    // things they could buy ("show the free plan also"). Leaving it out made
+    // the page read as a shop rather than as "here is where you are, here is
+    // what upgrading changes", and gave the 12% fee nothing to be compared to.
+    //
+    // Its prices are literals rather than formatTierPrices(): that helper
+    // divides by a monthly price to derive an annual saving, which for a
+    // free plan is a division by zero. There is nothing to bill and nothing
+    // to save, so all three billing intervals read the same.
+    id: "free",
+    name: "Free",
+    iconName: "leaf",
+    forWhom: TIER_PERKS.free.tagline,
+    monthly: "Free",
+    annual: "Free",
+    oneTime: "Free",
+    annualSave: "",
+    feePercent: TIER_PERKS.free.platformFeePercent,
+    features: [...TIER_PERKS.free.featureBullets],
+  },
+  {
     id: "basic",
     name: "Basic",
     iconName: "star",
@@ -87,6 +109,7 @@ export const tierConfig: TierDisplay[] = [
 ];
 
 export const TierIcon = ({ name, className, style }: { name: TierIconName; className?: string; style?: React.CSSProperties }) => {
+  if (name === "leaf") return <Leaf className={className} style={style} strokeWidth={2} />;
   if (name === "star") return <Star className={className} style={style} strokeWidth={2} />;
   if (name === "sparkles") return <Sparkles className={className} style={style} strokeWidth={2} />;
   return <Crown className={className} style={style} strokeWidth={2} />;

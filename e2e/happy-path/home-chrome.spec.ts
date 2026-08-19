@@ -20,13 +20,21 @@ mkdirSync(SHOT_DIR, { recursive: true });
 // measurement rather than by comment:
 //
 //   row 1 (PageScaffold titleCard)  [emblem] ............ [job pill] [bell]
-//   row 2 (BrowseTasksToolbar)      [h1 "Browse jobs"] ... [4 action icons]
+//   row 2 (BrowseTasksToolbar)      [h1 "Browse jobs"] ... [search] [filters]
 //
-// The 2026-08-17 build had the four icons in row 1 and the pill in row 2. The
-// owner saw it on device and asked for the swap. Both halves are asserted
+// The 2026-08-17 build had the icons in row 1 and the pill in row 2. The owner
+// saw it on device and asked for the swap. Both halves are asserted
 // POSITIONALLY (row 1's controls sit strictly above row 2's), because "the
 // icons are present" was true in both arrangements and would not have caught
 // the regression either way.
+//
+// Row 2 carried FOUR icons until the owner's next call — "move saved filters
+// and map view into the filter option and move the rest up into the 1 column
+// so it's the same size layout as jobs and post". So the map toggle and saved
+// searches are inside the filter sheet now and row 2 is the same two-icon
+// header My Posts renders. Both moved controls are asserted REACHABLE below
+// (`the moved controls live in the filter sheet`) rather than merely absent
+// from the row — losing them entirely would otherwise read as a pass.
 //
 // The pill is also a SHORTCUT now — one tap goes where the label says, which
 // is why both label states are clicked and the resulting URL is asserted.
@@ -36,12 +44,17 @@ mkdirSync(SHOT_DIR, { recursive: true });
 // the query string) or /jobs/:id (which bounces a signed-in user back to
 // /dashboard).
 
-/** The four feed action icons, in row order. Accessible names, not classes. */
+/** The feed's header-row action icons, in row order. Accessible names, not
+ *  classes. Two, not four — see the note above. */
 const ACTION_ICON_NAMES = [
-  /^(Show map view|Show list view)$/,
-  /^Saved searches$/,
   /^Search jobs$/,
   /^Filters/,
+];
+
+/** Controls that must NOT be back in the header row — they live in the sheet. */
+const MOVED_OUT_OF_ROW = [
+  /^(Show map view|Show list view)$/,
+  /^Saved searches$/,
 ];
 
 /**
@@ -156,12 +169,8 @@ for (const variant of [
     expect(pillBox.x + pillBox.width, "pill right edge vs bell left edge")
       .toBeLessThanOrEqual(bellBox.x);
 
-    // --- row 2: the four action icons, BELOW row 1 ----------------------
-    // The List⇄Map toggle is deliberately absent on the desktop web: both
-    // panes are on screen, so there is nothing to switch between.
-    const isDesktop = variant.width >= 1024;
-    const expected = isDesktop ? ACTION_ICON_NAMES.slice(1) : ACTION_ICON_NAMES;
-    for (const name of expected) {
+    // --- row 2: the two action icons, BELOW row 1 -----------------------
+    for (const name of ACTION_ICON_NAMES) {
       const icon = page.getByRole("button", { name }).first();
       await expect(icon, `action icon ${name} @ ${variant.tag}`).toBeVisible();
       const box = (await icon.boundingBox())!;
@@ -172,10 +181,29 @@ for (const variant of [
       expect(box.y, `action icon ${name} must sit below the brand row`)
         .toBeGreaterThanOrEqual(pillBox.y + pillBox.height);
     }
-    if (isDesktop) {
-      await expect(page.getByRole("button", { name: /^Show (map|list) view$/ }))
-        .toHaveCount(0);
+    // ...and the two that moved into the sheet are not back in the row.
+    for (const name of MOVED_OUT_OF_ROW) {
+      await expect(
+        page.getByRole("button", { name }),
+        `${name} belongs in the filter sheet, not the header row`,
+      ).toHaveCount(0);
     }
+
+    // The header row is the SAME height My Posts' header row is — one row of
+    // chrome, not a band. Both are the shared <ScreenHeaderRow>, floored at
+    // 44px by its own minHeight and by the HIG button rule.
+    const searchBox = (await page
+      .getByRole("button", { name: /^Search jobs$/ })
+      .first()
+      .boundingBox())!;
+    const filtersBox = (await page
+      .getByRole("button", { name: /^Filters/ })
+      .first()
+      .boundingBox())!;
+    expect(
+      Math.abs((searchBox.y + searchBox.height / 2) - (filtersBox.y + filtersBox.height / 2)),
+      "search/filters share one row",
+    ).toBeLessThan(4);
 
     // --- a11y -----------------------------------------------------------
     const axe = await new AxeBuilder({ page })
@@ -245,6 +273,50 @@ test("the pill is a shortcut — 'Upcoming' opens the active list", async ({
   expect(filter === null || filter === "active").toBe(true);
 });
 
+// The point of the move: neither control was dropped. Both are one tap
+// further in, LABELLED, inside the sheet the sliders icon opens.
+test("the moved controls live in the filter sheet", async ({ context, page, baseURL }) => {
+  await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");
+  await installSupabaseMocks(page, { user: FAKE_HELPER, seed: true });
+  await gotoHome(page, { width: 375, height: 812, theme: "light" });
+
+  await page.getByRole("button", { name: /^Filters/ }).first().click();
+
+  const sheet = page.getByRole("dialog");
+  await expect(sheet).toBeVisible();
+
+  // View choice — a labelled List / Map pair, not a filter chip, and Map is
+  // still a real destination: picking it closes the sheet and swaps the feed.
+  await expect(sheet.getByRole("button", { name: "List" })).toBeVisible();
+  const mapChoice = sheet.getByRole("button", { name: "Map" });
+  await expect(mapChoice).toBeVisible();
+  await expect(mapChoice).toHaveAttribute("aria-pressed", "false");
+
+  // Saved searches — a labelled row that opens the same dialog the bookmark
+  // icon used to.
+  const savedRow = sheet.getByRole("button", { name: /Saved searches/ });
+  await expect(savedRow).toBeVisible();
+
+  await savedRow.click();
+  await expect(page.getByRole("heading", { name: "Saved searches" })).toBeVisible();
+  // `.first()` because the dialog carries TWO controls named "Close" — its
+  // footer button and Radix's own sr-only X. (Escape is not an option here:
+  // this app's dialogs and sheets do not close on it, which predates this
+  // spec and is not what it is measuring.)
+  await page.getByRole("dialog").getByRole("button", { name: "Close" }).first().click();
+  await expect(page.getByRole("heading", { name: "Saved searches" })).toHaveCount(0);
+
+  // And back for the view switch — the map really renders.
+  await page.getByRole("button", { name: /^Filters/ }).first().click();
+  await page.getByRole("dialog").getByRole("button", { name: "Map" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await settleAnimations(page);
+  await page.getByRole("button", { name: /^Filters/ }).first().click();
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Map" }),
+  ).toHaveAttribute("aria-pressed", "true");
+});
+
 for (const width of [320, 375, 1440]) {
   test(`guest /browse still fits with both CTAs @ ${width}`, async ({ page }) => {
     await installSupabaseMocks(page, { seed: true });
@@ -264,12 +336,13 @@ for (const width of [320, 375, 1440]) {
     await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Get started" })).toBeVisible();
 
-    // And the icons are down in the toolbar row on this surface too. Three,
-    // not four: "Saved searches" is a signed-in feature (`user={null}`). The
-    // List⇄Map toggle IS shown at every width here — the guest feed swaps the
-    // whole panel between list and map, it has no desktop two-pane.
+    // And the icons are down in the toolbar row on this surface too — the
+    // same two Home has. "Saved searches" is a signed-in feature (`user={null}`)
+    // so the guest sheet has no such section at all; the List⇄Map choice IS in
+    // the guest sheet at every width, since the guest feed swaps the whole
+    // panel between list and map and has no desktop two-pane.
     const login = (await page.getByRole("button", { name: "Log in" }).boundingBox())!;
-    for (const name of [ACTION_ICON_NAMES[0], ...ACTION_ICON_NAMES.slice(2)]) {
+    for (const name of ACTION_ICON_NAMES) {
       const icon = page.getByRole("button", { name }).first();
       await expect(icon, `guest action icon ${name} @ ${width}`).toBeVisible();
       const box = (await icon.boundingBox())!;

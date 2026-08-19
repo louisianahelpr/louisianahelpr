@@ -8,8 +8,9 @@ import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import {
   MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
-  Pencil, AlertTriangle, Rocket, Clock, Wrench,
+  MessageCircle, Pencil, AlertTriangle, Rocket, Clock, Wrench,
 } from "lucide-react";
+import { SosShareButton } from "@/components/SosShareButton";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { CompletionChoiceSheet } from "@/components/activity/CompletionChoiceSheet";
@@ -292,10 +293,18 @@ export function PostedJobActions({
                 job (owner: "this can be icons but just put the words under it
                 like the other page does for shared edit etc.").
 
-                Density does NOT cost the hierarchy: Message stays the primary
-                action while work is in progress and is the only SOLID chip in
-                the row; it demotes to a muted tint once "Approve & release
-                payment" appears above and owns that job. No-Show keeps the
+                Order is SOS · Share · Message, per the owner ("move sos to the
+                left of messages and move messages to the right of share"), with
+                SOS relocated here out of the tracking card's header.
+
+                Message is SOLID BARK IN EVERY STATE. It used to demote to a
+                muted tint once "Approve & release payment" appeared above it,
+                which meant the same button was two different colours on two
+                cards in the same list — the owner's "Message should be the same
+                color for all places". Hierarchy against the Approve button is
+                carried by SIZE and POSITION instead: Approve is full-width and
+                sits above the row, so it still reads as the bigger move without
+                Message having to change colour to say so. No-Show keeps the
                 destructive tint.
 
                 Visible labels are terse ("Message", not "Message Helpr") so
@@ -311,15 +320,20 @@ export function PostedJobActions({
                 !job.poster_completed_at &&
                 !job.helper_arrived_at &&
                 hasJobStarted(job.date_needed, job.start_time);
+              // SOS is a SAFETY control, so it is gated on the visit actually
+              // being under way (the helper set off) rather than on the job
+              // merely being assigned — the same rule it had in the tracker
+              // header it moved out of.
+              //
+              // That rule ALSO excluded completed/cancelled jobs. Those checks
+              // are not repeated here: this branch only renders for a job whose
+              // status is already narrowed to "in_progress" | "revision_requested",
+              // so tsc rejected them as comparisons that can never be true.
+              const showSos = !!job.helper_on_the_way_at;
+              const columns = (2 + (showSos ? 1 : 0) + (showNoShow ? 1 : 0)) as 2 | 3 | 4;
               return (
-                <JobActionRow columns={showNoShow ? 3 : 2}>
-                  <JobActionChip
-                    icon={MessageSquare}
-                    label="Message"
-                    ariaLabel="Message Helpr"
-                    tone={job.helper_completed_at ? "neutral" : "primary"}
-                    onClick={() => navigate("/messages")}
-                  />
+                <JobActionRow columns={columns}>
+                  {showSos && <SosShareButton jobId={job.id} variant="chip" />}
                   {/* ShareJobButton renders its own <Button> (it owns the
                       native-share fallback chain), so it takes the shared chip
                       class + tone rather than being wrapped. */}
@@ -328,6 +342,18 @@ export function PostedJobActions({
                     layout="stack"
                     className={JOB_ACTION_CHIP_CLASS}
                     style={jobActionChipStyle("info")}
+                  />
+                  <JobActionChip
+                    icon={MessageCircle}
+                    label="Message"
+                    ariaLabel="Message Helpr"
+                    tone="primary"
+                    // Straight into the thread with THIS helpr on THIS job, not
+                    // the conversation list — owner: "when I tap message it
+                    // should take me right into Eli's message". Same
+                    // jobId+userId contract the card's other Message entry
+                    // points already use.
+                    onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
                   />
                   {showNoShow && (
                     <JobActionChip

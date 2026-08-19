@@ -7,7 +7,7 @@
  * better the whole time — these cases are the proof it is now read.
  */
 import { describe, it, expect } from "vitest";
-import { deriveCurrentStatusIdx, helperStatusPhrase, STATUS_IDX } from "./JobTracking";
+import { deriveCurrentStatusIdx, STATUS_IDX } from "./JobTracking";
 
 const AT = "2026-08-18T12:00:00.000Z";
 
@@ -135,27 +135,3 @@ describe("deriveCurrentStatusIdx", () => {
   });
 });
 
-describe("helperStatusPhrase", () => {
-  it('only says "Offered to" while the job really is just an offer', () => {
-    expect(helperStatusPhrase(STATUS_IDX.assigned)).toEqual({ before: "Offered to", after: "" });
-  });
-
-  it("puts the name first and the state after it once work is underway", () => {
-    expect(helperStatusPhrase(STATUS_IDX.on_the_way)).toEqual({ before: "", after: "is on the way" });
-    expect(helperStatusPhrase(STATUS_IDX.working)).toEqual({ before: "", after: "is working on the job" });
-  });
-
-  it("never claims a working or finished helpr is merely offered", () => {
-    for (const idx of [
-      STATUS_IDX.confirmed,
-      STATUS_IDX.job_confirmed,
-      STATUS_IDX.on_the_way,
-      STATUS_IDX.arrived,
-      STATUS_IDX.working,
-      STATUS_IDX.done,
-    ]) {
-      expect(helperStatusPhrase(idx).before).toBe("");
-      expect(helperStatusPhrase(idx).after).not.toBe("");
-    }
-  });
-});

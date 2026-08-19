@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Calendar, Home } from "lucide-react";
-import { DocumentPageCards } from "@/components/ui/DocumentPageCards";
+import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
@@ -101,24 +101,30 @@ const HomeHistory = () => {
   const loading = isLoading && !data;
 
   return (
-    // The app's title-card + panel treatment, on a page that stays
-    // document-scroll: the record grows without bound (every completed job,
-    // for the life of the house), which is exactly what CLAUDE.md reserves
-    // document-scroll for. `/home-history` therefore STAYS in
-    // DOCUMENT_SCROLL_ROUTES — see DocumentPageCards for why the material and
-    // the viewport mode are separate decisions.
+    // Document-scroll page: the record grows without bound (every completed
+    // job, for the life of the house), which is exactly what CLAUDE.md
+    // reserves document-scroll for. `/home-history` therefore STAYS in
+    // DOCUMENT_SCROLL_ROUTES.
     //
-    // `columnClassName` is the page's own previous body ladder verbatim
-    // (max-w-5xl, px-4 → lg:px-8 → xl:px-12), so the column did not move; the
-    // title just moved inside it, which also retires the PageHeader `width`
-    // prop that existed only to keep the two in the same column.
-    <DocumentPageCards
-      title="Home History"
-      onBack={() => navigate("/profile")}
-      columnClassName="max-w-5xl px-4 lg:px-8 xl:px-12"
-      panelClassName="px-4 py-5 lg:px-6 lg:py-6 space-y-8"
-    >
-      {loading && (
+    // Header + page structure match the other Profile sub-pages (/pets is the
+    // reference): a plain back-chevron + serif title sitting directly on the
+    // page background via <PageHeader>, with the entries as their own cards on
+    // that background. The title card + panel treatment this page used to
+    // carry put a card around the header and a second card around the list —
+    // a card-in-a-card the owner flagged as off-pattern.
+    //
+    // `width="5xl-p4"` is the page's body ladder verbatim
+    // (max-w-5xl, px-4 → lg:px-8 → xl:px-12), so the title stays in column
+    // with the content beneath it.
+    <div className="min-h-screen bg-premium-page pb-safe-nav">
+      <PageHeader
+        title="Home History"
+        onBack={() => navigate("/profile")}
+        width="5xl-p4"
+      />
+
+      <div className="max-w-5xl mx-auto px-4 lg:px-8 xl:px-12 pt-4 space-y-8">
+        {loading && (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => <JobCardSkeleton key={i} />)}
           </div>
@@ -293,7 +299,8 @@ const HomeHistory = () => {
             </div>
           </section>
         ))}
-    </DocumentPageCards>
+      </div>
+    </div>
   );
 };
 

@@ -73,6 +73,7 @@ interface PageHeaderProps {
     | "lg-5xl-6xl"
     | "lg-2xl-5xl-6xl"
     | "lg-2xl-5xl-6xl-tight"
+    | "lg-5xl-6xl-7xl-tight"
     | "2xl-5xl-7xl"
     | "container-lg-5xl-6xl";
   /**
@@ -117,9 +118,17 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
   "lg-2xl-5xl-6xl": { outer: "max-w-lg md:max-w-2xl lg:max-w-5xl xl:max-w-6xl px-4 md:px-6 lg:px-8" },
 
   // As above but the gutter narrows again at lg (`lg:px-4`) instead of growing.
-  // Body: FamilyDashboard — kept verbatim rather than normalised to lg:px-8,
-  // which would have taken 32px off that page's content column.
+  // Body: StrSettings-adjacent pages that kept the tighter desktop gutter
+  // verbatim rather than normalising to lg:px-8, which would have taken 32px
+  // off the content column.
   "lg-2xl-5xl-6xl-tight": { outer: "max-w-lg md:max-w-2xl lg:max-w-5xl xl:max-w-6xl px-4 md:px-6 lg:px-4" },
+
+  // Same tight desktop gutter, on the wider ladder FamilyDashboard's body
+  // actually uses. Body: FamilyDashboard — copied from its column verbatim so
+  // the back button + h1 land in the same column as the content beneath them.
+  "lg-5xl-6xl-7xl-tight": {
+    outer: "max-w-lg md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-4 md:px-6 lg:px-4",
+  },
 
   // Wide-reading body that grows to 7xl on large desktops. Body: PayItForward.
   "2xl-5xl-7xl": { outer: "max-w-2xl lg:max-w-5xl xl:max-w-7xl px-5 lg:px-8" },

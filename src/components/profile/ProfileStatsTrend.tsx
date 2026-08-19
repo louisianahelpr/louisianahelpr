@@ -1,10 +1,11 @@
 // Profile stats trend — small Recharts area chart showing jobs
 // completed + dollars earned/spent over a chosen window (30d / 90d / 12mo).
 //
-// Lives inside a collapsed disclosure on the Profile landing's hero
-// trust strip so it doesn't push everything else down the page on a
-// brand-new helper. Self-fetches its own data so the parent doesn't
-// have to thread per-window props down the tree.
+// Rendered on /analytics (it moved off the Profile landing — see
+// IdentityHeader) as a collapsed disclosure so it doesn't push the rest of the
+// dashboard down for a brand-new helper. Self-fetches its own data so the
+// parent doesn't have to thread per-window props down the tree, and renders no
+// wrapper chrome — the caller wraps it in the page's card shell.
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -128,10 +129,12 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
   const isEmpty = data.every((d) => d.jobs === 0 && d.earned === 0 && d.spent === 0);
 
   return (
-    <div
-      className="mt-3.5 pt-3.5"
-      style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
-    >
+    // No wrapper chrome of its own: the caller supplies the surface. On
+    // /analytics that's <AnalyticsCard>, the same shell the rest of the page's
+    // panels use — this section used to draw a hairline divider and hang its
+    // label off the page background, which read as a different screen from the
+    // card stack above it.
+    <div>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

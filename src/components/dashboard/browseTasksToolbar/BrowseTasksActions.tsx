@@ -1,70 +1,35 @@
 import { Search, SlidersHorizontal } from "lucide-react";
-import type { User as SupaUser } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { SavedSearches } from "@/components/SavedSearches";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
-import { BrowseViewToggle } from "./BrowseViewToggle";
 
 export interface BrowseTasksActionsProps {
   /** Dashboard filter state + setters (from useDashboardFilters). */
   filters: ReturnType<typeof useDashboardFilters>;
-  /** Signed-in user — gates the SavedSearches control. */
-  user: SupaUser | null;
-  /** List vs Map view selection. */
-  view: "list" | "map";
-  setView: (next: "list" | "map") => void;
-  /** Hide the List⇄Map toggle. On the desktop web the feed and map sit
-   *  side by side, so the toggle is meaningless — both panes are visible. */
-  hideViewToggle?: boolean;
 }
 
 /**
- * The Browse feed's icon cluster — view toggle · saved searches · search ·
- * filters.
+ * The Browse feed's icon cluster — search · filters. Two buttons, the same two
+ * My Posts / My Jobs carry, in the same trailing slot of the same
+ * <ScreenHeaderRow>.
  *
- * Rendered by `BrowseTasksToolbar`, in the heading row, on both browse
- * surfaces. It is its own component (rather than inline JSX) because it was
- * briefly lifted into the page title card on 2026-08-17 and needed to be
- * mountable from either row; the owner reverted that placement after seeing it
- * on device, but the extraction is worth keeping — the cluster is ~60 lines
- * and the toolbar it lives in is long.
+ * It used to be four. The List⇄Map toggle and Saved searches moved INTO the
+ * filter sheet (owner: "move saved filters and map view into the filter option
+ * and move the rest up into the 1 column so it's the same size layout as jobs
+ * and post") — see the "View" and "Saved searches" sections built in
+ * BrowseTasksToolbar. Neither was dropped; both are one tap further in, and
+ * labelled with words now instead of a bare glyph.
  *
- * Returns a bare fragment of buttons rather than a wrapper, so the caller's
- * own flex row owns the gap.
+ * Returns a bare fragment of buttons rather than a wrapper, so the header
+ * row's own `gap-1` cluster owns the spacing.
  *
- * Every control here mutates `filters` / `view`, both owned by the page
- * (useDashboardFilters / usePersistedBrowseView). `searchOpen` and
- * `filtersOpen` live in that shared filter state, so the search + filter
- * buttons drive the input and the sheet that BrowseTasksToolbar renders
- * directly beneath this row.
+ * Both controls mutate `filters`, owned by the page (useDashboardFilters).
+ * `searchOpen` and `filtersOpen` live in that shared state, so these buttons
+ * drive the input and the sheet that BrowseTasksToolbar renders around them —
+ * there is only ever one copy of each piece.
  */
-export function BrowseTasksActions({
-  filters,
-  user,
-  view,
-  setView,
-  hideViewToggle = false,
-}: BrowseTasksActionsProps) {
+export function BrowseTasksActions({ filters }: BrowseTasksActionsProps) {
   return (
     <>
-      {!hideViewToggle && <BrowseViewToggle view={view} setView={setView} />}
-      {user && (
-        <SavedSearches
-          userId={user.id}
-          currentFilters={{
-            selectedCategory: filters.selectedCategory,
-            minBudget: filters.minBudget,
-            maxBudget: filters.maxBudget,
-            locationFilter: filters.locationFilter,
-          }}
-          onApplySearch={(s) => {
-            filters.setSelectedCategory(s.category);
-            filters.setMinBudget(s.min_budget ? String(s.min_budget) : "");
-            filters.setMaxBudget(s.max_budget ? String(s.max_budget) : "");
-            filters.setLocationFilter(s.location_keyword || "");
-          }}
-        />
-      )}
       <Button
         variant="ghost"
         size="icon"

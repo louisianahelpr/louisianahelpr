@@ -294,7 +294,15 @@ test("switching Home to map view cannot strand the dock off-screen", async ({
   // Map view sets `display:none` on the list's scroll container and renders a
   // map that never scrolls, so no further scroll event can ever fire on this
   // route. Before the fix the dock stayed 130px down — no tabs, no Post FAB.
-  await page.getByRole("button", { name: /map view/i }).first().click();
+  // Map view is no longer a top-level toolbar button — the owner moved it (and
+  // saved searches) INTO the filter sheet, so reaching it is two steps now:
+  // open Filters, then pick Map from the "Feed view" group. The assertion below
+  // is unchanged; only the route to the control moved.
+  await page.getByRole("button", { name: /^Filters/ }).first().click();
+  await page
+    .getByRole("group", { name: "Feed view" })
+    .getByRole("button", { name: "Map", exact: true })
+    .click();
   await page.waitForTimeout(1_200);
 
   expect(await navOffset(page), "dock must return when the scroll surface goes away").toBe(0);

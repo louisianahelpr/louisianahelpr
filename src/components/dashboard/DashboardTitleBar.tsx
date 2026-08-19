@@ -53,10 +53,13 @@ export const TITLE_BAR_PADDING = "!py-2 lg:!py-2.5";
  * behaviour — is identical, which is the point: a visitor who signs up should
  * recognise the screen they were just on.
  *
- * The feed's four action icons (view toggle · saved searches · search ·
- * filters) are NOT here. They live one row down, in `BrowseTasksToolbar`'s
- * title row, next to the "Browse jobs" heading they act on — owner decision,
- * reverting the 2026-08-17 lift that had briefly pulled them up here.
+ * The feed's action icons are NOT here. They live one row down, in
+ * `BrowseTasksToolbar`'s header row, next to the "Browse jobs" heading they
+ * act on — owner decision, reverting the 2026-08-17 lift that had briefly
+ * pulled them up here. There are TWO of them now (search · filters): the view
+ * toggle and saved searches moved into the filter sheet, so the row below is a
+ * 44px header of the same shape My Posts uses rather than a band of four
+ * icons.
  *
  * This is a PageScaffold `titleCard` body, NOT an app bar. Home used to be the
  * last signed-in screen carrying a sticky `<DashboardHeader />`; Messages, My

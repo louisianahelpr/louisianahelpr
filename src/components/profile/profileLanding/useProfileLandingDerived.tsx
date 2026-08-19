@@ -184,7 +184,13 @@ export function useProfileLandingDerived({
           key: "accessibility",
           label: "Accessibility",
           icon: <Type className="w-5 h-5" />,
-          desc: "Color mode, Senior mode & display options",
+          // Names exactly what the Accessibility panel renders and nothing
+          // more. It used to promise "…& display options" as if there were a
+          // third section behind the row; AccessibilityTab has two controls —
+          // the Light/Auto/Dark colour-mode group and the Senior mode switch —
+          // so the trailing clause sent people looking for a screen that does
+          // not exist.
+          desc: "Color mode & Senior mode",
           tint: "var(--bark)",
         },
         {

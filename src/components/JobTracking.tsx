@@ -1,20 +1,15 @@
-import { lazy, Suspense, useEffect, useState, useCallback } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, ShieldCheck, AlertTriangle, Share2 } from "lucide-react";
+import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { report } from "@/lib/errorLogger";
-import {
-  Sheet,
-  SheetContent,
-  SheetHero,
-} from "@/components/ui/sheet";
-import { shareNative } from "@/lib/nativeShare";
+import { SosShareButton } from "@/components/SosShareButton";
 import { isNativePlatform } from "@/lib/nativeInit";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
@@ -26,7 +21,12 @@ const TrackingMap = lazy(() =>
 const STATUSES = [
   { key: "assigned", label: "Offered", icon: Clock, color: "text-muted-foreground" },
   { key: "confirmed", label: "Accepted", icon: CheckCircle2, color: "text-primary" },
-  { key: "job_confirmed", label: "Confirmed", icon: ShieldCheck, color: "text-primary" },
+  // CalendarCheck, not ShieldCheck: at the 16px the step row draws these at,
+  // a shield-with-a-tick and the circle-with-a-tick above it were two dark
+  // rings with a check in them and read as the same step twice. This one means
+  // "both sides confirmed, the date is locked", which a calendar says plainly
+  // and cannot be confused with "Accepted".
+  { key: "job_confirmed", label: "Confirmed", icon: CalendarCheck, color: "text-primary" },
   { key: "on_the_way", label: "On the Way", icon: Truck, color: "text-primary" },
   { key: "arrived", label: "Arrived", icon: MapPin, color: "text-primary" },
   { key: "working", label: "Working", icon: Wrench, color: "text-primary" },
@@ -135,18 +135,6 @@ export function deriveCurrentStatusIdx({
  * driving over, or is holding a wrench, saying "Offered to" is wrong.
  * Returned as before/after fragments so the name itself can stay a link.
  */
-export function helperStatusPhrase(idx: number): { before: string; after: string } {
-  switch (idx) {
-    case STATUS_IDX.confirmed: return { before: "", after: "accepted this job" };
-    case STATUS_IDX.job_confirmed: return { before: "", after: "confirmed — ready to start" };
-    case STATUS_IDX.on_the_way: return { before: "", after: "is on the way" };
-    case STATUS_IDX.arrived: return { before: "", after: "has arrived" };
-    case STATUS_IDX.working: return { before: "", after: "is working on the job" };
-    case STATUS_IDX.done: return { before: "", after: "finished the job" };
-    default: return { before: "Offered to", after: "" };
-  }
-}
-
 export type TrackingData = {
   id: string;
   status: string;
@@ -239,7 +227,6 @@ export function JobTracking({
     helperCompletedAt: initialHelperCompletedAt ?? null,
     posterCompletedAt: initialPosterCompletedAt ?? null,
   });
-  const [sosOpen, setSosOpen] = useState(false);
   const { request: requestPermission } = usePermissionRationale();
 
   // Sync props
@@ -505,11 +492,27 @@ export function JobTracking({
     jobStatus !== "completed" &&
     jobStatus !== "cancelled";
 
-  // NOTE: the step row used to scroll horizontally, and an effect here
-  // re-centred the current step on every advance. Both are gone: the row no
-  // longer scrolls (it wraps to a 4 + 3 grid on phones), so there is nothing
-  // to centre — and calling scrollIntoView with no scrollable ancestor left
-  // would have walked up to the document and yanked the feed instead.
+  // The step row is ONE horizontally-scrolling line (owner: "the live tracker
+  // should be 1 scrollable line"). Because it scrolls, the current step can sit
+  // off-screen — so it is scrolled back into view whenever the job advances.
+  //
+  // `scrollIntoView` is deliberately NOT used: with `block`/`inline` it walks up
+  // to the nearest scrollable ancestor and, if this row were ever non-scrollable,
+  // would yank the whole activity feed instead. Setting `scrollLeft` on the row
+  // itself cannot escape the element, so the feed can never move.
+  const stepRowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = stepRowRef.current;
+    if (!row) return;
+    const step = row.children[currentStatusIdx] as HTMLElement | undefined;
+    if (!step) return;
+    const target = step.offsetLeft - (row.clientWidth - step.offsetWidth) / 2;
+    const max = row.scrollWidth - row.clientWidth;
+    row.scrollTo({
+      left: Math.max(0, Math.min(target, max)),
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
+  }, [currentStatusIdx]);
 
   if (!helperId) return null;
 
@@ -522,58 +525,61 @@ export function JobTracking({
         >
           Job tracking
         </h3>
-        {/* SOS share button. Lets either party quickly share their location
-            context with a trusted contact for safety — see `showSos` for why
-            it no longer appears the moment a job turns `in_progress`. */}
-        {showSos && (
-          <button
-            type="button"
-            onClick={() => setSosOpen(true)}
-            aria-label="SOS — share your location"
-            className="h-10 px-3 rounded-full inline-flex items-center gap-1.5 text-xs font-bold shrink-0 active:scale-95 transition-all"
-            style={{
-              color: "hsl(var(--burnt-sienna))",
-              background: "hsl(var(--burnt-sienna) / 0.08)",
-              border: "1px solid hsl(var(--burnt-sienna) / 0.22)",
-            }}
-          >
-            <AlertTriangle className="w-3.5 h-3.5" />
-            SOS
-          </button>
-        )}
+        {/* SOS moved OUT of this header and into the owner's action row
+            ("move sos to the left of messages"), so on an OWNER card it is
+            rendered by PostedJobActions, not here. A HELPER's card was not part
+            of that reorganisation and keeps the original header pill — see
+            SosShareButton for why the button and its sheet travel together. */}
+        {showSos && isHelper && <SosShareButton jobId={jobId} variant="pill" />}
       </div>
 
       {/* Progress timeline */}
       {(() => {
-        const getSubtext = (_key: string): string | null => {
-          return null;
-        };
+        // The helpr's name now captions the step the job is ON, instead of
+        // repeating it as a sentence below the row. Owner: "Camille is on the
+        // way should be just in the live tracker … all the updates should be
+        // on the live tracker itself."
+        //
+        // The step label already carries the verb, so the name alone completes
+        // it without duplicating it — "Offered" + "Camille" reads as the old
+        // "Offered to Camille", "On the Way" + "Camille" as "Camille is on the
+        // way". A helper tracking their own job needs no one named.
+        const firstName = helperName?.trim().split(/\s+/)[0] ?? null;
+        const getSubtext = (idx: number): string | null =>
+          !isHelper && firstName && idx === currentStatusIdx ? firstName : null;
 
-        // Wraps, never scrolls. Seven steps do not fit one phone-width row at a
-        // legible size, and while it scrolled the row simply sliced whatever
-        // step straddled the card edge — the reported "On the W". A scroller
-        // can always be cut mid-word, so the row is a grid instead: four steps
-        // then three on phones, all seven once there is room. Nothing is ever
-        // clipped, at 320px or anywhere else, because nothing overflows.
+        // ONE scrolling line, seven steps (owner: "the live tracker should be
+        // 1 scrollable line"). It was previously a 4 + 3 wrapping grid, which
+        // was itself a fix for an earlier scroller that sliced whatever step
+        // straddled the card edge — the reported "On the W".
+        //
+        // That slicing is why every step has a FIXED width and `shrink-0`
+        // rather than being sized by its label: the row can only ever be cut
+        // between steps, never through one, so no label is clipped mid-word at
+        // any width. `snap-x`/`snap-center` land the scroll on whole steps for
+        // the same reason.
         return (
           <div
-            // Read-only text, no longer a scrollable region, so it needs no tab
-            // stop of its own (axe's `scrollable-region-focusable` no longer
-            // applies). The group role + label keep it announcing as
-            // "Job progress, group" rather than seven loose fragments.
+            ref={stepRowRef}
+            // A scrolling region must be keyboard-reachable or axe's
+            // `scrollable-region-focusable` fails — arrow keys need somewhere
+            // to land now that content can sit off-screen. The group role +
+            // label keep it announcing as "Job progress, group" rather than
+            // seven loose fragments.
+            tabIndex={0}
             role="group"
             aria-label="Job progress"
-            className="grid grid-cols-4 sm:grid-cols-7 gap-x-1 gap-y-3 items-start"
+            className="flex gap-1 overflow-x-auto scrollbar-hide snap-x -mx-1 px-1 py-0.5 items-start"
           >
             {STATUSES.map((s, idx) => {
               const isActive = idx <= currentStatusIdx;
               const isCurrent = idx === currentStatusIdx;
               const Icon = s.icon;
-              const subtext = getSubtext(s.key);
+              const subtext = getSubtext(idx);
               return (
                 <div
                   key={s.key}
-                  className="min-w-0 flex flex-col items-center gap-1"
+                  className="w-[68px] shrink-0 snap-center flex flex-col items-center gap-1"
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
@@ -628,41 +634,6 @@ export function JobTracking({
         />
       </div>
 
-      {/* Who is being tracked, phrased for the step the job is actually on.
-          This used to be an "Offered to <Name>" row sitting immediately under
-          the "Job tracking" heading, where it read as a second title — and it
-          still said "Offered to" for a helpr who was already holding a wrench.
-          It now captions the progress it belongs to. `isHelper` mounts skip
-          it: a helper tracking their own job needs no one named. */}
-      {!isHelper && helperName && (() => {
-        const { before, after } = helperStatusPhrase(currentStatusIdx);
-        return (
-          <div className="flex items-center justify-center gap-1.5 min-w-0">
-            <span
-              className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0"
-              aria-hidden
-            >
-              {helperName[0].toUpperCase()}
-            </span>
-            <p className="text-ds-11 text-muted-foreground truncate">
-              {before && <span>{before} </span>}
-              {helperId ? (
-                <a
-                  href={`/user/${helperId}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="font-medium text-primary hover:underline"
-                >
-                  {helperName}
-                </a>
-              ) : (
-                <span className="font-medium">{helperName}</span>
-              )}
-              {after && <span> {after}</span>}
-            </p>
-          </div>
-        );
-      })()}
-
       {/* Live-tracking map — shown while helper is on the way and both
           positions are known. Lazy-loaded so the Leaflet chunk isn't paid
           for by cards that never enter this state. Falls back silently to
@@ -702,47 +673,6 @@ export function JobTracking({
           )}
         </p>
       )}
-
-      {/* SOS confirmation sheet */}
-      <Sheet open={sosOpen} onOpenChange={setSosOpen}>
-        <SheetContent side="bottom" className="pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-          {/* Canonical sheet header — this was a bare SheetHeader/SheetTitle
-              stack with no eyebrow and default type tokens, which read as a
-              different designer's popup next to every other titled sheet. */}
-          <SheetHero
-            eyebrow="Live location"
-            title="Share your location"
-          />
-          <div className="mt-4 space-y-2">
-            <Button
-              className="w-full"
-              onClick={async () => {
-                setSosOpen(false);
-                await shareNative({
-                  title: "I'm on a Helpr job — share my location",
-                  text: `I'm currently on a Helpr job. You can reach me at: https://www.louisianahelpr.com/track/${jobId}`,
-                  url: `https://www.louisianahelpr.com/track/${jobId}`,
-                  dialogTitle: "Share your location",
-                });
-              }}
-              style={{
-                background: "hsl(var(--burnt-sienna))",
-                color: "hsl(var(--parchment))",
-              }}
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Share location link
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => setSosOpen(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
 
       {/* Helper controls — skip the job_confirmed step since that's handled by JobConfirmation */}
       {isHelper && (() => {

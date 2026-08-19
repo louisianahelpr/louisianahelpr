@@ -1,12 +1,6 @@
 import { memo, useEffect, useState } from "react";
-import type { Dispatch, KeyboardEvent, SetStateAction } from "react";
-import { Flag, Ban, Trash2, MoreVertical, BellOff, Bell, Pin, PinOff, Check } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import type { KeyboardEvent } from "react";
+import { BellOff, Check } from "lucide-react";
 import {
   getMessageAttachmentSignedUrl,
   isImageMime,
@@ -25,29 +19,14 @@ interface ConversationRowProps {
   currentUserId: string | null;
   /** Opens this conversation into the chat view. */
   openConvo: (convo: Conversation) => void;
-  setReportTarget: Dispatch<SetStateAction<{ type: "message" | "user"; id: string } | null>>;
-  setBlockTarget: Dispatch<SetStateAction<{ id: string; name: string } | null>>;
-  setDeleteConvoConfirm: Dispatch<SetStateAction<Conversation | null>>;
-  /** Toggle the muted state of this thread for the current user.
-   *  Legacy path — used as the fast unmute action when the thread is
-   *  already muted; the row's "Mute" action prefers `onOpenMuteSheet`. */
-  onToggleMute: (convo: Conversation) => void;
-  /** Open the snooze picker (MuteSheet) targeted at this conversation. */
-  onOpenMuteSheet: (convo: Conversation) => void;
-  /** Pinned to the top of the inbox for the current session. Drives the
-   *  pin-or-unpin menu item (and is forwarded by the list to the swipe
-   *  wrapper so the right-swipe trail reads as "Unpin" on pinned rows). */
-  isPinned: boolean;
-  /** Toggle the pinned state for this conversation. */
-  onTogglePin: () => void;
   /** Highlighted as the open thread in the desktop list+thread split, so
    *  the inbox tracks which conversation fills the right pane. Defaults to
    *  false — on mobile (screen-swap) no row is ever the persistent active
    *  one. */
   isActive?: boolean;
   /** Multi-select mode — the row shows a leading checkbox, a tap toggles
-   *  its selection instead of opening the thread, and the per-row ⋮ menu
-   *  and swipe gestures are suppressed by the list. Defaults to false. */
+   *  its selection instead of opening the thread, and the swipe gestures
+   *  are suppressed by the list. Defaults to false. */
   selectMode?: boolean;
   /** Whether this row is currently selected (select mode only). */
   selected?: boolean;
@@ -129,20 +108,18 @@ function LastMessageImageThumb({
  * ConversationRow — a single row in the virtualized inbox list: avatar,
  * iMessage-style preview ("You: " prefix when you sent it, photo
  * thumbnail when the last message was an image attachment), job title +
- * status chip, relative timestamp, far-right unread dot, and the per-
- * row report / block / delete menu.
+ * status chip, and a right cluster holding the unread dot and the
+ * far-right relative timestamp.
+ *
+ * The row carries no per-row ⋮ overflow menu. Everything it used to hold
+ * is reachable elsewhere: mute / report / block from the thread header,
+ * pin from the right swipe, delete (local archive) from the left swipe
+ * and from the list's Select mode.
  */
 const ConversationRowBase = ({
   convo: c,
   currentUserId,
   openConvo,
-  setReportTarget,
-  setBlockTarget,
-  setDeleteConvoConfirm,
-  onToggleMute,
-  onOpenMuteSheet,
-  isPinned,
-  onTogglePin,
   isActive = false,
   selectMode = false,
   selected = false,
@@ -226,8 +203,8 @@ const ConversationRowBase = ({
       role={selectMode ? "button" : undefined}
       aria-pressed={selectMode ? selected : undefined}
       // The row wrapper can't be a real <button> — it CONTAINS buttons (the
-      // select checkbox, the open-thread hit area, the ⋮ menu trigger), and
-      // nesting interactive controls is invalid. So `role="button"` has to
+      // select checkbox and the open-thread hit area), and nesting
+      // interactive controls is invalid. So `role="button"` has to
       // carry its own keyboard contract: focusable, and Enter/Space activate.
       // Browsers only synthesize that for native <button>/<a>.
       tabIndex={selectMode ? 0 : undefined}
@@ -454,85 +431,32 @@ const ConversationRowBase = ({
               </p>
             </div>
           </div>
-          <span
-            className="text-ds-11 shrink-0 self-center whitespace-nowrap"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            {when}
+          {/* Right cluster — unread dot, then the relative timestamp.
+              The per-row ⋮ overflow menu used to occupy this edge with
+              the dot beside it; the menu is gone (every action it held
+              lives elsewhere), so the timestamp now sits flush against
+              the row's px-3 padding with the dot tucked to its left.
+              Both live INSIDE the open-thread button, so the strip the
+              kebab vacated still opens the conversation rather than
+              becoming a dead gutter. */}
+          <span className="shrink-0 self-center flex items-center gap-1.5">
+            {hasUnreadFromOther && (
+              <span
+                aria-label={`${c.unread} unread message${c.unread === 1 ? "" : "s"}`}
+                role="status"
+                className="shrink-0 w-2 h-2 rounded-full"
+                style={{ background: "hsl(var(--burnt-sienna))" }}
+              />
+            )}
+            <span
+              className="text-ds-11 whitespace-nowrap"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+            >
+              {when}
+            </span>
           </span>
         </div>
       </button>
-      {/* Far-right unread dot — iMessage-style. Shown only when there's
-          an unread inbound message; absent on fully-read threads so the
-          row stays visually calm. */}
-      {hasUnreadFromOther && (
-        <span
-          aria-label={`${c.unread} unread message${c.unread === 1 ? "" : "s"}`}
-          role="status"
-          className="shrink-0 w-2 h-2 rounded-full self-center"
-          style={{ background: "hsl(var(--burnt-sienna))" }}
-        />
-      )}
-      {/* Per-row overflow menu — suppressed in select mode so a tap
-          anywhere on the row toggles selection cleanly. */}
-      {!selectMode && (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-sm text-muted-foreground hover:bg-secondary transition-colors shrink-0"
-            onClick={(e) => e.stopPropagation()}
-            aria-label="Conversation options"
-          >
-            <MoreVertical className="w-4 h-4" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {/* Mute / unmute — first item so the most-frequent action is
-              easiest to reach. When unmuted, opens the snooze picker so
-              "1h / 8h / until tomorrow 8 AM / forever" is one tap deep.
-              When already muted, this collapses to a fast unmute (the
-              picker has its own "Turn back on" path if a user wants to
-              extend a snooze instead). */}
-          {c.isMuted ? (
-            <DropdownMenuItem onClick={() => onToggleMute(c)}>
-              <Bell className="w-4 h-4 mr-2" /> Unmute notifications
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem onClick={() => onOpenMuteSheet(c)}>
-              <BellOff className="w-4 h-4 mr-2" /> Mute notifications…
-            </DropdownMenuItem>
-          )}
-          {/* Pin / Unpin — session-scoped pin to keep frequent threads
-              at the top of the inbox. Same action as the right-swipe
-              gesture, surfaced in the menu for discoverability. */}
-          <DropdownMenuItem onClick={onTogglePin}>
-            {isPinned ? (
-              <>
-                <PinOff className="w-4 h-4 mr-2" /> Unpin from top
-              </>
-            ) : (
-              <>
-                <Pin className="w-4 h-4 mr-2" /> Pin to top
-              </>
-            )}
-          </DropdownMenuItem>
-          <div role="separator" className="my-1 h-px bg-border" />
-          <DropdownMenuItem onClick={() => setReportTarget({ type: "user", id: c.otherUserId })}>
-            <Flag className="w-4 h-4 mr-2" /> Report user
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setBlockTarget({ id: c.otherUserId, name: c.otherUserName })}>
-            <Ban className="w-4 h-4 mr-2" /> Block user
-          </DropdownMenuItem>
-          {/* Divider separates the destructive "Delete conversation"
-              action from the report/block items above so it doesn't
-              read as a third item of the same weight. */}
-          <div role="separator" className="my-1 h-px bg-border" />
-          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteConvoConfirm(c)}>
-            <Trash2 className="w-4 h-4 mr-2" /> Delete conversation
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      )}
     </div>
   );
 };

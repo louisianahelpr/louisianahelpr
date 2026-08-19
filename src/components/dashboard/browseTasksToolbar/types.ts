@@ -10,11 +10,13 @@ export interface BrowseTasksToolbarProps {
   /** Helper availability rows — only the count is read, to enable the
    *  "match my hours" filter. */
   helperAvailability: unknown[];
-  /** List vs Map view selection. */
+  /** List vs Map view selection. Surfaced as the filter sheet's "View"
+   *  section, not as an icon in the header row. */
   view: "list" | "map";
   setView: (next: "list" | "map") => void;
-  /** Hide the List⇄Map toggle. On the desktop web the feed and map sit
-   *  side by side, so the toggle is meaningless — both panes are visible. */
+  /** Drop the filter sheet's "View" section entirely. On the desktop web the
+   *  feed and map sit side by side, so the choice is meaningless — both panes
+   *  are visible. */
   hideViewToggle?: boolean;
   /** Called when the user clears all filters via the "Clear all" chip —
    *  Dashboard uses this to scroll the feed back to the top so the user

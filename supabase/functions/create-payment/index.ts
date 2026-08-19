@@ -400,7 +400,8 @@ serve(async (req) => {
           const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
           paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
           if (paymentIntentId) {
-            await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
+            const { error: piCacheErr } = await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
+            if (piCacheErr) console.error(`[create-payment] PI cache write failed for job ${job.id} (release):`, piCacheErr.message);
           }
         }
         if (paymentIntentId) {
@@ -852,7 +853,8 @@ serve(async (req) => {
       if (!jobId) throw new Error("Missing jobId");
 
       // Verify admin
-      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      const { data: isAdmin, error: adminRoleErr } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (adminRoleErr) console.error("[create-payment] admin_release_dispute has_role check failed:", adminRoleErr.message);
       if (!isAdmin) throw new Error("Not authorized — admin only");
 
       const { data: job, error: jobError } = await supabaseAdmin
@@ -939,7 +941,8 @@ serve(async (req) => {
       const { jobId } = body;
       if (!jobId) throw new Error("Missing jobId");
 
-      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      const { data: isAdmin, error: adminRoleErr } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (adminRoleErr) console.error("[create-payment] admin_refund_dispute has_role check failed:", adminRoleErr.message);
       if (!isAdmin) throw new Error("Not authorized — admin only");
 
       const { data: job, error: jobError } = await supabaseAdmin
@@ -1119,7 +1122,8 @@ serve(async (req) => {
       const { jobId, reason, amountCents } = body;
       if (!jobId) throw new Error("Missing jobId");
 
-      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      const { data: isAdmin, error: adminRoleErr } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (adminRoleErr) console.error("[create-payment] admin_refund_general has_role check failed:", adminRoleErr.message);
       if (!isAdmin) throw new Error("Not authorized — admin only");
 
       const { data: job, error: jobError } = await supabaseAdmin

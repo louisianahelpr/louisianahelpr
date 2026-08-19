@@ -62,6 +62,15 @@
 	<string>Helpr needs camera access so you can take before and after job photos and upload verification documents.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Record voice notes to send in chat.</string>
+	<!-- REQUIRED for the chat composer's dictation button. iOS gates the Web
+	     Speech API behind this key separately from the microphone key above:
+	     without it the OS refuses speech recognition before it ever prompts,
+	     the WebView surfaces a bare `service-not-allowed`, and the mic button
+	     appears to do nothing at all. App Review also rejects a binary that
+	     uses speech recognition without it. Microphone permission alone is NOT
+	     enough — recording audio and transcribing it are two separate grants. -->
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Helpr transcribes your voice so you can dictate chat messages instead of typing.</string>
 <key>NSFaceIDUsageDescription</key>
 	<string>Helpr uses Face ID to confirm it's you before cashing out your earnings.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

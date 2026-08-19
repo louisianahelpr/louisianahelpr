@@ -81,7 +81,12 @@ export const RichMessageInput = ({
     notifyTyping();
     // setText / notifyTyping are stable in the callsites we care about.
   }, []);
-  const voice = useVoiceDictation({ onFinal: handleVoiceFinal });
+  const voice = useVoiceDictation({
+    onFinal: handleVoiceFinal,
+    // Say why. Without this the mic button just flickered off and dictation
+    // read as broken — which is exactly how it was reported.
+    onError: (message) => toast.error(message),
+  });
   const toggleVoice = () => {
     if (!voice.supported) {
       toast.error("Voice dictation isn't available on this device.");

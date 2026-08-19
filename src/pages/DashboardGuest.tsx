@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
+import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
@@ -202,10 +203,26 @@ const DashboardGuest = () => {
 
   // Bounce already-authenticated users straight to the real dashboard so
   // they never see the guest surface (would confuse anyone with a session).
+  //
+  // The redirect alone was NOT enough, and the comment above was describing an
+  // intent the code did not deliver: getSession() is async, so the guest
+  // surface rendered first and only bounced a beat later. A signed-in user
+  // watched the logged-out page — "browse as a guest", signup CTAs — flash up
+  // before being thrown to the dashboard. Reported as "once I log in it should
+  // never redirect me to the guest pages".
+  //
+  // So the render is now HELD until the session answer is in. Until then this
+  // shows the same skeleton the route already uses as its Suspense fallback,
+  // so a genuine guest sees no extra delay in kind — just the loading state
+  // they were going to see anyway — while a signed-in user never sees the
+  // guest surface at all.
+  const [sessionChecked, setSessionChecked] = useState(false);
   useEffect(() => {
     let cancelled = false;
     supabase.auth.getSession().then(({ data }) => {
-      if (!cancelled && data.session?.user) navigate("/dashboard", { replace: true });
+      if (cancelled) return;
+      if (data.session?.user) navigate("/dashboard", { replace: true });
+      else setSessionChecked(true);
     });
     return () => { cancelled = true; };
   }, [navigate]);
@@ -267,6 +284,9 @@ const DashboardGuest = () => {
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: async () => { await refetch(); },
   });
+
+  // Never paint the guest surface before we know whether there's a session.
+  if (!sessionChecked) return <GuestBrowseSkeleton />;
 
   return (
     <PageScaffold

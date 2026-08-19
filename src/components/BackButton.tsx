@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 interface BackButtonProps {
@@ -24,10 +24,29 @@ interface BackButtonProps {
  */
 const BackButton = ({ to, className, onClick }: BackButtonProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // REAL history wins over a hardcoded `to`.
+  //
+  // This used to read `else if (to) navigate(to)` FIRST, so any page passing
+  // to="/" sent you to the marketing home no matter where you actually came
+  // from — tap into Membership from the dashboard, tap back, land on the
+  // public landing page. `to` is now what it should always have been: the
+  // fallback for when there is no in-app history to return to, i.e. someone
+  // deep-linked or opened the route cold.
+  //
+  // The test is location.key, not window.history.length. history.length counts
+  // the whole TAB — pages visited before the app was ever opened — so it is
+  // true even on a cold deep-link, where navigate(-1) walks the user out of
+  // the app entirely. react-router stamps key "default" only on the first
+  // entry of its own history, which is exactly "there is nowhere in-app to go
+  // back to".
+  const hasInAppHistory = location.key !== "default";
+
   const handleClick = () => {
     if (onClick) onClick();
+    else if (hasInAppHistory) navigate(-1);
     else if (to) navigate(to);
-    else if (window.history.length > 1) navigate(-1);
     else navigate("/");
   };
 

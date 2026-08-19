@@ -417,6 +417,8 @@ const Dashboard = () => {
                         onJobAction={handleApplyRequest}
                         ctaLabel="Apply"
                         currentUserId={user?.id}
+                        filters={filters.mapFilter}
+                        onClearFilters={filters.clearFilters}
                       />
                     </Suspense>
                   </div>

@@ -252,6 +252,8 @@ export function BrowseTasksFeed({
               onJobAction={handleApplyRequest}
               ctaLabel="Apply"
               currentUserId={user?.id}
+              filters={filters.mapFilter}
+              onClearFilters={filters.clearFilters}
             />
           </Suspense>
         </div>

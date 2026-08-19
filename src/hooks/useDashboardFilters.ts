@@ -5,6 +5,7 @@ import { haversineMiles, parseNearbyFilter } from "@/lib/geo";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { sortJobsSmart } from "@/lib/smartSort";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
+import type { MapJobFilterInput } from "@/components/browseMap/mapFilter";
 
 // Persisted browse-feed sort key. Stored in localStorage so a helper's
 // pick survives reloads; defaults to "smart" the very first time the
@@ -229,6 +230,34 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       }
     }), [allJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, earlyAccessExempt, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
 
+  // The same filter state, shaped for the Browse map. The map runs its own
+  // (unpaginated) fetch against a narrow PII-safe row, so it can't reuse
+  // `filteredJobs` — it re-applies the predicate to its own rows. Built here
+  // so there is exactly ONE place the filter state is defined; before this
+  // the map ignored filters entirely and a tapped category chip changed the
+  // list while the pins stayed put.
+  const mapFilter = useMemo<MapJobFilterInput>(
+    () => ({
+      selectedCategory,
+      searchQuery,
+      minBudget,
+      maxBudget,
+      urgentOnly,
+      boostedOnly,
+      expiresWithin,
+      matchAvailability,
+      nearbyMiles,
+      userLoc: userLoc.status === "ready" ? { lat: userLoc.lat, lng: userLoc.lng } : null,
+      // Mirrors the list's early-access gate. Without it the map leaked
+      // exactly the brand-new jobs the subscription perk exists to hold back.
+      earlyAccessDelayMs: earlyAccessExempt ? 0 : earlyAccessDelayMs(helprTier),
+    }),
+    [
+      selectedCategory, searchQuery, minBudget, maxBudget, urgentOnly, boostedOnly,
+      expiresWithin, matchAvailability, nearbyMiles, userLoc, earlyAccessExempt, helprTier,
+    ],
+  );
+
   const nearbyJobs = useMemo(() => {
     const userLocation = profile?.location?.toLowerCase() || "";
     return userLocation
@@ -250,7 +279,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     boostedOnly, setBoostedOnly,
     urgentOnly, setUrgentOnly,
     activeFilterCount, hasFilters, clearFilters,
-    filteredJobs, nearbyJobs,
+    filteredJobs, nearbyJobs, mapFilter,
     userLoc, nearbyMiles,
   };
 }

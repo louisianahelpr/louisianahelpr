@@ -5,6 +5,7 @@
 // in the get_open_jobs_for_map RPC). Untouched here regardless.
 
 import { divIcon, point as leafletPoint } from "leaflet";
+import { categoryHue, categoryHues } from "@/lib/categoryHues";
 import type { MapJob } from "./config";
 
 function resolveToken(varName: string, fallback: string): string {
@@ -16,22 +17,19 @@ function resolveToken(varName: string, fallback: string): string {
 // Fix Leaflet's default-icon-not-found problem when bundlers can't
 // resolve the asset paths. We use a small inline div-icon instead so
 // pins render reliably across web + Capacitor iOS.
-// Muted, earthy per-category pin colors. Every tone is desaturated to sit
-// calmly on the warm parchment map (no loud saturated pins), yet each
-// category gets its OWN hue so they stay distinguishable — the old map
-// reused 4 colors across 10 categories, so half of them looked identical.
-export const categoryColors: Record<string, string> = {
-  cleaning: "#6F8A78", // sage green
-  yard_work: "#7E8A4E", // moss / olive
-  moving: "#B27A48", // clay / terracotta
-  errands: "#C7A75E", // warm gold
-  handyman: "#8C6A52", // taupe brown
-  painting: "#A86E6A", // dusty rose-clay
-  delivery: "#6E8597", // muted slate blue
-  pet_care: "#C99E78", // soft camel
-  assembly: "#8A7B57", // khaki
-  other: "#8A8576", // warm gray
-};
+// Per-category pin colour. Reads the ONE canonical palette
+// (`categoryHues`) that the feed cards, category chips and detail dialog
+// also paint from, so a pin and its job card are the same colour.
+//
+// This used to be a second, independent hex palette that had drifted from
+// the card palette on every single category (errands was gold here and
+// olive-lime there) and was missing `storm_prep` and `events` outright, so
+// both painted neutral grey. Re-exported under the old name so existing
+// importers keep working; `categoryHue()` handles the unknown-category
+// fallback.
+export const categoryColors: Record<string, string> = Object.fromEntries(
+  Object.keys(categoryHues).map((k) => [k, categoryHue(k)]),
+);
 
 // Branded cluster bubble. react-leaflet-cluster's built-in cluster styling
 // relies on the leaflet.markercluster default CSS (not imported here, to
@@ -64,7 +62,7 @@ export function clusterIcon(cluster: { getChildCount: () => number }) {
 }
 
 export function pinIcon(category: string, isUrgent: boolean) {
-  const color = categoryColors[category] ?? "#7A7E68";
+  const color = categoryHue(category);
   const ring = isUrgent ? "stroke=\"#A0613B\" stroke-width=\"2.5\"" : "";
   const html = `
     <svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">

@@ -348,6 +348,8 @@ const DashboardGuest = () => {
                   <BrowseMap
                     onJobAction={requireSignup}
                     ctaLabel="Sign up to apply"
+                    filters={filters.mapFilter}
+                    onClearFilters={filters.clearFilters}
                     emptyStateCta={{
                       label: "Get pinged when a job lands",
                       onClick: () => navigate("/signup"),

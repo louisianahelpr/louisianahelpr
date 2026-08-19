@@ -85,18 +85,24 @@ function formatPaidTierPrices(tierId: "basic" | "pro" | "elite") {
 // itself, its perks, and its parity tests all remain intact meanwhile).
 const CONSUMER_TIERS: SubscriptionTier[] = ["free", "pro", "elite"];
 
-// The three benefits shown in the "Why upgrade" section. Kept short —
-// they're anchored by giant Bodoni numerals, not by prose.
+// The benefits shown in the "Why upgrade" section.
+//
+// This was THREE cards, and the first two were the same card: "Keep more of
+// every job" restated the "10% platform fee — save 2%" line printed on every
+// tier above, and "Get seen first" restated the Priority Placement / early
+// access / badge bullets printed directly beneath it. Reading the section
+// straight after the plans meant reading the plans twice (owner: "merge
+// together, it's just repetitive"). They are one claim — what a paid tier buys
+// you — so they are one card.
+//
+// "Cancel anytime" stays separate because it answers a different question. It
+// is the only thing here that is NOT on a plan card: what happens if you want
+// out.
 const BENEFITS: Array<{ title: string; desc: string }> = [
   {
-    title: "Keep more of every job.",
+    title: "Keep more, and get seen first.",
     desc:
-      "Membership lowers the marketplace commission on both sides — the fee taken from a Helpr's payout and the service fee added to the hiring side's total.",
-  },
-  {
-    title: "Get seen first.",
-    desc:
-      "Paid tiers unlock early access to new jobs, priority placement when neighbors are searching for help, and profile badges that read as trusted.",
+      "Membership lowers the marketplace commission on both sides, and unlocks early access to new jobs, priority placement when neighbors are searching, and a profile badge that reads as trusted.",
   },
   {
     title: "Cancel anytime.",
@@ -173,17 +179,6 @@ export default function SubscriptionPage() {
   // it inline would push the primary conversion below the fold). Toggling
   // slides it in below the "Compare all features" button.
   const [showCompare, setShowCompare] = useState(false);
-  // PHONE ONLY: which tier's feature list is expanded. Below `sm` each plan
-  // renders as a compact strip and its bullets live behind a per-card
-  // disclosure — see the layout note on the tier grid below. Single-open
-  // (a tier id, not a set) on purpose: two open lists put the recommended
-  // plan back under the fold, which is the bug this layout exists to fix.
-  // At `sm` and up the wrapper is `sm:flex` regardless, so this state has no
-  // effect on tablet/desktop and every bullet is always visible there.
-  const [openPlanDetails, setOpenPlanDetails] = useState<SubscriptionTier | null>(
-    null,
-  );
-
   // Sequential fade-in for the tier grid — mirrors HowItWorksSection.
   const tiersRef = useRef<HTMLDivElement>(null);
   const [tiersInView, setTiersInView] = useState(false);
@@ -464,7 +459,6 @@ export default function SubscriptionPage() {
               const perks = TIER_PERKS[tier];
               const isActive = tier === currentTier;
               const isFree = tier === "free";
-              const detailsOpen = openPlanDetails === tier;
               // Pro is the recommended middle tier — carries a subtle warm halo
               // behind the card (matching the hero halo) and reads as the
               // primary conversion. Mirrors the in-app SubscriptionTab.
@@ -747,19 +741,23 @@ export default function SubscriptionPage() {
                           : ""}
                     </p>
 
-                    {/* Everything from here to the CTA is the card's DETAIL —
-                        the badge preview and the feature bullets. On the phone
-                        it collapses behind the disclosure below (`hidden`
-                        unless this tier is the open one); at sm+ the wrapper is
-                        always `flex` and `order-none`, so the card is byte-for-
-                        byte the layout it was. `sm:flex-1` keeps the job the
-                        `flex-1` on the <ul> used to do on its own — pushing the
-                        CTAs of all three cards onto one line. */}
+                    {/* The badge preview and the feature bullets, ABOVE the
+                        CTA at every width (owner: "what's included should
+                        already be listed above the upgrade button").
+
+                        On the phone these used to be collapsed behind a
+                        "What's included" disclosure rendered BELOW the button,
+                        on the reasoning that a list nobody asked for shouldn't
+                        push the converting tap target off screen. That
+                        tradeoff is knowingly reversed: a plan card that hides
+                        what the plan actually gives you is asking for a
+                        purchase decision with the evidence folded away, and
+                        the reader has to tap twice — once to find out, once to
+                        buy. `flex-1` (not just `sm:flex-1`) still pushes every
+                        card's CTA onto a common line. */}
                     <div
                       id={`plan-details-${tier}`}
-                      className={`${
-                        detailsOpen ? "flex flex-col order-3" : "hidden"
-                      } sm:flex sm:flex-col sm:flex-1 sm:order-none`}
+                      className="flex flex-col flex-1"
                     >
                       {/* What the badge looks like once you're on the plan,
                           rendered with the real in-app treatment rather than
@@ -825,34 +823,8 @@ export default function SubscriptionPage() {
                       </ul>
                     </div>
 
-                    {/* Phone-only disclosure for the block above. `sm:hidden`
-                        + `order-2` puts it under the CTA, so the tap target
-                        that converts is never the one pushed off screen by a
-                        list the reader has not asked for yet. Tablet and up
-                        never renders it — the bullets are always visible
-                        there, so there is nothing to disclose. */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setOpenPlanDetails((open) => (open === tier ? null : tier))
-                      }
-                      aria-expanded={detailsOpen}
-                      aria-controls={`plan-details-${tier}`}
-                      className="sm:hidden order-2 mt-2.5 self-start inline-flex items-center gap-1 font-sans font-semibold text-ds-12"
-                      style={{ color: "hsl(var(--bark))" }}
-                    >
-                      {detailsOpen ? "Hide details" : "What's included"}
-                      <ChevronDown
-                        className="w-3.5 h-3.5 transition-transform duration-200"
-                        strokeWidth={2}
-                        style={{
-                          transform: detailsOpen ? "rotate(180deg)" : "rotate(0deg)",
-                        }}
-                      />
-                    </button>
-
                     {/* CTA */}
-                    <div className="mt-4 sm:mt-6 order-1 sm:order-none">
+                    <div className="mt-4 sm:mt-6">
                       {/* `&& user`: "Current plan" only makes sense for someone
                           who HAS one. This is a public page, and `currentTier`
                           defaults to "free", so a signed-out visitor saw the
@@ -1159,16 +1131,14 @@ export default function SubscriptionPage() {
             </h2>
           </div>
 
-          {/* Right — 3 benefits, sequential fade-in */}
-          {/* Same shape as HowItWorksSection's 01/02/03 boxes, and the same
-              reason: from md up this column is 8/12, so three cards side by
-              side were ~150px each — "Keep more of every job." broke across
-              four lines and the body copy set two or three words to a line.
-              One per row at md gives each the full width; lg goes back to
-              three across. `items-stretch` + `h-full` + a per-breakpoint
-              `min-h` keep the three the same height as each other, since at md
-              each is its own row and stretch alone can't equalise them. */}
-          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3 items-stretch gap-10 sm:gap-8 lg:gap-10">
+          {/* Right — the benefits, sequential fade-in.
+              Two across from `sm`, one per row at `md` where this column is
+              only 8/12 and a side-by-side card would be ~150px wide (which
+              broke a title across four lines and set the body two words to a
+              line). `items-stretch` + `h-full` + a per-breakpoint `min-h` keep
+              them equal height, since at md each is its own row and stretch
+              alone can't equalise them. */}
+          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 items-stretch gap-10 sm:gap-8 lg:gap-10">
             {BENEFITS.map((b, i) => (
               <div
                 key={b.title}
@@ -1185,13 +1155,13 @@ export default function SubscriptionPage() {
                   boxShadow: "var(--elev-inset-hairline)",
                 }}
               >
-                {/* No 01/02/03 numeral. These three are parallel BENEFITS of
-                    membership — keep more, get seen, cancel anytime — not
-                    sequential steps, so numbering implied an order that doesn't
-                    exist (the same reason it was dropped from the business
-                    industry cards). It also consumed up to 6rem of each card's
-                    height for decoration. Numbering stays on the landing
-                    "Three steps." section, where the sequence is real. */}
+                {/* No 01/02/03 numeral. These are parallel BENEFITS of
+                    membership, not sequential steps, so numbering implied an
+                    order that doesn't exist (the same reason it was dropped
+                    from the business industry cards). It also consumed up to
+                    6rem of each card's height for decoration. Numbering stays
+                    on the landing "Three steps." section, where the sequence
+                    is real. */}
                 <h3
                   className="font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
                   style={{ color: "hsl(var(--ink-deep))" }}

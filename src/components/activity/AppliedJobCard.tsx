@@ -149,8 +149,15 @@ function AppliedJobCardInner({
             </div>
           )}
 
-          {/* Summary info line */}
+          {/* Summary info line. The expand control rides the END of this row
+              as a bare chevron — owner: "move the details arrow up and remove
+              the words details". It used to be a labelled "View details ⌄"
+              button on its own row below, which spent a full 44px band and two
+              words saying what a chevron says on its own. The accessible name
+              stays on `aria-label`, because a bare glyph has none. */}
           <div className="px-4 py-3 space-y-2.5">
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
             <JobCardMetaRow
               dateNeeded={job.date_needed}
               startTime={job.start_time}
@@ -160,6 +167,19 @@ function AppliedJobCardInner({
               estimatedHours={job.estimated_hours}
               expiresAt={isPending && !job.helper_id ? job.expires_at : null}
             />
+              </div>
+              {!isMinimalCard && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
+                  aria-expanded={isExpanded}
+                  aria-label={isExpanded ? "Hide job details" : "Show job details"}
+                  className="shrink-0 -mr-1 -mt-2 inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-primary active:opacity-70"
+                >
+                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+              )}
+            </div>
 
             {/* Description behind a tap — expands IN PLACE on this card (it IS
                 the detail surface for an applied job; there is no separate
@@ -172,42 +192,21 @@ function AppliedJobCardInner({
                 `expandedJobId` toggle, unchanged in wording and position — it
                 simply now gates the description too, which is what makes it
                 coherent. Nothing was bolted on beside it. */}
+            {/* Who posted it lives INSIDE the details now (owner: "posted by
+                can be moved to details here"). On a collapsed card it was a
+                permanent line for something the helper only needs when they
+                are actually weighing the job — and it was the reason the row
+                below existed at all. */}
+            {!isMinimalCard && isExpanded && app.posterName && (
+              <p className="text-ds-11 text-muted-foreground truncate">
+                Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
+              </p>
+            )}
             {!isMinimalCard && isExpanded && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
               <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
             )}
 
-            {/* "Posted by" and the details toggle share ONE row.
-                They used to be two stacked bands — a 44px toggle row, then a
-                separate 17px "Posted by" line — which, with the status stripe,
-                the meta row and the action row, made five stacked bands for one
-                applied job and stopped two cards fitting on a 375 screen
-                together. They are both single-line, both secondary, and one is
-                naturally left-aligned and the other right: one row, ~44px total
-                instead of ~71px, with no information removed.
 
-                The toggle keeps its ≥44px target (it sets the row's height),
-                and it keeps `aria-expanded` + an explicit accessible name — the
-                visible words alone ("View details") do not say WHAT expands. */}
-            {!isMinimalCard && (
-              <div className="flex items-center gap-2 min-w-0">
-                {app.posterName && (
-                  <p className="text-ds-11 text-muted-foreground truncate min-w-0">
-                    Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
-                  </p>
-                )}
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
-                  aria-expanded={isExpanded}
-                  aria-label={isExpanded ? "Hide job description" : "Show job description"}
-                  className="ml-auto shrink-0 inline-flex items-center gap-0.5 min-h-[44px] px-1 -mr-1 text-ds-11 font-medium text-primary hover:underline active:opacity-70"
-                >
-                  {isExpanded
-                    ? <>Hide details <ChevronUp className="w-3 h-3" /></>
-                    : <>View details <ChevronDown className="w-3 h-3" /></>}
-                </button>
-              </div>
-            )}
             {isMinimalCard && (
               <div className="space-y-2">
                 <p className="text-ds-11 text-muted-foreground italic">{isCancelled ? "Job was cancelled" : "Not selected"}</p>

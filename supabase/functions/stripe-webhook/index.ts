@@ -16,6 +16,7 @@ import { handlePaymentIntentSucceeded } from "./handlers/paymentIntentSucceeded.
 import { handleTransferCreated } from "./handlers/transferCreated.ts";
 import { handleTransferFailed } from "./handlers/transferFailed.ts";
 import { handleTransferReversed } from "./handlers/transferReversed.ts";
+import { handleTransferCanceled } from "./handlers/transferCanceled.ts";
 import { handleTaxSettingsUpdated } from "./handlers/taxSettingsUpdated.ts";
 
 // Dispatch map: one handler per Stripe event type. Adding support for a new
@@ -38,6 +39,7 @@ const EVENT_HANDLERS: Record<
   "transfer.created": handleTransferCreated,
   "transfer.failed": handleTransferFailed,
   "transfer.reversed": handleTransferReversed,
+  "transfer.canceled": handleTransferCanceled,
   "tax.settings.updated": handleTaxSettingsUpdated,
 };
 

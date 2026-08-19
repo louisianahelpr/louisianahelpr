@@ -9,6 +9,7 @@ import {
   selectNewMilestones,
   type HelperMilestoneId,
   type MilestoneStorage,
+  MILESTONE_FRESHNESS_MS,
 } from "./helperMilestones";
 
 /** In-memory storage gate for tests — same shape as safeStorage. */
@@ -196,51 +197,61 @@ describe("selectNewMilestones", () => {
     storage = makeStorage();
   });
 
+  // A completion "just now" — the only case that should produce a toast.
+  const JUST_NOW = new Date().toISOString();
+  // Comfortably outside MILESTONE_FRESHNESS_MS.
+  const LAST_MONTH = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
   it("returns nothing when helperId is empty (avoids cross-account leakage)", () => {
     expect(
-      selectNewMilestones(storage, "", {
-        completedJobCount: 100,
-        totalEarningsDollars: 5000,
-        fiveStarStreak: 10,
-      }),
-    ).toEqual([]);
+      selectNewMilestones(
+        storage,
+        "",
+        { completedJobCount: 100, totalEarningsDollars: 5000, fiveStarStreak: 10 },
+        JUST_NOW,
+      ),
+    ).toEqual({ fresh: [], stale: [] });
   });
 
   it("returns nothing for a brand-new helper at 0 stats", () => {
     expect(
-      selectNewMilestones(storage, "helper-1", {
-        completedJobCount: 0,
-        totalEarningsDollars: 0,
-        fiveStarStreak: 0,
-      }),
-    ).toEqual([]);
+      selectNewMilestones(
+        storage,
+        "helper-1",
+        { completedJobCount: 0, totalEarningsDollars: 0, fiveStarStreak: 0 },
+        null,
+      ),
+    ).toEqual({ fresh: [], stale: [] });
   });
 
   it("returns the first_job milestone on the very first completion", () => {
-    const fresh = selectNewMilestones(storage, "helper-1", {
-      completedJobCount: 1,
-      totalEarningsDollars: 50,
-      fiveStarStreak: 0,
-    });
+    const { fresh } = selectNewMilestones(
+      storage,
+      "helper-1",
+      { completedJobCount: 1, totalEarningsDollars: 50, fiveStarStreak: 0 },
+      JUST_NOW,
+    );
     expect(fresh.map((m) => m.id)).toEqual(["first_job"]);
   });
 
   it("skips milestones the helper has already celebrated", () => {
     markCelebrated(storage, "helper-1", "first_job");
-    const fresh = selectNewMilestones(storage, "helper-1", {
-      completedJobCount: 5,
-      totalEarningsDollars: 200,
-      fiveStarStreak: 0,
-    });
+    const { fresh } = selectNewMilestones(
+      storage,
+      "helper-1",
+      { completedJobCount: 5, totalEarningsDollars: 200, fiveStarStreak: 0 },
+      JUST_NOW,
+    );
     expect(fresh.map((m) => m.id)).toEqual(["five_jobs"]);
   });
 
   it("preserves the canonical milestone order (smallest first)", () => {
-    const fresh = selectNewMilestones(storage, "helper-1", {
-      completedJobCount: 25,
-      totalEarningsDollars: 2000,
-      fiveStarStreak: 8,
-    });
+    const { fresh } = selectNewMilestones(
+      storage,
+      "helper-1",
+      { completedJobCount: 25, totalEarningsDollars: 2000, fiveStarStreak: 8 },
+      JUST_NOW,
+    );
     expect(fresh.map((m) => m.id)).toEqual([
       "first_job",
       "five_jobs",
@@ -257,10 +268,70 @@ describe("selectNewMilestones", () => {
       totalEarningsDollars: 2000,
       fiveStarStreak: 8,
     };
-    const first = selectNewMilestones(storage, "helper-1", stats);
-    first.forEach((m) => markCelebrated(storage, "helper-1", m.id));
-    const second = selectNewMilestones(storage, "helper-1", stats);
-    expect(second).toEqual([]);
+    const first = selectNewMilestones(storage, "helper-1", stats, JUST_NOW);
+    first.fresh.forEach((m) => markCelebrated(storage, "helper-1", m.id));
+    const second = selectNewMilestones(storage, "helper-1", stats, JUST_NOW);
+    expect(second).toEqual({ fresh: [], stale: [] });
+  });
+
+  // The reported bug: opening the Earnings tab set off "🎉 Your first
+  // completed job" with confetti for a job finished long ago, because these
+  // toasts fire from that tab rather than at completion — and re-fired on any
+  // new device, since the celebrated-marker is device-local storage.
+  it("does NOT celebrate a milestone whose last completion is old — it back-fills it", () => {
+    const { fresh, stale } = selectNewMilestones(
+      storage,
+      "helper-1",
+      { completedJobCount: 12, totalEarningsDollars: 1500, fiveStarStreak: 0 },
+      LAST_MONTH,
+    );
+    expect(fresh).toEqual([]);
+    expect(stale.map((m) => m.id)).toEqual([
+      "first_job",
+      "five_jobs",
+      "ten_jobs",
+      "first_1k_earnings",
+    ]);
+  });
+
+  it("treats an unknown last-completion time as stale rather than guessing", () => {
+    const { fresh, stale } = selectNewMilestones(
+      storage,
+      "helper-1",
+      { completedJobCount: 3, totalEarningsDollars: 100, fiveStarStreak: 0 },
+      null,
+    );
+    expect(fresh).toEqual([]);
+    expect(stale.map((m) => m.id)).toEqual(["first_job"]);
+  });
+
+  it("a back-filled milestone never fires later, even once a NEW job completes", () => {
+    const stats = { completedJobCount: 3, totalEarningsDollars: 100, fiveStarStreak: 0 };
+    // First visit: old completion, so first_job is recorded silently.
+    const backfill = selectNewMilestones(storage, "helper-1", stats, LAST_MONTH);
+    backfill.stale.forEach((m) => markCelebrated(storage, "helper-1", m.id));
+    // Later: a fresh completion. first_job must stay quiet; only a genuinely
+    // new threshold may celebrate.
+    const later = selectNewMilestones(
+      storage,
+      "helper-1",
+      { completedJobCount: 5, totalEarningsDollars: 200, fiveStarStreak: 0 },
+      JUST_NOW,
+    );
+    expect(later.fresh.map((m) => m.id)).toEqual(["five_jobs"]);
+  });
+
+  it("celebrates a completion right at the edge of the freshness window", () => {
+    const now = Date.now();
+    const justInside = new Date(now - MILESTONE_FRESHNESS_MS + 1000).toISOString();
+    const justOutside = new Date(now - MILESTONE_FRESHNESS_MS - 1000).toISOString();
+    const stats = { completedJobCount: 1, totalEarningsDollars: 50, fiveStarStreak: 0 };
+    expect(
+      selectNewMilestones(storage, "helper-1", stats, justInside, now).fresh.map((m) => m.id),
+    ).toEqual(["first_job"]);
+    expect(
+      selectNewMilestones(makeStorage(), "helper-1", stats, justOutside, now).fresh,
+    ).toEqual([]);
   });
 });
 

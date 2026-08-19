@@ -120,6 +120,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     helperId,
     completedJobCount: completedJobs.length,
     totalEarningsDollars: totalEarnings,
+    // Gates whether a milestone is still worth celebrating. `earningsJobs`
+    // arrives newest-first, so the first completed row is the latest
+    // completion. `poster_completed_at` is the moment the job actually became
+    // completed (the poster's approval is the terminal step); `updated_at` is
+    // the fallback for older rows written before that column existed.
+    lastCompletedAt:
+      completedJobs[0]?.poster_completed_at ?? completedJobs[0]?.updated_at ?? null,
   });
 
   const [exportDialogOpen, setExportDialogOpen] = useState(false);

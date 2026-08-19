@@ -148,18 +148,64 @@ export function markCelebrated(
 }
 
 /**
- * Diff helper: from the reached set, return only the milestones that
- * have NOT yet been celebrated for this helper. Preserves the order
- * defined in `HELPER_MILESTONES` so the toast cascade is stable.
+ * How recently the qualifying event must have happened for a milestone to
+ * still be worth celebrating.
+ *
+ * These toasts fire from the Earnings tab, which is the only screen that has
+ * the stats — NOT from the moment a job completes. Without a freshness gate
+ * that means the celebration goes off whenever the helper next happens to open
+ * Earnings, which could be weeks after the fact: "🎉 Your first completed job"
+ * with confetti, for a job finished last month, triggered by tapping a tab.
+ * That is exactly how it was reported ("why did that just go off, that's
+ * wrong — first completed job??").
+ *
+ * It also fires per DEVICE, because the celebrated-marker lives in
+ * `safeStorage`. A new phone, a reinstall, or cleared storage replays every
+ * milestone the helper ever crossed. The freshness gate fixes that case too:
+ * on a fresh device, an old milestone is back-filled silently instead of
+ * re-celebrated.
+ *
+ * 24 hours: long enough that a helper who finishes a job in the evening and
+ * opens the app the next morning still gets their moment, short enough that
+ * nothing historical ever fires.
+ */
+export const MILESTONE_FRESHNESS_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Diff helper: from the reached set, return the milestones that have NOT yet
+ * been celebrated for this helper, split by whether they are still worth
+ * celebrating. Preserves the order defined in `HELPER_MILESTONES` so the toast
+ * cascade is stable.
+ *
+ * - `fresh`   → toast + confetti these.
+ * - `stale`   → mark celebrated WITHOUT any UI. They are real milestones the
+ *               helper crossed, just not now; recording them stops the
+ *               celebration ambushing them on some later, unrelated visit.
+ *
+ * @param lastQualifyingEventAt when the most recent completed job finished
+ *        (ISO string). Every milestone here advances on job completion —
+ *        counts obviously, and earnings and the five-star streak both move
+ *        only when a job completes — so one timestamp gates all of them.
+ *        `null` (unknown / no completions) is treated as stale: back-fill
+ *        silently rather than guess.
  */
 export function selectNewMilestones(
   storage: MilestoneStorage,
   helperId: string,
   stats: HelperMilestoneStats,
-): HelperMilestoneDef[] {
-  if (!helperId) return [];
+  lastQualifyingEventAt: string | null,
+  now: number = Date.now(),
+): { fresh: HelperMilestoneDef[]; stale: HelperMilestoneDef[] } {
+  if (!helperId) return { fresh: [], stale: [] };
   const reached = new Set(detectReachedMilestones(stats));
-  return HELPER_MILESTONES.filter(
+  const uncelebrated = HELPER_MILESTONES.filter(
     (m) => reached.has(m.id) && !hasCelebrated(storage, helperId, m.id),
   );
+
+  const ts = lastQualifyingEventAt ? Date.parse(lastQualifyingEventAt) : NaN;
+  const isFresh = Number.isFinite(ts) && now - ts <= MILESTONE_FRESHNESS_MS;
+
+  return isFresh
+    ? { fresh: uncelebrated, stale: [] }
+    : { fresh: [], stale: uncelebrated };
 }

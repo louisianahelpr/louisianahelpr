@@ -62,16 +62,6 @@ export function FormStep({ form }: FormStepProps) {
 
       {atOpenJobLimit && <OpenJobLimitNotice />}
 
-      {/* "Draft saved Xs ago" reassurance — appears once the autosave
-          has actually fired. Sits next to the back arrow visually
-          (below the page header, above the tabs) so it answers the
-          poster's silent "did my input save?" question before they
-          consider navigating away. */}
-      {form.draftSavedAt > 0 && (
-        <div className="flex justify-start">
-        </div>
-      )}
-
       {/* Draft tab, template picker, and AI builder all live on the entry
           step (EntryChoice) now — the form is for filling in details, not
           for re-offering ways to start one. Keeping them here duplicated the

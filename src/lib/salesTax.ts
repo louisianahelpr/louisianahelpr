@@ -3,10 +3,11 @@
 //
 // The authority is the Deno edge module `supabase/functions/_shared/salesTax.ts`
 // (imported by create-payment, which sets the per-line Stripe `tax_code`). This
-// is a deliberate duplicate rather than an import: `tsconfig.app.json` doesn't
-// include `supabase/`, so app source can't reach the edge tree — only the test
-// can. `salesTax.parity.test.ts` imports BOTH and fails the build if they ever
-// diverge, exactly as posterFees/helperFees/stripeFees already do.
+// is a deliberate duplicate rather than an import, for the same reason
+// posterFees/helperFees/stripeFees are: the edge module is Deno source with
+// `.ts` import specifiers and Deno-only globals, so pulling it into the Vite
+// bundle is not a matter of a tsconfig path. `salesTax.parity.test.ts` imports
+// BOTH and fails the build if they ever diverge.
 //
 // WHAT WAS WRONG BEFORE: the checkout screen showed a flat "State & parish
 // sales tax — about 9-11%" applied to the WHOLE charge, and an "Estimated

@@ -173,10 +173,25 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         void rpcData; // UUID returned but not currently used.
         // Patch attachment_urls onto the new row if needed (RPC doesn't handle attachments).
         if (attachmentUrls.length > 0) {
-          await supabase.from("applications")
+          // Both the error AND the row count matter here, and neither was
+          // being read. `.update().eq(...)` with no `.select()` resolves
+          // `{data: null, error: null}` whether it matched one row or none, so
+          // an RLS-blocked or mis-targeted patch was indistinguishable from
+          // success — the helper's application landed with their files
+          // silently dropped and the success toast fired anyway.
+          //
+          // This does NOT throw: the application itself already landed via the
+          // RPC, and throwing here would roll the UI back to "apply failed"
+          // over a row that exists. Warn instead, so the helper knows to
+          // re-attach from Activity rather than assuming the files went.
+          const { data: patched, error: attachErr } = await supabase.from("applications")
             .update({ attachment_urls: attachmentUrls })
             .eq("job_id", jobId)
-            .eq("helper_id", helperId);
+            .eq("helper_id", helperId)
+            .select("id");
+          if (attachErr || !patched || patched.length === 0) {
+            toast.warning("Your application was sent, but the attachments didn't save — add them from Activity.");
+          }
         }
       }
       // Insert succeeded — bump the rate-limit counter. Best-effort: a

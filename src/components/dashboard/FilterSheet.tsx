@@ -144,14 +144,6 @@ interface JobFilterSectionsArgs {
   matchAvailability?: boolean;
   setMatchAvailability?: (v: boolean) => void;
   hasAvailability?: boolean;
-  /**
-   * Surface-specific "Pricing" controls (open-to-bids vs set-budget). Only the
-   * signed-out /jobs board has this concept, and it passes the chips in rather
-   * than appending its own section afterwards — appended sections always land
-   * dead last, which put Pricing below Sort/Boosted even though it belongs
-   * beside Budget. Omitted → the section isn't rendered at all.
-   */
-  pricingContent?: ReactNode;
   /** Hide the "Only my hours" availability row (guests have no schedule). */
   showAvailability?: boolean;
   /**
@@ -297,7 +289,6 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     boostedOnly, setBoostedOnly,
     urgentOnly, setUrgentOnly,
     userLocStatus, userLocMessage,
-    pricingContent,
     showAvailability = true,
     showNearby = true,
   } = args;
@@ -319,10 +310,6 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
       ),
     },
   ];
-
-  if (pricingContent) {
-    sections.push({ key: "pricing", title: "Pricing", content: pricingContent });
-  }
 
   if (showNearby && setLocationFilter) {
     sections.push({

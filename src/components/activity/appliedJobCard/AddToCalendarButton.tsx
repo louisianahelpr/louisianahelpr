@@ -30,9 +30,14 @@ export function AddToCalendarButton({ job }: { job: CalendarJobEvent }) {
     void hapticLight();
     setState("working");
     const result = await addJobToCalendar(job);
+    // The user dismissed the share sheet on purpose — no toast, no ✓.
+    if (result === "cancelled") {
+      setState("idle");
+      return;
+    }
     if (result === "failed") {
       setState("idle");
-      toast.error("Couldn't create the calendar file on this device.");
+      toast.error("This device can't hand the file to your calendar — the job details are on this card.");
       return;
     }
     setState("done");

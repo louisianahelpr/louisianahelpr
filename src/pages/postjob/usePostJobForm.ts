@@ -4,6 +4,7 @@ import { useDraftJob } from "@/hooks/useDraftJob";
 import { safeStorage } from "@/lib/safeStorage";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useParishTaxRate } from "@/hooks/useParishTaxRate";
 import { getSmartPrice } from "@/lib/pricingGuide";
 import type { Step } from "./postJobFormTypes";
 import { useJobMediaUpload } from "./useJobMediaUpload";
@@ -120,7 +121,16 @@ export function usePostJobForm() {
   // flip to unpaid once the profile row confirms it's owed.
   const [onboardingFeeCents, setOnboardingFeeCents] = useState(200);
   const [onboardingFeePaid, setOnboardingFeePaid] = useState(true);
-  const salesTaxRate = 10;
+  // Sales tax quoted AND persisted from the poster's parish, never a
+  // constant. This was `const salesTaxRate = 10` — a flat, invented 10% that
+  // buildJobInsertPayload multiplied by the budget and wrote to
+  // jobs.sales_tax_rate / jobs.sales_tax_amount on EVERY job. Stripe charges
+  // sales tax only on the assembly labor line (see lib/salesTax.ts), so on
+  // every other category the DB carried ~10% of the budget in tax that was
+  // never collected — and the admin revenue rollups sum that column.
+  // `null` (parish not resolved yet) means 0, not a guess.
+  const { totalRatePercent: parishTaxRate } = useParishTaxRate(parish);
+  const salesTaxRate = parishTaxRate ?? 0;
 
   // True once the user has restored the saved draft via loadDraft. The inline
   // "Pick up draft" pill hides after this so an accidental re-tap can't replace
@@ -409,9 +419,6 @@ export function usePostJobForm() {
     hasDraft,
     draftConsumed,
     loadDraft,
-    /** Most recent autosave timestamp (epoch ms). 0 when no autosave has
-        landed yet — `DraftSavedIndicator` hides itself in that case. */
-    draftSavedAt: draft.savedAt,
     // entry landing
     startFresh,
     loadDraftAndContinue,

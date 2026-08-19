@@ -29,8 +29,17 @@ export async function handlePaymentIntentSucceeded(
   }
 
   if (taxJob) {
-    const taxAmountCents = (pi.amount_details as any)?.tax?.total_tax_amount ?? 0;
-    const confirmedTax = taxAmountCents > 0
+    // Take Stripe's number whenever Stripe HAS one — including a genuine $0.
+    // This was `taxAmountCents > 0 ? ... : existing`, which meant a real zero
+    // could never clear a wrong stored estimate: the row kept whatever was
+    // written at insert time forever. Most jobs are in exempt categories and
+    // Stripe collects exactly $0 on them, so that branch was the normal case,
+    // not the edge case. Fall back to the stored value ONLY when the field is
+    // absent (older PI shape / Stripe Tax not applied), which is genuinely
+    // "no information", not "zero".
+    const taxTotal = (pi.amount_details as any)?.tax?.total_tax_amount;
+    const taxAmountCents: number | null = typeof taxTotal === "number" ? taxTotal : null;
+    const confirmedTax = taxAmountCents !== null
       ? taxAmountCents / 100
       : (taxJob.sales_tax_amount || 0);
 
@@ -45,7 +54,7 @@ export async function handlePaymentIntentSucceeded(
       throw new Error(`Sales-tax write failed for job ${taxJob.id}: ${taxUpdateErr.message}`);
     }
 
-    logStep("Sales tax recorded on job", { jobId: taxJob.id, tax: confirmedTax, fromStripe: taxAmountCents > 0 });
+    logStep("Sales tax recorded on job", { jobId: taxJob.id, tax: confirmedTax, fromStripe: taxAmountCents !== null });
   } else {
     // No job found for this PI. Two possible causes:
     // 1. Race: this event fired before checkout.session.completed set

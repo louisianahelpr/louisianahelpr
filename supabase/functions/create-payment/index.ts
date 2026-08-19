@@ -11,6 +11,19 @@ import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
+/**
+ * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
+ * inherited from the Stripe account's default tax behavior.
+ *
+ * This matters twice. The Post-a-Task summary quotes budget + service fee and
+ * then "+ tax", so "inclusive" would charge the poster a total that doesn't
+ * match what they were shown. And escrow derives the helper's payout from the
+ * BUDGET line, so an inclusive labor line would quietly carve LA sales tax out
+ * of the helper's earnings on assembly jobs — the one category where tax is
+ * non-zero. Left unset, either outcome is one dashboard toggle away.
+ */
+const TAX_BEHAVIOR = "exclusive" as const;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -135,6 +148,7 @@ serve(async (req) => {
           line_items: [{
             price_data: {
               currency: "usd",
+              tax_behavior: TAX_BEHAVIOR,
               product_data: {
                 name: `Helpr Task: ${job.title}`,
                 description: "Remaining balance after applying your Pay It Forward gift. Funds release once both parties confirm completion.",
@@ -224,6 +238,7 @@ serve(async (req) => {
         {
           price_data: {
             currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
             product_data: {
               name: `Helpr Task: ${job.title}`,
               description: laborTaxable
@@ -247,6 +262,7 @@ serve(async (req) => {
         lineItems.push({
           price_data: {
             currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
             product_data: {
               name: "Service fee",
               description: `${customerFeePercent}% platform service fee`,
@@ -263,6 +279,7 @@ serve(async (req) => {
         lineItems.push({
           price_data: {
             currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
             product_data: {
               name: "Urgent tip",
               description: "Urgent tip — goes directly to the helpr",
@@ -280,6 +297,7 @@ serve(async (req) => {
         lineItems.push({
           price_data: {
             currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
             product_data: {
               name: "One-time account setup",
               description: "One-time identity verification & account setup fee. Charged once per account.",
@@ -625,6 +643,7 @@ serve(async (req) => {
         line_items: [{
           price_data: {
             currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
             product_data: { name: `Tip — ${job.title}`, description: "Thank you tip. The small card-processing fee is deducted so the platform never subsidizes it." },
             unit_amount: tipCents,
           },

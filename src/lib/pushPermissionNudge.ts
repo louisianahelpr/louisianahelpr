@@ -46,6 +46,11 @@ export const NUDGE_SUPPRESSION_MS = 14 * 24 * 60 * 60 * 1000;
  * don't suppress each other.
  */
 export type NudgeReason =
+  // Named "-bid" from when posters accepted bids; bidding is gone (see
+  // PRICING_MODE_REMOVED in BudgetSection) and the trigger is now the first
+  // APPLICATION. The key is deliberately NOT renamed — it namespaces a
+  // localStorage entry, so changing it would re-show the nudge to every poster
+  // who has already dismissed it. The user-facing copy below says "applies".
   | "customer-first-bid"
   | "helper-first-accept";
 
@@ -148,7 +153,7 @@ const COPY: Record<NudgeReason, { title: string; description: string }> = {
   "customer-first-bid": {
     title: "Turn on notifications?",
     description:
-      "We'll ping you the moment a Helpr bids or messages — no need to keep checking.",
+      "We'll ping you the moment a Helpr applies or messages — no need to keep checking.",
   },
   "helper-first-accept": {
     title: "Turn on notifications?",

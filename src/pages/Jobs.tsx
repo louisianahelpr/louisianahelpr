@@ -8,7 +8,6 @@ import {
   buildJobFilterSections,
   type FilterSheetSection,
 } from "@/components/dashboard/FilterSheet";
-import { chipStyles } from "@/components/dashboard/JobFilters";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -215,9 +214,6 @@ const Jobs = () => {
   //     saved location/parish for the authed string-match fallback. The chips
   //     could not filter anything.
   //   • Only my hours — reads the account's saved weekly availability rows.
-  // Pricing is guest-only framing the authed sheet doesn't carry, so it's
-  // handed to the builder as `pricingContent` — that slots it directly after
-  // Budget (the two are the same question) instead of stranding it last.
   const guestFilterSections = useMemo<FilterSheetSection[]>(() => buildJobFilterSections({
     selectedCategory, setSelectedCategory,
     sortBy, setSortBy,

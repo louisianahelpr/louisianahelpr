@@ -19,7 +19,17 @@ function toIcsDate(date: Date): string {
 }
 
 function escapeIcs(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  return s
+    .replace(/\\/g, "\\\\")
+    // CR (alone or as CRLF) FIRST. Properties are joined with "\r\n" below, so
+    // a bare \r inside a title/location/description that only escaped \n let a
+    // poster end the property and inject their own — a second VEVENT, a forged
+    // URL:, an ATTENDEE: — into a file the helper imports because it came from
+    // Helpr. Most parsers split on /\r\n|\r|\n/ regardless of RFC 5545.
+    .replace(/\r\n?/g, "\\n")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\n/g, "\\n");
 }
 
 export function buildIcsString(job: CalendarJobEvent): string {
@@ -63,7 +73,7 @@ export function buildIcsString(job: CalendarJobEvent): string {
 }
 
 /** What actually happened, so the caller can tell the user the truth. */
-export type CalendarExportResult = "shared" | "downloaded" | "failed";
+export type CalendarExportResult = "shared" | "downloaded" | "cancelled" | "failed";
 
 /**
  * Hand the job to the user's calendar.
@@ -100,11 +110,21 @@ export async function addJobToCalendar(job: CalendarJobEvent): Promise<CalendarE
       await nav.share({ files: [file], title: job.title });
       return "shared";
     }
-  } catch {
-    // A user who dismisses the share sheet lands here too. Fall through to the
-    // download rather than reporting a failure they caused on purpose — the
-    // worst case is an extra file in Downloads.
+  } catch (err) {
+    // A user who dismisses the share sheet lands here as AbortError. That is a
+    // deliberate cancel, not a failure — report it as its own outcome so the
+    // caller stays silent instead of accusing the device of breaking. Anything
+    // else falls through to the download attempt below.
+    if ((err as { name?: string })?.name === "AbortError") return "cancelled";
   }
+
+  // Reaching here means Web Share is unavailable or was refused. On iOS —
+  // Safari AND the Capacitor WKWebView — the anchor below runs without
+  // throwing and does NOTHING: `download` on a blob: URL is ignored. Reporting
+  // "downloaded" there is the same false success this function was written to
+  // eliminate, just moved one branch over. Say "failed" instead so the caller
+  // can tell the truth.
+  if (isDownloadUnsupported()) return "failed";
 
   try {
     const url = URL.createObjectURL(blob);
@@ -119,4 +139,23 @@ export async function addJobToCalendar(job: CalendarJobEvent): Promise<CalendarE
   } catch {
     return "failed";
   }
+}
+
+/**
+ * True where `<a download>` on a blob: URL is silently ignored — every iOS
+ * browser (all of them are WKWebView) and the Capacitor iOS shell.
+ *
+ * Feature-detected as far as it can be: `"download" in a` is TRUE on iOS
+ * Safari even though the attribute does nothing, so there is no honest probe
+ * and platform sniffing is the only option. iPadOS reports "MacIntel", hence
+ * the touch-point check.
+ */
+function isDownloadUnsupported(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const cap = (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor;
+  if (cap?.getPlatform?.() === "ios") return true;
+  const ua = navigator.userAgent || "";
+  if (/iPad|iPhone|iPod/.test(ua)) return true;
+  // iPadOS 13+ masquerades as desktop Safari; a "Mac" with a touchscreen is one.
+  return ua.includes("Macintosh") && (navigator.maxTouchPoints ?? 0) > 1;
 }

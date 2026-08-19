@@ -9,10 +9,15 @@
  * that test fails.
  */
 
-/** Minimum job budget a poster may set (whole dollars). */
+/** Minimum job budget a poster may set (whole dollars).
+ *  Mirrored server-side by the `jobs_budget_range` CHECK constraint
+ *  (migration 20260819235000) — the form is not the enforcement point, since
+ *  the jobs INSERT goes through PostgREST with the poster's own token. Change
+ *  both together. */
 export const MIN_JOB_BUDGET_DOLLARS = 10;
 
-/** Maximum job budget a poster may set (whole dollars). */
+/** Maximum job budget a poster may set (whole dollars).
+ *  Also mirrored by `jobs_budget_range` — see above. */
 export const MAX_JOB_BUDGET_DOLLARS = 5000;
 
 /** Minimum urgent bonus a poster may add on an urgent job (whole dollars). */

@@ -129,7 +129,7 @@ export function CheckoutStep({
   // Real parish rate from `parish_tax_rates` (seeded for all 64 parishes,
   // world-readable). null until the zip resolves a parish, or if the parish
   // has no row — callers must not invent a rate in that gap.
-  const { totalRatePercent: parishTaxRate } = useParishTaxRate(parish);
+  const { totalRatePercent: parishTaxRate, loading: parishRateLoading } = useParishTaxRate(parish);
   // Sales tax, resolved ONCE. Both the summary card at the top of the screen
   // and the payment breakdown at the bottom read this — the two used to be
   // computed independently (summary showed `totalCharge`, breakdown added an
@@ -425,7 +425,7 @@ export function CheckoutStep({
                   <div className="flex justify-between text-ds-13">
                     <span className="text-muted-foreground">State &amp; parish sales tax</span>
                     <span className="font-medium text-muted-foreground">
-                      set by your parish
+                      {parishRateLoading ? "checking…" : "set by your parish"}
                     </span>
                   </div>
                   <div className="h-px bg-border" />
@@ -436,31 +436,46 @@ export function CheckoutStep({
                     </span>
                   </div>
                   <p className="text-ds-11 text-muted-foreground leading-snug">
-                    Assembly is taxable in Louisiana. Add your ZIP and we'll show
-                    your parish's exact rate — tax applies to the ${formatPriceExact(budgetNum)} job
-                    budget only, never the fees.
+                    {/* `null` covers two different situations and they need
+                        different copy: the parish is still being looked up, or
+                        there is no parish to look up yet. Telling someone who
+                        already typed their ZIP to "add your ZIP" reads as a
+                        failure of their input. */}
+                    {parishRateLoading
+                      ? `Assembly is taxable in Louisiana — looking up ${parish}'s rate. Tax applies to the $${formatPriceExact(budgetNum)} job budget only, never the fees.`
+                      : `Assembly is taxable in Louisiana. Add your ZIP and we'll show your parish's exact rate — tax applies to the $${formatPriceExact(budgetNum)} job budget only, never the fees.`}
                   </p>
                 </>
               );
             }
+            // Taxable category with a known parish rate. This IS an estimate,
+            // and the word is load-bearing: we compute from the JOB's parish,
+            // but Stripe Tax computes from the billing address the poster
+            // enters at checkout (`customer_update: {address: "auto"}`). Those
+            // usually agree — you post a job where you live — but a poster
+            // billing from another parish gets a different rate, and calling
+            // this figure "Total" would be the same overclaim in miniature that
+            // the invented 9-11% range was. Only the assembly path can differ:
+            // the exempt branch above is an exact, address-independent $0.
             return (
               <>
                 <div className="flex justify-between text-ds-13">
                   <span className="text-muted-foreground">
-                    Sales tax{parish ? ` (${parish} Parish, ${parishTaxRate}%)` : ""}
+                    Est. sales tax{parish ? ` (${parish} Parish, ${parishTaxRate}%)` : ""}
                   </span>
                   <span className="font-medium text-foreground">${formatPriceExact(tax)}</span>
                 </div>
                 <div className="h-px bg-border" />
                 <div className="flex justify-between items-baseline">
-                  <span className="font-semibold text-foreground">Total</span>
+                  <span className="font-semibold text-foreground">Estimated total</span>
                   <span className="text-ds-20 font-bold text-foreground">
                     ${formatPriceExact(totalWithTax)}
                   </span>
                 </div>
                 <p className="text-ds-11 text-muted-foreground leading-snug">
                   Assembly is taxable labor in Louisiana, so tax applies to the
-                  ${formatPriceExact(budgetNum)} job budget — never to the fees.
+                  ${formatPriceExact(budgetNum)} job budget — never to the fees. The exact
+                  rate is set by the billing address you enter at checkout.
                 </p>
               </>
             );

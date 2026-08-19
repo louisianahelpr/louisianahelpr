@@ -58,7 +58,6 @@ export function bucketPostedJob(job: { status: string }): Bucket {
   }
 }
 
-/** Classify an applied application into Active / Completed / Cancelled. */
 /**
  * Is this card waiting on the helper right now?
  *

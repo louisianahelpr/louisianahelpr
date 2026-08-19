@@ -16,11 +16,6 @@ import { bucketAppliedApp } from "@/pages/activity/activityFilters";
 import type { TrackingData } from "@/components/JobTracking";
 import { logWithdrawReason, type WithdrawReason } from "@/lib/applicationWithdrawAnalytics";
 
-/** `proposed_price` / `poster_viewed_at` are negotiation columns that live
-    on the prod `applications` table but aren't in the generated Supabase
-    types yet. This narrow shape lets us build the bid-edit update + its
-    server-side "locked once viewed" guard without an `as any`. */
-
 interface AppliedJobsTabProps {
   apps: AppliedApp[];
   /** Application id from the ?highlight= deep-link. The matching card
@@ -89,9 +84,24 @@ export const AppliedJobsTab = ({
   // enforce_bid_price_lock trigger it doubled up on is now unreachable too.
   const handleSaveMessage = useCallback(async (appId: string) => {
     setSavingMessage(true);
-    const { error } = await supabase.from("applications").update({ message: editMessageText.trim() || null }).eq("id", appId);
-    if (error) { hapticError(); toast.error("Couldn't save your note — try again?"); }
-    else { hapticSuccess(); toast.success("Message updated"); onRefresh(); }
+    // `.select("id")` for the same reason as the attachment writes below: a
+    // bare `.update().eq(...)` resolves `{data: null, error: null}` whether it
+    // changed one row or NONE, so once the application leaves `status =
+    // 'pending'` (the RLS UPDATE predicate) this reported "Message updated"
+    // over a write that never landed.
+    const { data: saved, error } = await supabase
+      .from("applications")
+      .update({ message: editMessageText.trim() || null })
+      .eq("id", appId)
+      .select("id");
+    if (error || !saved || saved.length === 0) {
+      hapticError();
+      toast.error("Couldn't save your note — try again?");
+    } else {
+      hapticSuccess();
+      toast.success("Message updated");
+      onRefresh();
+    }
     setSavingMessage(false);
     setEditingMessageAppId(null);
   }, [editMessageText, onRefresh]);

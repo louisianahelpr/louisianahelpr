@@ -1,5 +1,7 @@
 import type { Database } from "@/integrations/supabase/types";
 
+import { isLaborTaxable, salesTaxCents } from "@/lib/salesTax";
+
 /**
  * Pure helpers for the Post-a-Task submit flow.
  *
@@ -126,8 +128,17 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
   // Lock platform fee and sales tax at creation time
   const lockedFeePercent = platformFee ?? 0;
   const lockedFeeAmount = parseFloat(budget) * (lockedFeePercent / 100);
-  const lockedSalesTaxRate = salesTaxRate;
-  const lockedSalesTaxAmount = parseFloat(budget) * (lockedSalesTaxRate / 100);
+  // Sales tax is locked the same way — but it applies ONLY to the labor line
+  // of a taxable category (assembly today; see lib/salesTax.ts, mirrored from
+  // the edge module create-payment actually charges from). This used to be a
+  // flat `budget * salesTaxRate/100` on every job, with salesTaxRate hardcoded
+  // to 10, so an exempt job persisted ~10% of its budget as tax that Stripe
+  // never collected and the admin revenue rollups then summed. Store the
+  // EFFECTIVE rate (0 when the category is exempt) so rate x budget always
+  // reconciles with the amount.
+  const lockedSalesTaxRate = isLaborTaxable(category) ? salesTaxRate : 0;
+  const lockedSalesTaxAmount =
+    salesTaxCents(Math.round(parseFloat(budget) * 100), category, salesTaxRate) / 100;
 
   return {
     customer_id: userId,

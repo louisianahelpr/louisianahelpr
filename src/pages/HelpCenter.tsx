@@ -36,8 +36,8 @@ import {
  *   1. Compact page header — canonical BackButton to the LEFT of a
  *      normal-size "Help Center" title (same row shape as /jobs), the
  *      one-line lede (md+ only), then the squircle search pill +
- *      popular-search chips. The search box, its chips, and the
- *      "Can't find it? Contact support" escape hatch are unchanged and stay
+ *      popular-search chips. The "Contact support" escape hatch closes the
+ *      page rather than preceding the search. The search box and its chips stay
  *      at the top on both surfaces — they are the real shortcuts.
  *   2. Browse by topic — see the breakpoint split above.
  *   3. Quick answers   — same split on the masthead; the accordion itself is
@@ -287,13 +287,11 @@ const HelpCenter = () => {
           {/* Squircle search pill — client-side filter drives the FAQ list
               below. Olivewood outline on parchment; no glass.
 
-              The "Can't find it? Contact support" line used to sit HERE,
-              between the lede and the search. Five blocks stacked before a
-              single answer (title, lede, support line, search, chip label +
-              chips) pushed the topics well below the fold. It is an escape
-              hatch for after the search fails, so it now sits under the search
-              instead of in front of it — still always visible, no longer
-              queue-jumping the thing people came to use. */}
+              The "Contact support" line used to sit HERE, between the lede
+              and the search, and then just below it. Both put a "this didn't
+              work" fallback in front of the thing it is a fallback for, and
+              added to the stack of blocks pushing the topics below the fold.
+              It closes the page now — see the bottom of this file. */}
           <div className="w-full max-w-2xl mt-4 md:mt-5">
             <div
               className="flex items-center gap-3 rounded-2xl px-5 py-4 sm:px-6 sm:py-5 transition-shadow focus-within:shadow-md"
@@ -314,7 +312,12 @@ const HelpCenter = () => {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search answers, guides, and topics..."
+                // Short on purpose: "Search answers, guides, and topics..." is
+                // ~34 characters, and at 375px — after the icon, the pill's
+                // 20px padding and the clear button's lane — the field has room
+                // for about 24. It rendered clipped mid-word ("...and to") on
+                // every phone.
+                placeholder="Search answers…"
                 aria-label="Search help articles"
                 className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ds-15 sm:text-ds-17 placeholder:text-[hsl(var(--olivewood)/0.8)]"
                 style={{
@@ -378,26 +381,6 @@ const HelpCenter = () => {
               </div>
             )}
 
-            {/* Escape hatch to a human. Deliberately AFTER the search: until
-                /support existed the only way out was a mailto buried in the
-                zero-results state, reachable only by failing a search, so it
-                was pulled up to always-visible. It still is — just no longer
-                ahead of the search box it's a fallback for. Works logged-out
-                and inside the native app. */}
-            <p
-              className="mt-4 font-sans text-ds-13 leading-relaxed"
-              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-            >
-              Can&apos;t find it?{" "}
-              <Link
-                to="/support"
-                className="font-semibold underline"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
-              >
-                Contact support
-              </Link>{" "}
-              — no account needed.
-            </p>
           </div>
         </div>
       </section>
@@ -697,9 +680,49 @@ const HelpCenter = () => {
         </div>
       </section>
 
-      {/* Closing "Still need help?" section removed — the FAQ +
-          Topics grid already carries the primary support paths;
-          this closing CTA was making the page too long. */}
+      {/* Escape hatch to a human — at the BOTTOM (owner: "contact support at
+          bottom"), which is where someone who has read the topics and the FAQ
+          and still has a question actually ends up.
+
+          It used to sit under the search box near the top. That put a "this
+          didn't work" fallback in front of the thing it is a fallback for, and
+          it was one of five blocks stacked above the topics.
+
+          Deliberately a single line, NOT the full-height "Still need help?"
+          hero this page used to close with. That section was removed for
+          making the page too long, and re-adding it would undo that; one line
+          is enough to be findable and costs nothing.
+
+          Links to /support, never a raw `mailto:` — a mailto needs a
+          configured mail client and does nothing at all inside the native app,
+          which is exactly how the old zero-results contact affordance managed
+          to be dead for a chunk of visitors. */}
+      <section className="px-5 sm:px-8 lg:px-12 pb-12 md:pb-16 lg:pb-24">
+        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+          <div
+            className="rounded-2xl px-5 py-4 sm:px-6 sm:py-5 text-center"
+            style={{
+              background: "hsl(var(--parchment) / 0.6)",
+              border: "1px solid hsl(var(--olivewood) / 0.18)",
+            }}
+          >
+            <p
+              className="font-sans text-ds-13 sm:text-ds-15 leading-relaxed"
+              style={{ color: "hsl(var(--olivewood) / 0.9)" }}
+            >
+              Still stuck?{" "}
+              <Link
+                to="/support"
+                className="font-semibold underline"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              >
+                Contact support
+              </Link>{" "}
+              — no account needed.
+            </p>
+          </div>
+        </div>
+      </section>
     </PublicLayout>
   );
 };

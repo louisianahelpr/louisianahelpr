@@ -118,8 +118,15 @@
     <!-- Hero image preloads intentionally removed 2026-05-19.
          The hero used to render a photographic <img> (hero-courtyard-*.webp),
          but the editorial brand polish (4ba790a0) replaced it with the
-         CSS-only PhoneCluster mockup + the Bodoni Moda H1, which is now the
-         LCP element. The preload + srcset still pointed at the retired image,
+         Bodoni Moda H1, which is the LCP element.
+
+         (Corrected 2026-08-19: this used to name a "CSS-only PhoneCluster
+         mockup" as the other half of the hero. PhoneCluster was not rendered
+         by anything — Index.tsx mounts HeroSection, which never imported it —
+         and the whole component plus its private phoneCluster/ subtree has
+         been deleted. The Bodoni H1 is the LCP element on its own. Anyone
+         tuning LCP off the old wording was reasoning about a component that
+         did not run.) The preload + srcset still pointed at the retired image,
          which made the browser fetch 100–430 KB of never-rendered bytes at
          `fetchpriority="high"` on every desktop visit, starving the Bodoni
          Moda webfont and the main JS bundle of bandwidth and connection slots.

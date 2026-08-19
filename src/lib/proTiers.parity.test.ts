@@ -81,14 +81,17 @@ describe("consumer subscription checkout price config (F-MONEY-01 drift guard)",
   });
 
   it("Basic Price IDs are either env-overridden (test) or the TODO placeholder (live)", () => {
-    // In vitest (no Deno.env), the getters fall back to the LIVE_PRO_PRICE_MAP
-    // values, which for Basic are TODO placeholders until Live prices are
-    // created. This test locks that behavior: shipping Basic to live requires
-    // creating real Stripe Price objects and replacing the placeholders — that
-    // makes the "TODO" collision visible instead of silently loading a fake ID.
+    // This assertion used to be `startsWith("price_TODO_LIVE_BASIC_") ||
+    // startsWith("price_")`, which cannot fail: the placeholder ALSO starts
+    // with "price_". So the one test meant to make the placeholder visible
+    // passed happily while a live Upgrade tap 500'd against Stripe.
+    //
+    // A real Stripe Price id is "price_" followed by a base-62 object id —
+    // never an upper-case TODO token — so match that shape instead.
     for (const cycle of CYCLES) {
       const id = PRO_PRICE_MAP[cycle].basic;
-      expect(id.startsWith("price_TODO_LIVE_BASIC_") || id.startsWith("price_")).toBe(true);
+      expect(id, `${cycle} basic price id`).toMatch(/^price_[A-Za-z0-9]{16,}$/);
+      expect(id, `${cycle} basic must not be a placeholder`).not.toContain("TODO");
     }
   });
 });

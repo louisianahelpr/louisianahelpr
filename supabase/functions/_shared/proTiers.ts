@@ -32,21 +32,24 @@ const readEnv = (key: string): string | undefined => {
 
 const LIVE_PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
-    // Basic live IDs are placeholders until the Live Basic Stripe Prices
-    // are created. Test-mode uses the env-var overrides below and works
-    // today; a future live-mode rollout MUST create matching live Prices
-    // and paste those IDs here.
-    basic: "price_TODO_LIVE_BASIC_MONTHLY",
+    // Basic's live IDs sat as placeholder strings long after the Prices
+    // themselves existed in Stripe. /subscription hides Basic
+    // (SubscriptionPage.tsx) so it never surfaced there — but the in-app
+    // Membership tab renders and sells it, so every Basic Upgrade tap posted a
+    // placeholder string to live Stripe and returned an opaque 500.
+    // Verified against live acct_1RQbAfKp2H4b7tEC: all three are active,
+    // livemode, and match PRO_RECURRING_AMOUNT_CENTS (500 / 5000 / 500).
+    basic: "price_1TAZjdKp2H4b7tECG4TDPOxd",
     pro: "price_1TAZkLKp2H4b7tEC0ACbAX2y",
     elite: "price_1TAZkSKp2H4b7tEClf0VNiEa",
   },
   annual: {
-    basic: "price_TODO_LIVE_BASIC_ANNUAL",
+    basic: "price_1TAZkXKp2H4b7tECRBtNRne5",
     pro: "price_1TAZkbKp2H4b7tECZ7Qr6CZS",
     elite: "price_1TAZkcKp2H4b7tECagD42xRa",
   },
   one_time: {
-    basic: "price_TODO_LIVE_BASIC_ONETIME",
+    basic: "price_1TAZkdKp2H4b7tECtvvFRyJf",
     pro: "price_1TAZkeKp2H4b7tECnfZ7vF0C",
     elite: "price_1TAZkeKp2H4b7tECmn27C8JM",
   },

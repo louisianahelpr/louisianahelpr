@@ -30,6 +30,9 @@ export function useApplicantsState(user: SupaUser | null) {
     if (apps && apps.length > 0) {
       // Filter out applicants the current user has blocked (or who blocked them)
       const { getBlockedUserIds } = await import("@/lib/userBlocks");
+      // Throws on a failed read (see userBlocks). Let it propagate: this runs
+      // inside the applicants loader, whose error path already renders a
+      // retryable state — better than listing an applicant the poster blocked.
       const blockedSet = user ? await getBlockedUserIds(user.id) : new Set<string>();
       const visibleApps = apps.filter((a) => !blockedSet.has(a.helper_id));
       if (visibleApps.length === 0) return [];

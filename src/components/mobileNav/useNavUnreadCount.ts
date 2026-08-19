@@ -35,7 +35,17 @@ export function useNavUnreadCount(user: User | null | undefined) {
       // so the count must too. Archived threads are a client-only (safeStorage)
       // concept, so we can't filter them in SQL — we fetch the lightweight
       // unread rows and drop archived ones in JS (LH-54).
-      const blockedSet = await getBlockedUserIds(user.id);
+      // getBlockedUserIds now THROWS on a failed read rather than returning an
+      // empty set, because an empty set reads as "nobody is blocked" and would
+      // put blocked people back in the badge. Skip the update instead — a
+      // slightly stale count is strictly better than surfacing blocked users.
+      let blockedSet: Set<string>;
+      try {
+        blockedSet = await getBlockedUserIds(user.id);
+      } catch (err) {
+        report(err, { severity: "warning", tags: { source: "useNavUnreadCount.unreadCount" } });
+        return;
+      }
       const base = supabase
         .from("messages")
         .select("job_id, sender_id, created_at")

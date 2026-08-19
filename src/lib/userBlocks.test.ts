@@ -79,14 +79,18 @@ describe("getBlockedUserIds", () => {
     expect(result.size).toBe(2);
   });
 
-  it("returns empty Set on error", async () => {
+  it("THROWS on error — must fail closed, not open", async () => {
+    // This test used to assert `result.size === 0`, i.e. it encoded the bug as
+    // the contract. An empty set reads as "nobody is blocked", so any failed
+    // read — an RLS denial, a network blip — silently un-blocked every
+    // harassment block the user had set, and blocked people reappeared in the
+    // inbox, the nav badge, the applicant list and the desktop rail.
     fromMock.mockReturnValue({
       select: () => ({ or: blocksOrMock }),
     });
     blocksOrMock.mockResolvedValue({ data: null, error: new Error("RLS denied") });
 
-    const result = await getBlockedUserIds("me");
-    expect(result.size).toBe(0);
+    await expect(getBlockedUserIds("me")).rejects.toThrow("RLS denied");
   });
 
   it("returns empty Set when no blocks exist", async () => {
@@ -258,3 +262,4 @@ describe("unblockUser", () => {
     expect(await unblockUser("blocker", "blocked")).toBe(false);
   });
 });
+

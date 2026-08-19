@@ -12,7 +12,16 @@ export async function getBlockedUserIds(currentUserId: string): Promise<Set<stri
     .select("blocker_id, blocked_id")
     .or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`);
 
-  if (error || !data) return new Set();
+  // FAIL CLOSED. Returning an empty set on error reads as "nobody is blocked",
+  // so a failed read silently un-blocks every harassment block the user has
+  // set: blocked people reappear in the inbox, the nav badge, the applicant
+  // list and the desktop rail. Throwing keeps the caller's error path — and
+  // its existing loading/error UI — in charge of what to show.
+  if (error) {
+    report(error, { severity: "warning", tags: { source: "userBlocks.getBlockedUserIds" } });
+    throw error;
+  }
+  if (!data) return new Set();
 
   const ids = new Set<string>();
   for (const row of data) {

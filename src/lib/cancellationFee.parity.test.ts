@@ -7,6 +7,7 @@ import { describe, it, expect } from "vitest";
 import {
   cancellationFeePercent,
   computeCancellationFee,
+  jobLocalMidnightMs,
 } from "../../supabase/functions/_shared/cancellationFee";
 
 // Mirror of the client ladder in CancellationDialog.tsx (display-only there).
@@ -65,7 +66,11 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
 
   it("charges 25% when cancelled inside 24h", () => {
     // date at 2099-01-02T00:00:00 local; cancel 10h before.
-    const start = new Date("2099-01-02T00:00:00").getTime();
+    // Zone-explicit, exactly like the implementation. Building this with
+    // `new Date("...T00:00:00")` made the test runtime-local, so it passed in
+    // America/Chicago and failed on a UTC CI runner once the production code
+    // was pinned to the platform zone.
+    const start = jobLocalMidnightMs("2099-01-02");
     const cancelledAt = new Date(start - 10 * 3600 * 1000).toISOString();
     expect(
       computeCancellationFee({
@@ -78,7 +83,11 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
   });
 
   it("charges 50% when cancelled inside 2h", () => {
-    const start = new Date("2099-01-02T00:00:00").getTime();
+    // Zone-explicit, exactly like the implementation. Building this with
+    // `new Date("...T00:00:00")` made the test runtime-local, so it passed in
+    // America/Chicago and failed on a UTC CI runner once the production code
+    // was pinned to the platform zone.
+    const start = jobLocalMidnightMs("2099-01-02");
     const cancelledAt = new Date(start - 1 * 3600 * 1000).toISOString();
     expect(
       computeCancellationFee({
@@ -93,7 +102,11 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
   it("ignores a tampered stored value — output depends only on budget+timing", () => {
     // The job shape intentionally has no `cancellation_fee` field; the function
     // must never read one. Two identical trusted inputs → identical output.
-    const start = new Date("2099-01-02T00:00:00").getTime();
+    // Zone-explicit, exactly like the implementation. Building this with
+    // `new Date("...T00:00:00")` made the test runtime-local, so it passed in
+    // America/Chicago and failed on a UTC CI runner once the production code
+    // was pinned to the platform zone.
+    const start = jobLocalMidnightMs("2099-01-02");
     const cancelledAt = new Date(start - 1 * 3600 * 1000).toISOString();
     const base = { budget: 80, date_needed: "2099-01-02", cancelled_at: cancelledAt, helper_id: "h" };
     expect(computeCancellationFee(base)).toBe(40); // 50% of 80, not a forged number
@@ -102,5 +115,40 @@ describe("computeCancellationFee (derives dollars from trusted fields only)", ()
   it("returns 0 on missing/invalid budget", () => {
     expect(computeCancellationFee({ budget: 0, date_needed: farFuture, cancelled_at: null, helper_id: "h" })).toBe(0);
     expect(computeCancellationFee({ budget: null, date_needed: farFuture, cancelled_at: null, helper_id: "h" })).toBe(0);
+  });
+});
+
+describe("job start is timezone-independent", () => {
+  // The rest of this file builds both sides of the comparison inside the SAME
+  // runtime, so a zone offset cancels out and the assertions hold no matter
+  // which zone the test runs in — which is why the live 5-6 hour client/server
+  // divergence went undetected. These pin the property directly.
+  it("resolves the same instant regardless of the runtime's own zone", () => {
+    // Same calendar date, evaluated against several zones. The ANSWER must not
+    // move, because the job's day is defined in the platform's zone, not the
+    // caller's.
+    const canonical = jobLocalMidnightMs("2026-09-20", "America/Chicago");
+    for (const tz of ["UTC", "America/New_York", "Asia/Tokyo", "Europe/London"]) {
+      expect(jobLocalMidnightMs("2026-09-20", "America/Chicago"), tz).toBe(canonical);
+    }
+  });
+
+  it("puts a 24.5h-out cancellation in the FREE tier, not the 25% tier", () => {
+    // The exact case that charged a poster 25% of the budget after showing
+    // them "free cancellation": ~24.5h before midnight CT. Under the old
+    // runtime-local parse this computed 19.5h on the UTC edge runtime.
+    const job = "2026-09-20";
+    const cancelledAt = Date.parse("2026-09-18T23:30:00-05:00");
+    const hours = (jobLocalMidnightMs(job) - cancelledAt) / 3_600_000;
+    expect(hours).toBeGreaterThan(24);
+    expect(cancellationFeePercent(true, hours)).toBe(0);
+  });
+
+  it("still charges the late tiers when the job really is close", () => {
+    const job = "2026-09-20";
+    const at2h = Date.parse("2026-09-19T22:30:00-05:00");   // 1.5h out
+    const at10h = Date.parse("2026-09-19T14:00:00-05:00");  // 10h out
+    expect(cancellationFeePercent(true, (jobLocalMidnightMs(job) - at2h) / 3_600_000)).toBe(50);
+    expect(cancellationFeePercent(true, (jobLocalMidnightMs(job) - at10h) / 3_600_000)).toBe(25);
   });
 });

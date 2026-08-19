@@ -1,3 +1,7 @@
+import {
+  jobLocalMidnightMs,
+  cancellationFeePercent as sharedCancellationFeePercent,
+} from "../../supabase/functions/_shared/cancellationFee";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
@@ -41,15 +45,15 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
   //   • 24+ hours before job  → 0%   (free cancellation)
   //   • Less than 24 hours    → 25%  (helpr has committed time)
   //   • Less than 2 hours     → 50%  (very late cancellation)
-  const jobDateTime = new Date(jobDate + "T00:00:00");
-  const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
-  const cancellationFeePercent = !hasHelper
-    ? 0
-    : hoursUntilJob < 2
-    ? 50
-    : hoursUntilJob < 24
-    ? 25
-    : 0;
+  // Both values come from the SAME module the edge function charges from.
+  //
+  // This used to be `new Date(jobDate + "T00:00:00")` plus a hand-copied
+  // ladder. That string parses in the RUNTIME's zone, so the browser
+  // (America/Chicago) and the edge function (Deno Deploy, UTC) disagreed by
+  // 5-6 hours: a poster cancelling ~24.5h out was shown "free cancellation"
+  // here and charged 25% of the budget by void-cancelled-payments.
+  const hoursUntilJob = (jobLocalMidnightMs(jobDate) - Date.now()) / (1000 * 60 * 60);
+  const cancellationFeePercent = sharedCancellationFeePercent(hasHelper, hoursUntilJob);
   const feeTier = cancellationFeePercent === 50
     ? "Less than 2 hours before job"
     : cancellationFeePercent === 25

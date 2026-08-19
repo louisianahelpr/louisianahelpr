@@ -29,12 +29,46 @@ export function cancellationFeePercent(
   return 0;
 }
 
+/**
+ * The platform's operating timezone. `date_needed` is a plain calendar date
+ * (`YYYY-MM-DD`) with no zone, so "midnight on that day" is only meaningful
+ * relative to one — and it has to be the SAME one everywhere or the fee tier
+ * moves depending on which machine computed it.
+ */
+const JOB_TIMEZONE = "America/Chicago";
+
+/**
+ * Epoch ms for midnight on `dateNeeded` **in JOB_TIMEZONE**, regardless of the
+ * runtime's own zone.
+ *
+ * This replaced `new Date(\`${dateNeeded}T00:00:00\`)`, which parses in the
+ * RUNTIME's local zone. The client runs in America/Chicago and this module runs
+ * on Deno Deploy in UTC, so the two disagreed by 5-6 hours and the poster could
+ * be quoted one cancellation tier and charged another — e.g. shown "free" at 25
+ * hours out while the server computed ~20 and charged 25% of the budget.
+ *
+ * Derived by measuring the zone's offset at that instant rather than hardcoding
+ * -5/-6, so DST is handled without a table.
+ */
+export function jobLocalMidnightMs(dateNeeded: string, timeZone = JOB_TIMEZONE): number {
+  const [y, m, d] = dateNeeded.split("-").map(Number);
+  const utcMidnight = Date.UTC(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  }).formatToParts(new Date(utcMidnight));
+  const at = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  // What that same instant reads as in the target zone, expressed as UTC.
+  const asZone = Date.UTC(at("year"), at("month") - 1, at("day"), at("hour") % 24, at("minute"), at("second"));
+  return utcMidnight - (asZone - utcMidnight);
+}
+
 /** Hours between when the cancellation was recorded and the job's start. */
 export function hoursUntilJob(dateNeeded: string, cancelledAtIso: string | null): number {
-  // Match the client: the job's day at local-midnight is the reference start.
-  // `date_needed` is a plain `YYYY-MM-DD`; appending T00:00:00 keeps parity with
-  // CancellationDialog's `new Date(jobDate + "T00:00:00")`.
-  const start = new Date(`${dateNeeded}T00:00:00`).getTime();
+  // Midnight on the job's day IN THE PLATFORM'S ZONE — not the runtime's.
+  const start = jobLocalMidnightMs(dateNeeded);
   // Use the recorded cancellation time so a slow cron run can't push the job
   // into a cheaper/pricier tier than the moment the poster actually cancelled.
   const at = cancelledAtIso ? new Date(cancelledAtIso).getTime() : Date.now();

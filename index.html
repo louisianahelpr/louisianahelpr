@@ -263,6 +263,10 @@
          it — `brightness(0) invert(1)` would throw away the brass finials and
          verdigris centre that make it a brand mark rather than a glyph. If the
          rule in index.css changes, change this one with it. */
+      [data-theme="dark"] #boot-loader .boot-holder::after {
+        background: radial-gradient(ellipse at center,
+                    rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0) 70%) !important;
+      }
       [data-theme="dark"] #boot-loader .boot-mark {
         filter: brightness(1.9) saturate(1.2)
                 drop-shadow(0 2px 4px rgba(0, 0, 0, 0.65))
@@ -318,7 +322,7 @@
         aria-label="Loading Helpr"
         style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 46%, hsl(220 20% 98%) 0%, hsl(220 14% 95%) 52%, hsl(220 13% 91%) 100%);background-color:hsl(220 14% 95%);"
       >
-        <img
+        <span class="boot-holder"><img
           class="boot-mark"
           src="./src/assets/helpr-logo-256.webp"
           alt=""
@@ -327,13 +331,41 @@
           width="84"
           height="72"
           decoding="async"
-        />
+        /></span>
         <style>
           /* Same warm Olivewood lift the static mark carries everywhere else
              (.helpr-emblem, src/index.css). Dark override lives in
              #boot-theme in <head>. */
-          .boot-mark {
+          /* The holder carries the animation so the mark and its ground
+             shadow grow as one object. Animating the <img> alone would leave
+             the contact shadow static while the mark scaled over it. */
+          .boot-holder {
+            position: relative;
+            display: inline-block;
+            line-height: 0;
             animation: mark-in 420ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+          }
+          /* Ground contact shadow — the pool the mark casts onto the surface
+             below it. The two drop-shadows on the mark say "this object is
+             lit"; this ellipse says "this object is standing on something".
+             Together they read as elevation rather than a floating cutout. */
+          .boot-holder::after {
+            content: "";
+            position: absolute;
+            z-index: 1;
+            left: 50%;
+            bottom: -14px;
+            transform: translateX(-50%);
+            width: 86px;
+            height: 14px;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at center,
+                        rgba(46, 47, 34, 0.30) 0%, rgba(46, 47, 34, 0) 70%);
+            filter: blur(4px);
+          }
+          .boot-mark {
+            position: relative;
+            z-index: 2;
             /* The artwork is 256x220, NOT square. Constrain HEIGHT and let
                width follow, exactly as HelprMark does with `h-* w-auto` —
                setting both to 72 stretched the mark ~14% and is the kind of
@@ -363,7 +395,7 @@
             to   { opacity: 1; transform: scale(1); }
           }
           @media (prefers-reduced-motion: reduce) {
-            .boot-mark { animation: none; }
+            .boot-holder { animation: none; opacity: 1; }
           }
         </style>
       </div>

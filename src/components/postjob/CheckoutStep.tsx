@@ -17,7 +17,12 @@ import {
   Loader2,
 } from "lucide-react";
 import type { HelprActivity } from "@/hooks/useHelprActivity";
-import { formatPrice } from "@/lib/format";
+// formatPriceExact, not formatPrice: this card SHOWS THE ARITHMETIC, which
+// is exactly the case format.ts documents the exact variant for. With
+// whole-dollar rounding a $50 + $6.50 + $6.50 breakdown rendered as
+// 50 + 7 + 7 against a printed total of 63 — the poster can see it not add
+// up, on the screen where they decide whether to trust us with a card.
+import { formatPriceExact } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
 
 const isSafeBlobPreviewUrl = (value: string): boolean => {
@@ -197,10 +202,10 @@ export function CheckoutStep({
                 screen would show the poster two different answers to "what
                 will you charge me". One source, both places. */}
             <div className="text-right">
-              <p className="text-ds-13 font-bold text-foreground">${formatPrice(totalCharge)}</p>
+              <p className="text-ds-13 font-bold text-foreground">${formatPriceExact(totalCharge)}</p>
               {budgetNum > 0 && (
                 <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  <span className="font-semibold text-foreground">${formatPrice(budgetNum)}</span>
+                  <span className="font-semibold text-foreground">${formatPriceExact(budgetNum)}</span>
                   {" "}budget + fees
                 </p>
               )}
@@ -321,22 +326,22 @@ export function CheckoutStep({
           <p className="text-ds-12 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>
           <div className="flex justify-between text-ds-13">
             <span className="text-muted-foreground">Job budget</span>
-            <span className="font-medium text-foreground">${formatPrice(budgetNum)}</span>
+            <span className="font-medium text-foreground">${formatPriceExact(budgetNum)}</span>
           </div>
           <div className="flex justify-between text-ds-13">
             <span className="text-muted-foreground">Service fee ({customerFee ?? 12}%)</span>
-            <span className="font-medium text-foreground">${formatPrice(customerFeeAmount)}</span>
+            <span className="font-medium text-foreground">${formatPriceExact(customerFeeAmount)}</span>
           </div>
           {isUrgent && urgentFeeNum > 0 && (
             <div className="flex justify-between text-ds-13">
               <span className="text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3 text-accent" /> Urgent bonus (goes to Helpr)</span>
-              <span className="font-medium text-foreground">${formatPrice(urgentFeeNum)}</span>
+              <span className="font-medium text-foreground">${formatPriceExact(urgentFeeNum)}</span>
             </div>
           )}
           {onboardingFeeAmount > 0 && (
             <div className="flex justify-between text-ds-13">
               <span className="text-muted-foreground">One-time account setup <span className="text-ds-12 italic">(first job only)</span></span>
-              <span className="font-medium text-foreground">${formatPrice(onboardingFeeAmount)}</span>
+              <span className="font-medium text-foreground">${formatPriceExact(onboardingFeeAmount)}</span>
             </div>
           )}
           {/* Sales tax — stated as a range, not deferred.
@@ -361,14 +366,14 @@ export function CheckoutStep({
                 <div className="flex justify-between text-ds-13">
                   <span className="text-muted-foreground">State &amp; parish sales tax</span>
                   <span className="font-medium text-foreground">
-                    about ${formatPrice(taxLo)}–{formatPrice(taxHi)}
+                    about ${formatPriceExact(taxLo)}–{formatPriceExact(taxHi)}
                   </span>
                 </div>
                 <div className="h-px bg-border" />
                 <div className="flex justify-between items-baseline">
                   <span className="font-semibold text-foreground">Estimated total</span>
                   <span className="text-ds-20 font-bold text-foreground">
-                    ${formatPrice(totalCharge + taxLo)}–{formatPrice(totalCharge + taxHi)}
+                    ${formatPriceExact(totalCharge + taxLo)}–{formatPriceExact(totalCharge + taxHi)}
                   </span>
                 </div>
                 <p className="text-ds-11 text-muted-foreground leading-snug">

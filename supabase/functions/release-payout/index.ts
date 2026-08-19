@@ -56,9 +56,13 @@ serve(async (req) => {
 
   let initiatedBy: "system" | "admin" | "auto" = "system";
   let initiatedByUserId: string | null = null;
+  // The `!!` guards matter: without them an UNSET secret makes the literal
+  // string "Bearer undefined" authenticate as cron, and this function's cron
+  // path goes straight to stripe.transfers.create. Every sibling function
+  // already guards this way; this one did not.
   const isCron =
-    authHeader === `Bearer ${cronSecret}` ||
-    authHeader === `Bearer ${serviceRoleKey}`;
+    (!!cronSecret && authHeader === `Bearer ${cronSecret}`) ||
+    (!!serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`);
 
   if (!isCron) {
     // User JWT path — must be admin.
@@ -301,6 +305,12 @@ serve(async (req) => {
     console.error(`[release-payout] pif_credits read failed for job ${job.id}:`, pifErr);
     return jsonResponse({ error: "funding-source check failed — retry" }, 500);
   }
+  // Carried OUT of the escrow-verification block below so the transfer itself
+  // can be capped by what was actually captured. Both stay null for a
+  // PIF-credit-funded job, which legitimately has no Stripe charge behind it.
+  let escrowChargeId: string | null = null;
+  let escrowAmountReceivedCents: number | null = null;
+
   if (!pifRow) {
     let paymentIntentId = job.stripe_payment_intent_id;
     if (!paymentIntentId && job.stripe_session_id) {
@@ -342,6 +352,10 @@ serve(async (req) => {
       }
       return jsonResponse({ error: `escrow charge not captured (PI status: ${pi.status}) — payout refused`, pi_status: pi.status }, 409);
     }
+    escrowAmountReceivedCents = pi.amount_received;
+    escrowChargeId = typeof pi.latest_charge === "string"
+      ? pi.latest_charge
+      : pi.latest_charge?.id ?? null;
   }
 
   // Compute payout: budget - platform cut + any urgent fee, in cents.
@@ -455,6 +469,38 @@ serve(async (req) => {
     return jsonResponse({ error: "computed payout is non-positive" }, 422);
   }
 
+  // HARD CAP: never transfer more than the escrow actually captured.
+  //
+  // `budget` is writable by the poster under RLS while payment_status is still
+  // 'unpaid', and the Checkout Session freezes its amount at creation — so a
+  // poster could pay a $10 session, then raise budget, and this function would
+  // transfer the raised figure out of the PLATFORM balance. The PI status was
+  // checked above but its AMOUNT never was.
+  //
+  // Two independent guards, because either alone is a single point of failure:
+  //   1. this explicit assertion, which fails loudly with an admin alert, and
+  //   2. `source_transaction` on the transfer below, which makes Stripe itself
+  //      refuse to move more than that specific charge holds.
+  // Skipped only for PIF-credit-funded jobs, which have no Stripe charge.
+  if (escrowAmountReceivedCents !== null && payoutCents > escrowAmountReceivedCents) {
+    console.error(
+      `[release-payout] REFUSING: payout ${payoutCents}c exceeds captured ${escrowAmountReceivedCents}c for job ${job.id}`,
+    );
+    const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "release-payout");
+    for (const adminId of adminIds) {
+      await supabaseAdmin.from("notifications").insert({
+        user_id: adminId,
+        title: "🚨 Payout blocked — exceeds captured amount",
+        message: `Job ${job.id} ("${job.title}") tried to pay out $${(payoutCents / 100).toFixed(2)} against $${(escrowAmountReceivedCents / 100).toFixed(2)} captured. Budget may have been altered after checkout.`,
+        type: "warning", link: "/admin",
+      });
+    }
+    return jsonResponse(
+      { error: "payout exceeds captured escrow — refused", payout_cents: payoutCents, captured_cents: escrowAmountReceivedCents },
+      409,
+    );
+  }
+
   let transfer: Stripe.Transfer;
   try {
     transfer = await stripe.transfers.create(
@@ -462,6 +508,12 @@ serve(async (req) => {
         amount: payoutCents,
         currency: "usd",
         destination: helper.stripe_account_id,
+        // Ties the transfer to the exact charge that funded it, exactly as
+        // process-scheduled-payouts / void-cancelled-payments / create-payment
+        // already do — this function was the only payout path without it.
+        // Stripe then enforces the cap server-side even if the check above is
+        // ever bypassed. Omitted for PIF-credit-funded jobs (no charge).
+        ...(escrowChargeId ? { source_transaction: escrowChargeId } : {}),
         transfer_group: `job_${job.id}`,
         description: `Helpr payout for job ${job.id} — ${job.title}`,
         metadata: {

@@ -28,13 +28,24 @@ export function deriveAppliedJobCardState(
   // how far along it is.
   const isAssigned =
     app.status === "accepted" && (status === "accepted" || status === "open");
-  const isOffered = isAssigned && !job.helper_confirmed_at;
+  // A DIRECT offer is the other way a job can be sitting on this helper's
+  // decision, and it looks nothing like an accepted application: the poster
+  // stamps the offer on the JOB and no `applications` row is created at all,
+  // so useActivityData fabricates one with `status: "pending"` just to have a
+  // card to hang it on. That synthetic row used to fall through to `isPending`
+  // — which rendered the Edit-message / Withdraw controls, every one of them
+  // addressing an application id of `direct-<jobId>` that no table contains.
+  // The stripe already said "Offered to you · respond" while the card below it
+  // offered no way to respond.
+  const isDirectOffer =
+    job.direct_offer_status === "pending" && job.offered_to_helper_id === app.helper_id;
+  const isOffered = isDirectOffer || (isAssigned && !job.helper_confirmed_at);
   const isConfirmed = isAssigned && !!job.helper_confirmed_at;
   const isActive = app.status === "accepted" && (status === "in_progress" || status === "revision_requested");
   const isDisputed = app.status === "accepted" && status === "disputed";
   const isCompleted = app.status === "accepted" && status === "completed";
   const isCancelled = job.status === "cancelled";
-  const isPending = app.status === "pending";
+  const isPending = app.status === "pending" && !isDirectOffer;
   const isRejected = app.status === "rejected";
   const isFullyDone = isCompleted && helperReviewedJobIds.has(app.job_id);
   const isExpanded = expandedJobId === app.job_id;
@@ -65,6 +76,7 @@ export function deriveAppliedJobCardState(
 
   return {
     status,
+    isDirectOffer,
     isOffered,
     isConfirmed,
     isActive,

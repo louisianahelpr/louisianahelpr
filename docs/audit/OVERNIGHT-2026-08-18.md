@@ -1,5 +1,58 @@
 # Overnight audit — 2026-08-18
 
+> ## ⚠️ STATUS RECONCILIATION — 2026-08-19, read before acting on anything below
+>
+> **This file is a running LOG, not a status report.** Findings were written as
+> they were observed during the night. Many were fixed hours later, in this same
+> session or the morning after, and the lines above them were never struck. On
+> 2026-08-19 the whole file was read back as if it described current state and
+> most of the "open" items had already been closed — that cost real time. Do not
+> repeat it: every row below was re-verified against the tree, the migrations, or
+> the live Stripe API on 2026-08-19. Trust THIS table, not the prose.
+>
+> ### Still open
+>
+> | # | Finding | Severity | Verified how |
+> |---|---|---|---|
+> | 1 | **`messages` has no FK on `sender_id` / `receiver_id`.** Still missing — no migration adds one. The DISPLAY half was patched (`9eb33cf6` + `get_safe_profiles` matching `p.id OR p.user_id`), which makes bad rows *render* rather than fail loudly — arguably worse. Any code path grabbing `profiles.id` instead of the auth id still writes a row that silently routes replies nowhere. | **HIGH** | grepped every migration for a FK on those columns — none |
+> | 2 | **17 migration-grant violations across 12 functions.** CI only runs the guard over a push's changed files, so these are invisible until someone touches one. | Medium | ran `node scripts/check-migration-grants.mjs --all` |
+>
+> ### Closed since this file was written
+>
+> | Finding | Resolution |
+> |---|---|
+> | Stripe LIVE webhook pointed at a dead project (Aug 23 retry deadline) | Fixed by the owner 2026-08-18. Live API: two enabled endpoints on `fncmgoasalhdgfwzhsqa`, old `steigdwrpkosbiycshwz` endpoint `status: disabled` |
+> | SEC-002 — `business_members` INSERT admitted any `role='owner'` row | `20260818140000_business_members_insert_owner_only.sql` |
+> | SEC-003 — seat-count TOCTOU, no lock in the trigger | **FIXED.** `20260818150000:176` has `PERFORM 1 FROM public.businesses WHERE id = NEW.business_id FOR UPDATE;` (twice misreported as open on 2026-08-19 by grepping `20260818160000`, which only mentions the function in a comment — the definition is in `…150000`) |
+> | SEC-004 — seat reader RPCs SECURITY DEFINER with default PUBLIC EXECUTE | `20260818124500_lock_seat_limit_reader_rpcs.sql` (5 REVOKEs) |
+> | SampleTag fails WCAG AA at 3.24:1 | Now `toneTextClasses.warning` — ~6.3:1 light, 8:1+ dark |
+> | Messages avatar initials disagree with the name | `loadConversations.ts` `indexProfiles()` indexes by BOTH `profiles.id` and `profiles.user_id` |
+> | Applicant count rendered 3× on one card | Removed from the card body — see `PostedJobCard.tsx:168` |
+> | Content clipped behind the floating dock | Was never a defect; the auditor retracted it in this file |
+>
+> ### Owner decisions still outstanding
+>
+> - **Enterprise is sold as "4+" but the DB hard-caps 4.** First 6-seat deal breaks on the 5th invite.
+> - **A fifth seat ladder** survives in `check-business-seat-subscription`.
+> - **Starter tightens 2 → 1** — existing starter businesses keep their member but cannot re-invite after a removal.
+> - **My Jobs banner** — direction not chosen.
+> - **Seeded persona avatars.** All six personas share one dicebear URL seeded `Dana%20Guidry`, so every avatar genuinely renders "DG". Bad seed data, not a rendering bug. Correct the rows or leave them.
+> - **Action chips are pastel multi-colour** on /my-posts — taste call.
+>
+> ### Not re-verified (do not treat as either open or closed)
+>
+> - `STRIPE_WEBHOOK_SECRET` present in Supabase Edge Function secrets — secrets are not readable from a session, only the owner can confirm.
+> - Apply/Bid dialog horizontal cut-off — needs rendering, not grepping.
+> - Post-a-job entry mixing three affordances (`EntryChoice.tsx`) — not graded.
+> - Profile mixes a stat into the action row — `IdentityHeader.tsx:361` still reads `Reviews · Share · Edit · QR code`, so it looks unchanged, but it may now be deliberate.
+> - AI job title running to the cap — the edge function instructs the model "max 60 chars" (`ai-job-builder/index.ts:27,66`) and no 32-char cap was found in the form, so the observed "31/32" could not be reproduced by inspection.
+>
+> ### Fixed 2026-08-19 (not in this file's scope)
+>
+> - **Cold start painted three different backgrounds** — `LaunchScreen.storyboard` `#ECE9E4` → Capacitor `#F1F2F4` → boot shell `#F6F7F9`. All now `--parchment` `#F1F2F4`. PR #1458.
+> - **Boot shell was a generic ring spinner + italic grey word** — now the crest (inline SVG, not an LCP candidate) + the canonical `HelprMark` wordmark. PR #1458.
+
+
 Live findings from a SIGNED-IN iOS simulator (LH-Audit-iPhone17Pro-261, iOS 26.1,
 Release build 4823) plus code inspection. Owner asleep; questions saved for the AM.
 

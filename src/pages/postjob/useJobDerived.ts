@@ -71,7 +71,11 @@ export function useJobDerived(params: UseJobDerivedParams) {
   const onboardingCents = onboardingFeePaid ? 0 : onboardingFeeCents;
   const customerFeeAmount =
     posterServiceFeeCents(budgetCents, customerFee ?? 12, urgentFeeCents + onboardingCents) / 100;
-  const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum + onboardingFeeAmount; // + Sales tax at checkout
+  // Every charged line EXCEPT sales tax. Tax is added by CheckoutStep, which
+  // is where the parish rate resolves — and for the great majority of
+  // categories it is $0, because create-payment marks every line but assembly
+  // labor `txcd_00000000`. See `src/lib/salesTax.ts`.
+  const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum + onboardingFeeAmount;
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   // Section completion for the 3-step progress bar. Photos are optional

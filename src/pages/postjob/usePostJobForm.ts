@@ -474,6 +474,10 @@ export function usePostJobForm() {
     setAddrState,
     zipCode,
     setZipCode,
+    // Resolved from the zip by useJobFormEffects. Exposed because the checkout
+    // summary quotes the parish's real sales-tax rate from `parish_tax_rates`
+    // (it used to be passed as a hardcoded `null` and the rate was invented).
+    parish,
     dateNeeded,
     setDateNeeded,
     startTime,

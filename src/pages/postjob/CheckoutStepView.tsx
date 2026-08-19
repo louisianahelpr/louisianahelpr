@@ -73,6 +73,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         title={form.title}
         description={form.description}
         categoryLabel={form.categoryLabel}
+        category={form.category}
         imagePreviews={form.imagePreviews}
         streetAddress={form.streetAddress}
         city={form.city}
@@ -103,7 +104,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         uploadProgress={form.uploadProgress}
         onEdit={() => form.setStep("form")}
         onSubmit={form.handleSubmit}
-        parish={null}
+        parish={form.parish}
         preferredHelper={preferredHelper}
         sendToPreferred={form.sendToPreferred}
         onSendToPreferredChange={form.setSendToPreferred}

@@ -6,6 +6,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { stripeProcessingCostCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
+import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -211,16 +212,13 @@ serve(async (req) => {
       const helperFeeAmount = (job.budget * helperFeePercent) / 100;
 
       // ─── Louisiana sales-tax classification ───
-      // LA R.S. 47:301(14) defines a narrow list of taxable services. Most
-      // labor services (cleaning, yard work, moving, painting houses, errands,
-      // pet care, delivery) are NOT subject to LA state sales tax. The clearest
-      // taxable case in this app is *assembly* — installation/assembly of
-      // tangible personal property (e.g. IKEA furniture). Handyman work is
-      // ambiguous (taxable if repairing a TV, exempt if repairing a doorframe);
-      // we default it to exempt and rely on operator judgment per-job. If LDR
-      // clarifies otherwise, add categories to TAXABLE_CATEGORIES below.
-      const TAXABLE_CATEGORIES = new Set(["assembly"]);
-      const isLaborTaxable = TAXABLE_CATEGORIES.has(job.category);
+      // The category list now lives in `_shared/salesTax.ts` so the Post-a-Task
+      // checkout screen quotes tax off the SAME rule this charge uses. It used
+      // to be an inline Set here while the screen guessed "about 9-11% of
+      // everything", which overstated the total by ~10% on every exempt
+      // category — i.e. nearly every job. See that module for the LA R.S.
+      // 47:301(14) reasoning.
+      const laborTaxable = isLaborTaxable(job.category);
 
       const lineItems: any[] = [
         {
@@ -228,12 +226,12 @@ serve(async (req) => {
             currency: "usd",
             product_data: {
               name: `Helpr Task: ${job.title}`,
-              description: isLaborTaxable
+              description: laborTaxable
                 ? `Secure escrow payment for taxable labor (${job.category}). Funds release once both parties confirm completion.`
                 : `Secure escrow payment for exempt service (${job.category}). Funds release once both parties confirm completion.`,
               // Assembly/installation of tangible personal property: LA repair/install code.
               // All other categories: pass-through (no LA state tax on the labor).
-              tax_code: isLaborTaxable ? "txcd_20030000" : "txcd_00000000",
+              tax_code: laborTaxable ? "txcd_20030000" : "txcd_00000000",
             },
             unit_amount: Math.round(job.budget * 100),
           },

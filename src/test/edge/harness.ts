@@ -119,6 +119,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/posterFees.ts";`,
   );
 
+  // LA sales-tax classification: `_shared/salesTax.ts` is a pure lookup (a Set
+  // plus arithmetic), so the generated file points at the REAL module. Which
+  // Stripe `tax_code` each line gets is exactly what the checkout screen
+  // mirrors, so it stays under test rather than being mocked away.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/salesTax\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/salesTax.ts";`,
+  );
+
   // Admin-id fan-out for ops alerts: `_shared/adminIds.ts` takes the supabase
   // client as an argument and has no module-scope Deno imports, so the
   // generated file points at the REAL module. That keeps the "did we actually

@@ -1,19 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import { Bookmark, ChevronRight, Clock, MapPin, Search, X } from "lucide-react";
+import { useState } from "react";
+import { Bookmark, ChevronRight, Clock, MapPin, X } from "lucide-react";
 import { categoryLabels } from "@/components/dashboard/JobFilters";
 import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/FilterSheet";
-import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 import { SavedSearches } from "@/components/SavedSearches";
 import { hapticLight } from "@/lib/haptics";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
-import {
-  getRecentSearches,
-  pushRecentSearch,
-  clearRecentSearches,
-  SEARCH_HISTORY_MIN_LENGTH,
-} from "@/lib/searchHistory";
-import { POPULAR_CATEGORIES, budgetChipLabel } from "./browseTasksToolbar/constants";
+import { budgetChipLabel } from "./browseTasksToolbar/constants";
 import type { BrowseTasksToolbarProps, ChipDef } from "./browseTasksToolbar/types";
 import { SwipeableFilterChip } from "./browseTasksToolbar/SwipeableFilterChip";
 import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
@@ -68,54 +61,10 @@ export function BrowseTasksToolbar({
   onClearAllFilters,
   titleSrOnly = false,
 }: BrowseTasksToolbarProps) {
-  // Recent searches dropdown — shown only when the search input is
-  // focused AND empty AND we have history to show. We snapshot the list
-  // when the input opens, and refresh after each push so the dropdown
-  // re-reads on the next focus rather than mutating mid-typing.
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<string[]>(() => getRecentSearches());
-
   // Saved-searches dialog. Opened from the filter sheet's "Saved searches"
   // row, which closes the sheet on the way — so the dialog is mounted HERE,
   // outside the sheet, or it would unmount with the row that opened it.
   const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
-
-  // Persist non-trivial queries to history. Debounced via a ref so we
-  // only push the "settled" value, not every keystroke. We wait for the
-  // user to stop typing for ~1s and then commit.
-  const lastPushedRef = useRef<string>("");
-  useEffect(() => {
-    const q = filters.searchQuery.trim();
-    if (q.length < SEARCH_HISTORY_MIN_LENGTH) return;
-    if (q.toLowerCase() === lastPushedRef.current.toLowerCase()) return;
-    const timer = window.setTimeout(() => {
-      pushRecentSearch(q);
-      lastPushedRef.current = q;
-      setRecentSearches(getRecentSearches());
-    }, 800);
-    return () => window.clearTimeout(timer);
-  }, [filters.searchQuery]);
-
-  // When the box is focused and empty we always have something to offer:
-  // recent searches (if any) and a popular-picks row beneath them.
-  const showSearchDropdown = searchFocused && filters.searchQuery.length === 0;
-
-  // Shared "commit this query" path for both a recent row and a popular
-  // chip — set it, remember it, and close the dropdown.
-  const applySuggestion = (q: string) => {
-    filters.setSearchQuery(q);
-    pushRecentSearch(q);
-    lastPushedRef.current = q;
-    setRecentSearches(getRecentSearches());
-    setSearchFocused(false);
-  };
-
-  // Popular-pick path: apply the real category filter (not a text search) and
-  // close the dropdown. Mirrors tapping the chip in CategoryChipRow.
-  const applyPopularCategory = (key: string) => {
-    filters.setSelectedCategory(key);
-    setSearchFocused(false);
-  };
 
   // Human-readable description of the active location filter, reused in the
   // chip clear-button aria-labels so a screen reader hears WHICH location is
@@ -199,158 +148,44 @@ export function BrowseTasksToolbar({
           on-screen sign that the feed is showing a subset. It rides the row's
           baseline now instead of stacking above the title, which is what used
           to push this band to two lines the moment a filter was on. */}
-      {filters.searchOpen ? (
-        /* Search mode — input replaces the title row inline (iOS pattern).
-           ScreenHeaderRow keeps the h1 in the document (sr-only) in this
-           state, so the screen never has ZERO headings while search is open. */
-        <ScreenHeaderRow className="shrink-0 px-4" title={headingTitle}>
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input
-              autoFocus
-              type="search"
-              aria-label="Search jobs"
-              placeholder="Search jobs…"
-              enterKeyHint="search"
-              inputMode="search"
-              autoComplete="off"
-              value={filters.searchQuery}
-              onChange={(e) => filters.setSearchQuery(e.target.value)}
-              onFocus={() => {
-                setSearchFocused(true);
-                setRecentSearches(getRecentSearches());
-              }}
-              onBlur={() => window.setTimeout(() => setSearchFocused(false), 150)}
-              className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
-            />
-            {filters.searchQuery && (
-              <button
-                onClick={() => filters.setSearchQuery("")}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => { filters.setSearchOpen(false); filters.setSearchQuery(""); }}
-            className="shrink-0 text-ds-13 font-medium btn-press py-2"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            Cancel
-          </button>
-        </ScreenHeaderRow>
-      ) : (
-        /* Normal mode.
-           Search + filters moved OUT of here and into the title card, beside
-           the notification bell (owner: "should be to the left of the
-           notification bell"). With the icons gone and the title `sr-only` on
-           this screen, the row had nothing left to draw whenever no filter was
-           active — a full 44px of empty band above the feed. So it now renders
-           ONLY when there is a live "Filtered · N active" label to show, and
-           the feed starts directly under the title card the rest of the time.
+      {/* The search FIELD is not here any more — it renders in the title
+          card (DashboardTitleBar's `searchBar` slot), which is where the icon
+          that opens it lives. It used to render in this row: tapping a button
+          in the top panel made an input appear in a different container below
+          it.
 
-           The <h1> is NOT dropped with it: a screen with zero headings is an
-           a11y defect, so the sr-only heading is rendered on its own in the
-           collapsed case and keeps the same document structure the row gave. */
-        filters.hasFilters ? (
-          <ScreenHeaderRow
-            className="shrink-0 px-4"
-            title={headingTitle}
-            titleSrOnly={titleSrOnly}
-            meta={
-              <span
-                className="font-serif italic tracking-[0.18em] uppercase text-ds-10 shrink-0"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
-              >
-                {`Filtered · ${filters.activeFilterCount} active`}
-              </span>
-            }
-          />
-        ) : (
-          <h1 className="sr-only">{headingTitle}</h1>
-        )
-      )}
+          The "Popular" chip row that hung under the old input went with it. It
+          applied a category filter, which is exactly what CategoryChipRow — a
+          permanent one-tap row a few pixels below this — already does, so it
+          was a second control for the same job wearing a different name.
+          Recent searches moved into BrowseSearchBar; those are the user's own
+          text queries and nothing else offers them.
 
-      {/* Search suggestions — shown below the inline search bar when
-          the input is focused and the query is empty. */}
-      {filters.searchOpen && showSearchDropdown && (
-        <div
-          className="border-b border-border/30"
-          role="listbox"
-          aria-label="Search suggestions"
-        >
-          {recentSearches.length > 0 && (
-            <>
-              <div className="flex items-center justify-between px-4 py-1.5 border-b border-border/30">
-                <span
-                  className="font-serif italic tracking-[0.14em] uppercase text-ds-9"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Recent
-                </span>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    clearRecentSearches();
-                    setRecentSearches([]);
-                  }}
-                  className="text-ds-10 text-muted-foreground hover:text-destructive btn-press"
-                >
-                  Clear
-                </button>
-              </div>
-              <ul>
-                {recentSearches.map((q) => (
-                  <li key={q}>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={false}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        applySuggestion(q);
-                      }}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-left text-ds-13 hover:bg-muted/50 btn-press"
-                    >
-                      <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <span className="truncate">{q}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-          <div className="px-4 py-1.5 border-b border-border/30">
+          What stays here is the live "Filtered · N active" label — the only
+          on-screen sign that the feed is showing a subset. The row renders
+          ONLY when there is one to show; the title is `sr-only` on this screen
+          (owner: "home will not have a title just the H logo"), so otherwise
+          this would be 44px of empty band above the feed.
+
+          The <h1> is NOT dropped with it: a screen with zero headings is an
+          a11y defect, so the sr-only heading renders on its own in the
+          collapsed case and keeps the document structure the row gave. */}
+      {filters.hasFilters ? (
+        <ScreenHeaderRow
+          className="shrink-0 px-4"
+          title={headingTitle}
+          titleSrOnly={titleSrOnly}
+          meta={
             <span
-              className="font-serif italic tracking-[0.14em] uppercase text-ds-9"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              className="font-serif italic tracking-[0.18em] uppercase text-ds-10 shrink-0"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
             >
-              Popular
+              {`Filtered · ${filters.activeFilterCount} active`}
             </span>
-          </div>
-          <div className="flex flex-wrap gap-1.5 px-4 py-2.5">
-            {POPULAR_CATEGORIES.map((key) => (
-              <button
-                key={key}
-                type="button"
-                role="option"
-                aria-selected={false}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  applyPopularCategory(key);
-                }}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-ds-md bg-[hsl(var(--bark)/0.08)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.18)] text-ds-11 font-medium hover:bg-[hsl(var(--bark)/0.14)] btn-press"
-              >
-                <CategoryIcon category={key} className="w-3 h-3 shrink-0" />
-                {categoryLabels[key]}
-              </button>
-            ))}
-          </div>
-        </div>
+          }
+        />
+      ) : (
+        <h1 className="sr-only">{headingTitle}</h1>
       )}
 
       {/* One-tap category picker row. */}

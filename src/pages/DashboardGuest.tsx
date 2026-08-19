@@ -32,6 +32,7 @@ import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
+import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 
@@ -309,6 +310,7 @@ const DashboardGuest = () => {
           // when those icons moved up out of its header row this surface would
           // otherwise have lost them entirely.
           actions={<BrowseTasksActions filters={filters} />}
+          searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
           trailing={<GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />}
         />
       }

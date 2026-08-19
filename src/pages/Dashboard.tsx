@@ -14,6 +14,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 // guest feed cannot drift apart on the one measurement that makes the row
 // read as a band of chrome rather than a card.
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
+import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
 import DashboardInProgressBadge from "@/components/dashboard/DashboardInProgressBadge";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
@@ -234,7 +235,11 @@ const Dashboard = () => {
       <PageScaffold
         animate
         panelElevation="raised"
-        titleCard={<DashboardTitleBar status={statusPill} actions={<BrowseTasksActions filters={filters} />} />}
+        titleCard={<DashboardTitleBar
+            status={statusPill}
+            actions={<BrowseTasksActions filters={filters} />}
+            searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
+          />}
         titleCardClassName={TITLE_BAR_PADDING}
       >
         {/* The loaded screen's only <h1> lives in BrowseTasksToolbar, which
@@ -295,7 +300,11 @@ const Dashboard = () => {
       // "Browse jobs" h1 inside the panel (sr-only here — owner decision,
       // "home will not have a title just the H logo"). PageScaffold takes on
       // the top safe-area inset itself when no header is passed.
-      titleCard={<DashboardTitleBar status={statusPill} actions={<BrowseTasksActions filters={filters} />} />}
+      titleCard={<DashboardTitleBar
+            status={statusPill}
+            actions={<BrowseTasksActions filters={filters} />}
+            searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
+          />}
       titleCardClassName={TITLE_BAR_PADDING}
       aboveTitle={<BroadcastBanner />}
       beforePanel={

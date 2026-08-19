@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
+import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 // Lazy-load the map so the ~45KB leaflet bundle only ships when guests
 // actually toggle to map view. List view stays cheap by default.
@@ -283,6 +284,11 @@ const DashboardGuest = () => {
           // signed-out visitor tapping it wants the front door.
           emblemTo="/"
           // No `status` — the live-job pill is a signed-in thing.
+          // Search + filters ride in this row too, exactly as they now do on
+          // the authed Home — the guest feed shares BrowseTasksToolbar, so
+          // when those icons moved up out of its header row this surface would
+          // otherwise have lost them entirely.
+          actions={<BrowseTasksActions filters={filters} />}
           trailing={<GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />}
         />
       }

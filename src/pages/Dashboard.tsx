@@ -16,6 +16,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
 import DashboardInProgressBadge from "@/components/dashboard/DashboardInProgressBadge";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
+import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -234,7 +235,7 @@ const Dashboard = () => {
       <PageScaffold
         animate
         panelElevation="raised"
-        titleCard={<DashboardTitleBar status={statusPill} />}
+        titleCard={<DashboardTitleBar status={statusPill} actions={<BrowseTasksActions filters={filters} />} />}
         titleCardClassName={TITLE_BAR_PADDING}
       >
         {/* The loaded screen's only <h1> lives in BrowseTasksToolbar, which
@@ -295,7 +296,7 @@ const Dashboard = () => {
       // "Browse jobs" h1 inside the panel (sr-only here — owner decision,
       // "home will not have a title just the H logo"). PageScaffold takes on
       // the top safe-area inset itself when no header is passed.
-      titleCard={<DashboardTitleBar status={statusPill} />}
+      titleCard={<DashboardTitleBar status={statusPill} actions={<BrowseTasksActions filters={filters} />} />}
       titleCardClassName={TITLE_BAR_PADDING}
       aboveTitle={<BroadcastBanner />}
       beforePanel={

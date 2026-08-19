@@ -30,6 +30,13 @@ interface DashboardTitleBarProps {
    * labelled controls — never icons, never behind a menu.
    */
   trailing?: ReactNode;
+  /**
+   * Screen controls (search · filters) placed in the SAME row as the bell,
+   * immediately to its left. They used to live in a second header row under
+   * this card, which cost a full 44px band that was visually empty whenever no
+   * filter was active — the owner asked for them beside the bell instead.
+   */
+  actions?: ReactNode;
 }
 
 /**
@@ -95,6 +102,7 @@ export function DashboardTitleBar({
   emblemTo = "/dashboard",
   status,
   trailing,
+  actions,
 }: DashboardTitleBarProps) {
   return (
     <div className="flex items-center justify-between gap-2">
@@ -107,6 +115,7 @@ export function DashboardTitleBar({
           out would hang it 8px proud of everything beneath it. */}
       <div className={`flex items-center gap-2 shrink-0${trailing ? "" : " -mr-2"}`}>
         {status}
+        {actions}
         {trailing ?? <NotificationPanel />}
       </div>
     </div>

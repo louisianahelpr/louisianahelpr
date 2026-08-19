@@ -17,7 +17,6 @@ import { POPULAR_CATEGORIES, budgetChipLabel } from "./browseTasksToolbar/consta
 import type { BrowseTasksToolbarProps, ChipDef } from "./browseTasksToolbar/types";
 import { SwipeableFilterChip } from "./browseTasksToolbar/SwipeableFilterChip";
 import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
-import { BrowseTasksActions } from "./browseTasksToolbar/BrowseTasksActions";
 import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
 
 // Re-export so consumers can import from a single location.
@@ -244,23 +243,35 @@ export function BrowseTasksToolbar({
           </button>
         </ScreenHeaderRow>
       ) : (
-        /* Normal mode — title + state label + action buttons. */
-        <ScreenHeaderRow
-          className="shrink-0 px-4"
-          title={headingTitle}
-          titleSrOnly={titleSrOnly}
-          meta={
-            filters.hasFilters ? (
+        /* Normal mode.
+           Search + filters moved OUT of here and into the title card, beside
+           the notification bell (owner: "should be to the left of the
+           notification bell"). With the icons gone and the title `sr-only` on
+           this screen, the row had nothing left to draw whenever no filter was
+           active — a full 44px of empty band above the feed. So it now renders
+           ONLY when there is a live "Filtered · N active" label to show, and
+           the feed starts directly under the title card the rest of the time.
+
+           The <h1> is NOT dropped with it: a screen with zero headings is an
+           a11y defect, so the sr-only heading is rendered on its own in the
+           collapsed case and keeps the same document structure the row gave. */
+        filters.hasFilters ? (
+          <ScreenHeaderRow
+            className="shrink-0 px-4"
+            title={headingTitle}
+            titleSrOnly={titleSrOnly}
+            meta={
               <span
                 className="font-serif italic tracking-[0.18em] uppercase text-ds-10 shrink-0"
                 style={{ color: "hsl(var(--burnt-sienna))" }}
               >
                 {`Filtered · ${filters.activeFilterCount} active`}
               </span>
-            ) : undefined
-          }
-          actions={<BrowseTasksActions filters={filters} />}
-        />
+            }
+          />
+        ) : (
+          <h1 className="sr-only">{headingTitle}</h1>
+        )
       )}
 
       {/* Search suggestions — shown below the inline search bar when

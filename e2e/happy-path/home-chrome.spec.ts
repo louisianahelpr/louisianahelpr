@@ -169,17 +169,27 @@ for (const variant of [
     expect(pillBox.x + pillBox.width, "pill right edge vs bell left edge")
       .toBeLessThanOrEqual(bellBox.x);
 
-    // --- row 2: the two action icons, BELOW row 1 -----------------------
+    // --- the two action icons now live IN row 1, left of the bell -------
+    // This spec used to assert the opposite (icons in a SECOND row below the
+    // brand row). The owner moved them up beside the bell — "should be to the
+    // left of the notification bell" — and the vacated row was removed, so the
+    // feed starts directly under the title card. The assertion is inverted to
+    // the new arrangement rather than relaxed: same-row is still proven by
+    // centre alignment, and left-of-bell by a hard edge comparison.
     for (const name of ACTION_ICON_NAMES) {
       const icon = page.getByRole("button", { name }).first();
       await expect(icon, `action icon ${name} @ ${variant.tag}`).toBeVisible();
       const box = (await icon.boundingBox())!;
       expect(box.height, `action icon ${name} tap target`).toBeGreaterThanOrEqual(44);
       expect(box.width, `action icon ${name} tap target`).toBeGreaterThanOrEqual(40);
-      // THE assertion this spec exists for: every action icon is in the row
-      // BELOW the pill, not beside it.
-      expect(box.y, `action icon ${name} must sit below the brand row`)
-        .toBeGreaterThanOrEqual(pillBox.y + pillBox.height);
+      // Same row as the bell (vertical centres agree)...
+      expect(
+        Math.abs((box.y + box.height / 2) - (bellBox.y + bellBox.height / 2)),
+        `action icon ${name} shares the brand row with the bell`,
+      ).toBeLessThan(6);
+      // ...and strictly to its LEFT, with no overlap.
+      expect(box.x + box.width, `action icon ${name} sits left of the bell`)
+        .toBeLessThanOrEqual(bellBox.x + 1);
     }
     // ...and the two that moved into the sheet are not back in the row.
     for (const name of MOVED_OUT_OF_ROW) {
@@ -336,19 +346,28 @@ for (const width of [320, 375, 1440]) {
     await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Get started" })).toBeVisible();
 
-    // And the icons are down in the toolbar row on this surface too — the
-    // same two Home has. "Saved searches" is a signed-in feature (`user={null}`)
-    // so the guest sheet has no such section at all; the List⇄Map choice IS in
-    // the guest sheet at every width, since the guest feed swaps the whole
-    // panel between list and map and has no desktop two-pane.
+    // The icons ride in the BRAND ROW here too, left of the auth CTAs —
+    // matching the authed Home after the owner moved them up beside the bell.
+    // Guest shares BrowseTasksToolbar, so the two surfaces cannot diverge on
+    // this without one of them silently losing the controls entirely.
+    // "Saved searches" is a signed-in feature (`user={null}`) so the guest
+    // sheet has no such section; the List⇄Map choice IS in the guest sheet at
+    // every width, since the guest feed swaps the whole panel between list and
+    // map and has no desktop two-pane.
     const login = (await page.getByRole("button", { name: "Log in" }).boundingBox())!;
     for (const name of ACTION_ICON_NAMES) {
       const icon = page.getByRole("button", { name }).first();
       await expect(icon, `guest action icon ${name} @ ${width}`).toBeVisible();
       const box = (await icon.boundingBox())!;
       expect(box.height, `guest action icon ${name} tap target`).toBeGreaterThanOrEqual(44);
-      expect(box.y, `guest action icon ${name} must sit below the brand row`)
-        .toBeGreaterThanOrEqual(login.y + login.height);
+      // Same row as the auth CTAs...
+      expect(
+        Math.abs((box.y + box.height / 2) - (login.y + login.height / 2)),
+        `guest action icon ${name} shares the brand row`,
+      ).toBeLessThan(6);
+      // ...and to their LEFT, no overlap.
+      expect(box.x + box.width, `guest action icon ${name} sits left of the CTAs`)
+        .toBeLessThanOrEqual(login.x + 1);
     }
 
     await page.screenshot({ path: `${SHOT_DIR}/guest-chrome-${width}.png`, fullPage: false });

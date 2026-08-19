@@ -176,7 +176,15 @@ jobs:
       - name: Sync Capacitor → iOS
         # Refreshes the web bundle in ios/App/App/public and runs pod install
         # to wire up native plugins.
-        run: npx cap sync ios
+        #
+        # The rm is not belt-and-braces: `cap sync` copies INTO this directory
+        # without pruning it, so any file a previous plain `npm run build` left
+        # behind (notably the PWA service worker) survives the sync and ships
+        # inside the .ipa. That is exactly what failed build 4827 — and a
+        # service worker in the native shell pins users to stale cached HTML.
+        run: |
+          rm -rf ios/App/App/public
+          npx cap sync ios
 
       - name: Verify iOS bundle is fresh and offline-only
         run: node scripts/verify-ios-bundle.mjs

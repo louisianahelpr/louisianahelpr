@@ -9,6 +9,7 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
+import { AuthModeTabs } from "@/components/auth/AuthModeTabs";
 import BackButton from "@/components/BackButton";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -384,6 +385,21 @@ const Signup = () => {
   return (
     <AuthShell hideHeader centerColumn hideBack maxWidth="2xl">
       <div>
+          {/* Sign in ⇄ Create account, OUTSIDE the card — navigation between
+              the two auth cards, not a control belonging to either. Step 1
+              ONLY: on step 2 the credentials are already entered and leaving
+              for /login would silently discard them, which is exactly why the
+              step-2 back arrow walks the flow instead of exiting. */}
+          {step === 1 && (
+            <div className="flex items-center gap-2 mb-4">
+              <div className="shrink-0"><BackButton to="/" /></div>
+              <AuthModeTabs
+                active="signup"
+                signupSearch={isBusinessSignup ? "?type=business" : ""}
+                className="flex-1"
+              />
+            </div>
+          )}
           {/* Liquid-glass card — matches the Login screen so the two auth
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}
           <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
@@ -398,21 +414,39 @@ const Signup = () => {
                 aligned to nothing. */}
             <div className="text-left space-y-1">
               <div className="flex items-center gap-3">
-                {/* On step 2 the arrow walks the FLOW back a step — leaving
-                    signup entirely from there silently discards the email and
-                    password already typed. Only step 1 exits to home. */}
-                <div className="shrink-0">
-                  {step === 2
-                    ? <BackButton onClick={() => { setStep2Errors({}); setStep(1); }} />
-                    : <BackButton to="/" />}
-                </div>
+                {/* Step 2 ONLY. The arrow walks the FLOW back a step here —
+                    leaving signup entirely from step 2 silently discards the
+                    email and password already typed. Step 1's exit-to-home
+                    arrow lives beside the mode tabs above the card, where it
+                    anchors that row instead of floating alone in the card. */}
+                {step === 2 && (
+                  <div className="shrink-0">
+                    <BackButton onClick={() => { setStep2Errors({}); setStep(1); }} />
+                  </div>
+                )}
+                {/* Hidden when it would just repeat the active tab a hundred
+                    pixels above it — personal step 1's "Create account" is the
+                    tab's own label verbatim. Business signup ("Create business
+                    account") and step 2 ("About you") say something the tabs
+                    don't, so those stay visible.
+
+                    `sr-only`, never removed: the screen still needs exactly one
+                    h1, and the tab row is navigation, not a heading. */}
                 <h1
-                  className="font-display italic font-bold leading-tight min-w-0 flex-1"
-                  style={{
-                    fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
-                    color: "hsl(var(--ink-deep))",
-                    letterSpacing: "-0.03em",
-                  }}
+                  className={
+                    stepHeading.title === "Create account"
+                      ? "sr-only"
+                      : "font-display italic font-bold leading-tight min-w-0 flex-1"
+                  }
+                  style={
+                    stepHeading.title === "Create account"
+                      ? undefined
+                      : {
+                          fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
+                          color: "hsl(var(--ink-deep))",
+                          letterSpacing: "-0.03em",
+                        }
+                  }
                 >
                   {stepHeading.title}
                 </h1>

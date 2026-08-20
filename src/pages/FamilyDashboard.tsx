@@ -161,16 +161,19 @@ export default function FamilyDashboard() {
         page used to carry wrapped the header in a card AND wrapped the
         content in a second one — the card-in-a-card the owner flagged.
 
-        `width="lg-5xl-6xl-7xl-tight"` is the body ladder below, verbatim, so
-        the title and the content stay in one column. */}
+        Geometry is the CANONICAL Profile sub-screen ladder, shared verbatim
+        with the Profile tab bodies (Profile.tsx) and PageHeader's `default`
+        width: max-w-5xl → lg:6xl → xl:7xl → 2xl:90rem on px-5 → lg:px-8 →
+        xl:px-12. This page used to carry its own tighter ladder (a max-w-lg
+        mobile cap on a px-4 gutter that NARROWED to lg:px-4 on desktop), so
+        it sat in a visibly different column from every sibling. */}
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
         title="Family & care"
         onBack={() => navigate("/profile")}
-        width="lg-5xl-6xl-7xl-tight"
       />
 
-      <div className="max-w-lg md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 md:px-6 lg:px-4 pt-4">
+      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
       {/* Split-column desktop layout: on mobile/tablet this stacks as a
           single column exactly as before. At lg+ it becomes a two-column
           grid — the members lists take the wide reading column on the

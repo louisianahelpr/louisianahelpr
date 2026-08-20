@@ -171,14 +171,26 @@ describe("signInWithProvider — web fallback path", () => {
     }
   });
 
-  it("falls back to web OAuth even on native when the SocialLogin plugin isn't available", async () => {
+  // CONTRACT INVERTED 2026-08-20, by the owner's decision.
+  //
+  // This used to assert that native falls back to web OAuth when the plugin is
+  // missing. That fallback navigates the WebView, which opens an in-app browser
+  // sheet and redirects to the app's OWN origin — so the sheet rendered Helpr's
+  // own login page inside browser chrome with an X in the corner. The owner hit
+  // it on a real device, did not recognise it as their app, and asked for that
+  // screen to be deleted.
+  //
+  // A missing plugin on a native build is a BUILD defect. Report it; do not
+  // paper over it with a second, unrecognisable login surface.
+  it("returns an error on native when the SocialLogin plugin isn't available — never opens the web sheet", async () => {
     isNativePlatformMock.mockReturnValue(true);
     isPluginAvailableMock.mockReturnValue(false);
     signInWithOAuthMock.mockResolvedValue({ error: null });
 
     const { signInWithProvider } = await load();
     const result = await signInWithProvider("apple");
-    expect(result).toEqual({ kind: "redirecting" });
+    expect(result.kind).toBe("error");
+    expect(signInWithOAuthMock).not.toHaveBeenCalled();
     expect(loginMock).not.toHaveBeenCalled();
   });
 });

@@ -147,6 +147,28 @@ export async function signInWithProvider(
     }
   }
 
+  // On NATIVE, never fall through to the web OAuth flow.
+  //
+  // supabase.auth.signInWithOAuth navigates the WebView, which on iOS opens an
+  // in-app browser sheet and redirects back to this app's own origin — so the
+  // sheet renders Helpr's OWN login page inside a browser chrome with an X in
+  // the corner. The owner hit exactly that on a real device and reported it as
+  // a screen they had never seen and did not recognise as theirs. It is a
+  // second, worse login on top of the one they were already looking at.
+  //
+  // If the plugin is missing on a native build that is a BUILD defect (the pod
+  // did not link). Say so plainly instead of papering over it with a duplicate
+  // login surface the user cannot make sense of.
+  if (Capacitor.isNativePlatform()) {
+    return {
+      kind: "error",
+      message:
+        provider === "apple"
+          ? "Apple sign-in isn't available in this build. Use your email and password for now."
+          : "Google sign-in isn't available in this build. Use your email and password for now.",
+    };
+  }
+
   // Web fallback — supabase.auth.signInWithOAuth navigates the browser
   // straight to the provider's authorization page. We can't observe the
   // outcome here; the post-redirect handler at /dashboard (or redirectTo)

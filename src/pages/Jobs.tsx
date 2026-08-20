@@ -24,6 +24,7 @@ import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import JobCard from "@/components/dashboard/JobCard";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useJobRef } from "@/hooks/useJobRef";
+import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
 import {
   ALL_CATEGORIES,
   CARDS_PER_ROW,
@@ -51,8 +52,16 @@ const Jobs = () => {
   // Capture ?ref= attribution from share/external links (e.g. ?ref=share
   // from the Share Sheet) so we can attribute traffic source for job views.
   useJobRef();
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  // Seeded from — and mirrored back into — the URL, exactly like the authed
+  // browse feed (useDashboardFilters). Without it every history entry for this
+  // page was identical, so backing out of a job dropped the visitor onto an
+  // unfiltered feed. See useSearchParamMirror.
+  const [initialParams] = useState(() => new URLSearchParams(window.location.search));
+  const seed = (key: string) => initialParams.get(key) ?? "";
+  const [search, setSearch] = useState(() => seed("q"));
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
+    () => initialParams.get("cat"),
+  );
   // No pricing-style filter. It offered "All / Open to bids / Set budget",
   // and with bidding removed (PRICING_MODE_REMOVED in BudgetSection) every job
   // is a set-budget job — so two of the three options matched nothing and the
@@ -60,22 +69,47 @@ const Jobs = () => {
   // Remaining filters mirror the signed-in browse sheet 1:1 — same value
   // conventions ("" = unset budget bound, "24h"/"3d"/"7d" expiry windows,
   // "smart" default sort) so both surfaces behave identically.
-  const [minBudget, setMinBudget] = useState("");
-  const [maxBudget, setMaxBudget] = useState("");
-  const [expiresWithin, setExpiresWithin] = useState("");
-  const [boostedOnly, setBoostedOnly] = useState(false);
-  const [urgentOnly, setUrgentOnly] = useState(false);
+  const [minBudget, setMinBudget] = useState(() => seed("min"));
+  const [maxBudget, setMaxBudget] = useState(() => seed("max"));
+  const [expiresWithin, setExpiresWithin] = useState(() => seed("exp"));
+  const [boostedOnly, setBoostedOnly] = useState(() => seed("boost") === "1");
+  const [urgentOnly, setUrgentOnly] = useState(() => seed("urgent") === "1");
   const [sortBy, setSortBy] = useState("smart");
   // Collapsed-toolbar state mirroring the logged-in BrowseTasksToolbar: search
   // and filters are hidden behind icon buttons and expand on tap, instead of
   // sitting always-open. Search expands inline; filters open the shared sheet.
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(() => !!seed("q"));
   const [filtersOpen, setFiltersOpen] = useState(false);
   // The job a guest tapped to preview — opens the read-only JobDetailDialog.
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useCurrentUser();
+
+  // Keep those filters on the history entry (and adopt them back on a pop).
+  // `?job=` and `?ref=` are untouched — the mirror only owns the keys it
+  // lists.
+  useSearchParamMirror(
+    {
+      q: search.trim(),
+      cat: selectedCategory ?? "",
+      min: minBudget,
+      max: maxBudget,
+      exp: expiresWithin,
+      boost: boostedOnly ? "1" : "",
+      urgent: urgentOnly ? "1" : "",
+    },
+    (read) => {
+      setSearch(read("q"));
+      if (read("q")) setSearchOpen(true);
+      setSelectedCategory(read("cat") || null);
+      setMinBudget(read("min"));
+      setMaxBudget(read("max"));
+      setExpiresWithin(read("exp"));
+      setBoostedOnly(read("boost") === "1");
+      setUrgentOnly(read("urgent") === "1");
+    },
+  );
 
   // The landing "See all jobs" links sit far down the page, so the window is
   // deep-scrolled when they're clicked. VirtualList uses a *window* virtualizer

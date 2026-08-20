@@ -7,6 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
 import { useDashboardFilters } from "./useDashboardFilters";
@@ -67,6 +68,9 @@ function setup(allJobs: EnrichedJob[], opts: Partial<{ userId: string; profile: 
       helprTier: opts.helprTier ?? null,
       helperAvailability: [],
     }),
+    // The hook now mirrors its filters into the URL (so a history entry
+    // carries the view it represents), which needs a router in scope.
+    { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> },
   );
 }
 

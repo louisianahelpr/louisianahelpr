@@ -1,4 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
 import { haversineMiles, parseNearbyFilter } from "@/lib/geo";
@@ -51,22 +53,71 @@ interface UseDashboardFiltersOptions {
 }
 
 export function useDashboardFilters({ allJobs, userId, profile, helprTier, helperAvailability, earlyAccessExempt = false }: UseDashboardFiltersOptions) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [minBudget, setMinBudget] = useState("");
-  const [maxBudget, setMaxBudget] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
+  // Browse state lives in the URL, not only in React state.
+  //
+  // It used to be plain `useState`, which made every history entry for the
+  // browse feed IDENTICAL: filter to Yard work near you, open a job, tap back,
+  // and the feed rebuilt from scratch with no category, no search, no budget —
+  // the "everything is all over the place" report. A history entry has to
+  // carry the view it represents, so each durable filter is mirrored into
+  // `?…` and re-read when the browser pops back to that entry.
+  //
+  // The writes are `replace: true`: choosing a filter refines the entry you're
+  // already on rather than minting a new one (otherwise Back would step
+  // backwards through every chip tap before leaving the page). Sort is
+  // deliberately NOT here — it is a lasting preference, persisted in
+  // localStorage across sessions, not a property of one history entry.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const param = (key: string) => searchParams.get(key) ?? "";
+  const [searchQuery, setSearchQuery] = useState(() => param("q"));
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
+    () => searchParams.get("cat"),
+  );
+  const [minBudget, setMinBudget] = useState(() => param("min"));
+  const [maxBudget, setMaxBudget] = useState(() => param("max"));
+  const [locationFilter, setLocationFilter] = useState(() => param("loc"));
   const [sortBy, setSortByRaw] = useState<string>(() => readPersistedSort());
   const setSortBy = useCallback((next: string) => {
     setSortByRaw(next);
     writePersistedSort(next);
   }, []);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [expiresWithin, setExpiresWithin] = useState("");
-  const [matchAvailability, setMatchAvailability] = useState(false);
-  const [boostedOnly, setBoostedOnly] = useState(false);
-  const [urgentOnly, setUrgentOnly] = useState(false);
+  // The search field starts open when the entry carries a query, so a
+  // restored search is visible and editable rather than silently applied.
+  const [searchOpen, setSearchOpen] = useState(() => !!param("q"));
+  const [expiresWithin, setExpiresWithin] = useState(() => param("exp"));
+  const [matchAvailability, setMatchAvailability] = useState(() => param("avail") === "1");
+  const [boostedOnly, setBoostedOnly] = useState(() => param("boost") === "1");
+  const [urgentOnly, setUrgentOnly] = useState(() => param("urgent") === "1");
+
+  // ── URL ⇄ state ─────────────────────────────────────────────────────────
+  // See useSearchParamMirror for the rationale: a history entry has to carry
+  // the view it represents, or Back rebuilds the feed unfiltered.
+  useSearchParamMirror(
+    {
+      q: searchQuery.trim(),
+      cat: selectedCategory ?? "",
+      min: minBudget,
+      max: maxBudget,
+      loc: locationFilter,
+      exp: expiresWithin,
+      avail: matchAvailability ? "1" : "",
+      boost: boostedOnly ? "1" : "",
+      urgent: urgentOnly ? "1" : "",
+    },
+    (read) => {
+      setSearchQuery(read("q"));
+      if (read("q")) setSearchOpen(true);
+      setSelectedCategory(read("cat") || null);
+      setMinBudget(read("min"));
+      setMaxBudget(read("max"));
+      setLocationFilter(read("loc"));
+      setExpiresWithin(read("exp"));
+      setMatchAvailability(read("avail") === "1");
+      setBoostedOnly(read("boost") === "1");
+      setUrgentOnly(read("urgent") === "1");
+    },
+  );
 
   const nearbyMiles = parseNearbyFilter(locationFilter);
   const userLoc = useUserLocation(nearbyMiles !== null);

@@ -76,7 +76,6 @@ export function DetailsSection({
       <DescriptionField
         description={description}
         setDescription={setDescription}
-        setTitle={setTitle}
         category={category}
       />
 

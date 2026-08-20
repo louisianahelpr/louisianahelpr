@@ -1,64 +1,33 @@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Wand2 } from "lucide-react";
 import { categoryTemplates, hasUnfilledPlaceholders } from "@/lib/postingTemplates";
-import { DESCRIPTION_MAX, categories } from "./detailsSectionConstants";
+import { DESCRIPTION_MAX } from "./detailsSectionConstants";
 import { FieldError } from "@/components/ui/FieldError";
 
 interface DescriptionFieldProps {
   description: string;
   setDescription: (v: string) => void;
-  setTitle: (v: string) => void;
   category: string;
 }
 
 export function DescriptionField({
   description,
   setDescription,
-  setTitle,
   category,
 }: DescriptionFieldProps) {
-  // Template starter — offered only while the description is empty or still
-  // the raw template text, never once the poster has written their own prose.
+  // Checklist/placeholder helpers only — the inline "Use <category>
+  // template" link that used to sit in the label row is gone. Templates are
+  // offered from the post-a-job entry screen ("Use a template", see
+  // pages/postjob/EntryChoice.tsx); repeating the offer inside the field was
+  // a second, competing entry point for the same feature.
   const tpl = categoryTemplates[category];
   const descTrimmed = description.trim();
-  const showTemplateButton =
-    !!tpl && (descTrimmed.length === 0 || descTrimmed === tpl.description.trim());
 
   return (
     <div className="space-y-2.5">
-      {/* The template action lives in the label row, where the character
-          counter would otherwise be, because the two are naturally exclusive:
-          the button only appears while the field is empty, and the counter
-          only means anything once you are writing. Showing "0/600" next to an
-          untouched field says nothing, so nothing is lost by swapping them.
-
-          It used to sit BETWEEN this row and the textarea — a floating
-          underlined link inside the field's own chrome, belonging to neither
-          the label above it nor the input below. Anchoring it to the label
-          row makes it read as an action ON this field. */}
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
-        {showTemplateButton ? (
-          <button
-            type="button"
-            onClick={() => {
-              setTitle(tpl.title);
-              setDescription(tpl.description);
-            }}
-            className="text-ds-12 font-sans font-semibold inline-flex items-center gap-1 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-            style={{
-              color: "hsl(var(--burnt-sienna))",
-              textDecoration: "underline",
-              textUnderlineOffset: "3px",
-            }}
-          >
-            <Wand2 className="w-3 h-3 shrink-0" aria-hidden />
-            Use {categories.find((c) => c.value === category)?.label ?? category} template
-          </button>
-        ) : (
-          <span className="text-ds-11 tabular-nums text-muted-foreground">{description.length}/{DESCRIPTION_MAX}</span>
-        )}
+        <span className="text-ds-11 tabular-nums text-muted-foreground">{description.length}/{DESCRIPTION_MAX}</span>
       </div>
       <Textarea
         id="description"

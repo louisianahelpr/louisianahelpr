@@ -54,16 +54,7 @@ export function MuteSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-w-md mx-auto rounded-t-2xl">
-        <SheetHero
-          eyebrow={
-            <>
-              <BellOff className="w-3 h-3" />
-              Quiet hours
-            </>
-          }
-          eyebrowClassName="inline-flex items-center gap-1.5"
-          title="Mute notifications"
-        />
+        <SheetHero title="Mute notifications" />
         {isMuted && (
           <div
             className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"

@@ -1,7 +1,8 @@
-import { Plus, Camera, Image as ImageIcon, FilePlus2, MapPin, AudioLines } from "lucide-react";
+import { Camera, Image as ImageIcon, FilePlus2, MapPin, AudioLines } from "lucide-react";
 import {
   Sheet,
   SheetContent,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { MESSAGE_ATTACHMENT_MAX_BYTES } from "@/lib/messageAttachments";
 
@@ -36,6 +37,12 @@ export const AttachSourceSheet = ({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-w-md mx-auto rounded-t-2xl">
+        {/* Radix points the dialog's `aria-labelledby` at a Title, so a sheet
+            with none announces as a bare "dialog". This one is deliberately
+            headerless (below), which is a visual decision, not a naming one —
+            the name still has to exist. Same fix Navbar and ui/sidebar use for
+            their nav drawers. */}
+        <SheetTitle className="sr-only">Attach</SheetTitle>
         {/* iOS "+" menu shape: one uniform vertical list, each row a circular
             icon and a label. No headline — iMessage's sheet doesn't ask a
             question, it just lists what you can attach.

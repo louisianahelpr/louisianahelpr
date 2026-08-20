@@ -178,8 +178,17 @@ const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
   </SheetPrimitive.Close>
 );
 
+// `pr-12` reserves the lane the floating close (X) occupies — a 40x40 box
+// inset 1rem from the right edge. `DialogHeader` has carried the equivalent
+// `pr-10` since it was written, so ANY dialog header clears the X for free
+// even when it's hand-rolled; the sheet side had no reserve at all, so a sheet
+// that skipped `SheetHero` got zero protection and a long title ran straight
+// under the glyph. This closes that asymmetry.
+//
+// A caller passing `px-*` still merges this away (tailwind-merge, same slot) —
+// that is why `SheetHero` does NOT rely on it and owns its own inner lane.
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col space-y-2 text-center sm:text-left", className)} {...props} />
+  <div className={cn("flex flex-col space-y-2 text-center sm:text-left pr-12", className)} {...props} />
 );
 SheetHeader.displayName = "SheetHeader";
 
@@ -192,7 +201,15 @@ const SheetTitle = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
 >(({ className, ...props }, ref) => (
-  <SheetPrimitive.Title ref={ref} className={cn("text-lg font-semibold text-foreground", className)} {...props} />
+  // No weight in the base. `cn()` is tailwind-merge and `font-semibold` sits in
+  // the same slot as a caller's `font-bold`, at equal specificity with the base
+  // emitted later in the stylesheet — so `SheetHero`'s `font-bold` was losing
+  // and every sheet title computed at 600 while every dialog title computed at
+  // 700. Invisible today only because the app requests Bodoni Moda italic at a
+  // single weight, so 600 resolves to the 700 face; the day a 600 face is added
+  // to the font URL, every sheet title in the app goes lighter than every
+  // dialog title. `DialogTitle` carries no weight of its own either.
+  <SheetPrimitive.Title ref={ref} className={cn("text-lg text-foreground", className)} {...props} />
 ));
 SheetTitle.displayName = SheetPrimitive.Title.displayName;
 
@@ -242,13 +259,22 @@ const SheetHero = ({
   eyebrowClassName?: string;
   eyebrowStyle?: React.CSSProperties;
 }) => (
-  <SheetHeader className={cn("space-y-0 text-left pr-12", className)}>
-    <SheetTitle
-      className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
-      style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}
-    >
-      {title}
-    </SheetTitle>
+  // The close-button lane lives on an INNER element, not on the merged outer
+  // className. It used to be `cn("… pr-12", className)`, which put the reserve
+  // in the same tailwind-merge slot as the caller's padding — so a perfectly
+  // ordinary `className="px-1 pb-2"` silently DELETED it. Three of the eleven
+  // adopters were passing exactly that, and on the dashboard's long-press sheet
+  // (whose title is arbitrary user text) the title painted under the X. The
+  // reserve is not a suggestion; a caller must not be able to merge it away.
+  <SheetHeader className={cn("space-y-0 text-left pr-0", className)}>
+    <div className="pr-12">
+      <SheetTitle
+        className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
+        style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}
+      >
+        {title}
+      </SheetTitle>
+    </div>
   </SheetHeader>
 );
 SheetHero.displayName = "SheetHero";

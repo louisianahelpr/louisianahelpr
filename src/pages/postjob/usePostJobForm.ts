@@ -5,7 +5,6 @@ import { safeStorage } from "@/lib/safeStorage";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useParishTaxRate } from "@/hooks/useParishTaxRate";
-import { getSmartPrice } from "@/lib/pricingGuide";
 import type { Step } from "./postJobFormTypes";
 import { useJobMediaUpload } from "./useJobMediaUpload";
 import { useJobSubmit } from "./useJobSubmit";

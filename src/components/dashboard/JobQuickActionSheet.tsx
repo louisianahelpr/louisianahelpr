@@ -96,7 +96,7 @@ export function JobQuickActionSheet({
         {/* Canonical sheet header. Was a hand-copied eyebrow→title stack (one of
             four sheets that drifted to four different title sizes); SheetHero is
             the single source of truth. */}
-        <SheetHero className="px-1 pb-2" eyebrow="Job actions" title={job.title} />
+        <SheetHero className="pl-1 pb-2" title={job.title} />
         <div className="grid grid-cols-1 gap-1.5">
           <ActionRow
             icon={<Bookmark className={`w-5 h-5 ${isSaved ? "fill-current" : ""}`} strokeWidth={2} />}

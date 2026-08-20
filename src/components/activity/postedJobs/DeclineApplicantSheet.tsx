@@ -53,7 +53,7 @@ export function DeclineApplicantSheet({
               {/* Canonical sheet header. Was a hand-copied stack pinned at
                   1.1rem (one of four sheets that had each drifted to a different
                   title size); SheetHero is the single source of truth. */}
-              <SheetHero eyebrow="Decline applicant" title={`Decline ${targetName}?`} />
+              <SheetHero title={`Decline ${targetName}?`} />
 
               {/* Quick-tap reason chips */}
               <div role="group" aria-label="Decline reason">

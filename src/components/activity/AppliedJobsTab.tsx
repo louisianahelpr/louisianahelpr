@@ -321,10 +321,7 @@ export const AppliedJobsTab = ({
         >
           {/* Drag-handle affordance */}
           <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-muted-foreground/25" aria-hidden />
-          <SheetHero
-            eyebrow="Withdraw"
-            title="Withdraw application?"
-          />
+          <SheetHero title="Withdraw application?" />
 
           <fieldset className="mt-5 space-y-1.5" disabled={!!withdrawingAppId}>
             <legend

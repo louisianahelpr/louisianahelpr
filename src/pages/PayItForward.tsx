@@ -439,7 +439,7 @@ export default function PayItForward() {
                 <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Occasion
                 </p>
-                <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]">
                   {GIFT_OCCASIONS.map((o) => {
                     const active = o.id === occasionId;
                     return (

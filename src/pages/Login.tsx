@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -524,6 +525,7 @@ const Login = () => {
             375px; `whitespace-nowrap` guarantees that if the copy ever grows
             the link drops to its own line intact rather than splitting in the
             middle again. */}
+        {BUSINESS_ENABLED && (
         <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Setting up a company?{" "}
           <Link
@@ -534,6 +536,7 @@ const Login = () => {
             Business account
           </Link>
         </p>
+        )}
         </div>
         </div>
 

@@ -1,6 +1,7 @@
 import { lazy, Suspense, forwardRef, useEffect, useState, type ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -245,12 +246,12 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />
       <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />
-      <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</RouteErrorBoundary>} />
+      {BUSINESS_ENABLED && <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</RouteErrorBoundary>} />}
       <Route path="/analytics" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelperAnalytics /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/business/exports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessExports /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/business/onboarding" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessOnboarding /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {BUSINESS_ENABLED && <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />}
+      {BUSINESS_ENABLED && <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />}
+      {BUSINESS_ENABLED && <Route path="/business/exports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessExports /></ProtectedRoute>)}</RouteErrorBoundary>} />}
+      {BUSINESS_ENABLED && <Route path="/business/onboarding" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessOnboarding /></ProtectedRoute>)}</RouteErrorBoundary>} />}
       {/* Public vertical landing pages */}
 
       <Route path="/home-history" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HomeHistory /></ProtectedRoute>)}</RouteErrorBoundary>} />

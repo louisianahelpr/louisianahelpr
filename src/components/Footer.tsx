@@ -1,4 +1,5 @@
 import { Apple, Heart } from "lucide-react";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { Link } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
 
@@ -112,11 +113,13 @@ const Footer = () => (
                 Jobs
               </Link>
             </li>
+            {BUSINESS_ENABLED && (
             <li>
               <Link to="/for-business" className="link-standard">
                 Business
               </Link>
             </li>
+            )}
             <li>
               <Link to="/subscription" className="link-standard">
                 Membership

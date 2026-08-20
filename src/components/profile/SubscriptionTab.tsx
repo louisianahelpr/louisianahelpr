@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles } from "lucide-react";
@@ -147,7 +148,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   // which routes them to /for-business where their real "Manage" surface
   // lives. Previously this branch just left the hero blank.
   const activeTierConfig = currentTier && !isExpired ? tierConfig.find((t) => t.id === currentTier.toLowerCase()) : null;
-  const isBusinessMember = currentTier?.toLowerCase() === "business" && !isExpired;
+  const isBusinessMember =
+    BUSINESS_ENABLED && currentTier?.toLowerCase() === "business" && !isExpired;
   return (
     <div className="flex flex-col min-h-full gap-4 pb-4">
       <ProfileTabHeader

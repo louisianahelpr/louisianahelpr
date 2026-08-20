@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Sparkles, Briefcase, Building2, ArrowRight } from "lucide-react";
 import { useState, forwardRef } from "react";
@@ -104,12 +105,12 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
           >
             Jobs
           </Link>
-          <Link
+          {BUSINESS_ENABLED && <Link
             to="/for-business"
             className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--bark))]"
           >
             Business
-          </Link>
+          </Link>}
           {/* Subtle vertical rule between text nav and auth actions —
               two logical groups rather than one long list. */}
           <span
@@ -297,7 +298,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                 <Briefcase className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
                 Jobs
               </Link>
-              <Link
+              {BUSINESS_ENABLED && <Link
                 to="/for-business"
                 className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"
                 style={{
@@ -308,7 +309,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               >
                 <Building2 className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
                 Business
-              </Link>
+              </Link>}
               <Link
                 to="/subscription"
                 className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"

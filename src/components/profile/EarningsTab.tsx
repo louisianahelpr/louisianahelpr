@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -27,12 +27,48 @@ import { WalletCard } from "@/components/profile/earningsTab/WalletCard";
 import { PayoutHistory } from "@/components/profile/earningsTab/PayoutHistory";
 import { RecentTransfers } from "@/components/profile/earningsTab/RecentTransfers";
 import { EarningHistory } from "@/components/profile/earningsTab/EarningHistory";
+// MERGED IN 2026-08-19 (owner request, stated three times): "My earnings",
+// "Earnings & Analytics" (/analytics) and "Payout & Payments" were three
+// separate Profile entry points onto three screens about the same subject —
+// what you earned, what it says about your work, and where the money lands.
+// They are now ONE screen: this tab, with the analytics dashboard and the
+// payout setup as sections of it rather than destinations of their own. Both
+// are code-split because neither is needed for the first paint of the wallet.
+const HelperAnalyticsBody = lazy(() => import("@/pages/helperAnalytics/HelperAnalyticsBody").then(m => ({ default: m.HelperAnalyticsBody })));
+const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
+
+/**
+ * Quiet in-page section rule. Deliberately NOT a second header: the merged
+ * tab has exactly one ProfileTabHeader (title + back button) at the top, and
+ * three stacked panels each carrying its own header is precisely the shape
+ * the owner rejected. This is a label on a hairline — enough to say where one
+ * section ends, not enough to read as another screen.
+ */
+function SectionRule({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 pt-2">
+      <span
+        className="font-serif italic uppercase text-ds-9 shrink-0"
+        style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+      >
+        {label}
+      </span>
+      <div className="flex-1 h-px" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
+    </div>
+  );
+}
 
 export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();
   const { profile } = useCurrentUser();
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  // Payout setup is a section of this screen, not a tab of its own — the
+  // wallet's "Payout settings" affordances scroll to it.
+  const payoutSectionRef = useRef<HTMLElement | null>(null);
+  const scrollToPayout = () => {
+    payoutSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   // Instant Payout is a Pro/Elite perk — free helpers see a paywall when
   // they tap Cash out. Subscription must be active (not expired) to count.
   const subTier = (profile?.subscription_tier ?? "free") as string;
@@ -168,13 +204,16 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        title="My earnings"
+        title="Earnings & payouts"
         onBack={onBack}
         rightSlot={
           <EarningsToolsMenu
             onExportPdf={() => setExportDialogOpen(true)}
             onExportCsv={handleExportCSV}
-            onNavigatePayment={() => navigate("/profile?tab=payment")}
+            // Payout setup is a section of THIS screen now, so "Payout
+            // settings" scrolls to it instead of navigating to a tab that no
+            // longer has its own entry point.
+            onNavigatePayment={scrollToPayout}
           />
         }
       />
@@ -249,7 +288,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           pendingTotal={pendingTotal}
           canUseInstantPayout={canUseInstantPayout}
           onRefresh={handleRefresh}
-          onNavigatePayment={() => navigate("/profile?tab=payment")}
+          onNavigatePayment={scrollToPayout}
           onCashOut={() => setPayoutDialogOpen(true)}
           onUpgrade={() => setUpgradeOpen(true)}
         />
@@ -330,6 +369,26 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         onBrowseJobs={() => navigate("/dashboard")}
         feeFallbackPct={helperFeeFallbackPct}
       />
+
+      {/* ─── ANALYTICS ───────────────────────────────────────────────
+          Was the standalone /analytics page ("Earnings & Analytics"). Same
+          dashboard, rendered here as a section under a quiet rule instead of
+          behind a second Profile row with a second header. */}
+      <SectionRule label="Analytics" />
+      <Suspense fallback={null}>
+        <HelperAnalyticsBody />
+      </Suspense>
+
+      {/* ─── PAYOUT & PAYMENTS ───────────────────────────────────────
+          Was the "payment" Profile tab. `onSeeEarnings` is deliberately not
+          passed: its "See full breakdown →" link jumped to the Earnings tab,
+          which is the very screen it is now sitting inside. */}
+      <section ref={payoutSectionRef} className="scroll-mt-4 space-y-4">
+        <SectionRule label="Payout & payments" />
+        <Suspense fallback={null}>
+          <PaymentTab earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
+        </Suspense>
+      </section>
 
       {/* Muted legal/tax disclosure — bottom of page */}
       <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">

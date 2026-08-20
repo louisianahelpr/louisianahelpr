@@ -17,10 +17,13 @@ export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availabilit
  */
 export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   profile: "Edit profile",
-  earnings: "My earnings",
+  earnings: "Earnings & payouts",
   schedule: "My schedule",
   availability: "Availability",
-  payment: "Payment settings",
+  // `payment` no longer has a Profile row of its own — it renders the merged
+  // earnings tab (see ProfileTabPanels) so old deep links still resolve, and
+  // therefore carries that screen's title rather than one of its own.
+  payment: "Earnings & payouts",
   security: "Security",
   legal: "Legal & policies",
   reviews: "My reviews",

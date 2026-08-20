@@ -37,7 +37,6 @@ const AvailabilityTab = lazy(() => import("@/components/profile/AvailabilityTab"
 const ReviewsTab = lazy(() => import("@/components/profile/ReviewsTab").then(m => ({ default: m.ReviewsTab })));
 const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m => ({ default: m.WarningsTab })));
 const CredentialsTab = lazy(() => import("@/components/profile/CredentialsTab").then(m => ({ default: m.CredentialsTab })));
-const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
 const NotificationPreferences = lazy(() => import("@/components/NotificationPreferences"));
 const AccessibilityTab = lazy(() => import("@/components/profile/AccessibilityTab").then(m => ({ default: m.AccessibilityTab })));
 const ReferralSection = lazy(() => import("@/components/ReferralSection"));
@@ -154,7 +153,10 @@ export const ProfileTabPanels = ({
   inlineCompletedJobs,
   reviews,
   violations,
-  totalEarnings,
+  // Unused since the payment tab merged into the earnings tab — EarningsTab
+  // derives its own total from `earningsJobs`. Kept on the props interface so
+  // Profile.tsx's call site doesn't churn.
+  totalEarnings: _totalEarnings,
   avgRating,
   reviewCount,
   seniorMode,
@@ -196,7 +198,13 @@ export const ProfileTabPanels = ({
 
 
       {/* EXTRACTED TAB COMPONENTS — lazy loaded */}
-      {tab === "earnings" && user && (
+      {/* Earnings, analytics and payout setup are ONE tab (owner request
+          2026-08-19). `tab === "payment"` renders the same screen so the old
+          /profile?tab=payment deep link — used by Stripe's onboarding return
+          URL and by the landing's payout-status row — still lands on the
+          surface that owns payout setup, rather than on a tab with no entry
+          point of its own. */}
+      {(tab === "earnings" || tab === "payment") && user && (
         <div className="space-y-3">
           {earningsQuery.isError && (
             <ProfileSectionError section="your earnings" onRetry={() => { earningsQuery.refetch(); }} />
@@ -235,22 +243,6 @@ export const ProfileTabPanels = ({
         <Suspense fallback={<TabFallback />}>
           <AvailabilityTab userId={user.id} onBack={() => setTab("landing")} />
         </Suspense>
-      )}
-
-      {tab === "payment" && (
-        <div className="space-y-4">
-          <ProfileTabHeader
-            title="Payment settings"
-            onBack={() => setTab("landing")}
-          />
-          <Suspense fallback={<TabFallback />}>
-            <PaymentTab
-              earningsJobs={earningsJobs}
-              totalEarnings={totalEarnings}
-              onSeeEarnings={() => setTab("earnings")}
-            />
-          </Suspense>
-        </div>
       )}
 
       {tab === "subscription" && (

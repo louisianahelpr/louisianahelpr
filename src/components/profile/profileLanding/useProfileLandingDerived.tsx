@@ -1,7 +1,7 @@
 import {
   Shield, ShieldAlert, Bell, Users, PawPrint, ClipboardList,
-  CalendarDays, BarChart2, Heart, ShieldCheck, Home, Star,
-  TrendingUp, CreditCard, Crown, FileText, Gavel, HelpCircle,
+  CalendarDays, Heart, ShieldCheck, Home, Star,
+  TrendingUp, Crown, FileText, Gavel, HelpCircle,
   AlertTriangle, Type, Clock,
 } from "lucide-react";
 import { getProfileCompletion } from "@/lib/profileCompletion";
@@ -227,7 +227,6 @@ export function useProfileLandingDerived({
         // after the one you just made. Split on owner request 2026-08-19.
         { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Your calendar & upcoming jobs", tint: "var(--burnt-sienna)" },
         { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Weekly hours & the available-now signal", tint: "var(--sage)" },
-        { key: "analytics", label: "Analytics", icon: <BarChart2 className="w-5 h-5" />, desc: "Trends, categories & hire rate", tint: "var(--stormy-sky)", href: "/analytics" },
         { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: "var(--burnt-sienna)" },
         {
           key: "credentials",
@@ -274,13 +273,19 @@ export function useProfileLandingDerived({
           tint: "var(--burnt-sienna)",
           href: "/auto-tip",
         },
-        { key: "earnings", label: "Earnings", icon: <TrendingUp className="w-5 h-5" />, desc: "Payouts, tips & tax exports", tint: "var(--burnt-siennam)" },
+        // ONE row, not three. "Earnings", "Analytics" (→ /analytics) and
+        // "Payout & Payments" were three entry points onto three screens
+        // about the same subject: what you earned, what it says about your
+        // work, and where the money lands. Merged 2026-08-19 on owner
+        // request — the earnings tab now carries the analytics dashboard and
+        // the payout setup as sections. The payout warning state moves onto
+        // this row with them, because it is still the row you tap to fix it.
         {
-          key: "payment",
-          label: "Payout & Payments",
-          icon: <CreditCard className="w-5 h-5" />,
-          desc: "Bank account & payment methods",
-          tint: "var(--bark)",
+          key: "earnings",
+          label: "Earnings & payouts",
+          icon: <TrendingUp className="w-5 h-5" />,
+          desc: "Wallet, analytics, payout setup & tax exports",
+          tint: "var(--burnt-sienna)",
           needsAction: stripeNeedsAction,
           incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
         },

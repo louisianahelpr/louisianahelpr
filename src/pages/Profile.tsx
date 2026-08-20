@@ -113,7 +113,9 @@ const ProfilePage = () => {
   // Schedule data drives the merged Schedule + Availability tab — gate
   // on either sub-view so the calendar grid is hot the moment the user
   // flips the internal toggle from Hours → Calendar.
-  const scheduleQuery = useProfileSchedule(userId, tab === "schedule" || tab === "availability");
+  // Availability is its own tab again and renders no job list, so it no
+  // longer needs the schedule fetch — only the calendar tab does.
+  const scheduleQuery = useProfileSchedule(userId, tab === "schedule");
   const inlineJobsQuery = useProfileInlineJobs(userId, tab === "posted_jobs" || tab === "completed_jobs");
   const violationsQuery = useProfileViolations(userId, tab === "warnings");
 

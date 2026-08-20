@@ -2,7 +2,7 @@ import {
   Shield, ShieldAlert, Bell, Users, PawPrint, ClipboardList,
   CalendarDays, BarChart2, Heart, ShieldCheck, Home, Star,
   TrendingUp, CreditCard, Crown, FileText, Gavel, HelpCircle,
-  AlertTriangle, Type,
+  AlertTriangle, Type, Clock,
 } from "lucide-react";
 import { getProfileCompletion } from "@/lib/profileCompletion";
 import { hapticLight } from "@/lib/haptics";
@@ -222,7 +222,11 @@ export function useProfileLandingDerived({
     {
       title: "Work",
       items: [
-        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Calendar, upcoming jobs & weekly hours", tint: "var(--burnt-sienna)" },
+        // Two rows, not one. These used to be a single "Schedule" row opening
+        // a screen with a Calendar|Hours segmented control — a second choice
+        // after the one you just made. Split on owner request 2026-08-19.
+        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Your calendar & upcoming jobs", tint: "var(--burnt-sienna)" },
+        { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Weekly hours & the available-now signal", tint: "var(--sage)" },
         { key: "analytics", label: "Analytics", icon: <BarChart2 className="w-5 h-5" />, desc: "Trends, categories & hire rate", tint: "var(--stormy-sky)", href: "/analytics" },
         { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: "var(--burnt-sienna)" },
         {

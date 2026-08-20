@@ -25,11 +25,15 @@ const SavedHelpersTab = lazy(() => import("@/components/profile/SavedHelpersTab"
 const SubscriptionTab = lazy(() => import("@/components/profile/SubscriptionTab").then(m => ({ default: m.SubscriptionTab })));
 const LegalTab = lazy(() => import("@/components/profile/LegalTab").then(m => ({ default: m.LegalTab })));
 const EarningsTab = lazy(() => import("@/components/profile/EarningsTab").then(m => ({ default: m.EarningsTab })));
-// Schedule + Availability merged into a single tab with a sub-toggle
-// (handoff item #22). Deep links to /schedule and /availability still
-// resolve via App.tsx redirects → /profile?tab=schedule|availability;
-// the merged tab uses the initial `tab` value to pick its sub-view.
-const ScheduleAvailabilityTab = lazy(() => import("@/components/profile/ScheduleAvailabilityTab").then(m => ({ default: m.ScheduleAvailabilityTab })));
+// Schedule and Availability are TWO tabs again (owner request 2026-08-19).
+// They were merged behind an in-page segmented Calendar|Hours control, which
+// meant one Profile row opened a screen that immediately asked you to choose
+// again — and swapped its own title under a back button that didn't move.
+// Deep links to /schedule and /availability keep resolving via the App.tsx
+// redirects → /profile?tab=schedule|availability; each now lands on its own
+// tab rather than on a shared screen with a pre-selected segment.
+const ScheduleTab = lazy(() => import("@/components/profile/ScheduleTab").then(m => ({ default: m.ScheduleTab })));
+const AvailabilityTab = lazy(() => import("@/components/profile/AvailabilityTab").then(m => ({ default: m.AvailabilityTab })));
 const ReviewsTab = lazy(() => import("@/components/profile/ReviewsTab").then(m => ({ default: m.ReviewsTab })));
 const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m => ({ default: m.WarningsTab })));
 const CredentialsTab = lazy(() => import("@/components/profile/CredentialsTab").then(m => ({ default: m.CredentialsTab })));
@@ -210,15 +214,13 @@ export const ProfileTabPanels = ({
         </div>
       )}
 
-      {(tab === "schedule" || tab === "availability") && user && (
+      {tab === "schedule" && user && (
         <div className="space-y-3">
-          {scheduleQuery.isError && tab === "schedule" && (
+          {scheduleQuery.isError && (
             <ProfileSectionError section="your schedule" onRetry={() => { scheduleQuery.refetch(); }} />
           )}
           <Suspense fallback={<TabFallback />}>
-            <ScheduleAvailabilityTab
-              initialView={tab === "availability" ? "availability" : "calendar"}
-              onSubViewChange={(v) => setTab(v === "availability" ? "availability" : "schedule")}
+            <ScheduleTab
               postedJobs={schedulePostedJobs}
               assignedJobs={scheduleAssignedJobs}
               loading={scheduleQuery.isPending}
@@ -227,6 +229,12 @@ export const ProfileTabPanels = ({
             />
           </Suspense>
         </div>
+      )}
+
+      {tab === "availability" && user && (
+        <Suspense fallback={<TabFallback />}>
+          <AvailabilityTab userId={user.id} onBack={() => setTab("landing")} />
+        </Suspense>
       )}
 
       {tab === "payment" && (

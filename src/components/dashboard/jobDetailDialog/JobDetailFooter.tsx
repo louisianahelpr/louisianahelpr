@@ -118,7 +118,15 @@ export const JobDetailFooter = ({
           (they may have a genuine question — "is the gate code needed?").
           A helper just browsing can't DM cold, so posters aren't flooded.
           The backend poster-first rule still governs the actual send. */}
-      {(viewerUserId === job.customer_id ||
+      {/* `viewerUserId != null` guard is load-bearing, not defensive noise.
+          It starts null (the auth look-up in useJobDetailData resolves a beat
+          after the dialog opens) and `job.helper_id` is null on every unclaimed
+          job — so `viewerUserId === job.helper_id` was `null === null`, i.e.
+          TRUE, and this button rendered for one frame on every open before
+          vanishing. Measured as the footer row losing a child (5 → 4) ~900ms
+          after open. A null viewer matches nobody. */}
+      {viewerUserId != null &&
+      (viewerUserId === job.customer_id ||
         viewerUserId === (job as { offered_to_helper_id?: string | null }).offered_to_helper_id ||
         viewerUserId === (job as { helper_id?: string | null }).helper_id ||
         viewerAppPosition != null) && (
@@ -173,48 +181,52 @@ export const JobDetailFooter = ({
           </span>
         </div>
       ) : (job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0) ? (
-        <div
-          className="flex-1 rounded-ds-md p-3 text-center"
+        // CREDENTIAL GATE — deliberately the SAME `h-11 sm:h-12` single row as
+        // every other branch of this CTA slot (Apply / Applied / your-post).
+        //
+        // It used to be a `p-3` three-line block (shield glyph over a title over
+        // a subtitle over a "Get verified →" link) measuring 197px where every
+        // sibling branch occupies 44px. `viewerTier` comes from a useQuery
+        // destructured with a `= 0` default, so while that RPC is in flight EVERY
+        // tier-gated job renders THIS branch first and then collapses to the
+        // Apply button once the real tier lands: measured, the dialog's content
+        // height went 880px → 746px about a second after opening. That is
+        // exactly the "it opens bigger then gets smaller" the owner reported.
+        //
+        // Equal-height branches make the swap free — whichever branch wins, and
+        // however late the tier resolves, the slot is the same box. Do not give
+        // any branch of this slot a height of its own.
+        <button
+          type="button"
+          // Navigating AWAY unmounts this dialog with the route, so onClose() must NOT
+          // follow. It used to. The close handler on the guest feed clears ?job= via
+          // setSearchParams(..., { replace: true }), and setSearchParams acts on the
+          // CURRENT location — so it replaced the entry navigate() had just pushed and
+          // dropped the visitor back on the guest feed.
+          onClick={() => navigate("/profile")}
+          className="flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-3 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           style={{
             background: "hsl(var(--bark) / 0.08)",
             border: "0.5px solid hsl(var(--bark) / 0.2)",
           }}
         >
           <ShieldCheck
-            className="w-5 h-5 mx-auto mb-1"
+            className="w-4 h-4 shrink-0"
             style={{ color: "hsl(var(--burnt-sienna))" }}
             strokeWidth={2}
           />
-          <p
-            className="font-sans font-semibold text-ds-14"
+          <span
+            className="font-sans font-semibold text-ds-14 truncate"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             {(job.credential_tier ?? 0) === 1
-              ? "ID verification required"
+              ? "Get verified to apply"
               : (job.credential_tier ?? 0) === 2
                 ? "Licensed pros only"
-                : "Licensed & insured required"}
-          </p>
-          <p
-            className="font-serif italic text-ds-12 mt-0.5"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            {job.instant_book ? "Get verified to book this job" : "Get verified to apply for this job"}
-          </p>
-          <button
-            className="mt-2 text-ds-12 font-sans font-semibold underline underline-offset-2 active:opacity-70 transition-opacity"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-            // Navigating AWAY unmounts this dialog with the route, so onClose() must NOT
-            // follow. It used to. The close handler on the guest feed clears ?job= via
-            // setSearchParams(..., { replace: true }), and setSearchParams acts on the
-            // CURRENT location — so it replaced the entry navigate() had just pushed and
-            // dropped the visitor back on the guest feed. The most important CTA a guest
-            // can press ("Sign up to apply") therefore went nowhere.
-            onClick={() => navigate("/profile")}
-          >
-            Get verified →
-          </button>
-        </div>
+                : "Licensed & insured only"}
+          </span>
+          <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={2.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
+        </button>
       ) : (
         <Button
           size="lg"

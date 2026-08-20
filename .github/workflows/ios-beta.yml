@@ -157,7 +157,49 @@ jobs:
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Build web bundle
-        run: npm run build:ios
+        # These MUST be present or the shipped app is dead on launch.
+        #
+        # `.env` is gitignored, so CI has no copy, and this step had no VITE_*
+        # env block at all. `import.meta.env.VITE_SUPABASE_URL` therefore
+        # resolved to undefined, `createClient(undefined, undefined)` threw at
+        # MODULE SCOPE in src/integrations/supabase/client.ts, and because
+        # App.tsx imports that eagerly the throw landed before
+        # createRoot().render(<App/>). React never mounted, the native splash
+        # auto-hid after 1.5s, and the app sat on index.html's #boot-loader —
+        # the wrought-iron H — forever, with no error surfaced anywhere.
+        #
+        # Reproduced by building with .env moved aside: the bundle contained
+        # ZERO occurrences of the Supabase URL and shipped the string
+        # "supabaseUrl is required" instead. Every CI-built TestFlight build
+        # was affected; locally-cut fastlane builds were fine because .env
+        # exists on that machine, which is what made it look intermittent.
+        #
+        # These are the PUBLISHABLE/anon keys — public by design and already
+        # present in every web bundle — not service-role secrets.
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_APPLE_MAPKIT_TOKEN: ${{ secrets.VITE_APPLE_MAPKIT_TOKEN }}
+        run: |
+          test -n "$VITE_SUPABASE_URL" || { echo "::error::VITE_SUPABASE_URL is empty — the build would ship an app that cannot boot. Set the repo secret."; exit 1; }
+          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo "::error::VITE_SUPABASE_PUBLISHABLE_KEY is empty — the build would ship an app that cannot boot. Set the repo secret."; exit 1; }
+          npm run build:ios
+
+      - name: Verify the bundle can actually reach Supabase
+        # Fail the BUILD rather than ship a bundle that dies at launch.
+        #
+        # Greps for the PROJECT REF, not "supabase.co" — the latter appears in
+        # supabase-js's own code even when the env vars are missing, so it
+        # passes on a broken bundle. Verified: a build with .env removed
+        # contains ZERO occurrences of the ref, and a good build contains it in
+        # client-*.js. The ref is public (it is in every web bundle and in the
+        # app's network calls); it is not a secret.
+        run: |
+          if ! grep -rq "fncmgoasalhdgfwzhsqa" dist/assets/*.js; then
+            echo "::error::Built bundle contains no Supabase URL — it would hang on the boot-loader. Check the VITE_* repo secrets."
+            exit 1
+          fi
+          echo "✓ bundle carries the Supabase config"
 
       - name: Sync Fastlane metadata into Xcode
         run: bundle exec fastlane ios sync_xcode_metadata --verbose

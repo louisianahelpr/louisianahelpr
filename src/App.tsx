@@ -158,7 +158,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Dashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowUnapproved><Profile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/browse-jobs" element={<Navigate to="/dashboard" replace />} />
       <Route path="/my-jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Activity defaultTab="applied" /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/my-posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Activity defaultTab="posted" /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -217,7 +216,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/browse" element={<RouteErrorBoundary>{routeEl(<PageTransition><DashboardGuest /></PageTransition>, <GuestBrowseSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />
       {/* The Community page was removed; keep old links landing somewhere sane. */}
-      <Route path="/community" element={<Navigate to="/" replace />} />
 
       {/* Settings-style pages live inside the Profile shell so the
           shared back button + safe-area top padding stay consistent.
@@ -257,25 +255,17 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
 
       <Route path="/home-history" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HomeHistory /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/work-record" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><WorkRecord /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/job-history" element={<Navigate to="/profile" replace />} />
 
       {/* Growth / business-development pages — no auth required */}
       {/* /become-a-partner retired: partner === business. Redirect legacy links. */}
-      <Route path="/become-a-partner" element={<Navigate to="/for-business" replace />} />
       {/* /enterprise retired until we're bigger — the industry verticals now
           live under Business. Redirect legacy links so they don't 404. */}
-      <Route path="/enterprise" element={<Navigate to="/for-business" replace />} />
       {/* The standalone How It Works page was folded into the landing section
           (poster/Helpr toggle) — keep old links landing on that anchor. */}
-      <Route path="/how-it-works" element={<Navigate to="/#how-it-works" replace />} />
       <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Retired public discovery pages — redirect legacy links.
           Jobs are discovered via the landing strip + /jobs; parish/impact/
           pricing-guide standalone pages were removed. */}
-      <Route path="/impact" element={<Navigate to="/" replace />} />
-      <Route path="/local-guide" element={<Navigate to="/help" replace />} />
-      <Route path="/parishes" element={<Navigate to="/jobs" replace />} />
-      <Route path="/parish/:slug" element={<Navigate to="/jobs" replace />} />
       {/* Helpr Wrapped — auth-gated at the route level so a logged-out
           visitor never sees a flash of authed chrome (HelprWrapped's own
           useEffect redirect used to fire only after the first paint). */}
@@ -285,7 +275,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Pet care — manage pet profiles and vet notes */}
       <Route path="/pets" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PetProfiles /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /evacuation page removed — redirect old bookmarks/links to pets. */}
-      <Route path="/evacuation" element={<Navigate to="/pets" replace />} />
       {/* Legacy paths surfaced by 404s in error_logs (external links, old
           bookmarks, search-engine indexes) — redirect to their modern
           equivalents instead of dumping users on the NotFound page. */}

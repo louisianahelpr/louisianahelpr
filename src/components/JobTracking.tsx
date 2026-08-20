@@ -669,7 +669,18 @@ export function JobTracking({
                   <span
                     // ds-9 below 360px so "Confirmed" — the longest unbreakable
                     // label — still fits its column on a 320px phone.
-                    className="text-ds-9 min-[360px]:text-ds-10 font-sans font-semibold text-center leading-tight"
+                    //
+                    // `w-full` is load-bearing. Without it the span sized to its
+                    // TEXT, not to the 68px column, so a wider label ("On the
+                    // Way") spilled out of its own step and got sliced by the
+                    // row's edge — the crisp "ed" and "W" the owner reported.
+                    // The comment above this row claims a step "can only ever
+                    // be cut between steps, never through one"; that was only
+                    // true of the step BOX, never of the label inside it.
+                    // Constrained to the column, a long label wraps within its
+                    // own step and the edge mask feathers whole steps as
+                    // intended.
+                    className="w-full text-ds-9 min-[360px]:text-ds-10 font-sans font-semibold text-center leading-tight"
                     style={{
                       color: isCurrent
                         ? "hsl(var(--bark))"

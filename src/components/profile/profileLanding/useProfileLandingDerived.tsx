@@ -280,7 +280,17 @@ export function useProfileLandingDerived({
           needsAction: stripeNeedsAction,
           incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
         },
-        { key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)", href: "/subscription" },
+        // No `href`. This row used to jump out to /subscription — the public
+        // MARKETING pricing page, with its own hand-rolled header whose back
+        // button goes to "/" rather than to Profile. Tapping "Membership" in
+        // your own settings and landing on the sales page (in a different
+        // header, column and card treatment from every neighbouring row) is
+        // exactly the "not the correct look" the owner flagged. The in-profile
+        // `subscription` tab (SubscriptionTab) is the settings-native screen —
+        // ProfileTabHeader, canonical cards, plan management, cancel/pause —
+        // so the row opens that. /subscription stays reachable from the public
+        // nav and footer, which is the audience it was written for.
+        { key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)" },
         { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--burnt-sienna)" },
         {
           key: "work-record",

@@ -11,6 +11,31 @@ import { BGC_FEE_CENTS, formatFeeUsd } from "@/lib/productPrices";
 const BGC_PRICE = formatFeeUsd(BGC_FEE_CENTS);
 
 /**
+ * Background-check PURCHASE is switched off — flip to `true` to re-enable.
+ *
+ * The buy path works and charges real money (`create-bgc-payment` → Stripe
+ * Checkout, live keys), but the RESULT can never come back: the vendor callback
+ * lands on `verification-webhook`, which picks `CHECKR_WEBHOOK_SECRET` /
+ * `CERTIFICIAL_WEBHOOK_SECRET` (index.ts:67) and returns 401 when the secret is
+ * absent (:75, :80). Verified against Supabase — NEITHER secret is set, because
+ * the owner has no account with either vendor yet. So a helper could be charged
+ * and left permanently `pending`, with no badge and nothing to refund against.
+ *
+ * Owner's decision (2026-08-19): "No accounts — disable the purchase", and
+ * "for now" — hence a flag here rather than deleting the feature. Nothing in
+ * the backend was removed; `create-bgc-payment` and the webhook are untouched
+ * and will work the moment the vendor secrets exist.
+ *
+ * The `verified` and `pending` states below deliberately still render: anyone
+ * already mid-check or already badged must keep seeing their real status.
+ * Only the CTA that takes money is withdrawn.
+ *
+ * TO RE-ENABLE: set the vendor secret(s) in Supabase, confirm a test callback
+ * records a result, then set this to `true`.
+ */
+const BGC_PURCHASE_ENABLED = false;
+
+/**
  * Own-profile card letting a helper pay for their own background check to
  * earn the public "Background-Checked" badge. Renders different states by
  * profiles.background_check_status:
@@ -103,7 +128,15 @@ export function BackgroundCheckCard({ status }: { status: string }) {
     );
   }
 
-  // none / failed → offer the purchase
+  // none / failed → offer the purchase.
+  //
+  // Withdrawn while BGC_PURCHASE_ENABLED is false: rendering nothing is
+  // deliberate over showing a disabled button or a "coming soon" card, because
+  // a helper who never knew the feature existed is not missing anything, while
+  // a greyed-out CTA invites "why can't I?" support tickets about a feature we
+  // cannot currently deliver.
+  if (!BGC_PURCHASE_ENABLED) return null;
+
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-3">
       <div className="flex items-start gap-3">

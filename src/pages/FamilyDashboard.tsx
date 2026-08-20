@@ -41,7 +41,6 @@ import { InviteForm } from "./familyDashboard/InviteForm";
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
 export default function FamilyDashboard() {
-  const navigate = useNavigate();
   const { user } = useCurrentUser();
   usePageTitle("Family & care — Helpr");
 
@@ -170,7 +169,7 @@ export default function FamilyDashboard() {
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
         title="Family & care"
-        onBack={() => navigate("/profile")}
+        backTo="/profile"
       />
 
       <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">

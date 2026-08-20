@@ -87,16 +87,37 @@ const ProfilePage = () => {
     const scroller = document.querySelector<HTMLElement>(".app-shell-scroll");
     const leavingLanding = prevTabForScrollRef.current === "landing" && tab !== "landing";
     const returningToLanding = prevTabForScrollRef.current !== "landing" && tab === "landing";
-    if (leavingLanding && scroller) {
-      landingScrollRef.current = scroller.scrollTop;
-    } else if (returningToLanding && scroller) {
-      const target = landingScrollRef.current;
-      const apply = () => { scroller.scrollTop = target; };
-      apply();
-      // The list re-mounts, so its full height only exists after layout.
-      requestAnimationFrame(apply);
-    }
     prevTabForScrollRef.current = tab;
+    if (!scroller) return;
+
+    if (leavingLanding) {
+      landingScrollRef.current = scroller.scrollTop;
+      return;
+    }
+    if (!returningToLanding) return;
+
+    const target = landingScrollRef.current;
+    if (target <= 0) return;
+
+    // The landing list re-mounts and some of its rows depend on async data, so
+    // its full height does not exist for several frames. Assigning scrollTop
+    // once (or once + a single rAF) silently CLAMPS to the short content and
+    // lands at 0 — which is exactly what the first attempt at this fix did.
+    // Retry across a bounded window until the container can actually hold the
+    // offset, then stop.
+    let frames = 0;
+    let raf = 0;
+    const apply = () => {
+      const max = scroller.scrollHeight - scroller.clientHeight;
+      if (max >= target) {
+        scroller.scrollTop = target;
+        return;
+      }
+      scroller.scrollTop = Math.max(0, max);
+      if (++frames < 30) raf = requestAnimationFrame(apply);
+    };
+    apply();
+    return () => { if (raf) cancelAnimationFrame(raf); };
   }, [tab]);
 
   // Sync tab to URL for bookmarkability; React Router owns history so browser

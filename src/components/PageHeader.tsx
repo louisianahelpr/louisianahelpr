@@ -12,6 +12,15 @@ interface PageHeaderProps {
   meta?: ReactNode;
   onBack?: () => void;
   /**
+   * Fallback destination for the back button when there is NO in-app history —
+   * i.e. the route was deep-linked or opened cold. Prefer this over
+   * `onBack={() => navigate("/somewhere")}`: an onClick handler short-circuits
+   * BackButton's history pop, which turns "back" into a forward PUSH. That
+   * mints a new history entry, so ScrollToTop's POP branch never runs and the
+   * page you return to is rebuilt scrolled to the top.
+   */
+  backTo?: string;
+  /**
    * Actions rendered in a SEPARATE sticky top bar ABOVE the title block.
    * That bar is a second band of chrome, so it only earns its place on a page
    * that also wants the brand mark pinned (`showBrand`). If all you have is a
@@ -141,7 +150,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
   },
 };
 
-const PageHeader = ({ title, meta, onBack, rightSlot, titleActions, hideBack = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
+const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hideBack = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
   // `eyebrow` is accepted by PageHeaderProps for call-site compatibility but
   // intentionally not destructured/rendered — see the removal note below.
   const { outer, inner } = WIDTH_CLASS[width];
@@ -200,7 +209,7 @@ const PageHeader = ({ title, meta, onBack, rightSlot, titleActions, hideBack = f
           <div className="flex items-center gap-3">
             {!hideBack && (
               <div className="shrink-0">
-                <BackButton onClick={onBack} />
+                <BackButton onClick={onBack} to={backTo} />
               </div>
             )}
             <div className="flex flex-col leading-none min-w-0 mb-1">

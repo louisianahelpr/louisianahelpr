@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -25,7 +25,6 @@ import { PetDetail } from "./petProfiles/PetDetail";
 
 const PetProfiles = () => {
   usePageTitle("My Pets — Helpr");
-  const navigate = useNavigate();
   const { user } = useCurrentUser();
   const userId = user?.id ?? null;
   const queryClient = useQueryClient();
@@ -140,7 +139,7 @@ const PetProfiles = () => {
           The back button + title now carry the navigation context. */}
       <PageHeader
         title="My Pets"
-        onBack={() => navigate("/profile")}
+        backTo="/profile"
         // Mirrors the body ladder below (max-w-lg → lg:5xl → xl:6xl, px-5 → lg:px-8).
         width="lg-5xl-6xl"
       />

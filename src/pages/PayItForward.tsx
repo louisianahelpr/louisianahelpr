@@ -318,7 +318,7 @@ export default function PayItForward() {
           from an emailed claim link; every sibling returns to /profile. */}
       <PageHeader
         title="Gift Card"
-        onBack={() => navigate("/profile")}
+        backTo="/profile"
       />
 
       <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">

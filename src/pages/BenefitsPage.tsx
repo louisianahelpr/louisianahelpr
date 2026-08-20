@@ -119,7 +119,7 @@ export default function BenefitsPage() {
         title="Benefits & Perks"
         eyebrow="Built for Helprs, by Helprs"
         meta="Partner perks curated for Louisiana Helpr members — health coverage, financial tools, and supply discounts to help you earn more and keep more."
-        onBack={() => navigate("/profile")}
+        backTo="/profile"
         // Mirrors the body container below (max-w-5xl, px-4 → lg:px-8 → xl:px-12).
         width="5xl-p4"
       />

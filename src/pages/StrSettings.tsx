@@ -9,7 +9,7 @@
  */
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+
 import { CalendarDays, Home, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { toast } from "sonner";
@@ -32,7 +32,6 @@ import { AddCalendarForm, validateCleaningBudget } from "./strSettings/AddCalend
 // ---------------------------------------------------------------------------
 export default function StrSettings() {
   usePageTitle("Host Automation — Helpr");
-  const navigate = useNavigate();
   const [addOpen, setAddOpen] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -211,7 +210,7 @@ export default function StrSettings() {
           landing, so the chevron goes back there like every sibling. */}
       <PageHeader
         title="Host Automation"
-        onBack={() => navigate("/profile")}
+        backTo="/profile"
       />
 
       <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">

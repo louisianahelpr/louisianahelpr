@@ -70,6 +70,15 @@ const NO_CONVERSATIONS: Conversation[] = [];
  * through `queryClient.setQueryData` instead of component state, which is what
  * makes those optimistic edits survive the navigation too.
  */
+/**
+ * How long the inbox waits for an authenticated user id before it stops
+ * rendering a skeleton and shows the retryable error state instead. The
+ * conversations query is `enabled: !!resolvedUserId`, and a disabled React
+ * Query reports `isPending` forever — without this bound, a session that
+ * fails to rehydrate on resume leaves the inbox loading for good.
+ */
+const IDENTITY_GRACE_MS = 8000;
+
 export function useMessagesData({
   userId,
   cachedUser,
@@ -154,7 +163,7 @@ export function useMessagesData({
   const {
     data: allConversations,
     isPending: conversationsPending,
-    isError: loadError,
+    isError: conversationsError,
   } = useQuery({
     queryKey: queryKeys.messages.conversations(resolvedUserId),
     queryFn: () => fetchConversations(resolvedUserId!, thumbWarningShown),
@@ -177,11 +186,32 @@ export function useMessagesData({
     );
   }, [allConversations, resolvedUserId]);
 
+  // A DISABLED query reports `isPending` forever. `enabled: !!resolvedUserId`,
+  // so if the session never rehydrates — which is exactly what happens when the
+  // app is resumed from background and auth comes back empty — the inbox sat on
+  // its skeleton indefinitely: no data, no error, no retry, no timeout. Killing
+  // and relaunching the app was the only way out. Reproduced on an iPhone 17
+  // Pro simulator 2026-08-19.
+  //
+  // Bound the wait. If identity has not resolved after IDENTITY_GRACE_MS, stop
+  // pretending to load and fall through to the existing ErrorState, which
+  // already offers a retry.
+  const [identityStalled, setIdentityStalled] = useState(false);
+  useEffect(() => {
+    if (resolvedUserId) {
+      setIdentityStalled(false);
+      return;
+    }
+    const t = setTimeout(() => setIdentityStalled(true), IDENTITY_GRACE_MS);
+    return () => clearTimeout(t);
+  }, [resolvedUserId]);
+
   // Only true on a genuinely cold cache — a warm cache resolves `data` on the
-  // first render, so a revisit never shows the skeleton. `isPending` is also
-  // true while the query is disabled (no user yet), which preserves the old
-  // "skeleton until we know who you are" behavior.
-  const loading = conversationsPending && !allConversations;
+  // first render, so a revisit never shows the skeleton.
+  const loading =
+    conversationsPending && !allConversations && !identityStalled;
+  // A stalled identity is a load failure from the user's point of view.
+  const loadError = conversationsError || (identityStalled && !resolvedUserId);
 
   // `useState`-shaped setter over the query cache, so every existing optimistic
   // caller keeps working verbatim (see the hook doc-comment).

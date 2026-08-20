@@ -155,7 +155,12 @@ function AppliedJobCardInner({
               button on its own row below, which spent a full 44px band and two
               words saying what a chevron says on its own. The accessible name
               stays on `aria-label`, because a bare glyph has none. */}
-          <div className="px-4 py-3 space-y-2.5">
+          {/* `pb-1.5` when an action section follows, `py-3` otherwise. The
+              meta block's bottom padding and the action block's top padding
+              stacked to ~48px of dead band with a hairline through the middle,
+              directly above the Accept/Decline pair. Same trim the posted card
+              makes. */}
+          <div className={`px-4 pt-3 space-y-2.5 ${hasActionSection && !isMinimalCard ? "pb-1.5" : "pb-3"}`}>
             {/* The chevron goes through JobCardMetaRow's own `trailing` slot,
                 which exists for exactly this and is what PostedJobCard uses.
                 This card wrapped the meta row in a bespoke flex and hung its
@@ -212,6 +217,18 @@ function AppliedJobCardInner({
             )}
             {!isMinimalCard && isExpanded && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
               <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
+            )}
+            {/* The payout breakdown was exposed ONLY through the amount chip's
+                `title=` attribute. Touch has no hover and iOS is the primary
+                surface, so the helper's most-asked question — "why is my
+                take-home $38.50 on a $45 job?" — had no answer on the device
+                most of them use. It lives in the expanded detail now. */}
+            {!isMinimalCard && isExpanded && payout > 0 && (
+              <p className="text-ds-11 text-muted-foreground">
+                You keep{" "}
+                <span className="font-medium text-foreground">${formatPriceExact(payout)}</span>
+                {" "}of the ${job.budget} budget — {commissionPercent}% Helpr fee.
+              </p>
             )}
 
 
@@ -282,12 +299,15 @@ function AppliedJobCardInner({
                   the applicant list and viewed this application. Subtle
                   olivewood colour so it reads as informational, not urgent. */}
               {viewedApp.poster_viewed_at && (
+                // The date was in a `title=` only. Touch has no hover, and iOS
+                // is the primary surface, so on the device most helpers use
+                // there was no route to it at all. It's short enough to just
+                // say.
                 <span
-                  className="flex items-center gap-0.5 text-ds-10 font-medium"
+                  className="flex items-center gap-1 text-ds-10 font-medium"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                  title={`Poster viewed on ${formatShortDate(viewedApp.poster_viewed_at)}`}
                 >
-                  <Eye className="w-3 h-3" aria-hidden="true" /> Seen
+                  <Eye className="w-3 h-3" aria-hidden="true" /> Seen {formatShortDate(viewedApp.poster_viewed_at)}
                 </span>
               )}
               <JobActionRow columns={2}>

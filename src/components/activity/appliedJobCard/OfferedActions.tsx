@@ -73,7 +73,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
             <MessageSquare className="w-3 h-3" /> Message from poster
           </p>
           <p className="font-serif italic leading-relaxed text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
-            "{app.offer_message}"
+            “{app.offer_message}”
           </p>
         </div>
       )}

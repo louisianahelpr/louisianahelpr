@@ -115,11 +115,16 @@ export function WhatToBringChecklist({ jobId, category }: WhatToBringChecklistPr
             style={{ color: "hsl(var(--bark))" }}
             aria-hidden="true"
           />
+          {/* One eyebrow token across these surfaces. This was bark at
+              text-ds-11 / 0.16em while every sibling eyebrow ("Message from
+              poster", "Why are you withdrawing?", "Your attachments") is
+              sienna at text-ds-10 / 0.18em — three sizes and two colour
+              families for one role, inside the same card. */}
           <span
-            className="font-serif italic uppercase truncate text-ds-11"
+            className="font-serif italic uppercase truncate text-ds-10"
             style={{
-              color: "hsl(var(--bark))",
-              letterSpacing: "0.16em",
+              color: "hsl(var(--burnt-sienna))",
+              letterSpacing: "0.18em",
             }}
           >
             What to bring · typical for {label}

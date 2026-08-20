@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 
+function resolveToken(varName: string, fallback: string): string {
+  if (typeof document === "undefined") return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  return v || fallback;
+}
+
 interface AppleMapPreviewProps {
   street: string;
   city: string;
@@ -122,7 +128,7 @@ export function AppleMapPreview({ street, city, state, zipCode }: AppleMapPrevie
       }
       const Annotation = mk.MarkerAnnotation;
       if (Annotation) {
-        annotationRef.current = new Annotation(center, { color: "#A65A40" });
+        annotationRef.current = new Annotation(center, { color: resolveToken("--burnt-sienna", "#A65A40") });
         mapRef.current.addAnnotation(annotationRef.current);
       }
     } catch { /* ignore */ }

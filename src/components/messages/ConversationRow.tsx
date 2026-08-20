@@ -303,8 +303,8 @@ const ConversationRowBase = ({
           of identical bark circles. */}
       <div
         className={cn(
-          "shrink-0 w-11 h-11 rounded-full flex items-center justify-center overflow-hidden self-center bg-gradient-to-br",
-          !c.otherUserAvatarUrl && avatarGradientFor(c.otherUserId),
+          "shrink-0 w-11 h-11 rounded-full flex items-center justify-center overflow-hidden self-center",
+          !c.otherUserAvatarUrl && cn("bg-gradient-to-br", avatarGradientFor(c.otherUserId)),
         )}
         style={{ border: "1px solid hsl(var(--olivewood) / 0.20)" }}
       >

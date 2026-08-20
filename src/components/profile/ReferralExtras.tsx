@@ -14,6 +14,9 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { formatPrice } from "@/lib/format";
 
+/** CSS display size of the QR code. Backing bitmap is 3x this (see below). */
+const QR_DISPLAY_PX = 120;
+
 interface ReferralExtrasProps {
   referralCode: string | null;
   referralCount: number;
@@ -65,7 +68,20 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
         },
       },
       (err) => {
-        if (err) setQrError(true);
+        if (err) {
+          setQrError(true);
+          return;
+        }
+        // qrcode's canvas renderer sets `canvas.style.width/height` to the
+        // BACKING size (360px here) after drawing, clobbering the 120px
+        // display size React set inline. React never re-applies it (the prop
+        // didn't change), so the card rendered 360 CSS px wide and blew the
+        // whole referral screen past the viewport. Restore the display size.
+        const el = canvasRef.current;
+        if (el) {
+          el.style.width = `${QR_DISPLAY_PX}px`;
+          el.style.height = `${QR_DISPLAY_PX}px`;
+        }
       },
     );
   }, [referralCode]);
@@ -119,7 +135,7 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
               height={360}
               aria-label={`QR code for referral code ${referralCode}`}
               role="img"
-              style={{ display: "block", width: 120, height: 120 }}
+              style={{ display: "block", width: QR_DISPLAY_PX, height: QR_DISPLAY_PX }}
             />
           ) : (
             <div className="w-[120px] h-[120px] flex items-center justify-center text-muted-foreground">

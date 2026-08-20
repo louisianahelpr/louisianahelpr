@@ -309,16 +309,19 @@ export default function PayItForward() {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
+      {/* Geometry is the CANONICAL Profile sub-screen ladder, shared verbatim
+          with the Profile tab bodies (Profile.tsx) and PageHeader's `default`
+          width. The header used to declare `width="2xl-5xl-7xl"` against a
+          body that had already moved to the wide ladder, so the title sat in
+          a different column from the content underneath it. `onBack` went to
+          `navigate(-1)`, which is a dead end when the page is opened straight
+          from an emailed claim link; every sibling returns to /profile. */}
       <PageHeader
-        eyebrow="Gift a Helpr"
         title="Gift Card"
-        meta="Send someone you know a Helpr gift card"
-        onBack={() => navigate(-1)}
-        // Mirrors the body ladder below (max-w-2xl → lg:5xl → xl:7xl).
-        width="2xl-5xl-7xl"
+        onBack={() => navigate("/profile")}
       />
 
-      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 pt-4">
+      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
         {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
         {/* Spans full width above the split so the status is visible regardless
             of which column the eye lands on first. */}
@@ -347,8 +350,12 @@ export default function PayItForward() {
           {/* ── Left rail: context + primary action ─────────────────────────── */}
           <aside className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-6 lg:self-start">
             {/* What is this? */}
+            {/* Card radius + padding are the canonical profile-card values
+                (`rounded-2xl … p-5`). Only the FILL stays gift-tinted — the
+                bespoke `rounded-ds-md p-4` box these used made the screen read
+                as a different app than the tabs it is opened from. */}
             <div
-              className="rounded-ds-md p-4"
+              className="rounded-2xl p-5"
               style={{
                 background: "hsl(var(--gift-tint) / 0.06)",
                 border: "0.5px solid hsl(var(--gift-tint) / 0.18)",
@@ -374,7 +381,7 @@ export default function PayItForward() {
 
             {/* Give a gift form */}
             <div
-              className="rounded-ds-md p-4 space-y-4"
+              className="rounded-2xl p-5 space-y-4"
               style={{
                 background:
                   "radial-gradient(circle at 20% 0%, var(--gift-sheen) 0%, transparent 60%), " +

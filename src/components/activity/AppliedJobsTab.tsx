@@ -6,7 +6,7 @@ import { hapticError, hapticLight, hapticSuccess } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { Briefcase } from "lucide-react";
+import { Briefcase, Check } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { type Application, type AppliedApp, type Job } from "./activityConstants";
@@ -120,16 +120,31 @@ export const AppliedJobsTab = ({
     // of confirmed withdrawal — matches the task spec and gives tactile
     // confirmation that the irreversible action is being taken.
     hapticError();
-    const { error } = await supabase.from("applications").delete().eq("id", appId).eq("helper_id", userId);
-    if (error) {
-      toast.error("Couldn't withdraw that one — give it another try?");
-    } else {
-      // Best-effort log — fire-and-forget, never blocks the toast.
-      logWithdrawReason(appId, { reason: withdrawReason, detail: withdrawDetail }, jobId);
-      toast.success(`Withdrawn from "${jobTitle}".`);
-      onRefresh();
-    }
+    // `.select("id")` for the same reason as the updates above: a DELETE that
+    // matches zero rows is `{data: null, error: null}` — indistinguishable from
+    // one that removed the application. RLS only permits deleting your own
+    // PENDING application, so a helper whose application was accepted while
+    // this sheet was open would have been told "Withdrawn from …" over a row
+    // that is still there, and the card would reappear on the next refresh.
+    const { data: removed, error } = await supabase
+      .from("applications")
+      .delete()
+      .eq("id", appId)
+      .eq("helper_id", userId)
+      .select("id");
     setWithdrawingAppId(null);
+    if (error || !removed || removed.length === 0) {
+      // Leave the sheet open with the chosen reason and typed detail intact.
+      // The cleanup below used to run unconditionally, so a failed withdraw
+      // closed the sheet AND discarded everything the helper had entered —
+      // "give it another try?" meant starting over.
+      toast.error("Couldn't withdraw that one — give it another try?");
+      return;
+    }
+    // Best-effort log — fire-and-forget, never blocks the toast.
+    logWithdrawReason(appId, { reason: withdrawReason, detail: withdrawDetail }, jobId);
+    toast.success(`Withdrawn from \u201C${jobTitle}\u201D.`);
+    onRefresh();
     setWithdrawTarget(null);
     setWithdrawReason(null);
     setWithdrawDetail("");
@@ -315,12 +330,19 @@ export const AppliedJobsTab = ({
           }
         }}
       >
+        {/* `max-w-md mx-auto` like MuteSheet and AttachSourceSheet — without it
+            this sheet spans the full desktop width, so the four reason chips
+            render ~700px wide with a 13px label floating in the middle and the
+            confirm button becomes a 1400px band. `rounded-t-2xl`, not the
+            one-off `rounded-t-[20px]`, is what every other bottom sheet uses.
+            The bespoke drag handle went with it: SheetContent enables
+            drag-to-dismiss on every bottom sheet, so one sheet advertising the
+            gesture and fourteen with the same capability staying silent taught
+            the wrong thing. */}
         <SheetContent
           side="bottom"
-          className="rounded-t-[20px] border-t-0 px-5 pt-6 pb-[calc(var(--safe-area-bottom,0px)_+_24px)]"
+          className="max-w-md mx-auto rounded-t-2xl border-t-0 px-5 pt-6 pb-[calc(var(--safe-area-bottom,0px)_+_24px)] max-h-[85dvh] overflow-y-auto"
         >
-          {/* Drag-handle affordance */}
-          <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-muted-foreground/25" aria-hidden />
           <SheetHero title="Withdraw application?" />
 
           <fieldset className="mt-5 space-y-1.5" disabled={!!withdrawingAppId}>
@@ -328,7 +350,8 @@ export const AppliedJobsTab = ({
               className="font-serif italic uppercase block mb-1.5 text-ds-10"
               style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
             >
-              Why are you withdrawing?
+              Why are you withdrawing? <span aria-hidden>*</span>
+              <span className="sr-only">(required)</span>
             </legend>
             <div className="grid grid-cols-2 gap-1.5">
               {([
@@ -348,12 +371,24 @@ export const AppliedJobsTab = ({
                       if (value !== "other") setWithdrawDetail("");
                     }}
                     aria-pressed={active}
-                    className={`px-3 py-2 rounded-ds-md text-ds-13 font-medium transition-all active:scale-[0.97] ${
-                      active
-                        ? "bg-primary/10 text-primary border border-primary/35"
-                        : "bg-card text-foreground border border-[hsl(var(--border)/0.6)] glass-press hover:bg-secondary/40"
-                    }`}
+                    className="px-3 py-2 rounded-ds-md text-ds-13 font-medium transition-all active:scale-[0.97] inline-flex items-center justify-center gap-1.5"
+                    style={{
+                      // Was `bg-primary/10 text-primary` selected against a
+                      // plain white unselected chip, which composited to a
+                      // GREYER, lower-contrast tile than the four it sat among
+                      // — the chosen answer read as the disabled one. Same
+                      // triple DeclineApplicantSheet uses: the inactive state
+                      // starts translucent so active is genuinely more
+                      // saturated, not less. The check glyph means colour is
+                      // no longer the only signal either.
+                      background: active ? "hsl(var(--bark) / 0.10)" : "hsl(var(--ivory-sand) / 0.55)",
+                      color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.85)",
+                      border: active
+                        ? "0.5px solid hsl(var(--bark) / 0.35)"
+                        : "0.5px solid hsl(var(--olivewood) / 0.2)",
+                    }}
                   >
+                    {active && <Check className="w-3.5 h-3.5 shrink-0" aria-hidden />}
                     {label}
                   </button>
                 );
@@ -363,7 +398,7 @@ export const AppliedJobsTab = ({
               <Textarea
                 value={withdrawDetail}
                 onChange={(e) => setWithdrawDetail(e.target.value.slice(0, 240))}
-                placeholder="Tell us briefly — helps us improve Helpr."
+                placeholder="Tell us briefly — helps us improve Louisiana Helpr."
                 rows={2}
                 aria-label="Withdraw reason — other"
                 className="mt-2 rounded-ds-md focus-visible:border-primary/40 text-ds-14 leading-relaxed resize-none"
@@ -371,24 +406,32 @@ export const AppliedJobsTab = ({
             )}
           </fieldset>
 
-          <div className="mt-5 space-y-2.5">
+          {/* The weights were inverted: Withdraw was a full-width solid red
+              `lg` bar with elevation and "Keep application" was a flat grey
+              ghost caption, so the eye landed on the irreversible action and
+              the escape hatch read as fine print. Side by side, safe action
+              filled and leading — the same pair DeclineApplicantSheet uses.
+              Withdraw stays enabled and validates on press, which is also what
+              makes the two guard toasts in confirmWithdraw reachable; they were
+              dead code behind a disabled button, so a helper who hadn't picked
+              a reason got no explanation at all. */}
+          <div className="mt-5 flex gap-2">
             <Button
-              size="lg"
-              variant="destructive"
-              className="w-full rounded-ds-md btn-press text-ds-15 font-semibold"
-              disabled={
-                !!withdrawingAppId ||
-                !withdrawReason ||
-                (withdrawReason === "other" && withdrawDetail.trim().length < 3)
-              }
+              variant="outline"
+              className="flex-1 rounded-ds-md btn-press text-ds-15 font-medium"
+              disabled={!!withdrawingAppId}
+              aria-busy={!!withdrawingAppId}
               onClick={confirmWithdraw}
+              style={{
+                color: "hsl(var(--burnt-sienna))",
+                borderColor: "hsl(var(--burnt-sienna) / 0.30)",
+              }}
             >
               {withdrawingAppId ? "Withdrawing…" : "Withdraw"}
             </Button>
             <Button
-              size="lg"
-              variant="ghost"
-              className="w-full rounded-ds-md btn-press text-ds-15 font-medium text-muted-foreground hover:text-foreground"
+              variant="primary"
+              className="flex-[2] rounded-ds-md btn-press text-ds-15 font-semibold"
               disabled={!!withdrawingAppId}
               onClick={() => {
                 setWithdrawTarget(null);

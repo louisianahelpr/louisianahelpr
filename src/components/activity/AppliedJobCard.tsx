@@ -156,8 +156,14 @@ function AppliedJobCardInner({
               words saying what a chevron says on its own. The accessible name
               stays on `aria-label`, because a bare glyph has none. */}
           <div className="px-4 py-3 space-y-2.5">
-            <div className="flex items-start gap-2">
-              <div className="min-w-0 flex-1">
+            {/* The chevron goes through JobCardMetaRow's own `trailing` slot,
+                which exists for exactly this and is what PostedJobCard uses.
+                This card wrapped the meta row in a bespoke flex and hung its
+                own button outside — two sibling cards in the same tab, same
+                control, different structure. The glyph is one rotating
+                ChevronDown now too, copied from PostedJobCard: swapping
+                ChevronUp/ChevronDown with no transition made the identical
+                control animate on one card and snap on the other. */}
             <JobCardMetaRow
               dateNeeded={job.date_needed}
               startTime={job.start_time}
@@ -166,20 +172,22 @@ function AppliedJobCardInner({
               longitude={job.longitude}
               estimatedHours={job.estimated_hours}
               expiresAt={isPending && !job.helper_id ? job.expires_at : null}
+              trailing={
+                !isMinimalCard ? (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
+                    aria-expanded={isExpanded}
+                    aria-label={isExpanded ? "Hide job details" : "Show job details"}
+                    className="inline-flex items-center justify-center w-11 h-11 -my-3.5 -mr-2.5 text-primary active:opacity-70"
+                  >
+                    <ChevronDown
+                      className={`w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                ) : null
+              }
             />
-              </div>
-              {!isMinimalCard && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
-                  aria-expanded={isExpanded}
-                  aria-label={isExpanded ? "Hide job details" : "Show job details"}
-                  className="shrink-0 -mr-1 -mt-2 inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-primary active:opacity-70"
-                >
-                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-              )}
-            </div>
 
             {/* Description behind a tap — expands IN PLACE on this card (it IS
                 the detail surface for an applied job; there is no separate

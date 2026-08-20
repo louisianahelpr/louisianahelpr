@@ -64,11 +64,15 @@ const Footer = () => (
           into ONE tall column, which made the footer dominate the page. From
           640px the brand takes the full row and the three link groups sit
           4/4/4 beside each other; md+ keeps the original 4/3/3/2 layout. */}
-      <div className="grid gap-6 md:gap-8 sm:grid-cols-12">
+      {/* Base grid-cols-2 so the three link groups pair up below sm rather
+          than stacking one-per-row. At ~400-640px that was four full-width
+          blocks of vertical scroll for content that fits in two columns.
+          The brand block spans both so its tagline keeps one measure. */}
+      <div className="grid grid-cols-2 gap-6 md:gap-8 sm:grid-cols-12">
         {/* Brand — uses the shared HelprMark component so the wordmark
             here matches the top nav exactly (H emblem + non-italic
             "Helpr" + italic burnt-sienna "· LA" tail). */}
-        <div className="sm:col-span-12 md:col-span-4 space-y-3">
+        <div className="col-span-2 sm:col-span-12 md:col-span-4 space-y-3">
           <HelprMark to="/" size="md" hideEmblem />
           {/* Break after the first sentence so the tagline wraps predictably
               into two short lines instead of one long one that pushes the

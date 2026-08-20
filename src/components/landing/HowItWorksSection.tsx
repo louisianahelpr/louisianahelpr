@@ -199,7 +199,7 @@ const HowItWorksSection = () => {
               to work" ran 247px against 225px). The floor is set per breakpoint
               because the card width, and so the wrap height, changes with the
               column count. */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3 items-stretch gap-3 sm:gap-8 lg:gap-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 items-stretch gap-3 sm:gap-8 lg:gap-10">
             {/* Keyed by index, not title: switching sides swaps the copy in
                 the SAME three nodes instead of remounting them, so the
                 observer's staggered fade-in isn't re-armed (or skipped) on

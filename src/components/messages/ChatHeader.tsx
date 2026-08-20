@@ -183,14 +183,6 @@ export function ChatHeader({
               );
             })()}
             <ChevronRight className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.65)" }} />
-          </span>
-
-          {/* Subtitle — the job this thread is about, sharing the avatar's
-              right-hand column so it reads as one identity block. */}
-          <span id={subtitleId} className="flex items-center gap-1.5 w-full min-w-0">
-            <span className="text-ds-11 truncate min-w-0 leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {activeConvo.jobTitle}
-            </span>
             {activeConvo.jobStatus && (() => {
               const status = activeConvo.jobStatus;
               // Colors come from the canonical `jobStatusColor` map so the chat
@@ -203,13 +195,21 @@ export function ChatHeader({
               const label = status === "accepted" ? "Awarded" : jobStatusLabel(status);
               return (
                 <span
-                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
+                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0 ml-auto"
                   style={{ color: palette.text, backgroundColor: palette.bg, letterSpacing: "0.08em" }}
                 >
                   {label}
                 </span>
               );
             })()}
+          </span>
+
+          {/* Subtitle — the job this thread is about, sharing the avatar's
+              right-hand column so it reads as one identity block. */}
+          <span id={subtitleId} className="flex items-center gap-1.5 w-full min-w-0">
+            <span className="text-ds-11 truncate min-w-0 leading-tight font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              {activeConvo.jobTitle}
+            </span>
           </span>
         </span>
       </button>

@@ -173,12 +173,27 @@ export const ProfileHeaderCard = ({
         <h2 className="text-page-title leading-tight">
           {displayName}
         </h2>
-        {profile.location && (
+        {/* Meta row — place and tenure share one line so the identity block
+            reads as a single unit. "Member since" used to sit orphaned at the
+            very bottom of the page, far from the name it describes. */}
+        {(profile.location || profile.created_at) && (
           <p
-            className="font-serif italic flex items-center justify-center gap-1 mt-0.5 text-ds-13"
+            className="font-serif italic flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 mt-0.5 text-ds-13"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            <MapPin className="w-3 h-3" />{profile.location}
+            {profile.location && (
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="w-3 h-3 shrink-0" />{profile.location}
+              </span>
+            )}
+            {profile.location && profile.created_at && (
+              <span aria-hidden style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
+            )}
+            {profile.created_at && (
+              <span>
+                Since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+              </span>
+            )}
           </p>
         )}
         {/* Last-active presence chip (#28). Compact, low-weight —

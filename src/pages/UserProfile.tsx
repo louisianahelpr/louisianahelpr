@@ -594,28 +594,7 @@ const UserProfile = () => {
             {/* Portfolio — Pro+ only */}
             {(profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
 
-            {/* Member since */}
-            <p className="text-ds-11 text-muted-foreground text-center">
-              Member since {new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-            </p>
 
-            {/* Inline "Report this profile" surface (#29). The header dropdown
-                still exposes Report, but a viewer who feels uneasy after
-                reading the bio shouldn't have to hunt the 3-dot menu. Kept
-                low-key (muted text, no destructive color) so it reads as a
-                safety affordance rather than an accusation. */}
-            {!isOwnProfile && currentUserId && (
-              <div className="pt-2 flex justify-center">
-                <button
-                  onClick={() => setShowReport(true)}
-                  className="inline-flex items-center gap-1.5 text-ds-11 text-muted-foreground underline-offset-4 hover:underline hover:text-foreground transition-colors min-h-[44px] px-3"
-                  aria-label="Report this profile"
-                >
-                  <Flag className="w-3 h-3" />
-                  Report this profile
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>

@@ -91,6 +91,22 @@ describe("recurring series wiring", () => {
     expect(insertAt).toBeGreaterThan(chargeAt);
   });
 
+  it("writes the fee columns the way create-payment does", () => {
+    // These two are easy to transpose and the transposition is silent: the
+    // helper is still paid correctly (release-payout overwrites
+    // platform_fee_amount), but the admin gross rollups read
+    // `budget + customer_fee_amount + sales_tax_amount` and the cancellation
+    // refund reads `customer_fee_amount ?? 0` — so a swap under-reports revenue
+    // on every visit AND refunds a service fee that was actually collected.
+    const src = read("../../../supabase/functions/charge-recurring-visits/index.ts");
+    // platform_fee_amount is the HELPER's commission, not the poster's fee.
+    expect(src).toMatch(/platform_fee_amount: helperFeeAmount/);
+    // customer_fee_amount is the poster's service fee, and must be written —
+    // the column defaults to 0, so omitting it is silently wrong, not absent.
+    expect(src).toMatch(/customer_fee_amount: feeCents \/ 100/);
+    expect(src).toMatch(/helper_fee_percent: helperFeePercent/);
+  });
+
   it("refunds if the charge lands but the visit row does not", () => {
     const src = read("../../../supabase/functions/charge-recurring-visits/index.ts");
     expect(src).toMatch(/stripe\.refunds\.create/);

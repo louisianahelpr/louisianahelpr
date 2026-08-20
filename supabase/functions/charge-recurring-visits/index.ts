@@ -32,6 +32,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { salesTaxCents } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
@@ -197,6 +198,36 @@ serve(async (req) => {
         const taxCents = salesTaxCents(budgetCents, parent.category as string, parishRate);
         const totalCents = budgetCents + feeCents + taxCents;
 
+        // The HELPER's commission, which is a different number in a different
+        // column from the poster's service fee above. `create-payment` sets the
+        // convention (index.ts:350-356) and the two are easy to transpose:
+        //   platform_fee_percent -> the POSTER's tier percentage
+        //   platform_fee_amount  -> the HELPER's commission, in dollars
+        //   customer_fee_amount  -> the POSTER's service fee, in dollars
+        //   helper_fee_percent   -> the HELPER's tier percentage
+        // Writing the poster's fee into platform_fee_amount (and leaving
+        // customer_fee_amount at its 0 default) does not mispay the helper —
+        // release-payout overwrites platform_fee_amount at release — but it
+        // makes the admin gross rollups, which read `budget +
+        // customer_fee_amount + sales_tax_amount`, under-report every visit by
+        // its whole service fee; and the cancellation refund reads
+        // `customer_fee_amount ?? 0`, so it would hand back a fee that WAS
+        // collected.
+        const { data: settingsRow } = await supabase
+          .from("platform_settings")
+          .select("helper_fee_percent")
+          .limit(1)
+          .maybeSingle();
+        const fallbackHelperFeePercent = typeof settingsRow?.helper_fee_percent === "number"
+          ? settingsRow.helper_fee_percent
+          : 10;
+        const helperFeePercent = await getHelperFeePercent(
+          supabase as never,
+          parent.recurring_helper_id as string,
+          fallbackHelperFeePercent,
+        );
+        const helperFeeAmount = (Number(parent.budget) * helperFeePercent) / 100;
+
         if (dryRun) {
           console.log("[charge-recurring-visits] would charge", {
             series: parent.id, visitDate, totalCents,
@@ -296,7 +327,9 @@ serve(async (req) => {
             payment_status: "escrow",
             stripe_payment_intent_id: intent.id,
             platform_fee_percent: feePercent,
-            platform_fee_amount: feeCents / 100,
+            platform_fee_amount: helperFeeAmount,
+            customer_fee_amount: feeCents / 100,
+            helper_fee_percent: helperFeePercent,
             sales_tax_rate: taxCents > 0 ? parishRate : 0,
             sales_tax_amount: taxCents / 100,
             // A recurring visit is never a one-time template itself.

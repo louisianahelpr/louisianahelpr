@@ -113,17 +113,18 @@ const HomeHistory = () => {
     // carry put a card around the header and a second card around the list —
     // a card-in-a-card the owner flagged as off-pattern.
     //
-    // `width="5xl-p4"` is the page's body ladder verbatim
-    // (max-w-5xl, px-4 → lg:px-8 → xl:px-12), so the title stays in column
-    // with the content beneath it.
+    // Geometry is the CANONICAL Profile sub-screen ladder, shared verbatim
+    // with the Profile tab bodies (Profile.tsx) and PageHeader's `default`
+    // width: max-w-5xl → lg:6xl → xl:7xl → 2xl:90rem on px-5 → lg:px-8 →
+    // xl:px-12. This page used to stop at a fixed max-w-5xl on a px-4 gutter,
+    // which read as a narrower, differently-inset screen than every sibling.
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
         title="Home History"
         onBack={() => navigate("/profile")}
-        width="5xl-p4"
       />
 
-      <div className="max-w-5xl mx-auto px-4 lg:px-8 xl:px-12 pt-4 space-y-8">
+      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8 space-y-5">
         {loading && (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => <JobCardSkeleton key={i} />)}

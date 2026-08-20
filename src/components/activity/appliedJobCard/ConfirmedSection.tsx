@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { messageButtonStyle } from "@/components/activity/JobActionRow";
 import {MessageSquare } from "lucide-react";
 import { AddToCalendarButton } from "./AddToCalendarButton";
 import { JobCountdown } from "@/components/activity/JobCountdown";
@@ -37,7 +38,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
       <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
       {/* Job confirmation for helper */}
       <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
-      <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+      <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
     </div>
   );
 }

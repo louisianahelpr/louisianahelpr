@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { messageButtonStyle } from "@/components/activity/JobActionRow";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -189,7 +190,7 @@ export function PostedJobActions({
             )}
             <div className="flex gap-2">
               <Button size="sm" variant="destructive" className="flex-1" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
-              <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+              <Button size="sm" variant="outline" style={messageButtonStyle} className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
             </div>
             {/* Share link — lets the poster spread the word even
                 after a helper has been accepted. Opens the OS
@@ -313,13 +314,14 @@ export function PostedJobActions({
                       job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
                       layout="stack"
                       className={JOB_ACTION_CHIP_CLASS}
-                      style={jobActionChipStyle("info")}
+                      style={jobActionChipStyle("share")}
                     />
                     <JobActionChip
                       icon={MessageCircle}
                       label="Message"
                       ariaLabel="Message Helpr"
-                      tone="neutral"
+                      // Blue. Owner: "I think blue suits messages better."
+                      tone="info"
                       // Straight into the thread with THIS helpr on THIS job, not
                       // the conversation list — owner: "when I tap message it
                       // should take me right into Eli's message". Same
@@ -587,7 +589,7 @@ export function PostedJobActions({
               <AlertTriangle className="w-4 h-4 mr-1" /> View timeline & add evidence
             </Button>
             <div className="grid grid-cols-2 gap-2">
-              <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>
+              <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>
               <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact admin</Button>
             </div>
           </div>

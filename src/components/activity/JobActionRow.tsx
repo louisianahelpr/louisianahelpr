@@ -42,7 +42,7 @@ const COLS: Record<number, string> = {
 export const JOB_ACTION_CHIP_CLASS =
   "w-full h-auto min-h-[44px] flex-col gap-0.5 px-1 py-1.5 glass-press border-0";
 
-export type JobActionTone = "info" | "boost" | "edit" | "danger" | "primary" | "neutral";
+export type JobActionTone = "info" | "boost" | "edit" | "danger" | "primary" | "neutral" | "share";
 
 /**
  * Tint/ink/border per chip tone.
@@ -107,6 +107,19 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
         color: "hsl(var(--olivewood))",
         border: "0.5px solid hsl(var(--olivewood) / 0.22)",
       };
+    case "share":
+      // SHARE. Owner call 2026-08-20: blue moved to Message ("I think blue
+      // suits messages better"), and Share must not fall back to the quiet
+      // neutral. It cannot take `boost` either — Share and Boost sit in the
+      // same row on an open job, and identical chips would read as one
+      // control repeated. Sage is the brand's own accent, unused by any other
+      // tone, so Share stays distinctly non-neutral without borrowing a hue
+      // that already means something else in this row.
+      return {
+        background: "hsl(var(--sage) / 0.18)",
+        color: "hsl(var(--bark))",
+        border: "0.5px solid hsl(var(--sage) / 0.42)",
+      };
     case "primary":
     default:
       return {
@@ -118,6 +131,25 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
       };
   }
 }
+
+
+/**
+ * The Message treatment, in ONE place.
+ *
+ * Owner rule, stated twice: "Message should be the same color for all places."
+ * Owner call 2026-08-20: that colour is BLUE — "I think blue suits messages
+ * better" — and Share gave the blue up in exchange (see the `share` tone).
+ *
+ * Message renders as a chip in the posted-card action row and as an outline
+ * <Button> in five other sections. Both read from this so they cannot drift
+ * apart again, which is exactly how Message ended up solid-bark in one place
+ * and outline in five others.
+ */
+export const messageButtonStyle: CSSProperties = {
+  background: "hsl(var(--info-tint) / 0.12)",
+  color: "hsl(var(--info-ink))",
+  borderColor: "hsl(var(--info-tint) / 0.32)",
+};
 
 /**
  * Row wrapper. `columns` is passed explicitly rather than counted from

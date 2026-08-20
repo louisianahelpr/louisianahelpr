@@ -1,6 +1,6 @@
 import {
   Shield, ShieldAlert, Bell, Users, PawPrint, ClipboardList,
-  CalendarDays, Heart, ShieldCheck, Home, Star,
+  CalendarDays, Heart, ShieldCheck, Home, Star, Gift, Coins, UserPlus,
   TrendingUp, Crown, FileText, Gavel, HelpCircle,
   AlertTriangle, Type, Clock,
 } from "lucide-react";
@@ -247,7 +247,7 @@ export function useProfileLandingDerived({
         {
           key: "gift-card",
           label: "Gift Card",
-          icon: <Heart className="w-5 h-5" />,
+          icon: <Gift className="w-5 h-5" />,
           desc: "Donate job credits for neighbors who need help",
           tint: "155 50% 30%",
           href: "/gift-card",
@@ -268,7 +268,7 @@ export function useProfileLandingDerived({
         {
           key: "auto-tip",
           label: "Auto-tip",
-          icon: <Heart className="w-5 h-5" />,
+          icon: <Coins className="w-5 h-5" />,
           desc: "Tip automatically when a job is done",
           tint: "var(--burnt-sienna)",
           href: "/auto-tip",
@@ -300,7 +300,7 @@ export function useProfileLandingDerived({
         // so the row opens that. /subscription stays reachable from the public
         // nav and footer, which is the audience it was written for.
         { key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)" },
-        { key: "referral", label: "Referrals", icon: <Heart className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--burnt-sienna)" },
+        { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--burnt-sienna)" },
         {
           key: "work-record",
           label: "Work Record",

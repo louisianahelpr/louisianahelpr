@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { messageButtonStyle } from "@/components/activity/JobActionRow";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, MessageSquare, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -175,7 +176,7 @@ export function DisputedSection({
       </Button>
 
       <div className="grid grid-cols-2 gap-2">
-        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+        <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
         <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact admin</Button>
       </div>
     </div>

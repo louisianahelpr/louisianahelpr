@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { messageButtonStyle } from "@/components/activity/JobActionRow";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, MessageSquare, RefreshCw, Check, ClipboardList } from "lucide-react";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -194,7 +195,7 @@ export function ActiveJobSection({
             </>
           );
         })()}
-        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+        <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
       </div>
     </div>
   );

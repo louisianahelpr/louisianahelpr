@@ -23,7 +23,7 @@ import {
   jobActionChipStyle,
 } from "../JobActionRow";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
-import { DisputeLink } from "@/components/jobs/DisputeLink";
+import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
 
 interface PostedJobActionsProps {
   job: Job;
@@ -243,73 +243,36 @@ export function PostedJobActions({
                 variant="warning"
               />
             )}
-            {/* Approve & Complete (primary) — only after helper marks done.
-                Opens the two-path CompletionChoiceSheet so the poster
-                can either confirm ("looks great") or request a revision
-                before escrow releases. */}
-            {job.helper_completed_at && (
-              <>
-                <Button
-                  size="sm"
-                  className="w-full rounded-ds-md"
-                  onClick={() => {
-                    if (!job.poster_completed_at) {
-                      setCompletionSheetOpen(true);
-                    }
-                  }}
-                  disabled={completingJobId === job.id || !!job.poster_completed_at}
-                  style={
-                    !job.poster_completed_at
-                      ? {
-                          background: "hsl(var(--bark))",
-                          backgroundImage: "none",
-                          border: "1px solid hsl(var(--bark))",
-                          color: "hsl(var(--parchment))",
-                          boxShadow: "var(--elev-bark-raised)",
-                        }
-                      : undefined
-                  }
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-1" />
-                  {completingJobId === job.id ? "…" : job.poster_completed_at ? "Approved" : "Approve & release payment"}
-                </Button>
-                <CompletionChoiceSheet
-                  open={completionSheetOpen}
-                  jobId={job.id}
-                  jobTitle={job.title}
-                  helperId={job.helper_id}
-                  helperName={job.helper_id ? (helperNames[job.helper_id] || "Helpr") : "Helpr"}
-                  userId={userId}
-                  onClose={() => setCompletionSheetOpen(false)}
-                  onConfirm={() => onComplete(job.id)}
-                  onRevisionSubmitted={onActionComplete}
-                />
-              </>
-            )}
-            {/* Message / Share / No-Show as one icon-over-label row.
-                These were three full-width stacked buttons, three rows deep —
-                together with the tracking card they pushed the next job almost
-                entirely off screen. Same shape as the four-chip row on an open
-                job (owner: "this can be icons but just put the words under it
-                like the other page does for shared edit etc.").
+            {/* ONE icon-over-label action row for the whole in-progress state.
 
-                Order is SOS · Share · Message, per the owner ("move sos to the
-                left of messages and move messages to the right of share"), with
-                SOS relocated here out of the tracking card's header.
+                It used to be three stacked full-width buttons around the chip
+                row — "Approve & release payment", "Request a revision
+                instead", "Still unresolved? File a formal dispute" — plus the
+                DisputeLink footer, so a single card could stack four
+                full-width controls around a four-up chip row. Owner: one
+                consistent icon row per card, not a different arrangement per
+                state.
 
-                Message is SOLID BARK IN EVERY STATE. It used to demote to a
-                muted tint once "Approve & release payment" appeared above it,
-                which meant the same button was two different colours on two
-                cards in the same list — the owner's "Message should be the same
-                color for all places". Hierarchy against the Approve button is
-                carried by SIZE and POSITION instead: Approve is full-width and
-                sits above the row, so it still reads as the bigger move without
-                Message having to change colour to say so. No-Show keeps the
-                destructive tint.
+                Order is SOS · Share · Message · Approve · No-Show/Dispute, with
+                SOS relocated here out of the tracking card's header (owner:
+                "move sos to the left of messages and move messages to the right
+                of share").
+
+                Two controls were FOLDED IN rather than moved, because they were
+                duplicates:
+                  - "Request a revision instead" — the Approve chip opens
+                    CompletionChoiceSheet, which is itself the two-path
+                    confirm-or-request-a-revision sheet. The ghost button was a
+                    second door onto the same sheet's second path.
+                  - the deadline-gated "Still unresolved? File a formal dispute"
+                    button and the DisputeLink footer both call onDispute for a
+                    revision_requested job; the Dispute chip is the single
+                    affordance now, gated by DisputeLink's own exported
+                    visibility predicate so the rules did not fork.
 
                 Visible labels are terse ("Message", not "Message Helpr") so
-                nothing truncates in a three-up row at 320px; the full name is
-                on aria-label, so the spoken name is unabbreviated. */}
+                nothing truncates at 320px; the full name is on aria-label, so
+                the spoken name is unabbreviated. */}
             {(() => {
               // Owner's rule: No-Show is tied to the CLOCK, not to whether the
               // helper accepted — hidden until the scheduled start time has come
@@ -325,80 +288,94 @@ export function PostedJobActions({
               // on-the-way one (owner: "SOS should be when they are there
               // arrived and working"). Someone still driving over is not a
               // safety situation yet, and an SOS offered then reads as routine.
-              // Same rule as the tracker header it moved out of, which gates on
-              // the "arrived" step.
-              //
-              // `helper_arrived_at` is the only stamp for that step and is
-              // written before the helper can advance to Working, so gating on
-              // it also covers the later states.
-              //
-              // That rule ALSO excluded completed/cancelled jobs. Those checks
-              // are not repeated here: this branch only renders for a job whose
-              // status is already narrowed to "in_progress" | "revision_requested",
-              // so tsc rejected them as comparisons that can never be true.
               const showSos = !!job.helper_arrived_at;
-              const columns = (2 + (showSos ? 1 : 0) + (showNoShow ? 1 : 0)) as 2 | 3 | 4;
+              const showApprove = !!job.helper_completed_at;
+              // Dispute only where the shared predicate already allows it (an
+              // open revision on the customer side) — no new dispute surface,
+              // just the existing one moved into the row.
+              const showDispute = shouldShowDisputeLink(job, "customer");
+              const columns = Math.min(
+                2 +
+                  (showSos ? 1 : 0) +
+                  (showApprove ? 1 : 0) +
+                  (showNoShow ? 1 : 0) +
+                  (showDispute ? 1 : 0),
+                5,
+              ) as 2 | 3 | 4 | 5;
               return (
-                <JobActionRow columns={columns}>
-                  {showSos && <SosShareButton jobId={job.id} variant="chip" />}
-                  {/* ShareJobButton renders its own <Button> (it owns the
-                      native-share fallback chain), so it takes the shared chip
-                      class + tone rather than being wrapped. */}
-                  <ShareJobButton
-                    job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-                    layout="stack"
-                    className={JOB_ACTION_CHIP_CLASS}
-                    style={jobActionChipStyle("info")}
-                  />
-                  <JobActionChip
-                    icon={MessageCircle}
-                    label="Message"
-                    ariaLabel="Message Helpr"
-                    tone="primary"
-                    // Straight into the thread with THIS helpr on THIS job, not
-                    // the conversation list — owner: "when I tap message it
-                    // should take me right into Eli's message". Same
-                    // jobId+userId contract the card's other Message entry
-                    // points already use.
-                    onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
-                  />
-                  {showNoShow && (
+                <>
+                  <JobActionRow columns={columns}>
+                    {showSos && <SosShareButton jobId={job.id} variant="chip" />}
+                    {/* ShareJobButton renders its own <Button> (it owns the
+                        native-share fallback chain), so it takes the shared chip
+                        class + tone rather than being wrapped. */}
+                    <ShareJobButton
+                      job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
+                      layout="stack"
+                      className={JOB_ACTION_CHIP_CLASS}
+                      style={jobActionChipStyle("info")}
+                    />
                     <JobActionChip
-                      icon={XCircle}
-                      label="No-Show"
-                      ariaLabel="Report the Helpr as a no-show"
-                      tone="danger"
-                      onClick={() => onNoShow(job.id)}
+                      icon={MessageCircle}
+                      label="Message"
+                      ariaLabel="Message Helpr"
+                      tone="neutral"
+                      // Straight into the thread with THIS helpr on THIS job, not
+                      // the conversation list — owner: "when I tap message it
+                      // should take me right into Eli's message". Same
+                      // jobId+userId contract the card's other Message entry
+                      // points already use.
+                      onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
+                    />
+                    {showApprove && (
+                      <JobActionChip
+                        icon={CheckCircle2}
+                        label={job.poster_completed_at ? "Approved" : "Approve"}
+                        ariaLabel="Approve the work and release payment"
+                        tone="primary"
+                        disabled={completingJobId === job.id || !!job.poster_completed_at}
+                        onClick={() => {
+                          if (!job.poster_completed_at) {
+                            setCompletionSheetOpen(true);
+                          }
+                        }}
+                      />
+                    )}
+                    {showNoShow && (
+                      <JobActionChip
+                        icon={XCircle}
+                        label="No-Show"
+                        ariaLabel="Report the Helpr as a no-show"
+                        tone="danger"
+                        onClick={() => onNoShow(job.id)}
+                      />
+                    )}
+                    {showDispute && (
+                      <JobActionChip
+                        icon={AlertTriangle}
+                        label="Dispute"
+                        ariaLabel="Something wrong? Open a dispute about this job"
+                        tone="danger"
+                        onClick={() => onDispute(job)}
+                      />
+                    )}
+                  </JobActionRow>
+                  {showApprove && (
+                    <CompletionChoiceSheet
+                      open={completionSheetOpen}
+                      jobId={job.id}
+                      jobTitle={job.title}
+                      helperId={job.helper_id}
+                      helperName={job.helper_id ? (helperNames[job.helper_id] || "Helpr") : "Helpr"}
+                      userId={userId}
+                      onClose={() => setCompletionSheetOpen(false)}
+                      onConfirm={() => onComplete(job.id)}
+                      onRevisionSubmitted={onActionComplete}
                     />
                   )}
-                </JobActionRow>
+                </>
               );
             })()}
-            {/* Request Revision — only after helper marks complete (Stage 2) */}
-            {job.status === "in_progress" && !job.poster_completed_at && job.helper_completed_at && (
-              <Button size="sm" variant="ghost" className="w-full text-muted-foreground hover:text-destructive text-ds-11" onClick={() => onRevision(job.id)}>
-                <AlertTriangle className="w-3.5 h-3.5 mr-1" /> Request a revision instead
-              </Button>
-            )}
-            {/* Dispute — Stage 3, only after revision deadline has passed without resolution */}
-            {job.status === "revision_requested" && job.revision_deadline && new Date(job.revision_deadline) < new Date() && !job.revision_completed_at && (
-              <button
-                onClick={() => onDispute(job)}
-                className="w-full text-ds-11 text-muted-foreground hover:text-destructive underline underline-offset-2 py-1 transition-colors"
-              >
-                Still unresolved? File a formal dispute
-              </button>
-            )}
-            {/* Issue #113 — always-findable dispute path during a
-                pending revision. Distinct from the deadline-gated
-                button above: this surfaces *whenever* a revision is
-                open, not only after the deadline elapses. The
-                component self-hides for jobs already in dispute. */}
-            <DisputeLink
-              job={job}
-              side="customer"
-              onOpenDispute={() => onDispute(job)}
-            />
           </div>
         )}
         {job.status === "completed" && (() => {
@@ -414,69 +391,110 @@ export function PostedJobActions({
                 afterUrls={job.proof_after_urls || []}
                 canUpload={false}
               />
-              {!hasTipped ? (
-                <Button size="sm" className="w-full bg-accent/15 text-accent hover:bg-accent/25 border-0" onClick={() => onTip(job.id, helperName)}>
-                  <DollarSign className="w-4 h-4 mr-1" /> Tip {helperName}
-                </Button>
-              ) : (
-                <Button size="sm" className="w-full bg-muted text-muted-foreground border-0 cursor-default" disabled>
-                  <CheckCircle2 className="w-4 h-4 mr-1" /> Tipped
-                </Button>
-              )}
-              {job.payment_status === "released" && (
-                !hasReviewed ? (
-                  <Button size="sm" className="w-full bg-accent/15 text-accent hover:bg-accent/25 border-0" onClick={() => onReview(job)}>
-                    <Star className="w-4 h-4 mr-1" /> Review
-                  </Button>
-                ) : (
-                  <Button size="sm" className="w-full bg-muted text-muted-foreground border-0 cursor-default" disabled>
-                    <CheckCircle2 className="w-4 h-4 mr-1" /> Reviewed
-                  </Button>
-                )
-              )}
-              {/* Hire again — direct offer to the same helper.
-                  Routes to PostJob with offerTo + rebook query so
-                  the form is prefilled AND the offer goes straight
-                  to them (skipping the open-application queue). */}
-              {job.helper_id ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="w-full rounded-ds-md"
-                  onClick={() => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`)}
-                >
-                  <RotateCcw className="w-4 h-4 mr-1" /> Hire {helperName} again
-                </Button>
-              ) : (
-                <Button size="sm" variant="outline" className="w-full liquid-glass glass-press" onClick={() => navigate(`/post-job?rebook=${job.id}`)}>
-                  <RotateCcw className="w-4 h-4 mr-1" /> Re-post this job
-                </Button>
-              )}
-              {!job.poster_completed_at && (
-                <>
-                  {job.revision_requested_at ? (
-                    <Button size="sm" variant="outline" className="w-full text-[hsl(var(--danger-ink))] border-destructive/30 hover:bg-destructive/5" onClick={() => onDispute(job)}>
-                      <AlertTriangle className="w-4 h-4 mr-1" /> Dispute
-                    </Button>
-                  ) : (
-                    <>
-                      <Button size="sm" variant="outline" className="w-full text-[hsl(var(--danger-ink))] border-destructive/30 hover:bg-destructive/5" onClick={() => onRevision(job.id)}>
-                        <AlertTriangle className="w-4 h-4 mr-1" /> Request Revision
-                      </Button>
-                      <p className="text-ds-10 text-muted-foreground text-center italic">Request a revision first before filing a dispute</p>
-                    </>
-                  )}
-                </>
-              )}
-              {/* Issue #113 — quiet, always-findable dispute path for
-                  the 7-day window after completion. The component
-                  self-hides outside that window or once a dispute is
-                  already filed, so this lives unconditionally here. */}
-              <DisputeLink
-                job={job}
-                side="customer"
-                onOpenDispute={() => onDispute(job)}
-              />
+              {/* ONE icon-over-label action row, same shape as the
+                  in-progress state's. Tip / Review / Hire again / Something
+                  wrong were four stacked full-width buttons (plus an italic
+                  "request a revision first" footnote and the DisputeLink
+                  footer) — six rows of chrome on a job that is already done.
+                  Owner: one consistent icon row per card, not a different
+                  arrangement per state.
+
+                  The fourth slot is the single "something wrong" affordance.
+                  It is Revision while the revision path is still open, and
+                  Dispute once a revision has been asked for (or once the job
+                  settled without one) — which is exactly what the deleted
+                  footnote was explaining in prose. Its Dispute branch is gated
+                  by DisputeLink's own exported predicate, so the 7-day window
+                  and the never-double-file rule are unchanged. */}
+              {(() => {
+                const canReview = job.payment_status === "released";
+                // Revision first, dispute second — same escalation order the
+                // footnote used to spell out.
+                const canRevise = !job.poster_completed_at && !job.revision_requested_at;
+                const canDispute = !canRevise && shouldShowDisputeLink(job, "customer");
+                const columns = (2 + (canReview ? 1 : 0) + (canRevise || canDispute ? 1 : 0)) as 2 | 3 | 4;
+                return (
+                  <JobActionRow columns={columns}>
+                    {!hasTipped ? (
+                      <JobActionChip
+                        icon={DollarSign}
+                        label="Tip"
+                        ariaLabel={`Tip ${helperName}`}
+                        tone="boost"
+                        onClick={() => onTip(job.id, helperName)}
+                      />
+                    ) : (
+                      <JobActionChip
+                        icon={CheckCircle2}
+                        label="Tipped"
+                        ariaLabel={`Already tipped ${helperName}`}
+                        tone="neutral"
+                        disabled
+                        onClick={() => {}}
+                      />
+                    )}
+                    {canReview && (
+                      !hasReviewed ? (
+                        <JobActionChip
+                          icon={Star}
+                          label="Review"
+                          ariaLabel={`Leave a review for ${helperName}`}
+                          tone="edit"
+                          onClick={() => onReview(job)}
+                        />
+                      ) : (
+                        <JobActionChip
+                          icon={CheckCircle2}
+                          label="Reviewed"
+                          ariaLabel={`Already reviewed ${helperName}`}
+                          tone="neutral"
+                          disabled
+                          onClick={() => {}}
+                        />
+                      )
+                    )}
+                    {/* Hire again — direct offer to the same helper.
+                        Routes to PostJob with offerTo + rebook query so
+                        the form is prefilled AND the offer goes straight
+                        to them (skipping the open-application queue). */}
+                    {job.helper_id ? (
+                      <JobActionChip
+                        icon={RotateCcw}
+                        label="Hire again"
+                        ariaLabel={`Hire ${helperName} again`}
+                        tone="primary"
+                        onClick={() => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`)}
+                      />
+                    ) : (
+                      <JobActionChip
+                        icon={RotateCcw}
+                        label="Re-post"
+                        ariaLabel="Re-post this job"
+                        tone="primary"
+                        onClick={() => navigate(`/post-job?rebook=${job.id}`)}
+                      />
+                    )}
+                    {canRevise && (
+                      <JobActionChip
+                        icon={AlertTriangle}
+                        label="Revision"
+                        ariaLabel="Something wrong? Request a revision"
+                        tone="danger"
+                        onClick={() => onRevision(job.id)}
+                      />
+                    )}
+                    {canDispute && (
+                      <JobActionChip
+                        icon={AlertTriangle}
+                        label="Dispute"
+                        ariaLabel="Something wrong? Open a dispute about this job"
+                        tone="danger"
+                        onClick={() => onDispute(job)}
+                      />
+                    )}
+                  </JobActionRow>
+                );
+              })()}
             </div>
           );
         })()}

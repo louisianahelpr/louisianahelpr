@@ -24,6 +24,12 @@ const COLS: Record<number, string> = {
   2: "grid-cols-2",
   3: "grid-cols-3",
   4: "grid-cols-4",
+  // Five is the ceiling, reached only by an in-progress job that is
+  // simultaneously on-site (SOS), marked done by the helper (Approve) and
+  // carrying an open revision (Dispute). At 320px that is ~55px a chip —
+  // enough for the terse labels this row uses, and nothing longer belongs
+  // in it.
+  5: "grid-cols-5",
 };
 
 /**
@@ -44,9 +50,10 @@ export type JobActionTone = "info" | "boost" | "edit" | "danger" | "primary" | "
  * Every value here is lifted verbatim from the existing four-chip row, so the
  * Share/Boost/Edit/Cancel chips render byte-identically after the extraction.
  * `primary` is the one addition: a SOLID bark fill, so a row can still express
- * hierarchy (Message Helpr is the primary action on an in-progress job) without
- * leaving the icon-over-label layout. Solid-vs-tint carries the hierarchy that
- * full-width-vs-inline used to.
+ * hierarchy without leaving the icon-over-label layout. Solid-vs-tint carries
+ * the hierarchy that full-width-vs-inline used to — it marks the ONE main move
+ * in a row (Approve & release on an in-progress job, Hire again on a completed
+ * one), never Message.
  */
 export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
   switch (tone) {
@@ -77,10 +84,24 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
         border: "0.5px solid hsl(var(--destructive) / 0.32)",
       };
     case "neutral":
-      // Demoted-primary: what a chip becomes when a bigger, full-width primary
-      // ("Approve & release payment") has appeared above the row and Message is
-      // no longer the main move. Same olivewood tint the "waiting" status pill
-      // uses, so it reads as secondary without borrowing another action's hue.
+      // The quiet tone. Two users:
+      //
+      //  1. MESSAGE, in every state. It used to be solid bark here, on the
+      //     theory that a full-width "Approve & release payment" above the row
+      //     carried the hierarchy. Both halves of that were wrong: the owner's
+      //     rule is "Message should be the same color for all places", and
+      //     every OTHER Message in the app (ActiveJobSection, ConfirmedSection,
+      //     DisputedSection, the accepted-state row) is a quiet outline button
+      //     — so bark made this one chip the odd one out rather than the
+      //     consistent one. The full-width Approve is also gone; it is a chip
+      //     in this same row now, and `primary` (solid bark) is reserved for it
+      //     and for Hire again, the two chips that really are the main move.
+      //
+      //  2. A COMPLETED action's done-state (Tipped / Reviewed) — inert, so it
+      //     should recede rather than keep the live action's colour.
+      //
+      // Same olivewood tint the "waiting" status pill uses, so it reads as
+      // secondary without borrowing another action's hue.
       return {
         background: "hsl(var(--olivewood) / 0.08)",
         color: "hsl(var(--olivewood))",
@@ -109,7 +130,7 @@ export function JobActionRow({
   children,
   className,
 }: {
-  columns: 1 | 2 | 3 | 4;
+  columns: 1 | 2 | 3 | 4 | 5;
   children: ReactNode;
   className?: string;
 }) {

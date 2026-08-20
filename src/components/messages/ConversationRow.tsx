@@ -107,9 +107,10 @@ function LastMessageImageThumb({
 /**
  * ConversationRow — a single row in the virtualized inbox list: avatar,
  * iMessage-style preview ("You: " prefix when you sent it, photo
- * thumbnail when the last message was an image attachment), job title +
- * status chip, and a right cluster holding the unread dot and the
- * far-right relative timestamp.
+ * thumbnail when the last message was an image attachment), and a job-title
+ * subtitle. The name line carries the job-status chip beside the name (same
+ * placement as ChatHeader) and, in the top-right corner, the unread dot and
+ * the relative timestamp.
  *
  * The row carries no per-row ⋮ overflow menu. Everything it used to hold
  * is reachable elsewhere: mute / report / block from the thread header,
@@ -310,35 +311,21 @@ const ConversationRowBase = ({
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
+            {/* Name line — name, then the job-status pill, then the right
+                cluster (unread dot + relative time) pinned to the corner.
+
+                The pill sits beside the NAME, not on the job-title line below,
+                so this row and the thread header it opens agree: ChatHeader
+                paints the identical chip beside the name (same size, weight,
+                tracking, and canonical `jobStatusColor` palette). `ml-auto`
+                lives on the time cluster here rather than on the pill, because
+                the top-right corner is the timestamp's. */}
             <div className="flex items-center gap-1.5">
               <p
-                className="font-sans font-semibold truncate text-ds-15"
+                className="font-sans font-semibold truncate min-w-0 text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
               >
                 {c.otherUserName}
-              </p>
-            </div>
-            {/* `flex-wrap` + a generous basis on the title, so the annotations
-                below it wrap instead of starving it.
-
-                Measured at 375px: this row is 120px wide, and the "CANCELLED"
-                chip alone took 76px of it. Every sibling here — status chip,
-                mute bell, last-active pill — is `shrink-0`, and `truncate`
-                sets the title's automatic minimum size to zero, so the title
-                absorbed the entire deficit and collapsed to 38px. "Crawfish
-                boil setup and teardown" rendered as "Crawfi…", which does not
-                identify a conversation. The annotations were winning space
-                from the thing they annotate.
-
-                A basis wider than the row forces the title onto its own line
-                when a chip is present, so both stay fully legible; the cost is
-                ~14px of height, and only on narrow screens with a chip. */}
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5">
-              <p
-                className="flex-1 min-w-0 basis-[9rem] text-ds-11 truncate font-serif italic"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                {c.jobTitle}
               </p>
               {statusChip && (
                 // Plain inert label for every status, cancelled included.
@@ -354,6 +341,47 @@ const ConversationRowBase = ({
                   {statusChip.label}
                 </span>
               )}
+              {/* Right cluster — unread dot, then the relative timestamp,
+                  in the row's TOP-RIGHT corner. It used to be centred against
+                  the full three-line row; on the name line it aligns with the
+                  thing it timestamps (the conversation) and matches the
+                  iOS Messages inbox. Still INSIDE the open-thread button, so
+                  the corner opens the conversation rather than being a dead
+                  gutter. */}
+              <span className="ml-auto shrink-0 flex items-center gap-1.5">
+                {hasUnreadFromOther && (
+                  <span
+                    aria-label={`${c.unread} unread message${c.unread === 1 ? "" : "s"}`}
+                    role="status"
+                    className="shrink-0 w-2 h-2 rounded-full"
+                    style={{ background: "hsl(var(--burnt-sienna))" }}
+                  />
+                )}
+                <span
+                  className="text-ds-11 whitespace-nowrap"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  {when}
+                </span>
+              </span>
+            </div>
+            {/* Job title + its quiet annotations.
+
+                `flex-wrap` and a generous basis on the title stay, for the
+                same reason they were added: every sibling here is `shrink-0`
+                and `truncate` sets the title's automatic minimum size to zero,
+                so annotations used to win space from the thing they annotate
+                ("Crawfish boil setup and teardown" collapsing to "Crawfi…").
+                The status chip, which was the widest of them at ~76px, has
+                moved up to the name line — so in practice this row now wraps
+                far less often than it did. */}
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5">
+              <p
+                className="flex-1 min-w-0 basis-[9rem] text-ds-11 truncate font-serif italic"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              >
+                {c.jobTitle}
+              </p>
               {/* Muted bell-slash — quiet visual mark that this thread
                   has notifications off for the current user. iMessage
                   convention: small icon next to the title/subtitle row,
@@ -431,30 +459,6 @@ const ConversationRowBase = ({
               </p>
             </div>
           </div>
-          {/* Right cluster — unread dot, then the relative timestamp.
-              The per-row ⋮ overflow menu used to occupy this edge with
-              the dot beside it; the menu is gone (every action it held
-              lives elsewhere), so the timestamp now sits flush against
-              the row's px-3 padding with the dot tucked to its left.
-              Both live INSIDE the open-thread button, so the strip the
-              kebab vacated still opens the conversation rather than
-              becoming a dead gutter. */}
-          <span className="shrink-0 self-center flex items-center gap-1.5">
-            {hasUnreadFromOther && (
-              <span
-                aria-label={`${c.unread} unread message${c.unread === 1 ? "" : "s"}`}
-                role="status"
-                className="shrink-0 w-2 h-2 rounded-full"
-                style={{ background: "hsl(var(--burnt-sienna))" }}
-              />
-            )}
-            <span
-              className="text-ds-11 whitespace-nowrap"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              {when}
-            </span>
-          </span>
         </div>
       </button>
     </div>

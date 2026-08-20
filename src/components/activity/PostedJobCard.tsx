@@ -230,9 +230,16 @@ function PostedJobCardInner({
                   <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0">
                     {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
                   </div>
-                  <span className="text-ds-11 text-muted-foreground">
-                    {job.status === "completed" ? "Completed by" : "Offered to"}
-                  </span>
+                  {/* No "Completed by" prefix on a completed job: the card's
+                      status stripe already reads "Completed" four rows above,
+                      so this row was the second place the card announced the
+                      status. What it uniquely carries is WHO — the avatar plus
+                      the name link say that on their own. The other states keep
+                      their prefix, because "Offered to" is a fact the stripe
+                      does not carry. */}
+                  {job.status !== "completed" && (
+                    <span className="text-ds-11 text-muted-foreground">Offered to</span>
+                  )}
                   <a href={`/user/${job.helper_id}`} onClick={(e) => e.stopPropagation()} className="text-ds-11 font-medium text-primary hover:underline">
                     {helperNames[job.helper_id] || "Helpr"}
                   </a>
@@ -416,13 +423,14 @@ function PostedJobCardInner({
                   </div>
                 );
               }
-              return (!hasTipped || !hasReviewed) ? (
-                <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card">
-                  <span className="text-ds-11 text-muted-foreground">
-                    {!hasTipped && !hasReviewed ? "Tip & review" : !hasTipped ? "Leave a tip" : "Leave a review"}
-                  </span>
-                </div>
-              ) : null;
+              // Nothing when the job is still awaiting a tip and/or a review.
+              // This used to print a bare "Tip & review" / "Leave a tip" /
+              // "Leave a review" strip directly above the action row that
+              // already carries a Tip chip and a Review chip — a label with no
+              // control, naming the buttons underneath it. The chips ARE the
+              // prompt. Only the fully-archived summary above survives, and it
+              // stays because it also carries the expand chevron.
+              return null;
             })()}
 
             {/* Re-post CTA — completed jobs that are fully archived (tipped & reviewed).

@@ -258,6 +258,18 @@
       mounts. Light path is left entirely on the inline styles.
     -->
     <style id="boot-theme">
+      /* The UA default `body { margin: 8px }` survives the first paint —
+         Tailwind's preflight only zeroes it once the app's stylesheet is
+         applied, and the inline boot shell above paints before that. Measured
+         (PerformanceObserver on 'layout-shift', production build, 375x812):
+         a 0.0099 shift on EVERY route, body moving [y 8, h 804] -> [y 0,
+         h 812]. It was the only load-time layout shift left in the app, and
+         it fires on every cold launch — i.e. the first thing anyone sees.
+         Zeroing it here, inline, makes first paint and steady state agree. */
+      html,
+      body {
+        margin: 0;
+      }
       [data-theme="dark"] #root,
       [data-theme="dark"] #boot-loader {
         background: radial-gradient(circle at 50% 46%, hsl(20 14% 13%) 0%, hsl(20 15% 9%) 52%, hsl(20 17% 6%) 100%) !important;

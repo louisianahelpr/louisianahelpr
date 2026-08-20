@@ -68,6 +68,37 @@ const ProfilePage = () => {
       : `${TAB_TITLES[tab]} — My Profile — Helpr`,
   );
 
+  // Opening a tab uses `replace: true` (below), so the landing list and the tab
+  // it opens SHARE one history entry — and therefore one `location.key`. The
+  // global scroll tracker in ScrollToTop stores offsets keyed by that key, so
+  // the moment a tab opened and its (shorter) content clamped the container to
+  // 0, the list's saved offset was overwritten with 0. Coming back then landed
+  // at the top of a long list every time. Reproduced on device: scroll to
+  // "Referrals", open "Earnings & payouts", tap back — the list returns to the
+  // top. That is the owner's "everything is all over the place".
+  //
+  // Keep the offset ourselves across the landing→tab→landing round trip. Not
+  // done by switching to a pushed entry: `replace` is deliberate here (see the
+  // comment below), and changing it would alter what the hardware/browser back
+  // gesture does for every profile tab.
+  const landingScrollRef = useRef(0);
+  const prevTabForScrollRef = useRef<Tab>(tab);
+  useEffect(() => {
+    const scroller = document.querySelector<HTMLElement>(".app-shell-scroll");
+    const leavingLanding = prevTabForScrollRef.current === "landing" && tab !== "landing";
+    const returningToLanding = prevTabForScrollRef.current !== "landing" && tab === "landing";
+    if (leavingLanding && scroller) {
+      landingScrollRef.current = scroller.scrollTop;
+    } else if (returningToLanding && scroller) {
+      const target = landingScrollRef.current;
+      const apply = () => { scroller.scrollTop = target; };
+      apply();
+      // The list re-mounts, so its full height only exists after layout.
+      requestAnimationFrame(apply);
+    }
+    prevTabForScrollRef.current = tab;
+  }, [tab]);
+
   // Sync tab to URL for bookmarkability; React Router owns history so browser
   // back/forward updates searchParams, which the effect below mirrors to state.
   useEffect(() => {

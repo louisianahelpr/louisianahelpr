@@ -11,25 +11,33 @@ import { BGC_FEE_CENTS, formatFeeUsd } from "@/lib/productPrices";
 const BGC_PRICE = formatFeeUsd(BGC_FEE_CENTS);
 
 /**
- * The purchase is OFF while the screening provider has no accounts.
+ * Background-check PURCHASE is switched off — flip to `true` to re-enable.
  *
- * `create-bgc-payment` charges live money, but `verification-webhook` 401s
- * without CHECKR_WEBHOOK_SECRET / CERTIFICIAL_WEBHOOK_SECRET — so a helper can
- * pay for a check whose RESULT can never be recorded. They would sit at
- * "in progress" indefinitely, having been charged, with no badge and no
- * refund path. Taking money for something that cannot complete is the one
- * thing this card must not do.
+ * The buy path works and charges real money (`create-bgc-payment` → Stripe
+ * Checkout, live keys), but the RESULT can never come back: the vendor callback
+ * lands on `verification-webhook`, which picks `CHECKR_WEBHOOK_SECRET` /
+ * `CERTIFICIAL_WEBHOOK_SECRET` (index.ts:67) and returns 401 when the secret is
+ * absent (:75, :80). Verified against Supabase — NEITHER secret is set, because
+ * the owner has no account with either vendor yet. So a helper could be charged
+ * and left permanently `pending`, with no badge and nothing to refund against.
  *
- * Deliberately a one-line flag rather than a deletion: the backend, the price,
- * the badge and the status rendering all stay, so re-enabling is flipping this
- * to `true` once the provider accounts exist. The matching server-side guard
- * is in `supabase/functions/create-bgc-payment/index.ts` — this constant is
- * not the enforcement point, since the edge function is callable directly.
+ * Owner's decision (2026-08-19): "No accounts — disable the purchase", and
+ * "for now" — hence a flag here rather than deleting the feature. Nothing in
+ * the backend was removed; `create-bgc-payment` and the webhook are untouched
+ * and will work the moment the vendor secrets exist.
  *
- * NOT changed here, and worth a look separately: a helper already sitting at
- * `pending` from before this was switched off is still shown "in progress",
- * which the broken webhook means may never resolve. Deciding what to tell them
- * (and whether to refund) is an owner call, not a UI change.
+ * The `verified` and `pending` states below deliberately still render: anyone
+ * already mid-check or already badged must keep seeing their real status.
+ * Only the CTA that takes money is withdrawn.
+ *
+ * THIS FLAG IS NOT THE ENFORCEMENT POINT. An edge function is callable
+ * directly with any signed-in token, so hiding a button stops nobody who has
+ * already seen the endpoint. `create-bgc-payment` carries the matching guard
+ * and returns 503 before any Stripe work; both must stay off together.
+ *
+ * TO RE-ENABLE: set the vendor secret(s) in Supabase, confirm a test callback
+ * records a result, then set BOTH this and the flag in
+ * supabase/functions/create-bgc-payment/index.ts to `true`.
  */
 const BGC_PURCHASE_ENABLED = false;
 
@@ -126,11 +134,13 @@ export function BackgroundCheckCard({ status }: { status: string }) {
     );
   }
 
-  // none / failed → offer the purchase, unless it is switched off. When off
-  // the card renders NOTHING rather than a "coming soon" tile: a helper who
-  // has never had a check does not need to be told about a thing they cannot
-  // buy, and a disabled CTA on the profile is just a dead control taking up
-  // the same space.
+  // none / failed → offer the purchase.
+  //
+  // Withdrawn while BGC_PURCHASE_ENABLED is false: rendering nothing is
+  // deliberate over showing a disabled button or a "coming soon" card, because
+  // a helper who never knew the feature existed is not missing anything, while
+  // a greyed-out CTA invites "why can't I?" support tickets about a feature we
+  // cannot currently deliver.
   if (!BGC_PURCHASE_ENABLED) return null;
 
   return (

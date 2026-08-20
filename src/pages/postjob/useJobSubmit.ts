@@ -67,6 +67,8 @@ export interface UseJobSubmitParams {
   isRecurring: boolean;
   recurrenceInterval: string;
   recurrenceEndDate: string;
+  recurrenceDays: number[];
+  recurrenceWeeks: number;
   isGroupJob: boolean;
   helpersNeeded: string;
   isUrgent: boolean;
@@ -120,6 +122,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     isRecurring,
     recurrenceInterval,
     recurrenceEndDate,
+    recurrenceDays,
+    recurrenceWeeks,
     isGroupJob,
     helpersNeeded,
     isUrgent,
@@ -165,6 +169,16 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     if (!budget || parseFloat(budget) < MIN_JOB_BUDGET_DOLLARS) { toast.error(`Minimum budget is ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}`); scrollToField("budget"); return; }
     if (parseFloat(budget) > MAX_JOB_BUDGET_DOLLARS) { toast.error(`Maximum budget is ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}.`); scrollToField("budget"); return; }
     if (isUrgent && (parseFloat(urgentFee) < URGENT_FEE_FLOOR_DOLLARS || isNaN(parseFloat(urgentFee)))) { toast.error(`Urgent bonus must be at least ${formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)}`); scrollToField("custom-urgent-fee"); return; }
+    // A series with no days is not a series. The picker seeds the job's own
+    // weekday so this should be unreachable from a fresh form, but a restored
+    // draft predating the day set would come back empty — and letting it
+    // through would create a parent that never spawns a second visit and never
+    // says why.
+    if (isRecurring && recurrenceDays.length === 0) {
+      toast.error("Pick at least one day this job repeats on");
+      scrollToField("date");
+      return;
+    }
     setConfirmed(false);
     setStep("checkout");
   };
@@ -445,7 +459,14 @@ export function useJobSubmit(params: UseJobSubmitParams) {
           jobId: jobData.id,
           // Optional opt-in: ask Stripe to save the card for off-session
           // future-use. The edge function decides whether to honor it.
-          saveCardForFuture,
+          //
+          // FORCED for a recurring series. Every later visit is charged
+          // off-session by charge-recurring-visits, and with no saved card
+          // that cron can only decline — which means the poster books a
+          // 12-week series and silently gets one visit. Saving the card is not
+          // a preference here, it is what the series is made of, and the
+          // checkout screen says so before they pay.
+          saveCardForFuture: saveCardForFuture || isRecurring,
           // Pay It Forward redemption: when present, create-payment settles
           // the gift instead of charging the full escrow (see edge fn).
           ...(pifCreditId ? { pifCreditId } : {}),

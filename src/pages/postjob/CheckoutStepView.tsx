@@ -70,6 +70,8 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         isRecurring={form.isRecurring}
         recurrenceInterval={form.recurrenceInterval}
         recurrenceEndDate={form.recurrenceEndDate}
+        recurrenceDays={form.recurrenceDays}
+        recurrenceWeeks={form.recurrenceWeeks}
         isUrgent={form.isUrgent}
         urgentFeeNum={form.urgentFeeNum}
         budgetNum={form.budgetNum}

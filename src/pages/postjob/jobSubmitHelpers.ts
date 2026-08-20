@@ -1,5 +1,6 @@
 import type { Database } from "@/integrations/supabase/types";
 
+import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { isLaborTaxable, salesTaxCents } from "@/lib/salesTax";
 
 /**
@@ -34,6 +35,10 @@ export interface BuildJobInsertPayloadInput {
   isRecurring: boolean;
   recurrenceInterval: string;
   recurrenceEndDate: string;
+  /** Weekdays the series runs, 0=Sun..6=Sat. Empty for a one-time job. */
+  recurrenceDays?: number[];
+  /** How many weeks the series runs. */
+  recurrenceWeeks?: number;
   isGroupJob: boolean;
   helpersNeeded: string;
   isUrgent: boolean;
@@ -111,6 +116,8 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     isRecurring,
     recurrenceInterval,
     recurrenceEndDate,
+    recurrenceDays,
+    recurrenceWeeks,
     isGroupJob,
     helpersNeeded,
     isUrgent,
@@ -124,6 +131,13 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
 
   // Expire listing at the job date/time (removed when a helpr is selected or on the day of the job)
   const expiresAt = computeExpiresAt(dateNeeded, startTime);
+
+  // The recurring series, expanded from the SAME module the charge cron reads,
+  // so the end date written here and the dates that actually get billed can
+  // never disagree.
+  const seriesDays = isRecurring ? (recurrenceDays ?? []) : [];
+  const seriesWeeks = isRecurring ? (recurrenceWeeks ?? 0) : 0;
+  const seriesDates = recurringVisitDates(dateNeeded, seriesDays, seriesWeeks);
 
   // Lock platform fee and sales tax at creation time
   const lockedFeePercent = platformFee ?? 0;
@@ -159,7 +173,20 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     special_requirements: specialRequirements.trim() || null,
     is_recurring: isRecurring,
     recurrence_interval: isRecurring ? recurrenceInterval : null,
-    recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
+    // DERIVED from the schedule, not typed. The poster picks weekdays and a
+    // number of weeks; the last visit's date is where the series ends, so
+    // asking them for it separately could only produce a value that disagrees
+    // with the days they chose. Falls back to whatever they had if the day set
+    // is empty, which the form does not allow but a restored draft could be.
+    recurrence_end_date: isRecurring
+      ? (seriesDates[seriesDates.length - 1] ?? (recurrenceEndDate || null))
+      : null,
+    ...(isRecurring && seriesDays.length > 0
+      ? ({
+          recurrence_days: seriesDays,
+          recurrence_weeks: seriesWeeks,
+        } as Record<string, unknown>)
+      : {}),
     is_group_job: isGroupJob,
     helpers_needed: isGroupJob ? parseInt(helpersNeeded) || 2 : 1,
     expires_at: expiresAt,

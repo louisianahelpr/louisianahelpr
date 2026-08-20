@@ -84,16 +84,34 @@ export function usePostJobForm() {
   const [estimatedHours, setEstimatedHours] = useState("");
   const [budget, setBudget] = useState("");
   const [specialRequirements, setSpecialRequirements] = useState("");
-  // Recurring is temporarily withdrawn (see the note in LogisticsSection —
-  // every visit after the first posted with no payment behind it). The state
-  // stays so the rest of the form keeps its shape, but the setter is pinned
-  // OFF here rather than only in the UI: a restored draft and a rebook both
-  // replay a saved `is_recurring: true` through their own setters, which would
-  // create a parent this build cannot fund even though the control is gone.
   const [isRecurring, setIsRecurringRaw] = useState(false);
-  const setIsRecurring = (_v: boolean) => setIsRecurringRaw(false);
+  // `recurrenceInterval` / `recurrenceEndDate` are the OLD single-interval
+  // model (daily|weekly|biweekly|monthly + an end date). They are still written
+  // so existing readers — the browse card's "Recurring" chip, the admin views —
+  // keep working, but the end date is now DERIVED from the schedule below
+  // rather than typed. The day set is the source of truth.
   const [recurrenceInterval, setRecurrenceInterval] = useState("weekly");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
+  // The real schedule: which weekdays (0=Sun..6=Sat) and for how many weeks.
+  // Defaults to the job's own weekday once a date is chosen (see
+  // useJobFormEffects) so turning on Repeats never starts from an empty set.
+  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
+  const [recurrenceWeeks, setRecurrenceWeeks] = useState(4);
+
+  /**
+   * Turning on Repeats seeds the day set with the job's OWN weekday.
+   *
+   * An empty picker is a dead end dressed as a choice: the poster has already
+   * told us when the job is, so "every Wednesday" should take one tap, not two.
+   * They can add or remove days from there. Only seeds when the set is empty,
+   * so toggling off and back on does not wipe a chosen schedule.
+   */
+  const setIsRecurring = (next: boolean) => {
+    setIsRecurringRaw(next);
+    if (!next || recurrenceDays.length > 0 || !dateNeeded) return;
+    const dow = new Date(`${dateNeeded}T12:00:00Z`).getUTCDay();
+    if (Number.isInteger(dow)) setRecurrenceDays([dow]);
+  };
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [helpersNeeded, setHelpersNeeded] = useState("2");
   // Credential tier requirement for the job:
@@ -324,6 +342,8 @@ export function usePostJobForm() {
     isRecurring,
     recurrenceInterval,
     recurrenceEndDate,
+    recurrenceDays,
+    recurrenceWeeks,
     isGroupJob,
     helpersNeeded,
     isUrgent,
@@ -464,6 +484,10 @@ export function usePostJobForm() {
     setIsRecurring,
     recurrenceInterval,
     setRecurrenceInterval,
+    recurrenceDays,
+    setRecurrenceDays,
+    recurrenceWeeks,
+    setRecurrenceWeeks,
     recurrenceEndDate,
     setRecurrenceEndDate,
     isGroupJob,

@@ -22,6 +22,7 @@ import type { HelprActivity } from "@/hooks/useHelprActivity";
 // 50 + 7 + 7 against a printed total of 63 — the poster can see it not add
 // up, on the screen where they decide whether to trust us with a card.
 import { formatPriceExact } from "@/lib/format";
+import { recurringVisitDates, WEEKDAY_LABELS } from "@/lib/recurringSchedule";
 import { estimatedSalesTax, hasTaxableLine } from "@/lib/salesTax";
 import { useParishTaxRate } from "@/hooks/useParishTaxRate";
 import { formatJobDate } from "@/lib/dateUtils";
@@ -57,6 +58,8 @@ interface CheckoutStepProps {
   isRecurring: boolean;
   recurrenceInterval: string;
   recurrenceEndDate: string;
+  recurrenceDays: number[];
+  recurrenceWeeks: number;
   isUrgent: boolean;
   urgentFeeNum: number;
   budgetNum: number;
@@ -103,8 +106,9 @@ export function CheckoutStep({
   isFlexibleSchedule,
   specialRequirements,
   isRecurring,
-  recurrenceInterval,
   recurrenceEndDate,
+  recurrenceDays,
+  recurrenceWeeks,
   isUrgent,
   urgentFeeNum,
   budgetNum,
@@ -137,6 +141,7 @@ export function CheckoutStep({
   // answers to "what will you charge me".
   //   0    → exempt category: tax is a known zero, the total is exact.
   //   null → taxable category whose parish rate isn't resolved yet.
+  const seriesDates = isRecurring ? recurringVisitDates(dateNeeded, recurrenceDays, recurrenceWeeks) : [];
   const salesTax = estimatedSalesTax(budgetNum, category, parishTaxRate);
   const totalWithTax = totalCharge + (salesTax ?? 0);
   return (
@@ -265,15 +270,22 @@ export function CheckoutStep({
             </div>
           )}
 
-          {/* Recurring schedule */}
-          {isRecurring && (
+          {/* Recurring schedule.
+              The days AND the visit count, because the total below is for the
+              FIRST visit only — every later one is charged to the saved card a
+              few days ahead. A poster committing to twelve visits must see
+              twelve, next to the one-visit total, at the moment they pay. The
+              old row said "weekly until 3 Nov", which named neither. */}
+          {isRecurring && recurrenceDays.length > 0 && (
             <div className="px-4 py-3 flex items-start gap-3">
               <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
                 <Repeat className="w-3 h-3" />Repeats
               </span>
-              <p className="flex-1 text-ds-13 text-foreground text-right capitalize">
-                {recurrenceInterval}
-                {recurrenceEndDate ? ` until ${formatJobDate(recurrenceEndDate)}` : ""}
+              <p className="flex-1 text-ds-13 text-foreground text-right">
+                {recurrenceDays.map((d) => WEEKDAY_LABELS[d]).join(", ")}
+                {" · "}
+                {seriesDates.length} visit{seriesDates.length === 1 ? "" : "s"}
+                {recurrenceEndDate ? ` through ${formatJobDate(recurrenceEndDate)}` : ""}
               </p>
             </div>
           )}

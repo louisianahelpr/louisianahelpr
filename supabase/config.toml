@@ -55,6 +55,10 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.spawn-recurring-jobs]
     verify_jwt = false
+  # Cron-authenticated like its siblings (verifyCronSecret), not JWT — no user
+  # is present when a recurring visit is charged. That is the point.
+  [functions.charge-recurring-visits]
+    verify_jwt = false
   [functions.expiring-jobs-push]
     verify_jwt = false
   [functions.payment-confirm-reminder]

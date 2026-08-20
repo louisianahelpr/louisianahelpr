@@ -121,10 +121,10 @@ export function FormStep({ form }: FormStepProps) {
             setSpecialRequirements={form.setSpecialRequirements}
             isRecurring={form.isRecurring}
             setIsRecurring={form.setIsRecurring}
-            recurrenceInterval={form.recurrenceInterval}
-            setRecurrenceInterval={form.setRecurrenceInterval}
-            recurrenceEndDate={form.recurrenceEndDate}
-            setRecurrenceEndDate={form.setRecurrenceEndDate}
+            recurrenceDays={form.recurrenceDays}
+            setRecurrenceDays={form.setRecurrenceDays}
+            recurrenceWeeks={form.recurrenceWeeks}
+            setRecurrenceWeeks={form.setRecurrenceWeeks}
             isGroupJob={form.isGroupJob}
             setIsGroupJob={form.setIsGroupJob}
             helpersNeeded={form.helpersNeeded}

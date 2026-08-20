@@ -56,13 +56,21 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   } = useSavedHelpers({ user, business });
 
   return (
-    <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+    // Canonical Profile tab body: `space-y-4` under a ProfileTabHeader, with
+    // NO scroll container of its own. This tab used to be
+    // `h-full flex flex-col overflow-hidden` wrapping its own
+    // `overflow-y-auto` pane — a second scroller nested inside the tab
+    // container in Profile.tsx, which already scrolls. That gave the screen
+    // its own scrollbar, a search row pinned while the list moved under it,
+    // and a 12px rhythm where every sibling tab uses 16px: the concrete
+    // reason this screen read as built by someone else.
+    <div className="space-y-4">
       <ProfileTabHeader
         title="Saved Helprs"
         onBack={onBack}
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto pr-1 -mr-1 space-y-3">
+      <div className="space-y-3">
         {helpers.length > 0 && (
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -195,6 +203,14 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
           />
         ) : (
           <div className="space-y-3 pb-2">
+            {/* Says what the list below is, and — when a search is narrowing
+                it — that the rest of the list still exists. Without this a
+                filtered view is indistinguishable from a shrinking list. */}
+            <p className="font-serif italic text-ds-12 px-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              {filtered.length === helpers.length
+                ? `${helpers.length} saved ${helpers.length === 1 ? "Helpr" : "Helprs"}`
+                : `${filtered.length} of ${helpers.length} saved ${helpers.length === 1 ? "Helpr" : "Helprs"}`}
+            </p>
             {filtered.map((h) => (
               <SavedHelperCard
                 key={h.helper_id}

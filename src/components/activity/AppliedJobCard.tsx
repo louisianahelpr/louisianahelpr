@@ -1,4 +1,6 @@
 import { memo, useRef, useState } from "react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,6 +78,14 @@ function AppliedJobCardInner({
 }: AppliedJobCardProps) {
   const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
+  // The viewing helper's own tier rate. Only consulted when the job carries no
+  // stamped helper_fee_percent — see the fee-precedence note in the helper.
+  const { profile: viewerProfile } = useCurrentUser();
+  const viewerFeePercent = tierFeePercent(
+    viewerProfile?.subscription_tier,
+    viewerProfile?.subscription_expires_at ?? null,
+  );
+
   const [showReportCard, setShowReportCard] = useState(false);
 
   useHighlightPulse(highlight, cardRef);
@@ -101,7 +111,15 @@ function AppliedJobCardInner({
     isMinimalCard,
     escrowStep,
     hasActionSection,
-  } = deriveAppliedJobCardState(app, job, helperReviewedJobIds, expandedJobId);
+  } = deriveAppliedJobCardState(
+    app,
+    job,
+    helperReviewedJobIds,
+    expandedJobId,
+    // The viewer's own tier rate, used only when the job has no rate stamped
+    // on it yet — see the fee-precedence note in appliedJobCardHelpers.
+    viewerFeePercent,
+  );
 
   return (
     <>

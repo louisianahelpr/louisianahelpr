@@ -14,6 +14,11 @@ export function deriveAppliedJobCardState(
   job: Job & { revision_note?: string | null },
   helperReviewedJobIds: Set<string>,
   expandedJobId: string | null,
+  /**
+   * The VIEWING helper's own current fee rate, from their subscription tier.
+   * Used only when the job has no rate stamped on it yet.
+   */
+  viewerTierFeePercent?: number | null,
 ) {
   const status = job.status;
   // An accepted application whose JOB row is still `open` is not a data
@@ -52,12 +57,24 @@ export function deriveAppliedJobCardState(
 
   // Payout calc — one shared definition (`helperEarnings.ts`) so this card, the
   // Earnings tab and /work-record can't drift. A group job's budget and urgent
-  // fee are split across the roster there (#114). The fallback % here stays the
-  // LEGACY constant rather than the helper's tier rate: this card renders jobs
-  // that may not have reached escrow yet, so it must not restate an old row at
-  // today's subscription rate.
-  const commissionPercent = job.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
-  const payout = helperTakeHomeDollars(job, HELPER_FEE_LEGACY_FALLBACK_PERCENT);
+  // fee are split across the roster there (#114).
+  //
+  // FEE PRECEDENCE (owner decision, 2026-08-20): "the price on their dashboard
+  // and the ones they post should always match their tier — helper's tier at
+  // acceptance, but also make it correct in their dash."
+  //   1. `job.helper_fee_percent` — the rate LOCKED when they were accepted.
+  //      That is the tier-at-acceptance rate, and it must win once set.
+  //   2. otherwise the viewer's CURRENT tier rate — this card also renders jobs
+  //      that have not reached escrow, where no rate exists yet.
+  //   3. only then the legacy constant, for a signed-out/unknown-tier render.
+  //
+  // This previously went straight from (1) to (3). Every job in production has
+  // a NULL helper_fee_percent, so EVERY helper was quoted the legacy 10%
+  // regardless of tier — a Free helper who owes 12% was shown 10% on their own
+  // dashboard while the job sheet, which computes from tier, said 12%.
+  const fallbackFeePercent = viewerTierFeePercent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
+  const commissionPercent = job.helper_fee_percent ?? fallbackFeePercent;
+  const payout = helperTakeHomeDollars(job, fallbackFeePercent);
 
   const isMinimalCard = isRejected || isCancelled;
 

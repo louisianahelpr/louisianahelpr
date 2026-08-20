@@ -70,6 +70,11 @@ const POPULAR_SEARCHES = [
   "cancel",
 ];
 
+// Blurb lookup for the merged topic list — TOPICS still owns the copy even
+// though its card grid is gone.
+const topicDesc = (topic: string): string | undefined =>
+  TOPICS.find((t) => t.label.toLowerCase() === topic.toLowerCase())?.desc;
+
 // ─── TopicSection — collapsible topic wrapper (topic click expands the FAQ list) ─
 const TopicSection = ({
   section,
@@ -117,13 +122,28 @@ const TopicSection = ({
             className="inline-block w-6 h-px"
             style={{ background: accent }}
           />
-          {section.topic}
-          <span
-            aria-hidden
-            className="ml-1 font-sans font-medium normal-case tracking-normal text-ds-11"
-            style={{ color: "hsl(var(--olivewood) / 0.6)" }}
-          >
-            {section.items.length}
+          <span className="inline-flex flex-col gap-0.5 min-w-0">
+            <span className="inline-flex items-center gap-2">
+              {section.topic}
+              <span
+                aria-hidden
+                className="font-sans font-medium normal-case tracking-normal text-ds-11"
+                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+              >
+                {section.items.length}
+              </span>
+            </span>
+            {/* Blurb from the deleted "Browse by topic" grid. That grid only
+                scrolled to and opened THIS accordion — the same list twice —
+                so folding its copy in here keeps the value and drops the dupe. */}
+            {topicDesc(section.topic) && (
+              <span
+                className="font-serif italic normal-case tracking-normal text-ds-11"
+                style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+              >
+                {topicDesc(section.topic)}
+              </span>
+            )}
           </span>
         </span>
         <ChevronDown
@@ -384,203 +404,6 @@ const HelpCenter = () => {
           </div>
         </div>
       </section>
-
-      {/* ───────────────────────── 2. Browse by topic ────────────────────────── */}
-      {/* Tightened pt-* — this is the first section under the compact page
-          header now that the full-height hero is gone; the old pt-24 left a
-          rail-deep empty band below the search box. The <md ladder is tighter
-          again: on the app surface this section is the reason people opened
-          the screen, so it starts close under the search rather than a
-          section-gap below it. */}
-      {!searching && (
-        <section
-          id="topics"
-          ref={topicsRef}
-          aria-labelledby="topics-heading"
-          className="px-5 sm:px-8 lg:px-12 pt-6 md:pt-12 lg:pt-16 pb-10 md:pb-16 lg:pb-24 scroll-mt-24"
-        >
-          <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-10 lg:gap-16">
-            {/* Left column — masthead */}
-            <div className="md:col-span-4 lg:col-span-3 text-left md:sticky md:top-32 md:self-start">
-              {/* Display eyebrow is marketing chrome — md+ only. */}
-              <span className="hidden md:inline text-display-eyebrow">Topics</span>
-              {/* ONE h2 for the section (the id `aria-labelledby` points at),
-                  wearing two presentations.
-
-                  <md it is a plain section label at the canonical
-                  `--headline-section` size — SMALLER than the page's own
-                  `.text-page-title` h1, single colour, no trailing period. It
-                  used to be a full display headline ("Find what you *need.*",
-                  36px+ two-tone Bodoni with a full stop) sitting mid-scroll
-                  BELOW a 22px page title: a second, bigger hero on a screen
-                  that already had a title.
-
-                  ≥md the editorial headline is untouched — /help is a public
-                  marketing page and that is its voice there.
-
-                  Both labels live in the same h2 and are swapped with
-                  `hidden`/`md:hidden` (display:none), so exactly one
-                  contributes to the accessible name at any width. */}
-              <h2
-                id="topics-heading"
-                className="font-display font-bold italic md:not-italic text-balance leading-tight tracking-[-0.02em] text-[length:var(--headline-section)] md:mt-3 md:leading-[1.05] md:tracking-[-0.025em] md:text-[length:clamp(2.25rem,3.4vw,3.25rem)] md:max-w-none"
-                style={{ color: "hsl(var(--ink-deep))" }}
-              >
-                <span className="md:hidden">Browse by topic</span>
-                <span className="hidden md:inline">
-                  Find what you{" "}
-                  <em
-                    className="inline-block"
-                    style={{
-                      fontStyle: "italic",
-                      color: "hsl(var(--burnt-sienna))",
-                    }}
-                  >
-                    need.
-                  </em>
-                </span>
-              </h2>
-            </div>
-
-            {/* APP surface (<md) — the categories as a scannable list: category
-                icon, label, one line, forward chevron. Same TOPICS data, same
-                destination, same copy as the grid below; only the presentation
-                differs. The whole row is the tap target (the grid's "Learn
-                more" link was the only hit area), and there is no entrance
-                animation — an app list should be there when the screen is.
-
-                Deliberately NOT headings: these are navigation rows, and the
-                marketing grid below already contributes the per-topic h3s at
-                the width where it renders. */}
-            <ul className="md:hidden space-y-2">
-              {TOPICS.map((topic) => {
-                const Icon = topic.icon;
-                return (
-                  <li key={topic.label}>
-                    <a
-                      href={`#faq-${topicSlug(topic.label)}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        openTopic(topic.label);
-                      }}
-                      className="flex items-center gap-3 rounded-2xl px-4 py-3 text-left"
-                      style={{
-                        background: "hsl(var(--burnt-sienna) / 0.04)",
-                        border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
-                        boxShadow: "var(--elev-inset-hairline)",
-                      }}
-                    >
-                      <span
-                        aria-hidden
-                        className="shrink-0 w-9 h-9 rounded-ds-md flex items-center justify-center"
-                        style={{ background: topic.bg, color: topic.color }}
-                      >
-                        <Icon className="w-4 h-4" strokeWidth={2.25} />
-                      </span>
-                      <span className="flex-1 min-w-0">
-                        <span
-                          className="block font-display font-bold text-ds-15 leading-tight"
-                          style={{ color: "hsl(var(--ink-deep))" }}
-                        >
-                          {topic.label}
-                        </span>
-                        <span
-                          className="block mt-0.5 font-sans text-ds-12 leading-snug"
-                          style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-                        >
-                          {topic.desc}
-                        </span>
-                      </span>
-                      {/* › — navigates within the app. Same glyph the rest of
-                          the app uses for "goes to another screen". */}
-                      <ChevronRight
-                        aria-hidden
-                        className="w-4 h-4 shrink-0"
-                        strokeWidth={2.25}
-                        style={{ color: "hsl(var(--olivewood) / 0.65)" }}
-                      />
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
-
-            {/* MARKETING surface (≥md) — magazine grid of topics with giant
-                Bodoni numerals as the anchor. Sequential fade-in matches HIW.
-                Unchanged apart from being gated to md+ and the column ladder
-                moving from sm: to md: (it never renders below md now). */}
-            <div className="hidden md:col-span-8 lg:col-span-9 md:grid md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
-              {TOPICS.map((topic, i) => (
-                <div
-                  key={topic.label}
-                  className="text-left rounded-2xl p-6 sm:p-7 lg:p-8 flex flex-col"
-                  style={{
-                    opacity: topicsInView ? 1 : 0,
-                    transform: topicsInView
-                      ? "translateY(0)"
-                      : "translateY(24px)",
-                    transition: `opacity 520ms cubic-bezier(0.22, 1, 0.36, 1) ${
-                      i * 70
-                    }ms, transform 520ms cubic-bezier(0.22, 1, 0.36, 1) ${
-                      i * 70
-                    }ms`,
-                    willChange: "opacity, transform",
-                    background: "hsl(var(--burnt-sienna) / 0.04)",
-                    border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
-                    boxShadow: "var(--elev-inset-hairline)",
-                  }}
-                >
-                  <span
-                    aria-hidden
-                    className="block font-display font-black leading-none"
-                    style={{
-                      fontSize: "clamp(4rem, 6.5vw, 6rem)",
-                      color: "hsl(var(--burnt-sienna) / 0.35)",
-                      letterSpacing: "-0.04em",
-                    }}
-                  >
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <h3
-                    className="mt-4 font-display font-bold text-ds-20 sm:text-ds-24 lg:text-ds-28 tracking-tight leading-tight"
-                    style={{ color: "hsl(var(--ink-deep))" }}
-                  >
-                    {topic.label}
-                  </h3>
-                  <p
-                    className="mt-3 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs"
-                    style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-                  >
-                    {topic.desc}
-                  </p>
-                  <a
-                    href={`#faq-${topicSlug(topic.label)}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      openTopic(topic.label);
-                    }}
-                    /* mt-0.5 + py-3.5 rather than mt-4: 2px margin + 14px padding
-                       puts the text in exactly the same place as the old 16px
-                       margin, but grows the hit box from 19px to 47px so this
-                       clears the 44px HIG/WCAG-2.5.5 floor. The extra height
-                       extends into card space that was already blank, so nothing
-                       moves. Plain <a> is outside the global tap-target rule in
-                       index.css, which only covers button/[role=button]/inputs. */
-                    className="mt-0.5 py-3.5 inline-flex items-center gap-1.5 font-sans font-semibold text-ds-13 sm:text-ds-14 transition-transform hover:translate-x-0.5"
-                    style={{
-                      color: "hsl(var(--burnt-sienna))",
-                      letterSpacing: "-0.005em",
-                    }}
-                  >
-                    Learn more
-                    <ArrowRight className="w-4 h-4" strokeWidth={1.75} />
-                  </a>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ───────────────────────── 3. FAQ / Quick answers ────────────────────── */}
       <section

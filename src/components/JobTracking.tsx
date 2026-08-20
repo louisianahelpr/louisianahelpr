@@ -574,9 +574,12 @@ export function JobTracking({
     };
   }, [displaySteps.length]);
 
-  // 20px ≈ the gutter a half-cut 68px step leaves, so the fade covers the
-  // sliver rather than eating a whole label.
-  const FADE = "20px";
+  // A half-cut 68px step leaves ~34px of label showing, so a 20px fade ended
+  // BEFORE the cut text and the label still read as hard-clipped — measured on
+  // an iPhone 17 Pro, the row showed a crisp "ed" (Accepted) at the left edge
+  // and "W" (Working) at the right. 36px covers the sliver a half-cut step
+  // actually leaves, which is what the fade was for.
+  const FADE = "36px";
   const stepRowMask = `linear-gradient(to right, transparent 0, black ${edges.start ? FADE : "0px"}, black calc(100% - ${edges.end ? FADE : "0px"}), transparent 100%)`;
 
   if (!helperId && !includePostingSteps) return null;

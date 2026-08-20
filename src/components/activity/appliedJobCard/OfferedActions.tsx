@@ -131,9 +131,10 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           Respond within {DEFAULT_RESPONSE_WINDOW_HOURS} hours
         </p>
       )}
-      {/* Accept takes twice the width: the safe, money-earning action leads,
-          and the two are the same height rather than the destructive one being
-          the larger of the pair. */}
+      {/* Equal width. Accept used to take flex-[2] so the money-earning action
+          led, but the owner asked for the pair to match: "accept and decline
+          should be same size". Emphasis is carried by fill (Accept is the solid
+          button, Decline is outline), not by width. */}
       <div className="flex gap-2 pt-1">
         <Button
           size="sm"
@@ -152,7 +153,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
         <Button
           variant="primary"
           size="sm"
-          className="flex-[2] rounded-ds-md"
+          className="flex-1 rounded-ds-md"
           disabled={busy}
           aria-busy={busy}
           onClick={() => onHelperResponse(app, true)}

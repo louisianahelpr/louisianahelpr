@@ -1,4 +1,5 @@
 import { FileSignature } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
@@ -24,6 +25,10 @@ interface FormStepProps {
  */
 export function FormStep({ form }: FormStepProps) {
   const { business } = useMyBusiness();
+  // Gate the W-9 toggle on the SURFACE, not the account: a business owner
+  // posting a personal errand from the normal flow was being asked for tax
+  // paperwork that only makes sense for business-posted work.
+  const isBusinessSurface = useLocation().pathname.startsWith("/business");
 
   const atOpenJobLimit = form.openJobCount !== null && form.openJobCount >= 5;
   // The form is "ready" once all three sections' required fields are
@@ -160,10 +165,10 @@ export function FormStep({ form }: FormStepProps) {
           />
         </div>
 
-        {/* W-9 requirement — only visible when this is a business post.
-            See helper_w9_records + the W9CollectionDialog the helper
-            sees at acceptance time. */}
-        {business?.is_owner && (
+        {/* W-9 requirement — business posting surface only. See
+            helper_w9_records + the W9CollectionDialog the helper sees at
+            acceptance time. */}
+        {business?.is_owner && isBusinessSurface && (
           <div data-section="w9" className="rounded-ds-md border border-border p-4 flex items-start gap-3">
             <div className="w-9 h-9 rounded-ds-sm bg-accent/15 text-accent flex items-center justify-center shrink-0">
               <FileSignature className="w-4 h-4" />

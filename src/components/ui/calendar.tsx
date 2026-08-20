@@ -38,13 +38,16 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         // instead of floating at the panel's outer edges.
         nav: "absolute inset-x-0 top-1 z-10 flex items-center justify-between px-1",
         button_previous: cn(
-          buttonVariants({ variant: "outline" }),
-          "h-9 w-9 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)]",
+          // `ghost`, not `outline`: the month arrows read as bare icon buttons,
+          // matching ScheduleTab's own month nav (`variant="ghost" size="icon"`).
+          // The 36px box stays as the hit area — only the border is gone.
+          buttonVariants({ variant: "ghost" }),
+          "h-9 w-9 bg-transparent p-0 opacity-60 hover:opacity-100",
           isDropdown && "top-[1.25rem]",
         ),
         button_next: cn(
-          buttonVariants({ variant: "outline" }),
-          "h-9 w-9 bg-transparent p-0 opacity-60 hover:opacity-100 border-[hsl(var(--olivewood)/0.18)]",
+          buttonVariants({ variant: "ghost" }),
+          "h-9 w-9 bg-transparent p-0 opacity-60 hover:opacity-100",
           isDropdown && "top-[1.25rem]",
         ),
         month_grid: "w-full border-collapse space-y-1",

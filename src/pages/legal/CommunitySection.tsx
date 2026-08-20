@@ -14,13 +14,25 @@ import {
   COPY_AUTO_RELEASE_HOURS,
   TOTAL_TO_PAYOUT_HOURS,
 } from "../../../supabase/functions/_shared/escrowTiming";
+// Budget limits, cancellation percentages and the new-helper earnings cap are
+// binding money figures. They were restated here as literals ("$10", "25%",
+// "$100") while the app enforced `moneyLimits.ts` — exactly the drift that file
+// exists to prevent — so this page now derives every one of them.
+import {
+  MIN_JOB_BUDGET_DOLLARS,
+  MAX_JOB_BUDGET_DOLLARS,
+  LATE_CANCEL_PERCENT,
+  VERY_LATE_CANCEL_PERCENT,
+  NEW_HELPER_EARNINGS_CAP_DOLLARS,
+  formatDollarsWhole,
+} from "@/lib/moneyLimits";
 
 /* ─────────────────────  COMMUNITY RULES  ───────────────────── */
 export const CommunityContent = () => (
   <div className="space-y-3">
     <TldrCard
       items={[
-        "Cancel free 24+ hours ahead. Inside 24h, fees apply (25% / 50%). No-show = permanent ban.",
+        `Cancel free 24+ hours ahead. Inside 24h, fees apply (${LATE_CANCEL_PERCENT}% / ${VERY_LATE_CANCEL_PERCENT}%). No-show = permanent ban.`,
         `Payment auto-releases ${COPY_AUTO_RELEASE_HOURS} hours after completion if either side doesn't act.`,
         "If something's wrong, request a revision first → file a dispute → admin decides. Each step has a 72-hour window.",
         "Three strikes = ban. Fraud, harassment, off-platform payments, and identity fraud skip the strikes.",
@@ -37,11 +49,11 @@ export const CommunityContent = () => (
     >
       <PolicyRowItem
         icon={DollarSign}
-        title="Job budget limits — $10 minimum, $5,000 maximum"
+        title={`Job budget limits — ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)} minimum, ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)} maximum`}
         body={
           <>
-            <p><strong className="text-foreground">Minimum: $10.</strong> Jobs below $10 cannot be posted.</p>
-            <p><strong className="text-foreground">Maximum: $5,000.</strong> For projects exceeding $5,000, split into multiple jobs or contact support.</p>
+            <p><strong className="text-foreground">Minimum: {formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}.</strong> Jobs below {formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)} cannot be posted.</p>
+            <p><strong className="text-foreground">Maximum: {formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}.</strong> For projects exceeding {formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}, split into multiple jobs or contact support.</p>
           </>
         }
       />
@@ -62,7 +74,7 @@ export const CommunityContent = () => (
           <>
             <p>New Helpr accounts are limited to:</p>
             <p>• Max <strong className="text-foreground">3 active jobs</strong> at a time</p>
-            <p>• Max <strong className="text-foreground">$100 in total earnings</strong></p>
+            <p>• Max <strong className="text-foreground">{formatDollarsWhole(NEW_HELPER_EARNINGS_CAP_DOLLARS)} in total earnings</strong></p>
             <p>Lifted after <strong className="text-foreground">3 verified completions with a 4+ star rating</strong>.</p>
           </>
         }
@@ -83,13 +95,13 @@ export const CommunityContent = () => (
       />
       <PolicyRowItem
         icon={AlertTriangle}
-        title="Less than 24 hours before — 25% fee"
-        body={<p><strong className="text-foreground">25% cancellation fee</strong> applied. The Helpr has already committed their time.</p>}
+        title={`Less than 24 hours before — ${LATE_CANCEL_PERCENT}% fee`}
+        body={<p><strong className="text-foreground">{LATE_CANCEL_PERCENT}% cancellation fee</strong> applied. The Helpr has already committed their time.</p>}
       />
       <PolicyRowItem
         icon={XCircle}
-        title="Less than 2 hours before — 50% fee"
-        body={<p><strong className="text-foreground">50% cancellation fee</strong> applied. This is considered a very late cancellation.</p>}
+        title={`Less than 2 hours before — ${VERY_LATE_CANCEL_PERCENT}% fee`}
+        body={<p><strong className="text-foreground">{VERY_LATE_CANCEL_PERCENT}% cancellation fee</strong> applied. This is considered a very late cancellation.</p>}
         warning
       />
       <PolicyRowItem

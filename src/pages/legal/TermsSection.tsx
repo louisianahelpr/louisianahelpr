@@ -12,6 +12,13 @@ import {
   formatDollarsWhole,
 } from "@/lib/moneyLimits";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
+// The auto-release window and the total time-to-funds are the platform's
+// binding promises about when money moves; derive them from the same config
+// the cron enforces rather than restating "48"/"72" as prose literals.
+import {
+  COPY_AUTO_RELEASE_HOURS,
+  TOTAL_TO_PAYOUT_HOURS,
+} from "../../../supabase/functions/_shared/escrowTiming";
 import { legalFmtMo } from "./legalSections";
 
 const ONBOARDING_FEE_DOLLARS = ONBOARDING_FEE_CENTS / 100;
@@ -83,7 +90,7 @@ export const TermsContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Charged upfront:</strong> Payments are processed via Stripe at booking and held securely (in escrow) until both parties confirm completion.</p>
-            <p><strong className="text-foreground">Auto-release:</strong> If only one party confirms, the job auto-completes 48 hours later and payment releases to the Helpr (funds land about 72 hours after completion).</p>
+            <p><strong className="text-foreground">Auto-release:</strong> If only one party confirms, the job auto-completes {COPY_AUTO_RELEASE_HOURS} hours later and payment releases to the Helpr (funds land about {TOTAL_TO_PAYOUT_HOURS} hours after completion).</p>
             <p><strong className="text-foreground">Refunds:</strong> Refunds are evaluated case-by-case through the dispute process — see <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules → When something goes wrong</Link>.</p>
           </>
         }
@@ -105,6 +112,11 @@ export const TermsContent = () => (
         title="Payouts & Stripe Connect"
         body={
           <>
+            {/* FINDING (not silently changed): this states a "24–48 hour" payout delay
+                    while `escrowTiming.PAYOUT_HOLD_HOURS` — the hold the cron actually
+                    applies — is a flat 24h. The range is a wider promise than the code
+                    keeps; reconciling it changes a payout condition, so it needs an
+                    owner decision rather than an edit here. */}
             <p><strong className="text-foreground">Payout schedule:</strong> Payouts are scheduled with a 24–48 hour delay after dual confirmation.</p>
             <p><strong className="text-foreground">Stripe Connect:</strong> Helprs must link a Stripe Connect Express account before accepting offers or receiving payouts.</p>
           </>

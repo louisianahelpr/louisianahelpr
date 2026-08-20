@@ -1,6 +1,26 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { test, expect } from "@playwright/test";
 
 import { installSupabaseMocks, FAKE_CUSTOMER, seedAuthedSession } from "./fixtures";
+
+/**
+ * Recurring sits behind a wiring gate until `charge-recurring-visits` is
+ * deployed and scheduled (see LogisticsSection). While it is off there is no
+ * "Repeats" control to drive, so this spec has nothing to measure.
+ *
+ * The skip is DERIVED from the flag rather than hardcoded, so the day the gate
+ * opens these assertions come back on their own. A `test.skip(true, ...)` would
+ * quietly stay skipped forever and we would ship the picker unmeasured — which
+ * is exactly the failure mode this file exists to prevent.
+ */
+// Playwright loads specs as ES modules, so `__dirname` does not exist here.
+const HERE = dirname(fileURLToPath(import.meta.url));
+const RECURRING_ENABLED = /const RECURRING_ENABLED = true/.test(
+  readFileSync(resolve(HERE, "../../src/components/postjob/LogisticsSection.tsx"), "utf8"),
+);
 
 /**
  * The day picker replaces a frequency dropdown, so it is wider than what it
@@ -11,6 +31,7 @@ import { installSupabaseMocks, FAKE_CUSTOMER, seedAuthedSession } from "./fixtur
  */
 for (const width of [375, 1440]) {
   test(`post-job recurring picker fits @ ${width}`, async ({ page, context, baseURL }) => {
+    test.skip(!RECURRING_ENABLED, "Repeats is gated off until charge-recurring-visits is deployed");
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
     await page.addInitScript(() => {

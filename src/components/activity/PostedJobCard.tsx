@@ -342,15 +342,16 @@ function PostedJobCardInner({
                 <span className="text-ds-11 px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1" style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}><Check className="w-3 h-3" strokeWidth={3} /> Arrival confirmed</span>
               )}
 
-              {/* Completion confirmation */}
-              {(job.status === "in_progress" || job.status === "revision_requested") && (job.poster_completed_at || job.helper_completed_at) && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  {job.poster_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> You confirmed</span>}
-                  {job.helper_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} confirmed</span>}
-                  {!job.poster_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for you</span>}
-                  {!job.helper_completed_at && <span className="text-ds-11 px-2.5 py-1 rounded-full bg-secondary/60 text-muted-foreground">Waiting for {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"}</span>}
-                </div>
-              )}
+              {/* The completion-confirmation chip row was REMOVED here (owner,
+                  2026-08-19: "remove offered to eli / eli confirmed / waiting
+                  for you — all of this is done in the live tracker").
+
+                  It restated, as four pills, exactly what the JobTracking
+                  strip below already shows as steps: who has confirmed and who
+                  is still owed. Two renderings of one state on one card is the
+                  thing that makes a screen feel assembled rather than
+                  designed — and the tracker is the better of the two, because
+                  it also shows the ORDER the steps happen in. */}
 
               {/* Visible live tracking */}
               {showsTracker && (
@@ -369,7 +370,11 @@ function PostedJobCardInner({
               {/* Revision notice */}
               {job.status === "revision_requested" && (
                 <div className="p-2 rounded-ds-sm border space-y-1.5" style={{ background: "hsl(var(--amber-tint) / 0.10)", borderColor: "hsl(var(--amber-tint) / 0.20)" }}>
-                  <p className="text-ds-11 flex items-center gap-1" style={{ color: "hsl(var(--amber-ink))" }}><AlertTriangle className="w-3 h-3" /> Revision requested</p>
+                  {/* Heading intentionally dropped: the card's status stripe
+                      already reads "Revision requested" a few rows above, so
+                      repeating it here labelled the same state twice. What this
+                      panel uniquely carries is the NOTE and the deadline, which
+                      is what it now leads with. */}
                   {job.revision_note && <p className="text-ds-11 text-muted-foreground">{job.revision_note}</p>}
                   {job.revision_completed_at && (
                     <div className="p-1.5 rounded border" style={{ background: "hsl(var(--success-tint))", borderColor: "hsl(var(--success-border))" }}>

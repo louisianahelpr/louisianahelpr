@@ -40,6 +40,32 @@ export const CommunityContent = () => (
       ]}
     />
 
+    {/* ── 0. The basics ──
+        MOVED HERE from the Profile → Legal tab, which used to carry its own
+        paraphrased copy of the platform's conduct rules. These four lines were
+        the one part of that tab stated nowhere else, so they were promoted into
+        the canonical Community Rules rather than deleted alongside the
+        duplicates. Verbatim — no wording changed in the move. */}
+    <PolicySection
+      icon={Shield}
+      title="The basics"
+      subtitle="Respect, honesty, safety, and reporting"
+      anchorId="basics"
+    >
+      <PolicyRowItem
+        icon={Shield}
+        title="What every user owes the platform"
+        body={
+          <>
+            <p><strong className="text-foreground">Respect:</strong> Treat every user with professionalism.</p>
+            <p><strong className="text-foreground">Honesty:</strong> Accurate profiles and job descriptions only.</p>
+            <p><strong className="text-foreground">Safety:</strong> Never share home addresses or financial details through messages.</p>
+            <p><strong className="text-foreground">Reporting:</strong> Use the report button for anything suspicious.</p>
+          </>
+        }
+      />
+    </PolicySection>
+
     {/* ── 1. Posting & accepting jobs ── */}
     <PolicySection
       icon={Briefcase}

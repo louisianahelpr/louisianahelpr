@@ -104,6 +104,12 @@ export const TermsContent = () => (
             <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Helpr Basic, {TIER_PERKS.pro.platformFeePercent}% Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% Helpr Elite, {TIER_PERKS.business.platformFeePercent}% Business.</p>
             <p><strong className="text-foreground">Total platform take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus that goes to the Helpr, added by the poster for priority placement.</p>
+            {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
+                tab's "Platform Fees" row, which was a paraphrase of this section.
+                They were the only two fee statements that lived ONLY there, so
+                they were promoted into the canonical Terms rather than dropped. */}
+            <p><strong className="text-foreground">Job boost:</strong> Optional paid boost to increase visibility of your listing.</p>
+            <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the Helpr — no platform fee on tips.</p>
           </>
         }
       />

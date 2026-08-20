@@ -26,6 +26,29 @@ interface UseProfileLandingDerivedArgs {
   onNavigate: (path: string) => void;
 }
 
+/**
+ * ONE TINT PER SECTION.
+ *
+ * These were assigned ad hoc: 21 rows across 6 tints with no rule, so Schedule
+ * was sienna while Availability directly beneath it was sage, and Gift Card
+ * carried a raw `155 50% 30%` literal instead of a brand token — which the
+ * project's own guidance forbids. The owner spotted it: "Why are some the same
+ * colors and some do not match???" There was no answer, because there was no
+ * rule.
+ *
+ * Now the tint carries information: it tells you which group a row belongs to.
+ * Warnings & Strikes and Admin stay destructive-red — the one deliberate
+ * exception, because "this is a penalty surface" outranks "this is the Legal
+ * group".
+ */
+const SECTION_TINT = {
+  account: "var(--stormy-sky)",
+  work: "var(--bark)",
+  money: "var(--burnt-sienna)",
+  legal: "var(--sage)",
+  danger: "var(--destructive)",
+} as const;
+
 export function useProfileLandingDerived({
   profile,
   avatarBroken,
@@ -163,7 +186,7 @@ export function useProfileLandingDerived({
             label: "Admin panel",
             icon: <ShieldAlert className="w-5 h-5" />,
             desc: "Moderation queue, users & platform tools",
-            tint: "var(--destructive)",
+            tint: SECTION_TINT.danger,
             href: "/admin",
           }],
         }]
@@ -176,10 +199,10 @@ export function useProfileLandingDerived({
           label: "Account Security",
           icon: <Shield className="w-5 h-5" />,
           desc: "Email, password & login",
-          tint: "var(--sage)",
+          tint: SECTION_TINT.account,
           incompleteLabel: !phoneVerified ? "Verify phone" : undefined,
         },
-        { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get", tint: "var(--stormy-sky)" },
+        { key: "notifications", label: "Notifications", icon: <Bell className="w-5 h-5" />, desc: "Choose what alerts you get", tint: SECTION_TINT.account },
         {
           key: "accessibility",
           label: "Accessibility",
@@ -191,14 +214,14 @@ export function useProfileLandingDerived({
           // so the trailing clause sent people looking for a screen that does
           // not exist.
           desc: "Color mode & Senior mode",
-          tint: "var(--bark)",
+          tint: SECTION_TINT.account,
         },
         {
           key: "family",
           label: "Family & care",
           icon: <Users className="w-5 h-5" />,
           desc: "Manage jobs for a family member",
-          tint: "var(--stormy-sky)",
+          tint: SECTION_TINT.account,
           href: "/family",
         },
         {
@@ -206,7 +229,7 @@ export function useProfileLandingDerived({
           label: "My Pets",
           icon: <PawPrint className="w-5 h-5" />,
           desc: "Pet profiles & vet notes",
-          tint: "var(--sage)",
+          tint: SECTION_TINT.account,
           href: "/pets",
         },
         {
@@ -214,7 +237,7 @@ export function useProfileLandingDerived({
           label: "Home History",
           icon: <ClipboardList className="w-5 h-5" />,
           desc: "Your home's permanent maintenance record",
-          tint: "var(--sage)",
+          tint: SECTION_TINT.account,
           href: "/home-history",
         },
       ],
@@ -225,15 +248,15 @@ export function useProfileLandingDerived({
         // Two rows, not one. These used to be a single "Schedule" row opening
         // a screen with a Calendar|Hours segmented control — a second choice
         // after the one you just made. Split on owner request 2026-08-19.
-        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Your calendar & upcoming jobs", tint: "var(--burnt-sienna)" },
-        { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Weekly hours & the available-now signal", tint: "var(--sage)" },
-        { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: "var(--burnt-sienna)" },
+        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Your calendar & upcoming jobs", tint: SECTION_TINT.work },
+        { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Weekly hours & the available-now signal", tint: SECTION_TINT.work },
+        { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: SECTION_TINT.work },
         {
           key: "credentials",
           label: "Licensed & Insured",
           icon: <ShieldCheck className="w-5 h-5" />,
           desc: "Add your license and insurance",
-          tint: "var(--bark)",
+          tint: SECTION_TINT.work,
           incompleteLabel: credentialsIncomplete ? "Verify credentials" : undefined,
         },
         {
@@ -241,7 +264,7 @@ export function useProfileLandingDerived({
           label: "Host Automation",
           icon: <Home className="w-5 h-5" />,
           desc: "Auto-post cleanings on Airbnb / VRBO checkout",
-          tint: "var(--bark)",
+          tint: SECTION_TINT.work,
           href: "/str-settings",
         },
         {
@@ -249,7 +272,7 @@ export function useProfileLandingDerived({
           label: "Gift Card",
           icon: <Gift className="w-5 h-5" />,
           desc: "Donate job credits for neighbors who need help",
-          tint: "155 50% 30%",
+          tint: SECTION_TINT.work,
           href: "/gift-card",
         },
         {
@@ -257,7 +280,7 @@ export function useProfileLandingDerived({
           label: "Benefits & Perks",
           icon: <Star className="w-5 h-5" />,
           desc: "Health coverage, financial tools & supply discounts",
-          tint: "var(--burnt-sienna)",
+          tint: SECTION_TINT.work,
           href: "/benefits",
         },
       ],
@@ -270,7 +293,7 @@ export function useProfileLandingDerived({
           label: "Auto-tip",
           icon: <Coins className="w-5 h-5" />,
           desc: "Tip automatically when a job is done",
-          tint: "var(--burnt-sienna)",
+          tint: SECTION_TINT.money,
           href: "/auto-tip",
         },
         // ONE row, not three. "Earnings", "Analytics" (→ /analytics) and
@@ -285,7 +308,7 @@ export function useProfileLandingDerived({
           label: "Earnings & payouts",
           icon: <TrendingUp className="w-5 h-5" />,
           desc: "Wallet, analytics, payout setup & tax exports",
-          tint: "var(--burnt-sienna)",
+          tint: SECTION_TINT.money,
           needsAction: stripeNeedsAction,
           incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
         },
@@ -299,14 +322,14 @@ export function useProfileLandingDerived({
         // ProfileTabHeader, canonical cards, plan management, cancel/pause —
         // so the row opens that. /subscription stays reachable from the public
         // nav and footer, which is the audience it was written for.
-        { key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: "var(--burnt-sienna)" },
-        { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: "var(--burnt-sienna)" },
+        { key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: SECTION_TINT.money },
+        { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: SECTION_TINT.money },
         {
           key: "work-record",
           label: "Work Record",
           icon: <FileText className="w-5 h-5" />,
           desc: "Shareable verified earnings document",
-          tint: "var(--burnt-sienna)",
+          tint: SECTION_TINT.money,
           href: "/work-record",
         },
       ],
@@ -319,9 +342,9 @@ export function useProfileLandingDerived({
         // would have pointed at a redirect back to its neighbour — two menu
         // entries, one destination. The export it led to is called out in the
         // description below so the scent survives the merge.
-        { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy, guidelines & data export", tint: "var(--sage)" },
-        { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: "var(--destructive)" },
-        { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: "var(--bark)" },
+        { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy, guidelines & data export", tint: SECTION_TINT.legal },
+        { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: SECTION_TINT.danger },
+        { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: SECTION_TINT.legal },
       ],
     },
   ];

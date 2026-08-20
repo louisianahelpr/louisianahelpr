@@ -353,20 +353,20 @@ const HelpCenter = () => {
                 is now an inline lead-in on the same row, which says the same
                 thing in a quarter of the height. */}
             {!searching && (
-              <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2">
+              <div className="mt-4 flex items-center gap-x-2 min-w-0">
                 <span
                   className="font-sans font-medium text-ds-11 shrink-0"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Popular:
                 </span>
-                <div className="flex flex-wrap items-center justify-start gap-2">
+                <div className="flex items-center justify-start gap-2 min-w-0 overflow-x-auto pb-1 pr-5 scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]">
                   {POPULAR_SEARCHES.map((term) => (
                     <button
                       key={term}
                       type="button"
                       onClick={() => setQuery(term)}
-                      className="h-8 px-3.5 rounded-2xl inline-flex items-center transition-colors hover:bg-[hsl(var(--olivewood)/0.06)]"
+                      className="h-8 px-3.5 rounded-2xl inline-flex items-center shrink-0 whitespace-nowrap transition-colors hover:bg-[hsl(var(--olivewood)/0.06)]"
                       style={{
                         border: "1px solid hsl(var(--olivewood) / 0.2)",
                         color: "hsl(var(--olivewood))",

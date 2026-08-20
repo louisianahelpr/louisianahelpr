@@ -499,15 +499,18 @@ const UserProfile = () => {
               }}
             />
 
-            {/* ── Rating distribution + sub-ratings (1a/1b) ── */}
-            <RatingBreakdown reviews={reviews} />
+            {/* ── Rating distribution + sub-ratings (1a/1b) ── Rides with the
+                reviews expansion; on its own it was a chart with no context. */}
+            {showReviews && <RatingBreakdown reviews={reviews} />}
 
-            {/* ── As a job poster (1c) ── */}
-            <PosterReputationCard
+            {/* ── As a job poster (1c) ── Collapsed by default: it now opens
+                only when the viewer taps the "Posted" stat box, so the page
+                leads with identity rather than a wall of always-on panels. */}
+            {showPostedJobs && <PosterReputationCard
               postedTotalCount={postedTotalCount}
               postedCancelledCount={postedCancelledCount}
               posterReputation={posterReputation}
-            />
+            />}
 
             {/* Skill endorsements — pills showing the helper's endorsed
                 skills. Past clients (mutual job count > 0) see a + button
@@ -525,7 +528,7 @@ const UserProfile = () => {
                 visible on other-user profiles so prospective posters see
                 quotes from past customers without having to expand the
                 full reviews tab. Owner sees the existing toggle only. */}
-            {!isOwnProfile && (
+            {!isOwnProfile && showReviews && (
               <PublicReviewWall
                 helperId={userId!}
                 totalReviewCount={stats.reviewCount}

@@ -218,19 +218,6 @@ function AppliedJobCardInner({
             {!isMinimalCard && isExpanded && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
               <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
             )}
-            {/* The payout breakdown was exposed ONLY through the amount chip's
-                `title=` attribute. Touch has no hover and iOS is the primary
-                surface, so the helper's most-asked question — "why is my
-                take-home $38.50 on a $45 job?" — had no answer on the device
-                most of them use. It lives in the expanded detail now. */}
-            {!isMinimalCard && isExpanded && payout > 0 && (
-              <p className="text-ds-11 text-muted-foreground">
-                You keep{" "}
-                <span className="font-medium text-foreground">${formatPriceExact(payout)}</span>
-                {" "}of the ${job.budget} budget — {commissionPercent}% Helpr fee.
-              </p>
-            )}
-
 
             {isMinimalCard && (
               <div className="space-y-2">

@@ -5,7 +5,6 @@ import { MessageSquare, CheckCircle2, XCircle, Timer } from "lucide-react";
 import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import { AddToCalendarButton } from "./AddToCalendarButton";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
-import { WhatToBringChecklist } from "@/components/jobs/WhatToBringChecklist";
 import type { Application, AppliedApp, Job } from "../activityConstants";
 
 interface OfferedActionsProps {
@@ -132,10 +131,6 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           Respond within {DEFAULT_RESPONSE_WINDOW_HOURS} hours
         </p>
       )}
-      {/* Category-aware "what to bring" checklist — informational,
-          ticks persist locally. Renders nothing if the category
-          has no curated list (see src/data/whatToBring.ts). */}
-      <WhatToBringChecklist jobId={app.job_id} category={job.category} />
       {/* Accept takes twice the width: the safe, money-earning action leads,
           and the two are the same height rather than the destructive one being
           the larger of the pair. */}

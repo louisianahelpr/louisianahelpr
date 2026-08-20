@@ -10,5 +10,10 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "mcp__5c8e03a5-fe06-461e-aa11-954fd11ab2e3__deploy_edge_function"
+    ]
   }
 }

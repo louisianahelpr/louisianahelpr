@@ -39,6 +39,12 @@ import {
   type MapLayer,
 } from "./browseMap/config";
 import { bucketJobs, clusterIcon, pinIcon } from "./browseMap/mapMarkers";
+import {
+  buildMapJobFilter,
+  isAnyFilterActive,
+  unsupportedMapFilters,
+  type MapJobFilterInput,
+} from "./browseMap/mapFilter";
 import { FitToPins, HeatLayer, RecenterControl } from "./browseMap/MapLayers";
 import "leaflet/dist/leaflet.css";
 
@@ -59,9 +65,19 @@ interface BrowseMapProps {
    * still convert when the marketplace happens to be quiet.
    */
   emptyStateCta?: { label: string; onClick: () => void };
+  /**
+   * The browse filters, applied to the map's own rows. The map runs its own
+   * `get_open_jobs_for_map` fetch (the list is paginated; the map is not), so
+   * it has to re-apply the predicate rather than reuse `filteredJobs`.
+   * Omitted by surfaces with no filter UI (the guest dashboard) — then every
+   * open pin shows.
+   */
+  filters?: MapJobFilterInput;
+  /** Clears every filter — the CTA on the "no pins match" empty state. */
+  onClearFilters?: () => void;
 }
 
-export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta }: BrowseMapProps) {
+export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta, filters, onClearFilters }: BrowseMapProps) {
   const [jobs, setJobs] = useState<MapJob[]>([]);
   // Total open jobs in the feed, including ones the map can't plot because
   // they lack geocoded coordinates. Lets the badge read "N of M" so a user
@@ -151,6 +167,20 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
 
   const labels = useMemo(() => categoryLabels, []);
 
+  // Filtered pin set. Every downstream consumer (count badge, heat buckets,
+  // FitToPins, the markers themselves, the empty state) reads THIS, not the
+  // raw `jobs` — otherwise the map would zoom to and count pins it isn't
+  // drawing.
+  const visibleJobs = useMemo(
+    () => (filters ? jobs.filter(buildMapJobFilter(filters)) : jobs),
+    [jobs, filters],
+  );
+  const filtersActive = !!filters && isAnyFilterActive(filters);
+  // Filters the narrow map row has no field to evaluate. Named in the UI
+  // rather than silently dropped — a filter that looks applied but isn't is
+  // worse than one the app says it can't apply here.
+  const ignoredFilters = filters ? unsupportedMapFilters(filters) : [];
+
   const retry = () => {
     setLoadError(false);
     setLoading(true);
@@ -171,7 +201,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
   // A failed fetch is NOT an empty marketplace — say which one it is. Same
   // frosted ErrorState + "Try again" the list view shows for the same
   // failure, so flipping list↔map during an outage reads as one screen.
-  if (loadError && jobs.length === 0) {
+  if (loadError && visibleJobs.length === 0) {
     return (
       <div
         className="flex h-full w-full rounded-t-2xl border border-b-0 border-border bg-card/40 px-3 pt-4"
@@ -186,8 +216,8 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     );
   }
 
-  const heatBuckets = view === "heat" ? bucketJobs(jobs) : [];
-  const isEmpty = jobs.length === 0;
+  const heatBuckets = view === "heat" ? bucketJobs(visibleJobs) : [];
+  const isEmpty = visibleJobs.length === 0;
 
   return (
     /* Populated map: fills the parent's remaining height (h-full inside
@@ -202,6 +232,26 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           in both modes so the toggle reads as a real scanning aid.
           Hidden when the board is empty — a layer toggle and a "0 jobs"
           badge are noise when there's nothing to plot. */}
+      {/* Honest note when a filter the viewer turned on has no field on the
+          map row to test (the RPC returns a narrow, PII-safe shape). Without
+          this the map silently shows pins the list has already excluded and
+          the two surfaces disagree for no visible reason. */}
+      {ignoredFilters.length > 0 && (
+        <div
+          className="absolute top-3 left-3 z-[400] max-w-[60%] px-2.5 py-1.5 rounded-ds-md font-sans text-ds-11 leading-snug"
+          style={{
+            background: "hsla(0, 0%, 100%, 0.92)",
+            color: "hsl(var(--olivewood))",
+            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+            boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.18)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
+        >
+          {ignoredFilters.join(" and ")} {ignoredFilters.length === 1 ? "isn't" : "aren't"} applied on
+          the map — switch to the list for {ignoredFilters.length === 1 ? "it" : "those"}.
+        </div>
+      )}
       {!isEmpty && (
       <div className="absolute top-3 right-3 z-[400] flex flex-col items-end gap-1.5">
         <div
@@ -217,9 +267,11 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
             WebkitBackdropFilter: "blur(8px)",
           }}
         >
-          {totalOpen !== null && totalOpen > jobs.length
-            ? `${jobs.length} of ${totalOpen} mapped`
-            : `${jobs.length} ${jobs.length === 1 ? "job" : "jobs"}`}
+          {filtersActive
+            ? `${visibleJobs.length} ${visibleJobs.length === 1 ? "match" : "matches"}`
+            : totalOpen !== null && totalOpen > visibleJobs.length
+              ? `${visibleJobs.length} of ${totalOpen} mapped`
+              : `${visibleJobs.length} ${visibleJobs.length === 1 ? "job" : "jobs"}`}
         </div>
         <div
           role="group"
@@ -292,19 +344,30 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
               <MapPin className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
             </div>
             <div className="space-y-1">
+              {/* An empty board because the viewer narrowed it is a
+                  different message from an empty marketplace — saying "no
+                  posts yet" while a category filter is on is simply false,
+                  and it hides the one action that fixes it. */}
               <p
                 className="font-display italic font-bold leading-tight text-headline-card"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
-                Empty map for now.
+                {filtersActive ? "No pins match." : "Empty map for now."}
               </p>
               <p
                 className="font-serif italic text-ds-13"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                New posts land here the moment they go live across Louisiana.
+                {filtersActive
+                  ? "Nothing on the board fits those filters. Widen them and the pins come back."
+                  : "New posts land here the moment they go live across Louisiana."}
               </p>
             </div>
+            {filtersActive && onClearFilters && (
+              <Button variant="outline" onClick={onClearFilters} className="rounded-ds-md mt-1">
+                Clear filters
+              </Button>
+            )}
             {/* Optional CTA — passed by the guest dashboard so the empty
                 map still nudges signup ("get pinged when one lands")
                 rather than dead-ending the user. */}
@@ -357,7 +420,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
             loading: () => setTilesLoading(true),
           }}
         />
-        <FitToPins jobs={jobs} />
+        <FitToPins jobs={visibleJobs} />
         <RecenterControl center={LA_CENTER} zoom={LA_DEFAULT_ZOOM} />
         {view === "heat" && <HeatLayer buckets={heatBuckets} />}
         {view === "pins" && (
@@ -368,7 +431,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           maxClusterRadius={40}
           iconCreateFunction={clusterIcon}
         >
-        {jobs.map((job) => (
+        {visibleJobs.map((job) => (
           <Marker
             key={job.id}
             position={[Number(job.latitude), Number(job.longitude)]}

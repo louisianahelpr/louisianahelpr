@@ -14,8 +14,11 @@
          status-bar / browser chrome band blends into the top of the page with
          no seam (LH-18). Currently hsl(220 14% 95%) = #F1F2F4.
          The SAME value must appear in capacitor.config.ts (splash +
-         StatusBar) and manifest.webmanifest (theme_color + background_color).
-         Four files, one colour — if the palette flips warm, change all four.
+         StatusBar), manifest.webmanifest (theme_color + background_color),
+         the #root/#boot-loader inline styles BELOW, and — the one that keeps
+         getting missed — ios/App/App/Base.lproj/LaunchScreen.storyboard, which
+         holds it as sRGB floats (0.9451/0.9490/0.9569) and so never matches a
+         hex grep. FIVE places, one colour; if the palette flips, change all five.
          (This previously claimed to match "#FAF9F5" while the manifest was
          teal and Capacitor was warm #ECE9E4; three comments each asserted
          agreement that did not exist.) -->
@@ -115,8 +118,15 @@
     <!-- Hero image preloads intentionally removed 2026-05-19.
          The hero used to render a photographic <img> (hero-courtyard-*.webp),
          but the editorial brand polish (4ba790a0) replaced it with the
-         CSS-only PhoneCluster mockup + the Bodoni Moda H1, which is now the
-         LCP element. The preload + srcset still pointed at the retired image,
+         Bodoni Moda H1, which is the LCP element.
+
+         (Corrected 2026-08-19: this used to name a "CSS-only PhoneCluster
+         mockup" as the other half of the hero. PhoneCluster was not rendered
+         by anything — Index.tsx mounts HeroSection, which never imported it —
+         and the whole component plus its private phoneCluster/ subtree has
+         been deleted. The Bodoni H1 is the LCP element on its own. Anyone
+         tuning LCP off the old wording was reasoning about a component that
+         did not run.) The preload + srcset still pointed at the retired image,
          which made the browser fetch 100–430 KB of never-rendered bytes at
          `fetchpriority="high"` on every desktop visit, starving the Bodoni
          Moda webfont and the main JS bundle of bandwidth and connection slots.
@@ -250,63 +260,149 @@
     <style id="boot-theme">
       [data-theme="dark"] #root,
       [data-theme="dark"] #boot-loader {
-        background: hsl(20 15% 9%) !important;
+        background: radial-gradient(circle at 50% 46%, hsl(20 14% 13%) 0%, hsl(20 15% 9%) 52%, hsl(20 17% 6%) 100%) !important;
+        background-color: hsl(20 15% 9%) !important;
       }
-      [data-theme="dark"] #boot-loader .boot-word {
-        color: hsl(36 15% 80% / 0.62) !important;
+      /* Mirrors `[data-theme="dark"] .helpr-emblem` in src/index.css. It cannot
+         reuse that class: index.css ships with the JS bundle, which has not
+         parsed yet when this shell paints. The iron sits at roughly the same
+         value as the dark canvas, so dark LIFTS the mark rather than inverting
+         it — `brightness(0) invert(1)` would throw away the brass finials and
+         verdigris centre that make it a brand mark rather than a glyph. If the
+         rule in index.css changes, change this one with it. */
+      [data-theme="dark"] #boot-loader .boot-holder::after {
+        background: radial-gradient(ellipse at center,
+                    rgba(0, 0, 0, 0.60) 0%, rgba(0, 0, 0, 0) 70%) !important;
       }
-      [data-theme="dark"] .boot-spinner {
-        border-color: hsl(36 15% 80% / 0.16) !important;
-        border-top-color: hsl(19 65% 52%) !important;
+      [data-theme="dark"] #boot-loader .boot-mark {
+        filter: brightness(1.9) saturate(1.2)
+                drop-shadow(0 2px 4px rgba(0, 0, 0, 0.65))
+                drop-shadow(0 10px 24px rgba(0, 0, 0, 0.7)) !important;
       }
     </style>
   </head>
   <body>
     <!--
-      Inline FCP shell — solid brand-color background + a small branded boot
-      loader (LH-50). Previously this rendered a 580×580 splash <img> which
-      became Lighthouse's LCP element (the LCP timer doesn't reset when React
-      replaces the splash, so the score waited on the splash to paint). It was
-      then stripped back to a bare background, which left a blank cream screen
-      for ~2-3s on slow connections while the JS bundle parsed.
+      Inline FCP shell — brand ground + the real wrought-iron Helpr mark
+      (LH-50). History, because this spot has been wrong three ways:
 
-      This loader threads that needle: a 34px CSS ring spinner + a muted
-      wordmark, all inline (no external asset, no web-font dependency). Both
-      elements are deliberately tiny so neither becomes the LCP candidate —
-      the Bodoni hero H1 still wins LCP. React's createRoot().render() clears
-      #root's children on its first commit, so this markup is removed the
-      instant the app paints; no JS teardown is needed.
+        1. A 580x580 splash <img> became Lighthouse's LCP element (the LCP
+           timer does not reset when React replaces the splash), so the score
+           waited on the splash to paint.
+        2. Stripped back to a bare background — a blank screen for ~2-3s on a
+           cold connection while the bundle parsed.
+        3. A generic 34px CSS ring spinner. Painted fast, but it is precisely
+           the "looks identical to every other React app" loader that
+           src/components/ui/HelprSpinner.tsx was written to abolish — and it
+           sat on the FIRST screen anyone sees.
 
-      Do NOT reintroduce a large splash <img> here — that regresses LCP.
+      Now: the actual brand mark ALONE, the same asset HelprMark and
+      HelprSpinner render. No wordmark — the mark carries the screen by
+      itself, and the app name is already on the home screen the user just
+      tapped. 256 source at 72px display, because 72 CSS px on a 3x phone is
+      216 device px and the 96 asset would upscale and go soft.
+
+      The accessible name lives on #boot-loader (role="status"
+      aria-label="Loading Helpr"), so removing the visible word costs nothing
+      to a screen reader; the <img> stays aria-hidden as pure decoration.
+
+      LCP: this IS an <img>, so it IS an LCP candidate — but LCP tracks the
+      LARGEST contentful paint, not the first, and the Bodoni hero H1 dwarfs a
+      72px mark and supersedes it. That is the difference from mistake 1: a
+      580x580 image stayed the largest thing on screen. Keep this small. If it
+      ever needs to grow past roughly a quarter of the viewport, re-measure LCP
+      before shipping it.
+
+      PATH: `./src/assets/...` is RELATIVE and Vite rewrites it to the hashed
+      asset (verified — it emits /assets/helpr-logo-256-<hash>.webp). Do NOT
+      write `/src/assets/...` with a leading slash: that reads as a public-dir
+      path, Vite cannot rewrite it, and it 404s in the build. That exact
+      mistake is recorded in the preload comment further up this file.
+
+      React's createRoot().render() clears #root's children on its first
+      commit, so this markup is removed the instant the app paints.
     -->
-    <div id="root" style="background:hsl(220 16% 97%);min-height:100vh;">
+    <div id="root" style="background:radial-gradient(circle at 50% 46%, hsl(220 20% 98%) 0%, hsl(220 14% 95%) 52%, hsl(220 13% 91%) 100%);background-color:hsl(220 14% 95%);min-height:100vh;">
       <div
         id="boot-loader"
         role="status"
         aria-label="Loading Helpr"
-        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:hsl(220 16% 97%);"
+        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 46%, hsl(220 20% 98%) 0%, hsl(220 14% 95%) 52%, hsl(220 13% 91%) 100%);background-color:hsl(220 14% 95%);"
       >
-        <div class="boot-spinner"></div>
-        <div
-          class="boot-word"
-          style="font-family:'EB Garamond',Georgia,'Times New Roman',serif;font-style:italic;font-size:15px;letter-spacing:0.05em;color:hsl(64 16% 16% / 0.80);"
-        >
-          Helpr
-        </div>
+        <span class="boot-holder"><img
+          class="boot-mark"
+          src="./src/assets/helpr-logo-256.webp"
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+          width="84"
+          height="72"
+          decoding="async"
+        /></span>
         <style>
-          .boot-spinner {
-            width: 34px;
-            height: 34px;
-            border-radius: 9999px;
-            border: 2.5px solid hsl(70 20% 33% / 0.16);
-            border-top-color: hsl(19 75% 35%);
-            animation: boot-spin 0.7s linear infinite;
+          /* Same warm Olivewood lift the static mark carries everywhere else
+             (.helpr-emblem, src/index.css). Dark override lives in
+             #boot-theme in <head>. */
+          /* The holder carries the animation so the mark and its ground
+             shadow grow as one object. Animating the <img> alone would leave
+             the contact shadow static while the mark scaled over it. */
+          .boot-holder {
+            position: relative;
+            display: inline-block;
+            line-height: 0;
+            animation: mark-in 420ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
           }
-          @keyframes boot-spin {
-            to { transform: rotate(360deg); }
+          /* Ground contact shadow — the pool the mark casts onto the surface
+             below it. The two drop-shadows on the mark say "this object is
+             lit"; this ellipse says "this object is standing on something".
+             Together they read as elevation rather than a floating cutout. */
+          .boot-holder::after {
+            content: "";
+            position: absolute;
+            z-index: 1;
+            left: 50%;
+            bottom: -14px;
+            transform: translateX(-50%);
+            width: 86px;
+            height: 14px;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at center,
+                        rgba(46, 47, 34, 0.30) 0%, rgba(46, 47, 34, 0) 70%);
+            filter: blur(4px);
+          }
+          .boot-mark {
+            position: relative;
+            z-index: 2;
+            /* The artwork is 256x220, NOT square. Constrain HEIGHT and let
+               width follow, exactly as HelprMark does with `h-* w-auto` —
+               setting both to 72 stretched the mark ~14% and is the kind of
+               thing that reads as "slightly off" without being nameable.
+               The width/height ATTRIBUTES carry the true 84x72 ratio so the
+               box reserved before decode matches what paints (no CLS). */
+            height: 72px;
+            width: auto;
+            user-select: none;
+            /* Elevation, not the inline-nav lift. .helpr-emblem's shadow is
+               tuned for a 20px mark sitting IN a toolbar; at 72px on an empty
+               ground it reads as flat. This is a two-layer cast: a tight
+               contact shadow plus a wide soft one, so the ironwork looks like
+               it is floating above the parchment rather than printed on it.
+               drop-shadow follows the PNG's alpha, so the shadow is
+               scroll-shaped — a box-shadow would cast a rectangle. */
+            filter: drop-shadow(0 2px 3px rgba(46, 47, 34, 0.18))
+                    drop-shadow(0 9px 20px rgba(46, 47, 34, 0.28));
+          }
+          /* The GROUND paints on frame 1 — never fade the background, or the
+             handoff from the native splash flashes. Only the MARK animates: a
+             420ms grow from 0.94, which reads as the icon opening into the app
+             (the gesture iOS already trains). No spinner: a launch screen is
+             static per Apple HIG. It never loops. */
+          @keyframes mark-in {
+            from { opacity: 0; transform: scale(0.94); }
+            to   { opacity: 1; transform: scale(1); }
           }
           @media (prefers-reduced-motion: reduce) {
-            .boot-spinner { animation-duration: 1.6s; }
+            .boot-holder { animation: none; opacity: 1; }
           }
         </style>
       </div>

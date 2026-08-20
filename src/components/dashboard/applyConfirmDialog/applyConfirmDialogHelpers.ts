@@ -81,7 +81,6 @@ export function buildStarterSentences(job: EnrichedJob | null): StarterSentence[
 export function getApplyTips(job: {
   is_urgent?: boolean | null;
   budget?: number | null;
-  pricing_mode?: string;
   date_needed?: string | null;
   category?: string | null;
 }): string[] {
@@ -98,9 +97,6 @@ export function getApplyTips(job: {
   }
 
   // Bid-mode — price explanation helps
-  if (job.pricing_mode === "accept_bids") {
-    tips.push("For bid jobs, briefly explain what your price includes");
-  }
 
   // Upcoming date — scheduling matters
   if (job.date_needed) {

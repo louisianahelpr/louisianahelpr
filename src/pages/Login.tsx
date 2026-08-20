@@ -10,6 +10,7 @@ import { Loader2, Eye, EyeOff, Mail, Lock, Check, ShieldCheck } from "lucide-rea
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
+import { AuthModeTabs } from "@/components/auth/AuthModeTabs";
 import AuthShell from "@/components/auth/AuthShell";
 import BackButton from "@/components/BackButton";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -253,6 +254,28 @@ const Login = () => {
 
   return (
     <AuthShell hideHeader centerColumn hideBack maxWidth="2xl">
+      {/* [back] [Sign in | Create account] on ONE row above the card.
+          The tabs are navigation between the two auth cards, not a control
+          belonging to either, and the back arrow is page-level chrome for the
+          same reason — so both live outside the glass.
+
+          The arrow used to sit inside the card on its own row beside a "Sign
+          in" heading. With that heading now `sr-only` (the tab says it), a
+          lone arrow in the card left an empty band above the email field with
+          nothing to anchor it. Out here it anchors the tab row instead.
+
+          The tabs replace the "New to Helpr? Sign up" link that used to sit at
+          the very bottom of the card — below the password field, the CTA, the
+          divider and the social buttons. */}
+      <div className="flex items-center gap-2 mb-4">
+        {/* to="/" — NOT bare history-back. Without an explicit target
+            BackButton falls through to history.back(), so arriving at /login
+            FROM /forgot-password made Back bounce you straight back into
+            password reset. Sign-in is a top-level destination reached from all
+            over; it needs one predictable parent. */}
+        <div className="shrink-0"><BackButton to="/" /></div>
+        <AuthModeTabs active="signin" className="flex-1" />
+      </div>
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6 lg:space-y-6">
         {/* Heading lives INSIDE the card, and the H emblem is gone entirely.
             Previously the emblem stacked above a heading that sat above the
@@ -263,29 +286,13 @@ const Login = () => {
             column properly. The mark still appears in the top-left back-nav
             and throughout the app; an auth screen does not need to re-announce
             the brand three times. */}
-        {/* [back] [title] on ONE row, the same header shape /legal, /support
-            and /jobs use. Previously the arrow was absolutely positioned in the
-            card corner and the heading was indented pl-12/pl-14 to clear it,
-            which left the heading aligned to nothing — 89px from the card edge
-            while every field below sat at 33px. In-flow beats absolute here. */}
-        <div className="flex items-center gap-3">
-          {/* to="/" — NOT bare history-back. Without an explicit target
-              BackButton falls through to history.back(), so arriving at
-              /login FROM /forgot-password made Back bounce you straight back
-              into password reset. Sign-in is a top-level destination reached
-              from all over; it needs one predictable parent. */}
-          <div className="shrink-0"><BackButton to="/" /></div>
-          <h1
-            className="font-display italic font-bold leading-tight min-w-0 flex-1"
-            style={{
-              fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.03em",
-            }}
-          >
-            Sign in
-          </h1>
-        </div>
+        {/* `sr-only`: the "Sign in" tab directly above the card already names
+            this screen, and printing the same two words again a hundred pixels
+            below it was the page saying one thing twice. The heading is
+            HIDDEN, not removed — the screen still needs exactly one h1, and
+            the tab row is navigation, not a heading. The back arrow moved up
+            beside those tabs. */}
+        <h1 className="sr-only">Sign in</h1>
         {mfaChallenge ? (
           <div className="space-y-5">
             <div className="flex flex-col items-center text-center gap-2">
@@ -504,38 +511,29 @@ const Login = () => {
         <SocialAuthButtons mode="signin" />
         {/* Creating an account is the alternative to BOTH sign-in methods, so
             it closes the right column rather than floating under the card. */}
-        <div className="space-y-1.5">
-          {/* Both links sit on their own line under their question. The
-              business one had to, because it wrapped mid-phrase; this one is
-              `block` for symmetry — with one link inline and the other
-              stacked, the two offers read as different KINDS of thing rather
-              than as the two halves of one choice. */}
-          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            New to Helpr?
-            <Link
-              to="/signup"
-              className="block font-semibold hover:underline"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              Create a personal account
-            </Link>
-          </p>
-          {/* The business link is long enough that it wrapped mid-phrase —
-              "Create a" on one line and "business account" on the next, which
-              read as two broken fragments rather than one link. `block` puts
-              the whole link on its own line under the question, so it breaks
-              at the sentence seam instead of inside the call to action. */}
-          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Setting up a company?
-            <Link
-              to="/signup?type=business"
-              className="block font-semibold hover:underline"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              Create a business account
-            </Link>
-          </p>
-        </div>
+        {/* Only the BUSINESS offer stays in the card. The personal one is now
+            the "Create account" tab above, and repeating it here would be the
+            same choice twice on one screen. A business account is a genuinely
+            different destination the two tabs don't cover.
+
+            ONE line (owner: "try to fit new to Helpr and the business account
+            each in their own line"). It used to be two — question, then the
+            link `block` beneath it — because "Create a business account"
+            wrapped mid-phrase into "Create a" / "business account", two broken
+            fragments. Shortening the link fits it inline in the auth column at
+            375px; `whitespace-nowrap` guarantees that if the copy ever grows
+            the link drops to its own line intact rather than splitting in the
+            middle again. */}
+        <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          Setting up a company?{" "}
+          <Link
+            to="/signup?type=business"
+            className="font-semibold hover:underline whitespace-nowrap"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            Business account
+          </Link>
+        </p>
         </div>
         </div>
 

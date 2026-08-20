@@ -27,7 +27,6 @@ export interface PublicJob {
   created_at: string;
   expires_at: string | null;
   boost_expires_at: string | null;
-  pricing_mode?: string | null;
 }
 
 export interface JobsPage {

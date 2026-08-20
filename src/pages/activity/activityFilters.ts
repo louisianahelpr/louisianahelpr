@@ -58,7 +58,29 @@ export function bucketPostedJob(job: { status: string }): Bucket {
   }
 }
 
-/** Classify an applied application into Active / Completed / Cancelled. */
+/**
+ * Is this card waiting on the helper right now?
+ *
+ * Two states qualify, and they are the two where the job is being HELD for
+ * this helper and lapses if they do nothing:
+ *   - a pending direct offer from a poster, and
+ *   - an accepted application the helper has not yet confirmed.
+ *
+ * `helper_confirmed_at` is the discriminator for the second: an application
+ * can read `accepted` while the helper still has to say yes.
+ */
+export function needsHelperResponse(app: {
+  status: string;
+  job?: { status?: string; direct_offer_status?: string | null; helper_confirmed_at?: string | null } | null;
+}): boolean {
+  if (app.job?.direct_offer_status === "pending") return true;
+  return (
+    app.status === "accepted" &&
+    (app.job?.status === "accepted" || app.job?.status === "open") &&
+    !app.job?.helper_confirmed_at
+  );
+}
+
 export function bucketAppliedApp(app: { status: string; job?: { status: string } | null }): Bucket {
   const jobStatus = app.job?.status;
   if (jobStatus === "completed") return "completed";
@@ -124,7 +146,20 @@ export function useActivityFilters({
         return a.job.title.toLowerCase().includes(query) || a.job.description.toLowerCase().includes(query) || a.job.location.toLowerCase().includes(query);
       }
       return true;
-    });
+    })
+      // Anything waiting on the HELPER floats to the top of the list.
+      //
+      // Owner: "Offered to you should always be shown first — I don't want them
+      // to miss an offer." A direct offer and an unconfirmed booking are the
+      // only two states where a job is being held for this helper and will be
+      // given away if they do nothing. Everything else — applications out for
+      // review, work already booked, jobs in progress — can wait its turn,
+      // because nothing expires while the helper reads it.
+      //
+      // A STABLE partition, not a re-sort: within each group the existing
+      // order is preserved untouched, so this only ever lifts the time-critical
+      // cards past the ones that aren't.
+      .sort((a, b) => Number(needsHelperResponse(b)) - Number(needsHelperResponse(a)));
     // Dep list intentionally matches the pre-refactor Activity.tsx exactly
     // (userId omitted) to preserve identical memo behavior — userId comes
     // from a stable session and the page only renders past `loading`.

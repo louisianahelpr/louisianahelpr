@@ -6,9 +6,23 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { stripeProcessingCostCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
+import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+
+/**
+ * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
+ * inherited from the Stripe account's default tax behavior.
+ *
+ * This matters twice. The Post-a-Task summary quotes budget + service fee and
+ * then "+ tax", so "inclusive" would charge the poster a total that doesn't
+ * match what they were shown. And escrow derives the helper's payout from the
+ * BUDGET line, so an inclusive labor line would quietly carve LA sales tax out
+ * of the helper's earnings on assembly jobs — the one category where tax is
+ * non-zero. Left unset, either outcome is one dashboard toggle away.
+ */
+const TAX_BEHAVIOR = "exclusive" as const;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -134,6 +148,7 @@ serve(async (req) => {
           line_items: [{
             price_data: {
               currency: "usd",
+              tax_behavior: TAX_BEHAVIOR,
               product_data: {
                 name: `Helpr Task: ${job.title}`,
                 description: "Remaining balance after applying your Pay It Forward gift. Funds release once both parties confirm completion.",
@@ -211,29 +226,27 @@ serve(async (req) => {
       const helperFeeAmount = (job.budget * helperFeePercent) / 100;
 
       // ─── Louisiana sales-tax classification ───
-      // LA R.S. 47:301(14) defines a narrow list of taxable services. Most
-      // labor services (cleaning, yard work, moving, painting houses, errands,
-      // pet care, delivery) are NOT subject to LA state sales tax. The clearest
-      // taxable case in this app is *assembly* — installation/assembly of
-      // tangible personal property (e.g. IKEA furniture). Handyman work is
-      // ambiguous (taxable if repairing a TV, exempt if repairing a doorframe);
-      // we default it to exempt and rely on operator judgment per-job. If LDR
-      // clarifies otherwise, add categories to TAXABLE_CATEGORIES below.
-      const TAXABLE_CATEGORIES = new Set(["assembly"]);
-      const isLaborTaxable = TAXABLE_CATEGORIES.has(job.category);
+      // The category list now lives in `_shared/salesTax.ts` so the Post-a-Task
+      // checkout screen quotes tax off the SAME rule this charge uses. It used
+      // to be an inline Set here while the screen guessed "about 9-11% of
+      // everything", which overstated the total by ~10% on every exempt
+      // category — i.e. nearly every job. See that module for the LA R.S.
+      // 47:301(14) reasoning.
+      const laborTaxable = isLaborTaxable(job.category);
 
       const lineItems: any[] = [
         {
           price_data: {
             currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
             product_data: {
               name: `Helpr Task: ${job.title}`,
-              description: isLaborTaxable
+              description: laborTaxable
                 ? `Secure escrow payment for taxable labor (${job.category}). Funds release once both parties confirm completion.`
                 : `Secure escrow payment for exempt service (${job.category}). Funds release once both parties confirm completion.`,
               // Assembly/installation of tangible personal property: LA repair/install code.
               // All other categories: pass-through (no LA state tax on the labor).
-              tax_code: isLaborTaxable ? "txcd_20030000" : "txcd_00000000",
+              tax_code: laborTaxable ? "txcd_20030000" : "txcd_00000000",
             },
             unit_amount: Math.round(job.budget * 100),
           },
@@ -249,6 +262,7 @@ serve(async (req) => {
         lineItems.push({
           price_data: {
             currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
             product_data: {
               name: "Service fee",
               description: `${customerFeePercent}% platform service fee`,
@@ -265,6 +279,7 @@ serve(async (req) => {
         lineItems.push({
           price_data: {
             currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
             product_data: {
               name: "Urgent tip",
               description: "Urgent tip — goes directly to the helpr",
@@ -282,6 +297,7 @@ serve(async (req) => {
         lineItems.push({
           price_data: {
             currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
             product_data: {
               name: "One-time account setup",
               description: "One-time identity verification & account setup fee. Charged once per account.",
@@ -627,6 +643,7 @@ serve(async (req) => {
         line_items: [{
           price_data: {
             currency: "usd",
+            tax_behavior: TAX_BEHAVIOR,
             product_data: { name: `Tip — ${job.title}`, description: "Thank you tip. The small card-processing fee is deducted so the platform never subsidizes it." },
             unit_amount: tipCents,
           },
@@ -766,7 +783,7 @@ serve(async (req) => {
           // leaves the platform out-of-pocket by that processing cost on every
           // free cancellation. Withhold the poster's service fee, floored at
           // Stripe's actual processing cost so the platform never loses money to
-          // fees even when the service fee is tiny/missing (legacy/accept_bids).
+          // fees even when the service fee is tiny/missing on a legacy row.
           const capturedCents = pi.amount_received ?? pi.amount;
           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
           const nonRefundableCents = Math.max(serviceFeeCents, stripeProcessingCostCents(capturedCents));

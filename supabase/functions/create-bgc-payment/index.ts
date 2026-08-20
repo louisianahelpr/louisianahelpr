@@ -10,9 +10,43 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/**
+ * The purchase is OFF while the screening provider has no accounts.
+ *
+ * This function charges LIVE MONEY. Its counterpart, `verification-webhook`,
+ * 401s without CHECKR_WEBHOOK_SECRET / CERTIFICIAL_WEBHOOK_SECRET — so a
+ * helper can be charged for a check whose RESULT can never be recorded, and
+ * they sit at "in progress" forever with no badge and no refund path.
+ *
+ * This is the ENFORCEMENT point, not the card in the app. The card hides the
+ * button (BackgroundCheckCard), but an edge function is callable directly with
+ * any signed-in token, so hiding a button stops nobody who has already seen
+ * the endpoint. Flip both to `true` together when the provider accounts exist.
+ *
+ * The rest of the function is untouched: pricing, Stripe session, metadata and
+ * the success path all stay, so this is a switch, not a removal.
+ *
+ * NOTE: `verification-webhook` ALSO serves Stripe Identity via
+ * STRIPE_IDV_WEBHOOK_SECRET, which works and is unaffected. Nothing here
+ * touches the IDV path.
+ */
+const BGC_PURCHASE_ENABLED = false;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (!BGC_PURCHASE_ENABLED) {
+    // 503, not 403: this is "temporarily unavailable", which is exactly what
+    // it is, and it is the status a client should never treat as the user's
+    // fault. The message is the one the helper reads.
+    return new Response(
+      JSON.stringify({
+        error: "Background checks are paused right now — we're switching screening providers. Nothing has been charged.",
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+    );
   }
 
   // Same Stripe-cost + abuse logic as create-boost-payment.

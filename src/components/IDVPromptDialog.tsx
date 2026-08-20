@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, Camera, FileCheck2, Loader2, AlertTriangle, Hourglass } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 
 type IdvStatus =
@@ -57,7 +58,11 @@ export function IDVPromptDialog({
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("stripe-idv-start", { body: {} });
-      if (error) throw error;
+      // A non-2xx makes the SDK return a FunctionsHttpError whose `.message` is
+      // the useless "Edge Function returned a non-2xx status code" — which is
+      // literally all the user saw for as long as this flow was broken. The
+      // real reason is in the JSON body; `functionErrorMessage` reads it.
+      if (error) throw new Error(await functionErrorMessage(error, "Could not start verification"));
       if (data?.alreadyVerified) {
         toast.success("You're already verified.");
         onOpenChange(false);

@@ -75,10 +75,14 @@ export function formatPrice(amount: number): string {
   // budget the poster typed as a round "$130", and every card ended up with a
   // ragged mix of "$95" and "$114.40".
   //
-  // Rounding is DISPLAY ONLY — nothing here touches what Stripe moves. The
-  // exact arithmetic still appears beside the figure ("$130 budget - 12% fee"),
-  // so the precise number is always one line away. Worst-case drift is 49c
-  // against a payout, and the breakdown reconciles it.
+  // Rounding is DISPLAY ONLY — nothing here touches what Stripe moves.
+  //
+  // NOT for the helper's net take-home. That 49c of drift rounds UP half the
+  // time, so "You earn $84" was quoting an $83.60 payout while the apply
+  // sheet's breakdown (exact, because it must add up) quoted $83.60 — the same
+  // job answering "what do I get paid" twice. Take-home surfaces use
+  // `formatPriceExact`; see the note in `JobPrice`. This stays the formatter
+  // for gross budgets — a number the poster typed, not a payout.
   return Math.round(amount).toLocaleString("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,

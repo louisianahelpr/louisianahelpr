@@ -18,14 +18,12 @@ import { JobActionRow, JobActionChip } from "./JobActionRow";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { SendReportCard } from "./PetReportCard";
-import { formatPrice, formatShortDate, formatRecurrenceInterval } from "@/lib/format";
-import type { AppliedJobCardProps, NegotiationFields } from "./appliedJobCard/types";
+import { formatPriceExact, formatShortDate, formatRecurrenceInterval } from "@/lib/format";
+import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "./appliedJobCard/useHighlightPulse";
-import { useCounterOfferResponse } from "./appliedJobCard/useCounterOfferResponse";
 import { deriveAppliedJobCardState } from "./appliedJobCard/appliedJobCardHelpers";
 import { CancellationFeePill } from "./appliedJobCard/CancellationFeePill";
 import { PendingApplicationSection } from "./appliedJobCard/PendingApplicationSection";
-import { CounterOfferBar } from "./appliedJobCard/CounterOfferBar";
 import { OfferedActions } from "./appliedJobCard/OfferedActions";
 import { ConfirmedSection } from "./appliedJobCard/ConfirmedSection";
 import { ActiveJobSection } from "./appliedJobCard/ActiveJobSection";
@@ -73,12 +71,6 @@ function AppliedJobCardInner({
   setEditMessageText,
   savingMessage,
   handleSaveMessage,
-  editingBidAppId,
-  setEditingBidAppId,
-  editBidPrice,
-  setEditBidPrice,
-  savingBid,
-  handleSaveBid,
   handleAddAttachment,
   handleRemoveAttachment,
 }: AppliedJobCardProps) {
@@ -88,11 +80,9 @@ function AppliedJobCardInner({
 
   useHighlightPulse(highlight, cardRef);
 
-  const { counterResponding, localCounterStatus, handleRespondCounter } = useCounterOfferResponse();
-
-  // Negotiation columns aren't in the generated types yet (migration lag);
-  // read them through this narrow view rather than `as any`.
-  const bidApp = app as AppliedApp & NegotiationFields;
+  // `poster_viewed_at` isn't in the generated types yet (migration lag);
+  // read it through this narrow view rather than `as any`.
+  const viewedApp = app as AppliedApp & ApplicationViewFields;
   const job = app.job;
   if (!job) return null;
   const {
@@ -123,7 +113,11 @@ function AppliedJobCardInner({
         >
           <JobCardTitleBar
             title={job.title || "Job"}
-            amount={formatPrice(payout)}
+            // Exact cents, matching Browse / the job-detail pill / the apply
+            // sheet. A helper seeing $84 here and $83.60 two taps away has
+            // been given two answers to "what do I get paid", and the rounded
+            // one overstates it.
+            amount={formatPriceExact(payout)}
             amountTitle={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
           />
 
@@ -155,8 +149,26 @@ function AppliedJobCardInner({
             </div>
           )}
 
-          {/* Summary info line */}
-          <div className="px-4 py-3 space-y-2.5">
+          {/* Summary info line. The expand control rides the END of this row
+              as a bare chevron — owner: "move the details arrow up and remove
+              the words details". It used to be a labelled "View details ⌄"
+              button on its own row below, which spent a full 44px band and two
+              words saying what a chevron says on its own. The accessible name
+              stays on `aria-label`, because a bare glyph has none. */}
+          {/* `pb-1.5` when an action section follows, `py-3` otherwise. The
+              meta block's bottom padding and the action block's top padding
+              stacked to ~48px of dead band with a hairline through the middle,
+              directly above the Accept/Decline pair. Same trim the posted card
+              makes. */}
+          <div className={`px-4 pt-3 space-y-2.5 ${hasActionSection && !isMinimalCard ? "pb-1.5" : "pb-3"}`}>
+            {/* The chevron goes through JobCardMetaRow's own `trailing` slot,
+                which exists for exactly this and is what PostedJobCard uses.
+                This card wrapped the meta row in a bespoke flex and hung its
+                own button outside — two sibling cards in the same tab, same
+                control, different structure. The glyph is one rotating
+                ChevronDown now too, copied from PostedJobCard: swapping
+                ChevronUp/ChevronDown with no transition made the identical
+                control animate on one card and snap on the other. */}
             <JobCardMetaRow
               dateNeeded={job.date_needed}
               startTime={job.start_time}
@@ -165,6 +177,21 @@ function AppliedJobCardInner({
               longitude={job.longitude}
               estimatedHours={job.estimated_hours}
               expiresAt={isPending && !job.helper_id ? job.expires_at : null}
+              trailing={
+                !isMinimalCard ? (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
+                    aria-expanded={isExpanded}
+                    aria-label={isExpanded ? "Hide job details" : "Show job details"}
+                    className="inline-flex items-center justify-center w-11 h-11 -my-3.5 -mr-2.5 text-primary active:opacity-70"
+                  >
+                    <ChevronDown
+                      className={`w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                ) : null
+              }
             />
 
             {/* Description behind a tap — expands IN PLACE on this card (it IS
@@ -178,42 +205,33 @@ function AppliedJobCardInner({
                 `expandedJobId` toggle, unchanged in wording and position — it
                 simply now gates the description too, which is what makes it
                 coherent. Nothing was bolted on beside it. */}
+            {/* Who posted it lives INSIDE the details now (owner: "posted by
+                can be moved to details here"). On a collapsed card it was a
+                permanent line for something the helper only needs when they
+                are actually weighing the job — and it was the reason the row
+                below existed at all. */}
+            {!isMinimalCard && isExpanded && app.posterName && (
+              <p className="text-ds-11 text-muted-foreground truncate">
+                Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
+              </p>
+            )}
             {!isMinimalCard && isExpanded && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
               <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
             )}
-
-            {/* "Posted by" and the details toggle share ONE row.
-                They used to be two stacked bands — a 44px toggle row, then a
-                separate 17px "Posted by" line — which, with the status stripe,
-                the meta row and the action row, made five stacked bands for one
-                applied job and stopped two cards fitting on a 375 screen
-                together. They are both single-line, both secondary, and one is
-                naturally left-aligned and the other right: one row, ~44px total
-                instead of ~71px, with no information removed.
-
-                The toggle keeps its ≥44px target (it sets the row's height),
-                and it keeps `aria-expanded` + an explicit accessible name — the
-                visible words alone ("View details") do not say WHAT expands. */}
-            {!isMinimalCard && (
-              <div className="flex items-center gap-2 min-w-0">
-                {app.posterName && (
-                  <p className="text-ds-11 text-muted-foreground truncate min-w-0">
-                    Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
-                  </p>
-                )}
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
-                  aria-expanded={isExpanded}
-                  aria-label={isExpanded ? "Hide job description" : "Show job description"}
-                  className="ml-auto shrink-0 inline-flex items-center gap-0.5 min-h-[44px] px-1 -mr-1 text-ds-11 font-medium text-primary hover:underline active:opacity-70"
-                >
-                  {isExpanded
-                    ? <>Hide details <ChevronUp className="w-3 h-3" /></>
-                    : <>View details <ChevronDown className="w-3 h-3" /></>}
-                </button>
-              </div>
+            {/* The payout breakdown was exposed ONLY through the amount chip's
+                `title=` attribute. Touch has no hover and iOS is the primary
+                surface, so the helper's most-asked question — "why is my
+                take-home $38.50 on a $45 job?" — had no answer on the device
+                most of them use. It lives in the expanded detail now. */}
+            {!isMinimalCard && isExpanded && payout > 0 && (
+              <p className="text-ds-11 text-muted-foreground">
+                You keep{" "}
+                <span className="font-medium text-foreground">${formatPriceExact(payout)}</span>
+                {" "}of the ${job.budget} budget — {commissionPercent}% Helpr fee.
+              </p>
             )}
+
+
             {isMinimalCard && (
               <div className="space-y-2">
                 <p className="text-ds-11 text-muted-foreground italic">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
@@ -246,29 +264,8 @@ function AppliedJobCardInner({
               setEditMessageText={setEditMessageText}
               savingMessage={savingMessage}
               handleSaveMessage={handleSaveMessage}
-              editingBidAppId={editingBidAppId}
-              setEditingBidAppId={setEditingBidAppId}
-              editBidPrice={editBidPrice}
-              setEditBidPrice={setEditBidPrice}
-              savingBid={savingBid}
-              handleSaveBid={handleSaveBid}
               handleAddAttachment={handleAddAttachment}
               handleRemoveAttachment={handleRemoveAttachment}
-            />
-          )}
-
-          {/* Counter-offer notification bar — only shown when the poster
-              has sent a counter price. The helper can accept or decline
-              directly from this bar without opening the full detail view.
-              Uses optimistic local state so the response is reflected
-              immediately (no reload needed). */}
-          {!isMinimalCard && isPending && (
-            <CounterOfferBar
-              app={app}
-              bidApp={bidApp}
-              localCounterStatus={localCounterStatus}
-              counterResponding={counterResponding}
-              handleRespondCounter={handleRespondCounter}
             />
           )}
 
@@ -301,13 +298,16 @@ function AppliedJobCardInner({
               {/* "Seen" trust chip — visible when the poster has opened
                   the applicant list and viewed this application. Subtle
                   olivewood colour so it reads as informational, not urgent. */}
-              {bidApp.poster_viewed_at && (
+              {viewedApp.poster_viewed_at && (
+                // The date was in a `title=` only. Touch has no hover, and iOS
+                // is the primary surface, so on the device most helpers use
+                // there was no route to it at all. It's short enough to just
+                // say.
                 <span
-                  className="flex items-center gap-0.5 text-ds-10 font-medium"
+                  className="flex items-center gap-1 text-ds-10 font-medium"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                  title={`Poster viewed on ${formatShortDate(bidApp.poster_viewed_at)}`}
                 >
-                  <Eye className="w-3 h-3" aria-hidden="true" /> Seen
+                  <Eye className="w-3 h-3" aria-hidden="true" /> Seen {formatShortDate(viewedApp.poster_viewed_at)}
                 </span>
               )}
               <JobActionRow columns={2}>

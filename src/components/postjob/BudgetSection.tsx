@@ -2,18 +2,34 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { DollarSign, Zap, Lightbulb, TrendingUp, Gavel, Sparkles } from "lucide-react";
+import { DollarSign, Zap, Lightbulb, TrendingUp, Sparkles } from "lucide-react";
 import type { CategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { categoryPricing, getSmartPrice } from "@/lib/pricingGuide";
 import { formatPrice } from "@/lib/format";
 
-// "smart_price" is RETIRED but deliberately still in the union: the composer
-// persists a draft to localStorage (`helpr_draft_job`), so a draft saved
-// before the merge can still carry it. Dropping it from the type would make
-// such a draft render NEITHER branch — a blank Budget section. It is coerced
-// to "set_price" at render instead. Nothing new ever writes it.
-export type PricingMode = "set_price" | "accept_bids" | "smart_price";
+/**
+ * PRICING_MODE_REMOVED — 2026-08-19.
+ *
+ * There is only one way to price a job now: the poster sets the budget.
+ *
+ * "Accept bids" is gone. In production it had been used exactly ZERO times —
+ * no application ever carried a `proposed_price`, no counter-offer was ever
+ * sent, no negotiation ever left the 'open' state, and the only four jobs
+ * with `pricing_mode = 'accept_bids'` were seeded demo rows. It also carried
+ * a live money bug: a bid job still went straight to escrow at post time and
+ * charged the hidden fixed-price `budget`, which had nothing to do with the
+ * bid ceiling on screen (ceiling $200, charge $95). Fixing that meant
+ * choosing a payment model for a feature nobody had used. Deleting it was
+ * cheaper and made escrow coherent: one price, agreed up front, held safely.
+ *
+ * "Smart price" was retired earlier and folded into the suggestion chip.
+ *
+ * The `jobs.pricing_mode`, `bid_ceiling`, `bid_deadline` and `bids_sealed`
+ * columns still exist — dropping them is a separate migration — but nothing
+ * in the client reads or writes them any more, and `pricing_mode` keeps its
+ * 'set_price' default for the rows that remain.
+ */
 
 interface BudgetSuggestion {
   min: number;
@@ -41,35 +57,7 @@ interface BudgetSectionProps {
   budgetComplete: boolean;
   /** Current job category — used for smart-price midpoint lookup. */
   category?: string;
-  /** Pricing mode selected by poster. */
-  pricingMode: PricingMode;
-  setPricingMode: (v: PricingMode) => void;
-  /** Accept-bids sub-fields */
-  bidCeiling: string;
-  setBidCeiling: (v: string) => void;
-  bidDeadline: string;
-  setBidDeadline: (v: string) => void;
-  bidsSealed: boolean;
-  setBidsSealed: (v: boolean) => void;
 }
-
-// ── Pricing mode card data ────────────────────────────────────────────────────
-// TWO modes, not three. "Smart Price" used to be a third card, but it was
-// never a different pricing MODEL — getSmartPrice() returns the midpoint of
-// the very same categoryPricing range that "Set my price" already displays as
-// "Suggested: $min–$max". Picking it just pre-filled that midpoint and made
-// the field readOnly, and its own escape hatch ("Change it anyway") dropped
-// you straight back into set_price.
-//
-// So it cost a whole mode to deliver one number the adjacent mode was already
-// showing you. That number is now a one-tap chip inside the suggestion itself,
-// where the poster is already looking. Nothing downstream ever branched on
-// "smart_price" — every consumer only ever tests for "accept_bids" — so the
-// merge changes no behaviour beyond the composer.
-const MODES: { id: Exclude<PricingMode, "smart_price">; icon: React.ElementType; label: string; sub: string }[] = [
-  { id: "set_price",    icon: DollarSign, label: "Set my price",  sub: "I name it"       },
-  { id: "accept_bids",  icon: Gavel,      label: "Accept bids",   sub: "Pros propose"    },
-];
 
 /**
  * The static category suggestion, with a one-tap way to take it.
@@ -84,14 +72,25 @@ const MODES: { id: Exclude<PricingMode, "smart_price">; icon: React.ElementType;
  * action that would change nothing should not look available.
  */
 function SuggestionBox({
+  budget,
   suggested,
   smartPrice,
   onUse,
 }: {
   suggested: BudgetSuggestion;
+  budget: string;
   smartPrice: number | null;
   onUse: (v: string) => void;
 }) {
+  // Once the suggestion has been taken, the box has done its job — it would
+  // otherwise sit there restating a number the field already shows. Compared
+  // numerically so "60" and "60.00" both count as taken.
+  const taken =
+    smartPrice != null &&
+    budget.trim() !== "" &&
+    Number(budget) === Number(smartPrice.toFixed(2));
+  if (taken) return null;
+
   return (
     <div className="flex items-center gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">
       <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0" strokeWidth={2} />
@@ -128,14 +127,6 @@ export function BudgetSection({
   setCustomUrgentFee,
   budgetComplete,
   category = "other",
-  pricingMode,
-  setPricingMode,
-  bidCeiling,
-  setBidCeiling,
-  bidDeadline,
-  setBidDeadline,
-  bidsSealed,
-  setBidsSealed,
 }: BudgetSectionProps) {
   const budgetNum = parseFloat(budget) || 0;
 
@@ -147,13 +138,7 @@ export function BudgetSection({
 
   // Lowball threshold: below 70% of the category minimum
   const lowballFloor = catPricing ? Math.round(catPricing.min * 0.7) : null;
-  // A retired "smart_price" draft behaves exactly as set_price did once you
-  // tapped "Change it anyway", which is where that flow always ended up.
-  const effectiveMode: Exclude<PricingMode, "smart_price"> =
-    pricingMode === "smart_price" ? "set_price" : pricingMode;
-
   const showLowballWarning =
-    effectiveMode === "set_price" &&
     budgetNum > 0 &&
     lowballFloor != null &&
     budgetNum < lowballFloor;
@@ -171,53 +156,13 @@ export function BudgetSection({
       icon={DollarSign}
       complete={budgetComplete}
     >
-      {/* ── MODE SELECTOR ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        {MODES.map(({ id, icon: Icon, label, sub }) => {
-          const active = effectiveMode === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => {
-                setPricingMode(id);
-                // Accept bids: budget is optional — clear any lowball lock
-              }}
-              aria-pressed={active}
-              className="flex flex-col items-center justify-center gap-1 rounded-ds-md px-2 py-3 text-center transition-all"
-              style={{
-                background: active
-                  ? "hsl(var(--bark) / 0.12)"
-                  : "hsl(var(--bark) / 0.04)",
-                border: active
-                  ? "1px solid hsl(var(--bark) / 0.5)"
-                  : "0.5px solid hsl(var(--bark) / 0.15)",
-              }}
-            >
-              <Icon
-                className="w-4 h-4"
-                style={{ color: active ? "hsl(var(--bark))" : "hsl(var(--muted-foreground))" }}
-                strokeWidth={2}
-              />
-              <span
-                className="font-sans font-semibold text-ds-12 leading-tight"
-                style={{ color: active ? "hsl(var(--bark))" : "hsl(var(--foreground))" }}
-              >
-                {label}
-              </span>
-              <span
-                className="font-serif italic text-ds-11 leading-none"
-                style={{ color: "hsl(var(--muted-foreground))" }}
-              >
-                {sub}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── SET MY PRICE MODE ────────────────────────────────────────────── */}
-      {effectiveMode === "set_price" && (
+      {/* No pricing-mode picker. There used to be two cards here, "Set my
+          price" and "Accept bids"; bidding is gone (see the note on
+          `PRICING_MODE_REMOVED` below) and "Smart price" was folded into the
+          suggestion chip before that. A picker offering one option is not a
+          choice — it is a step. The poster names a price, which is what all
+          but a handful of seeded rows ever did anyway. */}
+      {(
         <div className="space-y-3">
           <Label htmlFor="budget">Budget <span className="text-destructive">*</span></Label>
           {/* CurrencyInput stores the value as a number, but the parent form
@@ -295,13 +240,13 @@ export function BudgetSection({
             </div>
           )}
           {!priceStatsLoading && priceStats && priceStats.source === "static" && suggested && (
-            <SuggestionBox suggested={suggested} smartPrice={smartPrice} onUse={setBudget} />
+            <SuggestionBox budget={budget} suggested={suggested} smartPrice={smartPrice} onUse={setBudget} />
           )}
           {/* If the stats hook hasn't run yet at all (no category) but a
               static suggestion exists, still show it — keeps parity with
               the previous behavior. */}
           {!priceStats && !priceStatsLoading && suggested && (
-            <SuggestionBox suggested={suggested} smartPrice={smartPrice} onUse={setBudget} />
+            <SuggestionBox budget={budget} suggested={suggested} smartPrice={smartPrice} onUse={setBudget} />
           )}
           {/* Quick-tap budget presets — outline pills so they stay
               secondary to the budget input above. Only the selected
@@ -329,78 +274,6 @@ export function BudgetSection({
         </div>
       )}
 
-      {/* ── ACCEPT BIDS MODE ─────────────────────────────────────────────── */}
-      {effectiveMode === "accept_bids" && (
-        <div className="space-y-4">
-          {/* Explanatory note */}
-          <div className="flex items-start gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">
-            <Gavel className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" strokeWidth={2} />
-            <p className="text-ds-11 text-muted-foreground">
-              Pros will propose their own price. You compare and award.
-            </p>
-          </div>
-
-          {/* Optional ceiling */}
-          <div className="space-y-1.5">
-            <Label htmlFor="bid-ceiling" className="text-ds-13">
-              Set a max budget{" "}
-              <span className="font-normal text-muted-foreground">(optional)</span>
-            </Label>
-            <CurrencyInput
-              id="bid-ceiling"
-              value={bidCeiling === "" ? undefined : Number.parseFloat(bidCeiling) || undefined}
-              onChange={(next) => setBidCeiling(next === undefined ? "" : next.toString())}
-              placeholder="$"
-              className="text-ds-15 font-medium"
-              aria-label="Maximum bid ceiling in dollars"
-              enterKeyHint="done"
-            />
-          </div>
-
-          {/* Bid deadline chips */}
-          <div className="space-y-1.5">
-            <Label className="text-ds-13">
-              Bid deadline{" "}
-              <span className="font-normal text-muted-foreground">(optional)</span>
-            </Label>
-            <div className="flex flex-wrap gap-2">
-              {["24 hours", "48 hours", "1 week"].map((opt) => {
-                const active = bidDeadline === opt;
-                return (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => setBidDeadline(active ? "" : opt)}
-                    aria-pressed={active}
-                    className={`min-h-9 px-4 py-2 rounded-full text-ds-12 font-medium transition-all border ${
-                      active
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-transparent text-foreground border-border hover:border-primary/50 hover:bg-primary/5"
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Sealed bids toggle */}
-          <div className={`rounded-ds-md border p-4 flex items-center justify-between gap-3 ${bidsSealed ? "border-primary/30 bg-primary/5" : "border-border"}`}>
-            <div className="flex flex-col gap-0.5">
-              <p className="text-ds-13 font-semibold">Sealed bids</p>
-              <p className="text-ds-11 text-muted-foreground">
-                Helpers can't see each other's bids
-              </p>
-            </div>
-            <Switch
-              id="bids-sealed"
-              checked={bidsSealed}
-              onCheckedChange={setBidsSealed}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Urgent Job — shown for all modes */}
       <div className={`rounded-ds-md border p-4 space-y-3 ${isUrgent ? "border-accent bg-accent/5" : "border-border"}`}>

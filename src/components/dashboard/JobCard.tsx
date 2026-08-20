@@ -9,7 +9,7 @@ import { differenceInHours } from "date-fns";
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceExact } from "@/lib/format";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { getCity } from "@/lib/locationUtils";
 import { haversineMiles } from "@/lib/geo";
@@ -118,15 +118,14 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // card and detail view can never disagree.
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   // Announce the SAME figure the visible JobPrice chip shows: net take-home by
-  // default, gross budget only on guest/poster surfaces, "open to bids" for bid
-  // jobs. Reusing computeNet keeps the screen-reader label from drifting to the
-  // gross budget while sighted users see the lower net number.
-  const priceAria =
-    job.pricing_mode === "accept_bids"
-      ? "open to bids"
-      : showBudget
-        ? `$${formatPrice(job.budget)}`
-        : `$${formatPrice(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount).netEarnings)}`;
+  // default, gross budget only on guest/poster surfaces. Reusing computeNet
+  // keeps the screen-reader label from drifting to the gross budget while
+  // sighted users see the lower net number.
+  // formatPriceExact on the net branch, matching what the chip now renders —
+  // a screen-reader user must hear the same take-home a sighted user reads.
+  const priceAria = showBudget
+    ? `$${formatPrice(job.budget)}`
+    : `$${formatPriceExact(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount).netEarnings)}`;
   const catStyle = categoryColors[job.category] || categoryColors.other;
 
   // Freshness signal: a job posted within the last 30 minutes gets a "New"
@@ -420,8 +419,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 Instant
               </span>
             );
-          // Bid jobs are labelled by the JobPrice chip ("Open to bids") in the
-          // price slot — a corner badge here too would show the state twice.
           return null;
         })()}
         <div className="w-full px-3.5 pt-6 pb-2.5">
@@ -453,7 +450,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             urgentFee={job.urgent_fee ?? 0}
             helpersNeeded={helpersCount}
             showBudget={showBudget}
-            pricingMode={job.pricing_mode}
             variant="chip"
             className="shrink-0"
           />

@@ -203,7 +203,7 @@ const NotificationPanel = () => {
               safe-area-aware close button). Was a hand-copied eyebrow→title
               stack — one of four sheets whose inline title sizes had drifted
               apart. SheetHero is the single source of truth. */}
-          <SheetHero eyebrow="Your inbox" title="Notifications" />
+          <SheetHero title="Notifications" />
           {/* One controls row: filter pills on the left, the
               Mark-all-read / Enable-push actions on the right. Keeping
               them on a single justified line (rather than a standalone

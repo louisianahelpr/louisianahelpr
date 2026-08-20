@@ -1,9 +1,8 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { scoreApplicant, type ApplicantData } from "@/lib/applicantScoring";
-import { type Job, type EnrichedApplication } from "../activityConstants";
-import { type ApplicantBidFields } from "./postedJobsHelpers";
+import { type EnrichedApplication } from "../activityConstants";
 
-export type ApplicantSort = "recommended" | "rated" | "soonest" | "bid_asc" | "bid_desc";
+export type ApplicantSort = "recommended" | "rated" | "soonest";
 
 export type ScoredApp = {
   app: EnrichedApplication;
@@ -14,7 +13,6 @@ export type ScoredApp = {
 
 interface UseApplicantComparisonArgs {
   applications: EnrichedApplication[];
-  jobs: Job[];
   expandedJobId: string | null;
   neighborCountMap: Map<string, number>;
   completedCountsMap: Map<string, number>;
@@ -30,7 +28,6 @@ interface UseApplicantComparisonArgs {
  */
 export function useApplicantComparison({
   applications,
-  jobs,
   expandedJobId,
   neighborCountMap,
   completedCountsMap,
@@ -42,8 +39,8 @@ export function useApplicantComparison({
   // "recommended" = multi-factor score desc (default)
   // "rated"       = avgRating desc, then reviewCount desc
   // "soonest"     = created_at asc (first to apply)
-  // "bid_asc"     = proposed_price asc (cheapest first; accept_bids jobs only)
-  // "bid_desc"    = proposed_price desc (highest first; accept_bids jobs only)
+  // The two bid-price sorts went out with the accept_bids pricing mode
+  // (zero production usage); "recommended" is the only default now.
   const [applicantSort, setApplicantSort] = useState<ApplicantSort>("recommended");
 
   // Build scored + sorted applicant list for the comparison panel.
@@ -92,20 +89,6 @@ export function useApplicantComparison({
     } else if (applicantSort === "soonest") {
       // "soonest" = first to apply (ascending created_at)
       sorted.sort((a, b) => a.app.created_at.localeCompare(b.app.created_at));
-    } else if (applicantSort === "bid_asc") {
-      // Cheapest bid first; apps without a bid go to the end
-      sorted.sort((a, b) => {
-        const pa = (a.app as EnrichedApplication & ApplicantBidFields).proposed_price ?? Infinity;
-        const pb = (b.app as EnrichedApplication & ApplicantBidFields).proposed_price ?? Infinity;
-        return pa - pb;
-      });
-    } else if (applicantSort === "bid_desc") {
-      // Highest bid first; apps without a bid go to the end
-      sorted.sort((a, b) => {
-        const pa = (a.app as EnrichedApplication & ApplicantBidFields).proposed_price ?? -Infinity;
-        const pb = (b.app as EnrichedApplication & ApplicantBidFields).proposed_price ?? -Infinity;
-        return pb - pa;
-      });
     }
 
     return { sortedApplications: sorted, scoreMap: map };
@@ -155,15 +138,12 @@ export function useApplicantComparison({
     return topId;
   }, [applications, scoreMap]);
 
-  // When switching to a bid-mode job, default the sort to bid_asc so the
-  // cheapest applicant surfaces first. Non-bid jobs fall back to "recommended".
+  // Opening a different job's applicants resets the sort to the default.
+  // This branched on pricing_mode ("accept_bids" jobs opened on bid_asc)
+  // until bidding was removed; every job now takes what was the else-branch,
+  // so behaviour for real (set_price) jobs is unchanged.
   useEffect(() => {
-    const expandedJob = jobs.find((j) => j.id === expandedJobId);
-    if (expandedJob?.pricing_mode === "accept_bids") {
-      setApplicantSort("bid_asc");
-    } else {
-      setApplicantSort("recommended");
-    }
+    setApplicantSort("recommended");
   }, [expandedJobId]);
 
   return {

@@ -137,10 +137,24 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
     lng: number,
   ): Promise<ResolvedAddress | null> => {
     try {
+      // NOTE ON WHY THIS PATH CARRIES THE WHOLE FEATURE IN PRODUCTION:
+      // VITE_APPLE_MAPKIT_TOKEN ships EMPTY, so useMapKitJs returns
+      // "missing-token", MapKit is skipped entirely, and Nominatim is not a
+      // fallback at all — it is the only geocoder that ever runs. That is the
+      // real reason "use my location" is reported as not working: Nominatim is
+      // OSM's free service, rate-limited to ~1 req/sec and quick to block
+      // traffic it cannot identify. Setting VITE_APPLE_MAPKIT_TOKEN in the
+      // deploy environment is the actual fix; everything here is damage
+      // control until then.
       const url = new URL("https://nominatim.openstreetmap.org/reverse");
       url.searchParams.set("lat", String(lat));
       url.searchParams.set("lon", String(lng));
       url.searchParams.set("format", "json");
+      // Nominatim's usage policy asks every application to identify itself.
+      // A browser cannot set User-Agent, and Referer alone is not enough, so
+      // pass the documented contact parameter — unidentified traffic is the
+      // first to be throttled or blocked outright.
+      url.searchParams.set("email", "admin@louisianahelpr.com");
       // Abort rather than wait forever: this is the LAST link in the chain,
       // so a stall here strands the user on "Locating…" with nothing behind
       // it to recover — the same failure the MapKit timeout above prevents.

@@ -2,7 +2,6 @@ import type { Dispatch, SetStateAction } from "react";
 import { Lock, X } from "lucide-react";
 import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
-import { FirstMessageChips } from "../FirstMessageChips";
 import type { Conversation, Message } from "../types";
 
 /**
@@ -37,9 +36,8 @@ export function dockPaddingBottom(keyboardInset: number): string {
 }
 
 /**
- * The composer dock — the poster-first lock card, the empty-thread
- * ice-breaker chips, the status-aware quick replies, and the rich
- * message input. Extracted verbatim from ChatView — markup unchanged.
+ * The composer dock — the poster-first lock card, the status-aware quick
+ * replies, and the rich message input.
  */
 export function ChatComposer({
   composerLocked,
@@ -50,8 +48,6 @@ export function ChatComposer({
   userId,
   draft,
   setDraft,
-  chipsDismissed,
-  setChipsDismissed,
   sendMessage,
   broadcastTyping,
   replyTo,
@@ -65,8 +61,6 @@ export function ChatComposer({
   userId: string | null;
   draft: string;
   setDraft: Dispatch<SetStateAction<string>>;
-  chipsDismissed: boolean;
-  setChipsDismissed: Dispatch<SetStateAction<boolean>>;
   sendMessage: (
     content: string,
     attachment?: { path: string; mime: string; size: number; duration?: number },
@@ -120,21 +114,13 @@ export function ChatComposer({
       className="pt-2 pb-3 glass-dock sticky bottom-0"
       style={{ paddingBottom: dockPaddingBottom(keyboardInset) }}
     >
-      {/* First-message chips — three ice-breaker suggestions shown
-          ONLY when the thread is brand-new (zero messages) and the
-          user hasn't already picked one this session. Dismissed
-          after one tap so a fresh thread doesn't keep nudging the
-          user once they've started typing. */}
-      {!chatLoadError && messages.length === 0 && !chipsDismissed && (
-        <FirstMessageChips
-          viewerRole={activeConvo.viewerIsPoster ? "customer" : "helper"}
-          onPick={(text) => {
-            setDraft(text);
-            setChipsDismissed(true);
-          }}
-          className="pt-0 pb-2"
-        />
-      )}
+      {/* The empty-thread ice-breaker chips ("When can you start?", "Do you
+          have your own tools?", …) were removed at the owner's request: a
+          canned opener is not what the sender actually wants to say, and a row
+          of pre-written questions above the input makes a real conversation
+          between two neighbours read like a support ticket form. The blank
+          composer is the better prompt. `FirstMessageChips` had no other
+          call site and was deleted with them. */}
 
       {/* Reply strip — the quoted message sits directly above the input, so
           what you are answering is visible while you type it. Dismissible,
@@ -168,9 +154,10 @@ export function ChatComposer({
         // Quick replies live in the "+" sheet now, not in their own strip
         // above the input — the third chip was permanently clipped mid-word by
         // the scroll fade, and iPhone keeps this class of shortcut one tap
-        // deeper. Same gating as before: suppressed on an empty thread
-        // (FirstMessageChips owns that moment), when the user typed the last
-        // real message, or while they are mid-draft.
+        // deeper. Gating is unchanged: suppressed on an empty thread — a
+        // thread with nothing in it has no context to reply TO, so a canned
+        // reply there is a guess — when the user typed the last real message,
+        // or while they are mid-draft.
         quickReplies={(() => {
           const realMessages = messages.filter((m) => !m.is_system);
           if (realMessages.length === 0) return null;

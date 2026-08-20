@@ -41,10 +41,20 @@ export function SocialAuthButtons({
   redirectTo,
 }: SocialAuthButtonsProps) {
   return (
-    // Stacked, full-width buttons each with a visible text label. Apple's
-    // HIG requires a properly labeled "Sign in with Apple" button — never
-    // icon-only — so both providers render their mark beside the label.
-    <div className="flex flex-col gap-2.5 lg:gap-6">
+    // Two marks side by side, not two stacked full-width labelled boxes
+    // (owner: "I would prefer using the Apple and Google icons instead of the
+    // 2 large boxes"). The boxes said "Sign in with Apple" / "Sign in with
+    // Google" directly under an "or" divider that had already established
+    // what this is, and took roughly a third of the auth column to do it.
+    //
+    // The accessible name is unchanged — it lives on each button's
+    // `aria-label`, which already carried the full "Sign in with Apple"
+    // string, so a screen reader hears exactly what it heard before.
+    //
+    // Apple renders FIRST (left). Apple's HIG asks that Sign in with Apple be
+    // at least as prominent as any other third-party option; equal-size
+    // buttons with Apple leading satisfies that.
+    <div className="flex items-center gap-3 lg:gap-4">
       <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} />
       <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} />
     </div>
@@ -107,19 +117,23 @@ function SocialAuthButton({ provider, mode, redirectTo }: SocialAuthButtonProps)
       type="button"
       variant="outline"
       size="lg"
-      className="w-full rounded-ds-md border-border/70 font-medium hover:bg-muted/40"
+      // `flex-1` so the pair splits the row evenly — equal weight, Apple
+      // first. h-12 keeps the 44pt minimum target with room to spare.
+      className="flex-1 h-12 rounded-ds-md border-border/70 hover:bg-muted/40"
       onClick={handleClick}
       disabled={loading}
+      // The ONLY place the full label now lives. Never drop this: with no
+      // visible text it is the button's entire accessible name.
       aria-label={loading ? "Connecting…" : label}
+      title={label}
     >
       {loading ? (
-        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+        <Loader2 className="w-5 h-5 animate-spin" />
       ) : provider === "apple" ? (
-        <span className="mr-2 inline-flex"><AppleMark /></span>
+        <AppleMark />
       ) : (
-        <span className="mr-2 inline-flex"><GoogleMark /></span>
+        <GoogleMark />
       )}
-      {loading ? "Connecting…" : label}
     </Button>
   );
 }

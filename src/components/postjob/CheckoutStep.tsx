@@ -8,7 +8,6 @@ import {
   Repeat,
   Zap,
   CreditCard,
-  ChevronLeft,
   CheckCircle2,
   Users,
   BookOpen,
@@ -23,6 +22,9 @@ import type { HelprActivity } from "@/hooks/useHelprActivity";
 // 50 + 7 + 7 against a printed total of 63 — the poster can see it not add
 // up, on the screen where they decide whether to trust us with a card.
 import { formatPriceExact } from "@/lib/format";
+import { recurringVisitDates, WEEKDAY_LABELS } from "@/lib/recurringSchedule";
+import { estimatedSalesTax, hasTaxableLine } from "@/lib/salesTax";
+import { useParishTaxRate } from "@/hooks/useParishTaxRate";
 import { formatJobDate } from "@/lib/dateUtils";
 
 const isSafeBlobPreviewUrl = (value: string): boolean => {
@@ -39,6 +41,10 @@ interface CheckoutStepProps {
   title: string;
   description: string;
   categoryLabel: string;
+  /** Raw category KEY (e.g. "assembly") — drives LA sales-tax classification.
+   *  `categoryLabel` is the display string and can't be matched against the
+   *  taxable-category list. */
+  category: string;
   imagePreviews: string[];
   streetAddress: string;
   city: string;
@@ -52,6 +58,8 @@ interface CheckoutStepProps {
   isRecurring: boolean;
   recurrenceInterval: string;
   recurrenceEndDate: string;
+  recurrenceDays: number[];
+  recurrenceWeeks: number;
   isUrgent: boolean;
   urgentFeeNum: number;
   budgetNum: number;
@@ -70,7 +78,6 @@ interface CheckoutStepProps {
   saving: boolean;
   uploading: boolean;
   uploadProgress?: { done: number; total: number } | null;
-  onEdit: () => void;
   onSubmit: () => void;
   /** Poster's parish — shown in the location row when available. */
   parish?: string | null;
@@ -87,6 +94,7 @@ export function CheckoutStep({
   title,
   description,
   categoryLabel,
+  category,
   imagePreviews,
   streetAddress,
   city,
@@ -98,8 +106,9 @@ export function CheckoutStep({
   isFlexibleSchedule,
   specialRequirements,
   isRecurring,
-  recurrenceInterval,
   recurrenceEndDate,
+  recurrenceDays,
+  recurrenceWeeks,
   isUrgent,
   urgentFeeNum,
   budgetNum,
@@ -115,26 +124,43 @@ export function CheckoutStep({
   saving,
   uploading,
   uploadProgress,
-  onEdit,
   onSubmit,
   parish,
   preferredHelper,
   sendToPreferred,
   onSendToPreferredChange,
 }: CheckoutStepProps) {
+  // Real parish rate from `parish_tax_rates` (seeded for all 64 parishes,
+  // world-readable). null until the zip resolves a parish, or if the parish
+  // has no row — callers must not invent a rate in that gap.
+  const { totalRatePercent: parishTaxRate, loading: parishRateLoading } = useParishTaxRate(parish);
+  // Sales tax, resolved ONCE. Both the summary card at the top of the screen
+  // and the payment breakdown at the bottom read this — the two used to be
+  // computed independently (summary showed `totalCharge`, breakdown added an
+  // invented 9-11%), which is exactly why the screen showed two different
+  // answers to "what will you charge me".
+  //   0    → exempt category: tax is a known zero, the total is exact.
+  //   null → taxable category whose parish rate isn't resolved yet.
+  const seriesDates = isRecurring ? recurringVisitDates(dateNeeded, recurrenceDays, recurrenceWeeks) : [];
+  const salesTax = estimatedSalesTax(budgetNum, category, parishTaxRate);
+  const totalWithTax = totalCharge + (salesTax ?? 0);
   return (
     <>
-      {/* Review card sizes are one step up from the rest of the sheet (L6).
-          The whole purpose of this card is catching a mistake before paying —
-          and the street address a stranger will be sent to was rendering at
-          the same size as a legal footnote. */}
-      <p className="text-muted-foreground text-ds-12">Review your job before paying</p>
+      {/* A "Review your job before paying" line used to open this card.
+          Removed on owner instruction: the screen is already titled "Order
+          summary" and carries a DETAILS → REVIEW AND PAY step rail, so it was
+          the third statement of the same instruction before any content. */}
 
       {/* ── Review & Post summary card ─────────────────────────────
           A clean read-only summary of everything the poster set. Shows
           the key fields at a glance so they can catch mistakes before
           committing to payment. The fee breakdown shows both sides:
-          "You pay $X · Helper earns $Y" for full transparency. */}
+          "You pay $X · Helper earns $Y" for full transparency.
+
+          Type sizes here are one step up from the rest of the sheet (L6): the
+          whole purpose of this card is catching a mistake before paying, and
+          the street address a stranger will be sent to was rendering at the
+          same size as a legal footnote. */}
       <div className="rounded-ds-md liquid-glass overflow-hidden">
         <div
           className="px-4 py-2.5 flex items-center gap-2 border-b border-border"
@@ -202,7 +228,13 @@ export function CheckoutStep({
                 screen would show the poster two different answers to "what
                 will you charge me". One source, both places. */}
             <div className="text-right">
-              <p className="text-ds-13 font-bold text-foreground">${formatPriceExact(totalCharge)}</p>
+              <p className="text-ds-13 font-bold text-foreground">
+                ${formatPriceExact(totalWithTax)}
+                {/* A taxable job whose parish isn't known yet can only be
+                    quoted pre-tax — mark it rather than let this read as the
+                    final number. */}
+                {salesTax === null && <span className="font-normal text-ds-11 text-muted-foreground"> + tax</span>}
+              </p>
               {budgetNum > 0 && (
                 <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   <span className="font-semibold text-foreground">${formatPriceExact(budgetNum)}</span>
@@ -238,15 +270,22 @@ export function CheckoutStep({
             </div>
           )}
 
-          {/* Recurring schedule */}
-          {isRecurring && (
+          {/* Recurring schedule.
+              The days AND the visit count, because the total below is for the
+              FIRST visit only — every later one is charged to the saved card a
+              few days ahead. A poster committing to twelve visits must see
+              twelve, next to the one-visit total, at the moment they pay. The
+              old row said "weekly until 3 Nov", which named neither. */}
+          {isRecurring && recurrenceDays.length > 0 && (
             <div className="px-4 py-3 flex items-start gap-3">
               <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
                 <Repeat className="w-3 h-3" />Repeats
               </span>
-              <p className="flex-1 text-ds-13 text-foreground text-right capitalize">
-                {recurrenceInterval}
-                {recurrenceEndDate ? ` until ${formatJobDate(recurrenceEndDate)}` : ""}
+              <p className="flex-1 text-ds-13 text-foreground text-right">
+                {recurrenceDays.map((d) => WEEKDAY_LABELS[d]).join(", ")}
+                {" · "}
+                {seriesDates.length} visit{seriesDates.length === 1 ? "" : "s"}
+                {recurrenceEndDate ? ` through ${formatJobDate(recurrenceEndDate)}` : ""}
               </p>
             </div>
           )}
@@ -344,41 +383,111 @@ export function CheckoutStep({
               <span className="font-medium text-foreground">${formatPriceExact(onboardingFeeAmount)}</span>
             </div>
           )}
-          {/* Sales tax — stated as a range, not deferred.
+          {/* Sales tax — the REAL figure, not a guess.
           
-              This row used to read "Calculated at checkout" and the total
-              below it "Estimated total (excl. tax)", so the biggest number on
-              the screen excluded roughly a tenth of what the poster would
-              actually be charged. On a $200 job that is about $20 they find
-              out about on Stripe's page — and surprise at the payment step is
-              the most common cause of checkout abandonment there is.
+              This row has been wrong twice. It first read "Calculated at
+              checkout" with the total below it labelled "excl. tax", so the
+              biggest number on the screen excluded part of the charge. The fix
+              for that replaced it with a flat "about 9-11% of everything"
+              range — which was wrong in the other direction and much worse: it
+              taxed lines Stripe never taxes.
           
-              A precise figure would need the parish rate, and the form only
-              collects a free-text address, so inventing one would be false
-              precision. Louisiana state plus parish runs roughly 9-11%, so the
-              range is stated as a range and labelled an estimate. The exact
-              amount still comes from Stripe Tax at payment. */}
+              create-payment marks the service fee, the urgent tip and the
+              one-time setup fee `txcd_00000000` (non-taxable), and marks the
+              labor line taxable ONLY for `assembly` (LA R.S. 47:301(14) — see
+              `_shared/salesTax.ts`). So for every other category Stripe charges
+              exactly $0 sales tax, while this screen was quoting an estimated
+              total ~10% above the real charge. That is the "both totals don't
+              match" the owner hit: $108.40 charged against $118.16-$120.32
+              shown.
+          
+              The rate itself is no longer invented either. `parish_tax_rates`
+              has held all 64 parishes at real rates since 2026-04 and is
+              world-readable; the form already resolves the parish from the zip.
+              We just never read it. Now we do — and when the parish isn't known
+              yet we say so instead of quoting a number we don't have. */}
           {(() => {
-            const taxLo = totalCharge * 0.09;
-            const taxHi = totalCharge * 0.11;
+            const taxable = hasTaxableLine(category);
+            const tax = salesTax;
+            // Exempt category (the common case): tax is a known $0, so the
+            // total is exact, not an estimate. Don't show a $0.00 tax row —
+            // a line that always reads zero is noise; the note carries it.
+            if (!taxable) {
+              return (
+                <>
+                  <div className="h-px bg-border" />
+                  <div className="flex justify-between items-baseline">
+                    <span className="font-semibold text-foreground">Total</span>
+                    <span className="text-ds-20 font-bold text-foreground">
+                      ${formatPriceExact(totalWithTax)}
+                    </span>
+                  </div>
+                  <p className="text-ds-11 text-muted-foreground leading-snug">
+                    No Louisiana sales tax applies to {categoryLabel.toLowerCase()} work —
+                    this is the full amount you'll be charged.
+                  </p>
+                </>
+              );
+            }
+            // Taxable category, parish not resolved yet — say what's missing
+            // rather than quoting a rate we don't have.
+            if (tax === null) {
+              return (
+                <>
+                  <div className="flex justify-between text-ds-13">
+                    <span className="text-muted-foreground">State &amp; parish sales tax</span>
+                    <span className="font-medium text-muted-foreground">
+                      {parishRateLoading ? "checking…" : "set by your parish"}
+                    </span>
+                  </div>
+                  <div className="h-px bg-border" />
+                  <div className="flex justify-between items-baseline">
+                    <span className="font-semibold text-foreground">Total before tax</span>
+                    <span className="text-ds-20 font-bold text-foreground">
+                      ${formatPriceExact(totalCharge)}
+                    </span>
+                  </div>
+                  <p className="text-ds-11 text-muted-foreground leading-snug">
+                    {/* `null` covers two different situations and they need
+                        different copy: the parish is still being looked up, or
+                        there is no parish to look up yet. Telling someone who
+                        already typed their ZIP to "add your ZIP" reads as a
+                        failure of their input. */}
+                    {parishRateLoading
+                      ? `Assembly is taxable in Louisiana — looking up ${parish}'s rate. Tax applies to the $${formatPriceExact(budgetNum)} job budget only, never the fees.`
+                      : `Assembly is taxable in Louisiana. Add your ZIP and we'll show your parish's exact rate — tax applies to the $${formatPriceExact(budgetNum)} job budget only, never the fees.`}
+                  </p>
+                </>
+              );
+            }
+            // Taxable category with a known parish rate. This IS an estimate,
+            // and the word is load-bearing: we compute from the JOB's parish,
+            // but Stripe Tax computes from the billing address the poster
+            // enters at checkout (`customer_update: {address: "auto"}`). Those
+            // usually agree — you post a job where you live — but a poster
+            // billing from another parish gets a different rate, and calling
+            // this figure "Total" would be the same overclaim in miniature that
+            // the invented 9-11% range was. Only the assembly path can differ:
+            // the exempt branch above is an exact, address-independent $0.
             return (
               <>
                 <div className="flex justify-between text-ds-13">
-                  <span className="text-muted-foreground">State &amp; parish sales tax</span>
-                  <span className="font-medium text-foreground">
-                    about ${formatPriceExact(taxLo)}–{formatPriceExact(taxHi)}
+                  <span className="text-muted-foreground">
+                    Est. sales tax{parish ? ` (${parish} Parish, ${parishTaxRate}%)` : ""}
                   </span>
+                  <span className="font-medium text-foreground">${formatPriceExact(tax)}</span>
                 </div>
                 <div className="h-px bg-border" />
                 <div className="flex justify-between items-baseline">
                   <span className="font-semibold text-foreground">Estimated total</span>
                   <span className="text-ds-20 font-bold text-foreground">
-                    ${formatPriceExact(totalCharge + taxLo)}–{formatPriceExact(totalCharge + taxHi)}
+                    ${formatPriceExact(totalWithTax)}
                   </span>
                 </div>
                 <p className="text-ds-11 text-muted-foreground leading-snug">
-                  Tax is set by your parish, so the exact amount appears on the
-                  payment page. Everything above it is fixed.
+                  Assembly is taxable labor in Louisiana, so tax applies to the
+                  ${formatPriceExact(budgetNum)} job budget — never to the fees. The exact
+                  rate is set by the billing address you enter at checkout.
                 </p>
               </>
             );
@@ -405,7 +514,6 @@ export function CheckoutStep({
               The confirmation checkbox keeps its escrow wording deliberately:
               that is a consent record, not reassurance, and trimming it would
               weaken what the poster actually agreed to. */}
-          <p className="text-muted-foreground text-ds-11">Sales tax is automatically calculated based on your location at checkout.</p>
         </div>
       </div>
 
@@ -553,15 +661,13 @@ export function CheckoutStep({
           <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
           Held safely until the job's done.
         </p>
-        <Button
-          variant="ghost"
-          className="w-full rounded-ds-md"
-          onClick={onEdit}
-          disabled={saving}
-          style={{ color: "hsl(var(--bark))" }}
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" /> Back to edit
-        </Button>
+        {/* A second "Back to edit" ghost button used to sit under the CTA.
+            Removed on owner instruction — the step rail at the top of the
+            screen (CheckoutStepIndicator's tappable "Details" step) and the
+            page-header arrow already go back, and a back affordance directly
+            beneath the pay button competes with the one action this screen
+            exists for. It was the only consumer of the edit callback, so that
+            prop went with it. */}
       </div>
     </>
   );

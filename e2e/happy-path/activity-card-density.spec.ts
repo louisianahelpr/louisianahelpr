@@ -450,7 +450,17 @@ test.describe("My Posts — card density + header", () => {
 
   test("the action row reads SOS then Share then Message, and Message is one colour everywhere", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-    const base = { ...inProgressJobStarting(-1), helper_on_the_way_at: new Date().toISOString() };
+    // `helper_arrived_at`, not just `helper_on_the_way_at`. SOS is gated on the
+    // helper having ARRIVED — it is the control for something going wrong on
+    // site, so it appears when they are on site, not while they are still
+    // driving. The fixture only set on-the-way, so the row it measured had no
+    // SOS in it at all and the order assertion below was reading Share first.
+    const arrivedAt = new Date().toISOString();
+    const base = {
+      ...inProgressJobStarting(-1),
+      helper_on_the_way_at: arrivedAt,
+      helper_arrived_at: arrivedAt,
+    };
     // BOTH Message states on ONE page: the left card has no helper completion
     // (Message used to be solid bark), the right one does (Message used to
     // demote to a muted tint, and "Approve & release payment" appears above
@@ -635,10 +645,18 @@ test.describe("My Posts — card density + header", () => {
     await page.waitForSelector("h1");
     await settle(page);
 
-    // Exactly one description affordance per card — not a toggle bolted under
-    // an already-visible description.
-    const show = page.getByRole("button", { name: "Show job description" });
-    const hide = page.getByRole("button", { name: "Hide job description" });
+    // Exactly one expand affordance per card — not a toggle bolted under an
+    // already-visible description.
+    //
+    // The applied card names it "job details", not "job description" like the
+    // posted card, and that difference is deliberate: this expander reveals
+    // who posted the job, the payout breakdown AND the description, so
+    // "description" would under-describe it for anyone navigating by
+    // accessible name. The STRUCTURE is shared — both cards render the control
+    // through JobCardMetaRow's `trailing` slot, as one rotating chevron — which
+    // is what this test is really guarding.
+    const show = page.getByRole("button", { name: "Show job details" });
+    const hide = page.getByRole("button", { name: "Hide job details" });
     expect(await show.count() + await hide.count()).toBeGreaterThan(0);
     await expect(hide).toHaveCount(0);
 
@@ -646,7 +664,7 @@ test.describe("My Posts — card density + header", () => {
     const box = await first.boundingBox();
     expect(box!.height).toBeGreaterThanOrEqual(44);
     await first.click();
-    await expect(page.getByRole("button", { name: "Hide job description" })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Hide job details" })).toHaveCount(1);
     await page.screenshot({ path: `${SHOTS}/my-jobs-expanded-375.png`, fullPage: true });
 
     // The withdraw action is the icon-over-label chip now, still destructive.

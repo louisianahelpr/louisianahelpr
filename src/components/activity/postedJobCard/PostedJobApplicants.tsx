@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import {
   Users, AlertTriangle, RotateCw, MessageSquare, Send, X, ChevronRight,
 } from "lucide-react";
-import { formatPrice } from "@/lib/format";
+
 import { type Job, type EnrichedApplication } from "../activityConstants";
-import { type WithBidPrice } from "./types";
 import { useBroadcastMessage } from "./useBroadcastMessage";
 
 interface PostedJobApplicantsProps {
@@ -187,17 +186,6 @@ export function PostedJobApplicants({
                             style={{ color: "hsl(var(--olivewood) / 0.80)" }}
                             aria-hidden="true"
                           />
-                          {(app as WithBidPrice).proposed_price != null && (
-                            <span
-                              className="text-ds-11 font-semibold px-2 py-0.5 rounded-full shrink-0"
-                              style={{
-                                background: "hsl(var(--sage) / 0.15)",
-                                color: "hsl(var(--sage))",
-                              }}
-                            >
-                              Bid: ${formatPrice((app as WithBidPrice).proposed_price ?? 0)}
-                            </span>
-                          )}
                         </div>
                         <TrustRow
                           completedJobs={

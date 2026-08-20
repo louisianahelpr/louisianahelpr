@@ -33,6 +33,7 @@ public/favicon.ico               # multi-size .ico (16/32/48 sizes inside)
 public/favicon-16.png            # browser tab favicon
 public/favicon-32.png            # browser tab favicon
 public/helpr-splash-icon.png     # web splash screen
+public/helpr-wordmark.png        # EMAIL header logo - see 2d, do NOT skip
 ```
 
 The iOS Icon Sync workflow uses `public/apple-touch-icon.png` as the
@@ -42,11 +43,22 @@ too if `scripts/generate-ios-icons.mjs` runs locally.
 ### 1b. Replace UI logo assets in `src/assets/`
 
 ```bash
-# 4 sizes × 3 formats = 12 files:
-src/assets/helpr-logo-{96,256,512,1024}.{png,webp,avif}
-src/assets/helpr-logo-64.png
-src/assets/helpr-icon-96.{png,webp,avif}
+# 3 sizes × 3 formats = 9 files:
+src/assets/helpr-logo-{96,256,1024}.{png,webp,avif}
+src/assets/helpr-logo-64.png     # currently unreferenced by code (see note)
 ```
+
+> **Set trimmed 2026-08-19.** This list used to name a 512 rung and
+> `helpr-icon-96.{png,webp,avif}`. Neither was imported anywhere in `src/`,
+> so Vite tree-shook them and they never reached a build — they existed only
+> because this runbook kept telling people to regenerate them. Deleted:
+> `helpr-logo-512.{png,webp,avif}` (448K) and `helpr-icon-96.png` (32K; the
+> `.webp`/`.avif` this list promised had never existed at all). `index.html`
+> already carried a comment noting `helpr-icon-96.png` was never imported.
+> `helpr-logo-64.png` is kept but is also currently unreferenced — delete it
+> too if nothing picks it up. Actual consumers today: `HelprMark.tsx` (96 +
+> 256), `HelprSpinner.tsx` (96), `WelcomeScreen.tsx` (96),
+> `scripts/build-app-icon.mjs` (1024).
 
 Use `npm run images:avif` (per the existing script) to regenerate
 WebP + AVIF from the new PNG sources.
@@ -138,11 +150,21 @@ account credentials to log in and replace assets.
 
 **Where:** https://resend.com/domains
 
-- No logo to update — Helpr emails are text-branded ("Helpr" wordmark
-  rendered as styled HTML in `auth-email-hook` and other email
-  edge functions). No image asset embedded.
-- If you want to ADD a logo to email headers later: would need to
-  host the image and reference it in the React Email templates.
+- **THERE IS A LOGO TO UPDATE — `public/helpr-wordmark.png`.** This
+  section used to claim Helpr emails were text-branded with no image
+  asset. That is false, and was false when written: **11 edge functions**
+  embed `<img src="https://www.louisianahelpr.com/helpr-wordmark.png">`
+  in their header — including `send-notification-email`,
+  `admin-user-actions`, `send-business-invite-email` and
+  `engagement-automations`.
+- Because it is loaded by absolute URL from the deployed site (not
+  imported, not hashed), it is invisible to any `src/` grep — which is
+  exactly how this error survived. Replace the file at
+  `public/helpr-wordmark.png`, keep the filename, and redeploy; every
+  email picks it up with no function change.
+- Skipping it leaves every transactional email showing the OLD wordmark
+  after a rebrand, which is the single most visible place a stale logo
+  can appear.
 
 ### 2e. Google Cloud Console (Google Sign In OAuth)
 

@@ -28,7 +28,14 @@ serve(async (req) => {
 
     const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
-      .select("idv_status, idv_session_id, full_name, role")
+      // NO `role`: `profiles.role` was DROPPED when accounts were unified
+      // (2026-05, see migrations 20260504142454 / 20260505230500) — this app
+      // has no poster/helper roles, and admin lives in `user_roles`. Selecting
+      // it made PostgREST 400 the whole SELECT, which tripped the profileErr
+      // guard below and 500'd the function on EVERY attempt. The user saw
+      // "Edge Function returned a non-2xx status code" and identity
+      // verification was completely dead.
+      .select("idv_status, idv_session_id, full_name")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -72,7 +79,6 @@ serve(async (req) => {
       metadata: {
         user_id: user.id,
         full_name: profile?.full_name ?? "",
-        role: profile?.role ?? "",
       },
       options: {
         document: {

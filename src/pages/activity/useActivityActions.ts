@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import type {
@@ -36,6 +37,10 @@ export function useActivityActions({
   completedJobMeta = {},
 }: UseActivityActionsArgs) {
   const { checkHelperStripeConnect } = useStripeConnectCheck();
+  // Held here (a hook) and handed down: the handler factories are plain
+  // functions, so a failed payout check can only offer a "Set up payouts"
+  // action if the router comes from this layer.
+  const navigate = useNavigate();
   const triggerPushNudge = usePushPermissionNudge();
 
   // UI state
@@ -106,6 +111,7 @@ export function useActivityActions({
     refresh,
     setStatusFilter,
     checkHelperStripeConnect,
+    navigate,
     triggerPushNudge,
     optimisticallyPatchJob,
     rollbackActivity,

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { MessageSquare, CalendarPlus } from "lucide-react";
-import { downloadIcs } from "@/lib/icalExport";
+import {MessageSquare } from "lucide-react";
+import { AddToCalendarButton } from "./AddToCalendarButton";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
@@ -22,26 +22,17 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
       {/* Job countdown */}
       <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
       {job.date_needed && (
-        <button
-          type="button"
-          aria-label="Add to calendar"
-          className="inline-flex items-center gap-1 text-ds-11 font-medium mt-1"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          onClick={() =>
-            downloadIcs({
-              id: job.id,
-              title: job.title,
-              location: job.location ?? null,
-              description: job.description ?? null,
-              dateNeeded: job.date_needed!,
-              startTime: job.start_time ?? null,
-              estimatedHours: typeof job.estimated_hours === "number" ? job.estimated_hours : null,
-            })
-          }
-        >
-          <CalendarPlus className="w-3.5 h-3.5" />
-          Add to Calendar
-        </button>
+        <AddToCalendarButton
+          job={{
+            id: job.id,
+            title: job.title,
+            location: job.location ?? null,
+            description: job.description ?? null,
+            dateNeeded: job.date_needed,
+            startTime: job.start_time ?? null,
+            estimatedHours: typeof job.estimated_hours === "number" ? job.estimated_hours : null,
+          }}
+        />
       )}
       {/* Tracking — only active on the day of the job */}
       <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />

@@ -151,9 +151,14 @@ type Measurement = {
 
 for (const { name, width, job } of [
   { name: "Apply now", width: 375, job: {} },
-  // Bid mode adds the price field, the poster's-budget line and an extra tip,
-  // and carries the longest action label — the tallest, widest variant.
-  { name: "Submit bid", width: 320, job: { pricing_mode: "accept_bids" } },
+  // The narrowest phone still in the support matrix. This case used to set
+  // `pricing_mode: "accept_bids"`, on the reasoning that bid mode was the
+  // tallest, widest variant (price field + poster's-budget line + an extra
+  // tip + the longest action label). Bidding is gone — every job is set-price
+  // now — so that mode no longer renders anything and the dialog never
+  // opened. Keeping 320 without it, because the width is what this case is
+  // actually for.
+  { name: "Apply now", width: 320, job: {} },
 ]) {
   test(`apply dialog fits the screen — ${name} @ ${width}`, async ({ helperPage: page }) => {
     const openJob = { ...BASE_JOB, ...job };

@@ -51,12 +51,22 @@ interface UseHelperMilestonesArgs {
    * derives this from the same job list, after platform fee.
    */
   totalEarningsDollars: number;
+  /**
+   * When the helper's most recent job actually completed (ISO string), or
+   * null if there are none. Gates whether a milestone is still worth
+   * celebrating — see MILESTONE_FRESHNESS_MS. Without it these toasts fire
+   * whenever the helper next opens the Earnings tab, however long after the
+   * fact, which is how "🎉 Your first completed job" ambushed a helper who
+   * had simply tapped a tab.
+   */
+  lastCompletedAt: string | null;
 }
 
 export function useHelperMilestones({
   helperId,
   completedJobCount,
   totalEarningsDollars,
+  lastCompletedAt,
 }: UseHelperMilestonesArgs): void {
   const qc = useQueryClient();
   // Guard against double-fire inside a single mount (React 18 strict
@@ -91,7 +101,21 @@ export function useHelperMilestones({
       fiveStarStreak: cachedStreak,
     };
 
-    const fresh = selectNewMilestones(safeStorage, helperId, stats);
+    const { fresh, stale } = selectNewMilestones(
+      safeStorage,
+      helperId,
+      stats,
+      lastCompletedAt,
+    );
+
+    // Back-fill silently. These are real milestones the helper crossed, just
+    // not recently — recording them now is what stops the celebration
+    // ambushing them on some later, unrelated visit to this tab, and stops a
+    // new device replaying their whole history.
+    for (const m of stale) {
+      markCelebrated(safeStorage, helperId, m.id);
+    }
+
     if (fresh.length === 0) return;
 
     // Fire the toasts in canonical order (smallest milestone first).
@@ -115,7 +139,7 @@ export function useHelperMilestones({
     // It de-dupes itself (caps at 3 fires per event lifetime) so we
     // can call it on every milestone without spamming.
     void maybeCelebrate("first_complete", { particleCount: 100 });
-  }, [helperId, completedJobCount, totalEarningsDollars, qc]);
+  }, [helperId, completedJobCount, totalEarningsDollars, lastCompletedAt, qc]);
 }
 
 export default useHelperMilestones;

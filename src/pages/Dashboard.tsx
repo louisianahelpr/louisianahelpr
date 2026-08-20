@@ -14,13 +14,13 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 // guest feed cannot drift apart on the one measurement that makes the row
 // read as a band of chrome rather than a card.
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
+import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
 import DashboardInProgressBadge from "@/components/dashboard/DashboardInProgressBadge";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { Skeleton } from "@/components/ui/skeleton";
-import { YourHelpersRow } from "@/components/dashboard/YourHelpersRow";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import DashboardStatusBanners from "@/components/dashboard/DashboardStatusBanners";
 import PayItForwardTeaser from "@/components/dashboard/PayItForwardTeaser";
@@ -33,7 +33,6 @@ const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialo
 const JobQuickActionSheet = lazy(() => import("@/components/dashboard/JobQuickActionSheet").then(m => ({ default: m.JobQuickActionSheet })));
 const ApplyConfirmDialog = lazy(() => import("@/components/dashboard/ApplyConfirmDialog").then(m => ({ default: m.ApplyConfirmDialog })));
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
-const PayoutSetupDialog = lazy(() => import("@/components/PayoutSetupDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
 const WelcomeModal = lazy(() => import("@/components/dashboard/WelcomeModal"));
@@ -159,7 +158,6 @@ const Dashboard = () => {
   // corresponding map pin. null = no card hovered.
   const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
 
-  const [payoutSetupDialogOpen, setPayoutSetupDialogOpen] = useState(false);
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
   const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;
 
@@ -186,7 +184,6 @@ const Dashboard = () => {
   const {
     confirmApplyJobId, setConfirmApplyJobId, confirmApplyJob,
     applyMessage, setApplyMessage, applyLoading, applyFiles, setApplyFiles,
-    bidPrice, setBidPrice,
     handleApplyRequest, handleApplyConfirm,
   } = useApplyFlow({ user, allJobs });
 
@@ -235,7 +232,11 @@ const Dashboard = () => {
       <PageScaffold
         animate
         panelElevation="raised"
-        titleCard={<DashboardTitleBar status={statusPill} actions={<BrowseTasksActions filters={filters} />} />}
+        titleCard={<DashboardTitleBar
+            status={statusPill}
+            actions={<BrowseTasksActions filters={filters} />}
+            searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
+          />}
         titleCardClassName={TITLE_BAR_PADDING}
       >
         {/* The loaded screen's only <h1> lives in BrowseTasksToolbar, which
@@ -296,7 +297,11 @@ const Dashboard = () => {
       // "Browse jobs" h1 inside the panel (sr-only here — owner decision,
       // "home will not have a title just the H logo"). PageScaffold takes on
       // the top safe-area inset itself when no header is passed.
-      titleCard={<DashboardTitleBar status={statusPill} actions={<BrowseTasksActions filters={filters} />} />}
+      titleCard={<DashboardTitleBar
+            status={statusPill}
+            actions={<BrowseTasksActions filters={filters} />}
+            searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
+          />}
       titleCardClassName={TITLE_BAR_PADDING}
       aboveTitle={<BroadcastBanner />}
       beforePanel={
@@ -306,13 +311,14 @@ const Dashboard = () => {
             onPendingClick={() => navigate("/account-pending")}
           />
 
-          {/* Quick-rebook strip — the customer's saved helprs, one tap
-              from a direct offer. Self-hides when there are none.
-              Wrapped in a SectionBoundary so a flaky `saved_helpers`
-              query can't red-screen the whole Dashboard tab. */}
-          <SectionBoundary label="your helpers">
-            <YourHelpersRow />
-          </SectionBoundary>
+          {/* The "Your Helprs" quick-rebook strip used to render here,
+              wrapped in a SectionBoundary. Removed 2026-08-19 at the owner's
+              request — it pushed the job feed down on the home tab for a
+              shortcut that only pays off for repeat customers. Rebooking a
+              saved helper still lives on Profile -> Saved Helprs, which is
+              where the full list is. The component itself
+              (components/dashboard/YourHelpersRow.tsx) is kept, unrendered,
+              in case it returns somewhere with more room. */}
           {/* The "Finish your profile" completion nudge used to render
               here. It moved off the home feed onto the Profile landing
               screen (ProfileLanding's completion meter) so the job feed
@@ -417,6 +423,8 @@ const Dashboard = () => {
                         onJobAction={handleApplyRequest}
                         ctaLabel="Apply"
                         currentUserId={user?.id}
+                        filters={filters.mapFilter}
+                        onClearFilters={filters.clearFilters}
                       />
                     </Suspense>
                   </div>
@@ -500,8 +508,6 @@ const Dashboard = () => {
             applyFiles={applyFiles}
             setApplyFiles={setApplyFiles}
             applyLoading={applyLoading}
-            bidPrice={bidPrice}
-            setBidPrice={setBidPrice}
             handleApplyConfirm={handleApplyConfirm}
           />
         </Suspense>
@@ -513,11 +519,17 @@ const Dashboard = () => {
         onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}
         onConfirm={handleDismissConfirm}
       />
-      {payoutSetupDialogOpen && (
-        <Suspense fallback={null}>
-          <PayoutSetupDialog open={payoutSetupDialogOpen} onOpenChange={setPayoutSetupDialogOpen} />
-        </Suspense>
-      )}
+      {/* No payout-setup dialog here. It was mounted behind a
+          `payoutSetupDialogOpen` flag whose setter was never called from
+          anywhere, so it could not open — a lazy chunk and a piece of state
+          maintained for a dialog no user could ever see.
+
+          Nor should it open here: applying to a job does not require a payout
+          account, accepting one does, and that gate already exists in
+          useOfferHandlers (with a "Set up payouts" action on the toast). Adding
+          a second gate at apply time would put the friction at the wrong
+          moment. This was PayoutSetupDialog's only mount point, so the
+          component had no reachable caller at all and is deleted with it. */}
 
       {/* Floating-FAB removed — MobileNav already renders a Post FAB at the
           right edge of the bottom dock. Two FABs at the same screen corner

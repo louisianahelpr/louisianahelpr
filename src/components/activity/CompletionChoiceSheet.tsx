@@ -16,16 +16,13 @@
  * path that already exists on the jobs row.
  */
 import { useState } from "react";
-import { CheckCircle2, RotateCcw, X, Upload, AlertTriangle } from "lucide-react";
+import { CheckCircle2, ChevronLeft, RotateCcw, X, Upload, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetHero,
-  SheetTitle,
-  SheetDescription,
 } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -182,11 +179,7 @@ export function CompletionChoiceSheet({
       <SheetContent side="bottom" className="pb-safe-nav">
         {mode === "choice" ? (
           <>
-            <SheetHero
-              className="mb-4"
-              eyebrow="Wrapping up"
-              title="How did it go?"
-            />
+            <SheetHero className="mb-4" title="How did it go?" />
 
             <div className="space-y-3">
               {/* Path A — release payment */}
@@ -262,35 +255,34 @@ export function CompletionChoiceSheet({
           </>
         ) : (
           <>
-            <SheetHeader className="space-y-0 text-left pr-12 mb-4">
-              <div className="flex items-start justify-between gap-3">
-                {/* Eyebrow → title → subtitle stack matches SheetHero (used
-                    in the "choice" mode above) so this nested mode reads
-                    as its sibling. The back-to-choices button sits to the
-                    right of the title stack rather than as a separate
-                    header row. */}
-                <div className="flex-1 min-w-0">
-                  <SheetTitle
-                    className="font-display italic font-bold leading-tight"
-                    style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-                  >
-                    What needs to be fixed?
-                  </SheetTitle>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setMode("choice")}
-                  className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-full active:opacity-70"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                  aria-label="Back to choices"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            {/* Was a hand-copied title stack. Two problems it re-introduced:
+                a rendered subtitle (removed app-wide by the 2026-07-25 "one
+                main title" decision — copy a sighted user must read belongs in
+                the BODY, which is where the "will be notified" line now sits),
+                and a SECOND X glyph ~30px from the sheet's own close. Two
+                adjacent Xs with different meanings, on the money-release path:
+                one goes back a step, one abandons the flow. The back control is
+                a left chevron now, which is what it always meant. */}
+            <div className="flex items-start gap-2 mb-1">
+              <button
+                type="button"
+                onClick={() => setMode("choice")}
+                className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-full active:opacity-70 -ml-1.5"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                aria-label="Back to choices"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <SheetHero title="What needs to be fixed?" className="pt-0" />
               </div>
-              <SheetDescription className="font-serif italic leading-relaxed pt-1.5 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                {helperName} will be notified and can respond before the job closes.
-              </SheetDescription>
-            </SheetHeader>
+            </div>
+            <p
+              className="font-serif italic leading-relaxed text-ds-13 mb-4"
+              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              {helperName} will be notified and can respond before the job closes.
+            </p>
 
             <div className="space-y-3">
               <Textarea

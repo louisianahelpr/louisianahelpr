@@ -815,7 +815,16 @@ html.web-desktop {
   --desktop-sidebar-w: 248px;
 }
 @media (min-width: 1024px) {
-  html.web-desktop.app-shell .app-shell-frame {
+  /* `.desktop-rail` is REQUIRED, not decoration. The class is toggled by
+     useAppShellViewport with the same `!!user` gate that DesktopSidebarNav
+     renders on, so it means "the rail is actually on screen". Without it in
+     this selector, a fixed-shell route reachable while signed OUT — /browse
+     is the case, and it bounces authed users away, so its visitor is ALWAYS
+     logged out — got inset 248px for a rail that never rendered: a dead
+     grey band down the left of the whole page at 1440. The document-scroll
+     twin below (`html.web-desktop.desktop-rail:not(.app-shell) #root`) has
+     always been gated this way; this one was not, so the two disagreed. */
+  html.web-desktop.app-shell.desktop-rail .app-shell-frame {
     /* Fill the viewport to the right of the sidebar. No max-width cap, no
        centered phone frame. */
     left: var(--desktop-sidebar-w);

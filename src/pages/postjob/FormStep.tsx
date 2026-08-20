@@ -6,7 +6,6 @@ import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
 import { DirectOfferBanner } from "./DirectOfferBanner";
-import { DraftSavedIndicator } from "./DraftSavedIndicator";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
 import { formatPrice } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
@@ -62,17 +61,6 @@ export function FormStep({ form }: FormStepProps) {
       )}
 
       {atOpenJobLimit && <OpenJobLimitNotice />}
-
-      {/* "Draft saved Xs ago" reassurance — appears once the autosave
-          has actually fired. Sits next to the back arrow visually
-          (below the page header, above the tabs) so it answers the
-          poster's silent "did my input save?" question before they
-          consider navigating away. */}
-      {form.draftSavedAt > 0 && (
-        <div className="flex justify-start">
-          <DraftSavedIndicator savedAt={form.draftSavedAt} />
-        </div>
-      )}
 
       {/* Draft tab, template picker, and AI builder all live on the entry
           step (EntryChoice) now — the form is for filling in details, not
@@ -133,10 +121,10 @@ export function FormStep({ form }: FormStepProps) {
             setSpecialRequirements={form.setSpecialRequirements}
             isRecurring={form.isRecurring}
             setIsRecurring={form.setIsRecurring}
-            recurrenceInterval={form.recurrenceInterval}
-            setRecurrenceInterval={form.setRecurrenceInterval}
-            recurrenceEndDate={form.recurrenceEndDate}
-            setRecurrenceEndDate={form.setRecurrenceEndDate}
+            recurrenceDays={form.recurrenceDays}
+            setRecurrenceDays={form.setRecurrenceDays}
+            recurrenceWeeks={form.recurrenceWeeks}
+            setRecurrenceWeeks={form.setRecurrenceWeeks}
             isGroupJob={form.isGroupJob}
             setIsGroupJob={form.setIsGroupJob}
             helpersNeeded={form.helpersNeeded}
@@ -169,14 +157,6 @@ export function FormStep({ form }: FormStepProps) {
             setCustomUrgentFee={form.setCustomUrgentFee}
             budgetComplete={form.budgetComplete}
             category={form.category}
-            pricingMode={form.pricingMode}
-            setPricingMode={form.setPricingMode}
-            bidCeiling={form.bidCeiling}
-            setBidCeiling={form.setBidCeiling}
-            bidDeadline={form.bidDeadline}
-            setBidDeadline={form.setBidDeadline}
-            bidsSealed={form.bidsSealed}
-            setBidsSealed={form.setBidsSealed}
           />
         </div>
 

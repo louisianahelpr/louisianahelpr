@@ -29,7 +29,7 @@ const LIMITS = { percent: { min: 1, max: 50 }, fixed: { min: 1, max: 500 }, cap:
  */
 const AutoTip = () => {
   usePageTitle("Auto-tip — Helpr");
-  const { user, profile } = useCurrentUser();
+  const { user, profile, refresh } = useCurrentUser();
 
   const [mode, setMode] = useState<Mode>("off");
   const [value, setValue] = useState<string>("15");
@@ -64,9 +64,28 @@ const AutoTip = () => {
     (Number.isFinite(numericCap) && numericCap >= LIMITS.cap.min && numericCap <= LIMITS.cap.max);
 
   const save = async () => {
-    if (!user?.id || !valueValid || !capValid) return;
+    // Never return silently. The button is disabled while any of these hold,
+    // so reaching here means something is out of sync between the disabled
+    // state and the guard — say so rather than swallowing the tap, which is
+    // indistinguishable from a dead button ("when I click save nothing
+    // happens like it didn't work").
+    if (!user?.id) {
+      toast.error("You're signed out — sign in again to change this.");
+      return;
+    }
+    if (!valueValid || !capValid) {
+      toast.error("Check the highlighted amount before saving.");
+      return;
+    }
     setSaving(true);
-    const { error } = await supabase
+    // `.select()` is load-bearing, not decoration. A bare
+    // `.update().eq(...)` resolves with `{ data: null, error: null }` whether
+    // it changed one row or NONE — so an update that RLS filters out, or one
+    // whose `user_id` matches nothing, is indistinguishable from success. The
+    // screen then toasted "Auto-tip saved" over a write that never landed, and
+    // the setting was simply gone on the next visit. Asking for the changed
+    // rows back is the only way to know.
+    const { data: updated, error } = await supabase
       .from("profiles")
       .update({
         auto_tip_mode: mode,
@@ -75,13 +94,30 @@ const AutoTip = () => {
         auto_tip_value: mode === "off" ? null : numericValue,
         auto_tip_cap: mode === "percent" ? numericCap : null,
       })
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .select("user_id");
     setSaving(false);
     if (error) {
       report(error, { tags: { source: "AutoTip.save" } });
       toast.error("Couldn't save your auto-tip", { description: error.message });
       return;
     }
+    if (!updated || updated.length === 0) {
+      report(new Error("AutoTip update matched no rows"), {
+        tags: { source: "AutoTip.save" },
+        context: { user_id: user.id, mode },
+      });
+      toast.error("Couldn't save your auto-tip", {
+        description: "We couldn't reach your profile. Try again in a moment.",
+      });
+      return;
+    }
+    // Pull the profile back through so the value the page re-seeds from next
+    // time is the value that actually persisted, not the local state that
+    // happened to be on screen. The realtime `profiles` subscription in
+    // useCurrentUser usually invalidates this already, but it is best-effort
+    // (and drops on a cold native socket) — this makes the read-back certain.
+    void refresh();
     void hapticLight();
     toast.success(mode === "off" ? "Auto-tip turned off" : "Auto-tip saved");
   };
@@ -105,7 +141,10 @@ const AutoTip = () => {
           >
             Tip automatically once a job is finished, without having to remember.
             Charged after completion — never before — so you only ever tip for
-            work that actually happened.
+            work that actually happened, and the whole tip goes to your Helpr:
+            Helpr takes no cut, only the card processing fee applies. If you
+            haven't saved a card, we'll ask you to confirm the tip instead of
+            charging it automatically.
           </p>
 
           <div className="grid grid-cols-3 gap-2">
@@ -231,14 +270,12 @@ const AutoTip = () => {
             {saving ? "Saving…" : "Save"}
           </Button>
         </section>
-
-        <section className="liquid-glass rounded-ds-md p-5">
-          <p className="font-serif italic text-ds-12 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-            Tips go straight to your Helpr — Helpr takes no cut, only the card
-            processing fee applies. If you haven't saved a card, we'll ask you
-            to confirm the tip instead of charging it automatically.
-          </p>
-        </section>
+        {/* A trailing explainer card used to sit here. Removed on owner
+            instruction: it was a second explanation of the same feature at the
+            far end of a short screen, after the Save button had already ended
+            it. Its one piece of load-bearing behaviour — that an unsaved card
+            means we confirm the tip rather than auto-charge it — was folded
+            into the opening paragraph rather than lost. */}
       </div>
     </div>
   );

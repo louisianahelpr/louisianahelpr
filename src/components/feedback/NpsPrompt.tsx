@@ -142,10 +142,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
         // form (bg-parchment would silently no-op).
         className="bg-[hsl(var(--parchment))] border-t border-[hsl(var(--bark)/0.18)] rounded-t-2xl"
       >
-        <SheetHero
-          eyebrow="Your feedback"
-          title="How are we doing?"
-        />
+        <SheetHero title="How are we doing?" />
 
         <div className="mt-5 space-y-4">
           {/* 0..10 row. On narrow viewports the row stays one line because

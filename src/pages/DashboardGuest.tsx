@@ -9,9 +9,10 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
+import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
-import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
+import { BrowseViewToggle } from "@/components/dashboard/browseTasksToolbar/BrowseViewToggle";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 // Lazy-load the map so the ~45KB leaflet bundle only ships when guests
 // actually toggle to map view. List view stays cheap by default.
@@ -46,17 +47,16 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
  * Lives parallel to Dashboard.tsx because Dashboard pervasively assumes
  * an authenticated user (Supabase calls scoped by user.id, approval
  * gating, stripe checks). Sharing layout, not logic, is the cleanest
- * boundary — and the Browse toolbar itself is now the SAME component the
+ * boundary — and the Browse toolbar itself is the SAME component the
  * authenticated dashboard renders (BrowseTasksToolbar driven by
- * useDashboardFilters), so search, filters, category picker, the
- * active-filter chip row, and the list/map toggle behave identically.
- * SavedSearches is internally gated on a signed-in user, so it correctly
- * stays hidden for guests.
+ * useDashboardFilters), so the category picker, the active-filter chip row
+ * and the feed itself behave identically. SavedSearches is internally gated
+ * on a signed-in user, so it correctly stays hidden for guests.
  *
  * The chrome matches too: a brand row — emblem, then "Log in" / "Get started"
- * where Home puts its live-job pill and its bell — over the toolbar row that
- * carries the heading and the feed's four action icons. There is no app bar on
- * either screen.
+ * where Home puts its live-job pill and its bell. There is no app bar on
+ * either screen. The one deliberate difference is that this row carries NO
+ * search or filter icons (see the DashboardTitleBar comment below); Home does.
  */
 
 /**
@@ -75,8 +75,8 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
  * never folded into an overflow menu, never below the 44px tap floor. What
  * yields first if the row ever runs out of room is the emblem (see
  * DashboardTitleBar) — a visitor can find the front door again; they cannot
- * guess a hidden CTA. With the feed's icons back down in the toolbar row the
- * pair now has room to spare even at 320.
+ * guess a hidden CTA. With no search/filter icons sharing the row, the pair
+ * has room to spare even at 320.
  *
  * `px-2` rather than the button default: the horizontal padding is the only
  * slack in this row that costs nothing — the labels and the 44px tap heights
@@ -202,10 +202,26 @@ const DashboardGuest = () => {
 
   // Bounce already-authenticated users straight to the real dashboard so
   // they never see the guest surface (would confuse anyone with a session).
+  //
+  // The redirect alone was NOT enough, and the comment above was describing an
+  // intent the code did not deliver: getSession() is async, so the guest
+  // surface rendered first and only bounced a beat later. A signed-in user
+  // watched the logged-out page — "browse as a guest", signup CTAs — flash up
+  // before being thrown to the dashboard. Reported as "once I log in it should
+  // never redirect me to the guest pages".
+  //
+  // So the render is now HELD until the session answer is in. Until then this
+  // shows the same skeleton the route already uses as its Suspense fallback,
+  // so a genuine guest sees no extra delay in kind — just the loading state
+  // they were going to see anyway — while a signed-in user never sees the
+  // guest surface at all.
+  const [sessionChecked, setSessionChecked] = useState(false);
   useEffect(() => {
     let cancelled = false;
     supabase.auth.getSession().then(({ data }) => {
-      if (!cancelled && data.session?.user) navigate("/dashboard", { replace: true });
+      if (cancelled) return;
+      if (data.session?.user) navigate("/dashboard", { replace: true });
+      else setSessionChecked(true);
     });
     return () => { cancelled = true; };
   }, [navigate]);
@@ -268,6 +284,9 @@ const DashboardGuest = () => {
     onRefresh: async () => { await refetch(); },
   });
 
+  // Never paint the guest surface before we know whether there's a session.
+  if (!sessionChecked) return <GuestBrowseSkeleton />;
+
   return (
     <PageScaffold
       maxWidth="narrow"
@@ -284,21 +303,46 @@ const DashboardGuest = () => {
           // signed-out visitor tapping it wants the front door.
           emblemTo="/"
           // No `status` — the live-job pill is a signed-in thing.
-          // Search + filters ride in this row too, exactly as they now do on
-          // the authed Home — the guest feed shares BrowseTasksToolbar, so
-          // when those icons moved up out of its header row this surface would
-          // otherwise have lost them entirely.
-          actions={<BrowseTasksActions filters={filters} />}
+          //
+          // No `actions` and no `searchBar` either, and that is the one place
+          // this surface deliberately diverges from Home. A signed-out visitor
+          // is not running a refined search; they are being shown that the
+          // marketplace is alive. What this row has to carry is the emblem
+          // plus the "Log in" / "Get started" pair — the screen's whole
+          // purpose — and those come first. Adding search + filter icons put
+          // four controls in one 375px row and spent the top of the page on
+          // tools for a job nobody is here to do yet. Home keeps them; a
+          // visitor who signs up gets them the moment they land on /dashboard.
+          //
+          // `searchBar` goes with them rather than being left as a dead
+          // branch: the search icon was the only way to set `filters.searchOpen`
+          // on this surface, so the slot could never fire again. `filters`
+          // itself stays — the feed and its empty states are built on it.
           trailing={<GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />}
         />
       }
       titleCardClassName={TITLE_BAR_PADDING}
     >
-            {/* Shared Browse toolbar — identical to the authenticated
-                dashboard (expandable search with recent/popular suggestions,
-                the unified FilterSheet, category picker row, and swipeable
-                active-filter chips). `user={null}` keeps SavedSearches hidden
-                for guests. */}
+            {/* List ⇄ Map, inline on this surface only.
+                Everywhere else this control lives inside the filter sheet,
+                which is opened by the filter icon — and that icon is gone
+                from the guest title bar (see the comment on it above). Without
+                this row a visitor could not reach the map at all, and the map
+                is the strongest thing this screen has: it is what shows a
+                stranger that the marketplace is alive across their parish.
+                Two chips on one row is a fraction of what the icon cluster
+                cost, and it is the one tool a signed-out visitor actually
+                wants. */}
+            <div className="shrink-0 px-4 pt-2 pb-1">
+              <BrowseViewToggle view={view} setView={setView} />
+            </div>
+
+            {/* Shared Browse toolbar — the category picker row and the
+                active-filter chips. Search and the filter sheet are not
+                reachable on this surface (no icons in the title bar), so in
+                practice this renders the sr-only heading and nothing else
+                until a filter is set some other way. `user={null}` keeps
+                SavedSearches hidden for guests. */}
             <BrowseTasksToolbar
               titleSrOnly
               // `null` keeps SavedSearches out of the icon cluster — it is a
@@ -328,6 +372,8 @@ const DashboardGuest = () => {
                   <BrowseMap
                     onJobAction={requireSignup}
                     ctaLabel="Sign up to apply"
+                    filters={filters.mapFilter}
+                    onClearFilters={filters.clearFilters}
                     emptyStateCta={{
                       label: "Get pinged when a job lands",
                       onClick: () => navigate("/signup"),

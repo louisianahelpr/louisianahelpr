@@ -5,7 +5,6 @@ import { posterServiceFeeCents } from "@/lib/posterFees";
 import { MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimits";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
-import type { PricingMode } from "@/components/postjob/BudgetSection";
 import { computeBudgetPresets } from "./postJobFormHelpers";
 
 /**
@@ -31,7 +30,6 @@ export interface UseJobDerivedParams {
   zipCode: string;
   dateNeeded: string;
   startTime: string;
-  pricingMode: PricingMode;
   parish: string | null;
 }
 
@@ -52,7 +50,6 @@ export function useJobDerived(params: UseJobDerivedParams) {
     zipCode,
     dateNeeded,
     startTime,
-    pricingMode,
     parish,
   } = params;
 
@@ -71,7 +68,11 @@ export function useJobDerived(params: UseJobDerivedParams) {
   const onboardingCents = onboardingFeePaid ? 0 : onboardingFeeCents;
   const customerFeeAmount =
     posterServiceFeeCents(budgetCents, customerFee ?? 12, urgentFeeCents + onboardingCents) / 100;
-  const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum + onboardingFeeAmount; // + Sales tax at checkout
+  // Every charged line EXCEPT sales tax. Tax is added by CheckoutStep, which
+  // is where the parish rate resolves — and for the great majority of
+  // categories it is $0, because create-payment marks every line but assembly
+  // labor `txcd_00000000`. See `src/lib/salesTax.ts`.
+  const totalCharge = budgetNum + customerFeeAmount + urgentFeeNum + onboardingFeeAmount;
   const categoryLabel = categories.find((c) => c.value === category)?.label || category;
 
   // Section completion for the 3-step progress bar. Photos are optional
@@ -79,11 +80,10 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // once title, description, and category are set.
   const detailsComplete = !!(title.trim() && description.trim() && category && !hasUnfilledPlaceholders(description));
   const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime);
-  // In accept_bids mode the budget is optional — helpers set their own price.
-  const budgetComplete =
-    pricingMode === "accept_bids"
-      ? true
-      : !!(budget && parseFloat(budget) >= MIN_JOB_BUDGET_DOLLARS);
+  // The budget is always required now. It used to be optional in "Accept bids"
+  // mode, where helpers named the price — that mode is gone
+  // (PRICING_MODE_REMOVED in BudgetSection).
+  const budgetComplete = !!(budget && parseFloat(budget) >= MIN_JOB_BUDGET_DOLLARS);
 
   // Smart Pricing Guidance — live budget range from real completed jobs
   // in this category (+ parish), with a graceful fallback to the static

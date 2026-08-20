@@ -144,39 +144,51 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
 );
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
-/** Frosted-glass round close button shared by every sheet side. */
+/**
+ * Bare close (X) shared by every sheet side.
+ *
+ * Deliberately a BARE glyph — no filled circle, border, backdrop-blur, or
+ * shadow. It used to be a frosted-glass disc, which read as a heavy chrome
+ * "chip" floating over the sheet on every bottom sheet in the app. The disc
+ * existed to keep the glyph legible when it overlapped sheet content, but
+ * every sheet paints its own opaque `bg-background`, so the glyph has a solid
+ * ground already and the disc bought nothing but visual weight. Same reasoning
+ * as `BackButton` (bare chevron, no chrome) and `DialogContent`'s close.
+ *
+ * The 40x40 box stays — that is the tap target (>= 44pt with the surrounding
+ * p-6), independent of whether anything is painted behind the glyph.
+ *
+ * Media overlays (PhotoLightbox, VideoPreviewModal) keep their translucent
+ * disc on purpose: those Xs sit on arbitrary user photos/video, where a bare
+ * glyph can land on a matching-colour region and disappear.
+ */
 const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
   <SheetPrimitive.Close
-    className="absolute inline-flex h-10 w-10 items-center justify-center rounded-full opacity-90 ring-offset-background transition-all hover:opacity-100 active:scale-[0.94] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+    className="absolute inline-flex h-10 w-10 items-center justify-center rounded-md ring-offset-background transition-colors hover:opacity-70 active:scale-[0.94] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
     style={{
       top,
       right,
-      // `--surface-premium`, NOT a literal white. This was
-      // `hsla(0, 0%, 100%, 0.65)` with no dark sibling, while the icon colour
-      // (`--olivewood`) IS theme-aware and flips to near-white on dark. The
-      // result in dark mode was a near-white glyph on a near-white circle —
-      // the close button on EVERY sheet in the app was barely legible, and it
-      // also read as a bright blob against the dark sheet body behind it.
-      background: "var(--surface-premium)",
-      border: "1px solid hsl(var(--olivewood) / 0.18)",
+      // Theme-aware: `--olivewood` flips to near-white on dark, so the glyph
+      // stays legible against the sheet's own background in both themes.
       color: "hsl(var(--olivewood))",
-      backdropFilter: "blur(10px) saturate(150%)",
-      WebkitBackdropFilter: "blur(10px) saturate(150%)",
-      boxShadow:
-        // Inset highlight scaled back from 0.55 → 0.28: at full strength it
-        // painted a bright rim on the dark-mode surface.
-        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.28), " +
-        "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-        "0 4px 10px -4px hsl(var(--olivewood) / 0.10)",
     }}
   >
-    <X className="h-4 w-4" strokeWidth={2.25} />
+    <X className="h-5 w-5" strokeWidth={2} />
     <span className="sr-only">Close</span>
   </SheetPrimitive.Close>
 );
 
+// `pr-12` reserves the lane the floating close (X) occupies — a 40x40 box
+// inset 1rem from the right edge. `DialogHeader` has carried the equivalent
+// `pr-10` since it was written, so ANY dialog header clears the X for free
+// even when it's hand-rolled; the sheet side had no reserve at all, so a sheet
+// that skipped `SheetHero` got zero protection and a long title ran straight
+// under the glyph. This closes that asymmetry.
+//
+// A caller passing `px-*` still merges this away (tailwind-merge, same slot) —
+// that is why `SheetHero` does NOT rely on it and owns its own inner lane.
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col space-y-2 text-center sm:text-left", className)} {...props} />
+  <div className={cn("flex flex-col space-y-2 text-center sm:text-left pr-12", className)} {...props} />
 );
 SheetHeader.displayName = "SheetHeader";
 
@@ -189,7 +201,15 @@ const SheetTitle = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
 >(({ className, ...props }, ref) => (
-  <SheetPrimitive.Title ref={ref} className={cn("text-lg font-semibold text-foreground", className)} {...props} />
+  // No weight in the base. `cn()` is tailwind-merge and `font-semibold` sits in
+  // the same slot as a caller's `font-bold`, at equal specificity with the base
+  // emitted later in the stylesheet — so `SheetHero`'s `font-bold` was losing
+  // and every sheet title computed at 600 while every dialog title computed at
+  // 700. Invisible today only because the app requests Bodoni Moda italic at a
+  // single weight, so 600 resolves to the 700 face; the day a 600 face is added
+  // to the font URL, every sheet title in the app goes lighter than every
+  // dialog title. `DialogTitle` carries no weight of its own either.
+  <SheetPrimitive.Title ref={ref} className={cn("text-lg text-foreground", className)} {...props} />
 ));
 SheetTitle.displayName = SheetPrimitive.Title.displayName;
 
@@ -239,13 +259,22 @@ const SheetHero = ({
   eyebrowClassName?: string;
   eyebrowStyle?: React.CSSProperties;
 }) => (
-  <SheetHeader className={cn("space-y-0 text-left pr-12", className)}>
-    <SheetTitle
-      className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
-      style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}
-    >
-      {title}
-    </SheetTitle>
+  // The close-button lane lives on an INNER element, not on the merged outer
+  // className. It used to be `cn("… pr-12", className)`, which put the reserve
+  // in the same tailwind-merge slot as the caller's padding — so a perfectly
+  // ordinary `className="px-1 pb-2"` silently DELETED it. Three of the eleven
+  // adopters were passing exactly that, and on the dashboard's long-press sheet
+  // (whose title is arbitrary user text) the title painted under the X. The
+  // reserve is not a suggestion; a caller must not be able to merge it away.
+  <SheetHeader className={cn("space-y-0 text-left pr-0", className)}>
+    <div className="pr-12">
+      <SheetTitle
+        className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
+        style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}
+      >
+        {title}
+      </SheetTitle>
+    </div>
   </SheetHeader>
 );
 SheetHero.displayName = "SheetHero";

@@ -6,6 +6,7 @@ import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { fireSuccessMoment } from "@/lib/successMoment";
+import type { NavigateFunction } from "react-router-dom";
 import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -28,6 +29,10 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
   refresh: () => void | Promise<unknown>;
   setStatusFilter: (filter: string) => void;
   checkHelperStripeConnect: ReturnType<typeof useStripeConnectCheck>["checkHelperStripeConnect"];
+  /** Router push, supplied by the calling hook — this factory is not a React
+      component, so it cannot call `useNavigate` itself. Used to make the
+      payout-setup failure tappable instead of a dead-end toast. */
+  navigate: NavigateFunction;
   triggerPushNudge: ReturnType<typeof usePushPermissionNudge>;
   selectedJob: Job | null;
   setSelectedJob: (job: Job | null) => void;
@@ -50,6 +55,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     refresh,
     setStatusFilter,
     checkHelperStripeConnect,
+    navigate,
     triggerPushNudge,
     optimisticallyPatchJob,
     rollbackActivity,
@@ -244,13 +250,123 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     setStatusFilter("offered");
   };
 
+  /**
+   * A direct offer has no `applications` row — the poster stamps the offer on
+   * the JOB and useActivityData fabricates a card row with `id =
+   * "direct-<jobId>"`. Every application-keyed RPC below would receive that
+   * string where a uuid is expected and fail with 22P02, so this path is
+   * routed to the job-keyed `respond_to_direct_offer` RPC instead.
+   */
+  const isSyntheticDirectOffer = (app: Application) => app.id.startsWith("direct-");
+
+  const respondToDirectOffer = async (app: Application, accept: boolean) => {
+    if (accept) {
+      // Same two gates as an application accept — a helper who can't be paid
+      // must not be able to take a job, whichever door they came through.
+      const stripeCheck = await checkHelperStripeConnect();
+      if (!stripeCheck.ok) {
+        hapticError();
+        toast.error(stripeCheck.reason, stripeCheck.needsPayoutSetup
+          ? { action: { label: "Set up payouts", onClick: () => navigate("/profile?tab=payment") } }
+          : undefined);
+        return;
+      }
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("idv_status, idv_failure_reason")
+        .eq("user_id", user!.id)
+        .single();
+      if (profErr) {
+        report(profErr, { tags: { source: "useOfferHandlers.directOffer.idvGate" } });
+        hapticError();
+        toast.error("Couldn't check your verification status — please try again.");
+        return;
+      }
+      const profIdvStatus = (prof as { idv_status?: string })?.idv_status;
+      if (profIdvStatus !== "verified") {
+        setPendingAcceptApp(app);
+        setIdvStatus(profIdvStatus);
+        setIdvFailureReason((prof as { idv_failure_reason?: string })?.idv_failure_reason);
+        setIdvDialogOpen(true);
+        return;
+      }
+    }
+
+    // Shipped by migration 20260820000000; the generated Supabase types are
+    // regenerated separately, so the call is narrowed by hand rather than
+    // waiting on that (same pattern as `applyToJobRpc` in useApplyFlow).
+    const respondRpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: "respond_to_direct_offer",
+      args: { p_job_id: string; p_accept: boolean },
+    ) => Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+    const { error } = await respondRpc("respond_to_direct_offer", {
+      p_job_id: app.job_id,
+      p_accept: accept,
+    });
+
+    if (error) {
+      hapticError();
+      const code = String((error as { code?: string }).code ?? "");
+      const msg = String(error.message ?? "");
+      if (code === "PGRST202") {
+        // Merge landed, migration hasn't deployed yet (db-deploy.yml runs on
+        // the merge commit). Say so instead of blaming the user's tap.
+        toast.error("Offer responses are updating right now — try again in a minute.");
+        return;
+      }
+      // The RPC's guards, in the helper's language. Each one means the offer
+      // moved out from under this card, so re-read rather than leave the same
+      // two buttons sitting there to fail again.
+      const guard =
+        /offer_expired/.test(msg) ? "This offer expired — the job is open to everyone again."
+        : /offer_not_pending|not_your_offer/.test(msg) ? "This offer isn't yours to respond to any more."
+        : /job_not_open/.test(msg) ? "This job is no longer open."
+        : /job_not_found/.test(msg) ? "This job is no longer available."
+        : null;
+      if (guard) {
+        toast.error(guard);
+        await refresh();
+        return;
+      }
+      report(error, { tags: { source: "useOfferHandlers.respondToDirectOffer" } });
+      toast.error("Couldn't record your response — please try again.");
+      return;
+    }
+
+    hapticSuccess();
+    if (accept) {
+      fireSuccessMoment({ label: "Job accepted" });
+      toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
+      await refresh();
+      setStatusFilter("accepted");
+    } else {
+      toast.success("Offer declined. The poster has been told.");
+      await refresh();
+    }
+  };
+
   const handleHelperResponse = async (app: Application, accept: boolean) => {
     if (!user) return;
     setRespondingHelperAppId(app.id);
     try {
+    if (isSyntheticDirectOffer(app)) {
+      await respondToDirectOffer(app, accept);
+      return;
+    }
     if (accept) {
       const stripeCheck = await checkHelperStripeConnect();
-      if (!stripeCheck.ok) { hapticError(); toast.error(stripeCheck.reason); return; }
+      if (!stripeCheck.ok) {
+        hapticError();
+        // A blocked accept has to carry its own way out. The old copy told the
+        // helper to go find Profile -> Payment Settings themselves; the toast
+        // now takes them there, which is also why the message got shorter.
+        // Same destination the rest of the app uses for payout setup
+        // (PayoutSetupDialog, EarningsTab).
+        toast.error(stripeCheck.reason, stripeCheck.needsPayoutSetup
+          ? { action: { label: "Set up payouts", onClick: () => navigate("/profile?tab=payment") } }
+          : undefined);
+        return;
+      }
 
       // Identity verification gate — required before first accept. On a
       // transient fetch failure, `prof` is undefined and reads as
@@ -313,6 +429,9 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         rollbackActivity(snapshot);
         hapticError();
         toast.error("This offer is no longer available — it may have expired.");
+        // Same reasoning as the decline path below: re-read rather than leave
+        // the card offering an action that just bounced.
+        await refresh();
         return;
       }
       // Helper-side reject of the losing applicants. The direct UPDATE this
@@ -420,11 +539,22 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           /could not find the function|does not exist|schema cache/i.test(msg);
         if (!rpcMissing) {
           hapticError();
-          toast.error(
-            /offer_not_active/.test(msg)
-              ? "This offer is no longer active."
-              : "Couldn't record your response — please try again.",
-          );
+          if (/offer_not_active/.test(msg)) {
+            // The RPC's guard is `jobs.helper_id = auth.uid()`. This card is
+            // shown whenever the APPLICATION says accepted, which is a
+            // different fact — the two can disagree (a reopened job, a poster
+            // who reassigned, a partially-staffed group roster), and when they
+            // do the helper taps a button the server was always going to
+            // refuse. The old copy just said "no longer active" and left the
+            // card sitting there with the same two dead buttons.
+            //
+            // Refresh so the card re-renders from the truth instead of
+            // repeating the failure.
+            toast.error("This job isn't yours to respond to any more — someone else may have been booked.");
+            await refresh();
+            return;
+          }
+          toast.error("Couldn't record your response — please try again.");
           return;
         }
         // Prior violation count drives the graduated-ban ladder — a dropped

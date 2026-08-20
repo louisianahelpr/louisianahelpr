@@ -4,8 +4,7 @@ import { useDraftJob } from "@/hooks/useDraftJob";
 import { safeStorage } from "@/lib/safeStorage";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import type { PricingMode } from "@/components/postjob/BudgetSection";
-import { getSmartPrice } from "@/lib/pricingGuide";
+import { useParishTaxRate } from "@/hooks/useParishTaxRate";
 import type { Step } from "./postJobFormTypes";
 import { useJobMediaUpload } from "./useJobMediaUpload";
 import { useJobSubmit } from "./useJobSubmit";
@@ -85,23 +84,46 @@ export function usePostJobForm() {
   const [estimatedHours, setEstimatedHours] = useState("");
   const [budget, setBudget] = useState("");
   const [specialRequirements, setSpecialRequirements] = useState("");
-  const [isRecurring, setIsRecurring] = useState(false);
+  const [isRecurring, setIsRecurringRaw] = useState(false);
+  // `recurrenceInterval` / `recurrenceEndDate` are the OLD single-interval
+  // model (daily|weekly|biweekly|monthly + an end date). They are still written
+  // so existing readers — the browse card's "Recurring" chip, the admin views —
+  // keep working, but the end date is now DERIVED from the schedule below
+  // rather than typed. The day set is the source of truth.
   const [recurrenceInterval, setRecurrenceInterval] = useState("weekly");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
+  // The real schedule: which weekdays (0=Sun..6=Sat) and for how many weeks.
+  // Defaults to the job's own weekday once a date is chosen (see
+  // useJobFormEffects) so turning on Repeats never starts from an empty set.
+  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
+  const [recurrenceWeeks, setRecurrenceWeeks] = useState(4);
+
+  /**
+   * Turning on Repeats seeds the day set with the job's OWN weekday.
+   *
+   * An empty picker is a dead end dressed as a choice: the poster has already
+   * told us when the job is, so "every Wednesday" should take one tap, not two.
+   * They can add or remove days from there. Only seeds when the set is empty,
+   * so toggling off and back on does not wipe a chosen schedule.
+   */
+  const setIsRecurring = (next: boolean) => {
+    setIsRecurringRaw(next);
+    if (!next || recurrenceDays.length > 0 || !dateNeeded) return;
+    const dow = new Date(`${dateNeeded}T12:00:00Z`).getUTCDay();
+    if (Number.isInteger(dow)) setRecurrenceDays([dow]);
+  };
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [helpersNeeded, setHelpersNeeded] = useState("2");
   // Credential tier requirement for the job:
   // 0 = open (anyone), 1 = ID-verified, 2 = licensed, 3 = licensed + insured.
   // Only relevant for trade categories; other categories always use 0.
   const [credentialTier, setCredentialTierRaw] = useState(0);
-  const setCredentialTier = (tier: number) => {
-    setCredentialTierRaw(tier);
-    // High-credential jobs (licensed / licensed+insured) default to accept_bids
-    // so the poster sees competitive quotes rather than guessing a rate.
-    if (tier >= 2) {
-      setPricingModeState("accept_bids");
-    }
-  };
+  // Setting a credential tier used to silently flip the job into "Accept bids"
+  // at tier >= 2, on the theory that a licensed job wants competitive quotes.
+  // Bidding is gone (see PRICING_MODE_REMOVED in BudgetSection), so a tier is
+  // now just a tier — it no longer changes how the job is priced behind the
+  // poster's back.
+  const setCredentialTier = setCredentialTierRaw;
   const [isUrgent, setIsUrgent] = useState(false);
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
@@ -113,17 +135,6 @@ export function usePostJobForm() {
   // Persisted to jobs.department by the consolidated migration
   // 20260609170000_business_team_roles.sql.
   const [department, setDepartment] = useState("");
-  // Pricing mode — 'set_price' (default) or 'accept_bids'. ('smart_price' is
-  // retired: it only ever pre-filled the midpoint of the suggested range that
-  // set_price already displays, so it is a one-tap chip there now. The value
-  // survives in the type because a localStorage draft saved before the merge
-  // can still carry it.)
-  // Default to 'accept_bids' for credentialTier >= 2 (licensed/insured jobs).
-  const [pricingMode, setPricingModeState] = useState<PricingMode>("set_price");
-  // Accept-bids sub-fields
-  const [bidCeiling, setBidCeiling] = useState("");
-  const [bidDeadline, setBidDeadline] = useState("");
-  const [bidsSealed, setBidsSealed] = useState(false);
   const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [customerFee, setCustomerFee] = useState<number | null>(null);
   // One-time account-setup fee — mirrors the edge function (create-payment
@@ -134,22 +145,17 @@ export function usePostJobForm() {
   // flip to unpaid once the profile row confirms it's owed.
   const [onboardingFeeCents, setOnboardingFeeCents] = useState(200);
   const [onboardingFeePaid, setOnboardingFeePaid] = useState(true);
-  const salesTaxRate = 10;
+  // Sales tax quoted AND persisted from the poster's parish, never a
+  // constant. This was `const salesTaxRate = 10` — a flat, invented 10% that
+  // buildJobInsertPayload multiplied by the budget and wrote to
+  // jobs.sales_tax_rate / jobs.sales_tax_amount on EVERY job. Stripe charges
+  // sales tax only on the assembly labor line (see lib/salesTax.ts), so on
+  // every other category the DB carried ~10% of the budget in tax that was
+  // never collected — and the admin revenue rollups sum that column.
+  // `null` (parish not resolved yet) means 0, not a guess.
+  const { totalRatePercent: parishTaxRate } = useParishTaxRate(parish);
+  const salesTaxRate = parishTaxRate ?? 0;
 
-  // Normalizes the retired 'smart_price' value. Nothing in the UI can select
-  // it any more, but a draft restored from localStorage may still hold it —
-  // and its old behaviour (pre-fill the category midpoint, then behave exactly
-  // like set_price) is reproduced here so such a draft opens with the budget
-  // it had, under the mode that now owns that behaviour.
-  const setPricingMode = (next: PricingMode) => {
-    if (next === "smart_price") {
-      setPricingModeState("set_price");
-      const sp = getSmartPrice(category);
-      if (sp != null) setBudget(sp.toFixed(2));
-      return;
-    }
-    setPricingModeState(next);
-  };
   // True once the user has restored the saved draft via loadDraft. The inline
   // "Pick up draft" pill hides after this so an accidental re-tap can't replace
   // the in-progress form with the (autosave-refreshed) snapshot.
@@ -253,10 +259,6 @@ export function usePostJobForm() {
     isGroupJob,
     helpersNeeded,
     credentialTier,
-    pricingMode,
-    bidCeiling,
-    bidDeadline,
-    bidsSealed,
     includeMaterials,
     materialsNote,
     department,
@@ -303,10 +305,6 @@ export function usePostJobForm() {
     setIsUrgent,
     setUrgentFee,
     setCredentialTier,
-    setPricingMode,
-    setBidCeiling,
-    setBidDeadline,
-    setBidsSealed,
     setIncludeMaterials,
     setMaterialsNote,
     setDepartment,
@@ -344,6 +342,8 @@ export function usePostJobForm() {
     isRecurring,
     recurrenceInterval,
     recurrenceEndDate,
+    recurrenceDays,
+    recurrenceWeeks,
     isGroupJob,
     helpersNeeded,
     isUrgent,
@@ -354,10 +354,6 @@ export function usePostJobForm() {
     credentialTier,
     department,
     requiresW9,
-    pricingMode,
-    bidCeiling,
-    bidDeadline,
-    bidsSealed,
     includeMaterials,
     materialsNote,
     saveCardForFuture,
@@ -400,7 +396,6 @@ export function usePostJobForm() {
     zipCode,
     dateNeeded,
     startTime,
-    pricingMode,
     parish,
   });
 
@@ -450,9 +445,6 @@ export function usePostJobForm() {
     hasDraft,
     draftConsumed,
     loadDraft,
-    /** Most recent autosave timestamp (epoch ms). 0 when no autosave has
-        landed yet — `DraftSavedIndicator` hides itself in that case. */
-    draftSavedAt: draft.savedAt,
     // entry landing
     startFresh,
     loadDraftAndContinue,
@@ -474,6 +466,10 @@ export function usePostJobForm() {
     setAddrState,
     zipCode,
     setZipCode,
+    // Resolved from the zip by useJobFormEffects. Exposed because the checkout
+    // summary quotes the parish's real sales-tax rate from `parish_tax_rates`
+    // (it used to be passed as a hardcoded `null` and the rate was invented).
+    parish,
     dateNeeded,
     setDateNeeded,
     startTime,
@@ -488,6 +484,10 @@ export function usePostJobForm() {
     setIsRecurring,
     recurrenceInterval,
     setRecurrenceInterval,
+    recurrenceDays,
+    setRecurrenceDays,
+    recurrenceWeeks,
+    setRecurrenceWeeks,
     recurrenceEndDate,
     setRecurrenceEndDate,
     isGroupJob,
@@ -508,14 +508,6 @@ export function usePostJobForm() {
     credentialTier,
     setCredentialTier,
     // Pricing mode fields
-    pricingMode,
-    setPricingMode,
-    bidCeiling,
-    setBidCeiling,
-    bidDeadline,
-    setBidDeadline,
-    bidsSealed,
-    setBidsSealed,
     isUrgent,
     setIsUrgent,
     urgentFee,

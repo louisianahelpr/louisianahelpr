@@ -37,6 +37,17 @@ interface DashboardTitleBarProps {
    * filter was active — the owner asked for them beside the bell instead.
    */
   actions?: ReactNode;
+  /**
+   * The search field, when search is open. Takes over the WHOLE row —
+   * emblem, status, actions and trailing all step aside.
+   *
+   * The search icon that opens it lives in `actions`, i.e. in this card. The
+   * input used to render one row down inside BrowseTasksToolbar, so tapping a
+   * button in this panel made a field appear in a different container below
+   * it. Taking over the bar it was launched from is the iOS pattern, and it is
+   * what /legal's policy search does too.
+   */
+  searchBar?: ReactNode;
 }
 
 /**
@@ -103,7 +114,14 @@ export function DashboardTitleBar({
   status,
   trailing,
   actions,
+  searchBar,
 }: DashboardTitleBarProps) {
+  if (searchBar) {
+    // Same row height, one control. Nothing else renders — a field sharing the
+    // bar with the emblem and the bell has ~150px to work with on a 375px
+    // phone, which is not a search field.
+    return <div className="flex items-center gap-2">{searchBar}</div>;
+  }
   return (
     <div className="flex items-center justify-between gap-2">
       <HelprMark to={emblemTo} size="sm" emblemOnly />

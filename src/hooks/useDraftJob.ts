@@ -29,9 +29,16 @@ export interface JobDraft {
   isGroupJob?: boolean;
   helpersNeeded?: string;
   credentialTier?: number;
+  /** @deprecated Bidding was removed (PRICING_MODE_REMOVED in BudgetSection).
+   *  Kept on the type ONLY so a draft saved before the removal still parses
+   *  instead of failing validation and being thrown away. Never written, and
+   *  discarded on restore. */
   pricingMode?: string;
+  /** @deprecated see `pricingMode`. */
   bidCeiling?: string;
+  /** @deprecated see `pricingMode`. */
   bidDeadline?: string;
+  /** @deprecated see `pricingMode`. */
   bidsSealed?: boolean;
   includeMaterials?: boolean;
   materialsNote?: string;

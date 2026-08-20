@@ -6,16 +6,33 @@ import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { MapPin, Shield, Repeat, Users, Wrench } from "lucide-react";
+import { MapPin, Shield, Users, Wrench } from "lucide-react";
+import { RecurringSchedulePicker } from "@/components/postjob/RecurringSchedulePicker";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { todayLocalISO } from "@/lib/dateUtils";
 import { formatPriceExact } from "@/lib/format";
 import { AppleMapPreview } from "@/components/postjob/AppleMapPreview";
 import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
 import { FieldError } from "@/components/ui/FieldError";
+
+/**
+ * Repeats is built but not yet WIRED END TO END, so the door stays shut.
+ *
+ * The picker, the schema, the per-visit charge cron and the standing-helper
+ * model all exist. What does not exist yet is the deployment: until
+ * `charge-recurring-visits` is deployed as an edge function AND scheduled to
+ * run daily, nothing bills the saved card for visit 2 onward — so a poster
+ * would book twelve visits and receive one. That is the exact failure the
+ * rebuild set out to remove, and shipping the picker ahead of the cron would
+ * re-create it with a nicer UI.
+ *
+ * Flip to `true` only once the cron is deployed and scheduled. Everything on
+ * the other side of this flag is finished and tested; this is a wiring gate,
+ * not a feature flag for unfinished work.
+ */
+const RECURRING_ENABLED = false;
 
 // Normalize a reverse-geocoder's state value (full name or abbreviation)
 // to the canonical 2-letter code the form stores. We special-case the only
@@ -28,20 +45,6 @@ function normalizeStateCode(rawState: string): string {
   if (/^louisiana$/i.test(s)) return "LA";
   if (/^[A-Za-z]{2}$/.test(s)) return s.toUpperCase();
   return s;
-}
-
-// Rough count of how many times a recurring job will run between the
-// start date and the end date at the chosen interval. Used to preview
-// the commitment + total cost before the poster pays.
-function estimateOccurrences(start: string, end: string, interval: string): number {
-  if (!start || !end) return 0;
-  const s = new Date(start);
-  const e = new Date(end);
-  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()) || e < s) return 0;
-  const stepDays =
-    interval === "daily" ? 1 : interval === "weekly" ? 7 : interval === "biweekly" ? 14 : 30;
-  const days = Math.round((e.getTime() - s.getTime()) / 86_400_000);
-  return Math.floor(days / stepDays) + 1;
 }
 
 interface LogisticsSectionProps {
@@ -65,10 +68,11 @@ interface LogisticsSectionProps {
   setSpecialRequirements: (v: string) => void;
   isRecurring: boolean;
   setIsRecurring: (v: boolean) => void;
-  recurrenceInterval: string;
-  setRecurrenceInterval: (v: string) => void;
-  recurrenceEndDate: string;
-  setRecurrenceEndDate: (v: string) => void;
+  /** Weekdays the series runs, 0=Sun..6=Sat. */
+  recurrenceDays: number[];
+  setRecurrenceDays: (v: number[]) => void;
+  recurrenceWeeks: number;
+  setRecurrenceWeeks: (v: number) => void;
   isGroupJob: boolean;
   setIsGroupJob: (v: boolean) => void;
   helpersNeeded: string;
@@ -114,10 +118,10 @@ export function LogisticsSection({
   setSpecialRequirements,
   isRecurring,
   setIsRecurring,
-  recurrenceInterval,
-  setRecurrenceInterval,
-  recurrenceEndDate,
-  setRecurrenceEndDate,
+  recurrenceDays,
+  setRecurrenceDays,
+  recurrenceWeeks,
+  setRecurrenceWeeks,
   isGroupJob,
   setIsGroupJob,
   helpersNeeded,
@@ -317,17 +321,36 @@ export function LogisticsSection({
         </div>
       )}
 
-      {/* Job type — One-time / Recurring / Group are mutually
-          exclusive (recurring bills repeatedly to one helper; group
-          splits one job across many), so a single 3-way segmented
-          control makes that obvious up front instead of two toggles
-          that quietly disable each other. */}
+      {/* Job type — One-time / Repeats / Group are mutually exclusive (a series
+          books one standing helper across many dates; group splits one date
+          across many helpers), so a segmented control makes that obvious up
+          front instead of toggles that quietly disable each other.
+
+          RECURRING WAS WITHDRAWN AND IS BACK, REBUILT. It was never finishable as built:
+          the poster funded escrow ONCE at checkout, and `spawn-recurring-jobs`
+          then posted every later visit straight into `jobs` with no payment at
+          all — `action: "escrow"` is invoked from exactly one place in the app
+          (useJobSubmit), the post flow, so there is no code path anywhere that
+          funds an already-existing job. Every visit after the first was
+          publicly listed and acceptable with nothing behind it: a helper could
+          do the work and there would be no escrow to release. Meanwhile this
+          screen showed "About 12 visits — roughly $600 total", which reads as
+          a $600 commitment against a $50 charge.
+
+          What replaced it: the poster picks weekdays and a number of weeks, the
+          budget is PER VISIT, and `charge-recurring-visits` bills the saved
+          card a few days before each date — creating the job row only AFTER
+          the money is in escrow, so an unfunded visit cannot exist for a helper
+          to walk into. One standing helper holds every date and can release a
+          single one they can't make. */}
       <div className="space-y-3">
         <Label>Job type</Label>
-        <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl border border-input bg-background/70">
+        <div className={`grid ${RECURRING_ENABLED ? "grid-cols-3" : "grid-cols-2"} gap-1 p-1 rounded-2xl border border-input bg-background/70`}>
           {([
             { key: "once", label: "One-time" },
-            { key: "recurring", label: "Recurring" },
+            // "Repeats", not "Recurring" — it names what the poster is doing
+            // rather than the billing category.
+            ...(RECURRING_ENABLED ? [{ key: "recurring", label: "Repeats" } as const] : []),
             { key: "group", label: "Group" },
           ] as const).map((opt) => {
             const active =
@@ -356,55 +379,14 @@ export function LogisticsSection({
         </div>
 
         {isRecurring && (
-          <div className="rounded-ds-md border border-border p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <Repeat className="w-4 h-4 text-primary" />
-              <span className="text-ds-13 font-semibold text-foreground">Recurring job</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2.5">
-                <Label>Frequency</Label>
-                <Select value={recurrenceInterval} onValueChange={setRecurrenceInterval}>
-                  <SelectTrigger aria-label="Frequency"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="biweekly">Every 2 weeks</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2.5">
-                <Label>Until</Label>
-                {/* DatePickerField (same as "Date needed") instead of a raw
-                    <input type="date"> — the native control rendered as a
-                    blank, oversized white box on iOS with no placeholder. */}
-                <DatePickerField
-                  value={recurrenceEndDate}
-                  onChange={setRecurrenceEndDate}
-                  min={dateNeeded || todayLocalISO()}
-                  placeholder="Choose an end date"
-                />
-              </div>
-            </div>
-            {/* Schedule preview — surfaces the real commitment + cost
-                before the poster pays, instead of after. */}
-            {(() => {
-              const occ = estimateOccurrences(dateNeeded, recurrenceEndDate, recurrenceInterval);
-              if (occ <= 0) return null;
-              return (
-                <div className="flex items-center gap-2 rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2">
-                  <Repeat className="w-3.5 h-3.5 text-primary shrink-0" strokeWidth={2} />
-                  <p className="text-ds-11 text-muted-foreground">
-                    About <span className="font-semibold text-primary">{occ} visit{occ === 1 ? "" : "s"}</span>
-                    {budgetNum > 0 && (
-                      <> — roughly <span className="font-semibold text-primary">${formatPriceExact(occ * budgetNum)}</span> total at this budget</>
-                    )}
-                  </p>
-                </div>
-              );
-            })()}
-          </div>
+          <RecurringSchedulePicker
+            days={recurrenceDays}
+            setDays={setRecurrenceDays}
+            weeks={recurrenceWeeks}
+            setWeeks={setRecurrenceWeeks}
+            startDate={dateNeeded}
+            budget={budgetNum}
+          />
         )}
 
         {isGroupJob && (

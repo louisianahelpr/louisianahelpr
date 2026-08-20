@@ -209,6 +209,56 @@ export async function installSupabaseMocks(
   await page.unroute(`${SUPABASE_URL}/**`).catch(() => {
     /* no-op when nothing was registered yet */
   });
+  // Realtime: hand the app an inert socket instead of letting it dial out.
+  //
+  // `page.route` covers HTTP only — Playwright does not intercept the ws://
+  // upgrade — so every `.channel(...).subscribe()` in the app tried to reach
+  // the REAL Supabase realtime host and the browser logged
+  //   "WebSocket connection to 'wss://…/realtime/v1/websocket?…' failed"
+  // as a console ERROR. The empty-state sweep asserts zero console errors, so
+  // one unmocked socket failed 135 screens at once with a finding that says
+  // nothing about any of them. (This block used to be a comment claiming the
+  // failure "logs a warning" and was "fine" — it is an error, and it was only
+  // invisible while the authed screens weren't mounting the subscribing hooks.)
+  //
+  // The stub stays in CONNECTING forever and never fires error/close, so
+  // supabase-js quietly retries on its own timer and nothing reaches the
+  // console. Non-Supabase sockets are untouched.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __helprRealtimeStubbed?: boolean };
+    if (w.__helprRealtimeStubbed) return;
+    w.__helprRealtimeStubbed = true;
+    const NativeWebSocket = window.WebSocket;
+    class InertSocket extends EventTarget {
+      static readonly CONNECTING = 0;
+      readonly CONNECTING = 0;
+      readonly OPEN = 1;
+      readonly CLOSING = 2;
+      readonly CLOSED = 3;
+      readyState = 0;
+      bufferedAmount = 0;
+      extensions = "";
+      protocol = "";
+      binaryType: BinaryType = "blob";
+      onopen: unknown = null;
+      onmessage: unknown = null;
+      onerror: unknown = null;
+      onclose: unknown = null;
+      constructor(readonly url: string) { super(); }
+      send() { /* swallowed — nothing is listening */ }
+      close() { this.readyState = 3; }
+    }
+    window.WebSocket = new Proxy(NativeWebSocket, {
+      construct(target, args: unknown[]) {
+        const url = String(args[0] ?? "");
+        if (url.includes("/realtime/v1/websocket")) {
+          return new InertSocket(url) as unknown as WebSocket;
+        }
+        return Reflect.construct(target, args) as WebSocket;
+      },
+    }) as typeof WebSocket;
+  });
+
   await page.route(`${SUPABASE_URL}/**`, async (route) => {
     const req = route.request();
     const url = new URL(req.url());
@@ -241,9 +291,8 @@ export async function installSupabaseMocks(
       return route.fulfill(buildFulfill({ status: 200, body: { success: true } }));
     }
 
-    // 5. Realtime websockets — Playwright doesn't intercept ws upgrades,
-    //    they'll fail to connect, which is fine (subscriptions log a
-    //    warning but the app doesn't depend on them for first paint).
+    // 5. Realtime websockets are handled by the InertSocket init script
+    //    above, not here — `route` never sees a ws:// upgrade.
 
     // 6. Storage uploads etc — 200 empty.
     return route.fulfill(buildFulfill({ status: 200, body: {} }));

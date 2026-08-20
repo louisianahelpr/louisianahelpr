@@ -92,11 +92,19 @@ export function ChatHeader({
         <Button
           variant="ghost"
           size="icon"
-          /* h-10/w-10 paints a 40px glass circle; the global
-             `button { min-height/min-width: 44px }` rule in index.css floors
-             the hit box at 44px, so the touch target clears HIG without the
-             visible circle growing. Measured, not assumed. */
-          className="rounded-full h-10 w-10 shrink-0 liquid-glass glass-press"
+          /* Deliberately a BARE chevron — the `liquid-glass glass-press` pair
+             that used to be here painted a solid white 40px disc with a
+             hairline border and a drop shadow, giving a plain "go back"
+             control more visual weight than the name it sits next to. Same
+             call already made for `BackButton`, `SheetContent`'s close, and
+             `DialogContent`'s close: the header paints its own ground, so the
+             disc bought nothing but chrome. `rounded-md` now only shapes the
+             focus ring.
+
+             The h-10/w-10 box stays: it is the tap target, not the paint. The
+             global `button { min-height/min-width: 44px }` rule in index.css
+             floors the hit box at 44px regardless of what is drawn inside. */
+          className="rounded-md h-10 w-10 shrink-0"
           onClick={onBack}
           aria-label="Back to conversations"
         >

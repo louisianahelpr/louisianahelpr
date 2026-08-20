@@ -124,7 +124,18 @@ async function gotoBrowseSurface(
   // Wait for the LOADED branch, not just first paint. The pending branch
   // renders the same title bar but no toolbar at all, so measuring too early
   // reports "the action icons are missing" when they simply have not mounted.
-  await page.getByRole("button", { name: /^Search jobs$/ }).waitFor({ timeout: 20_000 });
+  //
+  // The two surfaces signal "loaded" differently and this used to wait only on
+  // the authed one. /dashboard mounts the Search icon in its title bar;
+  // /browse (guest) deliberately has NO title-bar icons — the search and
+  // filter icons were removed because they ate the top of the screen for a
+  // signed-out visitor — so its loaded signal is the inline List/Map toggle
+  // that replaced them. Waiting on whichever appears first keeps one helper
+  // honest for both.
+  await Promise.race([
+    page.getByRole("button", { name: /^Search jobs$/ }).waitFor({ timeout: 20_000 }),
+    page.getByRole("group", { name: "Feed view" }).waitFor({ timeout: 20_000 }),
+  ]);
   await settleAnimations(page);
 }
 
@@ -346,28 +357,33 @@ for (const width of [320, 375, 1440]) {
     await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Get started" })).toBeVisible();
 
-    // The icons ride in the BRAND ROW here too, left of the auth CTAs —
-    // matching the authed Home after the owner moved them up beside the bell.
-    // Guest shares BrowseTasksToolbar, so the two surfaces cannot diverge on
-    // this without one of them silently losing the controls entirely.
-    // "Saved searches" is a signed-in feature (`user={null}`) so the guest
-    // sheet has no such section; the List⇄Map choice IS in the guest sheet at
-    // every width, since the guest feed swaps the whole panel between list and
-    // map and has no desktop two-pane.
-    const login = (await page.getByRole("button", { name: "Log in" }).boundingBox())!;
+    // The guest brand row carries NO action icons — this diverges from the
+    // authed Home on purpose. Search and Filters were pulled from this surface
+    // (owner: they "take up too much space at the top"): a signed-out visitor
+    // has nothing saved to filter against and has not yet been given a reason
+    // to narrow anything, so the icons spent the most valuable strip of the
+    // screen on controls that answer a question they have not asked. The
+    // authed row still asserts both icons (see the /dashboard test above), so
+    // this is a deliberate difference, not a surface silently losing chrome.
     for (const name of ACTION_ICON_NAMES) {
-      const icon = page.getByRole("button", { name }).first();
-      await expect(icon, `guest action icon ${name} @ ${width}`).toBeVisible();
-      const box = (await icon.boundingBox())!;
-      expect(box.height, `guest action icon ${name} tap target`).toBeGreaterThanOrEqual(44);
-      // Same row as the auth CTAs...
-      expect(
-        Math.abs((box.y + box.height / 2) - (login.y + login.height / 2)),
-        `guest action icon ${name} shares the brand row`,
-      ).toBeLessThan(6);
-      // ...and to their LEFT, no overlap.
-      expect(box.x + box.width, `guest action icon ${name} sits left of the CTAs`)
-        .toBeLessThanOrEqual(login.x + 1);
+      await expect(
+        page.getByRole("button", { name }),
+        `guest brand row must not carry ${name} @ ${width}`,
+      ).toHaveCount(0);
+    }
+
+    // What replaced them: the List/Map choice, inline and always reachable.
+    // Everywhere else it lives inside the filter sheet — and with the filter
+    // icon gone, a guest could not reach the map at all without this. The map
+    // is the strongest thing this screen has for a stranger, so its absence
+    // would be the real regression to catch here.
+    const feedView = page.getByRole("group", { name: "Feed view" });
+    await expect(feedView, `guest List/Map toggle @ ${width}`).toBeVisible();
+    for (const label of ["List", "Map"]) {
+      const chip = feedView.getByRole("button", { name: label });
+      await expect(chip, `guest ${label} chip @ ${width}`).toBeVisible();
+      const box = (await chip.boundingBox())!;
+      expect(box.height, `guest ${label} chip tap target`).toBeGreaterThanOrEqual(44);
     }
 
     await page.screenshot({ path: `${SHOT_DIR}/guest-chrome-${width}.png`, fullPage: false });

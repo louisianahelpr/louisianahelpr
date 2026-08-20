@@ -1,5 +1,8 @@
 import type { Database } from "@/integrations/supabase/types";
 
+import { recurringVisitDates } from "@/lib/recurringSchedule";
+import { isLaborTaxable, salesTaxCents } from "@/lib/salesTax";
+
 /**
  * Pure helpers for the Post-a-Task submit flow.
  *
@@ -32,6 +35,10 @@ export interface BuildJobInsertPayloadInput {
   isRecurring: boolean;
   recurrenceInterval: string;
   recurrenceEndDate: string;
+  /** Weekdays the series runs, 0=Sun..6=Sat. Empty for a one-time job. */
+  recurrenceDays?: number[];
+  /** How many weeks the series runs. */
+  recurrenceWeeks?: number;
   isGroupJob: boolean;
   helpersNeeded: string;
   isUrgent: boolean;
@@ -59,19 +66,6 @@ export interface BuildJobInsertPayloadInput {
    *  Only included in the INSERT when > 0 so a pre-push prod still accepts
    *  the payload (migration 20260612150000). */
   credentialTier?: number;
-  /** Pricing mode — 'set_price' | 'accept_bids'. ('smart_price' is retired and
-   *  accepted only so a pre-merge localStorage draft still parses.)
-   *  Stored in jobs.pricing_mode (migration 20260612180000). Omitted when
-   *  not provided so a pre-push prod (without the column) still accepts the
-   *  payload via the retry path. */
-  pricingMode?: "set_price" | "accept_bids" | "smart_price";
-  /** Optional bid ceiling for accept_bids mode. */
-  bidCeiling?: number | null;
-  /** Deadline label (e.g. "24 hours") or null. Stored as a text note; the
-   *  edge function / cron can interpret it. */
-  bidDeadline?: string | null;
-  /** When true, helpers can't see each other's bids. */
-  bidsSealed?: boolean;
 }
 
 /**
@@ -102,10 +96,6 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
   const requiresW9 = input.requiresW9 ?? false;
   const isInstantBook = input.isInstantBook ?? false;
   const credentialTier = input.credentialTier ?? 0;
-  const pricingMode = input.pricingMode;
-  const bidCeiling = input.bidCeiling ?? null;
-  const bidDeadline = input.bidDeadline ?? null;
-  const bidsSealed = input.bidsSealed ?? false;
   const {
     userId,
     businessId,
@@ -126,6 +116,8 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     isRecurring,
     recurrenceInterval,
     recurrenceEndDate,
+    recurrenceDays,
+    recurrenceWeeks,
     isGroupJob,
     helpersNeeded,
     isUrgent,
@@ -140,11 +132,27 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
   // Expire listing at the job date/time (removed when a helpr is selected or on the day of the job)
   const expiresAt = computeExpiresAt(dateNeeded, startTime);
 
+  // The recurring series, expanded from the SAME module the charge cron reads,
+  // so the end date written here and the dates that actually get billed can
+  // never disagree.
+  const seriesDays = isRecurring ? (recurrenceDays ?? []) : [];
+  const seriesWeeks = isRecurring ? (recurrenceWeeks ?? 0) : 0;
+  const seriesDates = recurringVisitDates(dateNeeded, seriesDays, seriesWeeks);
+
   // Lock platform fee and sales tax at creation time
   const lockedFeePercent = platformFee ?? 0;
   const lockedFeeAmount = parseFloat(budget) * (lockedFeePercent / 100);
-  const lockedSalesTaxRate = salesTaxRate;
-  const lockedSalesTaxAmount = parseFloat(budget) * (lockedSalesTaxRate / 100);
+  // Sales tax is locked the same way — but it applies ONLY to the labor line
+  // of a taxable category (assembly today; see lib/salesTax.ts, mirrored from
+  // the edge module create-payment actually charges from). This used to be a
+  // flat `budget * salesTaxRate/100` on every job, with salesTaxRate hardcoded
+  // to 10, so an exempt job persisted ~10% of its budget as tax that Stripe
+  // never collected and the admin revenue rollups then summed. Store the
+  // EFFECTIVE rate (0 when the category is exempt) so rate x budget always
+  // reconciles with the amount.
+  const lockedSalesTaxRate = isLaborTaxable(category) ? salesTaxRate : 0;
+  const lockedSalesTaxAmount =
+    salesTaxCents(Math.round(parseFloat(budget) * 100), category, salesTaxRate) / 100;
 
   return {
     customer_id: userId,
@@ -165,7 +173,20 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     special_requirements: specialRequirements.trim() || null,
     is_recurring: isRecurring,
     recurrence_interval: isRecurring ? recurrenceInterval : null,
-    recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
+    // DERIVED from the schedule, not typed. The poster picks weekdays and a
+    // number of weeks; the last visit's date is where the series ends, so
+    // asking them for it separately could only produce a value that disagrees
+    // with the days they chose. Falls back to whatever they had if the day set
+    // is empty, which the form does not allow but a restored draft could be.
+    recurrence_end_date: isRecurring
+      ? (seriesDates[seriesDates.length - 1] ?? (recurrenceEndDate || null))
+      : null,
+    ...(isRecurring && seriesDays.length > 0
+      ? ({
+          recurrence_days: seriesDays,
+          recurrence_weeks: seriesWeeks,
+        } as Record<string, unknown>)
+      : {}),
     is_group_job: isGroupJob,
     helpers_needed: isGroupJob ? parseInt(helpersNeeded) || 2 : 1,
     expires_at: expiresAt,
@@ -207,19 +228,12 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
           direct_offer_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         }
       : {}),
-    // pricing_mode columns ship in migration 20260612180000. Only include in
-    // the payload when pricingMode is defined so a pre-push prod INSERT (which
-    // doesn't have the column yet) still succeeds — the retry path strips them
-    // via buildPayload({ withExtras: false }) → pricingMode: 'set_price' which
-    // itself would fail on prod, so we use undefined to omit entirely.
-    ...(pricingMode != null
-      ? ({
-          pricing_mode: pricingMode,
-          bid_ceiling: bidCeiling,
-          bids_sealed: bidsSealed,
-          // bid_deadline stored as a text label for now; edge functions can parse it.
-          ...(bidDeadline ? { bid_deadline: bidDeadline } : {}),
-        } as Record<string, unknown>)
-      : {}),
+    // No pricing_mode / bid_* here. Bidding was removed
+    // (PRICING_MODE_REMOVED in BudgetSection) and every job is now a set-price
+    // job. The columns still exist with `pricing_mode` defaulting to
+    // 'set_price', so omitting them writes the right value — and omitting
+    // rather than writing it keeps this INSERT working against a database
+    // that predates those columns, which is why the block was conditional in
+    // the first place.
   } as JobInsertPayload;
 }

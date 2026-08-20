@@ -223,10 +223,18 @@ export function PetForm({
           ...(isInline ? null : { paddingTop: "calc(var(--safe-area-top, 0px) + 0.75rem)" }),
         }}
       >
+        {/* Structure stays hand-rolled on purpose (see the note above — this
+            is not a SheetContent), but the TYPE matches SheetHero/DialogHero:
+            display-italic at the shared clamp. It was display-UPRIGHT at a flat
+            18px, the only popup title in the app that wasn't italic. */}
         <h2
           id={isInline ? undefined : "pet-form-title"}
-          className="font-display font-bold text-ds-18"
-          style={{ color: "hsl(var(--ink-deep))" }}
+          className="font-display italic font-bold leading-tight"
+          style={{
+            fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)",
+            color: "hsl(var(--ink-deep))",
+            letterSpacing: "-0.02em",
+          }}
         >
           {initialValues ? `Edit ${initialValues.name}` : "Add a pet"}
         </h2>

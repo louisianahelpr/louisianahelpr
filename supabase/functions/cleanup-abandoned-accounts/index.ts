@@ -3,9 +3,34 @@
 // never connected Stripe and have no jobs/applications/messages after 30 days.
 //
 // Run on a daily cron via pg_cron + pg_net.
+//
+// TWO SAFETY RAILS, both load-bearing on the FIRST run after 2026-08:
+//
+// This function has been a silent no-op since 2026-05 (a dropped `profiles.role`
+// column 400'd the whole SELECT and the error was discarded, so every user hit
+// the `!profile` skip). Fixing that read makes `deleteUser` live again — and
+// the first invocation therefore faces roughly three months of accumulated
+// backlog, in one pass, irreversibly, with cascade deletes behind it. A cap and
+// a rehearsal mode are not belt-and-braces here; they are the difference
+// between a routine daily sweep and a single unreviewable mass deletion.
+//
+//   ?dryRun=1  — evaluate every candidate and REPORT what would be deleted,
+//                deleting nothing. Includes the ids so an operator can inspect
+//                the list before arming it for real.
+//   MAX_DELETES_PER_RUN — hard per-run ceiling. The backlog then drains over
+//                several daily runs, each one small enough to notice and stop.
+//                Note this is a DELETE cap, distinct from the 10k SCAN cap in
+//                the pagination loop below, which bounds work, not damage.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
+
+/**
+ * Hard ceiling on irreversible deletions in a single invocation. Sized so a
+ * normal day (a handful of abandoned signups) never touches it, and an abnormal
+ * one stops well short of the whole backlog.
+ */
+const MAX_DELETES_PER_RUN = 50;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,8 +48,14 @@ Deno.serve(async (req) => {
     (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!
   );
 
+  const dryRun = new URL(req.url).searchParams.get("dryRun") === "1";
+
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const deleted: string[] = [];
+  // Candidates that qualified but were left alone because the per-run ceiling
+  // was reached. Reported so a run that hit the cap is unmistakable, rather
+  // than looking like a day with exactly MAX_DELETES_PER_RUN abandonments.
+  const deferred: string[] = [];
   const skipped: string[] = [];
   const errors: { id: string; error: string }[] = [];
 
@@ -59,12 +90,26 @@ Deno.serve(async (req) => {
 
     for (const u of candidates) {
       try {
-        // Pull profile to determine role + Stripe state
-        const { data: profile } = await supabase
+        // Pull profile to determine Stripe + approval/ban state.
+        //
+        // This used to also select `role`, a column DROPPED when accounts were
+        // unified (2026-05). PostgREST 400s the whole SELECT on an unknown
+        // column, and the error was being discarded (`const { data: profile }`),
+        // so `profile` came back null for EVERY user and the `!profile` guard
+        // below skipped all of them — this cleanup has been a silent no-op ever
+        // since. Fail-safe (nothing was wrongly deleted) but entirely dead, and
+        // invisible. The error is checked now so the next such break says so.
+        const { data: profile, error: profileErr } = await supabase
           .from("profiles")
-          .select("role, stripe_account_id, approval_status, ban_status")
+          .select("stripe_account_id, approval_status, ban_status")
           .eq("user_id", u.id)
           .maybeSingle();
+
+        if (profileErr) {
+          console.error(`[cleanup-abandoned-accounts] profile read failed for ${u.id} — skipping:`, profileErr);
+          skipped.push(u.id);
+          continue;
+        }
 
         // Never delete approved/banned/admin accounts
         if (!profile) {
@@ -117,6 +162,16 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Everything below this line is irreversible.
+        if (dryRun) {
+          deleted.push(u.id);
+          continue;
+        }
+        if (deleted.length >= MAX_DELETES_PER_RUN) {
+          deferred.push(u.id);
+          continue;
+        }
+
         // Delete (cascade handles profile, etc.)
         const { error: delErr } = await supabase.auth.admin.deleteUser(u.id);
         if (delErr) {
@@ -132,12 +187,21 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         ok: true,
+        dryRun,
         cutoff,
         scanned: candidates.length,
+        // In dryRun this is the WOULD-DELETE count; nothing was touched.
         deleted: deleted.length,
+        // Non-zero means the run hit MAX_DELETES_PER_RUN and the rest are
+        // waiting for the next one. Never silently truncate a destructive set.
+        deferred: deferred.length,
+        capped: deferred.length > 0,
         skipped: skipped.length,
         errors: errors.length,
         sampleErrors: errors.slice(0, 5),
+        // Ids only in dryRun — this is the list an operator reads before
+        // arming the real run. A live run returns counts, not a roster.
+        ...(dryRun ? { wouldDelete: deleted } : {}),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

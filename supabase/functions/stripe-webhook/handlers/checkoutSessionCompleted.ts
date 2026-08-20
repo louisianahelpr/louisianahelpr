@@ -602,8 +602,12 @@ export async function handleCheckoutSessionCompleted(
     // fires after this event, which is the common case).
     try {
       const taxPi = await stripe.paymentIntents.retrieve(piId);
-      const taxCents = (taxPi.amount_details as any)?.tax?.total_tax_amount ?? 0;
-      if (taxCents > 0) {
+      // `> 0` here would never let a genuine $0 clear the estimate written at
+      // insert time — and $0 is the normal outcome, since only assembly labor
+      // is taxable. Write whenever Stripe HAS a number; skip only when the
+      // field is absent, which means "no information", not "zero".
+      const taxCents = (taxPi.amount_details as any)?.tax?.total_tax_amount;
+      if (typeof taxCents === "number") {
         updateData.sales_tax_amount = taxCents / 100;
       }
     } catch (taxErr) {

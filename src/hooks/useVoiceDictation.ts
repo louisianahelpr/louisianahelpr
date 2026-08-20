@@ -23,8 +23,46 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export interface UseVoiceDictationOptions {
   /** Called when the recognizer emits a final transcript chunk. */
   onFinal: (text: string) => void;
+  /**
+   * Called when a session fails, with a message written for the user.
+   *
+   * This used to not exist and `onerror` simply set `isListening = false`,
+   * which is why the reported symptom was "microphone does not work" with no
+   * further detail: tapping the mic flickered the button and did nothing. A
+   * denied permission, an unavailable speech service and a dead network were
+   * all indistinguishable from "nothing happened".
+   */
+  onError?: (message: string) => void;
   /** Locale for the recognition session. Defaults to en-US. */
   lang?: string;
+}
+
+/**
+ * SpeechRecognition error codes → what the user should be told.
+ *
+ * `service-not-allowed` is the one that matters most here: on iOS it is what
+ * you get when the app has no `NSSpeechRecognitionUsageDescription` (the OS
+ * refuses before it ever prompts) or when the user denied speech recognition
+ * for the app. `not-allowed` is microphone permission specifically.
+ */
+function dictationErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case "not-allowed":
+      return "Microphone access is off for Helpr. Turn it on in Settings to dictate.";
+    case "service-not-allowed":
+      return "Speech recognition is off for Helpr. Turn it on in Settings \u203a Helpr.";
+    case "no-speech":
+      return "Didn't catch that — try again a bit closer to the mic.";
+    case "audio-capture":
+      return "No microphone found on this device.";
+    case "network":
+      return "Dictation needs a connection — you're offline.";
+    case "aborted":
+      // User-initiated stop. Not a failure; callers should stay silent.
+      return "";
+    default:
+      return "Dictation stopped unexpectedly. Try again.";
+  }
 }
 
 interface UseVoiceDictationResult {
@@ -66,6 +104,7 @@ function resolveRecognitionCtor():
 
 export function useVoiceDictation({
   onFinal,
+  onError,
   lang = "en-US",
 }: UseVoiceDictationOptions): UseVoiceDictationResult {
   const [supported, setSupported] = useState(false);
@@ -79,6 +118,15 @@ export function useVoiceDictation({
   useEffect(() => {
     onFinalRef.current = onFinal;
   }, [onFinal]);
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+  // Whether the session produced anything at all. A session that ends having
+  // heard nothing and reported no error is the silent-failure case (common in
+  // WKWebView), and it needs to say so rather than look like a no-op tap.
+  const gotResultRef = useRef(false);
+  const sawErrorRef = useRef(false);
 
   useEffect(() => {
     setSupported(!!resolveRecognitionCtor());
@@ -121,27 +169,44 @@ export function useVoiceDictation({
         if (r.isFinal) finalChunk += transcript;
         else interim += transcript;
       }
+      if (interim || finalChunk) gotResultRef.current = true;
       if (interim) setInterimText(interim.trim());
       if (finalChunk.trim()) {
         setInterimText("");
         onFinalRef.current(finalChunk.trim());
       }
     };
-    rec.onerror = () => {
+    rec.onerror = (ev: any) => {
+      sawErrorRef.current = true;
+      const message = dictationErrorMessage(ev?.error);
+      if (message) onErrorRef.current?.(message);
       setInterimText("");
       setIsListening(false);
     };
     rec.onend = () => {
+      // A session that ends with no transcript AND no error fired is the
+      // silent-failure shape — most often an iOS WKWebView where the
+      // constructor exists but the speech service never engages. Saying
+      // nothing here is what made this read as "the mic button is dead".
+      if (!gotResultRef.current && !sawErrorRef.current) {
+        onErrorRef.current?.(
+          "Dictation didn't pick anything up. If this keeps happening, check Settings \u203a Helpr \u203a Microphone and Speech Recognition.",
+        );
+      }
       setInterimText("");
       setIsListening(false);
     };
     recognitionRef.current = rec;
+    gotResultRef.current = false;
+    sawErrorRef.current = false;
     try {
       rec.start();
       setIsListening(true);
     } catch {
-      // Some engines throw if start is called twice in quick succession.
+      // Some engines throw if start is called twice in quick succession —
+      // and some (WKWebView) throw outright because the API is a stub.
       setIsListening(false);
+      onErrorRef.current?.("Couldn't start dictation on this device.");
     }
   }, [isListening, lang]);
 

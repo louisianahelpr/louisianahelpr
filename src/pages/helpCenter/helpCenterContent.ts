@@ -114,7 +114,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "How is the price determined?",
-        a: "You can set your own price or accept bids from competing Helprs. When you set your own price we suggest a range from local market data, and you can take the suggested amount in one tap.",
+        a: "You set the price. We suggest a range from local market data for your category and parish, and you can take the suggested amount in one tap.",
       },
       {
         q: "Can I cancel after someone applies?",

@@ -257,7 +257,16 @@ export function SignupStep1({
         </div>
       </section>
 
-      <div className="space-y-1 mt-1">
+      {/* The three consent rows, tightened (owner: "make 3 check boxes tighter
+          together"). `space-y-0`, not a smaller one: each row keeps
+          `min-h-[44px]` on touch, which is the HIG tap-target minimum and the
+          only thing actually setting the row height there — shrinking the rows'
+          own `py` would change nothing on a phone because the content centres
+          inside that 44px box either way. The gap BETWEEN rows is the one lever
+          that doesn't cost a tap target, so that is the one used. On a pointer
+          device `[@media(pointer:fine)]:min-h-0` already lets them collapse to
+          their content. */}
+      <div className="space-y-0 mt-1">
       <label
         key={nudgeKey}
         htmlFor="policies"
@@ -377,30 +386,24 @@ export function SignupStep1({
 
       <SocialAuthButtons mode="signup" />
 
-      {/* Footer links — stacked inside the card so they mirror the Login
-          screen's footer block (which keeps "New to Helpr?" / "Have a
-          business?" inside its glass card). The "Log in" link is the
-          reciprocal of Login's "Create an account". The business switch is
-          the quiet everyday entry to the company path — hidden in business
-          mode (the banner above already offers the reverse switch). The
-          same-route ?type= flip keeps the parent form mounted, so typed
-          email/password survive the switch. */}
-      <div className="space-y-1.5 pt-1">
-        <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          Already have an account?{" "}
-          <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
-            Log in
+      {/* "Already have an account? Log in" is GONE from here — it is the
+          "Sign in" tab above the card now, which is both more findable and the
+          same control on both auth screens. Keeping it here too would put the
+          same choice on one screen twice.
+
+          The business switch stays: it is a different destination the two tabs
+          don't cover, and it's the quiet everyday entry to the company path.
+          Hidden in business mode (the banner above already offers the reverse
+          switch). The same-route `?type=` flip keeps the parent form mounted,
+          so a typed email/password survives the switch. */}
+      {!isBusinessSignup && (
+        <p className="text-center text-ds-11 font-sans pt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          Setting up for a company?{" "}
+          <Link to="/signup?type=business" replace className="font-semibold hover:underline whitespace-nowrap" style={{ color: "hsl(var(--bark))" }}>
+            Business account
           </Link>
         </p>
-        {!isBusinessSignup && (
-          <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Setting up for a company?{" "}
-            <Link to="/signup?type=business" replace className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
-              Switch to business sign-up
-            </Link>
-          </p>
-        )}
-      </div>
+      )}
     </div>
   );
 }

@@ -30,8 +30,14 @@ const BGC_PRICE = formatFeeUsd(BGC_FEE_CENTS);
  * already mid-check or already badged must keep seeing their real status.
  * Only the CTA that takes money is withdrawn.
  *
+ * THIS FLAG IS NOT THE ENFORCEMENT POINT. An edge function is callable
+ * directly with any signed-in token, so hiding a button stops nobody who has
+ * already seen the endpoint. `create-bgc-payment` carries the matching guard
+ * and returns 503 before any Stripe work; both must stay off together.
+ *
  * TO RE-ENABLE: set the vendor secret(s) in Supabase, confirm a test callback
- * records a result, then set this to `true`.
+ * records a result, then set BOTH this and the flag in
+ * supabase/functions/create-bgc-payment/index.ts to `true`.
  */
 const BGC_PURCHASE_ENABLED = false;
 

@@ -17,9 +17,6 @@ export interface ApplyConfirmDialogProps {
   setApplyFiles: Dispatch<SetStateAction<File[]>>;
   /** True while the application is being submitted — disables the controls. */
   applyLoading: boolean;
-  /** Proposed bid price (only relevant when job pricing_mode='accept_bids'). */
-  bidPrice: string;
-  setBidPrice: (value: string) => void;
   /** Submits the application. */
   handleApplyConfirm: () => void;
 }

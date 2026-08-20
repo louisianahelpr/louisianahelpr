@@ -2,11 +2,6 @@ import { type TrackingData } from "@/components/JobTracking";
 import type { GroupHelperLite } from "@/hooks/useActivityData";
 import { type Job, type EnrichedApplication } from "../activityConstants";
 
-/** Bid column added by a later migration not yet regenerated into the
-    Supabase types (PGRST202 migration-lag pattern — see CLAUDE.md).
-    Optional: absent on a production DB where the migration hasn't run. */
-export type WithBidPrice = { proposed_price?: number | null };
-
 export interface PostedJobCardProps {
   /** The job + its embedded data — one row of the posted feed. */
   job: Job;
@@ -61,14 +56,12 @@ export interface PostedJobCardProps {
   onActionComplete: () => void;
   /** Number of unique helprs who have viewed this job. Only shown when > 0. */
   viewCount?: number;
-  /** Pre-computed analytics for this job — views, applicant count,
-   *  conversion rate, and bid range (bid fields only for accept_bids jobs). */
+  /** Pre-computed analytics for this job — views, applicant count, and
+   *  conversion rate. The bid min/max/avg fields went out with the
+   *  accept_bids pricing mode (zero production usage). */
   jobAnalytics?: {
     viewCount: number;
     applicantCount: number;
     conversionRate: number | null;
-    bidMin: number | null;
-    bidMax: number | null;
-    bidAvg: number | null;
   };
 }

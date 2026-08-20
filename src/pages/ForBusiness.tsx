@@ -668,21 +668,6 @@ const PricingSection = () => {
     <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
       <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
         <span className="text-display-eyebrow">Pricing</span>
-        <h2
-          className="mt-3 font-display font-bold text-balance leading-[1.05] max-w-[10ch] md:max-w-none mx-auto md:mx-0"
-          style={{
-            fontSize: "clamp(2.25rem, 3.4vw, 3.25rem)",
-            letterSpacing: "-0.025em",
-            color: "hsl(var(--ink-deep))",
-          }}
-        >
-          {/* Identical to /subscription's heading, deliberately — same concept,
-              same words, so the two pricing pages don't invent separate
-              vocabularies. Was "Team seats.", which collided with "Team", one
-              of the four tier names on this very page, so it read as that
-              tier's seats rather than the section as a whole. */}
-          Pick your plan.
-        </h2>
         <p
           className="mt-4 font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}

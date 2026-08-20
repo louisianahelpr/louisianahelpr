@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { Trophy } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { formatPrice } from "@/lib/format";
 
 interface ReferralExtrasProps {
@@ -41,14 +42,23 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
   // hint below the canvas slot.
   useEffect(() => {
     if (!canvasRef.current || !referralCode) return;
-    const url = `${window.location.origin}/signup?ref=${encodeURIComponent(referralCode)}`;
+    // Canonical origin, NOT `window.location.origin`. The shipped app has no
+    // `server.url` (capacitor.config.ts), so inside the iOS/Android build the
+    // page origin is `capacitor://localhost` / `http://localhost` — and this QR
+    // exists precisely to be held up for someone ELSE's phone to scan at a job
+    // site, where that origin resolves to nothing at all.
+    const url = `${getPublicSiteUrl()}/signup?ref=${encodeURIComponent(referralCode)}`;
     QRCode.toCanvas(
       canvasRef.current,
       url,
       {
         errorCorrectionLevel: "M",
-        margin: 1,
-        width: 144,
+        margin: 2,
+        // Backing bitmap, not display size: the code is shown at 120 CSS px
+        // (see the canvas style below), which is 360 device px on a 3x phone.
+        // At 144 the compositor was upscaling every module edge; matching the
+        // device budget keeps the modules hard-edged for the camera.
+        width: 360,
         color: {
           dark: "#3a3d2e", // ink-deep equivalent in hex (lib doesn't read CSS vars)
           light: "#f8f4e9", // parchment-ish
@@ -87,18 +97,26 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
     <div className="space-y-4">
       {/* ── QR card ──────────────────────────────────────────────── */}
       <div className="rounded-2xl liquid-glass p-4 flex items-center gap-4">
+        {/* The frame is a FIXED light fill, not `--surface-band`: it is part of
+            the code's quiet zone, which the spec puts at ~4 light modules. The
+            encoder draws 2 (a bigger margin would shrink the data modules
+            inside the same 120px), so the rest is this 8px of padding — which
+            only counts if it stays light. On the theme-aware token it went dark
+            in dark mode and the code sat flush against a dark surface, a known
+            way to make an on-screen QR harder to acquire. Matches the `light`
+            colour passed to the encoder so the two read as one white margin. */}
         <div
           className="shrink-0 rounded-ds-md p-2"
           style={{
-            background: "hsl(var(--surface-band))",
+            background: "#f8f4e9",
             border: "0.5px solid hsl(var(--border))",
           }}
         >
           {referralCode ? (
             <canvas
               ref={canvasRef}
-              width={144}
-              height={144}
+              width={360}
+              height={360}
               aria-label={`QR code for referral code ${referralCode}`}
               role="img"
               style={{ display: "block", width: 120, height: 120 }}

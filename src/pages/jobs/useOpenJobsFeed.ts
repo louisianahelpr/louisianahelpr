@@ -10,7 +10,6 @@ import type { JobsPage, PublicJob } from "./types";
 interface UseOpenJobsFeedArgs {
   search: string;
   selectedCategory: string | null;
-  pricingMode: "all" | "bids" | "budget";
   /** "" = no floor / no cap, matching the dashboard's string convention. */
   minBudget?: string;
   maxBudget?: string;
@@ -25,7 +24,6 @@ interface UseOpenJobsFeedArgs {
 export const useOpenJobsFeed = ({
   search,
   selectedCategory,
-  pricingMode,
   minBudget = "",
   maxBudget = "",
   expiresWithin = "",
@@ -92,9 +90,8 @@ export const useOpenJobsFeed = ({
         job.location.toLowerCase().includes(search.toLowerCase());
       if (!matchesSearch) return false;
       if (selectedCategory && job.category !== selectedCategory) return false;
-      // "accept_bids" = open to bids; any other value (fixed / null) = set budget.
-      const isBids = job.pricing_mode === "accept_bids";
-      if (pricingMode !== "all" && (pricingMode === "bids" ? !isBids : isBids)) return false;
+      // No pricing-style filter any more: bidding was removed after zero
+      // production usage, so every job is a set-budget job.
       if (min !== null && Number.isFinite(min) && job.budget < min) return false;
       if (max !== null && Number.isFinite(max) && job.budget > max) return false;
       if (expiryHours !== null) {
@@ -123,7 +120,7 @@ export const useOpenJobsFeed = ({
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
-  }, [jobs, search, selectedCategory, pricingMode, minBudget, maxBudget, expiresWithin, boostedOnly, urgentOnly, sortBy]);
+  }, [jobs, search, selectedCategory, minBudget, maxBudget, expiresWithin, boostedOnly, urgentOnly, sortBy]);
 
   // Wrap each job in its own single-item row so the window-scroll
   // VirtualList (single-column row primitive) renders one card per row.

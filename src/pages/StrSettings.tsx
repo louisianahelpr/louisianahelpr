@@ -9,6 +9,7 @@
  */
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CalendarDays, Home, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ import { AddCalendarForm, validateCleaningBudget } from "./strSettings/AddCalend
 // ---------------------------------------------------------------------------
 export default function StrSettings() {
   usePageTitle("Host Automation — Helpr");
+  const navigate = useNavigate();
   const [addOpen, setAddOpen] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -201,14 +203,18 @@ export default function StrSettings() {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
+      {/* Geometry is the CANONICAL Profile sub-screen ladder, shared verbatim
+          with the Profile tab bodies (Profile.tsx) and PageHeader's `default`
+          width: max-w-5xl → lg:6xl → xl:7xl → 2xl:90rem on px-5 → lg:px-8 →
+          xl:px-12. This page used to run its own max-w-lg/px-4 ladder, and
+          shipped with NO back target at all — it is reached from the Profile
+          landing, so the chevron goes back there like every sibling. */}
       <PageHeader
         title="Host Automation"
-        meta="Auto-post cleaning jobs on guest checkout"
-        // Mirrors the body ladder below, gutters included.
-        width="lg-2xl-5xl-6xl"
+        onBack={() => navigate("/profile")}
       />
 
-      <div className="max-w-lg md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 md:px-6 lg:px-8 mt-2 pb-8">
+      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
 
         <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
           {/* Desktop-only left rail.

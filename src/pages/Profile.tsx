@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
@@ -41,6 +41,24 @@ import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./profile/ProfileTabPanels";
 import { TAB_TITLES, type Profile, type Tab } from "./profile/types";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
+
+/**
+ * Profile-landing scroll offsets, keyed by history entry.
+ *
+ * MEASURED ON DEVICE, not assumed. An on-screen probe reported
+ * `shell=NONE ref=1009 win=0` while the list was scrolled: `.app-shell-scroll`
+ * does not exist on /profile (AppShell is `scrollable={false}` here), the
+ * PullToRefreshWrapper below IS the scroller, and window.scrollY is always 0.
+ * That is why the global ScrollToTop — which resolves its scroller via
+ * `document.querySelector(".app-shell-scroll")` and otherwise falls back to the
+ * window — recorded 0 for every profile entry and had nothing to restore.
+ *
+ * An earlier attempt keyed on `location.key` and still failed, because back was
+ * a PUSH at the time (seven sub-pages passed `onBack={() => navigate("/profile")}`)
+ * and a push mints a NEW key, so the saved offset was never looked up. That is
+ * fixed (PageHeader `backTo`), so the key is stable across the round trip.
+ */
+const profileScrollByKey = new Map<string, number>();
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -214,6 +232,44 @@ const ProfilePage = () => {
       }
     },
   });
+
+  // Preserve the landing list's scroll position across a round trip into any
+  // profile sub-page. See profileScrollByKey above for why the global handler
+  // cannot do this for /profile.
+  const routeLocation = useLocation();
+  const routeKey = routeLocation.key;
+  useEffect(() => {
+    // `loading` is in the deps deliberately. Profile early-returns a SKELETON
+    // while loading, so PullToRefreshWrapper — and therefore containerRef — does
+    // not exist on first mount. Without this dep the effect bailed on the null
+    // ref and never re-ran when the real list appeared, so the scroll listener
+    // was never attached and nothing was ever saved. That is what defeated the
+    // previous attempt at this fix, verified on device.
+    if (loading || tab !== "landing") return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    let raf = 0;
+    const target = profileScrollByKey.get(routeKey) ?? 0;
+    if (target > 0) {
+      // Rows depend on async data, so the list's full height does not exist for
+      // several frames; assigning scrollTop once clamps to the short content.
+      let frames = 0;
+      const apply = () => {
+        const max = el.scrollHeight - el.clientHeight;
+        el.scrollTop = Math.min(target, Math.max(0, max));
+        if (max < target && ++frames < 40) raf = requestAnimationFrame(apply);
+      };
+      apply();
+    }
+
+    const onScroll = () => { profileScrollByKey.set(routeKey, el.scrollTop); };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, [loading, tab, routeKey, containerRef]);
 
   // Stripe payout status is fetched by `useStripeConnectStatus()` inside
   // <ProfileLanding />, not here — it used to be a `useState` + `useEffect`

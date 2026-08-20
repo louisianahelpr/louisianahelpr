@@ -11,6 +11,29 @@ import { BGC_FEE_CENTS, formatFeeUsd } from "@/lib/productPrices";
 const BGC_PRICE = formatFeeUsd(BGC_FEE_CENTS);
 
 /**
+ * The purchase is OFF while the screening provider has no accounts.
+ *
+ * `create-bgc-payment` charges live money, but `verification-webhook` 401s
+ * without CHECKR_WEBHOOK_SECRET / CERTIFICIAL_WEBHOOK_SECRET — so a helper can
+ * pay for a check whose RESULT can never be recorded. They would sit at
+ * "in progress" indefinitely, having been charged, with no badge and no
+ * refund path. Taking money for something that cannot complete is the one
+ * thing this card must not do.
+ *
+ * Deliberately a one-line flag rather than a deletion: the backend, the price,
+ * the badge and the status rendering all stay, so re-enabling is flipping this
+ * to `true` once the provider accounts exist. The matching server-side guard
+ * is in `supabase/functions/create-bgc-payment/index.ts` — this constant is
+ * not the enforcement point, since the edge function is callable directly.
+ *
+ * NOT changed here, and worth a look separately: a helper already sitting at
+ * `pending` from before this was switched off is still shown "in progress",
+ * which the broken webhook means may never resolve. Deciding what to tell them
+ * (and whether to refund) is an owner call, not a UI change.
+ */
+const BGC_PURCHASE_ENABLED = false;
+
+/**
  * Own-profile card letting a helper pay for their own background check to
  * earn the public "Background-Checked" badge. Renders different states by
  * profiles.background_check_status:
@@ -103,7 +126,13 @@ export function BackgroundCheckCard({ status }: { status: string }) {
     );
   }
 
-  // none / failed → offer the purchase
+  // none / failed → offer the purchase, unless it is switched off. When off
+  // the card renders NOTHING rather than a "coming soon" tile: a helper who
+  // has never had a check does not need to be told about a thing they cannot
+  // buy, and a disabled CTA on the profile is just a dead control taking up
+  // the same space.
+  if (!BGC_PURCHASE_ENABLED) return null;
+
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-3">
       <div className="flex items-start gap-3">

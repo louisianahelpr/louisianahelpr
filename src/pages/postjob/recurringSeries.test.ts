@@ -101,4 +101,13 @@ describe("recurring series wiring", () => {
     expect(src).toMatch(/WEEKDAY_LABELS\.map/);
     expect(src).toContain("grid-cols-7");
   });
+
+  it("keeps the Repeats option shut until the charge cron is deployed", () => {
+    // The picker and the cron are both written and tested, but nothing bills
+    // the saved card for visit 2 until charge-recurring-visits is DEPLOYED and
+    // SCHEDULED. Shipping the picker first would let a poster book twelve
+    // visits and receive one — the exact failure the rebuild removed.
+    const src = read("../../components/postjob/LogisticsSection.tsx");
+    expect(src).toMatch(/const RECURRING_ENABLED = false/);
+  });
 });

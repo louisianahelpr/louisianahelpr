@@ -17,6 +17,23 @@ import { AppleMapPreview } from "@/components/postjob/AppleMapPreview";
 import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
 import { FieldError } from "@/components/ui/FieldError";
 
+/**
+ * Repeats is built but not yet WIRED END TO END, so the door stays shut.
+ *
+ * The picker, the schema, the per-visit charge cron and the standing-helper
+ * model all exist. What does not exist yet is the deployment: until
+ * `charge-recurring-visits` is deployed as an edge function AND scheduled to
+ * run daily, nothing bills the saved card for visit 2 onward — so a poster
+ * would book twelve visits and receive one. That is the exact failure the
+ * rebuild set out to remove, and shipping the picker ahead of the cron would
+ * re-create it with a nicer UI.
+ *
+ * Flip to `true` only once the cron is deployed and scheduled. Everything on
+ * the other side of this flag is finished and tested; this is a wiring gate,
+ * not a feature flag for unfinished work.
+ */
+const RECURRING_ENABLED = false;
+
 // Normalize a reverse-geocoder's state value (full name or abbreviation)
 // to the canonical 2-letter code the form stores. We special-case the only
 // state Helpr serves ("Louisiana" → "LA"); any other already-2-letter code
@@ -328,12 +345,12 @@ export function LogisticsSection({
           single one they can't make. */}
       <div className="space-y-3">
         <Label>Job type</Label>
-        <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl border border-input bg-background/70">
+        <div className={`grid ${RECURRING_ENABLED ? "grid-cols-3" : "grid-cols-2"} gap-1 p-1 rounded-2xl border border-input bg-background/70`}>
           {([
             { key: "once", label: "One-time" },
             // "Repeats", not "Recurring" — it names what the poster is doing
             // rather than the billing category.
-            { key: "recurring", label: "Repeats" },
+            ...(RECURRING_ENABLED ? [{ key: "recurring", label: "Repeats" } as const] : []),
             { key: "group", label: "Group" },
           ] as const).map((opt) => {
             const active =

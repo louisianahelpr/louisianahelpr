@@ -1,10 +1,9 @@
-import { useState, lazy, Suspense } from "react";
+import { lazy } from "react";
 import {
-  MapPin, ChevronRight as ChevronRightIcon, ChevronDown,
+  MapPin, ChevronRight as ChevronRightIcon,
   Award, BadgeCheck, Building2, Camera, Crown, QrCode, Users,
   Star, Share2, Edit,
 } from "lucide-react";
-import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
 import { useBusinessSeatTier } from "@/hooks/useBusinessSeatTier";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { formatPrice } from "@/lib/format";
@@ -22,7 +21,6 @@ import { EarningsSparkline } from "@/components/profile/EarningsSparkline";
 import { hapticLight } from "@/lib/haptics";
 import { shareNative } from "@/lib/nativeShare";
 import type { Profile, ReviewPreview } from "./types";
-import { RecentReviewsList } from "./identityHeader/RecentReviewsList";
 
 interface IdentityHeaderProps {
   profile: Profile | null;
@@ -59,16 +57,16 @@ export function IdentityHeader({
   reviewCount,
   completedCount,
   onSelectTab,
-  reviewsPreview,
-  reviewsError,
-  onRetryReviews,
+  reviewsPreview: _reviewsPreview,
+  reviewsError: _reviewsError,
+  onRetryReviews: _onRetryReviews,
   earningsSparkline,
   totalEarnings,
   tier,
   hasPhoto,
   memberSinceLabel,
   earnedBadges,
-  portfolioUrls,
+  portfolioUrls: _portfolioUrls,
   videoUploading: _videoUploading,
   handleVideoUpload: _handleVideoUpload,
   setQrOpen,
@@ -77,10 +75,6 @@ export function IdentityHeader({
   // render site for why it outranks the consumer tier chip.
   const seatTier = useBusinessSeatTier(userId);
 
-  // Recent work + reviews collapse into one disclosure so the hero
-  // stays compact — they can make the card very tall on an
-  // established profile.
-  const [showcaseOpen, setShowcaseOpen] = useState(false);
   // Intro-video state — tracks the fullscreen preview open state.
   // Fee % for legacy job rows without a per-job helper_fee_percent —
   // tier-derived so the trend chart's "earned" agrees with the other
@@ -484,74 +478,11 @@ export function IdentityHeader({
             for a panel most visits never opened. /analytics is the page that
             exists for exactly this and already loads recharts. */}
 
-
-        {/* Work & reviews — collapsed into one disclosure so the header
-            stays short. Renders only when there's something to show, OR
-            when the review sub-loader failed (so the failure has a home
-            and a retry). */}
-        {(portfolioUrls.length > 0 || reviewsPreview.length > 0 || reviewsError) && (
-          <div className="mt-3.5 pt-3.5" style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}>
-            {reviewsError && reviewsPreview.length === 0 && portfolioUrls.length === 0 ? (
-              <ProfileSectionError
-                section="your recent reviews"
-                onRetry={() => onRetryReviews?.()}
-              />
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShowcaseOpen((o) => !o)}
-                  aria-expanded={showcaseOpen}
-                  className="w-full flex items-center justify-between gap-2 active:opacity-70 transition-opacity"
-                >
-                  <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                    Work &amp; reviews
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-ds-11 font-semibold" style={{ color: "hsl(var(--bark))" }}>
-                    {showcaseOpen ? "Hide" : "View"}
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showcaseOpen ? "rotate-180" : ""}`} />
-                  </span>
-                </button>
-
-                {showcaseOpen && (
-                  <div className="mt-3 space-y-3">
-                    {portfolioUrls.length > 0 && (
-                      <div>
-                        {/* Horizontal scroll with scroll-snap so each
-                            thumbnail snaps cleanly on touch-fling even
-                            at 320 px (iPhone SE). snap-x mandatory +
-                            snap-start keeps the leftmost item always
-                            partially visible so the scroller reads as
-                            scrollable at a glance. */}
-                        <div className="flex gap-2 overflow-x-auto -mx-1 px-1 scrollbar-hide pb-1 snap-x snap-mandatory">
-                          {portfolioUrls.slice(0, 6).map((url, i) => (
-                            <button
-                              key={url}
-                              type="button"
-                              onClick={() => onSelectTab("profile")}
-                              className="shrink-0 w-20 h-20 rounded-2xl overflow-hidden border border-border/40 active:scale-95 transition-transform snap-start"
-                              aria-label={`Work sample ${i + 1}`}
-                            >
-                              <img loading="lazy" decoding="async" src={url} alt="" aria-hidden="true" className="w-full h-full object-cover" />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {reviewsError ? (
-                      <ProfileSectionError
-                        section="your recent reviews"
-                        onRetry={() => onRetryReviews?.()}
-                      />
-                    ) : reviewsPreview.length > 0 ? (
-                      <RecentReviewsList reviewsPreview={reviewsPreview} onSelectTab={onSelectTab} />
-                    ) : null}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
+        {/* "Work & reviews" disclosure removed 2026-08-19 (owner request).
+            It rendered as an eyebrow + a "View" chevron above a ~90pt gap and
+            no content for most accounts, because the portfolio strip and the
+            review preview it wrapped are already reachable from the Edit
+            profile and My reviews rows below. */}
       </div>
     </>
   );

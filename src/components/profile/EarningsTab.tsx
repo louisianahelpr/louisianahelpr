@@ -343,7 +343,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
         icon={Zap}
-        eyebrow="Subscriber perk"
         title="Cash out instantly."
         body="Skip the 1–2 business day wait. Subscribed helpers can route earnings to a debit card in about 30 minutes."
         perks={[

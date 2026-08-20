@@ -193,7 +193,32 @@ export const AppliedJobsTab = ({
       toast.error("Couldn't remove that — try again?");
       return;
     }
-    toast.success("Attachment removed");
+    // Undo, because removing was a single tap on the highest-chroma element in
+    // the row with no confirm — next to a WITHDRAW that demands a whole sheet
+    // and a coded reason. The file itself is never deleted from storage (only
+    // its path leaves `attachment_urls`), so restoring is putting the array
+    // back, and the toast is a better fit than a confirm dialog for something
+    // this cheap to reverse.
+    toast.success("Attachment removed", {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          void (async () => {
+            const { data: restored, error: undoErr } = await supabase
+              .from("applications")
+              .update({ attachment_urls: currentUrls })
+              .eq("id", appId)
+              .select("id");
+            if (undoErr || !restored || restored.length === 0) {
+              hapticError();
+              toast.error("Couldn't put that back — re-attach it instead.");
+              return;
+            }
+            onRefresh();
+          })();
+        },
+      },
+    });
     // Same as the add path — the list has to be re-read or the removed file
     // stays on screen.
     onRefresh();

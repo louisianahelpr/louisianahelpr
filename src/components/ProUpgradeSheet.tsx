@@ -9,9 +9,6 @@ interface ProUpgradeSheetProps {
   /** Lucide icon for the hero chip — pass the feature's own icon (Zap for
       instant payout, Rocket for boost, Send for direct offer, etc.). */
   icon: LucideIcon;
-  /** Short eyebrow phrase shown in sienna italic above the title (e.g.,
-      "Pro perk", "Locked feature"). */
-  eyebrow: string;
   /** Italic display headline — the value prop ("Cash out instantly."). */
   title: string;
   /** One-sentence serif body explaining what they unlock. */
@@ -25,7 +22,7 @@ interface ProUpgradeSheetProps {
 /**
  * Reusable paywall sheet — shown when a free helper/poster tries to use a
  * subscription-gated feature (Instant Payout, Boost, Direct Offers, etc.).
- * Brand-aligned: italic display headline, sienna eyebrow, parchment-gold
+ * Brand-aligned: italic display headline, parchment-gold
  * "what you unlock" card, brand bark Upgrade CTA. Routes to Subscription
  * tab where the user can choose a billing cycle.
  */
@@ -33,7 +30,6 @@ export function ProUpgradeSheet({
   open,
   onClose,
   icon: Icon,
-  eyebrow,
   title,
   body,
   perks,
@@ -56,12 +52,10 @@ export function ProUpgradeSheet({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="!gap-4">
         <DialogHeader className="!text-left space-y-0">
-          {/* Tier chip + DialogHero eyebrow/title/subtitle stack. The chip
-              is a Pro/Elite-tier decoration (accent-tinted rounded square
-              with the tier's Lucide icon) — sits BESIDE the shared header
-              text so this dialog reads as a sibling of every other
-              DialogHero popup. Eyebrow is a React node so the tier icon
-              still renders inline before the eyebrow text. */}
+          {/* Tier chip + DialogHero title. The chip is a Pro/Elite-tier
+              decoration (accent-tinted rounded square with the tier's Lucide
+              icon) — sits BESIDE the shared header text so this dialog reads
+              as a sibling of every other DialogHero popup. */}
           <div className="flex items-center gap-3 mb-2">
             <div
               className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
@@ -74,19 +68,28 @@ export function ProUpgradeSheet({
             >
               <Icon className="w-5 h-5" strokeWidth={1.75} />
             </div>
-            <DialogHero
-              className="flex-1 min-w-0"
-              eyebrow={
-                <span className="inline-flex items-center gap-1.5">
-                  <TierIcon className="w-3 h-3" /> {eyebrow}
-                </span>
-              }
-              eyebrowStyle={{ color: accent }}
-              title={title}
-              titleStyle={{ fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)" }}
-            />
+            {/* No `titleStyle` size override. This was the last popup title in
+                the app on its own scale — clamp(1.25rem, 2vw + 0.4rem, 1.55rem)
+                against the shared clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem) — so
+                the upgrade sheet's heading ran ~7% larger than every dialog and
+                sheet beside it. The inert `eyebrow`/`eyebrowStyle` props went
+                with the ones stripped from the sheet call sites. */}
+            <DialogHero className="flex-1 min-w-0" title={title} />
           </div>
         </DialogHeader>
+
+        {/* `body` was accepted, documented, and passed by its caller — and
+            never rendered. The one sentence explaining what the paywall
+            actually unlocks was dropped on the floor, leaving a bare perk list
+            under the headline. This is where a hero subtitle's copy belongs
+            under the "one main title" rule anyway: in the body, not stacked
+            under the title. */}
+        <p
+          className="font-serif italic leading-relaxed text-ds-14"
+          style={{ color: "hsl(var(--olivewood) / 0.9)" }}
+        >
+          {body}
+        </p>
 
         {/* What you unlock — parchment-gold card, matches the JobDetailDialog
             take-home pill so it reads as a "this is the value" surface. */}

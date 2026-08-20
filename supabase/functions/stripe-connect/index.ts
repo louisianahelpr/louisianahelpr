@@ -348,8 +348,15 @@ serve(async (req) => {
           type: "financial_alerts",
           link: "/profile?tab=payment",
         });
-      } catch (_e) {
-        // notification failure must not block the reset
+      } catch (notifyErr) {
+        // A notification failure must not block the reset — but it must NOT be
+        // invisible. This is the user's only signal that their payout account
+        // was wiped and replaced, so a silently dropped one hides exactly the
+        // event an account takeover would produce.
+        console.error(
+          "[stripe-connect] FAILED to send 'payout account reset' security notification — user was not warned:",
+          notifyErr instanceof Error ? notifyErr.message : String(notifyErr),
+        );
       }
 
       const accountLink = await stripe.accountLinks.create({

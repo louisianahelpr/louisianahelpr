@@ -37,6 +37,11 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
 
   const MAX_PHOTOS = 3;
 
+  // `revieweeName` is an abbreviated display name that ALREADY ends in a
+  // period whenever the surname is an initial ("Tre B."), so appending one
+  // unconditionally rendered "Rate Tre B..".
+  const titleName = revieweeName.trimEnd().endsWith(".") ? revieweeName.trimEnd() : `${revieweeName.trimEnd()}.`;
+
   const addPhotoFiles = (selected: File[]) => {
     if (selected.length === 0) return;
     const combined = [...photoFiles, ...selected].slice(0, MAX_PHOTOS);
@@ -174,11 +179,12 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto !gap-3">
-        <DialogHero
-          eyebrow="Your turn"
-          title={`Rate ${revieweeName}.`}
-        />
-        <div className="space-y-3">
+        <DialogHero title={`Rate ${titleName}`} />
+        {/* `min-w-0` on the grid child: DialogContent is a `grid`, and a grid
+            item's automatic minimum size is its min-content width — so one wide
+            row inside here pushed the whole track past the dialog's own width
+            and clipped every child's right edge. */}
+        <div className="space-y-3 min-w-0">
           {CATEGORY_ROWS.map((row) => (
             <StarRow
               key={row.key}
@@ -195,7 +201,18 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           >
             Only the Overall rating is needed — the rest are optional. You can skip them and still post your review.
           </p>
-          <div className="flex flex-wrap gap-2 pt-1">
+          {/* ONE scrollable line, not three stacked rows. Class string is the
+              canonical chip-scroll-row from `QuickReplies` (same right-edge
+              fade mask + hidden scrollbar) so it reads as a sibling of the
+              chat quick-replies rather than a new pattern. `tabIndex`/`role`
+              keep the scroll region keyboard-reachable (axe
+              `scrollable-region-focusable`), matching JobTracking's row. */}
+          <div
+            tabIndex={0}
+            role="group"
+            aria-label="Quick review tags"
+            className="flex gap-2 pt-1 pb-1 pr-5 overflow-x-auto scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]"
+          >
             {quickOptions.map((opt) => {
               const selected = feedback.includes(opt);
               return (
@@ -203,7 +220,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                   key={opt}
                   type="button"
                   onClick={() => toggleQuickOption(opt)}
-                  className="text-ds-12 font-sans font-semibold px-3 py-1.5 rounded-full transition-all active:scale-[0.97]"
+                  className="shrink-0 whitespace-nowrap text-ds-12 font-sans font-semibold px-3 py-1.5 rounded-full transition-all active:scale-[0.97]"
                   style={
                     selected
                       ? {
@@ -331,10 +348,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           waiting for the separate tip flow on Activity. */}
       <Dialog open={tipPromptOpen} onOpenChange={(o) => { if (!o) { setTipPromptOpen(false); onClose(); } }}>
         <DialogContent className="!gap-3 sm:max-w-sm">
-          <DialogHero
-            eyebrow="Five stars — nice"
-            title={`Send ${revieweeName} a tip?`}
-          />
+          <DialogHero title={`Send ${revieweeName} a tip?`} />
           {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
               title": headers show a title and nothing else). Not dropped —
               this is a fee disclosure, which a sighted

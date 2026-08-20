@@ -19,7 +19,15 @@ export const StarRow = ({
 }) => {
   const [hover, setHover] = useState(0);
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl liquid-glass p-3.5">
+    // Phone-width fix: side-by-side, the five 40px star targets (208px) plus
+    // the card padding leave the label ~55px inside a 343px dialog, so the
+    // label forced the row's min-content past the dialog width and the grid
+    // track blew out — the 5th star and the body copy were clipped off-screen
+    // (the dialog literally could not take a 5-star rating). Below `sm` the
+    // label and the star row stack, so the stars always have their full
+    // 208px and the label has the full card width to wrap into; from `sm` up
+    // (where there is room) it stays the original single row.
+    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 rounded-2xl liquid-glass p-3.5 min-w-0">
       <div className="flex-1 min-w-0">
         <p
           className="font-display italic font-bold leading-tight flex items-center gap-1.5 text-ds-15"

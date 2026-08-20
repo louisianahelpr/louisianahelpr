@@ -42,10 +42,18 @@ interface UseProfileLandingDerivedArgs {
  * group".
  */
 const SECTION_TINT = {
+  /** Account + household. Cool blue-grey — the "about you" group. */
   account: "var(--stormy-sky)",
-  work: "var(--bark)",
-  money: "var(--burnt-sienna)",
-  legal: "var(--sage)",
+  /** Work + credentials. Warm sienna. */
+  work: "var(--burnt-sienna)",
+  /** Money. Green, the colour money already reads as. */
+  money: "var(--sage)",
+  /** Legal, warnings, support. Red — owner call 2026-08-20: this is the
+   *  consequences group, so it carries the warning colour as a set rather
+   *  than red appearing on Warnings alone inside an otherwise calm block. */
+  legal: "var(--destructive)",
+  /** Admin panel + Warnings & Strikes. Same red; kept as its own key so a
+   *  future move of either row out of the Legal section keeps its colour. */
   danger: "var(--destructive)",
 } as const;
 

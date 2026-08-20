@@ -53,7 +53,7 @@ export function MuteSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-w-md mx-auto rounded-t-2xl">
+      <SheetContent side="bottom">
         <SheetHero title="Mute notifications" />
         {isMuted && (
           <div

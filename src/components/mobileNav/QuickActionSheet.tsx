@@ -44,7 +44,7 @@ interface QuickActionSheetProps {
  */
 export const QuickActionSheet = ({ quickActionTab, onClose, quickActions }: QuickActionSheetProps) => (
   <Sheet open={quickActionTab !== null} onOpenChange={(o) => { if (!o) onClose(); }}>
-    <SheetContent side="bottom" className="rounded-t-2xl">
+    <SheetContent side="bottom">
       {quickActionTab === "/dashboard" && (
         <>
           <SheetHero title="Browse jobs" />

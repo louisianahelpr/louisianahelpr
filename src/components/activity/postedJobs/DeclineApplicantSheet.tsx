@@ -43,7 +43,7 @@ export function DeclineApplicantSheet({
     >
       <SheetContent
         side="bottom"
-        className="rounded-t-2xl pb-safe-nav p-5"
+        className="pb-safe-nav p-5"
         style={{ background: "hsl(var(--parchment))" }}
       >
         {declineTarget && (() => {

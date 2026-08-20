@@ -366,16 +366,23 @@ export const AppliedJobsTab = ({
             the wrong thing. */}
         <SheetContent
           side="bottom"
-          className="max-w-md mx-auto rounded-t-2xl border-t-0 px-5 pt-6 pb-[calc(var(--safe-area-bottom,0px)_+_24px)] max-h-[85dvh] overflow-y-auto"
+          className="border-t-0 px-5 pt-6 pb-[calc(var(--safe-area-bottom,0px)_+_24px)] max-h-[85dvh] overflow-y-auto"
         >
           <SheetHero title="Withdraw application?" />
 
           <fieldset className="mt-5 space-y-1.5" disabled={!!withdrawingAppId}>
+            {/* Quiet olivewood serif prompt, exactly like
+                DeclineApplicantSheet's "Choose a reason (optional)". It used
+                to be a burnt-sienna uppercase line, which read as a SECOND
+                eyebrow above the body — the stack the "one main title"
+                decision removed everywhere else — and its wording ("Why are
+                you withdrawing?") made "withdraw" the third repetition in one
+                sheet, after the title and the confirm button. */}
             <legend
-              className="font-serif italic uppercase block mb-1.5 text-ds-10"
-              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+              className="font-serif italic block mb-2 text-ds-12"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              Why are you withdrawing? <span aria-hidden>*</span>
+              Choose a reason <span aria-hidden>*</span>
               <span className="sr-only">(required)</span>
             </legend>
             <div className="grid grid-cols-2 gap-1.5">
@@ -431,7 +438,14 @@ export const AppliedJobsTab = ({
             )}
           </fieldset>
 
-          {/* The weights were inverted: Withdraw was a full-width solid red
+          {/* Byte-for-byte the action row DeclineApplicantSheet uses — the
+              other destructive bottom sheet in the app: escape hatch LEFT as
+              an outline button, confirm RIGHT as the filled olivewood button,
+              both `flex-1 rounded-ds-md`. This sheet had drifted to the mirror
+              image (destructive on the left, a flex-[2] primary "Keep
+              application" on the right), so the two confirm sheets taught
+              opposite muscle memory. History of the earlier swap:
+              Withdraw was a full-width solid red
               `lg` bar with elevation and "Keep application" was a flat grey
               ghost caption, so the eye landed on the irreversible action and
               the escape hatch read as fine print. Side by side, safe action
@@ -443,20 +457,7 @@ export const AppliedJobsTab = ({
           <div className="mt-5 flex gap-2">
             <Button
               variant="outline"
-              className="flex-1 rounded-ds-md btn-press text-ds-15 font-medium"
-              disabled={!!withdrawingAppId}
-              aria-busy={!!withdrawingAppId}
-              onClick={confirmWithdraw}
-              style={{
-                color: "hsl(var(--burnt-sienna))",
-                borderColor: "hsl(var(--burnt-sienna) / 0.30)",
-              }}
-            >
-              {withdrawingAppId ? "Withdrawing…" : "Withdraw"}
-            </Button>
-            <Button
-              variant="primary"
-              className="flex-[2] rounded-ds-md btn-press text-ds-15 font-semibold"
+              className="flex-1 rounded-ds-md"
               disabled={!!withdrawingAppId}
               onClick={() => {
                 setWithdrawTarget(null);
@@ -464,7 +465,20 @@ export const AppliedJobsTab = ({
                 setWithdrawDetail("");
               }}
             >
-              Keep application
+              Keep it
+            </Button>
+            <Button
+              className="flex-1 rounded-ds-md"
+              disabled={!!withdrawingAppId}
+              aria-busy={!!withdrawingAppId}
+              onClick={confirmWithdraw}
+              style={{
+                background: "hsl(var(--olivewood))",
+                border: "1px solid hsl(var(--olivewood))",
+                color: "hsl(var(--parchment))",
+              }}
+            >
+              {withdrawingAppId ? "Withdrawing…" : "Confirm withdrawal"}
             </Button>
           </div>
         </SheetContent>

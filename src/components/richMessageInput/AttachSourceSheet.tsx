@@ -36,7 +36,7 @@ export const AttachSourceSheet = ({
   const pick = (fn: () => void) => () => { onOpenChange(false); fn(); };
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-w-md mx-auto rounded-t-2xl">
+      <SheetContent side="bottom">
         {/* Radix points the dialog's `aria-labelledby` at a Title, so a sheet
             with none announces as a bare "dialog". This one is deliberately
             headerless (below), which is a visual decision, not a naming one —

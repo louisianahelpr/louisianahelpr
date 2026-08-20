@@ -74,9 +74,9 @@ export function FilterSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        // Rounded top corners + a max height so a tall section list scrolls
+        // A max height so a tall section list scrolls
         // inside the sheet rather than pushing the dock off-screen.
-        className="rounded-t-2xl max-h-[85dvh] overflow-y-auto overscroll-contain p-0 gap-0"
+        className="max-h-[85dvh] overflow-y-auto overscroll-contain p-0 gap-0"
       >
         {/* Grab handle — the familiar "this sheet drags down" affordance. */}
         <div className="flex justify-center pt-2.5 pb-0.5" aria-hidden>

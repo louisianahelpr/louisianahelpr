@@ -27,7 +27,7 @@ export const GateSheet = ({ open, onOpenChange }: GateSheetProps) => {
           the safe-area inset so the sheet's edge sits just under that link. */}
       <SheetContent
         side="bottom"
-        className="rounded-t-2xl pb-[calc(1rem_+_env(safe-area-inset-bottom,0px))]"
+        className="pb-[calc(1rem_+_env(safe-area-inset-bottom,0px))]"
       >
         <SheetHero title="Create your free account" />
         <div className="flex flex-col gap-3 mt-6">

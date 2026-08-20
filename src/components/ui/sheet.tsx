@@ -41,7 +41,16 @@ const sheetVariants = cva(
           // Pad the bottom past the iOS home indicator so a sheet's last
           // control isn't tucked under it. (calc spacing must use `_` —
           // Tailwind converts it to the whitespace CSS calc() requires.)
-          "inset-x-0 bottom-0 border-t pb-[calc(1.5rem_+_var(--safe-area-bottom,0px))] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+          //
+          // `max-w-md mx-auto rounded-t-2xl` is the SHARED bottom-sheet shell
+          // and lives here, not at the call sites. Twelve sheets used to
+          // hand-carry these two tokens and five had lost one or both: two
+          // rendered square-cornered next to ten rounded ones, and eight
+          // stretched the full desktop width (a two-button action list
+          // becoming a 1400px band with a 13px label adrift in the middle).
+          // A caller that genuinely needs a different width/radius still wins
+          // via tailwind-merge — but it now has to say so on purpose.
+          "inset-x-0 bottom-0 max-w-md mx-auto border-t rounded-t-2xl pb-[calc(1.5rem_+_var(--safe-area-bottom,0px))] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
         left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
           "inset-y-0 right-0 h-full w-3/4  border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",

@@ -1,6 +1,5 @@
-import { useMemo } from "react";
 import { Label } from "@/components/ui/label";
-import { Check, Sparkles, CloudLightning } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categories } from "./detailsSectionConstants";
@@ -20,23 +19,6 @@ export function CategoryPicker({
   autoCategoryHint,
   setAutoCategoryHint,
 }: CategoryPickerProps) {
-  // Hurricane season: June–Nov (months 5–10, 0-indexed). Used to surface
-  // the Storm Prep seasonal pick above the regular category grid.
-  const isHurricaneSeason = useMemo(() => {
-    const month = new Date().getMonth();
-    return month >= 5 && month <= 10;
-  }, []);
-  // During hurricane season the Storm pick lives in the seasonal banner
-  // above the grid, so drop its grid chip to avoid showing Storm twice;
-  // off-season it stays in the grid so the category is always reachable.
-  const visibleCategories = useMemo(
-    () =>
-      isHurricaneSeason
-        ? categories.filter((c) => c.value !== "storm_prep")
-        : categories,
-    [isHurricaneSeason],
-  );
-
   return (
     // Category first — picking it up front lets the title placeholder
     // and the description prompt below adapt to what's actually being
@@ -73,46 +55,7 @@ export function CategoryPicker({
           Active chip keeps the brand-color ring + adds a check so
           the selection reads instantly. */}
       <div id="category-picker" className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-        {/* Hurricane-season pick — only surfaces June–Nov. It used to render as
-            a full-width banner ABOVE this grid, which made it read as a
-            different KIND of control than the thing it actually is: one more
-            category. It now sits as the first cell on the same row rhythm as
-            its siblings, keeping the blue seasonal tint and the "In season"
-            badge so it still stands out without breaking the alignment. */}
-        {isHurricaneSeason && (
-          <button
-            type="button"
-            onClick={() => {
-              autoCategoryArmedRef.current = false;
-              setAutoCategoryHint(null);
-              setCategory("storm_prep");
-            }}
-            aria-pressed={category === "storm_prep"}
-            aria-label="Storm — seasonal pick"
-            className={`w-full rounded-ds-md p-2.5 flex items-center gap-2 transition-all active:scale-[0.97] border-[0.5px] ${
-              category === "storm_prep"
-                ? "bg-[hsl(210_35%_82%)] border-[hsl(210_30%_58%)] dark:bg-[hsl(210_30%_26%)] dark:border-[hsl(210_28%_46%)]"
-                : "bg-[hsl(210_30%_92%)] border-[hsl(210_24%_78%)] dark:bg-[hsl(210_28%_18%)] dark:border-[hsl(210_24%_32%)]"
-            }`}
-          >
-            <CloudLightning className="w-4 h-4 shrink-0 text-[hsl(210_45%_44%)] dark:text-[hsl(210_55%_70%)]" strokeWidth={2} />
-            <span className="font-sans font-semibold text-ds-14 leading-tight text-[hsl(210_28%_36%)] dark:text-[hsl(210_32%_80%)]">
-              Storm
-            </span>
-            {category === "storm_prep" && (
-              <Check className="w-3.5 h-3.5 shrink-0 text-[hsl(210_45%_44%)] dark:text-[hsl(210_55%_70%)]" strokeWidth={3} />
-            )}
-            {/* ds-9 + tighter padding: at half-column width the old ds-10 badge
-                crowded the label. */}
-            <span
-              className="ml-auto text-ds-9 font-sans font-semibold uppercase px-1 py-0.5 rounded-ds-sm shrink-0 bg-[hsl(210_42%_78%)] text-[hsl(210_38%_30%)] dark:bg-[hsl(210_45%_32%)] dark:text-[hsl(210_55%_84%)]"
-              style={{ letterSpacing: "0.05em" }}
-            >
-              In season
-            </span>
-          </button>
-        )}
-        {visibleCategories.map((c) => {
+        {categories.map((c) => {
           const colors = categoryColors[c.value];
           const active = category === c.value;
           return (

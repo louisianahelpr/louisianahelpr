@@ -251,7 +251,7 @@ export function BudgetSection({
           {/* Quick-tap budget presets — outline pills so they stay
               secondary to the budget input above. Only the selected
               preset fills solid. */}
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex gap-2 pt-1 min-w-0 overflow-x-auto pb-1 pr-5 scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]">
             {budgetPresets.map((amt) => {
               const isActive = parseFloat(budget) === amt;
               return (
@@ -260,7 +260,7 @@ export function BudgetSection({
                   type="button"
                   onClick={() => setBudget(amt.toFixed(2))}
                   aria-pressed={isActive}
-                  className={`min-h-11 px-4 py-2 rounded-full text-ds-13 font-semibold tabular-nums transition-all border ${
+                  className={`shrink-0 whitespace-nowrap min-h-11 px-4 py-2 rounded-full text-ds-13 font-semibold tabular-nums transition-all border ${
                     isActive
                       ? "bg-primary text-primary-foreground border-primary shadow-sm scale-[1.02]"
                       : "bg-transparent text-foreground border-border hover:border-primary/50 hover:bg-primary/5"

@@ -1,15 +1,19 @@
 import { Award, BadgeCheck, Users2 } from "lucide-react";
 
+// Ordered most-requested first, so the categories a poster is most likely to
+// want are the ones they reach without scanning. "Other" stays last as the
+// escape hatch. Storm sits with the rest rather than in a pinned seasonal
+// slot — it is one more category, not a different kind of control.
 export const categories = [
   { value: "cleaning", label: "Cleaning" },
   { value: "yard_work", label: "Yard Work" },
+  { value: "handyman", label: "Handyman" },
   { value: "moving", label: "Moving" },
   { value: "errands", label: "Errands" },
-  { value: "handyman", label: "Handyman" },
-  { value: "painting", label: "Painting" },
   { value: "delivery", label: "Delivery" },
   { value: "pet_care", label: "Pet Care" },
   { value: "assembly", label: "Assembly" },
+  { value: "painting", label: "Painting" },
   { value: "storm_prep", label: "Storm" },
   { value: "other", label: "Other" },
 ];

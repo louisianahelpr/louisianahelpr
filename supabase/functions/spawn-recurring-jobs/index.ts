@@ -1,5 +1,29 @@
 // Daily cron: spawn child jobs from recurring parents.
 //
+// ══ WITHDRAWN — this function spawns NOTHING until per-visit charging ships ══
+//
+// The model below never had a payment half. The poster funds escrow ONCE, at
+// PostJob checkout; `action: "escrow"` is invoked from exactly one place in the
+// whole app (src/pages/postjob/useJobSubmit.ts), the post flow, so there is no
+// code path anywhere that funds an already-existing job. Every child this
+// function inserted therefore went in as `status: 'open'` with `payment_status`
+// at its 'pending' default — publicly listed, appliable, and acceptable with no
+// money behind it. A helper could do the whole visit and there would be nothing
+// to release. It also assigned no helper, so "every Wednesday" did not even
+// keep the same person.
+//
+// Prod has ZERO recurring parents and ZERO spawned children (verified
+// 2026-08-20), so nothing has been lost and there is nothing to migrate. The
+// "Recurring" option is withdrawn from the post form to match
+// (LogisticsSection). This guard is the server half: the form is not the
+// enforcement point, since a job INSERT goes through PostgREST with the
+// poster's own token and could carry `is_recurring: true` directly.
+//
+// Everything below the guard is left INTACT on purpose — the date math, the
+// idempotency reasoning and the field-copy list are all still the right shape
+// for the real feature. Delete `SPAWNING_ENABLED` when the child insert also
+// charges the saved card for that visit and carries the standing helper.
+//
 // Model: a job posted with is_recurring=true is BOTH the first instance
 // AND the template. Children link back via parent_job_id. Each cron run
 // looks at every recurring parent and spawns the next-due child if its
@@ -40,6 +64,9 @@ const INTERVAL_DAYS: Record<string, number> = {
 
 const LOOKAHEAD_DAYS = 7;
 
+/** See the header. Flip to true only when a spawned visit is funded. */
+const SPAWNING_ENABLED = false;
+
 function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr + 'T00:00:00Z');
   d.setUTCDate(d.getUTCDate() + n);
@@ -60,6 +87,21 @@ serve(async (req) => {
     Deno.env.get('SUPABASE_URL') ?? '',
     (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '',
   );
+
+  if (!SPAWNING_ENABLED) {
+    // 200, not an error: the cron is healthy, it simply has nothing to do.
+    // Erroring here would page ops every night for a deliberate state.
+    console.log('[spawn-recurring-jobs] withdrawn — no visit is spawned until per-visit charging ships');
+    return new Response(
+      JSON.stringify({
+        withdrawn: true,
+        reason: 'Recurring visits are not spawned until each visit charges the poster. See the header note.',
+        processed: 0,
+        spawned: 0,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
 
   const today = todayUTC();
   const horizon = addDays(today, LOOKAHEAD_DAYS);

@@ -84,7 +84,14 @@ export function usePostJobForm() {
   const [estimatedHours, setEstimatedHours] = useState("");
   const [budget, setBudget] = useState("");
   const [specialRequirements, setSpecialRequirements] = useState("");
-  const [isRecurring, setIsRecurring] = useState(false);
+  // Recurring is temporarily withdrawn (see the note in LogisticsSection —
+  // every visit after the first posted with no payment behind it). The state
+  // stays so the rest of the form keeps its shape, but the setter is pinned
+  // OFF here rather than only in the UI: a restored draft and a rebook both
+  // replay a saved `is_recurring: true` through their own setters, which would
+  // create a parent this build cannot fund even though the control is gone.
+  const [isRecurring, setIsRecurringRaw] = useState(false);
+  const setIsRecurring = (_v: boolean) => setIsRecurringRaw(false);
   const [recurrenceInterval, setRecurrenceInterval] = useState("weekly");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [isGroupJob, setIsGroupJob] = useState(false);

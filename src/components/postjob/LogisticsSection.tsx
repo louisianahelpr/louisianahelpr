@@ -317,22 +317,36 @@ export function LogisticsSection({
         </div>
       )}
 
-      {/* Job type — One-time / Recurring / Group are mutually
-          exclusive (recurring bills repeatedly to one helper; group
-          splits one job across many), so a single 3-way segmented
-          control makes that obvious up front instead of two toggles
-          that quietly disable each other. */}
+      {/* Job type — One-time / Group are mutually exclusive (group splits one
+          job across many helpers), so a segmented control makes that obvious
+          up front instead of toggles that quietly disable each other.
+
+          RECURRING IS TEMPORARILY WITHDRAWN. It was never finishable as built:
+          the poster funded escrow ONCE at checkout, and `spawn-recurring-jobs`
+          then posted every later visit straight into `jobs` with no payment at
+          all — `action: "escrow"` is invoked from exactly one place in the app
+          (useJobSubmit), the post flow, so there is no code path anywhere that
+          funds an already-existing job. Every visit after the first was
+          publicly listed and acceptable with nothing behind it: a helper could
+          do the work and there would be no escrow to release. Meanwhile this
+          screen showed "About 12 visits — roughly $600 total", which reads as
+          a $600 commitment against a $50 charge.
+
+          Prod has ZERO recurring jobs (0 parents, 0 spawned children, verified
+          2026-08-20), so nobody has been hurt by this and there is nothing to
+          migrate — but the option must not be offered again until per-visit
+          charging exists. The state, the columns and the spawn cron all stay;
+          only the door is closed. See the matching guard in
+          supabase/functions/spawn-recurring-jobs/index.ts. */}
       <div className="space-y-3">
         <Label>Job type</Label>
-        <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl border border-input bg-background/70">
+        <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl border border-input bg-background/70">
           {([
             { key: "once", label: "One-time" },
-            { key: "recurring", label: "Recurring" },
             { key: "group", label: "Group" },
           ] as const).map((opt) => {
             const active =
               (opt.key === "once" && !isRecurring && !isGroupJob) ||
-              (opt.key === "recurring" && isRecurring) ||
               (opt.key === "group" && isGroupJob);
             return (
               <button
@@ -340,7 +354,11 @@ export function LogisticsSection({
                 type="button"
                 aria-pressed={active}
                 onClick={() => {
-                  setIsRecurring(opt.key === "recurring");
+                  // `setIsRecurring(false)` unconditionally: nothing can turn
+                  // it on from this control any more, and a restored draft that
+                  // still carries `is_recurring: true` is cleared the moment
+                  // the poster touches job type.
+                  setIsRecurring(false);
                   setIsGroupJob(opt.key === "group");
                 }}
                 className={`h-10 rounded-ds-md text-ds-13 font-semibold tracking-tight transition-all ${

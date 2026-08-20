@@ -84,8 +84,12 @@ function PostedJobCardInner({
   // the standalone "Offered to …" pill row only renders on the states where no
   // tracker is mounted — completed / revision_requested / disputed. This is a
   // move, not a delete: every state that showed the helper still shows them.
+  // An OPEN job now shows the tracker too, sitting on its real pre-assignment
+  // step (Posted / Applicants) — the owner asked for a tracker on posted jobs,
+  // and the same component renders it with the two leading steps prepended.
   const showsTracker =
-    (job.status === "accepted" || job.status === "in_progress") && !!job.helper_id;
+    ((job.status === "accepted" || job.status === "in_progress") && !!job.helper_id) ||
+    job.status === "open";
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
 
   return (
@@ -349,9 +353,9 @@ function PostedJobCardInner({
               )}
 
               {/* Visible live tracking */}
-              {(job.status === "accepted" || job.status === "in_progress") && job.helper_id && (
+              {showsTracker && (
                 <div onClick={(e) => e.stopPropagation()}>
-                  <JobTracking jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
+                  <JobTracking includePostingSteps applicantCount={applicantCounts[job.id] || 0} jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
                 </div>
               )}
 

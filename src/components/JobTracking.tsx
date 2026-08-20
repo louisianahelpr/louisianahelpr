@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react"
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, CalendarCheck } from "lucide-react";
+import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, CalendarCheck, FileText, Users } from "lucide-react";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { parseLocalDate } from "@/lib/dateUtils";
@@ -31,6 +31,20 @@ const STATUSES = [
   { key: "arrived", label: "Arrived", icon: MapPin, color: "text-primary" },
   { key: "working", label: "Working", icon: Wrench, color: "text-primary" },
   { key: "done", label: "Done", icon: PartyPopper, color: "text-primary" },
+];
+
+/**
+ * The two steps that happen BEFORE anyone is offered the job. A poster's own
+ * card starts life at "Posted" with nobody assigned, so without these the
+ * tracker had nothing to say until a helper had already been picked — which is
+ * why an open job showed no tracker at all. They are PREPENDED (never
+ * substituted) so a job that advances keeps one continuous timeline, and they
+ * reuse the exact step shape/styling of `STATUSES` rather than introducing a
+ * second tracker.
+ */
+const PRE_STATUSES = [
+  { key: "posted", label: "Posted", icon: FileText, color: "text-primary" },
+  { key: "applicants", label: "Applicants", icon: Users, color: "text-primary" },
 ];
 
 /** Index of each step in `STATUSES`, by key. Keeps the derivation below
@@ -162,6 +176,8 @@ export function JobTracking({
   initialTracking,
   jobLatitude,
   jobLongitude,
+  includePostingSteps = false,
+  applicantCount = 0,
 }: {
   jobId: string;
   helperId: string | null;
@@ -212,6 +228,14 @@ export function JobTracking({
    */
   jobLatitude?: number | null;
   jobLongitude?: number | null;
+  /**
+   * Poster-side only: prepend the pre-assignment steps ("Posted",
+   * "Applicants") so an OPEN job — one with no helper yet — still shows where
+   * it stands. With this on the tracker renders without a `helperId`.
+   */
+  includePostingSteps?: boolean;
+  /** Applications received so far. Only read when `includePostingSteps`. */
+  applicantCount?: number;
 }) {
   // Seed from the parent-batched tracking row when present so we don't
   // fire one fetch per rendered card (N+1 across active jobs on Activity).
@@ -480,6 +504,19 @@ export function JobTracking({
     posterCompletedAt: jobStamps.posterCompletedAt,
   });
 
+  // What the STEP ROW draws. Without the posting steps this is exactly the old
+  // behaviour (`STATUSES` / `currentStatusIdx`); with them the row is offset by
+  // the two prepended steps, and a job with nobody assigned yet sits on
+  // "Posted" or — once at least one application is in — "Applicants".
+  const displaySteps = includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES;
+  const displayIdx = includePostingSteps
+    ? helperId
+      ? PRE_STATUSES.length + currentStatusIdx
+      : applicantCount > 0
+        ? 1
+        : 0
+    : currentStatusIdx;
+
   // SOS is a personal-safety escalation, so it only exists once someone is
   // actually there: it appears at "Arrived" and stays up through Working /
   // Done-pending, dropping only once the job is closed out. It used to start at
@@ -505,7 +542,7 @@ export function JobTracking({
   useEffect(() => {
     const row = stepRowRef.current;
     if (!row) return;
-    const step = row.children[currentStatusIdx] as HTMLElement | undefined;
+    const step = row.children[displayIdx] as HTMLElement | undefined;
     if (!step) return;
     const target = step.offsetLeft - (row.clientWidth - step.offsetWidth) / 2;
     const max = row.scrollWidth - row.clientWidth;
@@ -513,9 +550,36 @@ export function JobTracking({
       left: Math.max(0, Math.min(target, max)),
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
     });
-  }, [currentStatusIdx]);
+  }, [displayIdx]);
 
-  if (!helperId) return null;
+  // Edge fade. A step that straddles the card edge used to read as chopped
+  // text ("On the W…"), giving no clue the row scrolls. A mask feathers
+  // whichever edge still has content behind it — and ONLY that edge, so a row
+  // that fits (or is scrolled to an end) isn't dimmed for no reason.
+  const [edges, setEdges] = useState({ start: false, end: false });
+  useEffect(() => {
+    const row = stepRowRef.current;
+    if (!row) return;
+    const sync = () => {
+      const max = row.scrollWidth - row.clientWidth;
+      setEdges({ start: row.scrollLeft > 1, end: row.scrollLeft < max - 1 });
+    };
+    sync();
+    row.addEventListener("scroll", sync, { passive: true });
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(sync) : null;
+    ro?.observe(row);
+    return () => {
+      row.removeEventListener("scroll", sync);
+      ro?.disconnect();
+    };
+  }, [displaySteps.length]);
+
+  // 20px ≈ the gutter a half-cut 68px step leaves, so the fade covers the
+  // sliver rather than eating a whole label.
+  const FADE = "20px";
+  const stepRowMask = `linear-gradient(to right, transparent 0, black ${edges.start ? FADE : "0px"}, black calc(100% - ${edges.end ? FADE : "0px"}), transparent 100%)`;
+
+  if (!helperId && !includePostingSteps) return null;
 
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-4">
@@ -547,7 +611,7 @@ export function JobTracking({
         // way". A helper tracking their own job needs no one named.
         const firstName = helperName?.trim().split(/\s+/)[0] ?? null;
         const getSubtext = (idx: number): string | null =>
-          !isHelper && firstName && idx === currentStatusIdx ? firstName : null;
+          !isHelper && firstName && idx === displayIdx ? firstName : null;
 
         // ONE scrolling line, seven steps (owner: "the live tracker should be
         // 1 scrollable line"). It was previously a 4 + 3 wrapping grid, which
@@ -571,10 +635,11 @@ export function JobTracking({
             role="group"
             aria-label="Job progress"
             className="flex gap-1 overflow-x-auto scrollbar-hide snap-x -mx-1 px-1 py-0.5 items-start"
+            style={{ maskImage: stepRowMask, WebkitMaskImage: stepRowMask }}
           >
-            {STATUSES.map((s, idx) => {
-              const isActive = idx <= currentStatusIdx;
-              const isCurrent = idx === currentStatusIdx;
+            {displaySteps.map((s, idx) => {
+              const isActive = idx <= displayIdx;
+              const isCurrent = idx === displayIdx;
               const Icon = s.icon;
               const subtext = getSubtext(idx);
               return (
@@ -629,7 +694,7 @@ export function JobTracking({
         <div
           className="h-full rounded-full motion-safe:transition-all motion-safe:duration-500"
           style={{
-            width: `${((currentStatusIdx + 1) / STATUSES.length) * 100}%`,
+            width: `${((displayIdx + 1) / displaySteps.length) * 100}%`,
             background: "hsl(var(--bark) / 0.85)",
           }}
         />

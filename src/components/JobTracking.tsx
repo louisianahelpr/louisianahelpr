@@ -627,6 +627,19 @@ export function JobTracking({
         // any width. `snap-x`/`snap-center` land the scroll on whole steps for
         // the same reason.
         return (
+          // The mask lives on this NON-SCROLLING wrapper, not on the scroller
+          // itself. Measured on device: the row reported sw=652 cw=260, and
+          // WebKit sizes a mask on a scroll container to its SCROLLABLE
+          // CONTENT, not its visible box — so `calc(100% - 36px)` put the fade
+          // at x≈616 of 652, permanently scrolled out of sight. The fade was
+          // being painted correctly and could never be seen, which is why
+          // widening it from 20px to 36px changed nothing. On a wrapper that
+          // does not scroll, 100% is the visible 260px and the fade lands on
+          // the edges the user is actually looking at.
+          <div
+            className="-mx-1 px-1"
+            style={{ maskImage: stepRowMask, WebkitMaskImage: stepRowMask }}
+          >
           <div
             ref={stepRowRef}
             // A scrolling region must be keyboard-reachable or axe's
@@ -637,8 +650,7 @@ export function JobTracking({
             tabIndex={0}
             role="group"
             aria-label="Job progress"
-            className="flex gap-1 overflow-x-auto scrollbar-hide snap-x -mx-1 px-1 py-0.5 items-start"
-            style={{ maskImage: stepRowMask, WebkitMaskImage: stepRowMask }}
+            className="flex gap-1 overflow-x-auto scrollbar-hide snap-x py-0.5 items-start"
           >
             {displaySteps.map((s, idx) => {
               const isActive = idx <= displayIdx;
@@ -697,6 +709,7 @@ export function JobTracking({
                 </div>
               );
             })}
+          </div>
           </div>
         );
       })()}

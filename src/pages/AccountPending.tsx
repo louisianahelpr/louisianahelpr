@@ -238,7 +238,7 @@ const AccountPending = () => {
               disabled={resending}
               size="lg"
               variant="outline"
-              className="w-full gap-2 rounded-2xl"
+              className="w-full gap-2 rounded-ds-md"
             >
               {resending ? (<><RefreshCw className="w-4 h-4 animate-spin" /> Sending…</>) : "Resend email"}
             </Button>
@@ -330,7 +330,7 @@ const AccountPending = () => {
                 variant="primary"
                 onClick={() => navigate("/dashboard")}
                 size="lg"
-                className="w-full gap-2 rounded-2xl"
+                className="w-full gap-2 rounded-ds-md"
               >
                 Explore jobs while you wait <ArrowRight className="w-4 h-4" />
               </Button>

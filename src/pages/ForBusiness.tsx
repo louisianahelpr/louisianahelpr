@@ -467,7 +467,7 @@ const TierComparison = () => {
           onClick={() => setShowCompare((s) => !s)}
           aria-expanded={showCompare}
           aria-controls="business-compare-features-table"
-          className="group inline-flex items-center gap-2 h-10 sm:h-11 px-4 sm:px-5 rounded-2xl font-sans font-semibold text-ds-13 transition-[background,color] duration-150"
+          className="group inline-flex items-center gap-2 h-10 sm:h-11 px-4 sm:px-5 rounded-ds-md font-sans font-semibold text-ds-13 transition-[background,color] duration-150"
           style={{
             color: "hsl(var(--bark))",
             background: "transparent",
@@ -922,7 +922,7 @@ const PricingSection = () => {
                   <Button
                     asChild
                     size="lg"
-                    className="btn-grad-primary group w-full h-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] text-ds-15"
+                    className="btn-grad-primary group w-full h-14 rounded-ds-md tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] text-ds-15"
                     style={{
                       fontFamily: "Montserrat, system-ui, sans-serif",
                       fontWeight: 600,
@@ -947,7 +947,7 @@ const PricingSection = () => {
                     asChild
                     size="lg"
                     variant="outline"
-                    className="group w-full h-14 rounded-2xl tracking-tight transition-all duration-200 hover:-translate-y-0.5 text-ds-15"
+                    className="group w-full h-14 rounded-ds-md tracking-tight transition-all duration-200 hover:-translate-y-0.5 text-ds-15"
                     style={{
                       fontFamily: "Montserrat, system-ui, sans-serif",
                       fontWeight: 600,
@@ -1127,7 +1127,7 @@ const ClosingSection = () => (
         <Button
           asChild
           size="xl"
-          className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 rounded-2xl tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] text-ds-17"
+          className="btn-grad-primary group h-16 sm:h-[4.25rem] lg:h-[5rem] px-12 lg:px-14 rounded-ds-md tracking-tight transition-[transform,filter,box-shadow] duration-200 hover:brightness-110 active:scale-[0.98] text-ds-17"
           style={{
             fontFamily: "Montserrat, system-ui, sans-serif",
             fontWeight: 600,

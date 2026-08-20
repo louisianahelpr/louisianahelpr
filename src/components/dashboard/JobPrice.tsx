@@ -1,7 +1,6 @@
 import { useId, useState } from "react";
 import { DollarSign } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { formatPrice, formatPriceExact } from "@/lib/format";
+import { formatPrice, formatPriceExact, formatPriceFloor } from "@/lib/format";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 
 export interface JobPriceProps {
@@ -32,7 +31,6 @@ export interface JobPriceProps {
    * `detail` only — render a "Helper Pro reduces your fee to 10%" upsell
    * line. Show for free-tier helpers, not already-subscribed users.
    */
-  showProUpsell?: boolean;
   className?: string;
 }
 
@@ -78,11 +76,9 @@ export function JobPrice({
   helpersNeeded = 1,
   variant = "chip",
   showBudget = false,
-  showProUpsell = false,
   className,
 }: JobPriceProps) {
   const [expanded, setExpanded] = useState(false);
-  const navigate = useNavigate();
   const panelId = useId();
 
   const { helpers, netEarnings, netUrgent } = computeNet(
@@ -109,7 +105,12 @@ export function JobPrice({
   //
   // The poster's gross budget is a number they typed, not a payout, so it keeps
   // the whole-dollar treatment.
-  const earnings = showBudget ? formatPrice(amount) : formatPriceExact(amount);
+  // Owner (2026-08-19): whole dollars on the card, no cents. Take-home FLOORS
+  // rather than rounding — see formatPriceFloor: rounding $83.60 to "$84"
+  // would promise 40c the helpr never receives, and a payout must never read
+  // higher than the payout. A gross budget is a number the poster typed, not
+  // money owed to anyone, so it keeps ordinary rounding.
+  const earnings = showBudget ? formatPrice(amount) : formatPriceFloor(amount);
 
   // ──────────────────────────────────────────────────────────────────────
   // chip — the small feed/Browse card price tile.
@@ -250,28 +251,13 @@ export function JobPrice({
           {netUrgent > 0 ? ` + $${formatPriceExact(netUrgent)} urgent` : ""}
         </p>
       )}
-      {/* Only pitch the Pro fee reduction when the fee actually shown is above
-          the Pro rate (10%) — otherwise "reduces your fee to 10%" contradicts
-          a fee line already reading 10% or lower. */}
-      {!showBudget && showProUpsell && effectiveFee > 10 && (
-        <p className="font-serif italic text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          <span style={{ color: "hsl(var(--burnt-sienna))" }}>Helpr Pro</span> reduces your fee to 10%
-          {" "}·{" "}
-          <button
-            type="button"
-            onClick={() => navigate("/subscription")}
-            className="underline underline-offset-2"
-            // Inline text link inside a sentence — override the global 44px
-            // tap-target min-height/width (it's meant for standalone controls)
-            // so the button doesn't inflate this line's box and strand dead
-            // space above + below the Helper Pro upsell. The pill itself is the
-            // real tap surface.
-            style={{ color: "hsl(var(--burnt-sienna))", minHeight: 0, minWidth: 0 }}
-          >
-            Learn more
-          </button>
-        </p>
-      )}
+      {/* The "Helpr Pro reduces your fee to 10% · Learn more" line was REMOVED
+          here (owner, 2026-08-19: "Remove the info about helpr pro here").
+
+          It pitched a paid upgrade inside the job-detail sheet — the moment a
+          helpr is deciding whether to take THIS job — and its "Learn more"
+          navigated to /subscription, the long-form marketing page the owner
+          has separately said should not appear inside the app at all. */}
     </div>
   );
 }

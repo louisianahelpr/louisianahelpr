@@ -21,6 +21,23 @@
  * our maths. A breakdown that doesn't add up is worse than one with cents in
  * it. Whole amounts still print clean ("$25", not "$25.00").
  */
+/**
+ * Whole dollars, ROUNDED DOWN — for figures that are a PAYOUT to someone.
+ *
+ * `formatPrice` rounds to nearest, which can make a payout read HIGHER than
+ * the amount that actually lands: an $83.60 take-home renders "$84", promising
+ * 40c the helpr never receives. A payout figure may never read above the
+ * payout, so payout headlines floor instead of rounding.
+ *
+ * Use for take-home / net / payout. Use `formatPrice` for a gross budget (a
+ * number the poster typed, not money owed to anyone) and `formatPriceExact`
+ * for breakdowns that must visibly add up.
+ */
+export function formatPriceFloor(amount: number): string {
+  if (!Number.isFinite(amount)) return "0";
+  return Math.floor(amount).toLocaleString("en-US");
+}
+
 export function formatPriceExact(amount: number): string {
   if (!Number.isFinite(amount)) return "0";
   const cents = Math.round(amount * 100);

@@ -12,7 +12,6 @@ import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
-import { BrowseViewToggle } from "@/components/dashboard/browseTasksToolbar/BrowseViewToggle";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 // Lazy-load the map so the ~45KB leaflet bundle only ships when guests
 // actually toggle to map view. List view stays cheap by default.
@@ -323,19 +322,17 @@ const DashboardGuest = () => {
       }
       titleCardClassName={TITLE_BAR_PADDING}
     >
-            {/* List ⇄ Map, inline on this surface only.
-                Everywhere else this control lives inside the filter sheet,
-                which is opened by the filter icon — and that icon is gone
-                from the guest title bar (see the comment on it above). Without
-                this row a visitor could not reach the map at all, and the map
-                is the strongest thing this screen has: it is what shows a
-                stranger that the marketplace is alive across their parish.
-                Two chips on one row is a fraction of what the icon cluster
-                cost, and it is the one tool a signed-out visitor actually
-                wants. */}
-            <div className="shrink-0 px-4 pt-2 pb-1">
-              <BrowseViewToggle view={view} setView={setView} />
-            </div>
+            {/* The inline List ⇄ Map chips were REMOVED here (owner, 2026-08-19:
+                "Don't give the list or map option in the guest page like this.
+                Remove it and move jobs up").
+
+                Consequence, recorded deliberately: the guest title bar carries
+                no filter icon, and the filter sheet is where this control lives
+                on every other surface — so a signed-out visitor now has no route
+                to the map at all, and `view` is effectively pinned to "list"
+                here. That is the owner's call, not an oversight. Restoring map
+                access means putting the filter icon back in the guest title bar
+                (pass `actions` to DashboardTitleBar), NOT re-adding this row. */}
 
             {/* Shared Browse toolbar — the category picker row and the
                 active-filter chips. Search and the filter sheet are not

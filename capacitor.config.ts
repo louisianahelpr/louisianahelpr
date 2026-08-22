@@ -24,6 +24,28 @@ const config: CapacitorConfig = {
   // Only set `server` when a dev sandbox URL is explicitly provided.
   // Production builds have NO server block → loads bundled dist/.
   ...(devServerUrl ? { server: { url: devServerUrl, cleartext: false } } : {}),
+  // Identify the native shell in the User-Agent, on BOTH platforms.
+  //
+  // A WKWebView's UA is Safari's, so the app was indistinguishable from mobile
+  // Safari — Profile > Security listed a user's own Helpr app as
+  // "iPhone · Safari". Someone scanning their sessions for an intrusion was
+  // shown their own phone as a browser.
+  //
+  // SecurityTab's UA parser already had a "Helpr app" branch keyed on
+  // 'capacitor' / 'helpr'. Nothing ever set either token, so the branch was
+  // unreachable and the Safari branch above it always won. This is its
+  // missing half; the parser is reordered to match (a WKWebView UA contains
+  // BOTH tokens, so the app test has to run first).
+  //
+  // Top level rather than under `ios`, because the Android WebView has the
+  // same problem and there is no `android` block to hang it off.
+  //
+  // Appended, not overridden: replacing the UA wholesale would break the
+  // WebKit sniffing other libraries rely on.
+  //
+  // Sessions recorded BEFORE this ships keep their stored Safari UA — this
+  // only corrects sessions created from here on.
+  appendUserAgent: 'HelprApp',
   ios: {
     // App Store Connect identifiers
     appleId: '6754470134',

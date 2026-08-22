@@ -29,6 +29,9 @@ type Report = {
   created_at: string;
   reporter_name?: string;
   reported_name?: string;
+  /** False when the actor has no `profiles` row — messaging them is a no-op. */
+  reporter_exists?: boolean;
+  reported_exists?: boolean;
   assigned_to_name?: string;
 };
 
@@ -93,10 +96,32 @@ const AdminReports = () => {
           .in("user_id", userIds);
       if (profilesError) report(profilesError, { severity: "warning", tags: { source: "AdminReports.hydrateNames" } });
         const nameMap = new Map((profiles || []).map(p => [p.user_id, formatName(p.full_name, "Unknown")]));
+
+        // "Unknown" used to cover two very different situations, and an admin
+        // could not tell them apart on the card:
+        //
+        //   the lookup FAILED  — the name exists, we just could not read it
+        //   the user IS GONE   — there is no such row to read
+        //
+        // Only `assigned_to` has a foreign key (ON DELETE SET NULL);
+        // `reporter_id` and `reported_id` have none, so a report survives the
+        // deletion of the person it names and keeps pointing at a dead id.
+        // Prod has one: report b9a558e0 names a `reported_id` that is absent
+        // from BOTH `profiles` and `auth.users`.
+        //
+        // So: if the read errored, every miss is "unavailable" — we genuinely
+        // do not know. If it succeeded, a miss means the row is not there.
+        const nameFor = (id: string) =>
+          nameMap.get(id) ?? (profilesError ? "Name unavailable" : "Deleted user");
+
         return reportRows.map(r => ({
           ...r,
-          reporter_name: nameMap.get(r.reporter_id) || "Unknown",
-          reported_name: nameMap.get(r.reported_id) || "Unknown",
+          reporter_name: nameFor(r.reporter_id),
+          reported_name: nameFor(r.reported_id),
+          // Deleted actors cannot receive a message — the notification would
+          // be written against a user_id with nothing behind it.
+          reporter_exists: nameMap.has(r.reporter_id),
+          reported_exists: nameMap.has(r.reported_id),
           assigned_to_name: r.assigned_to ? nameMap.get(r.assigned_to) : undefined,
         }));
       }
@@ -176,8 +201,13 @@ const AdminReports = () => {
   const slaInfo = (createdAt: string) => {
     const ageMs = Date.now() - new Date(createdAt).getTime();
     const hours = ageMs / 3600_000;
-    if (hours > SLA_BREACH_HOURS * 2) return { label: `${Math.floor(hours)}h overdue`, tone: "red" as const };
-    if (hours > SLA_BREACH_HOURS) return { label: `${Math.floor(hours)}h overdue`, tone: "yellow" as const };
+    // Past a couple of days, hours stop being a quantity anyone can read:
+    // the queue was rendering "1431h overdue", which is ~60 days. Hours stay
+    // for the range where they are still actionable.
+    const overdue = (h: number) =>
+      h >= 48 ? `${Math.floor(h / 24)}d overdue` : `${Math.floor(h)}h overdue`;
+    if (hours > SLA_BREACH_HOURS * 2) return { label: overdue(hours), tone: "red" as const };
+    if (hours > SLA_BREACH_HOURS) return { label: overdue(hours), tone: "yellow" as const };
     const hoursLeft = Math.max(0, SLA_BREACH_HOURS - hours);
     return { label: `${Math.ceil(hoursLeft)}h to SLA`, tone: "green" as const };
   };
@@ -329,19 +359,27 @@ const AdminReports = () => {
                         <Search className="w-3.5 h-3.5 mr-1" /> Investigating
                       </Button>
                     )}
+                    {/* Disabled for a deleted actor: createNotification would
+                        write a row against a user_id with nothing behind it,
+                        so the admin would get a success toast for a message
+                        nobody can ever receive. */}
                     <Button
                       size="sm"
                       variant="outline"
+                      disabled={report.reported_exists === false}
+                      title={report.reported_exists === false ? "This account no longer exists" : undefined}
                       onClick={() => { setMessageTarget({ userId: report.reported_id, name: report.reported_name || "User" }); setMessageText(""); }}
                     >
-                      <Send className="w-3.5 h-3.5 mr-1" /> Message {report.reported_name?.split(" ")[0] || "Reported"}
+                      <Send className="w-3.5 h-3.5 mr-1" /> Message {report.reported_exists === false ? "Reported" : (report.reported_name?.split(" ")[0] || "Reported")}
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
+                      disabled={report.reporter_exists === false}
+                      title={report.reporter_exists === false ? "This account no longer exists" : undefined}
                       onClick={() => { setMessageTarget({ userId: report.reporter_id, name: report.reporter_name || "User" }); setMessageText(""); }}
                     >
-                      <Send className="w-3.5 h-3.5 mr-1" /> Message {report.reporter_name?.split(" ")[0] || "Reporter"}
+                      <Send className="w-3.5 h-3.5 mr-1" /> Message {report.reporter_exists === false ? "Reporter" : (report.reporter_name?.split(" ")[0] || "Reporter")}
                     </Button>
                     <Button
                       size="sm"

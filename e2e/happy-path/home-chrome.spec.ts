@@ -129,12 +129,17 @@ async function gotoBrowseSurface(
   // the authed one. /dashboard mounts the Search icon in its title bar;
   // /browse (guest) deliberately has NO title-bar icons — the search and
   // filter icons were removed because they ate the top of the screen for a
-  // signed-out visitor — so its loaded signal is the inline List/Map toggle
-  // that replaced them. Waiting on whichever appears first keeps one helper
-  // honest for both.
+  // signed-out visitor.
+  //
+  // The guest signal used to be the inline List/Map toggle that replaced those
+  // icons. That toggle was itself removed on 2026-08-19 (owner: "Don't give
+  // the list or map option in the guest page like this. Remove it and move
+  // jobs up"), so this waited 20s for an element the product no longer has.
+  // The <h1> is the durable signal: DashboardGuest renders a skeleton with no
+  // heading until its session check resolves, and the title card after.
   await Promise.race([
     page.getByRole("button", { name: /^Search jobs$/ }).waitFor({ timeout: 20_000 }),
-    page.getByRole("group", { name: "Feed view" }).waitFor({ timeout: 20_000 }),
+    page.getByRole("heading", { level: 1 }).waitFor({ timeout: 20_000 }),
   ]);
   await settleAnimations(page);
 }
@@ -372,19 +377,21 @@ for (const width of [320, 375, 1440]) {
       ).toHaveCount(0);
     }
 
-    // What replaced them: the List/Map choice, inline and always reachable.
-    // Everywhere else it lives inside the filter sheet — and with the filter
-    // icon gone, a guest could not reach the map at all without this. The map
-    // is the strongest thing this screen has for a stranger, so its absence
-    // would be the real regression to catch here.
-    const feedView = page.getByRole("group", { name: "Feed view" });
-    await expect(feedView, `guest List/Map toggle @ ${width}`).toBeVisible();
-    for (const label of ["List", "Map"]) {
-      const chip = feedView.getByRole("button", { name: label });
-      await expect(chip, `guest ${label} chip @ ${width}`).toBeVisible();
-      const box = (await chip.boundingBox())!;
-      expect(box.height, `guest ${label} chip tap target`).toBeGreaterThanOrEqual(44);
-    }
+    // The inline List/Map toggle is GONE, and that is deliberate (owner,
+    // 2026-08-19: "Don't give the list or map option in the guest page like
+    // this. Remove it and move jobs up"). This used to assert the opposite.
+    //
+    // Asserted as an absence rather than deleted, because the recorded
+    // consequence is worth pinning: the guest title bar has no filter icon,
+    // and the filter sheet is where this control lives on every other
+    // surface, so a signed-out visitor now has NO route to the map and `view`
+    // is effectively pinned to "list". If the toggle reappears here, someone
+    // has re-added the row instead of restoring map access the agreed way
+    // (put the filter icon back in the guest title bar).
+    await expect(
+      page.getByRole("group", { name: "Feed view" }),
+      `guest List/Map toggle was removed on purpose @ ${width}`,
+    ).toHaveCount(0);
 
     await page.screenshot({ path: `${SHOT_DIR}/guest-chrome-${width}.png`, fullPage: false });
   });

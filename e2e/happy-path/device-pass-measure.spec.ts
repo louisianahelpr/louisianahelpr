@@ -182,6 +182,14 @@ async function dismissNudge(page: Page) {
  *
  * Dismissed rather than waited out: the tour covers most of the dashboard, so
  * scanning with it up measures the tour instead of the screen underneath.
+ *
+ * ⚠️ Clicking it closed is NOT sufficient on its own, which is why every
+ * caller also calls `suppressOnboardingTour` before navigating. Racing the
+ * tour cannot win: if it has not mounted yet when this runs, `close.count()`
+ * is 0, the loop exits immediately having done nothing, and the tour then
+ * mounts and fades in during the axe scan — which is precisely the 1.01:1
+ * "finding" this helper was written to stop. Suppressing it at the storage
+ * layer means it never mounts; this stays as the belt to that braces.
  */
 async function dismissOnboardingTour(page: Page) {
   const close = page.getByRole("button", { name: "Close tour for now" });
@@ -192,6 +200,22 @@ async function dismissOnboardingTour(page: Page) {
   }
   await expect(page.getByRole("button", { name: "Close tour for now" })).toHaveCount(0);
   await page.waitForTimeout(250);
+}
+
+/**
+ * Stop the onboarding tour mounting at all, the same way `home-chrome` and
+ * `overlay-sweep` do. Must run BEFORE `page.goto`.
+ */
+async function suppressOnboardingTour(page: Page) {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem(
+        "helpr_onboarding",
+        JSON.stringify({ completed: true, currentStep: 0, completedSteps: [], seen: true }),
+      );
+      localStorage.setItem("helpr.onboarding_tour_dismissed_at", new Date().toISOString());
+    } catch { /* storage unavailable */ }
+  });
 }
 
 /** Open every collapsed status section in the grouped "All" view. */
@@ -442,6 +466,7 @@ test.describe("device pass — measured", () => {
       await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
       await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
       await page.setViewportSize({ width: v.width, height: v.height });
+      await suppressOnboardingTour(page);
       await page.goto("/my-posts?filter=all");
       await page.waitForSelector("h1");
       await setTheme(page, v.theme);
@@ -473,6 +498,7 @@ test.describe("device pass — measured", () => {
       await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");
       await installSupabaseMocks(page, { user: FAKE_HELPER, seed: true });
       await page.setViewportSize({ width: v.width, height: v.height });
+      await suppressOnboardingTour(page);
       await page.goto("/my-jobs?filter=all");
       await page.waitForSelector("h1");
       await setTheme(page, v.theme);
@@ -507,6 +533,7 @@ test.describe("device pass — measured", () => {
       await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
       await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
       await page.setViewportSize({ width: v.width, height: v.height });
+      await suppressOnboardingTour(page);
       await page.goto("/dashboard");
       await page.waitForSelector("h1");
       await setTheme(page, v.theme);

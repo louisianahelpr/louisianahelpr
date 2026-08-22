@@ -421,7 +421,13 @@ test.describe("My Posts — card density + header", () => {
     const tops = await row.evaluate((el) =>
       Array.from(el.children).map((c) => (c as HTMLElement).offsetTop),
     );
-    expect(tops.length, "seven tracker steps").toBe(7);
+    // NINE, not seven: this is the POSTER's own card, and a poster's tracker
+    // prepends the two pre-offer steps (Posted, Applicants) to the seven
+    // shared ones. Before that, an open job with nobody assigned had no
+    // tracker at all. The count is asserted rather than loosened to
+    // "greater than one" because the wrap this test exists to catch is only
+    // visible at the full step count.
+    expect(tops.length, "nine tracker steps (2 posting + 7 shared)").toBe(9);
     expect(new Set(tops).size, `steps sit on ${new Set(tops).size} lines, expected 1`).toBe(1);
 
     // ...and it genuinely SCROLLS rather than squeezing seven steps into 375px.

@@ -217,6 +217,35 @@ async function auditEmptyScreen(
       else document.addEventListener("DOMContentLoaded", set, { once: true });
     }, variant.theme);
 
+    // Suppress the onboarding tour, as home-chrome and overlay-sweep already
+    // do. Not cosmetic — it is what makes this sweep's axe results mean
+    // anything.
+    //
+    // The tour opens on a 1.5s timer AFTER load and then fades in.
+    // settleAnimations counts `minMs` from navigation start and gives its
+    // opacity-stabilisation wait a 6s budget that ends in `.catch(() => {})`,
+    // so on a loaded worker it silently gives up and axe samples the overlay
+    // MID-FADE — near-transparent text over near-transparent background, which
+    // axe faithfully reports as a 1.03:1 contrast failure that does not exist.
+    //
+    // The symptom is the giveaway: run the sweep three times at --workers=4
+    // and it fails on a DIFFERENT set of screens each time (5, then 2, then a
+    // third set), while every one of them passes alone. A required check that
+    // reports a different answer each run teaches everyone to ignore it, which
+    // is worse than not having it.
+    //
+    // This does not lose tour coverage: the tour is not what an "empty state"
+    // sweep is measuring, and it has its own specs.
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem(
+          "helpr_onboarding",
+          JSON.stringify({ completed: true, currentStep: 0, completedSteps: [], seen: true }),
+        );
+        localStorage.setItem("helpr.onboarding_tour_dismissed_at", new Date().toISOString());
+      } catch { /* storage unavailable */ }
+    });
+
     await page.goto(meta.url, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.evaluate((theme) => {
       document.documentElement.setAttribute("data-theme", theme);

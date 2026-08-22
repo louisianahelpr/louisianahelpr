@@ -22,10 +22,22 @@ import { mkdirSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 import { businessRules } from "./auditRoutes";
 import { test, expect, FAKE_CUSTOMER, installSupabaseMocks, seedAuthedSession } from "./fixtures";
+import { BUSINESS_ENABLED } from "../../src/config/businessEnabled";
 
 const SHOT_DIR = "/tmp/ui-review";
 
 test.describe("/business/billing — sample invoices are labelled on the page", () => {
+  // The Business product is behind a kill switch (owner, 2026-08-20: "Hide all
+  // business references etc."). With it off, App.tsx does not register
+  // /business/* at all, so every assertion here fails on a route that no
+  // longer exists — not on the labelling this spec exists to protect.
+  //
+  // Skipped rather than deleted, and gated on the SWITCH rather than commented
+  // out, so the day BUSINESS_ENABLED flips back to true this coverage returns
+  // by itself. The fixture invoices are still fabricated; if they ship to a
+  // real user unlabelled it is still a Guideline 2.1 problem.
+  test.skip(!BUSINESS_ENABLED, "Business product is disabled (BUSINESS_ENABLED=false)");
+
   test("banner, per-row pills and section headings all say sample", async ({
     page,
     context,

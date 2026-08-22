@@ -417,6 +417,26 @@ async function auditFailingScreen(
       else document.addEventListener("DOMContentLoaded", set, { once: true });
     }, variant.theme);
 
+    // Suppress the onboarding tour, as home-chrome, overlay-sweep and
+    // empty-state-sweep do. It mounts ONLY in Dashboard.tsx, on a 1.5s
+    // post-load timer, and then fades in — and this sweep visits /dashboard as
+    // an authed user (it is in the shared SCREENS list), so without this axe
+    // can scan the overlay MID-FADE and report near-transparent text over
+    // near-transparent background as a ~1.01:1 contrast failure that does not
+    // exist. settleAnimations cannot save it: it counts from navigation start
+    // and ends its opacity wait in `.catch(() => {})`, so under parallel load
+    // it silently gives up. The tour is not what this sweep measures.
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem(
+          "helpr_onboarding",
+          JSON.stringify({ completed: true, currentStep: 0, completedSteps: [], seen: true }),
+        );
+        localStorage.setItem("helpr.onboarding_tour_dismissed_at", new Date().toISOString());
+      } catch { /* storage unavailable */ }
+    });
+
+
     await page.goto(meta.url, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.evaluate((theme) => {
       document.documentElement.setAttribute("data-theme", theme);

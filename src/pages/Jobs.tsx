@@ -434,7 +434,7 @@ const Jobs = () => {
 
           {/* Jobs Grid */}
           {jobsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4" aria-label="Loading jobs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="status" aria-busy="true" aria-label="Loading jobs">
               {Array.from({ length: 4 }).map((_, i) => (
                 <JobCardSkeleton key={i} />
               ))}

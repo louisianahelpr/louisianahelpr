@@ -95,7 +95,7 @@ export function truncateFeedback(text: string, max: number = SNIPPET_MAX): {
 
 function StarRow({ rating }: { rating: number }) {
   return (
-    <div className="flex gap-0.5" aria-label={`${rating} of 5 stars`}>
+    <div role="img" className="flex gap-0.5" aria-label={`${rating} of 5 stars`}>
       {[1, 2, 3, 4, 5].map((n) => (
         <Star
           key={n}

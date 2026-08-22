@@ -198,7 +198,7 @@ export function BrowseTasksToolbar({
 
       {/* Active-filter recap chip row — only when 3+ filters are active. */}
       {showRecapRow && (
-        <div className="flex flex-wrap gap-1.5 px-4 py-2 border-b border-border/30" aria-label="Active filters">
+        <div className="flex flex-wrap gap-1.5 px-4 py-2 border-b border-border/30" role="group" aria-label="Active filters">
           {recapChips.map((chip) => (
             <SwipeableFilterChip
               key={chip.key}
@@ -333,7 +333,7 @@ export function BrowseTasksToolbar({
           the user lands on a clean unfiltered top-of-feed instead of
           mid-list. */}
       {!filters.filtersOpen && (filters.selectedCategory || filters.locationFilter || filters.minBudget || filters.maxBudget || filters.expiresWithin || filters.matchAvailability) && (
-        <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30" aria-label="Active filters">
+        <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30" role="group" aria-label="Active filters">
           {filters.selectedCategory && (
             <SwipeableFilterChip
               onClear={() => filters.setSelectedCategory(null)}

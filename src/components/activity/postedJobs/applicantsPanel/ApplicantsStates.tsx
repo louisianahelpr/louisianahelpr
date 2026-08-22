@@ -10,7 +10,7 @@ import { type Job } from "../../activityConstants";
  */
 export function ApplicantsLoadingState() {
   return (
-    <div className="space-y-3" aria-label="Loading applicants" aria-busy="true">
+    <div className="space-y-3" role="status" aria-label="Loading applicants" aria-busy="true">
       {[0, 1].map((i) => (
         <div
           key={i}

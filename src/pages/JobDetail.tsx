@@ -99,7 +99,7 @@ const JobDetail = () => {
         <div className="container mx-auto max-w-md">
           <h1 className="sr-only">{headingText}</h1>
           {authLoading || isLoading ? (
-            <div aria-label="Loading job">
+            <div role="status" aria-busy="true" aria-label="Loading job">
               <JobCardSkeleton />
             </div>
           ) : isError ? (
@@ -148,7 +148,7 @@ const JobDetail = () => {
                costs the dialog nothing. */
             <Suspense
               fallback={
-                <div aria-label="Loading job">
+                <div role="status" aria-busy="true" aria-label="Loading job">
                   <JobCardSkeleton />
                 </div>
               }

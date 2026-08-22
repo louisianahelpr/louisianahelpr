@@ -29,9 +29,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import {
   HEAT_AUTO_THRESHOLD,
   LA_BOUNDS,
-  LA_CENTER,
-  LA_DEFAULT_ZOOM,
   LA_MIN_ZOOM,
+  LA_STATE_BOUNDS,
   categoryLabels,
   readStoredLayer,
   writeStoredLayer,
@@ -400,8 +399,8 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
         <HelprSpinner size={20} />
       </div>
       <MapContainer
-        center={LA_CENTER}
-        zoom={LA_DEFAULT_ZOOM}
+        bounds={LA_STATE_BOUNDS}
+        boundsOptions={{ padding: [16, 16] }}
         minZoom={LA_MIN_ZOOM}
         maxBounds={LA_BOUNDS}
         maxBoundsViscosity={1.0}
@@ -421,7 +420,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           }}
         />
         <FitToPins jobs={visibleJobs} />
-        <RecenterControl center={LA_CENTER} zoom={LA_DEFAULT_ZOOM} />
+        <RecenterControl />
         {view === "heat" && <HeatLayer buckets={heatBuckets} />}
         {view === "pins" && (
         <MarkerClusterGroup

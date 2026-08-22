@@ -65,6 +65,18 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.send-push-notification]
     verify_jwt = false
+  # health-check: same shape as its cron siblings above. The CI smoke test (and
+  # any server-to-server prober) calls it with `Bearer $CRON_SECRET`, which is
+  # NOT a JWT — so with the gateway default of verify_jwt=true it was rejected
+  # with 401 before the function ever ran. This declaration was simply missing;
+  # the smoke test has failed every run since 2026-04-26 because of it.
+  #
+  # Safe: the function does its own auth and is stricter than the gateway would
+  # be — it requires CRON_SECRET, the service-role key, or a signed-in user who
+  # is an ADMIN. verify_jwt=false hands that decision to the function, it does
+  # not remove it.
+  [functions.health-check]
+    verify_jwt = false
   # Service-role-only: send-notification-email accepts a bearer token equal to
   # SUPABASE_SERVICE_ROLE_KEY and renders an HTML email branded as Helpr. With
   # verify_jwt=true the gateway would accept any signed-in user's JWT and the

@@ -115,9 +115,16 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
       // control repeated. Sage is the brand's own accent, unused by any other
       // tone, so Share stays distinctly non-neutral without borrowing a hue
       // that already means something else in this row.
+      //
+      // The label is --sage-ink, not raw --bark: every other tinted tone in
+      // this row pairs its tint with a theme-adaptive -ink token, and Share
+      // was the one that skipped it. Dark-mode --bark is a mid olive and
+      // measured 4.24:1 on this chip — the same defect the --danger-ink
+      // comment above records. Light mode is unchanged (--sage-ink's light
+      // value IS the old --bark).
       return {
         background: "hsl(var(--sage) / 0.18)",
-        color: "hsl(var(--bark))",
+        color: "hsl(var(--sage-ink))",
         border: "0.5px solid hsl(var(--sage) / 0.42)",
       };
     case "primary":

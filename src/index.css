@@ -394,6 +394,16 @@
   --boost-tint: 25 75% 48%;   /* base hue, used at low alpha for fill/border */
   --boost-ink:  25 82% 28%;   /* button label */
 
+  /* Share sage — the "Share" action chip in activity cards. The chip fills
+     with --sage at low alpha; this is its label. Share used to paint its
+     label with raw `hsl(var(--bark))`, which is the ONLY tinted tone in
+     JobActionRow that skipped the -ink pattern. Light mode was fine, but
+     dark-mode --bark is a mid olive (#95a06a) and measured 4.24:1 on the
+     tinted dark chip — the identical failure --danger-ink was created to
+     fix. This light value IS the old light --bark, so light mode is
+     byte-identical; the dark sibling below is the actual change. */
+  --sage-ink:   70 20% 33%;   /* chip label */
+
   /* Cancel red — destructive "Cancel job" action button. Warmer & more
      saturated than the muted system --destructive, kept as its own pair.
      The comment shipped without the token, so PostedJobActions hardcoded the
@@ -562,6 +572,12 @@
 
   --boost-tint: 25 65% 56%;   /* lighter base so low-alpha fill reads on dark */
   --boost-ink:  25 80% 70%;   /* legible orange label on dark */
+  --sage-ink:   78 30% 68%;   /* legible sage label on dark — measures 6.5:1 on
+                                 the tinted chip, where the old --bark gave
+                                 4.24. Held at 30% saturation rather than the
+                                 ~75% its --info/--boost/--danger siblings use:
+                                 sage is the muted brand accent, and a
+                                 saturated 78° would read as lime, not sage. */
   --danger-ink: 6 78% 70%;    /* legible red Cancel label on dark — the 34% light
                                  value measured 1.92:1 on the tinted dark pill.
                                  Sits at the same 70% L as its --info/--boost/

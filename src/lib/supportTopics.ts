@@ -20,7 +20,7 @@
  * so that copy is deliberate — change both together.
  */
 
-export type SupportTopicKey = "message" | "suggestion" | "report" | "help";
+export type SupportTopicKey = "message" | "suggestion" | "report";
 
 export interface SupportTopic {
   key: SupportTopicKey;
@@ -43,7 +43,7 @@ export const SUPPORT_TOPICS: readonly SupportTopic[] = [
   {
     key: "message",
     label: "Message Admin",
-    description: "Send a direct message to the admin team",
+    description: "Send a message or ask the admin team a question",
     messagePlaceholder: "How can our team help you today?",
     messageLabel: "Your message",
     submitLabel: "Send Message",
@@ -66,15 +66,6 @@ export const SUPPORT_TOPICS: readonly SupportTopic[] = [
     messageLabel: "What went wrong?",
     submitLabel: "Report Issue",
     reportLabel: "Issue Report",
-  },
-  {
-    key: "help",
-    label: "Get Help",
-    description: "Ask a question or request assistance",
-    messagePlaceholder: "What is your question regarding our services?",
-    messageLabel: "Your question",
-    submitLabel: "Send Question",
-    reportLabel: "Help Request",
   },
 ] as const;
 

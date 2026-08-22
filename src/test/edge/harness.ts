@@ -128,6 +128,16 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/salesTax.ts";`,
   );
 
+  // Notification money formatting: `_shared/money.ts` is pure TypeScript
+  // (Math.floor + toLocaleString, no Deno or remote imports), so the generated
+  // file points at the REAL module. The FLOORING is the whole point of it — a
+  // payout notification must never round up and promise more than lands — so
+  // that behaviour belongs under test rather than mocked away.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/money\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/money.ts";`,
+  );
+
   // Admin-id fan-out for ops alerts: `_shared/adminIds.ts` takes the supabase
   // client as an argument and has no module-scope Deno imports, so the
   // generated file points at the REAL module. That keeps the "did we actually

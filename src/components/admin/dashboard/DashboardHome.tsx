@@ -105,7 +105,16 @@ export const DashboardHome = ({
         />
         <KpiCard
           label={`Revenue (${rangeLabel})`}
-          value={v(`$${stats.revenueInRange.toFixed(0)}`)}
+          // Cents, like every other revenue figure in this grid. This tile was
+          // toFixed(0) while "Captured Revenue (all-time)" directly below it was
+          // toFixed(2), so one screen showed "$0" and "$1255.00" side by side.
+          //
+          // Resolved toward cents rather than whole dollars because these are
+          // RECONCILIATION figures — an admin ties them back to Stripe, where a
+          // rounded total will not match. The round-to-the-dollar rule applies
+          // to user-facing cards, not to this grid. (TaxReserveCard keeps whole
+          // dollars on purpose: it is an explicit estimate, not a ledger.)
+          value={v(`$${stats.revenueInRange.toFixed(2)}`)}
           icon={DollarSign}
           trend={revenueTrend}
           compareLabel={compareCopy}

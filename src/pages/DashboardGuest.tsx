@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, useRef, lazy, Suspense } from "react";
+import { useEffect, useCallback, useState, useRef, useMemo, lazy, Suspense } from "react";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -125,7 +125,29 @@ const DashboardGuest = () => {
   const [view, setView] = usePersistedBrowseView("list");
 
   // Public open-jobs feed — no auth required (open_jobs_browse view is RLS-public).
-  const { data: jobs = [], isLoading, isError, refetch } = useQuery({
+  // TWO queries, deliberately, not one.
+  //
+  // This used to be a single queryFn that awaited the job list and THEN awaited
+  // poster names + rating stats before resolving — so `isLoading` stayed true
+  // for the whole chain and the feed showed a skeleton until every request had
+  // landed. Measured on production: the page painted at 244ms, the job list
+  // arrived at ~1.3s, and the cards did not appear until ~2.3s. That last
+  // second bought nothing the card actually renders.
+  //
+  // JobCard reads exactly ONE enrichment field — the rating badge, and only
+  // when reviewCount > 0. posterName/posterAvatarUrl are not rendered on this
+  // surface at all. So the cards are complete without the second request, and
+  // waiting on it was pure dead time.
+  //
+  // Split, the list paints as soon as it arrives and the rating badge appears
+  // when it is ready. Every enrichment field is optional on EnrichedJob and the
+  // card already hides the signals when they are absent.
+  const {
+    data: baseJobs = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: queryKeys.dashboard.guestJobs(),
     queryFn: async (): Promise<EnrichedJob[]> => {
       const { data: rawJobs, error } = await supabase
@@ -139,12 +161,29 @@ const DashboardGuest = () => {
         .limit(40);
       if (error) throw error;
 
-      const rows = (rawJobs ?? []) as any[];
-      if (rows.length === 0) return [];
+      const now = new Date();
+      return ((rawJobs ?? []) as any[])
+        .filter((j) => !j.expires_at || new Date(j.expires_at) > now)
+        .map((j) => ({
+          ...j,
+          isBoosted: !!j.boost_expires_at && new Date(j.boost_expires_at) > now,
+        })) as EnrichedJob[];
+    },
+    staleTime: 60 * 1000,
+  });
 
-      // Enrich with poster names + review stats so guests see the same
-      // social-proof signals (avg rating, review count) authenticated users do.
-      const posterIds = [...new Set(rows.map((j) => j.customer_id))];
+  const posterIds = useMemo(
+    () => [...new Set(baseJobs.map((j) => j.customer_id))],
+    [baseJobs],
+  );
+
+  // Social-proof enrichment. Runs only once the job list exists (it needs the
+  // poster ids), and the feed never blocks on it.
+  const { data: posterInfo } = useQuery({
+    queryKey: queryKeys.dashboard.guestJobPosters(posterIds),
+    enabled: posterIds.length > 0,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
       const [profilesRes, reviewStatsMap] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
         fetchRatingStats(posterIds),
@@ -157,33 +196,33 @@ const DashboardGuest = () => {
       if (profilesRes.error) {
         report(profilesRes.error, { tags: { source: "DashboardGuest.posterNames" } });
       }
-      const nameMap = new Map(
-        profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
-      );
-      const avatarMap = new Map<string, string | null>(
-        profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || [],
-      );
-
-      const now = new Date();
-      return rows
-        .filter((j) => !j.expires_at || new Date(j.expires_at) > now)
-        .map((j) => {
-          const isBoosted = !!j.boost_expires_at && new Date(j.boost_expires_at) > now;
-          const stats = reviewStatsMap.get(j.customer_id);
-          return {
-            ...j,
-            posterName: nameMap.get(j.customer_id) || "User",
-            posterAvatarUrl: avatarMap.get(j.customer_id) ?? null,
-            posterReviewCount: stats?.count ?? 0,
-            posterAvgRating: stats?.avg ?? 0,
-            posterCompletedJobs: 0,
-            posterSubscriptionTier: null,
-            isBoosted,
-          } as EnrichedJob;
-        });
+      return {
+        nameMap: new Map(
+          profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],
+        ),
+        avatarMap: new Map<string, string | null>(
+          profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || [],
+        ),
+        reviewStatsMap,
+      };
     },
-    staleTime: 60 * 1000,
   });
+
+  const jobs = useMemo<EnrichedJob[]>(() => {
+    if (!posterInfo) return baseJobs;
+    return baseJobs.map((j) => {
+      const stats = posterInfo.reviewStatsMap.get(j.customer_id);
+      return {
+        ...j,
+        posterName: posterInfo.nameMap.get(j.customer_id) || "User",
+        posterAvatarUrl: posterInfo.avatarMap.get(j.customer_id) ?? null,
+        posterReviewCount: stats?.count ?? 0,
+        posterAvgRating: stats?.avg ?? 0,
+        posterCompletedJobs: 0,
+        posterSubscriptionTier: null,
+      };
+    });
+  }, [baseJobs, posterInfo]);
 
   // Same filter engine the authenticated dashboard uses — search, category,
   // budget range, location radius, expiry, sort. Guests pass no user /

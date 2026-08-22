@@ -203,6 +203,10 @@ export const queryKeys = {
     lastApplication: (userId: string | undefined | null) => ["lastApplication", userId] as const,
     savedJobs: (userId: string | undefined | null) => ["savedJobs", userId] as const,
     guestJobs: () => ["guestDashboardJobs"] as const,
+    /** Poster names/avatars/ratings for the guest feed — a SEPARATE key so
+     *  the cards can render on the job list alone and let this fill in. */
+    guestJobPosters: (posterIds: string[]) =>
+      ["guestDashboardJobPosters", [...posterIds].sort().join(",")] as const,
   },
   /**
    * Admin-only queries — keyed by the *admin's* user.id so two admins

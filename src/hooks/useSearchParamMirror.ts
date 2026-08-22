@@ -24,6 +24,31 @@ import { useSearchParams } from "react-router-dom";
  * Writes use `replace: true`: refining a filter amends the entry you are on
  * instead of minting a new one, so Back leaves the screen rather than stepping
  * backwards through every chip tap.
+ *
+ * ⚠️ `setSearchParams` NAVIGATES UNCONDITIONALLY, and it is not referentially
+ * stable. Both halves of that matter, and this hook originally got both wrong:
+ *
+ *   let setSearchParams = useCallback((nextInit, opts) => {
+ *     ...
+ *     navigate("?" + newSearchParams, opts);   // no equality check, ever
+ *   }, [navigate, searchParams]);              // identity churns
+ *
+ * The first version guarded INSIDE the updater — returning `prev` when nothing
+ * differed — and carried a comment claiming that "can never loop". It looped:
+ * react-router runs the updater, then navigates with whatever comes back,
+ * `prev` included. That re-created `navigate`, which re-created
+ * `setSearchParams`, which was in this effect's dep array, which re-ran the
+ * effect, which navigated again. A guest sitting on /browse with no filters
+ * set — the case where there is nothing to write at all — spun ~200
+ * `replaceState` calls per mount in Chrome and never stopped under test.
+ *
+ * WebKit throttles `replaceState` to ~100 calls per 30s and throws
+ * SecurityError past that, so on iOS this was a route-navigation hazard, not
+ * just wasted CPU.
+ *
+ * So: decide OUTSIDE the updater and return early, so the navigator is never
+ * called on a no-op; and reach `setSearchParams` through a ref so its identity
+ * can never feed back into the deps.
  */
 export function useSearchParamMirror(
   state: Record<string, string>,
@@ -35,31 +60,39 @@ export function useSearchParamMirror(
   // object identity every render.
   const stateKey = JSON.stringify(state);
 
+  // The query string as a STRING, for the same reason: `searchParams` is a
+  // fresh object whenever the location changes, and a dep on it would make
+  // every write re-arm the effect that performed it.
+  const search = searchParams.toString();
+
+  // Held in a ref, never a dep — see the warning in the doc comment above.
+  const setSearchParamsRef = useRef(setSearchParams);
+  setSearchParamsRef.current = setSearchParams;
+
   useEffect(() => {
     const desired: Record<string, string> = JSON.parse(stateKey);
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        let changed = false;
-        for (const [key, value] of Object.entries(desired)) {
-          const current = next.get(key);
-          if (value) {
-            if (current !== value) {
-              next.set(key, value);
-              changed = true;
-            }
-          } else if (current !== null) {
-            next.delete(key);
-            changed = true;
-          }
+    const next = new URLSearchParams(search);
+    let changed = false;
+    for (const [key, value] of Object.entries(desired)) {
+      const current = next.get(key);
+      if (value) {
+        if (current !== value) {
+          next.set(key, value);
+          changed = true;
         }
-        // Returning `prev` untouched leaves the location alone — only a real
-        // difference produces a navigation, so this can never loop.
-        return changed ? next : prev;
-      },
-      { replace: true },
-    );
-  }, [stateKey, setSearchParams]);
+      } else if (current !== null) {
+        next.delete(key);
+        changed = true;
+      }
+    }
+    // The load-bearing line. `setSearchParams` navigates whatever we hand it,
+    // so "no change" has to mean "do not call it" — not "call it with the
+    // value it already has".
+    if (!changed) return;
+    setSearchParamsRef.current(next, { replace: true });
+    // Both deps are strings: once the write lands, `search` matches `desired`,
+    // this re-runs once more, finds nothing changed, and stops.
+  }, [stateKey, search]);
 
   // Local values are read through a ref rather than listed as deps. As deps,
   // this effect would also run on our own write — at which point
@@ -69,12 +102,14 @@ export function useSearchParamMirror(
   localRef.current = state;
 
   useEffect(() => {
-    const read = (key: string) => searchParams.get(key) ?? "";
+    const params = new URLSearchParams(search);
+    const read = (key: string) => params.get(key) ?? "";
     const local = localRef.current;
     const differs = Object.keys(local).some((key) => read(key) !== local[key]);
     if (differs) adopt(read);
     // `adopt` is intentionally not a dep: callers pass an inline closure, and
-    // depending on it would re-run this on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+    // depending on it would re-run this on every render. (No eslint-disable is
+    // needed now that the dep is the `search` STRING rather than the
+    // `searchParams` object — the rule only tracked the latter.)
+  }, [search]);
 }

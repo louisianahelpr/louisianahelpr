@@ -8,6 +8,7 @@ import {
   computeInstantPayoutFeeCents,
   INSTANT_PAYOUT_MIN_CENTS,
 } from "../_shared/instantPayoutFee.ts";
+import { formatPayoutCents } from "../_shared/money.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -281,7 +282,7 @@ serve(async (req) => {
       await supabaseAdmin.from("notifications").insert({
         user_id: user.id,
         title: "⚡ Instant payout on the way",
-        message: `$${(netCents / 100).toFixed(2)} is heading to your debit card. Arrives in ~30 min.`,
+        message: `$${formatPayoutCents(netCents)} is heading to your debit card. Arrives in ~30 min.`,
         type: "financial_alerts",
         link: "/earnings",
       });

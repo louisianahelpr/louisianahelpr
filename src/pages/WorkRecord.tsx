@@ -465,7 +465,18 @@ const WorkRecord = () => {
                   className="font-serif italic text-ds-11 leading-relaxed"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
-                  This record was generated from Helpr&rsquo;s verified job history on {today}.
+                  {/* "verified" is only true of an account whose identity Helpr
+                      actually checked. This sheet gets handed to landlords and
+                      lenders, so on a Pending account it states what it can
+                      support — the job history — and nothing more. */}
+                  {data.profile.idv_status === "verified" ? (
+                    <>This record was generated from Helpr&rsquo;s verified job history on {today}.</>
+                  ) : (
+                    <>
+                      This record was generated from this member&rsquo;s completed job history on
+                      Helpr on {today}. Identity verification is still pending.
+                    </>
+                  )}{" "}
                   Helpr is a Louisiana-based labor marketplace.
                   For verification inquiries:{" "}
                   <a

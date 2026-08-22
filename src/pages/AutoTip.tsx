@@ -7,7 +7,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { hapticLight } from "@/lib/haptics";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceExact } from "@/lib/format";
 
 type Mode = "off" | "percent" | "fixed";
 
@@ -123,12 +123,17 @@ const AutoTip = () => {
   };
 
   // A worked example beats a description. $150 is close to the median job.
+  const uncapped = mode === "percent" && valueValid ? (150 * numericValue) / 100 : null;
   const example =
-    mode === "percent" && valueValid
-      ? Math.min(Math.round((150 * numericValue) / 100), numericCap ?? Infinity)
+    uncapped != null
+      ? Math.min(Math.round(uncapped), numericCap ?? Infinity)
       : mode === "fixed" && valueValid
         ? numericValue
         : null;
+  // When the maximum is what produced the figure, SAY so. Without this the
+  // sentence reads like broken arithmetic: 15% of $150 is $22.50, not $15,
+  // and a money screen that appears to miscalculate is a trust problem.
+  const cappedByMax = uncapped != null && example != null && example < Math.round(uncapped);
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
@@ -256,7 +261,12 @@ const AutoTip = () => {
             >
               <p className="text-ds-12 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
                 On a <span className="font-semibold">$150</span> job you'd tip{" "}
-                <span className="font-semibold">${formatPrice(example)}</span>.
+                <span className="font-semibold">${formatPrice(example)}</span>
+                {cappedByMax ? (
+                  <> — {numericValue}% would be ${formatPriceExact(uncapped!)}, held to your ${formatPrice(numericCap!)} maximum.</>
+                ) : (
+                  "."
+                )}
               </p>
             </div>
           )}

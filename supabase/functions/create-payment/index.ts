@@ -10,6 +10,7 @@ import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { formatPayoutDollars } from "../_shared/money.ts";
 
 /**
  * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
@@ -482,7 +483,7 @@ serve(async (req) => {
           await supabaseAdmin.from("notifications").insert({
             user_id: job.helper_id,
             title: "Job completed!",
-            message: `"${job.title}" is complete. $${helperPayout.toFixed(2)} will be transferred to your account in 24 hours.`,
+            message: `"${job.title}" is complete. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`,
             type: "payment", link: "/earnings",
           });
         }
@@ -937,7 +938,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Dispute resolved — payment released!",
-          message: `The dispute on "${job.title}" has been resolved in your favor. $${helperPayout.toFixed(2)} has been transferred.`,
+          message: `The dispute on "${job.title}" has been resolved in your favor. $${formatPayoutDollars(helperPayout)} has been transferred.`,
           type: "payment", link: "/earnings",
         });
       }

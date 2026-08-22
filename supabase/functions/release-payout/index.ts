@@ -31,6 +31,7 @@ import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { formatPayoutDollars } from "../_shared/money.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -653,7 +654,7 @@ serve(async (req) => {
   await supabaseAdmin.from("notifications").insert({
     user_id: job.helper_id,
     title: "💸 Payment released",
-    message: `Your earnings for "${job.title}" ($${netDollars.toFixed(2)}) have been sent to your bank${feeNote}.`,
+    message: `Your earnings for "${job.title}" ($${formatPayoutDollars(netDollars)}) have been sent to your bank${feeNote}.`,
     type: "payment",
     link: "/dashboard?tab=earnings",
   });

@@ -25,6 +25,12 @@ on:
     branches: [main]
     paths:
       - "supabase/functions/**"
+      # config.toml carries each function's `verify_jwt` gate, which is applied
+      # at DEPLOY time — so a change here is a prod behaviour change with no
+      # function-code change behind it. Without this path, editing it did
+      # nothing: the fix sat in the repo and prod kept the old gate. That is
+      # exactly how health-check stayed 401 after being "fixed".
+      - "supabase/config.toml"
       - ".github/workflows/functions-deploy.yml"
   workflow_dispatch:
     inputs:

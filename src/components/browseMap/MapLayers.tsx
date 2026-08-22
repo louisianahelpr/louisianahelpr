@@ -6,15 +6,21 @@ import { useEffect } from "react";
 import { Popup, useMap, CircleMarker } from "react-leaflet";
 import { Crosshair } from "lucide-react";
 import { densityFill } from "./mapMarkers";
-import type { MapJob } from "./config";
+import { LA_STATE_BOUNDS, type MapJob } from "./config";
 
 // Auto-fit the map to whatever pins exist when they load. If only one
 // pin, zoom in to a useful neighborhood-level view instead of a
-// state-wide one.
+// state-wide one. With NO pins, fall back to framing Louisiana itself —
+// previously this bailed early and left the map on its initial camera,
+// which is how an empty (or heavily filtered) map ended up showing five
+// states with Louisiana off to one side.
 export function FitToPins({ jobs }: { jobs: MapJob[] }) {
   const map = useMap();
   useEffect(() => {
-    if (jobs.length === 0) return;
+    if (jobs.length === 0) {
+      map.fitBounds(LA_STATE_BOUNDS, { padding: [16, 16] });
+      return;
+    }
     if (jobs.length === 1) {
       map.setView([jobs[0].latitude, jobs[0].longitude], 13);
       return;
@@ -66,15 +72,15 @@ export function HeatLayer({ buckets }: { buckets: Array<{ center: [number, numbe
 }
 
 // Floating "recenter" control — sits over the map, bottom-right above
-// the dock clearance. flyTo with the initial Louisiana frame so users
-// who have panned/zoomed deep can get back to the statewide view in
-// one tap.
-export function RecenterControl({ center, zoom }: { center: [number, number]; zoom: number }) {
+// the dock clearance. Flies back to the same Louisiana frame the map
+// opens on, so users who have panned/zoomed deep get the statewide view
+// back in one tap.
+export function RecenterControl() {
   const map = useMap();
   return (
     <button
       type="button"
-      onClick={() => map.flyTo(center, zoom, { duration: 0.45 })}
+      onClick={() => map.flyToBounds(LA_STATE_BOUNDS, { padding: [16, 16], duration: 0.45 })}
       aria-label="Recenter map"
       title="Recenter map"
       className="absolute z-[400] w-11 h-11 rounded-full flex items-center justify-center active:scale-[0.94] transition-all"

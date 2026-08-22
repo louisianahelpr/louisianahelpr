@@ -1,3 +1,5 @@
+import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
+
 // Static config, types, and localStorage helpers for BrowseMap.
 // Extracted verbatim from BrowseMap.tsx — pure data + pure helpers with
 // no map/effect coupling, so they move cleanly out of the render file.
@@ -48,9 +50,22 @@ export interface MapJob {
   created_at: string;
 }
 
-// Louisiana center fallback (state geographic mean, near Marksville).
-export const LA_CENTER: [number, number] = [31.0, -92.0];
-export const LA_DEFAULT_ZOOM = 7;
+// The DEFAULT CAMERA: Louisiana's real geographic extent (state bounding
+// box — 28.92 N at the Gulf toe to 33.02 N at the Arkansas line, 94.04 W
+// at the Texas line to 88.76 W at the Mississippi line, per USGS).
+//
+// The map used to open at a fixed centre (31.0, -92.0) and zoom 7, which on a
+// phone frames roughly a 9-degree box — Arkansas, Missouri, Mississippi,
+// Alabama and a lot of Gulf, with Louisiana a smallish patch inside it.
+// For a Louisiana-only marketplace the state should fill the frame, so we
+// fit these bounds and let Leaflet pick the zoom for the actual viewport.
+// (Fitting bounds also keeps the state framed on a tablet or a desktop
+// rail-inset pane, where one hard-coded zoom never could.)
+export const LA_STATE_BOUNDS: [[number, number], [number, number]] = [
+  [28.92, -94.05], // SW — Gulf coast / Texas line
+  [33.02, -88.76], // NE — Arkansas / Mississippi line
+];
+
 // Hard pan limit around Louisiana (+ a little margin). Without it the map
 // drags infinitely into empty ocean/world, which reads as "the whole screen
 // is scrolling left and right". `maxBoundsViscosity: 1` makes the edge solid
@@ -62,18 +77,7 @@ export const LA_BOUNDS: [[number, number], [number, number]] = [
 ];
 export const LA_MIN_ZOOM = 6;
 
-// Category → human label, used by the pin popup.
-export const categoryLabels = {
-  cleaning: "Cleaning",
-  yard_work: "Yard Work",
-  moving: "Moving",
-  errands: "Errands",
-  handyman: "Handyman",
-  painting: "Painting",
-  delivery: "Delivery",
-  pet_care: "Pet Care",
-  assembly: "Assembly",
-  storm_prep: "Storm prep",
-  events: "Events",
-  other: "Other",
-} as const;
+// Category → human label, used by the pin popup. Canonical table lives in
+// `src/lib/jobCategories.ts`; re-exported here so existing importers keep
+// working and a pin popup can never disagree with the filter chip above it.
+export const categoryLabels = JOB_CATEGORY_LABELS;

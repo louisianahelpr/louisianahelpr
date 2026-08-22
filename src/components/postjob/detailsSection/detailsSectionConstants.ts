@@ -1,22 +1,10 @@
 import { Award, BadgeCheck, Users2 } from "lucide-react";
+import { JOB_CATEGORIES } from "@/lib/jobCategories";
 
-// Ordered most-requested first, so the categories a poster is most likely to
-// want are the ones they reach without scanning. "Other" stays last as the
-// escape hatch. Storm sits with the rest rather than in a pinned seasonal
-// slot — it is one more category, not a different kind of control.
-export const categories = [
-  { value: "cleaning", label: "Cleaning" },
-  { value: "yard_work", label: "Yard Work" },
-  { value: "handyman", label: "Handyman" },
-  { value: "moving", label: "Moving" },
-  { value: "errands", label: "Errands" },
-  { value: "delivery", label: "Delivery" },
-  { value: "pet_care", label: "Pet Care" },
-  { value: "assembly", label: "Assembly" },
-  { value: "painting", label: "Painting" },
-  { value: "storm_prep", label: "Storm" },
-  { value: "other", label: "Other" },
-];
+// The category picker's options. Canonical order + labels come from
+// `src/lib/jobCategories.ts` (most-requested first, "Other" last) so the
+// posting grid, the browse filter and the map popup can't drift apart.
+export const categories = JOB_CATEGORIES.map(({ value, label }) => ({ value, label }));
 
 // 32, down from 100. A job card gives the title ONE line (line-clamp-1) in a
 // ~254px column at the tightest breakpoint — the two-up grid — sharing that row
@@ -68,6 +56,7 @@ export const titlePlaceholders: Record<string, string> = {
   pet_care: "e.g. Walk my dog twice a day this week",
   assembly: "e.g. Assemble an IKEA wardrobe",
   storm_prep: "e.g. Board up windows before the storm",
+  events: "e.g. Set up and break down a backyard party",
   other: "e.g. Help me with a quick job",
 };
 

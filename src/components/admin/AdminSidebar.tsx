@@ -152,7 +152,16 @@ const AdminSidebar = ({
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border h-14 flex flex-row items-center px-4 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
+      {/* `min-h-14` + the safe-area inset, not a fixed `h-14`. As a mobile
+          sheet this header starts at y=0, so on a notched device "Helpr Admin"
+          rendered UNDERNEATH the Dynamic Island and collided with the status-bar
+          clock. Every other surface in the app already pads by
+          `--safe-area-top`; this one never did. The variable resolves to 0 on
+          desktop, so the sidebar is unchanged there. */}
+      <SidebarHeader
+        className="border-b border-sidebar-border min-h-14 flex flex-row items-center px-4 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
+        style={{ paddingTop: "var(--safe-area-top, 0px)" }}
+      >
         <div className="flex items-center gap-2 min-w-0">
           <div
             className="w-8 h-8 rounded-ds-md flex items-center justify-center shrink-0"

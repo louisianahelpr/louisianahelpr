@@ -7,6 +7,7 @@ import { computeCancellationFee } from "../_shared/cancellationFee.ts";
 import { stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
+import { formatPayoutDollars } from "../_shared/money.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -112,7 +113,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Cancellation fee received",
-          message: `You received a $${helperPayout.toFixed(2)} cancellation fee for "${job.title}" (${commissionPercent}% commission deducted).`,
+          message: `You received a $${formatPayoutDollars(helperPayout)} cancellation fee for "${job.title}" (${commissionPercent}% commission deducted).`,
           type: "payment",
           link: "/earnings",
         });

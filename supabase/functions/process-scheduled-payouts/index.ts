@@ -6,6 +6,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
+import { formatPayoutDollars } from "../_shared/money.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -159,7 +160,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: helperId,
           title: "Payout account required",
-          message: `$${helperPayout.toFixed(2)} from "${job.title}" is ready, but your payout account isn't set up yet. Add it in Profile → Payments.`,
+          message: `$${formatPayoutDollars(helperPayout)} from "${job.title}" is ready, but your payout account isn't set up yet. Add it in Profile → Payments.`,
           type: "warning", link: "/profile?tab=payment",
         });
         results.push({ job_id: job.id, status: "no_connect_account" });
@@ -526,7 +527,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: helperId,
           title: "💰 Payout sent!",
-          message: `$${helperPayout.toFixed(2)} for "${job.title}" has been transferred to your account${feeNote}.`,
+          message: `$${formatPayoutDollars(helperPayout)} for "${job.title}" has been transferred to your account${feeNote}.`,
           type: "payment", link: "/earnings",
         });
 

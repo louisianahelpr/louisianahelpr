@@ -54,8 +54,23 @@ const AGO = (d: number) =>
  * without time zone). Getting the column type wrong here would have produced a
  * convincing false finding, so: match the wire format, don't approximate it.
  */
+/**
+ * ⚠️ Anchored to the REAL today, not to `NOW`.
+ *
+ * `NOW` is deliberately frozen so `created_at`/`updated_at` stay deterministic.
+ * `date_needed` cannot be: the browse feed drops any job whose `date_needed` is
+ * before the viewer's LOCAL today ("a job wanted yesterday is noise in the
+ * browse feed" — useDashboardFilters). Anchoring a "3 days out" job to a frozen
+ * 2026-08-14 meant that on 2026-08-22 every seeded job was 5 days stale and the
+ * feed filtered ALL of them out.
+ *
+ * The failure is silent and expensive: specs that seed jobs still pass, because
+ * an empty feed renders its empty state perfectly well. They simply stop
+ * testing the populated layout they exist to cover — the same shape as the
+ * `open_jobs_browse` hole described below. Keep this relative to real time.
+ */
 const DATE = (d: number) =>
-  new Date(Date.parse(NOW) + d * 86_400_000).toISOString().slice(0, 10);
+  new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10);
 
 type JobSeed = {
   id: string;

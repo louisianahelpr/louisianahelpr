@@ -78,7 +78,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
               <Input
                 type="search"
                 aria-label="Search saved helpers"
-                placeholder="Search by name or skills…"
+                placeholder="Search Helprs…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 rounded-ds-md"
@@ -99,8 +99,10 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                   <ArrowUpDown className="w-3.5 h-3.5 shrink-0" />
                   {/* Truncate long label on SE (320 px) instead of hiding
                       it — the icon alone has no visible affordance for
-                      sighted users unfamiliar with the sort state. */}
-                  <span className="truncate max-w-[80px] sm:max-w-none">{activeSortLabel}</span>
+                      sighted users unfamiliar with the sort state. The cap
+                      clears the widest option ("Recently saved", 86px at
+                      11px/600) so nothing clips at 375; only 320 truncates. */}
+                  <span className="truncate max-w-[90px] sm:max-w-none">{activeSortLabel}</span>
                 </button>
               </PopoverTrigger>
               <PopoverContent

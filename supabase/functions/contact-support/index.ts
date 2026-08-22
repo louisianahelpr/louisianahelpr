@@ -55,6 +55,9 @@ const TOPIC_LABELS: Record<string, string> = {
   message: 'Admin Message',
   suggestion: 'Suggestion',
   report: 'Issue Report',
+  // "help" was merged into "message" in the UI (it submitted to the exact
+  // same place); kept here so any in-flight/bookmarked payload still files
+  // under a sensible label.
   help: 'Help Request',
 }
 

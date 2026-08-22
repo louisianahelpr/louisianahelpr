@@ -13,7 +13,7 @@ interface UseSavedHelpersArgs {
 
 export function useSavedHelpers({ user, business }: UseSavedHelpersArgs) {
   const [helpers, setHelpers] = useState<SavedHelper[]>([]);
-  // Per-helper toggle state for the "Visible to team" pin. Tracks the
+  // Per-helper toggle state for the "Share with team" pin. Tracks the
   // in-flight write so two rapid taps can't race.
   const [togglingShare, setTogglingShare] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

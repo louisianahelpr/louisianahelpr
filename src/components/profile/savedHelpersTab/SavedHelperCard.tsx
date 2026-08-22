@@ -219,9 +219,18 @@ export function SavedHelperCard({
               : "hsl(var(--bark))",
           }}
           aria-pressed={!!h.business_account_id}
+          aria-label={
+            h.business_account_id
+              ? "Shared with team — tap to stop sharing"
+              : "Share with team"
+          }
         >
+          {/* One label in both states — the slot used to read "Share with
+              team" on one card and "Visible to team" on the next, which
+              looked like two different controls down a list. State is
+              carried by aria-pressed and the colour shift. */}
           <Users className="w-3 h-3" />
-          {h.business_account_id ? "Visible to team" : "Share with team"}
+          Share with team
         </button>
       )}
     </div>

@@ -1,12 +1,10 @@
 import type { Database } from "@/integrations/supabase/types";
+import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 
 export type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
-export const categoryLabels: Record<string, string> = {
-  cleaning: "Cleaning", yard_work: "Yard Work", moving: "Moving", errands: "Errands",
-  handyman: "Handyman", painting: "Painting", delivery: "Delivery", pet_care: "Pet Care",
-  assembly: "Assembly", storm_prep: "Storm prep", events: "Events", other: "Other",
-};
+// Canonical labels — see `src/lib/jobCategories.ts`.
+export const categoryLabels: Record<string, string> = JOB_CATEGORY_LABELS;
 
 export const paymentColors: Record<string, string> = {
   unpaid: "bg-muted text-muted-foreground",

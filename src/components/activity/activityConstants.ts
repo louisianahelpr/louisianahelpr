@@ -1,5 +1,6 @@
 import type { Database } from "@/integrations/supabase/types";
 import { CATEGORY_ICONS } from "@/lib/categoryIcons";
+import { JOB_CATEGORIES, JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 
 export type Job = Database["public"]["Tables"]["jobs"]["Row"];
 export type Application = Database["public"]["Tables"]["applications"]["Row"];
@@ -14,13 +15,14 @@ export type Tab = "posted" | "applied";
  */
 export const categoryIcons = CATEGORY_ICONS;
 
-export const categoryLabels: Record<string, string> = {
-  cleaning: "Cleaning", yard_work: "Yard Work", moving: "Moving", errands: "Errands",
-  handyman: "Handyman", painting: "Painting", delivery: "Delivery", pet_care: "Pet Care",
-  assembly: "Assembly", storm_prep: "Storm prep", events: "Events", other: "Other",
-};
+/**
+ * Re-exported from the canonical `src/lib/jobCategories.ts`. Labels and
+ * display order live there so the post-a-job picker, browse filter, map
+ * popup and admin all render the same word in the same order.
+ */
+export const categoryLabels: Record<string, string> = JOB_CATEGORY_LABELS;
 
-export const categories = Object.entries(categoryLabels).map(([value, label]) => ({ value, label }));
+export const categories = JOB_CATEGORIES.map(({ value, label }) => ({ value, label }));
 
 /**
  * Category palette — one distinct hue per category so the feed is

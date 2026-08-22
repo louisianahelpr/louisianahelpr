@@ -1,3 +1,5 @@
+import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
+
 // Static config, types, and localStorage helpers for BrowseMap.
 // Extracted verbatim from BrowseMap.tsx — pure data + pure helpers with
 // no map/effect coupling, so they move cleanly out of the render file.
@@ -62,18 +64,7 @@ export const LA_BOUNDS: [[number, number], [number, number]] = [
 ];
 export const LA_MIN_ZOOM = 6;
 
-// Category → human label, used by the pin popup.
-export const categoryLabels = {
-  cleaning: "Cleaning",
-  yard_work: "Yard Work",
-  moving: "Moving",
-  errands: "Errands",
-  handyman: "Handyman",
-  painting: "Painting",
-  delivery: "Delivery",
-  pet_care: "Pet Care",
-  assembly: "Assembly",
-  storm_prep: "Storm prep",
-  events: "Events",
-  other: "Other",
-} as const;
+// Category → human label, used by the pin popup. Canonical table lives in
+// `src/lib/jobCategories.ts`; re-exported here so existing importers keep
+// working and a pin popup can never disagree with the filter chip above it.
+export const categoryLabels = JOB_CATEGORY_LABELS;

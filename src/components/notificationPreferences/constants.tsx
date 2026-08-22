@@ -26,10 +26,16 @@ export const trimTime = (v: string | null | undefined): string | null => {
   return v.length >= 5 ? v.slice(0, 5) : v;
 };
 
+// Labels are capped by the row layout in NotificationPreferences.tsx: at a
+// 375px viewport the label column is ~131px wide (335px panel − px-4 − the
+// 28px glyph − the two 51px switch slots and their gap), so a label has to
+// measure under that at 14px/600. "Transit (On the Way / Arrived)" was 213px
+// and truncated; every other label is a short Title Case pair well inside the
+// budget ("Payments & Tips", the widest survivor, is 119px).
 export const rows: Row[] = [
   { key: "new_offers", emailKey: "email_new_offers", label: "Job Offers", icon: <Briefcase className="w-3.5 h-3.5" /> },
   { key: "messages", emailKey: "email_messages", label: "Messages", icon: <MessageSquare className="w-3.5 h-3.5" /> },
-  { key: "transit_updates", emailKey: "email_transit_updates", label: "Transit (On the Way / Arrived)", icon: <Navigation className="w-3.5 h-3.5" /> },
+  { key: "transit_updates", emailKey: "email_transit_updates", label: "Transit Updates", icon: <Navigation className="w-3.5 h-3.5" /> },
   { key: "work_status", emailKey: "email_work_status", label: "Work Status", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
   { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payments & Tips", icon: <DollarSign className="w-3.5 h-3.5" /> },
   { key: "reviews", emailKey: "email_reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" /> },

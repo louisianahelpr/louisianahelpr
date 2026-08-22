@@ -260,7 +260,7 @@ export const TermsContent = () => (
         icon={Receipt}
         title="Platform (Helpr, LLC)"
         body={
-          <p>Helpr issues <strong className="text-foreground">Form 1099-K</strong> when federal thresholds are met ($20,000 AND 200+ transactions for 2025). The 1099-NEC threshold rises to $2,000 on Jan 1, 2026. Once Helpr exceeds $100k in gross Louisiana revenue, we collect and remit state and parish sales tax. All Louisiana returns are filed electronically through the LDR portal.</p>
+          <p>Helpr issues <strong className="text-foreground">Form 1099-K</strong> when federal thresholds are met — $20,000 AND 200+ transactions, for 2025 and later. (The One Big Beautiful Bill repealed the planned $2,500 and $600 step-downs, so this threshold does not drop in 2026.) The 1099-NEC threshold rises to $2,000 on Jan 1, 2026. Once Helpr exceeds $100k in gross Louisiana revenue, we collect and remit state and parish sales tax. All Louisiana returns are filed electronically through the LDR portal.</p>
         }
       />
       <PolicyRowItem

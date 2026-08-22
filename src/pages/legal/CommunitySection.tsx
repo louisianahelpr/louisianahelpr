@@ -286,10 +286,19 @@ export const CommunityContent = () => (
         icon={Clock}
         title="Repeat offender ladder (other violations)"
         body={
+          /* Transcribed from what `auto_restrict_repeat_violators` ACTUALLY does
+             on the live database, read 2026-08-21 — not from memory. The old
+             version said "report" where the trigger counts confirmed
+             VIOLATIONS, and promised a permanent ban at the 3rd, which the
+             trigger never does automatically: it suspends 30 days and notifies
+             admins to decide. Stating an automatic permanent ban that no code
+             performs is the kind of promise a suspended user quotes back. */
           <ul className="list-disc pl-4 space-y-0.5">
-            <li><strong className="text-foreground">1st report:</strong> Written warning via email + in-app.</li>
-            <li><strong className="text-foreground">2nd report:</strong> 7-day suspension.</li>
-            <li><strong className="text-foreground">3rd report:</strong> Permanent ban. Final.</li>
+            <li><strong className="text-foreground">1st violation:</strong> Final warning — email + in-app, telling you the next one is a 7-day suspension.</li>
+            <li><strong className="text-foreground">2nd violation:</strong> 7-day suspension.</li>
+            <li><strong className="text-foreground">3rd violation:</strong> 30-day suspension.</li>
+            <li><strong className="text-foreground">4th and beyond:</strong> Reviewed by a human for a permanent ban — it is never automatic.</li>
+            <li className="!list-none pl-0 pt-1 text-muted-foreground">Counts <em>confirmed violations</em>, not reports made against you. Admin actions, cancellations with a helper assigned, off-platform flags, job denials and no-shows are handled separately and do not feed this ladder.</li>
           </ul>
         }
       />
@@ -318,7 +327,7 @@ export const CommunityContent = () => (
         title="Helpr (the platform)"
         body={
           <>
-            <p><strong className="text-foreground">1099-K (2026):</strong> Federal threshold reverted to $20,000 AND 200+ transactions. Louisiana follows federal.</p>
+            <p><strong className="text-foreground">1099-K (2025 and later):</strong> Federal threshold is $20,000 AND 200+ transactions — restored by the One Big Beautiful Bill, which repealed the planned $2,500 and $600 step-downs. Louisiana follows federal.</p>
             <p><strong className="text-foreground">1099-NEC (2026):</strong> Threshold raised from $600 to $2,000.</p>
             <p><strong className="text-foreground">Marketplace facilitator:</strong> Above $100,000 LA gross revenue, Helpr collects and remits sales tax as the marketplace facilitator. Louisiana taxes only the services it enumerates in LA R.S. 47:301(14), so tax applies to the job's labor line in taxable categories only — never to Helpr's fees, and not to most categories (cleaning, yard work, moving, errands, pet care, delivery are not enumerated taxable services).</p>
             <p><strong className="text-foreground">LDR e-filing mandate:</strong> All LA withholding and sales tax returns filed electronically as of Jan 1, 2026.</p>

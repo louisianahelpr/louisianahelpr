@@ -320,7 +320,7 @@ export const CommunityContent = () => (
           <>
             <p><strong className="text-foreground">1099-K (2026):</strong> Federal threshold reverted to $20,000 AND 200+ transactions. Louisiana follows federal.</p>
             <p><strong className="text-foreground">1099-NEC (2026):</strong> Threshold raised from $600 to $2,000.</p>
-            <p><strong className="text-foreground">Marketplace facilitator:</strong> Above $100,000 LA gross revenue, Helpr collects/remits sales tax on the entire transaction.</p>
+            <p><strong className="text-foreground">Marketplace facilitator:</strong> Above $100,000 LA gross revenue, Helpr collects and remits sales tax as the marketplace facilitator. Louisiana taxes only the services it enumerates in LA R.S. 47:301(14), so tax applies to the job's labor line in taxable categories only — never to Helpr's fees, and not to most categories (cleaning, yard work, moving, errands, pet care, delivery are not enumerated taxable services).</p>
             <p><strong className="text-foreground">LDR e-filing mandate:</strong> All LA withholding and sales tax returns filed electronically as of Jan 1, 2026.</p>
             <p><strong className="text-foreground">Worker classification:</strong> Helprs qualify as independent contractors under the Economic Reality Test.</p>
           </>

@@ -274,7 +274,7 @@ export const TermsContent = () => (
         icon={Users}
         title="Job posters"
         body={
-          <p>You pay the agreed job fee plus applicable sales tax. Workers are <strong className="text-foreground">independent contractors</strong> — no payroll, withholding, or employer tax obligations.</p>
+          <p>You pay the agreed job fee plus any applicable sales tax. Louisiana taxes only enumerated services (LA R.S. 47:301(14)), so most jobs carry no sales tax at all; where it does apply it is charged on the labor line only, never on Helpr's fees. Workers are <strong className="text-foreground">independent contractors</strong> — no payroll, withholding, or employer tax obligations.</p>
         }
       />
       <PolicyRowItem

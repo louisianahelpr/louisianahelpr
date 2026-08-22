@@ -47,7 +47,13 @@ export function DetailHeader({
           )}
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
-          <p className="text-ds-11 sm:text-ds-11 text-muted-foreground truncate">{viewProfile.email || "No email"}</p>
+          {/* `break-all`, not `truncate`. This is a moderation surface: the
+              email is the primary identifier an admin uses to decide whether to
+              warn, verify or ban someone, and truncating it to
+              "helpr-audit-helper-2026-07-08@mailin…" hides exactly the part
+              that distinguishes one account from another. Wrapping costs a line;
+              guessing costs the wrong person getting banned. */}
+          <p className="text-ds-11 sm:text-ds-11 text-muted-foreground break-all">{viewProfile.email || "No email"}</p>
           <button
             onClick={() => setEditEmailProfile(viewProfile)}
             className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0 p-1 -m-1 rounded"

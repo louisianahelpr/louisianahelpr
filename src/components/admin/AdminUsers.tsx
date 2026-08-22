@@ -252,16 +252,20 @@ const AdminUsers = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-0.5 bg-secondary/50 rounded-ds-sm p-0.5 w-full">
+      {/* Scrolls rather than dividing the width six ways. With `flex-1` each
+          tab got ~1/6 of 402pt and had to share that with a count badge, so
+          "Active" rendered as "Acti…" — a filter that will not say what it
+          filters. Same overflow treatment as the app's other chip rows. */}
+      <div className="flex gap-0.5 bg-secondary/50 rounded-ds-sm p-0.5 w-full overflow-x-auto scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)]">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 min-w-0 px-1 py-1.5 rounded-md text-ds-10 sm:text-ds-13 font-medium transition-colors flex items-center justify-center gap-0.5 ${
+            className={`shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-md text-ds-10 sm:text-ds-13 font-medium transition-colors flex items-center justify-center gap-1 ${
               tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <span className="truncate">{t.label}</span>
+            <span>{t.label}</span>
             {t.count !== undefined && t.count > 0 && (
               <span className="text-ds-9 sm:text-ds-10 bg-destructive/10 text-destructive px-1 py-0.5 rounded-full flex-shrink-0">{t.count}</span>
             )}

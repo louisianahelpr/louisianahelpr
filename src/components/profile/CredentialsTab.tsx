@@ -163,8 +163,12 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
     if (!url) return "empty";
     if (status === "verified") return "verified";
     if (status === "rejected") return "rejected";
-    if (status === "pending") return "review";
-    return "empty";
+    // A document IS on the row, so "empty" is never true from here down. The
+    // old fallthrough returned "empty" for any status the client hadn't seen
+    // yet (including the brief 'none' window before `trg_auto_pending_
+    // credentials` stamps 'pending'), which printed "Not added yet" directly
+    // above the "View the license you sent" link on the very same card.
+    return "review";
   };
 
   // ── Attach (local only) ────────────────────────────────────────────────

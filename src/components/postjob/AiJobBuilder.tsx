@@ -13,7 +13,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 export interface AiGeneratedJob {
@@ -87,9 +87,14 @@ export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilder
             Describe your job and let AI fill the form.
           </p>
         </div>
-        <span className="text-ds-11 font-sans font-semibold shrink-0" style={{ color: "hsl(var(--bark))" }}>
-          {open ? "Hide" : "Try it"}
-        </span>
+        {/* Same rotating ChevronDown the sibling expander rows on this
+            step use (Repost / Use a template in EntryChoice) — this row was
+            the only one signalling "expandable" with a text button. */}
+        <ChevronDown
+          className="w-5 h-5 shrink-0 transition-transform duration-200"
+          style={{ color: "hsl(var(--olivewood) / 0.8)", transform: open ? "rotate(180deg)" : undefined }}
+          aria-hidden
+        />
       </button>
       {open && (
         <div className="space-y-2 px-4 pb-4">

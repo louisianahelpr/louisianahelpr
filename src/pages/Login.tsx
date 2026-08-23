@@ -421,7 +421,7 @@ const Login = () => {
                 // strong green. Dropped to medium weight for the same reason —
                 // this is the escape hatch, not the action.
                 className="min-h-[44px] -my-2 inline-flex items-center text-ds-12 font-sans font-medium hover:underline active:opacity-60 transition-opacity"
-                style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                style={{ color: "hsl(var(--bark))" }}
               >
                 Forgot password?
               </Link>
@@ -434,7 +434,7 @@ const Login = () => {
             size="lg"
             disabled={loading}
           >
-            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing in…</> : "Sign in"}
+            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing in…</> : "Sign In"}
           </Button>
           {/* No "By signing in you agree to our Terms · Rules · Privacy" here.
               Consent is CAPTURED on signup — Signup.tsx has real, recorded

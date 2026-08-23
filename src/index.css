@@ -2928,6 +2928,45 @@ html.simple-mode .text-ds-15 { font-size: 18px !important; line-height: 1.45 !im
    that hierarchy back for contrast. */
 html.simple-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !important; }
 
+/* ── The OS asks; the app answers ─────────────────────────────────────────
+   iOS exposes three accessibility settings this app already had the CSS for
+   and simply never listened to. Every accommodation below is the SAME
+   declaration Simple Mode makes — the only thing changing is what turns it on.
+   A user who set the preference system-wide should not also have to find a
+   toggle inside one app. (Apple HIG; audit 2026-08-22.)
+
+   Dynamic Type is NOT here because it has no media query — it is measured in
+   simpleMode.ts via `font: -apple-system-body`, the one hook that reports the
+   setting inside a WKWebView, and applies the same `.simple-mode` class. */
+
+/* Settings > Accessibility > Display & Text Size > Increase Contrast.
+   Muted greys are the first thing to fail for ageing eyes; they were chosen
+   for hierarchy on a good screen in good light. */
+@media (prefers-contrast: more) {
+  .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !important; }
+}
+
+/* Settings > Accessibility > Display & Text Size > Reduce Transparency.
+   31 surfaces in this stylesheet blur what is behind them, and until now not
+   one of them responded to this setting. `backdrop-filter: none` alone would
+   leave a translucent panel with the page showing straight through it — the
+   blur was doing the separating — so each surface also needs an opaque fill.
+
+   Scoped to the tokens rather than a blanket `* { backdrop-filter: none }`:
+   the latter would also strip the effect from decorative washes that have no
+   legibility cost, and would fight the theme's own dark-mode overrides. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-modal,
+  .glass-field,
+  .liquid-glass,
+  .glass-island,
+  .skeleton-glass {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: hsl(var(--background)) !important;
+  }
+}
+
 /* Every tappable thing clears 48px — above the 44px WCAG 2.5.5 floor, since
    the people who need this mode are also the most likely to mis-tap.
 

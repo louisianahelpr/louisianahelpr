@@ -372,7 +372,7 @@ const Signup = () => {
     step === 1
       ? isBusinessSignup
         ? { title: "Create business account", subtitle: "Invite your team and bill jobs to one card." }
-        : { title: "Create account" }
+        : { title: "Create Account" }
       : { title: "About you" };
 
   // No `desktopBrandPanel`: AuthBrandPane is only the H emblem, and it stacked
@@ -391,7 +391,7 @@ const Signup = () => {
       // longer differ in title size (step 2 used to be a hand-rolled row inside
       // the card at clamp(1.6rem,2.4vw+0.5rem,2.1rem) against step 1's ds-24).
       {...(step === 1 ? { backTo: "/" } : { backOnClick: () => { setStep2Errors({}); setStep(1); } })}
-      title={step === 1 ? (isBusinessSignup ? "Create a business account" : "Create account") : stepHeading.title}
+      title={step === 1 ? (isBusinessSignup ? "Create a Business Account" : "Create Account") : stepHeading.title}
     >
       <div>
           {/* Liquid-glass card — matches the Login screen so the two auth

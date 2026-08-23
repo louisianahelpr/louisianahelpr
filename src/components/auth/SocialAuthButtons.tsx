@@ -66,7 +66,11 @@ export function SocialAuthButtons({
     // with a label, and it returns ~60pt of vertical space to the card.
     //
     // Apple renders FIRST (left) — see the prominence note above.
-    <div className="grid grid-cols-2 gap-3">
+    // Stacked, one per row (owner). Side by side they were half-width boxes;
+    // full-width rows give each provider its own target. Apple stays first per
+    // Apple's HIG, which asks that Sign in with Apple be at least as prominent
+    // as any other third-party option.
+    <div className="flex flex-col gap-3">
       <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} />
       <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} />
     </div>

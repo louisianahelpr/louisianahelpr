@@ -42,20 +42,20 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
           // matching ScheduleTab's own month nav (`variant="ghost" size="icon"`).
           // The 36px box stays as the hit area — only the border is gone.
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 bg-transparent p-0 opacity-60 hover:opacity-100",
+          "h-11 w-11 bg-transparent p-0 opacity-60 hover:opacity-100",
           isDropdown && "top-[1.25rem]",
         ),
         button_next: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 bg-transparent p-0 opacity-60 hover:opacity-100",
+          "h-11 w-11 bg-transparent p-0 opacity-60 hover:opacity-100",
           isDropdown && "top-[1.25rem]",
         ),
         month_grid: "w-full border-collapse space-y-1",
         weekdays: "flex",
         weekday: "rounded-md w-9 font-serif italic uppercase text-ds-10 tracking-[0.18em] text-[hsl(var(--burnt-sienna)/0.78)]",
         week: "flex w-full mt-2",
-        day: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-        day_button: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] hover:bg-[hsl(var(--bark)/0.10)] aria-selected:opacity-100 rounded-full"),
+        day: "h-11 w-11 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        day_button: cn(buttonVariants({ variant: "ghost" }), "h-11 w-11 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] hover:bg-[hsl(var(--bark)/0.10)] aria-selected:opacity-100 rounded-full"),
         range_end: "day-range-end",
         selected:
           "!bg-[hsl(var(--bark))] !text-[hsl(var(--parchment))] hover:!bg-[hsl(var(--bark))] focus:!bg-[hsl(var(--bark))] shadow-[0_1px_2px_hsl(var(--bark)/0.18)] font-display italic font-bold",

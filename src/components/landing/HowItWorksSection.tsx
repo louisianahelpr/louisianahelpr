@@ -154,8 +154,14 @@ const HowItWorksSection = () => {
             aria-label="Which side of Helpr are you on"
             className="inline-flex flex-nowrap items-center justify-center gap-1 p-1 rounded-2xl"
             style={{
-              background: "hsl(var(--burnt-sienna) / 0.06)",
-              border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
+              // Olivewood, NOT burnt sienna. The track used to be
+              // sienna/0.06 inside a sienna/0.18 border — within a hair of the
+              // three step cards below it (sienna/0.04 inside sienna/0.15), so
+              // a control read as a fourth content panel and competed with the
+              // thing it is meant to filter. Sienna stays the content colour;
+              // the control sits on the neutral.
+              background: "hsl(var(--olivewood) / 0.06)",
+              border: "1px solid hsl(var(--olivewood) / 0.16)",
               boxShadow: "var(--elev-inset-hairline)",
             }}
           >

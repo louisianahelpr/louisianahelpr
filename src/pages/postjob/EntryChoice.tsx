@@ -7,6 +7,7 @@ import { track } from "@/lib/analytics";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
+import { OfferToSavedHelpr } from "./OfferToSavedHelpr";
 import { formatPrice, formatShortDate } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 
@@ -68,7 +69,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
    * match. A radio, not three checkboxes: these are alternative ways to start
    * the SAME post, so at most one can be the one you are using.
    */
-  const [openSection, setOpenSection] = useState<"repost" | "templates" | "ai" | null>(null);
+  const [openSection, setOpenSection] = useState<"repost" | "templates" | "ai" | "offer" | null>(null);
   const repostOpen = openSection === "repost";
   const templatesOpen = openSection === "templates";
   const toggleSection = (key: "repost" | "templates" | "ai") =>
@@ -368,6 +369,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       {/* 5 — AI JOB BUILDER (self-contained collapsible card). Lives on the
           entry step so all the "ways to start a post" sit together; once it
           generates fields we advance into the form to review them. */}
+      {/* 5 — OFFER TO A SAVED HELPR. The direct-offer flow's missing START;
+          see OfferToSavedHelpr for why it belongs on this screen. */}
+      <OfferToSavedHelpr
+        open={openSection === "offer"}
+        onOpenChange={(next) => setOpenSection(next ? "offer" : null)}
+      />
+
       <AiJobBuilder
         open={openSection === "ai"}
         onOpenChange={(next) => setOpenSection(next ? "ai" : null)}

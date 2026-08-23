@@ -250,7 +250,14 @@ export function BudgetSection({
           {/* Quick-tap budget presets — outline pills so they stay
               secondary to the budget input above. Only the selected
               preset fills solid. */}
-          <div className="flex gap-2 pt-1 min-w-0 overflow-x-auto pb-1 pr-5 scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]">
+          {/* The presets SHARE the row's width (owner: "fill space better"). They
+              were `shrink-0` in a masked horizontal scroller — a pattern for a
+              list too long to fit — but there are only five, and on anything
+              wider than a phone they sat huddled at the left with the fade
+              mask hinting at content that did not exist. `grid-cols-5` on a
+              full row makes them read as one segmented choice, which is what
+              five preset prices are. */}
+          <div className="grid grid-cols-5 gap-2 pt-1 pb-1">
             {budgetPresets.map((amt) => {
               const isActive = parseFloat(budget) === amt;
               return (
@@ -259,7 +266,7 @@ export function BudgetSection({
                   type="button"
                   onClick={() => setBudget(amt.toFixed(2))}
                   aria-pressed={isActive}
-                  className={`shrink-0 whitespace-nowrap min-h-11 px-4 py-2 rounded-full text-ds-13 font-semibold tabular-nums transition-all border ${
+                  className={`w-full whitespace-nowrap min-h-11 px-2 py-2 rounded-full text-ds-13 font-semibold tabular-nums transition-all border ${
                     isActive
                       ? "bg-primary text-primary-foreground border-primary shadow-sm scale-[1.02]"
                       : "bg-transparent text-foreground border-border hover:border-primary/50 hover:bg-primary/5"
@@ -275,7 +282,25 @@ export function BudgetSection({
 
 
       {/* Urgent Job — shown for all modes */}
-      <div className={`rounded-ds-md border p-4 space-y-3 ${isUrgent ? "border-accent bg-accent/5" : "border-border"}`}>
+      {/* Same surface as every other block on this form when it is OFF, and
+          an accent wash when it is ON — the toggle's state is the only thing
+          that should change its appearance. It used to sit in a bare
+          hairline-bordered box that matched nothing else on the page (owner:
+          "polish and fill space better"). */}
+      <div
+        className="rounded-ds-lg p-4 space-y-3 transition-colors"
+        style={
+          isUrgent
+            ? {
+                background: "hsl(var(--accent) / 0.07)",
+                border: "1px solid hsl(var(--accent) / 0.45)",
+              }
+            : {
+                background: "hsl(var(--parchment) / 0.5)",
+                border: "1px solid hsl(var(--olivewood) / 0.12)",
+              }
+        }
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-accent" />

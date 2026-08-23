@@ -55,6 +55,7 @@ type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" |
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => safeStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
@@ -65,6 +66,8 @@ const navGroups = adminNavGroups;
 
 const Admin = () => {
   usePageTitle("Admin — Helpr");
+  // Which chrome this page owns — see the two render sites below.
+  const isWebDesktop = useIsWebDesktop();
   const navigate = useNavigate();
   // ?view= deep-links from notifications (e.g. /admin?view=people&user=<id>).
   // Notifications fanned out by triggers point here so admins land on the
@@ -445,10 +448,23 @@ const Admin = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-premium-page">
-        {/* pt-14 clears the FIXED header above. It used to be sticky and
-            in-flow, so it reserved its own space. */}
-        <div className="flex-1 flex flex-col min-w-0 pt-14">
-          <AdminTopBar />
+        {/* Top padding ONLY below `lg`, where admin renders its own fixed bar.
+            On the desktop website the global bar's height is already reserved
+            by `html.web-desktop.desktop-rail:not(.app-shell) #root
+            { padding-top: 3.5rem }` — /admin is a document-scroll route — so a
+            pt-14 here would stack a second 56px on top of it. */}
+        <div className={`flex-1 flex flex-col min-w-0 ${isWebDesktop ? "" : "pt-14"}`}>
+          {/* NO SECOND TOP BAR ON THE DESKTOP WEBSITE.
+              App.tsx mounts DesktopTopNav and DesktopSidebarNav unconditionally
+              for every signed-in user, and neither hides on /admin — so this
+              page was rendering TWO top bars and TWO rails stacked on top of
+              each other. That is the actual reason the admin chrome kept
+              reading as wrong no matter how many times its own bar was
+              adjusted: the bar being fixed was not the bar being seen.
+
+              Below `lg` the global pair is `hidden lg:flex`, so admin still
+              needs its own — hence the split rather than a plain delete. */}
+          {!isWebDesktop && <AdminTopBar />}
 
           <main
             className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-[calc(2rem_+_var(--safe-area-bottom,0px))]"
@@ -462,18 +478,21 @@ const Admin = () => {
           </main>
         </div>
 
-        {/* AFTER the content in the DOM, because it is the RIGHT-hand rail now.
-            It keeps its own "Back to App" and "Sign Out" rows at the bottom —
-            those are the single home for both, which is what let the top bar
-            drop its duplicates. */}
-        <AdminSidebar
+        {/* Same split as the top bar. On the desktop website the GLOBAL side
+            panel carries admin — "Admin" with every section nested under it
+            (owner: "the side panel should be identical to a non-admin user,
+            just add the admin sections under the Admin in the sidebar"), so a
+            second rail here is the other half of the double chrome.
+            Below `lg` this is the only rail there is, and it keeps its own
+            Back to App / Sign Out rows. */}
+        {!isWebDesktop && <AdminSidebar
           navGroups={navGroups}
           activeView={view}
           onSelect={handleViewChange}
           getBadge={getBadge}
           getBadgeColor={getBadgeColor}
           onLogout={() => setShowLogoutDialog(true)}
-        />
+        />}
 
         {/* ONE verb: "sign out". The app says Sign Out on nine screens
             (Profile settings, Security, Account Pending/Denied/Banned,

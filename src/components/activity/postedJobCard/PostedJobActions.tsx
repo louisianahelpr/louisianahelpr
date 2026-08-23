@@ -360,7 +360,7 @@ export function PostedJobActions({
                         icon={CheckCircle2}
                         label={job.poster_completed_at ? "Approved" : "Approve"}
                         ariaLabel="Approve the work and release payment"
-                        tone="primary"
+                        tone="approve"
                         disabled={completingJobId === job.id || !!job.poster_completed_at}
                         onClick={() => {
                           if (!job.poster_completed_at) {

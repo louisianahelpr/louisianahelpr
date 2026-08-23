@@ -765,6 +765,28 @@ export function JobTracking({
                   >
                     {s.label}
                   </span>
+                  {/* ETA rides UNDER ITS OWN STEP (owner: "put eta under on
+                      the way"). It used to be a centred paragraph below the
+                      map, a full card-width away from the word it qualifies —
+                      so "On the Way" and "~12 min" were two unrelated-looking
+                      facts and the reader had to join them. Here the number is
+                      the step's own caption.
+
+                      Only this step, only while the helpr is actually en
+                      route, so no other column ever gains a third line and the
+                      row keeps the tight rhythm the heading-name move bought
+                      it. `items-start` on the row means the taller column
+                      hangs below the others rather than pushing them down. */}
+                  {s.key === "on_the_way" &&
+                    tracking?.status === "on_the_way" &&
+                    tracking.eta_minutes != null && (
+                      <span
+                        className="w-full text-ds-9 font-sans font-semibold text-center leading-tight tabular-nums"
+                        style={{ color: "hsl(var(--bark))" }}
+                      >
+                        ~{tracking.eta_minutes} min
+                      </span>
+                    )}
                 </div>
               );
             })}
@@ -789,7 +811,7 @@ export function JobTracking({
       {/* Live-tracking map — shown while helper is on the way and both
           positions are known. Lazy-loaded so the Leaflet chunk isn't paid
           for by cards that never enter this state. Falls back silently to
-          the ETA text below when coordinates are unavailable or the
+          the ETA caption on the tracker step when coordinates are unavailable or the
           Leaflet bundle hasn't loaded yet. */}
       {tracking?.status === "on_the_way" &&
         tracking.latitude != null &&
@@ -805,13 +827,6 @@ export function JobTracking({
             />
           </Suspense>
         )}
-
-      {/* ETA */}
-      {tracking?.eta_minutes && tracking.status === "on_the_way" && (
-        <p className="text-ds-11 text-muted-foreground text-center">
-          ETA: ~{tracking.eta_minutes} min
-        </p>
-      )}
 
       {/* Last update */}
       {tracking && (

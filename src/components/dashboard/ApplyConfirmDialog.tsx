@@ -186,7 +186,7 @@ export function ApplyConfirmDialog({
           instead of scrolling below the fold — which is the bug this dialog is
           being fixed for. The two rows are still (body, footer); the offline
           notice, when it renders, takes a third implicit `auto` track. */}
-      <AlertDialogContent className="!gap-3 max-h-[calc(100dvh-2rem)] grid-rows-[minmax(0,1fr)_auto] lg:max-w-3xl xl:max-w-4xl">
+      <AlertDialogContent className="grid-rows-[minmax(0,1fr)_auto] lg:max-w-3xl xl:max-w-4xl">
         {/* `min-w-0` is load-bearing, not decoration. AlertDialogContent is a
             CSS *grid*, so this body is a grid item whose default
             `min-width: auto` makes the implicit column's minimum equal the
@@ -518,7 +518,7 @@ export function ApplyConfirmDialog({
             `sm:!space-x-0` neutralises its `sm:space-x-2` so `gap-3` is the
             single source of spacing, and `justify-between` replaces the
             primitive's `sm:justify-end`. */}
-        <AlertDialogFooter className="!flex-row !items-center !justify-between !gap-2 sm:!space-x-0">
+        <AlertDialogFooter className="!flex-row !items-center !justify-between sm:!space-x-0">
           <AlertDialogCancel
             disabled={applyLoading}
             aria-label="Cancel"

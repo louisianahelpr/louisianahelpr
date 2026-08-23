@@ -204,7 +204,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
               )}
             </div>
           </div>
-          <DialogFooter className="!gap-2">
+          <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-ds-md">Cancel</Button>
             <Button
               onClick={upload}

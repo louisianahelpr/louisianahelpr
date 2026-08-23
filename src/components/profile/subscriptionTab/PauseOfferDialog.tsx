@@ -24,7 +24,7 @@ export const PauseOfferDialog = ({
 }) => {
   return (
     <Dialog open={pauseOfferOpen} onOpenChange={setPauseOfferOpen}>
-      <DialogContent className="!gap-3">
+      <DialogContent>
         <DialogHero
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><PauseCircle className="w-3 h-3" /> Take a breather</>}
@@ -44,7 +44,7 @@ export const PauseOfferDialog = ({
             Your verification status, saved helpers, payout history, and reviews — all untouched. Once we confirm your pause by email, we'll send a heads-up a week before it ends.
           </p>
         </div>
-        <DialogFooter className="!gap-2 sm:!justify-between">
+        <DialogFooter className="sm:!justify-between">
           <Button
             variant="ghost"
             onClick={() => {

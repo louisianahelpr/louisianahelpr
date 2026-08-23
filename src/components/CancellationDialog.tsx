@@ -412,7 +412,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             />
           </div>
         </div>
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button
             variant="ghost"
             disabled={cancelling}

@@ -210,7 +210,7 @@ export function IDVPromptDialog({
           </p>
         )}
 
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-ds-md h-11">
             {isPending || isAdminReview ? "OK" : "Not Now"}
           </Button>

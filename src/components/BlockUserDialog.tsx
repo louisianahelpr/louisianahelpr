@@ -109,7 +109,7 @@ export function BlockUserDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={(o) => !o && !submitting && onClose()}>
-      <AlertDialogContent className="!gap-3">
+      <AlertDialogContent>
         <AlertDialogHero
           eyebrow={<><ShieldAlert className="w-3 h-3" /> Safety</>}
           eyebrowClassName="inline-flex items-center gap-1.5"
@@ -149,7 +149,7 @@ export function BlockUserDialog({
             flex-col-reverse on mobile, which would float Cancel to the top.
             We want the action stack to read Just block → Block and report →
             Cancel, with Cancel anchored at the bottom. */}
-        <AlertDialogFooter className="!flex-col !gap-2 sm:!items-stretch sm:!space-x-0">
+        <AlertDialogFooter className="!flex-col sm:!items-stretch sm:!space-x-0">
           {/* Order: Just block → Block and report → Cancel. When the parent
               opts into report-and-block, "Block and report" is the primary
               filled CTA and sits closest to the thumb (just above Cancel);

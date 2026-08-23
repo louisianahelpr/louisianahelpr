@@ -301,7 +301,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             )}
           </div>
 
-          <DialogFooter className="!gap-2">
+          <DialogFooter>
             <Button
               variant="ghost"
               onClick={() => setEmailDialogOpen(false)}

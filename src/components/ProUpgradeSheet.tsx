@@ -123,7 +123,7 @@ export function ProUpgradeSheet({
           </ul>
         </div>
 
-        <DialogFooter className="!gap-2 !flex-col-reverse sm:!flex-row">
+        <DialogFooter className="!flex-col-reverse sm:!flex-row">
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md">
             Maybe Later
           </Button>

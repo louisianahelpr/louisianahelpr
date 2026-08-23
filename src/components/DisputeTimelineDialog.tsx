@@ -331,7 +331,7 @@ export const DisputeTimelineDialog = ({
           </div>
         )}
 
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md">
             Close
           </Button>

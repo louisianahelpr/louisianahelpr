@@ -262,7 +262,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
             </ul>
           </div>
         </div>
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md">Cancel</Button>
           <Button
             onClick={handleSubmit}

@@ -313,7 +313,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             />
           </div>
         </div>
-        <DialogFooter className="!flex-col !gap-2 !items-stretch">
+        <DialogFooter className="!flex-col !items-stretch">
           <Button
             onClick={handleSubmit}
             disabled={submitting || !canSubmit}
@@ -358,7 +358,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             Goes straight to the Helpr — no platform cut. Most posters tip 10–15%
             for great work.
           </p>
-          <DialogFooter className="!gap-2">
+          <DialogFooter>
             <Button
               variant="ghost"
               onClick={() => { setTipPromptOpen(false); onClose(); }}

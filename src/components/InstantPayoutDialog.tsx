@@ -165,7 +165,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
           </div>
         ) : null}
 
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="rounded-ds-md">
             Cancel
           </Button>

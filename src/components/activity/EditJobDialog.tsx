@@ -212,7 +212,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             </div>
           </section>
         </div>
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button
             variant="ghost"
             onClick={() => handleClose(false)}

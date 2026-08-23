@@ -525,7 +525,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           rendered by ProfileTabPanels on this tab's behalf — same pixels, but a
           second ownership model for the same element, which is why the tabs
           read as differently built. */}
-      <ProfileTabHeader title="Licensed &amp; insured" onBack={onBack} />
+      <ProfileTabHeader title="Licensed &amp; Insured" onBack={onBack} />
 
       <BrandConfirmDialog
         open={pullBack !== null}

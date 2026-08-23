@@ -270,7 +270,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           <DialogHero
             eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={<><Mail className="w-3 h-3" /> Account</>}
-            title="Change email address."
+            title="Change Email Address."
           />
 
           <div className="space-y-1.5">
@@ -340,7 +340,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       <BrandConfirmDialog
         open={signOutDialogOpen}
         onOpenChange={setSignOutDialogOpen}
-        title="Sign out everywhere?"
+        title="Sign Out Everywhere?"
         description="This signs out every device, including this one. You'll need to sign back in here."
         primaryLabel="Sign out everywhere"
         primaryTone="sienna"

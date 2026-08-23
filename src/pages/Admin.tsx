@@ -510,7 +510,7 @@ const Admin = () => {
         <BrandConfirmDialog
           open={showLogoutDialog}
           onOpenChange={setShowLogoutDialog}
-          title="See you soon?"
+          title="See You Soon?"
           description="You'll need to sign back in next time. Your posts and messages stay safe."
           primaryLabel="Log out"
           primaryTone="bark"

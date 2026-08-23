@@ -39,7 +39,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHero eyebrow="Send a direct offer" title="Set a response deadline" />
+        <DialogHero eyebrow="Send a direct offer" title="Set a Response Deadline" />
         <div className="space-y-4">
           <p className="text-ds-11 text-muted-foreground">
             How long should <span className="font-medium text-foreground">{helperName}</span> have to accept or decline this job?

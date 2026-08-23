@@ -612,7 +612,7 @@ const ProfilePage = () => {
     <BrandConfirmDialog
         open={showLogoutDialog}
         onOpenChange={setShowLogoutDialog}
-        title="Log out?"
+        title="Log Out?"
         description="You can sign back in anytime — your account stays intact."
         primaryLabel="Log out"
         primaryTone="bark"

@@ -89,7 +89,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
               <Zap className="w-3 h-3" /> Skip the wait
             </>
           }
-          title="Cash out instantly."
+          title="Cash Out Instantly."
         />
 
         {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main

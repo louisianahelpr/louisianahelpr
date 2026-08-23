@@ -128,7 +128,7 @@ const SignupPending = () => {
       // wrong-address case has its own explicit "Start over" link inside the
       // resend panel.
       backTo="/"
-      title="Check your inbox"
+      title="Check Your Inbox"
     >
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
         {/* Name the ADDRESS. It's the one fact this screen exists to

@@ -175,7 +175,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               <AlertTriangle className="w-3 h-3" /> Last resort
             </>
           }
-          title="File a dispute."
+          title="File a Dispute."
         />
         <div className="space-y-3.5">
           <div className="space-y-1.5">

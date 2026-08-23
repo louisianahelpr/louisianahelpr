@@ -210,7 +210,7 @@ export function BulkInviteDialog({
             </>
           }
           eyebrowClassName="inline-flex items-center gap-1.5"
-          title="Bulk invite by CSV"
+          title="Bulk Invite by CSV"
         />
 
         {rows.length === 0 ? (

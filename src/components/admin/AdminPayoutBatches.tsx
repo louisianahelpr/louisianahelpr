@@ -377,7 +377,7 @@ const AdminPayoutBatches = () => {
               </>
             }
             eyebrowClassName="inline-flex items-center gap-1.5"
-            title="Hold payout for review"
+            title="Hold Payout for Review"
           />
           <div className="space-y-3">
             <p className="text-ds-11 text-muted-foreground">
@@ -417,7 +417,7 @@ const AdminPayoutBatches = () => {
               </>
             }
             eyebrowClassName="inline-flex items-center gap-1.5"
-            title="Deny this payout"
+            title="Deny This Payout"
           />
           <div className="space-y-3">
             <p className="text-ds-11 text-muted-foreground">
@@ -454,7 +454,7 @@ const AdminPayoutBatches = () => {
       <BrandConfirmDialog
         open={confirmBulk}
         onOpenChange={(open) => { if (!open) setConfirmBulk(false); }}
-        title="Bulk approve these payouts?"
+        title="Bulk Approve These Payouts?"
         description={`This fires ${selected.size} Stripe transfer${selected.size > 1 ? "s" : ""} totalling $${selectedTotal.toFixed(2)}. This moves real money and can't be undone here.`}
         primaryLabel={bulkPaying ? "Queuing…" : `Send ${selected.size}`}
         primaryTone="sienna"
@@ -472,7 +472,7 @@ const AdminPayoutBatches = () => {
       <BrandConfirmDialog
         open={!!confirmBatch}
         onOpenChange={(open) => { if (!open) setConfirmBatch(null); }}
-        title="Send this payout?"
+        title="Send This Payout?"
         description={
           confirmBatch
             ? `This transfers $${Number(confirmBatch.total_payout).toFixed(2)} to ${confirmBatch.helper_name} for ${confirmBatch.job_count} job${confirmBatch.job_count !== 1 ? "s" : ""} via Stripe. This moves real money and can't be undone here.`

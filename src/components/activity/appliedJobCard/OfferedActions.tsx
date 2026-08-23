@@ -164,7 +164,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
       <BrandConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Decline this job?"
+        title="Decline This Job?"
         description="You applied for this one and the poster picked you, so backing out now counts against your account."
         callout={{
           text: "Three declines gets you a warning. Five is a permanent ban. This can't be undone.",

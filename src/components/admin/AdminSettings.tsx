@@ -563,7 +563,7 @@ const AdminSettings = () => {
       <BrandConfirmDialog
         open={!!confirmRemove}
         onOpenChange={(open) => { if (!open) setConfirmRemove(null); }}
-        title="Remove this admin?"
+        title="Remove This Admin?"
         description={`This revokes admin access for ${confirmRemove?.name || "this user"}. They'll lose access to the admin dashboard immediately.`}
         primaryLabel={confirmRemove && removing === confirmRemove.role_id ? "Removing…" : "Remove admin"}
         primaryTone="sienna"

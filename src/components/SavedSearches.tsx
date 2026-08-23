@@ -237,7 +237,7 @@ export function SavedSearches({
               <Bookmark className="w-3 h-3" strokeWidth={2} aria-hidden="true" /> Get notified
             </>
           }
-          title="Saved searches"
+          title="Saved Searches"
         />
 
         <div className="space-y-2.5">

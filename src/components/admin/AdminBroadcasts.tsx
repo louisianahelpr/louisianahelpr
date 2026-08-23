@@ -336,7 +336,7 @@ const AdminBroadcasts = () => {
       <BrandConfirmDialog
         open={!!confirmDeleteId}
         onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}
-        title="Delete this broadcast?"
+        title="Delete This Broadcast?"
         description="It will be removed for everyone immediately. This can't be undone."
         primaryLabel={deleting ? "Deleting…" : "Delete broadcast"}
         primaryTone="sienna"

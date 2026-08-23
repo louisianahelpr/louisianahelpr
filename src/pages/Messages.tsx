@@ -451,7 +451,7 @@ const Messages = () => {
       <BrandConfirmDialog
         open={!!deleteConvoConfirm}
         onOpenChange={(o) => { if (!o) setDeleteConvoConfirm(null); }}
-        title="Hide this conversation?"
+        title="Hide This Conversation?"
         description={`This removes the conversation with ${deleteConvoConfirm?.otherUserName ?? "this person"} from your inbox. No messages are deleted, and it'll come back if they send you a new message.`}
         primaryLabel="Hide"
         primaryTone="sienna"
@@ -480,7 +480,7 @@ const Messages = () => {
       <BrandConfirmDialog
         open={!!deleteMessageConfirm}
         onOpenChange={(o) => { if (!o) setDeleteMessageConfirm(null); }}
-        title="Delete message?"
+        title="Delete Message?"
         description="This message will be permanently deleted. This can't be undone."
         primaryLabel="Delete"
         primaryTone="sienna"

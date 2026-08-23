@@ -260,7 +260,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                 <Gift className="w-3 h-3" /> Optional
               </>
             }
-            title="Say thanks with a tip?"
+            title="Say Thanks with a Tip?"
           />
           <div className="space-y-4">
             <p className="text-ds-11 text-muted-foreground">Tips go directly to {revieweeName}. Totally optional!</p>
@@ -316,7 +316,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                 <Heart className="w-3 h-3" /> Spread the word
               </>
             }
-            title="Loved it? Share Helpr."
+            title="Loved It? Share Helpr."
           />
           <div className="space-y-4">
             <p className="text-ds-11 text-muted-foreground">

@@ -100,7 +100,7 @@ export function MessageActionSheet({
             DialogHero). This block used to compose the eyebrow → title parts
             inline because SheetHero did not exist yet; hand-copying the tokens
             is what let four sheets drift to four different title sizes. */}
-        <SheetHero className="pl-1 pb-2" title="What next?" />
+        <SheetHero className="pl-1 pb-2" title="What Next?" />
         {/* Tapbacks — the row sits ABOVE the action list because it is the
             thing people reach for most, and because a horizontal emoji strip
             reads as a different KIND of control than the stacked destructive

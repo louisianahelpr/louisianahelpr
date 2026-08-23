@@ -208,7 +208,7 @@ const AdminCredentialQueue = () => {
       <AlertDialog open={!!rejectTarget} onOpenChange={(o) => !o && setRejectTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHero
-            title="Reject credential"
+            title="Reject Credential"
           />
           <Textarea
             aria-label="Credential rejection reason"

@@ -98,7 +98,7 @@ const ResetPassword = () => {
   };
 
   return (
-    <AuthShell hideHeader maxWidth="sm" backTo="/login" title="Choose a new one." desktopBrandPanel={<AuthBrandPane />}>
+    <AuthShell hideHeader maxWidth="sm" backTo="/login" title="Choose a New One." desktopBrandPanel={<AuthBrandPane />}>
       {/* Heading + emblem removed. The heading is now AuthShell's `title` row
           (left of the chevron, ds-24) like every other auth screen — this one
           rendered it centred at clamp(1.85rem,3vw+0.5rem,2.5rem), a third

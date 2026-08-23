@@ -28,7 +28,7 @@ export const PauseOfferDialog = ({
         <DialogHero
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><PauseCircle className="w-3 h-3" /> Take a breather</>}
-          title="Pause 1 month free instead?"
+          title="Pause 1 Month Free Instead?"
         />
         <div
           className="rounded-ds-md p-3 mt-1 space-y-1"

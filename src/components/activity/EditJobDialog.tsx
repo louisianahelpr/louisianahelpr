@@ -243,7 +243,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       <AlertDialogContent>
         <AlertDialogHero
           eyebrow="Editing your job"
-          title="Save these changes?"
+          title="Save These Changes?"
         />
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -260,7 +260,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       <AlertDialogContent>
         <AlertDialogHero
           eyebrow="Editing your job"
-          title="Discard your changes?"
+          title="Discard Your Changes?"
         />
         <AlertDialogFooter>
           <AlertDialogCancel>Keep editing</AlertDialogCancel>

@@ -231,7 +231,7 @@ function EnrollDialog({
         <DialogHero
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><Smartphone className="w-3 h-3" /> Authenticator app</>}
-          title="Turn on two-step."
+          title="Turn On Two-Step."
         />
 
         {isLoading ? (
@@ -364,7 +364,7 @@ function DisableDialog({
         <DialogHero
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><ShieldCheck className="w-3 h-3" /> Two-step verification</>}
-          title="Turn off two-step?"
+          title="Turn Off Two-Step?"
         />
 
         <div className="space-y-1.5">

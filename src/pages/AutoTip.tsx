@@ -137,7 +137,7 @@ const AutoTip = () => {
 
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Auto-tip" />
+      <PageHeader title="Auto-Tip" />
       <div className="px-4 max-w-2xl mx-auto space-y-5 pt-2">
         <section className="liquid-glass rounded-ds-md p-5 space-y-4">
           <p

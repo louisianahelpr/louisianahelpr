@@ -40,7 +40,7 @@ export function DeleteAccountDialog({
       <BrandConfirmDialog
         open={open}
         onOpenChange={handleOpenChange}
-        title="Delete your Helpr account?"
+        title="Delete Your Helpr Account?"
         description="Permanent. Job history, earnings records, and verified credentials will be gone for good."
         callout={{
           icon: AlertTriangle,

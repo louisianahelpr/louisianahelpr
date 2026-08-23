@@ -88,7 +88,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        title="My reviews"
+        title="My Reviews"
         onBack={onBack}
       />
 

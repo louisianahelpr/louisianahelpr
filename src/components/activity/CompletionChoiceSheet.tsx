@@ -179,7 +179,7 @@ export function CompletionChoiceSheet({
       <SheetContent side="bottom" className="pb-safe-nav">
         {mode === "choice" ? (
           <>
-            <SheetHero className="mb-4" title="How did it go?" />
+            <SheetHero className="mb-4" title="How Did It Go?" />
 
             <div className="space-y-3">
               {/* Path A — release payment */}
@@ -274,7 +274,7 @@ export function CompletionChoiceSheet({
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <div className="flex-1 min-w-0">
-                <SheetHero title="What needs to be fixed?" className="pt-0" />
+                <SheetHero title="What Needs to Be Fixed?" className="pt-0" />
               </div>
             </div>
             <p

@@ -83,7 +83,7 @@ export default function BusinessNoAccountState({ title }: { title: string }) {
         <DialogContent>
           <DialogHero
             eyebrow="Helpr Business"
-            title="Create your business account"
+            title="Create Your Business Account"
           />
           <div className="space-y-2">
             <Label htmlFor="business-name">Company name</Label>

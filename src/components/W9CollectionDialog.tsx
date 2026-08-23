@@ -89,7 +89,7 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
               <FileSignature className="w-3 h-3" /> Tax form
             </>
           }
-          title="Sign your W-9"
+          title="Sign Your W-9"
         />
         {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
             title": headers show a title and nothing else). Not dropped —

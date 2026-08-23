@@ -148,7 +148,7 @@ export function ProfileEditForm({
     // clearance quietly lost the home-indicator allowance.
     <div className="space-y-3" style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 6.5rem)" }}>
       <ProfileTabHeader
-        title="Edit profile"
+        title="Edit Profile"
         onBack={onBack}
       />
 

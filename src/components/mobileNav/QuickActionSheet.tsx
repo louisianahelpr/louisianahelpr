@@ -47,7 +47,7 @@ export const QuickActionSheet = ({ quickActionTab, onClose, quickActions }: Quic
     <SheetContent side="bottom">
       {quickActionTab === "/dashboard" && (
         <>
-          <SheetHero title="Browse jobs" />
+          <SheetHero title="Browse Jobs" />
           <div className="flex flex-col gap-2 mt-6">
             <QuickActionRow icon={Filter} label="Open filter chips" onClick={quickActions.browseFilters} />
           </div>

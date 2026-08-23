@@ -168,7 +168,7 @@ export default function FamilyDashboard() {
         it sat in a visibly different column from every sibling. */}
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader
-        title="Family & care"
+        title="Family & Care"
         backTo="/profile"
       />
 
@@ -410,7 +410,7 @@ export default function FamilyDashboard() {
     <BrandConfirmDialog
       open={pendingRevokeId !== null}
       onOpenChange={(open) => { if (!open) setPendingRevokeId(null); }}
-      title="Remove access?"
+      title="Remove Access?"
       description={`${pendingRevokeName} will no longer be able to view or post jobs on your behalf. Jobs they already posted stay on your account exactly as they are — nothing is cancelled.`}
       primaryLabel={revokeMut.isPending ? "Removing…" : "Remove access"}
       primaryTone="sienna"

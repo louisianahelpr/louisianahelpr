@@ -252,7 +252,7 @@ const Login = () => {
   };
 
   return (
-    <AuthShell hideHeader centerColumn backTo="/" maxWidth="2xl" title="Sign in">
+    <AuthShell hideHeader centerColumn backTo="/" maxWidth="2xl" title="Sign In">
       {/* The [back] [Sign in] row now comes from AuthShell's `title` prop —
           it was hand-rolled here, then hand-copied (and drifted) into
           ForgotPassword, Signup and SignupPending. One implementation, in the

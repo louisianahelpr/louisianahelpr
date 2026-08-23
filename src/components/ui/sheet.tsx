@@ -249,7 +249,7 @@ SheetDescription.displayName = SheetPrimitive.Description.displayName;
  * every dialog. (Tiny tap-a-row action menus intentionally keep their own
  * compact label — a full hero on a 2-button menu reads overbuilt.)
  *
- *   <SheetHero eyebrow="Filters" title="Refine your search" subtitle="…" />
+ *   <SheetHero eyebrow="Filters" title="Refine Your Search" subtitle="…" />
  */
 const SheetHero = ({
   title,

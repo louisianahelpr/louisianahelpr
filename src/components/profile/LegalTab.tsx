@@ -164,7 +164,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6rem)" }}
     >
       <ProfileTabHeader
-        title="Legal &amp; policies"
+        title="Legal &amp; Policies"
         onBack={onBack}
       />
 

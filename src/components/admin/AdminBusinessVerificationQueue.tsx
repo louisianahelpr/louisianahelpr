@@ -167,7 +167,7 @@ const AdminBusinessVerificationQueue = () => {
       <AlertDialog open={!!rejectTarget} onOpenChange={(o) => !o && setRejectTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHero
-            title="Reject business verification"
+            title="Reject Business Verification"
           />
           <Textarea
             aria-label="Business verification rejection reason"

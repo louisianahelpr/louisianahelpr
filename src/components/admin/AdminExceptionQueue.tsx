@@ -218,7 +218,7 @@ const ExceptionQueueInner = () => {
       <AlertDialog open={!!resolveTarget} onOpenChange={(o) => !o && setResolveTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHero
-            title="Resolve exception"
+            title="Resolve Exception"
           />
           <Textarea
             aria-label="Resolution note"

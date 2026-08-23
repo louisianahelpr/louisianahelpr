@@ -74,7 +74,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
               <Rocket className="w-3 h-3" /> Lift it to the top
             </>
           }
-          title="Boost your job."
+          title="Boost Your Job."
         />
         <div className="space-y-3">
           {/* Price card — parchment-gold pill recipe (matches Tip + Payout).

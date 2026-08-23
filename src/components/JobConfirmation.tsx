@@ -182,7 +182,7 @@ export function JobConfirmation({
                 <ShieldCheck className="w-3 h-3" /> Locking it in
               </>
             }
-            title="Commit to this job?"
+            title="Commit to This Job?"
           />
           <div className="space-y-3">
             <div

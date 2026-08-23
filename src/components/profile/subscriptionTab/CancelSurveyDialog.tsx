@@ -20,7 +20,7 @@ export const CancelSurveyDialog = ({
       <DialogContent className="!gap-3">
         <DialogHero
           eyebrow="Before you go"
-          title="Thinking of cancelling?"
+          title="Thinking of Cancelling?"
         />
         <div className="space-y-2">
           {[

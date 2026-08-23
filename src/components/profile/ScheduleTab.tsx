@@ -186,7 +186,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
     <div className="space-y-4">
       {!hideHeader && (
         <ProfileTabHeader
-          title="My schedule"
+          title="My Schedule"
           onBack={onBack}
         />
       )}

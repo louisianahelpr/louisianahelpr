@@ -368,7 +368,7 @@ export const AppliedJobsTab = ({
           side="bottom"
           className="border-t-0 px-5 pt-6 pb-[calc(var(--safe-area-bottom,0px)_+_24px)] max-h-[85dvh] overflow-y-auto"
         >
-          <SheetHero title="Withdraw application?" />
+          <SheetHero title="Withdraw Application?" />
 
           <fieldset className="mt-5 space-y-1.5" disabled={!!withdrawingAppId}>
             {/* Quiet olivewood serif prompt, exactly like

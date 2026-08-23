@@ -91,7 +91,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <AuthShell hideHeader backTo="/login" centerColumn maxWidth="2xl" title="Password reset">
+    <AuthShell hideHeader backTo="/login" centerColumn maxWidth="2xl" title="Password Reset">
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
         {sent ? (
           <div className="text-center space-y-4">

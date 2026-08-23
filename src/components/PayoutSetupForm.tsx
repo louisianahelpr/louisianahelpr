@@ -396,7 +396,7 @@ export function PayoutSetupForm() {
       <BrandConfirmDialog
         open={confirmReset}
         onOpenChange={setConfirmReset}
-        title="Reset your payout account?"
+        title="Reset Your Payout Account?"
         description="This deletes your current Stripe account and starts a fresh one. You'll need to complete onboarding again before payouts can run. Only do this if onboarding is stuck."
         primaryLabel={resetting ? "Resetting…" : "Reset & start fresh"}
         primaryTone="sienna"

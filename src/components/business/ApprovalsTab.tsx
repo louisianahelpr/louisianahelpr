@@ -258,7 +258,7 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
       <BrandConfirmDialog
         open={!!rejectTarget}
         onOpenChange={(open) => { if (!open) setRejectTarget(null); }}
-        title="Reject this post?"
+        title="Reject This Post?"
         description="The poster is notified it won't go live. You can add a short reason — it's optional and shown to them."
         primaryLabel="Reject post"
         primaryTone="sienna"

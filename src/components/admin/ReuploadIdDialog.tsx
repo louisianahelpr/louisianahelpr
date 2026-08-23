@@ -71,7 +71,7 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
             </>
           }
           eyebrowClassName="inline-flex items-center gap-1.5"
-          title="Request ID Re-upload"
+          title="Request ID Re-Upload"
         />
         <div className="space-y-3">
           <p className="text-ds-11 text-muted-foreground">

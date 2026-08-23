@@ -89,7 +89,7 @@ export function SosShareButton({
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" className="pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-          <SheetHero title="Share your location" />
+          <SheetHero title="Share Your Location" />
           <div className="mt-4 space-y-2">
             <Button
               className="w-full"

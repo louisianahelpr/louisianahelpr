@@ -204,7 +204,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        title="Earnings & payouts"
+        title="Earnings & Payouts"
         onBack={onBack}
         rightSlot={
           <EarningsToolsMenu

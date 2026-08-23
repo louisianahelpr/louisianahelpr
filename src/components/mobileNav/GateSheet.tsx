@@ -29,7 +29,7 @@ export const GateSheet = ({ open, onOpenChange }: GateSheetProps) => {
         side="bottom"
         className="pb-[calc(1rem_+_env(safe-area-inset-bottom,0px))]"
       >
-        <SheetHero title="Create your free account" />
+        <SheetHero title="Create Your Free Account" />
         <div className="flex flex-col gap-3 mt-6">
           <Button
             size="lg"

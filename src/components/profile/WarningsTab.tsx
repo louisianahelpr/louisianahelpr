@@ -26,7 +26,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        title="Warnings &amp; strikes"
+        title="Warnings &amp; Strikes"
         onBack={onBack}
       />
 

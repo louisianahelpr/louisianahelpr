@@ -30,6 +30,16 @@ export default {
       },
     },
     extend: {
+      // `lg` is 900, not Tailwind's default 1024, and it is load-bearing:
+      // it must match WEB_DESKTOP_QUERY in useAppShellViewport.ts and
+      // useIsWebDesktop.ts. Those hooks stamp `web-desktop` on <html> to
+      // switch on the desktop rail and the full-width shell; every `lg:`
+      // utility inside that shell has to turn on at the same width, or the
+      // chrome goes desktop while the content is still laying out for a
+      // phone. Change one, change all three.
+      screens: {
+        lg: "900px",
+      },
       fontFamily: {
         // Brand system (Louisiana Helpr, 2026):
         //   - Display: Bodoni Moda (architectural authority — large hero headlines)

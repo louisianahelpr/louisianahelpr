@@ -116,7 +116,16 @@ const isDocumentScrollRoute = (pathname: string) => {
  * kicks in. Matches Tailwind's `lg` breakpoint so `lg:` utilities and this
  * gate stay in lockstep.
  */
-const WEB_DESKTOP_QUERY = "(min-width: 1024px)";
+/* 900, not 1024. The desktop website — left rail, wide layout — used to begin
+   at 1024, which meant a docked browser pane (commonly 600-1020px) never
+   qualified and always got the phone/tablet treatment. Lowered so a normal
+   split-screen window gets the real desktop site.
+
+   MUST stay in sync with `lg` in tailwind.config.ts and with the twin copy of
+   this query in the other hook. If the JS gate and the `lg:` utilities
+   disagree, the shell paints desktop chrome while the components inside it
+   are still laying out for mobile. */
+const WEB_DESKTOP_QUERY = "(min-width: 900px)";
 
 /**
  * Toggles the `app-shell` class on <html> based on the current route.
@@ -127,7 +136,7 @@ const WEB_DESKTOP_QUERY = "(min-width: 1024px)";
  * wide *browser* viewport (NOT the native iOS/Android shell). This is the
  * single gate the desktop multi-column website layout hangs off of:
  *
- *   web-desktop  ⟺  !isNativePlatform  &&  matchMedia('(min-width: 1024px)')
+ *   web-desktop  ⟺  !isNativePlatform  &&  matchMedia('(min-width: 900px)')
  *
  * `isNativePlatform` is a module constant resolved from
  * `Capacitor.isNativePlatform()` at boot, so in the packaged iOS/Android app

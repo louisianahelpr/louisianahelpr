@@ -174,20 +174,49 @@ const UserProfile = () => {
           titleActions={headerActionPlaceholder}
         />
         <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
-          <div className="max-w-2xl mx-auto space-y-5">
-            <div className="rounded-2xl liquid-glass p-5 text-center space-y-3">
-              <div className="w-24 h-24 rounded-ds-avatar squircle bg-muted motion-safe:animate-pulse mx-auto" />
-              <div className="h-6 w-40 bg-muted motion-safe:animate-pulse mx-auto rounded" />
-              <div className="h-4 w-24 bg-muted motion-safe:animate-pulse mx-auto rounded" />
-              <div className="h-4 w-64 bg-muted motion-safe:animate-pulse mx-auto rounded" />
+          {/* The SAME wrapper the loaded body uses below — full page measure,
+              one column, gap-6. It used to carry `max-w-2xl mx-auto`, a cap no
+              other state on this page has: 86545cb12 moved all four states onto
+              the shared shell and dropped that cap from the error and not-found
+              branches, but missed this one. Measured at 1440: the skeleton
+              column sat at 672px and the loaded column at 1096px, so the page
+              visibly grew 1.63x the instant the query resolved — the owner's
+              "opens small then gets bigger".
+
+              The bones below also mirror the real card SHAPES rather than
+              approximating them, because width was only half of it: two bones
+              (~300px) were standing in for a body that runs 600–1500px, so the
+              page grew vertically too, on every viewport including phone where
+              the width cap never binds. */}
+          <div className="flex flex-col gap-6 items-stretch">
+            {/* Mirrors ProfileHeaderCard: below sm one centred stack, at sm+ a
+                fixed identity column beside the record. */}
+            <div className="rounded-2xl liquid-glass p-5 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-5">
+              <div className="flex flex-col items-center sm:items-start gap-2 sm:w-[212px] sm:shrink-0">
+                <div className="w-24 h-24 rounded-ds-avatar squircle bg-muted motion-safe:animate-pulse" />
+                <div className="h-6 w-40 bg-muted motion-safe:animate-pulse rounded" />
+                <div className="h-4 w-24 bg-muted motion-safe:animate-pulse rounded" />
+              </div>
+              <div className="flex-1 space-y-3 w-full">
+                <div className="h-4 w-full bg-muted motion-safe:animate-pulse rounded" />
+                <div className="h-4 w-5/6 bg-muted motion-safe:animate-pulse rounded" />
+                <div className="h-16 w-full bg-muted motion-safe:animate-pulse rounded" />
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="rounded-ds-md liquid-glass p-3 space-y-2">
-                  <div className="h-7 w-10 bg-muted motion-safe:animate-pulse mx-auto rounded" />
-                  <div className="h-3 w-12 bg-muted motion-safe:animate-pulse mx-auto rounded" />
-                </div>
-              ))}
+            <div className="space-y-5">
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="rounded-ds-md liquid-glass p-3 space-y-2">
+                    <div className="h-7 w-10 bg-muted motion-safe:animate-pulse mx-auto rounded" />
+                    <div className="h-3 w-12 bg-muted motion-safe:animate-pulse mx-auto rounded" />
+                  </div>
+                ))}
+              </div>
+              {/* Endorsements, availability and portfolio each run their OWN
+                  fetch and return null until it lands, so they arrive in a
+                  second wave after this skeleton is already gone. One bone
+                  holds that space instead of letting the page jump twice. */}
+              <div className="h-40 rounded-2xl liquid-glass motion-safe:animate-pulse" />
             </div>
           </div>
         </div>

@@ -10,23 +10,34 @@ interface ApplicantQueueBannerProps {
     - **Already applied** — the viewer is in the queue. Show a
       calm green "you're #3 of 7" banner that frames their
       position relative to the rest, so they don't doom-refresh.
-    - **Not yet applied** — the original "X applied — you'd be
-      #(X+1) in line" sienna nudge. Only renders when there's
-      at least one existing applicant, so fresh posts don't
+    - **Not yet applied, others have** — the original "X applied —
+      you'd be #(X+1) in line" sienna nudge. Only renders when
+      there's at least one existing applicant, so fresh posts don't
       fire the urgency tone for nothing.
+    - **Nobody has applied** — a calm olivewood "you'd be first in
+      line". Factual, not urgent, for the same reason.
 
     While `applicationCount` is still loading (null), reserve the
     banner's height with a quiet pulsing skeleton row so the footer
     buttons below don't jump down when the count resolves on a slow
-    network. The skeleton matches the real banner's px-3 py-2 box so
-    the swap is zero-shift. */
+    network.
+
+    THE INVARIANT: every one of those four states OCCUPIES THE SLOT,
+    and `min-h-[3.1875rem]` pins them to one height so copy length
+    cannot reintroduce a shift. The zero-applicant state used to be
+    the hole in that — it matched no branch, so the row and one of
+    DialogContent's 1rem grid gaps vanished together and ~67px fell
+    out of an already-open dialog. On phone the sheet is anchored to
+    the BOTTOM, so the shrink slid the title down mid-read, which is
+    what the owner reported as "opens large then gets smaller". Any
+    new state added here must render a box, never null. */
 export const ApplicantQueueBanner = ({ guest, applicationCount, viewerAppPosition }: ApplicantQueueBannerProps) => {
   return (
     <>
       {applicationCount === null && !guest ? (
         <div
           aria-hidden
-          className="rounded-ds-md px-3 py-2 flex items-start gap-2 motion-safe:animate-pulse"
+          className="rounded-ds-md px-3 py-2 min-h-[3.1875rem] flex items-start gap-2 motion-safe:animate-pulse"
           style={{
             background: "hsl(var(--olivewood) / 0.05)",
             border: "0.5px solid hsl(var(--olivewood) / 0.10)",
@@ -57,7 +68,7 @@ export const ApplicantQueueBanner = ({ guest, applicationCount, viewerAppPositio
         </div>
       ) : viewerAppPosition !== null && (
         <div
-          className="rounded-ds-md px-3 py-2 flex items-center gap-2"
+          className="rounded-ds-md px-3 py-2 min-h-[3.1875rem] flex items-center gap-2"
           style={{
             background: "hsl(var(--success-tint))",
             border: "0.5px solid hsl(var(--success-border) / 0.35)",
@@ -77,7 +88,7 @@ export const ApplicantQueueBanner = ({ guest, applicationCount, viewerAppPositio
       )}
       {viewerAppPosition === null && applicationCount !== null && applicationCount > 0 && (
         <div
-          className="rounded-ds-md px-3 py-2 flex items-center gap-2"
+          className="rounded-ds-md px-3 py-2 min-h-[3.1875rem] flex items-center gap-2"
           style={{
             background: "hsl(var(--burnt-sienna) / 0.08)",
             border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
@@ -92,6 +103,45 @@ export const ApplicantQueueBanner = ({ guest, applicationCount, viewerAppPositio
               {applicationCount} Helpr{applicationCount === 1 ? "" : "s"} already applied.
             </span>{" "}
             You'd be #{applicationCount + 1} in line.
+          </p>
+        </div>
+      )}
+      {/* ZERO applicants — the slot still has to be OCCUPIED.
+          The loading skeleton above reserves ~51px, and when the count landed
+          at 0 BOTH branches went false: the row disappeared and took one of
+          DialogContent's 1rem grid gaps with it, dropping ~67px out of an open
+          dialog. On phone the sheet is bottom-anchored (`bottom-0`), so that
+          shrink slides the title DOWN while the reader is looking at it —
+          the owner's "opens large then gets smaller".
+          A fresh post gets a factual line in the same box, deliberately in the
+          calm olivewood tone rather than the sienna one the real-competition
+          banner uses: inventing urgency for a job nobody has applied to would
+          be a lie in the reader's favour, and being first is genuinely worth
+          knowing. */}
+      {viewerAppPosition === null && applicationCount === 0 && (
+        <div
+          className="rounded-ds-md px-3 py-2 min-h-[3.1875rem] flex items-center gap-2"
+          style={{
+            background: "hsl(var(--olivewood) / 0.05)",
+            border: "0.5px solid hsl(var(--olivewood) / 0.14)",
+          }}
+        >
+          <Users
+            className="w-3.5 h-3.5 shrink-0"
+            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+            strokeWidth={2.25}
+          />
+          <p
+            className="font-serif italic leading-snug text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            <span
+              className="not-italic font-display font-bold"
+              style={{ color: "hsl(var(--ink-deep))" }}
+            >
+              No one has applied yet.
+            </span>{" "}
+            You'd be first in line.
           </p>
         </div>
       )}

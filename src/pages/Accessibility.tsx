@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import PageHeader from "@/components/PageHeader";
+import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { hapticLight } from "@/lib/haptics";
 import { isSimpleMode, setSimpleMode } from "@/lib/simpleMode";
@@ -31,9 +32,18 @@ const Accessibility = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Accessibility" />
-      <div className="px-4 max-w-2xl mx-auto space-y-5 pt-2">
+    // PublicLayout (owner): this is a public page anyone can land on from a
+    // link, and it was rendering with no top nav and no footer — a dead end for
+    // exactly the visitor it is written for. PublicLayout also handles the
+    // native branch, so the in-app screen keeps its own shell.
+    //
+    // `page-measure` + the shared px scale rather than a private `max-w-2xl`,
+    // so this page fills its column like every other public page instead of
+    // sitting in a narrow strip of its own.
+    <PublicLayout>
+      <div className="min-h-screen bg-premium-page pb-safe-nav">
+        <PageHeader title="Accessibility" />
+        <div className="px-5 sm:px-8 lg:px-12 page-measure space-y-5 pt-2">
         <section className="liquid-glass rounded-ds-md p-5">
           <div className="flex items-start gap-3">
             <span
@@ -78,8 +88,9 @@ const Accessibility = () => {
           </label>
         </section>
 
+        </div>
       </div>
-    </div>
+    </PublicLayout>
   );
 };
 

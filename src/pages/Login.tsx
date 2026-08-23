@@ -334,7 +334,7 @@ const Login = () => {
             what read as wrong. Splitting the two sign-in METHODS uses the width
             for something real instead of inflating one field. Stacks below lg,
             unchanged. */}
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr] lg:gap-8 lg:items-stretch">
+        <div className="grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch">
         <form onSubmit={handleLogin} className="space-y-3.5 lg:space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
@@ -420,7 +420,7 @@ const Login = () => {
                 // control competing with the primary one. The screen gets ONE
                 // strong green. Dropped to medium weight for the same reason —
                 // this is the escape hatch, not the action.
-                className="min-h-[44px] -my-2 inline-flex items-center text-ds-12 font-sans font-medium hover:underline active:opacity-60 transition-opacity"
+                className="min-h-[44px] -my-2 inline-flex items-center text-ds-12 font-sans font-semibold hover:underline active:opacity-60 transition-opacity"
                 style={{ color: "hsl(var(--bark))" }}
               >
                 Forgot password?
@@ -501,19 +501,6 @@ const Login = () => {
             375px; `whitespace-nowrap` guarantees that if the copy ever grows
             the link drops to its own line intact rather than splitting in the
             middle again. */}
-        {/* The way to the OTHER page. The segmented tabs used to carry this;
-            with them gone, sign-in needs an explicit route to sign-up or the
-            two separate pages become one-way. */}
-        <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          New to Helpr?{" "}
-          <Link
-            to="/signup"
-            className="font-semibold hover:underline whitespace-nowrap"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            Create an account
-          </Link>
-        </p>
         {BUSINESS_ENABLED && (
         <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Setting up a company?{" "}
@@ -533,6 +520,20 @@ const Login = () => {
         )}
       </div>
 
+      {/* OUTSIDE the glass card (owner). Inside it, this read as one more row
+          of the sign-in form; it is not — it is the way to a different page.
+          Below the card it reads as what it is: "or you don't have an account
+          at all". */}
+      <p className="text-center text-ds-12 font-sans mt-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        New to Helpr?{" "}
+        <Link
+          to="/signup"
+          className="font-semibold hover:underline whitespace-nowrap"
+          style={{ color: "hsl(var(--bark))" }}
+        >
+          Create an account
+        </Link>
+      </p>
 
     </AuthShell>
   );

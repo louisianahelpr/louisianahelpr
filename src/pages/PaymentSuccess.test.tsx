@@ -25,7 +25,12 @@ const getUser = vi.fn(async () => ({ data: { user: null } }));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    auth: { getUser: () => getUser() },
+    auth: {
+      getUser: () => getUser(),
+      // AuthShell renders the shared Navbar on web, which reads useAuthReady.
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+    },
     from: () => ({
       // The confirmation lookup: .select(...).eq(...).maybeSingle()
       // The analytics count query: .select(..., {count}).eq(...).not(...)

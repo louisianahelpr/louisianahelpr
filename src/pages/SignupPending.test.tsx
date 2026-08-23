@@ -10,6 +10,8 @@ vi.mock("@/integrations/supabase/client", () => ({
     auth: {
       resend: (...args: unknown[]) => resendMock(...args),
       getSession: (...args: unknown[]) => getSessionMock(...args),
+      // AuthShell renders the shared Navbar on web, which reads useAuthReady.
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     },
   },
 }));

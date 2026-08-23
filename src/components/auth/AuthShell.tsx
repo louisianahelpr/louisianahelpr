@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { isNativePlatform } from "@/lib/nativeInit";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { ReactNode } from "react";
 import HelprMark from "@/components/HelprMark";
 import BackButton from "@/components/BackButton";
@@ -85,10 +87,12 @@ const widthMap = {
   // strip on 1440+ viewports (matches the "wider centered card" audit
   // direction the user picked for the ambient-bg auth pages).
   lg: "max-w-md sm:max-w-lg lg:max-w-xl",
-  // Widest rung — the auth cards now carry their heading INSIDE the card, so
-  // the card is the whole composition and a 576px column left it reading as a
-  // narrow strip on a 1200+ viewport.
-  "2xl": "max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-5xl",
+  // Widest rung — `page-measure`, the SAME measure every public page uses
+  // (owner). It used to cap at max-w-5xl, so an auth screen sat in a 1024px
+  // column while the nav directly above it ran to the window edge: the page's
+  // own header and its content did not share an edge. No cap now; the column
+  // runs to the wrapper's horizontal padding, exactly like /jobs and /legal.
+  "2xl": "page-measure",
 };
 
 const AuthShell = ({
@@ -126,7 +130,33 @@ const AuthShell = ({
   // preserved without hard-coding it here. An explicit `backTo` still wins.
   const backLink = <BackButton to={backTo} onClick={backOnClick} />;
 
-  return (
+  // WEB: auth screens carry the same top nav and footer as every other public
+  // page (owner). They are landing pages in their own right — reached from
+  // search, from a shared link, from the App Store listing — and a page with no
+  // way out of it is a dead end, not a focused flow.
+  //
+  // NATIVE is untouched: inside the app this is already a screen within the
+  // shell, and a marketing footer offering an App Store download would be
+  // nonsense there. Same split PublicLayout makes.
+  const withWebChrome = (content: React.ReactNode) =>
+    isNativePlatform ? content : (
+      <>
+        <Navbar solid={false} />
+        {/* Spacer clears the FIXED navbar. Without it the nav sat directly on
+            top of the [back] [title] row — the title was in the DOM at y=31
+            with a 56px fixed bar over it, so the page simply looked like it had
+            lost its heading. Same height calc PublicLayout uses, so auth pages
+            start at exactly the same offset as every other public page. */}
+        <div
+          aria-hidden
+          style={{ height: "calc(max(var(--safe-area-top, 0px), 1.5rem) + 3rem)" }}
+        />
+        {content}
+        <Footer />
+      </>
+    );
+
+  return withWebChrome(
     <div className="min-h-screen bg-premium-page relative overflow-hidden">
       {/* Ambient brand-wash decoration — desktop-only, sits behind the
           auth column. Two soft radial gradients in the brand palette
@@ -175,7 +205,7 @@ const AuthShell = ({
           {backLink}
         </div>
       )}
-      <div className={`relative z-10 flex flex-col ${centered ? "items-center" : alignClass} ${anchor === "top" ? "justify-start" : `${centered ? "lg:justify-center" : ""} justify-center`} min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(var(--safe-area-top,0px)_+_10px)] sm:pt-10" : "pt-[calc(var(--safe-area-top,0px)_+_24px)] sm:pt-8 lg:pt-6"}`}>
+      <div className={`relative z-10 flex flex-col ${centered ? "items-center" : alignClass} ${anchor === "top" ? "justify-start" : `${centered ? "lg:justify-center" : ""} justify-center`} min-h-screen px-5 sm:px-8 lg:px-12 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(var(--safe-area-top,0px)_+_10px)] sm:pt-10" : "pt-[calc(var(--safe-area-top,0px)_+_24px)] sm:pt-8 lg:pt-6"}`}>
         {/* Brand mark hero — desktop-only. Sits as a sibling INSIDE the
             same vertically-centered flex column as the form so hero +
             form read as one composed unit centered on the viewport
@@ -270,7 +300,7 @@ const AuthShell = ({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
   );
 };
 

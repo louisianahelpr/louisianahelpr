@@ -300,10 +300,19 @@ export function SignupStep1({
           className="text-ds-11 leading-relaxed font-sans"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
+          {/* ONE line (owner, 2026-08-22). At text-ds-11 the label column fits
+              roughly 48 characters; "I agree to the Terms, Platform Rules, and
+              Privacy Policy." is 57 and wrapped, while the age line beside it
+              did not — so the three consents read as three different shapes.
+
+              Shortened to 37 by trimming the visible link WORDS only. Every
+              destination, and the consent actually recorded, is unchanged.
+              "Platform Rules" was also the odd one out: the other three places
+              in the app that link /rules call it "Community Rules". */}
           I agree to the{" "}
           <Link to="/terms" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Terms</Link>,{" "}
-          <Link to="/rules" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Platform Rules</Link>, and{" "}
-          <Link to="/privacy" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Privacy Policy</Link>.
+          <Link to="/rules" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Rules</Link>{" & "}
+          <Link to="/privacy" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Privacy</Link>
         </span>
       </label>
 
@@ -359,7 +368,13 @@ export function SignupStep1({
           className="text-ds-11 leading-relaxed font-sans"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          It's OK to email me occasional Helpr news, tips, and special offers. I can unsubscribe any time.
+          {/* ONE line, same reason as the policies label above — this was 95
+              characters over two lines. "I can unsubscribe any time" is not
+              lost: every marketing email carries an unsubscribe link (required
+              by CAN-SPAM regardless), and the Privacy Policy linked two rows up
+              states it. The checkbox itself stays unchecked by default, which
+              is the part that actually has to be true. */}
+          Email me occasional Helpr news and offers.
         </span>
       </label>
       </div>

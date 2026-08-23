@@ -96,12 +96,13 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
         {/* Desktop nav — text links, subtle vertical divider, then auth
             actions. Two visual groups instead of six things in a row. */}
         <div className="hidden lg:flex items-center gap-10">
-          <Link
-            to="/#how-it-works"
-            className="text-ds-13 font-sans font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--bark))]"
-          >
-            How it works
-          </Link>
+          {/* "How it works" removed (owner). It pointed at /#how-it-works — an
+              ANCHOR on the landing page, not a page. From /login or /jobs it
+              threw you off the page you were on and onto the homepage before
+              scrolling, so the same nav item behaved differently depending on
+              where you stood. The landing page still carries that section in
+              its own reading order, and the Help Center covers the explaining
+              job for everyone else. */}
           <Link
             to="/jobs"
             className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--bark))]"
@@ -277,18 +278,6 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                     and a Link would close the menu via navigation. */}
                 <HelprMark to={null} size="md" />
               </div>
-              <Link
-                to="/#how-it-works"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"
-                style={{
-                  color: "hsl(var(--ink-deep))",
-                  borderBottom: "1px solid hsl(var(--olivewood) / 0.1)",
-                }}
-                onClick={() => setMobileOpen(false)}
-              >
-                <Sparkles className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
-                How it works
-              </Link>
               <Link
                 to="/jobs"
                 className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"

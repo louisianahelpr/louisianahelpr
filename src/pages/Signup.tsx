@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -397,25 +397,28 @@ const Signup = () => {
           {/* Liquid-glass card — matches the Login screen so the two auth
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}
           <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
-            {/* No heading inside the card. Both steps' [back] [title] rows
-                are now AuthShell's `title` row above the card — step 2 used to
-                hand-roll its own here, at a LARGER font than step 1's, which
-                made the wizard's title change size as you advanced. The
-                subtitle stays: it is supporting copy for the card, not a
-                heading. */}
-            <div className="text-left space-y-1">
-              {stepHeading.subtitle && (
-                <p
-                  className="font-sans text-ds-15"
-                  style={{
-                    color: "hsl(var(--olivewood) / 0.8)",
-                    letterSpacing: "0.01em",
-                  }}
-                >
-                  {stepHeading.subtitle}
-                </p>
-              )}
-            </div>
+            {/* No heading inside the card. Both steps' [back] [title] rows are
+                now AuthShell's `title` row above it. The subtitle stays — it is
+                supporting copy for the card, not a heading.
+
+                Rendered WITHOUT a wrapper div. It previously sat inside
+                `<div className="text-left space-y-1">`, which on step 1 (no
+                subtitle) rendered an EMPTY div that still counted as a child of
+                the card's `space-y-6` — so Create Account opened with 24px more
+                air above the Email field than Sign In did, on two cards that are
+                otherwise the same component. An empty element is invisible;
+                the gap it reserves is not. */}
+            {stepHeading.subtitle && (
+              <p
+                className="font-sans text-ds-15 text-left"
+                style={{
+                  color: "hsl(var(--olivewood) / 0.8)",
+                  letterSpacing: "0.01em",
+                }}
+              >
+                {stepHeading.subtitle}
+              </p>
+            )}
 
         {/* Step 2: About you + ID */}
         {step === 2 && (
@@ -478,21 +481,13 @@ const Signup = () => {
             }}
           />
         )}
-        {/* Step 1 only: on step 2 the credentials are already entered and
-            leaving for /login would silently discard them. Replaces the
-            segmented tab row that used to carry this route. */}
-        {step === 1 && (
-          <p className="text-center text-ds-11 font-sans mt-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Already have an account?{" "}
-            <Link
-              to="/login"
-              className="font-semibold hover:underline whitespace-nowrap"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              Sign in
-            </Link>
-          </p>
-        )}
+        {/* "Already have an account? Sign in" used to live here, guarded by
+            `step === 1`. It now closes SignupStep1's social column, where it
+            reads as the alternative to BOTH create-account methods (the mirror
+            of Login's "New to Helpr?"). Keeping this copy as well rendered the
+            link TWICE on step 1 — once mid-card, once again at the bottom.
+            Step 2 never mounts SignupStep1, so the old `step === 1` guard is
+            now structural rather than a condition to remember. */}
           </div>
       </div>
     </AuthShell>

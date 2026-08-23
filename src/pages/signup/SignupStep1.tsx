@@ -151,6 +151,16 @@ export function SignupStep1({
         </div>
       )}
 
+      {/* Two columns at lg+, mirroring the Sign in screen (Login.tsx):
+          credentials left, social right, with the OR rule as its own middle
+          column. Same class strings as Login on purpose — the two auth screens
+          are one set, so a value invented here would drift them apart. Stacks
+          below lg exactly as before. */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch">
+      {/* The credentials column keeps this step's own `space-y-5` rather than
+          Login's form rhythm: the fields, the three consent rows and Continue
+          are spaced as they already were — only the column around them is new. */}
+      <div className="space-y-5">
       <section className="space-y-5">
 
         <div className="space-y-2">
@@ -387,8 +397,31 @@ export function SignupStep1({
       >
         Continue <ArrowRight className="w-4 h-4 ml-1" />
       </Button>
+      </div>
 
-      <div className="flex items-center gap-3">
+      {/* Vertical OR rule, lg+ only — the horizontal one inside the right
+          column still handles the stacked layout below lg. Its own grid
+          column so it sits between the two methods rather than inside
+          either. */}
+      <div className="hidden lg:flex flex-col items-center gap-3" aria-hidden>
+        <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
+        <span
+          className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
+          style={{ color: "hsl(var(--burnt-sienna) / 0.9)" }}
+        >
+          or
+        </span>
+        <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
+      </div>
+
+      {/* Vertically centred against the taller credentials column, so the
+          social buttons sit level with the form rather than hugging the top
+          with dead space beneath them. */}
+      <div className="space-y-6 lg:flex lg:flex-col lg:justify-center lg:gap-8 lg:space-y-0">
+      {/* The OR rule only makes sense when the two methods are stacked. At
+          lg+ they sit side by side, so the columns themselves do the
+          separating. */}
+      <div className="flex items-center gap-3 lg:hidden">
         <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
         <span
           className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
@@ -400,6 +433,27 @@ export function SignupStep1({
       </div>
 
       <SocialAuthButtons mode="signup" />
+
+      {/* Signing in is the alternative to BOTH create-account methods, so it
+          closes the social column — the mirror of Login's "New to Helpr?".
+          It used to render from Signup.tsx after this component, guarded by
+          `step === 1`; living inside SignupStep1 makes that guard structural
+          (step 2 never mounts this file) instead of a condition someone has to
+          remember. No `mt-5` any more: it was already dead under the card's
+          `space-y-6`, and at lg+ — where `lg:space-y-0` zeroes that out — it
+          would have become a live 20px on top of `lg:gap-8`. */}
+      <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        Already have an account?{" "}
+        <Link
+          to="/login"
+          className="font-semibold hover:underline whitespace-nowrap"
+          style={{ color: "hsl(var(--bark))" }}
+        >
+          Sign in
+        </Link>
+      </p>
+      </div>
+      </div>
 
       {/* No "Setting up for a company?" link here (owner, 2026-08-22).
           Business signup stays reachable at /signup?type=business and from the

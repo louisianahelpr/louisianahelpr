@@ -100,7 +100,14 @@ export function ActivityHeader({
    * control, never an active filter.
    */
   const isDefaultFilter = statusFilter === DEFAULT_STATUS_FILTER;
-  const [tabsOpen, setTabsOpen] = useState(!isDefaultFilter);
+  const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultFilter);
+  // On the wide screen the tabs simply STAY UP — there is room for them beside
+  // the title, so hiding four short words behind a chevron buys nothing and
+  // costs a press (owner: "drop down not needed on the wide screen, the
+  // category can stay at the top"). The disclosure is a phone affordance,
+  // where the row genuinely cannot hold both.
+  const tabsOpen = inlineFilters || tabsOpenPhone;
+  const setTabsOpen = setTabsOpenPhone;
   // A filter arriving later (deep link resolving, or a tab switch that resets
   // it) has to be able to open the disclosure too — otherwise the same
   // "filtered, but nothing says so" state comes back through the side door.
@@ -257,6 +264,7 @@ export function ActivityHeader({
               >
                 <Search className={inlineFilters ? "w-3.5 h-3.5" : "w-4 h-4"} />
               </button>
+              {!inlineFilters && (
               <button
                 type="button"
                 onClick={() => { hapticLight(); setTabsOpen((v) => !v); }}
@@ -279,10 +287,11 @@ export function ActivityHeader({
                 } ${inlineFilters ? "h-7 w-7 !min-h-0 !min-w-0" : "h-11 w-11"}`}
               >
                 <ChevronDown
-                  className={`${inlineFilters ? "w-3.5 h-3.5" : "w-4 h-4"} transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
+                  className={`w-4 h-4 transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
                   strokeWidth={2.25}
                 />
               </button>
+              )}
             </>
           }
         />

@@ -944,6 +944,31 @@ html.web-desktop {
     max-width: none;
   }
 
+  /* ...and neither does the `.container` wrapping it.
+     Lifting the cap above alone changed nothing visible, because
+     `ds-desktop-wide` was never the binding constraint — Tailwind's `.container`
+     is. `screens: { "2xl": "1400px" }` in tailwind.config.ts makes `.container`
+     cap at 1400px and `mx-auto` centre it, so INSIDE a 1672px frame it took
+     136px off each side before the page's own px-12 took another 48. Measured
+     at 1920 with the panel open, after the ds-desktop-wide cap was removed:
+
+       .app-shell-frame ......... 1672px   x 0
+       .container ............... 1400px   x 136   ← max-width: 1400px
+       .ds-desktop-wide ......... 1304px   x 184   ← max-width: none (already)
+       gutter ................... 184px each side, content filling 78%
+
+     Two nested measures inside a frame that is already inset by the rail and
+     already padded. On the desktop website the frame IS the measure, so the
+     container stops adding a second one and the page's own horizontal padding
+     is the only inset left (owner: "info needs to fill the preview panel").
+
+     Scoped to `.app-shell-frame` so `.container` keeps its normal capping
+     behaviour on marketing and document-scroll pages, which want a reading
+     measure rather than a full-bleed one. */
+  html.web-desktop .app-shell-frame .container {
+    max-width: none;
+  }
+
   /* Full-bleed top header. On the desktop website the header spans the ENTIRE
      viewport width, sitting above the left sidebar rail, rather than being
      inset alongside the content. The frame stays inset by the sidebar width

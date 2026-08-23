@@ -3,10 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Users, Briefcase, DollarSign, TrendingUp, Star, CreditCard, Activity, PieChart,
-  BarChart3, Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles,
-} from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, Loader2, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { MetricCard, StatusRow, MRRRow, CohortRetentionCard, FunnelCard } from "./AdminAnalyticsCards";
 import { UsersDrillDown, SubscriptionsDrillDown, CategoriesDrillDown, PayoutsDrillDown, JobsDrillDown } from "./AdminAnalyticsDrilldowns";
@@ -16,6 +13,7 @@ import { computeMetrics } from "./adminAnalytics/adminAnalyticsHelpers";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatPriceExact } from "@/lib/format";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // Lazy-load charts so recharts (~250 KB pre-gzip) lands in its own chunk
 // instead of inflating the AdminAnalytics initial bundle. Funnel cards +
@@ -322,7 +320,12 @@ const AdminAnalytics = () => {
               </Suspense>
             </div>
           ) : (
-            <p className="text-ds-11 text-muted-foreground text-center py-8">No subscribers yet</p>
+            <EmptyState
+            variant="inline"
+            icon={Crown}
+            title="No subscribers yet"
+            body="Paid plans will appear here once someone upgrades."
+          />
           )}
         </div>
       </div>

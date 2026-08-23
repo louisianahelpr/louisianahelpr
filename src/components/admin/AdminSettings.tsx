@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
-import { ShieldCheck, Trash2, Plus, Search, UserPlus, Flag, Smartphone } from "lucide-react";
+import { Flag, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
 import { Switch } from "@/components/ui/switch";
 import { BUSINESS_ENABLED } from "@/config/businessEnabled";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // The fee-ladder rungs an admin is shown. Business (6%) is only named while
 // the Business product is switched on — with `BUSINESS_ENABLED` false there
@@ -475,7 +476,12 @@ const AdminSettings = () => {
           <p className="text-ds-11 text-muted-foreground">Loading admins…</p>
         ) : admins.length === 0 ? (
           <div className="rounded-ds-md liquid-glass p-6 text-center">
-            <p className="text-ds-11 text-muted-foreground">No admins found</p>
+            <EmptyState
+            variant="inline"
+            icon={Shield}
+            title="No admins found"
+            body="No accounts currently hold the admin role."
+          />
           </div>
         ) : (
           <div className="space-y-2">

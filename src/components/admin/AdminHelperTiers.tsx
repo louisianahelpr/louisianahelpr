@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/UserAvatar";
-import { Crown, Star, TrendingUp, Sparkles, ExternalLink } from "lucide-react";
+import { Award, Crown, ExternalLink, Sparkles, Star, TrendingUp } from "lucide-react";
 import { formatName } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { unwrap } from "@/lib/supabaseResult";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface HelperTier {
   user_id: string;
@@ -109,7 +110,12 @@ const AdminHelperTiers = () => {
           onRetry={() => refetch()}
         />
       ) : visible.length === 0 ? (
-        <p className="text-ds-11 text-muted-foreground text-center py-8">No Helprs in this tier yet.</p>
+        <EmptyState
+            variant="inline"
+            icon={Award}
+            title="Nobody in this tier"
+            body="Helprs move up as they complete jobs and earn reviews."
+          />
       ) : (
         <div className="space-y-2">
           {visible.map((helper) => {

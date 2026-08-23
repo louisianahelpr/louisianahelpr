@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ShieldAlert, RefreshCw, Loader2, CheckCircle2, XCircle, Eye } from "lucide-react";
+import { CheckCircle2, Eye, Loader2, RefreshCw, ShieldAlert, ShieldCheck, XCircle } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -17,6 +17,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface IDVProfile {
   user_id: string;
@@ -257,7 +258,12 @@ const AdminIDVQueue = () => {
         </div>
       ) : profiles.length === 0 ? (
         <div className="rounded-ds-md liquid-glass p-8 text-center">
-          <p className="text-ds-11 text-muted-foreground">No users in this status.</p>
+          <EmptyState
+            variant="inline"
+            icon={ShieldCheck}
+            title="Nothing in this status"
+            body="Try another status tab above."
+          />
         </div>
       ) : (
         <div className="space-y-2">

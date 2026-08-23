@@ -6,6 +6,7 @@ import { MapPin, TrendingUp } from "lucide-react";
 import { formatPrice } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface ParishRow {
   parish: string;
@@ -68,7 +69,12 @@ const AdminParishActivity = () => {
           retryDisabled={loading}
         />
       ) : rows.length === 0 ? (
-        <p className="text-ds-11 text-muted-foreground text-center py-6">No parish activity yet.</p>
+        <EmptyState
+            variant="inline"
+            icon={MapPin}
+            title="No parish activity yet"
+            body="Activity appears once jobs are posted around the state."
+          />
       ) : (
         <div className="space-y-1.5">
           {rows.map((r, i) => (

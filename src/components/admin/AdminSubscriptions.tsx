@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Crown, Clock, Users } from "lucide-react";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { formatShortDate } from "@/lib/format";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface SubscribedProfile {
   user_id: string;
@@ -173,7 +174,12 @@ const AdminSubscriptions = () => {
           );
         })}
         {filtered.length === 0 && (
-          <p className="text-ds-11 text-muted-foreground text-center py-8">No subscriptions found</p>
+          <EmptyState
+            variant="inline"
+            icon={Crown}
+            title="No subscriptions found"
+            body="Nothing matches the current filter."
+          />
         )}
       </div>
     </div>

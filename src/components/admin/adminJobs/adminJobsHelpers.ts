@@ -1,5 +1,6 @@
 import { safeStorage } from "@/lib/safeStorage";
 import type { Job } from "./types";
+import { isPastDue } from "@/lib/jobDate";
 
 const RESOLVED_FLAGS_KEY = "admin_resolved_job_flags";
 
@@ -48,8 +49,15 @@ export function detectFlags(job: Job): string[] {
   const totalAlpha = (job.description || "").replace(/[^a-zA-Z]/g, "").length;
   if (totalAlpha > 20 && upperCount / totalAlpha > 0.7) flags.push("Excessive caps (possible spam)");
 
-  // Date in the past
-  if (job.date_needed && new Date(job.date_needed) < new Date(new Date().toDateString())) {
+  // Date in the past — BOTH SIDES in the platform's zone.
+  //
+  // This compared `new Date(date_needed)`, which is UTC midnight for a bare
+  // YYYY-MM-DD, against `new Date(new Date().toDateString())`, which is LOCAL
+  // midnight. In Central those are 00:00Z and 05:00Z, so a job dated TODAY was
+  // always "earlier than today" and the moderation queue flagged every
+  // same-day job as overdue. Eight active jobs dated today on prod, zero
+  // actually past.
+  if (isPastDue(job.date_needed)) {
     flags.push("Date needed is in the past");
   }
 

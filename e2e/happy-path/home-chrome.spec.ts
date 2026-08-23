@@ -54,7 +54,7 @@ const ACTION_ICON_NAMES = [
 /** Controls that must NOT be back in the header row — they live in the sheet. */
 const MOVED_OUT_OF_ROW = [
   /^(Show map view|Show list view)$/,
-  /^Saved searches$/,
+  /^Saved Searches$/,
 ];
 
 /**
@@ -169,43 +169,48 @@ for (const variant of [
     expect(layout.h1Count, `h1 count (texts: ${layout.h1Texts.join(" | ")})`).toBe(1);
     expect(layout.smallTapTargets, `sub-44px controls @ ${variant.tag}`).toEqual([]);
 
-    // --- row 1: the pill sits with the bell -----------------------------
-    const pill = page.getByRole("button", { name: /^In progress: / });
-    const bell = page.getByRole("button", { name: "Notifications" });
-    await expect(pill).toBeVisible();
-    await expect(bell).toBeVisible();
+    // --- row 1: the pill sits with the bell (mobile only) ---------------
+    // On desktop (≥900px) the owner removed the pill from the title card
+    // entirely — it lives only on phone/native where there is no global top
+    // bar to hold the bell. These assertions are phone-only.
+    if (variant.width < 900) {
+      const pill = page.getByRole("button", { name: /^In progress: / });
+      const bell = page.getByRole("button", { name: "Notifications" });
+      await expect(pill).toBeVisible();
+      await expect(bell).toBeVisible();
 
-    const pillBox = (await pill.boundingBox())!;
-    const bellBox = (await bell.boundingBox())!;
-    expect(pillBox.height, "pill tap target").toBeGreaterThanOrEqual(44);
-    // Same row, and the pill ends before the bell begins — no overlap.
-    expect(Math.abs(
-      (pillBox.y + pillBox.height / 2) - (bellBox.y + bellBox.height / 2),
-    ), "pill/bell vertical centres").toBeLessThan(4);
-    expect(pillBox.x + pillBox.width, "pill right edge vs bell left edge")
-      .toBeLessThanOrEqual(bellBox.x);
+      const pillBox = (await pill.boundingBox())!;
+      const bellBox = (await bell.boundingBox())!;
+      expect(pillBox.height, "pill tap target").toBeGreaterThanOrEqual(44);
+      // Same row, and the pill ends before the bell begins — no overlap.
+      expect(Math.abs(
+        (pillBox.y + pillBox.height / 2) - (bellBox.y + bellBox.height / 2),
+      ), "pill/bell vertical centres").toBeLessThan(4);
+      expect(pillBox.x + pillBox.width, "pill right edge vs bell left edge")
+        .toBeLessThanOrEqual(bellBox.x);
 
-    // --- the two action icons now live IN row 1, left of the bell -------
-    // This spec used to assert the opposite (icons in a SECOND row below the
-    // brand row). The owner moved them up beside the bell — "should be to the
-    // left of the notification bell" — and the vacated row was removed, so the
-    // feed starts directly under the title card. The assertion is inverted to
-    // the new arrangement rather than relaxed: same-row is still proven by
-    // centre alignment, and left-of-bell by a hard edge comparison.
-    for (const name of ACTION_ICON_NAMES) {
-      const icon = page.getByRole("button", { name }).first();
-      await expect(icon, `action icon ${name} @ ${variant.tag}`).toBeVisible();
-      const box = (await icon.boundingBox())!;
-      expect(box.height, `action icon ${name} tap target`).toBeGreaterThanOrEqual(44);
-      expect(box.width, `action icon ${name} tap target`).toBeGreaterThanOrEqual(40);
-      // Same row as the bell (vertical centres agree)...
-      expect(
-        Math.abs((box.y + box.height / 2) - (bellBox.y + bellBox.height / 2)),
-        `action icon ${name} shares the brand row with the bell`,
-      ).toBeLessThan(6);
-      // ...and strictly to its LEFT, with no overlap.
-      expect(box.x + box.width, `action icon ${name} sits left of the bell`)
-        .toBeLessThanOrEqual(bellBox.x + 1);
+      // --- the two action icons now live IN row 1, left of the bell -------
+      // This spec used to assert the opposite (icons in a SECOND row below the
+      // brand row). The owner moved them up beside the bell — "should be to the
+      // left of the notification bell" — and the vacated row was removed, so the
+      // feed starts directly under the title card. The assertion is inverted to
+      // the new arrangement rather than relaxed: same-row is still proven by
+      // centre alignment, and left-of-bell by a hard edge comparison.
+      for (const name of ACTION_ICON_NAMES) {
+        const icon = page.getByRole("button", { name }).first();
+        await expect(icon, `action icon ${name} @ ${variant.tag}`).toBeVisible();
+        const box = (await icon.boundingBox())!;
+        expect(box.height, `action icon ${name} tap target`).toBeGreaterThanOrEqual(44);
+        expect(box.width, `action icon ${name} tap target`).toBeGreaterThanOrEqual(40);
+        // Same row as the bell (vertical centres agree)...
+        expect(
+          Math.abs((box.y + box.height / 2) - (bellBox.y + bellBox.height / 2)),
+          `action icon ${name} shares the brand row with the bell`,
+        ).toBeLessThan(6);
+        // ...and strictly to its LEFT, with no overlap.
+        expect(box.x + box.width, `action icon ${name} sits left of the bell`)
+          .toBeLessThanOrEqual(bellBox.x + 1);
+      }
     }
     // ...and the two that moved into the sheet are not back in the row.
     for (const name of MOVED_OUT_OF_ROW) {
@@ -318,9 +323,9 @@ test("the moved controls live in the filter sheet", async ({ context, page, base
   await expect(mapChoice).toBeVisible();
   await expect(mapChoice).toHaveAttribute("aria-pressed", "false");
 
-  // Saved searches — a labelled row that opens the same dialog the bookmark
+  // Saved Searches — a labelled row that opens the same dialog the bookmark
   // icon used to.
-  const savedRow = sheet.getByRole("button", { name: /Saved searches/ });
+  const savedRow = sheet.getByRole("button", { name: /Saved Searches/ });
   await expect(savedRow).toBeVisible();
 
   await savedRow.click();

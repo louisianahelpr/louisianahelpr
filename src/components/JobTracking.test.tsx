@@ -135,3 +135,26 @@ describe("deriveCurrentStatusIdx", () => {
   });
 });
 
+
+describe("a revision undoes Done", () => {
+  it("caps a revision-requested job at Working even with a completion stamp", () => {
+    // `helper_completed_at` survives the poster sending the work back, so
+    // without the cap the tracker showed a fully-green Done beside a card
+    // reading "Revision requested" and a row offering Approve or Dispute.
+    expect(
+      deriveCurrentStatusIdx({
+        jobStatus: "revision_requested",
+        helperCompletedAt: "2026-08-01T00:00:00Z",
+      }),
+    ).toBe(STATUS_IDX.working);
+  });
+
+  it("still reaches Done once the job actually completes", () => {
+    expect(
+      deriveCurrentStatusIdx({
+        jobStatus: "completed",
+        helperCompletedAt: "2026-08-01T00:00:00Z",
+      }),
+    ).toBe(STATUS_IDX.done);
+  });
+});

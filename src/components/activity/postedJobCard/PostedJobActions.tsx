@@ -199,14 +199,13 @@ export function PostedJobActions({
               <Button size="sm" variant="destructive" className="flex-1" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
               <Button size="sm" variant="outline" style={messageButtonStyle} className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
             </div>
-            {/* Share link — lets the poster spread the word even
-                after a helper has been accepted. Opens the OS
-                Share Sheet on native; copies the URL on web. */}
-            <ShareJobButton
-              job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-              className="w-full glass-press border-0"
-              style={{ background: "hsl(var(--info-tint) / 0.10)", color: "hsl(var(--info-ink))", border: "0.5px solid hsl(var(--info-tint) / 0.28)" }}
-            />
+            {/* NO SHARE once a helpr is assigned (owner: "not sure this is
+                necessary in some places"). Share exists to get more eyes on a
+                job that still needs someone — on an OPEN job it is one of the
+                four main actions and it stays there. On a job that is already
+                booked, underway, or in a revision, the link it copies leads to
+                a job nobody else can take, so the chip was a control whose
+                whole purpose had already been served. */}
           </div>
         )}
         {(job.status === "in_progress" || job.status === "revision_requested") && (
@@ -302,8 +301,10 @@ export function PostedJobActions({
               // open revision on the customer side) — no new dispute surface,
               // just the existing one moved into the row.
               const showDispute = shouldShowDisputeLink(job, "customer");
+              // Base of ONE — Message. It was two while Share sat beside it;
+              // see the note above on why Share is gone from an assigned job.
               const columns = Math.min(
-                2 +
+                1 +
                   (showSos ? 1 : 0) +
                   (showApprove ? 1 : 0) +
                   (showNoShow ? 1 : 0) +
@@ -314,15 +315,6 @@ export function PostedJobActions({
                 <>
                   <JobActionRow columns={columns}>
                     {showSos && <SosShareButton jobId={job.id} variant="chip" />}
-                    {/* ShareJobButton renders its own <Button> (it owns the
-                        native-share fallback chain), so it takes the shared chip
-                        class + tone rather than being wrapped. */}
-                    <ShareJobButton
-                      job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
-                      layout="stack"
-                      className={JOB_ACTION_CHIP_CLASS}
-                      style={jobActionChipStyle("share")}
-                    />
                     <JobActionChip
                       icon={MessageCircle}
                       label="Message"

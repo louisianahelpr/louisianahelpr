@@ -1,19 +1,16 @@
 import { useMemo } from "react";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
-import { jobStatusLabel } from "@/lib/statusLabels";
-import { jobStatusColorClasses } from "@/lib/statusColors";
 
 /**
  * activityFilters — status-filter definitions and the memoized list/count
  * derivations for the Activity page.
  *
- * Filter keys that match a `job_status` enum value pull their label from
- * `jobStatusLabel` (#46) AND their color classes from
- * `jobStatusColorClasses` (`src/lib/statusColors.ts`) so the filter
- * chip paints the same as the row chip a tap later. Keys that are
- * derived buckets ("direct_offer", "offered", "not_selected", "pending"
- * meaning "Applied") aren't enum values, so they keep a bespoke palette
- * intentionally distinct from any single enum state.
+ * The filter keys are no longer job_status enum values, so they no longer
+ * borrow `jobStatusLabel` / `jobStatusColorClasses`: the four are derived
+ * buckets about WHOSE MOVE IT IS (see ActivityBucket below), and a bucket that
+ * spans several statuses has no single enum colour to paint itself with. The
+ * legacy enum keys still work as filter VALUES for deep links — they just have
+ * no chip of their own any more.
  */
 
 export interface StatusFilter {
@@ -28,18 +25,103 @@ const ALL_FILTER_COLOR = "bg-[hsl(var(--olivewood)/0.08)] text-[hsl(var(--olivew
 // Granular sub-status filters (Open, Accepted, In Progress, etc.) are
 // intentionally omitted — those statuses are surfaced as colored banners
 // on each job card, so the filter sheet stays at the high-level bucket level.
-export const POSTED_STATUS_FILTERS: StatusFilter[] = [
-  { key: "all",       label: "All",                      color: ALL_FILTER_COLOR },
-  { key: "active",    label: "Active",                   color: ALL_FILTER_COLOR },
-  { key: "completed", label: jobStatusLabel("completed"), color: jobStatusColorClasses("completed") },
-  { key: "cancelled", label: jobStatusLabel("cancelled"), color: jobStatusColorClasses("cancelled") },
-];
+/**
+ * WHOSE MOVE IS IT — the four buckets both Activity tabs filter by.
+ *
+ * They replace Active / All / Completed / Cancelled, which sorted by the job's
+ * own lifecycle rather than by anything the reader can act on. That is why a
+ * job whose work was finished and was sitting on the poster's approval still
+ * appeared under "Active" (owner: "if this is completed it doesn't belong in
+ * the active section") — "active" is true of it, and useless. It is also why
+ * the per-card status band had to exist at all: one bucket held open jobs,
+ * offered jobs, in-progress jobs and jobs awaiting a decision, so every card
+ * needed a label to say which. Sorting by whose move it is answers that in the
+ * tab, which is what let the band come off.
+ *
+ * NEEDS YOU  — a decision is sitting with the reader RIGHT NOW.
+ * WAITING    — the ball is in someone else's court; nothing to do but wait.
+ * SCHEDULED  — agreed and upcoming, or underway.
+ * DONE       — finished, cancelled, or not selected. Terminal.
+ *
+ * Every job lands in exactly one, and the four are exhaustive — which is what
+ * makes dropping the old catch-all "All" safe. There is no state that falls
+ * through them.
+ */
+export type ActivityBucket = "needs_you" | "waiting" | "scheduled" | "done";
 
-export const APPLIED_STATUS_FILTERS: StatusFilter[] = [
-  { key: "active",       label: "Active",                    color: ALL_FILTER_COLOR },
-  { key: "all",          label: "All",                       color: ALL_FILTER_COLOR },
-  { key: "completed",    label: jobStatusLabel("completed"), color: jobStatusColorClasses("completed") },
-];
+const BUCKET_LABEL: Record<ActivityBucket, string> = {
+  needs_you: "Needs you",
+  waiting: "Waiting",
+  scheduled: "Scheduled",
+  done: "Done",
+};
+
+/**
+ * ORDER: Needs you · Scheduled · Waiting · Done (owner).
+ *
+ * Not the lifecycle order — it runs by how much of the reader's attention each
+ * one deserves. What is being asked of you comes first, what you have committed
+ * to second, what you can do nothing about third, and what is over last. It
+ * also puts the two tabs you act on next to each other rather than separated by
+ * the one you can only watch.
+ */
+const BUCKET_FILTERS: StatusFilter[] = (
+  ["needs_you", "scheduled", "waiting", "done"] as ActivityBucket[]
+).map((key) => ({ key, label: BUCKET_LABEL[key], color: ALL_FILTER_COLOR }));
+
+export const POSTED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
+export const APPLIED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
+
+/**
+ * Which bucket a job I POSTED belongs in.
+ *
+ * `applicantCount` is what separates an open job with people waiting on a
+ * reply (my move) from one nobody has answered yet (nothing to do). Without it
+ * every open job would read as "waiting", which is the opposite of true for the
+ * ones with a queue.
+ */
+export function postedActivityBucket(
+  j: {
+    status: string;
+    helper_id?: string | null;
+    helper_confirmed_at?: string | null;
+    helper_completed_at?: string | null;
+    poster_completed_at?: string | null;
+    direct_offer_status?: string | null;
+  },
+  applicantCount = 0,
+): ActivityBucket {
+  if (j.status === "completed" || j.status === "cancelled") return "done";
+  // Work submitted and not yet approved, a revision I asked for, or an open
+  // dispute — all three are a decision sitting with me.
+  if (j.status === "revision_requested" || j.status === "disputed") return "needs_you";
+  if (j.helper_completed_at && !j.poster_completed_at) return "needs_you";
+  if (j.status === "in_progress") return "scheduled";
+  if (j.status === "accepted") {
+    // Booked and confirmed is scheduled; booked and unconfirmed is me waiting
+    // on the helpr to say yes.
+    return j.helper_confirmed_at ? "scheduled" : "waiting";
+  }
+  if (j.status === "open") {
+    return applicantCount > 0 ? "needs_you" : "waiting";
+  }
+  return "waiting";
+}
+
+/** Which bucket a job I APPLIED to belongs in. */
+export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
+  const jobStatus = app.job?.status;
+  if (app.status === "rejected" || jobStatus === "cancelled") return "done";
+  if (jobStatus === "completed") return "done";
+  // An offer held for me, or a revision the poster asked for — my move, and the
+  // offer is the one that expires if I do nothing.
+  if (needsHelperResponse(app)) return "needs_you";
+  if (jobStatus === "revision_requested") return "needs_you";
+  if (jobStatus === "in_progress") return "scheduled";
+  if (app.status === "accepted") return "scheduled";
+  // Applied, awaiting their decision.
+  return "waiting";
+}
 
 /**
  * Section bucket — used by the grouped "All" view to fold every status
@@ -95,6 +177,9 @@ export interface UseActivityFiltersArgs {
   statusFilter: string;
   searchQuery: string;
   userId: string | undefined;
+  /** Applications per posted job id — decides whether an OPEN job is waiting
+   *  for applicants or waiting on the poster to read the ones it has. */
+  applicantCounts?: Record<string, number>;
 }
 
 export function useActivityFilters({
@@ -103,6 +188,7 @@ export function useActivityFilters({
   statusFilter,
   searchQuery,
   userId,
+  applicantCounts,
 }: UseActivityFiltersArgs) {
   const searchLower = searchQuery.toLowerCase().trim();
 
@@ -111,7 +197,20 @@ export function useActivityFilters({
       // Status filter — "all" disables the status gate; the page renders
       // groups instead. Search still applies in both modes.
       let statusMatch: boolean;
-      if (statusFilter === "all") statusMatch = true;
+      // The four buckets come first. The legacy keys below them are NOT dead:
+      // notification deep links still arrive as `?filter=completed` and the
+      // like, and a link that lands on an empty list because its key stopped
+      // being understood is worse than a tab set with more keys than chips.
+      if (
+        statusFilter === "needs_you" ||
+        statusFilter === "waiting" ||
+        statusFilter === "scheduled" ||
+        statusFilter === "done"
+      ) {
+        statusMatch =
+          postedActivityBucket(j, applicantCounts?.[j.id] ?? 0) === statusFilter;
+      }
+      else if (statusFilter === "all") statusMatch = true;
       else if (statusFilter === "active") statusMatch = bucketPostedJob(j) === "active";
       else if (statusFilter === "direct_offer") statusMatch = !!j.offered_to_helper_id && j.direct_offer_status === "pending";
       else if (statusFilter === "offered") statusMatch = j.status === "accepted" && !j.helper_confirmed_at;
@@ -124,13 +223,21 @@ export function useActivityFilters({
         return j.title.toLowerCase().includes(searchLower) || j.description.toLowerCase().includes(searchLower) || j.location.toLowerCase().includes(searchLower);
       }
       return true;
-    }), [postedJobs, statusFilter, searchLower]);
+    }), [postedJobs, statusFilter, searchLower, applicantCounts]);
 
   const filteredAppliedApps = useMemo(() => {
     const query = searchLower;
     return appliedApps.filter((a) => {
       let statusMatch = false;
-      if (statusFilter === "all") statusMatch = bucketAppliedApp(a) !== "cancelled";
+      if (
+        statusFilter === "needs_you" ||
+        statusFilter === "waiting" ||
+        statusFilter === "scheduled" ||
+        statusFilter === "done"
+      ) {
+        statusMatch = appliedActivityBucket(a) === statusFilter;
+      }
+      else if (statusFilter === "all") statusMatch = bucketAppliedApp(a) !== "cancelled";
       else if (statusFilter === "active") statusMatch = bucketAppliedApp(a) === "active";
       else if (statusFilter === "direct_offer") statusMatch = !!a.job?.offered_to_helper_id && a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending";
       else if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
@@ -166,9 +273,14 @@ export function useActivityFilters({
   }, [appliedApps, statusFilter, searchLower]);
 
   const appliedCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: 0, active: 0, pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0 };
+    const counts: Record<string, number> = { all: 0, active: 0, pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0, needs_you: 0, waiting: 0, scheduled: 0, done: 0 };
     appliedApps.forEach((a) => {
       const bucket = bucketAppliedApp(a);
+      // The four tab counts. Tallied on their own line, never inside the
+      // `else if` chain below — an app belongs to exactly one bucket AND to one
+      // legacy status, and folding them together would let whichever branch
+      // matched first swallow the row from the other tally.
+      counts[appliedActivityBucket(a)]++;
       // "all" excludes not-selected (rejected / cancelled) — mirrors filteredAppliedApps.
       if (bucket !== "cancelled") counts.all++;
       // Counted separately from the chain below, not inside it: "active" is a
@@ -189,8 +301,10 @@ export function useActivityFilters({
   }, [appliedApps]);
 
   const postedCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: postedJobs.length, active: 0, open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0 };
+    const counts: Record<string, number> = { all: postedJobs.length, active: 0, open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0, needs_you: 0, waiting: 0, scheduled: 0, done: 0 };
     postedJobs.forEach((j) => {
+      // See the note in appliedCounts — bucket tallies stay out of the chain.
+      counts[postedActivityBucket(j, applicantCounts?.[j.id] ?? 0)]++;
       if (bucketPostedJob(j) === "active") counts.active++;
       if (j.offered_to_helper_id && j.direct_offer_status === "pending") counts.direct_offer++;
       if (j.status === "accepted" && !j.helper_confirmed_at) counts.offered++;
@@ -201,7 +315,7 @@ export function useActivityFilters({
     // so its chip count must include both terminal-negative states.
     counts.cancelled = (counts.cancelled || 0) + (counts.disputed || 0);
     return counts;
-  }, [postedJobs]);
+  }, [postedJobs, applicantCounts]);
 
   return { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts };
 }

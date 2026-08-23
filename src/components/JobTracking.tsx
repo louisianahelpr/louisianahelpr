@@ -150,7 +150,19 @@ export function deriveCurrentStatusIdx({
   }
 
   // Floor at 0: the tracker always shows at least "Offered".
-  return Math.max(0, trackingIdx, jobIdx);
+  const idx = Math.max(0, trackingIdx, jobIdx);
+
+  // A REVISION UNDOES "Done". `helper_completed_at` stays stamped when the
+  // poster sends the work back, so the tracker sat on a fully-green Done —
+  // beside a card that said "Revision requested" and an action row offering
+  // Approve or Dispute. Owner: "all of these things can't be true at once."
+  // The work is back with the helpr, which is what Working means, and the
+  // stamp is not cleared because it is a record of what happened; the tracker
+  // just stops treating it as the final word while the job is in revision.
+  if (jobStatus === "revision_requested") {
+    return Math.min(idx, STATUS_IDX.working);
+  }
+  return idx;
 }
 
 /**
@@ -692,6 +704,15 @@ export function JobTracking({
             role="group"
             aria-label="Job progress"
             className="flex gap-1 overflow-x-auto scrollbar-hide snap-x py-0.5 items-start"
+            // `safe center` — the row centres in its card when the steps FIT,
+            // and falls back to start-aligned the moment they don't (owner:
+            // "center better globally"). Plain `center` would keep centring
+            // while overflowing, which pushes the first steps off the LEFT edge
+            // where no scroll gesture reaches them — the bug the `safe` keyword
+            // exists for. Eight steps at 68px fit a desktop card and overflow a
+            // phone one, so this row is on both sides of that line depending on
+            // the screen, and neither alignment alone is right for both.
+            style={{ justifyContent: "safe center" }}
           >
             {displaySteps.map((s, idx) => {
               const isActive = idx <= displayIdx;

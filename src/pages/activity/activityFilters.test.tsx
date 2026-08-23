@@ -4,6 +4,8 @@ import {
   useActivityFilters,
   APPLIED_STATUS_FILTERS,
   POSTED_STATUS_FILTERS,
+  appliedActivityBucket,
+  postedActivityBucket,
   bucketAppliedApp,
 } from "./activityFilters";
 import { defaultStatusFilterFor } from "@/components/activity/activityConstants";
@@ -60,17 +62,20 @@ function run(apps: AppliedApp[], statusFilter: string) {
 
 describe("Activity — the Active bucket", () => {
   it("both tabs open on the same filter", () => {
-    // The whole point of the change: My Jobs and My Posts lead with the same
-    // word rather than one saying "Active" and the other "All".
-    expect(defaultStatusFilterFor("applied")).toBe("active");
-    expect(defaultStatusFilterFor("posted")).toBe("active");
+    // My Jobs and My Posts lead with the same word. That word is now
+    // "Needs you" rather than "Active" — see defaultStatusFilterFor — but the
+    // invariant this guards is unchanged: the two tabs must not disagree.
+    expect(defaultStatusFilterFor("applied")).toBe(defaultStatusFilterFor("posted"));
   });
 
-  it("offers Active on both tabs' filter menus", () => {
+  it("offers the default on both tabs' filter menus", () => {
     // A default that isn't in the menu would leave the user unable to get back
-    // to it after changing the filter.
-    expect(APPLIED_STATUS_FILTERS.map((f) => f.key)).toContain("active");
-    expect(POSTED_STATUS_FILTERS.map((f) => f.key)).toContain("active");
+    // to it after changing the filter. Asserted against the default itself
+    // rather than a hardcoded key, so renaming the buckets can never silently
+    // strand the one the page opens on.
+    const fallback = defaultStatusFilterFor("applied");
+    expect(APPLIED_STATUS_FILTERS.map((f) => f.key)).toContain(fallback);
+    expect(POSTED_STATUS_FILTERS.map((f) => f.key)).toContain(fallback);
   });
 
   it("keeps live applications and drops settled ones", () => {
@@ -121,5 +126,57 @@ describe("Activity — the Active bucket", () => {
     expect(filteredAppliedApps).toHaveLength(0);
     expect(appliedCounts.active).toBe(0);
     expect(appliedCounts.not_selected).toBe(4);
+  });
+});
+
+describe("Activity — whose move is it", () => {
+  // The four buckets have to be EXHAUSTIVE and MUTUALLY EXCLUSIVE — that is
+  // what let the old catch-all "All" chip and the per-card status band both
+  // come off. A state that lands in none of them is a job the user can no
+  // longer find; a state that lands in two is a count that lies.
+  it("puts an offer held for the helpr in Needs you", () => {
+    expect(appliedActivityBucket(app({ status: "accepted", jobStatus: "accepted" }))).toBe("needs_you");
+  });
+
+  it("puts an application awaiting a decision in Waiting", () => {
+    expect(appliedActivityBucket(app({ status: "pending", jobStatus: "open" }))).toBe("waiting");
+  });
+
+  it("puts work underway in Scheduled", () => {
+    expect(appliedActivityBucket(app({ status: "accepted", jobStatus: "in_progress" }))).toBe("scheduled");
+  });
+
+  it("puts a rejection and a completed job in Done", () => {
+    expect(appliedActivityBucket(app({ status: "rejected", jobStatus: "open" }))).toBe("done");
+    expect(appliedActivityBucket(app({ status: "accepted", jobStatus: "completed" }))).toBe("done");
+  });
+
+  it("separates an open job WITH applicants from one without", () => {
+    // The distinction the whole `applicantCount` argument exists for: a queue
+    // of people waiting on a reply is the poster's move, an empty one is not.
+    expect(postedActivityBucket({ status: "open" }, 3)).toBe("needs_you");
+    expect(postedActivityBucket({ status: "open" }, 0)).toBe("waiting");
+  });
+
+  it("puts submitted-but-unapproved work in Needs you, not Scheduled", () => {
+    // The exact case the owner reported: the helpr finished, the job still
+    // reads `in_progress`-ish, and the poster has a decision in front of them.
+    expect(
+      postedActivityBucket({
+        status: "in_progress",
+        helper_completed_at: "2026-08-01T00:00:00Z",
+        poster_completed_at: null,
+      }),
+    ).toBe("needs_you");
+  });
+
+  it("puts a booking the helpr hasn't confirmed in Waiting", () => {
+    expect(postedActivityBucket({ status: "accepted", helper_confirmed_at: null })).toBe("waiting");
+    expect(postedActivityBucket({ status: "accepted", helper_confirmed_at: "2026-08-01T00:00:00Z" })).toBe("scheduled");
+  });
+
+  it("puts both terminal states in Done", () => {
+    expect(postedActivityBucket({ status: "completed" })).toBe("done");
+    expect(postedActivityBucket({ status: "cancelled" })).toBe("done");
   });
 });

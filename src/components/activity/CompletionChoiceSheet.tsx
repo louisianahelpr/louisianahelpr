@@ -363,15 +363,16 @@ export function CompletionChoiceSheet({
                 </p>
               </div>
 
-              <div className="flex gap-2 pt-1">
-                <Button
-                  variant="ghost"
-                  className="flex-1 rounded-ds-md"
-                  onClick={() => setMode("choice")}
-                  disabled={submitting}
-                >
-                  Back
-                </Button>
+              {/* ONE way back, not three (owner: "has 3 back options"). This
+                  step used to offer a header chevron labelled "Back to
+                  choices", a ghost "Back" button here that fired the exact same
+                  `setMode("choice")`, and the dialog's own ✕ — two of which did
+                  the same thing and the third did something else entirely.
+                  The chevron stays (it is what says "you have drilled in"), the
+                  ✕ stays (it closes the sheet, which is a different intent),
+                  and the duplicate goes — which also leaves the footer as a
+                  single unambiguous primary action. */}
+              <div className="flex pt-1">
                 <Button
                   className="flex-1 rounded-ds-md"
                   onClick={handleRevisionSubmit}

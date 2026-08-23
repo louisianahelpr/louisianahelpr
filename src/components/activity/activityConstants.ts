@@ -125,26 +125,23 @@ export type AppliedApp = Application & {
  * its active-filter indicator on a view the user had never filtered, and
  * "Clear all" would have reset to a status the page never opens on.
  *
- * Both tabs open on "active" (owner decision) so My Jobs and My Posts lead
- * with the same word instead of one saying "Active" and the other "All".
+ * Both tabs open on "needs_you" so My Jobs and My Posts lead with the same
+ * word, and with the one thing on the screen that is actually asking something
+ * of the reader. It replaced "active", which was true of an open job, an
+ * offered job, an in-progress job and a job sitting on the reader's approval
+ * alike — a bucket so broad that every card needed its own status band to say
+ * which kind it was.
  *
- * "active" is a BUCKET, not a single status — it folds every live item
- * (applied / direct offer / awaiting response / accepted / in progress) into
- * one list, defined by bucketAppliedApp and bucketPostedJob so it means the
- * same thing here as in the grouped view's ACTIVE section.
+ * It can come up empty, and that is fine here in a way it was not before:
+ * "nothing needs you" is good news, not a dead end. There is still deliberately
+ * NO automatic fallback to another tab (owner decision) — a default that
+ * silently moves is harder to reason about than one that holds still.
+ * ActivityEmptyState covers the empty case by naming where the items went
+ * ("Nothing needs you — but you have 4 Scheduled"), which is a pointer.
  *
- * That bucket-not-status distinction is the whole point. My Jobs previously
- * defaulted to "pending", a single status, so a helper whose applications had
- * all been answered landed on an empty screen with their history hidden behind
- * a filter menu they had to go find. A bucket degrades far more gracefully.
- *
- * It can still come up empty — every application sitting on a cancelled job
- * does it. There is deliberately NO automatic fallback to "all" in that case
- * (owner decision): a default that silently moves is harder to reason about
- * than one that holds still. ActivityEmptyState covers it instead by naming
- * where the items went ("Nothing under active — but you have 4 in Not
- * Selected"), which is a pointer rather than a dead end.
+ * See ActivityBucket in activityFilters.ts for what each of the four means and
+ * why they are exhaustive.
  */
 export function defaultStatusFilterFor(tab: "posted" | "applied"): string {
-  return "active";
+  return "needs_you";
 }

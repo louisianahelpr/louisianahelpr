@@ -198,6 +198,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       statusFilter,
       searchQuery,
       userId: user?.id,
+      applicantCounts,
     });
 
   // Pull-to-refresh — per-tab refresh wrapper. The underlying

@@ -163,6 +163,21 @@ const Dashboard = () => {
   });
 
   /**
+   * Show only saved jobs.
+   *
+   * Saving a job had no destination at all — the bookmark on every card wrote
+   * to a list nobody could open (owner: "how can they see saved jobs?"). This
+   * is deliberately a FILTER on the feed rather than a new screen: a saved job
+   * is still a job you might apply to, and it should sit in the surface that
+   * knows how to apply to it, with the same cards and the same actions.
+   *
+   * Not persisted — unlike the map pane, this is a lens you look through and
+   * step back out of, not a layout preference.
+   */
+  const [savedOnly, setSavedOnly] = useState(false);
+  const toggleSavedOnly = useCallback(() => setSavedOnly((v) => !v), []);
+
+  /**
    * Is the map column showing? Desktop website only.
    *
    * The map is a second way to read the same board, not a required half of the
@@ -352,7 +367,15 @@ const Dashboard = () => {
         isWebDesktop ? undefined : (
           <DashboardTitleBar
             status={statusPill}
-            actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
+            actions={
+              <BrowseTasksActions
+                filters={filters}
+                filtersButtonRef={filtersButtonRef}
+                savedOnly={savedOnly}
+                onToggleSavedOnly={toggleSavedOnly}
+                savedCount={savedJobIds.size}
+              />
+            }
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
           />
         )
@@ -424,6 +447,9 @@ const Dashboard = () => {
                           <BrowseTasksActions
                             filters={filters}
                             filtersButtonRef={filtersButtonRef}
+                            savedOnly={savedOnly}
+                            onToggleSavedOnly={toggleSavedOnly}
+                            savedCount={savedJobIds.size}
                           />
                           {/* Show / hide the map column. It sits with search
                               and filters because it is the same kind of
@@ -488,6 +514,7 @@ const Dashboard = () => {
                     // every time the next page loads with zero recommendations.
                     recommendedLoading={refreshing}
                     dismissedJobIds={dismissedJobIds}
+                    savedOnly={savedOnly}
                     effectiveFee={effectiveFee}
                     handleApplyRequest={handleApplyRequest}
                     handleDismissRequest={handleDismissRequest}

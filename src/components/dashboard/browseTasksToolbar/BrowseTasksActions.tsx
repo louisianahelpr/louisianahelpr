@@ -1,9 +1,18 @@
 import type { Ref } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Bookmark, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 
 export interface BrowseTasksActionsProps {
+  /** Show ONLY saved jobs. Owner: "how can they see saved jobs? add a button
+   *  by search" — saving a job had no destination at all before this, so the
+   *  bookmark on every card wrote to a list nobody could open. Optional: the
+   *  guest feed has no saved jobs and passes neither. */
+  savedOnly?: boolean;
+  onToggleSavedOnly?: () => void;
+  /** How many are saved — shown on the button so an empty list is visible
+   *  BEFORE the tap rather than after it. */
+  savedCount?: number;
   /** Dashboard filter state + setters (from useDashboardFilters). */
   filters: ReturnType<typeof useDashboardFilters>;
   /**
@@ -35,9 +44,43 @@ export interface BrowseTasksActionsProps {
  * drive the input and the sheet that BrowseTasksToolbar renders around them —
  * there is only ever one copy of each piece.
  */
-export function BrowseTasksActions({ filters, filtersButtonRef }: BrowseTasksActionsProps) {
+export function BrowseTasksActions({
+  filters,
+  filtersButtonRef,
+  savedOnly = false,
+  onToggleSavedOnly,
+  savedCount = 0,
+}: BrowseTasksActionsProps) {
   return (
     <>
+      {onToggleSavedOnly && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggleSavedOnly}
+          aria-pressed={savedOnly}
+          aria-label={
+            savedOnly
+              ? "Show all jobs"
+              : `Show saved jobs${savedCount ? ` (${savedCount})` : ""}`
+          }
+          className={`h-10 w-10 rounded-ds-md btn-press relative focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${
+            savedOnly
+              ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]"
+              : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"
+          }`}
+        >
+          <Bookmark
+            className="w-5 h-5"
+            fill={savedOnly ? "currentColor" : "none"}
+          />
+          {savedCount > 0 && !savedOnly && (
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
+              {savedCount > 9 ? "9+" : savedCount}
+            </span>
+          )}
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="icon"

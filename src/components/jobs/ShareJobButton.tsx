@@ -107,6 +107,26 @@ export function ShareJobButton({
     [],
   );
 
+  /**
+   * Will this device open a share sheet, or just copy?
+   *
+   * `navigator.share` does not exist in desktop Safari or in Chrome on macOS,
+   * so on a computer the button ALWAYS falls through to the clipboard — and a
+   * control labelled "Share" that answers with "Copied" reads as the wrong
+   * thing having happened (owner: "I don't understand why it says copied when
+   * it's clicked"). Nothing about the behaviour changes; the label just stops
+   * promising a sheet the browser cannot open. Phones and the native app have
+   * `navigator.share`, so they keep "Share" and the real sheet.
+   *
+   * Read once at mount rather than per render: it cannot change for the life
+   * of the page, and calling it in render would make the label depend on
+   * whether a re-render happened to run before hydration finished.
+   */
+  const [canNativeShare] = useState(
+    () => typeof navigator !== "undefined" && typeof navigator.share === "function",
+  );
+  const restLabel = canNativeShare ? "Share" : "Copy link";
+
   const confirmCopied = () => {
     setCopied(true);
     if (copiedTimer.current) clearTimeout(copiedTimer.current);
@@ -229,7 +249,11 @@ export function ShareJobButton({
         type="button"
         variant="ghost"
         size="icon"
-        aria-label={copied ? "Link copied to clipboard" : (ariaLabel ?? "Share this job")}
+        aria-label={
+        copied
+          ? "Link copied to clipboard"
+          : (ariaLabel ?? (canNativeShare ? "Share this job" : "Copy a link to this job"))
+      }
         disabled={sharing}
         onClick={handleShare}
         className={cn(
@@ -283,9 +307,11 @@ export function ShareJobButton({
       {layout === "stack" ? (
         <>
           {copied ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <Share2 className="w-4 h-4" />}
-          {/* Same string length class as "Share" so the 4-up action grid
-              doesn't reflow when the label flips. */}
-          <span className="text-ds-11 leading-none font-medium">{copied ? "Copied" : "Share"}</span>
+          {/* The flip is label→confirmation, and both stay short enough that
+              the 4-up action grid does not reflow. */}
+          <span className="text-ds-11 leading-none font-medium">
+            {copied ? "Copied" : restLabel}
+          </span>
         </>
       ) : (
         <>
@@ -294,7 +320,7 @@ export function ShareJobButton({
           ) : (
             <Share2 className="w-4 h-4 mr-1" />
           )}
-          {copied ? "Copied" : "Share"}
+          {copied ? "Copied" : restLabel}
         </>
       )}
       {liveRegion}

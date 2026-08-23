@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 export interface ShareContent {
   title?: string;
@@ -30,14 +31,25 @@ export async function shareNative(content: ShareContent): Promise<void> {
   const { title, text, url, dialogTitle } = content;
   const clipboardText = content.clipboardText ?? `${text}\n${url}`;
   try {
-    const { Capacitor } = await import("@capacitor/core");
-    if (Capacitor.isNativePlatform()) {
-      const { Share } = await import("@capacitor/share");
-      await Share.share({ title, text, url, dialogTitle });
+    /* CALL navigator.share BEFORE ANY await — this is the whole bug.
+       The web Share API is gated on user activation, and activation is
+       consumed by the first await in the handler. This function used to open
+       with `await import("@capacitor/core")` purely to ask which platform it
+       was on, so by the time it reached `navigator.share` the browser no
+       longer considered the click live and rejected with NotAllowedError. The
+       catch below then tried the clipboard, which needs document focus and
+       often fails too, and the tap read as doing nothing.
+
+       `isNativePlatform` is a synchronous const from nativeInit, so the branch
+       costs no await. The @capacitor/share import still happens lazily — but
+       only on native, where the plugin bridge has no gesture requirement. */
+    if (!isNativePlatform && typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      await navigator.share({ title, text, url });
       return;
     }
-    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-      await navigator.share({ title, text, url });
+    if (isNativePlatform) {
+      const { Share } = await import("@capacitor/share");
+      await Share.share({ title, text, url, dialogTitle });
       return;
     }
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -51,6 +63,9 @@ export async function shareNative(content: ShareContent): Promise<void> {
       err instanceof Error &&
       (err.name === "AbortError" || /cancel/i.test(err.message) || /dismiss/i.test(err.message));
     if (isCancel) return;
+    // NotAllowedError is what a gesture-less or permission-blocked share
+    // throws. It is NOT a cancellation, so it must not be swallowed — the
+    // fallbacks below are what turn it back into something the user sees.
     // Fall back to clipboard before surfacing a hard failure.
     try {
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {

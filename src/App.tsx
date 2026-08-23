@@ -62,6 +62,7 @@ const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const DesktopTopNav = lazy(() => import("./components/DesktopTopNav"));
 import { TopNavActionsProvider } from "./components/topNavActions";
 import { SidePanelProvider } from "./components/sidePanelOpen";
+import { FAMILY_ENABLED } from "@/config/familyEnabled";
 const PermissionRationaleDialog = lazy(() =>
   import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
 );
@@ -291,8 +292,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Legacy /pay-it-forward → /gift-card (feature renamed). */}
       <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />
-      <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Family & Care — see src/config/familyEnabled.ts. Both routes go
+          together: with the dashboard gone, an invite link would land somebody
+          on a flow whose destination does not exist. */}
+      {FAMILY_ENABLED && <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />}
+      {FAMILY_ENABLED && <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />}
       {/* Purely promotional (a Footer destination pitching business accounts),
           so it takes the same signed-in bounce as the landing page. */}
       {BUSINESS_ENABLED && <Route path="/for-business" element={<RouteErrorBoundary><MarketingRedirect>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />}

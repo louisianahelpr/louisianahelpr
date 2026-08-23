@@ -9,6 +9,7 @@ import { hapticLight } from "@/lib/haptics";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { PayoutPrompt } from "@/hooks/useStripeConnectStatus";
 import type { MenuItem, Profile } from "./types";
+import { FAMILY_ENABLED } from "@/config/familyEnabled";
 
 interface UseProfileLandingDerivedArgs {
   profile: Profile | null;
@@ -224,14 +225,22 @@ export function useProfileLandingDerived({
           desc: "Color mode & Senior mode",
           tint: SECTION_TINT.account,
         },
-        {
-          key: "family",
-          label: "Family & Care",
-          icon: <Users className="w-5 h-5" />,
-          desc: "Manage jobs for a family member",
-          tint: SECTION_TINT.account,
-          href: "/family",
-        },
+        /* Family & Care is behind FAMILY_ENABLED (off 2026-08-23, owner: "it
+           seems pointless — you literally just post the job on their behalf").
+           Spread rather than a ternary so the row leaves no empty slot in the
+           list when the flag is false. */
+        ...(FAMILY_ENABLED
+          ? [
+              {
+                key: "family",
+                label: "Family & Care",
+                icon: <Users className="w-5 h-5" />,
+                desc: "Manage jobs for a family member",
+                tint: SECTION_TINT.account,
+                href: "/family",
+              },
+            ]
+          : []),
         {
           key: "pets",
           label: "My Pets",

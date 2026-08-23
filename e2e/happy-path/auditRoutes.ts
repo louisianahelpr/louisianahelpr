@@ -323,8 +323,11 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "auto-tip", url: "/auto-tip" },
   { name: "availability", url: "/availability" },
   { name: "earnings", url: "/earnings" },
-  { name: "family", url: "/family" },
-  { name: "family-accept", url: "/family/accept/test-invite-token" },
+  // REMOVED 2026-08-23: Family & Care is behind FAMILY_ENABLED, which is off
+  // (owner: "it seems pointless — you literally just post the job on their
+  // behalf"). With the routes unregistered both rows rendered NotFound and
+  // counted as two clean screens — exactly the over-counting this catalog's
+  // guard test exists to catch. Restore both when the flag flips back.
   // REMOVED 2026-08-22: `family-accept-empty` pointed at "/family/accept/".
   // The route is "/family/accept/:token" and React Router will not match an
   // EMPTY path segment, so that row rendered the 404 page, not the page's

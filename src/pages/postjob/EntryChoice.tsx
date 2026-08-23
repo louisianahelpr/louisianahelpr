@@ -60,8 +60,19 @@ export function EntryChoice({ form }: EntryChoiceProps) {
 
   // Repost + template lists are collapsed by default so "Start fresh" reads
   // as the primary action — the user opens a section only when they want it.
-  const [repostOpen, setRepostOpen] = useState(false);
-  const [templatesOpen, setTemplatesOpen] = useState(false);
+  /**
+   * ONE section open at a time (owner: "I only used a template and the other
+   * opened"). Each collapsible card used to own an independent boolean, so
+   * opening Templates left Repost — and the AI builder — expanded underneath,
+   * and in the two-column grid an open section stretched its neighbour to
+   * match. A radio, not three checkboxes: these are alternative ways to start
+   * the SAME post, so at most one can be the one you are using.
+   */
+  const [openSection, setOpenSection] = useState<"repost" | "templates" | "ai" | null>(null);
+  const repostOpen = openSection === "repost";
+  const templatesOpen = openSection === "templates";
+  const toggleSection = (key: "repost" | "templates" | "ai") =>
+    setOpenSection((cur) => (cur === key ? null : key));
 
   // Tap a Repost tile → reuse the existing `?rebook=<id>` deep-link the
   // form already handles, which prefills every field and skips the entry
@@ -81,7 +92,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     // big side gutters on tablet / wide-phone widths. Sections that expand
     // (Repost, Templates) grow their own row independently in the grid, so
     // an open section still reads naturally.
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-ds-page-in">
+    // `items-start` so a card keeps its natural height (owner: "all boxes should
+    // be the same size"). Grid rows stretch their items by default, so an OPEN
+    // Templates section pulled its silent neighbour to the same height — one
+    // card in a pair of four suddenly three times as tall as the rest, holding
+    // nothing. With `items-start` the expanded one grows and the others stay
+    // the size of their content.
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start animate-ds-page-in">
       {/* 1 — START FRESH (primary action, always first) */}
       <button
         type="button"
@@ -90,7 +107,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       >
         <span
           className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
-          style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
+          style={{ background: "hsl(var(--burnt-sienna) / 0.14)" }}
           aria-hidden
         >
           <PenLine className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
@@ -118,10 +135,10 @@ export function EntryChoice({ form }: EntryChoiceProps) {
         >
           <span
             className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
-            style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
+            style={{ background: "hsl(var(--info-tint) / 0.14)" }}
             aria-hidden
           >
-            <FileText className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+            <FileText className="w-5 h-5" style={{ color: "hsl(var(--info-tint))" }} />
           </span>
           <span className="min-w-0 flex-1">
             <span
@@ -165,16 +182,16 @@ export function EntryChoice({ form }: EntryChoiceProps) {
         <div className="rounded-2xl liquid-glass p-4">
           <button
             type="button"
-            onClick={() => setRepostOpen((v) => !v)}
+            onClick={() => toggleSection("repost")}
             aria-expanded={repostOpen}
             className="w-full flex items-center gap-4 text-left active:scale-[0.99] transition-transform"
           >
             <span
               className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
-              style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
+              style={{ background: "hsl(var(--sage) / 0.14)" }}
               aria-hidden
             >
-              <RotateCcw className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+              <RotateCcw className="w-5 h-5" style={{ color: "hsl(var(--sage))" }} />
             </span>
             <span className="min-w-0 flex-1">
               <span
@@ -256,16 +273,16 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       <div className="rounded-2xl liquid-glass p-4">
         <button
           type="button"
-          onClick={() => setTemplatesOpen((v) => !v)}
+          onClick={() => toggleSection("templates")}
           aria-expanded={templatesOpen}
           className="w-full flex items-center gap-4 text-left active:scale-[0.99] transition-transform"
         >
           <span
             className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
-            style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
+            style={{ background: "hsl(var(--gold-warm) / 0.14)" }}
             aria-hidden
           >
-            <LayoutTemplate className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+            <LayoutTemplate className="w-5 h-5" style={{ color: "hsl(var(--gold-warm))" }} />
           </span>
           <span className="min-w-0 flex-1">
             <span
@@ -352,6 +369,8 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           entry step so all the "ways to start a post" sit together; once it
           generates fields we advance into the form to review them. */}
       <AiJobBuilder
+        open={openSection === "ai"}
+        onOpenChange={(next) => setOpenSection(next ? "ai" : null)}
         locationContext=""
         onGenerated={(job) => {
           form.applyAiJob(job);

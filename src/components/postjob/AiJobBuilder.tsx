@@ -33,11 +33,23 @@ interface AiJobBuilderProps {
   locationContext?: string;
   /** Called when generation succeeds — parent applies fields to form state. */
   onGenerated: (job: AiGeneratedJob) => void;
+  /** Controlled open state. Pass both to make this card part of a
+   *  one-open-at-a-time group; omit both and it manages its own. */
+  open?: boolean;
+  onOpenChange?: (next: boolean) => void;
 }
 
-export function AiJobBuilder({ locationContext = "", onGenerated }: AiJobBuilderProps) {
+export function AiJobBuilder({ locationContext = "", onGenerated, open: controlledOpen, onOpenChange }: AiJobBuilderProps) {
   const [prompt, setPrompt] = useState("");
-  const [open, setOpen] = useState(false);
+  /**
+   * Open state is CONTROLLED when the parent passes it, so this card can join
+   * the entry screen's one-open-at-a-time group (see EntryChoice). Falls back
+   * to its own state everywhere else, so the component still works standalone.
+   */
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (next: boolean) =>
+    onOpenChange ? onOpenChange(next) : setUncontrolledOpen(next);
   const [loading, setLoading] = useState(false);
 
   const generate = async () => {

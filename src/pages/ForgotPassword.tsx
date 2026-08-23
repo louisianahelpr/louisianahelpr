@@ -162,8 +162,7 @@ const ForgotPassword = () => {
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
-                    placeholder="you@example.com"
-                    value={email}
+                        value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (showEmailError) setShowEmailError(false);

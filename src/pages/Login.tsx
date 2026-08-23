@@ -353,7 +353,6 @@ const Login = () => {
                 autoCorrect="off"
                 spellCheck={false}
                 enterKeyHint="next"
-                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -377,11 +376,15 @@ const Login = () => {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 enterKeyHint="done"
-                // No placeholder. A row of bullet characters mimics a FILLED
-                // password field, so the empty state read as "already
-                // populated" — especially alongside iOS autofill. The visible
-                // "Password" label already names the field, so the placeholder
-                // added nothing but ambiguity.
+                // No placeholder — and as of 2026-08-22 neither does Email.
+                // Bullets here mimicked a FILLED password field, so the empty
+                // state read as "already populated" alongside iOS autofill;
+                // that stands. What changed is the other half: Email kept a
+                // "you@example.com" placeholder, so the two fields in one card
+                // were styled differently and the password field read as the
+                // broken one. Signup already had zero placeholders, making
+                // Login and ForgotPassword the outliers rather than the rule.
+                // All three auth screens are now label-only.
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -412,8 +415,14 @@ const Login = () => {
             <div className="flex justify-end -mb-4">
               <Link
                 to="/forgot-password"
-                className="min-h-[44px] -my-2 inline-flex items-center text-ds-12 font-sans font-semibold hover:underline active:opacity-60 transition-opacity"
-                style={{ color: "hsl(var(--bark))" }}
+                // Muted olivewood, NOT --bark. Bark (#5E6544) is the same deep
+                // olive the Sign in button is built from, so a bold bark link
+                // sitting directly above that button read as a second green
+                // control competing with the primary one. The screen gets ONE
+                // strong green. Dropped to medium weight for the same reason —
+                // this is the escape hatch, not the action.
+                className="min-h-[44px] -my-2 inline-flex items-center text-ds-12 font-sans font-medium hover:underline active:opacity-60 transition-opacity"
+                style={{ color: "hsl(var(--olivewood) / 0.75)" }}
               >
                 Forgot password?
               </Link>

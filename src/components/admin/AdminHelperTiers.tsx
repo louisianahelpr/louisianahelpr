@@ -137,15 +137,19 @@ const AdminHelperTiers = () => {
                     <Badge className={`${TIER_COLOR[helper.tier]} text-ds-10 gap-0.5`}>
                       <Icon className="w-3 h-3" /> {helper.tier}
                     </Badge>
-                    {helper.parish && (
-                      <span className="text-ds-11 text-muted-foreground">{helper.parish} Parish</span>
-                    )}
+                    {/* An unset parish rendered as an empty gap, which reads as
+                        a broken row next to three that have one. Say what is
+                        actually true instead. */}
+                    <span className="text-ds-11 text-muted-foreground">
+                      {helper.parish ? `${helper.parish} Parish` : "No parish set"}
+                    </span>
                   </div>
                   <div className="flex gap-3 text-ds-11 text-muted-foreground">
                     <span className="flex items-center gap-0.5">
                       {/* intentional: gold star (rating icon), not a status tone */}
                       <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                      {Number(helper.avg_rating).toFixed(2)} avg ({helper.total_reviews} reviews)
+                      {Number(helper.avg_rating).toFixed(2)} avg ({helper.total_reviews}{" "}
+                      {helper.total_reviews === 1 ? "review" : "reviews"})
                     </span>
                     {helper.recent_reviews > 0 && (
                       <span className="flex items-center gap-0.5 text-primary">
@@ -153,7 +157,9 @@ const AdminHelperTiers = () => {
                         +{helper.recent_reviews} in 30d
                       </span>
                     )}
-                    <span>{helper.completed_jobs} jobs</span>
+                    <span>
+                      {helper.completed_jobs} {helper.completed_jobs === 1 ? "job" : "jobs"}
+                    </span>
                   </div>
                 </div>
                 <Button asChild size="sm" variant="outline" className="shrink-0">

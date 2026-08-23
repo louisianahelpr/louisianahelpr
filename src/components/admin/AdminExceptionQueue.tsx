@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, ClipboardList } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { formatShortDate } from "@/lib/format";
 import {
@@ -20,6 +20,7 @@ import SectionBoundary from "@/components/SectionBoundary";
 import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // Maps DB exception_type values to human-readable labels
 const EXCEPTION_TYPE_LABELS: Record<string, string> = {
@@ -158,9 +159,12 @@ const ExceptionQueueInner = () => {
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl liquid-glass p-10 text-center text-ds-11 text-muted-foreground">
-          No open exceptions.
-        </div>
+        <EmptyState
+          variant="inline"
+          icon={ClipboardList}
+          title="No open exceptions"
+          body="Nothing is waiting on a decision right now."
+        />
       ) : (
         <div className="space-y-3">
           {rows.map((r) => (

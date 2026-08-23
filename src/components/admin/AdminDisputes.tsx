@@ -17,6 +17,7 @@ import type {
   PartyFilter,
   CategoryFilter,
 } from "./adminDisputes/types";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
@@ -403,12 +404,16 @@ const AdminDisputes = () => {
       )}
 
       {list.length === 0 ? (
-        <div className="text-center py-12">
-          <CheckCircle2 className="w-10 h-10 text-primary mx-auto mb-3 opacity-50" />
-          <p className="text-muted-foreground">
-            {filter === "open" ? "No active disputes" : "No decided disputes in the last 50."}
-          </p>
-        </div>
+        <EmptyState
+          variant="inline"
+          icon={CheckCircle2}
+          title={filter === "open" ? "No active disputes" : "No decided disputes"}
+          body={
+            filter === "open"
+              ? "Nothing is contested right now."
+              : "Nothing has been decided in the last 50 jobs."
+          }
+        />
       ) : (
         list.map((job) => (
           <DisputeCard

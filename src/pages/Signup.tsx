@@ -9,6 +9,7 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
+import { rememberJobIntent, rememberSignupRedirect, postAuthDestination } from "@/lib/jobIntent";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
@@ -31,19 +32,40 @@ const Signup = () => {
     ogTitle: "Sign Up — Helpr",
     ogDescription: "Join Helpr in under a minute and start posting jobs or earning as a verified Helpr across Louisiana.",
   });
+  const { user, isReady } = useAuthReady();
+  const [searchParams] = useSearchParams();
+  const isBusinessSignup = searchParams.get("type") === "business";
+  // `?job=<id>` — the job a guest tapped on /browse or /jobs before the signup
+  // wall. `?redirect=<path>` — the fuller form of the same idea: the exact
+  // in-app route they were trying to reach (e.g. `/jobs/<id>`). Persist both
+  // immediately, because signup does not end here: it ends at /signup-pending
+  // and then in the visitor's email client, and neither router state nor a
+  // query param survives that round-trip. See lib/jobIntent.
+  //
+  // SECURITY: `redirect` is attacker-controllable. `rememberSignupRedirect`
+  // drops anything that isn't a same-origin path, so a crafted
+  // `/signup?redirect=https://evil.com` stores nothing and the flow falls back
+  // to its normal landing.
+  const pendingJobId = searchParams.get("job");
+  const pendingRedirect = searchParams.get("redirect");
+  //
+  // NOTE ON ORDER: this effect is declared BEFORE the already-authenticated
+  // bounce below on purpose. Both fire on the mount commit, in declaration
+  // order, and the bounce reads the value this one writes.
+  useEffect(() => {
+    if (pendingJobId) rememberJobIntent(pendingJobId);
+    rememberSignupRedirect(pendingRedirect);
+  }, [pendingJobId, pendingRedirect]);
   // An already-authenticated visitor has no business on the signup form —
   // bounce them into the app. Wait for isReady so we don't redirect on the
   // pre-bootstrap null snapshot.
-  const { user, isReady } = useAuthReady();
   useEffect(() => {
-    if (isReady && user) navigate("/dashboard", { replace: true });
+    if (isReady && user) navigate(postAuthDestination(), { replace: true });
   }, [isReady, user, navigate]);
   // Funnel event: user landed on signup page (top of activation funnel)
   useEffect(() => {
     track(AhaEvent.SignupStarted, { source: "web", ...ppoTrackingProps() });
   }, []);
-  const [searchParams] = useSearchParams();
-  const isBusinessSignup = searchParams.get("type") === "business";
   const [companyName, setCompanyName] = useState("");
   // Dev-only: seed the step from `?step=2` so the flow can be inspected
   // without the old on-page PREVIEW band, which showed testers a control
@@ -87,7 +109,6 @@ const Signup = () => {
 
   // Step 2 fields
   const [bio, setBio] = useState("");
-  const [location, setLocation] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -116,10 +137,11 @@ const Signup = () => {
     if (isBusinessSignup && !companyName.trim()) errors.companyName = "Add your company name";
     if (!firstName.trim()) errors.firstName = "Add your first name";
     if (!lastName.trim()) errors.lastName = "Add your last name";
-    // Avatar, phone, DOB, and city are DEFERRED — not required to create the
+    // Avatar, phone and DOB are DEFERRED — not required to create the
     // account (keeps signup "under a minute"). They're soft-prompted later on
     // first post/apply. Each is still validated *when the user provides it*, so
-    // a supplied value can't be malformed or under-age.
+    // a supplied value can't be malformed or under-age. (City used to be in
+    // this list; it is no longer collected at signup at all.)
     if (phone.trim() && phone.replace(/\D/g, "").length < 10) {
       errors.phone = "Enter a valid 10-digit phone number";
     }
@@ -219,7 +241,10 @@ const Signup = () => {
         avatarContentType: avatarFile?.type,
         phone,
         bio,
-        location,
+        // No `location`: the City input is gone from step 2 (it was
+        // unvalidated free text). complete-signup writes the column only
+        // `if (location)`, so omitting it leaves profiles.location null —
+        // no column change, no migration.
         dateOfBirth: dateOfBirth || null,
         // Explicit marketing-email consent captured at signup. Defaults to
         // false server-side; passing it here lets a user who ticked the box
@@ -437,8 +462,6 @@ const Signup = () => {
             setPhone={setPhone}
             dateOfBirth={dateOfBirth}
             setDateOfBirth={setDateOfBirth}
-            location={location}
-            setLocation={setLocation}
             bio={bio}
             setBio={setBio}
             inputCls={inputCls}

@@ -7,6 +7,13 @@ const Popover = PopoverPrimitive.Root;
 
 const PopoverTrigger = PopoverPrimitive.Trigger;
 
+// Positions a popover against an element that is NOT its trigger. Needed
+// when the button and the panel live in different components and cannot be
+// wrapped in one <Popover> subtree — pass the button's ref as `virtualRef`
+// (a Radix Popper prop: RefObject<Measurable | null>). Purely additive; no
+// existing popover changes behaviour.
+const PopoverAnchor = PopoverPrimitive.Anchor;
+
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
@@ -26,4 +33,4 @@ const PopoverContent = React.forwardRef<
 ));
 PopoverContent.displayName = PopoverPrimitive.Content.displayName;
 
-export { Popover, PopoverTrigger, PopoverContent };
+export { Popover, PopoverTrigger, PopoverAnchor, PopoverContent };

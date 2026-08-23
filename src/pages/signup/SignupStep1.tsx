@@ -193,7 +193,7 @@ export function SignupStep1({
               className="block text-left text-ds-11 font-sans"
               style={{ color: "hsl(var(--bark))" }}
             >
-              Did you mean <span className="font-semibold underline">{emailSuggestion}</span>?
+              Did You Mean <span className="font-semibold underline">{emailSuggestion}</span>?
             </button>
           )}
         </div>

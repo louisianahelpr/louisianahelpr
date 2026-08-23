@@ -60,6 +60,7 @@ export function BrowseTasksToolbar({
   hideViewToggle = false,
   onClearAllFilters,
   titleSrOnly = false,
+  filtersAnchorRef,
 }: BrowseTasksToolbarProps) {
   // Saved-searches dialog. Opened from the filter sheet's "Saved searches"
   // row, which closes the sheet on the way — so the dialog is mounted HERE,
@@ -231,6 +232,7 @@ export function BrowseTasksToolbar({
       <FilterSheet
         open={filters.filtersOpen}
         onOpenChange={filters.setFiltersOpen}
+        anchorRef={filtersAnchorRef}
         activeFilterCount={filters.activeFilterCount}
         onClearAll={() => {
           filters.clearFilters();
@@ -287,10 +289,10 @@ export function BrowseTasksToolbar({
                     <Bookmark className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} aria-hidden />
                     <span className="min-w-0 flex-1">
                       <span className="block text-ds-12 font-semibold text-foreground leading-snug">
-                        Saved searches
+                        Saved Searches
                       </span>
                       <span className="block text-ds-11 text-muted-foreground leading-snug">
-                        Apply a set you saved, or save these filters
+                        Apply a Set You Saved, or Save These Filters
                       </span>
                     </span>
                     <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
@@ -396,7 +398,7 @@ export function BrowseTasksToolbar({
                 border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
               }}
             >
-              <X className="w-3 h-3" strokeWidth={2.25} /> Clear all
+              <X className="w-3 h-3" strokeWidth={2.25} /> Clear All
             </button>
           )}
         </div>

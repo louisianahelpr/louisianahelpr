@@ -58,6 +58,13 @@ import { DismissJobDialog } from "./dashboard/DismissJobDialog";
 const Dashboard = () => {
   const navigate = useNavigate();
   usePageTitle("Dashboard — Helpr");
+
+  // The Filters button lives in the title card (BrowseTasksActions) while the
+  // filter panel lives in BrowseTasksToolbar below it. This page is the one
+  // component that renders both, so it owns the ref that joins them — on the
+  // desktop web the panel opens as a popover anchored to that button instead
+  // of a modal sheet over the results. Phone + native are unaffected.
+  const filtersButtonRef = useRef<HTMLButtonElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   // Capture ?ref= attribution from deep-links (push notifications, share
   // links, etc.) so analytics can attribute which surface drove the open.
@@ -234,7 +241,7 @@ const Dashboard = () => {
         panelElevation="raised"
         titleCard={<DashboardTitleBar
             status={statusPill}
-            actions={<BrowseTasksActions filters={filters} />}
+            actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
           />}
         titleCardClassName={TITLE_BAR_PADDING}
@@ -299,7 +306,7 @@ const Dashboard = () => {
       // the top safe-area inset itself when no header is passed.
       titleCard={<DashboardTitleBar
             status={statusPill}
-            actions={<BrowseTasksActions filters={filters} />}
+            actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
           />}
       titleCardClassName={TITLE_BAR_PADDING}
@@ -338,6 +345,7 @@ const Dashboard = () => {
                 clean, personalized, vertical list; no duplication. */}
 
             <BrowseTasksToolbar
+              filtersAnchorRef={filtersButtonRef}
               titleSrOnly
               filters={filters}
               user={user}

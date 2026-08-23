@@ -44,12 +44,6 @@ import {
 //
 // Copy here is framing only; every clause of the legal text is preserved
 // verbatim inside TermsContent / CommunityContent / PrivacyContent.
-const TAB_TITLES: Record<TabKey, string> = {
-  terms: "Terms of service",
-  community: "Community rules",
-  privacy: "Privacy policy",
-};
-
 // Tab → content element, used by the cross-tab search view (which renders
 // all three at once). Outside of search, the panels render these inside
 // their respective Radix TabsContent instead.
@@ -70,15 +64,19 @@ const Legal = () => {
   // is derived after render by counting the section cards that survived the
   // filter, so we can show a clean empty state when nothing matches.
   const [query, setQuery] = useState("");
-  // Search starts collapsed to an icon — the sticky header stays light for
-  // the primary action (reading Terms/Rules/Privacy); tapping the icon
-  // reveals the input. Opening auto-focuses it; clearing the query (via the
-  // input's own X) does NOT auto-collapse, so a user isn't fighting a
-  // closing bar mid-edit — they collapse it explicitly.
-  const [searchOpen, setSearchOpen] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  // The search input is ALWAYS rendered — there is no collapse/expand toggle
+  // any more. It used to start collapsed to an icon and swap in an input on
+  // tap, which meant the control row changed shape mid-interaction: the tabs
+  // went from three equal 292px columns to a compact right-aligned trio,
+  // slid across the row, and (below `sm`) disappeared entirely. Owner's
+  // call: search always visible, tabs a fixed size. Nothing in this row may
+  // resize or move as a result of switching tabs or focusing search — the
+  // only permitted change is the `sm` breakpoint itself.
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // The sticky Terms/Rules/Privacy band, so a tab switch can scroll to the
+  // band's own offset instead of yanking the document to 0 (see below).
+  const stickyRowRef = useRef<HTMLDivElement>(null);
   const [hasResults, setHasResults] = useState(true);
   const isSearching = !!query.trim();
 
@@ -100,16 +98,57 @@ const Legal = () => {
   // later content (search / tagline) leaked through. top: 0 closes that gap.
   const webBandStickyTop = "0px";
 
-  // Switching tabs is a fresh document: drop any active search and jump back
-  // to the top (native scrolls AppShell's internal container; web scrolls the
-  // window). Without this, deep-scrolling Privacy then tapping Terms would
-  // land you mid-page.
+  // Switching tabs is a fresh document: drop any active search and start the
+  // new policy at its beginning rather than wherever the old one happened to
+  // be scrolled to. The goal is unchanged — deep-scrolling Privacy then
+  // tapping Terms must not land you mid-page — but the means are.
+  //
+  // This used to `scrollTo({ top: 0 })`, which was the single biggest source
+  // of the "whole page jumps when you toggle terms" complaint: reading at
+  // y=157 and tapping a tab yanked the viewport to the very top, so the
+  // header, the title row and the tab band all visibly flew back down the
+  // screen under your finger.
+  //
+  // Instead we scroll to the sticky band's OWN offset. Once you are past that
+  // offset the band is pinned at the top of the viewport, and landing exactly
+  // on the offset puts it in that same pinned position — so the row you just
+  // tapped does not move a single pixel, while the policy underneath it is
+  // correctly reset to its first line. If you are at or above the offset the
+  // band is not pinned yet and the document top is already in view, so we do
+  // not scroll at all.
+  //
+  // Measuring the band's UNPINNED offset is the fiddly part. Both of the
+  // obvious reads are contaminated once the band is actually stuck:
+  // `getBoundingClientRect().top` is 0 (that's what "pinned" means), and —
+  // measured, not assumed — Chrome folds the sticky displacement into
+  // `offsetTop` as well, so a pinned band reports its own scroll position and
+  // `current > bandOffset` can never be true. So we flip the element to
+  // `position: static` for the duration of one synchronous read and put it
+  // straight back. No paint happens between the two writes, so nothing
+  // flickers, and the rect we read in between is the honest layout position.
   useEffect(() => {
     setQuery("");
-    if (isNativePlatform) {
-      scrollRef.current?.scrollTo({ top: 0 });
-    } else {
-      window.scrollTo({ top: 0 });
+    const row = stickyRowRef.current;
+    if (!row) return;
+    const container = isNativePlatform ? scrollRef.current : null;
+
+    const prevPosition = row.style.position;
+    row.style.position = "static";
+    const naturalTop = row.getBoundingClientRect().top;
+    row.style.position = prevPosition;
+
+    // Viewport-relative → container-relative. For the web branch the scroll
+    // box is the document, so the container terms fall away to `scrollY`.
+    const containerTop = container ? container.getBoundingClientRect().top : 0;
+    const current = container ? container.scrollTop : window.scrollY;
+    const bandOffset = naturalTop - containerTop + current;
+
+    if (current > bandOffset) {
+      if (container) {
+        container.scrollTo({ top: bandOffset });
+      } else {
+        window.scrollTo({ top: bandOffset });
+      }
     }
   }, [tab]);
 
@@ -157,9 +196,17 @@ const Legal = () => {
     <div className="flex items-center gap-3">
       <div data-print-hide className="shrink-0"><BackButton to="/" /></div>
       <div className="flex flex-col leading-none min-w-0 mb-1">
-        <h1 className="text-page-title leading-tight text-balance">
-          {TAB_TITLES[tab]}
-        </h1>
+        {/* Static "Legal" — the h1 does NOT swap with the tab, matching the web
+            header below. This fix was applied to the WEB header and missed
+            here, so the native app kept the exact behaviour that header's
+            comment describes: one page with three tabs retitling itself on
+            every toggle, flickering between three names for the same
+            destination while the tab band directly underneath already says
+            which policy you are reading.
+
+            The per-policy names still drive the DOCUMENT title and canonical
+            via usePageMeta, which is what SEO and the browser tab read. */}
+        <h1 className="text-page-title leading-tight text-balance">Legal</h1>
       </div>
     </div>
   );
@@ -220,17 +267,18 @@ const Legal = () => {
     </section>
   );
 
-  // Compact (icon-only, auto-width) while search is open — the tabs stay
-  // visible rather than disappearing, they just shrink to make room for the
-  // search input instead of splitting the row evenly with it.
+  // ONE size, always. Below `sm` the three tabs share the full width as an
+  // even 3-column grid stacked above the search input; from `sm` up they
+  // collapse to their natural inline width and sit at the right of the row.
+  // The class string depends only on the viewport — never on which tab is
+  // selected and never on whether search is focused — so a tab switch cannot
+  // resize or reposition anything. (It used to be a two-way `searchOpen`
+  // conditional, which is exactly how three 292px columns turned into a
+  // compact trio the moment you touched the search icon.)
   const tabBar = (
     <TabsList
       data-print-hide
-      className={
-        searchOpen
-          ? "inline-flex items-center gap-1 rounded-2xl p-1 h-auto bg-transparent border-0"
-          : "grid w-full grid-cols-3 items-center gap-1 rounded-2xl p-1 h-auto bg-transparent border-0"
-      }
+      className="grid grid-cols-3 sm:inline-flex items-center gap-1 rounded-2xl p-1 h-auto bg-transparent border-0 w-full sm:w-auto"
     >
       {VALID_TABS.map((t) => {
         const isActive = t === tab;
@@ -274,38 +322,19 @@ const Legal = () => {
     </TabsList>
   );
 
-  // Collapsed trigger — rendered as part of the SAME row as the Terms/Rules/
-  // Privacy toggle (not floating separately below it), so it reads as one
-  // connected control instead of a disconnected icon in empty space.
-  const searchToggle = !searchOpen && (
-    <button
-      type="button"
-      onClick={() => {
-        setSearchOpen(true);
-        // Focus after the input mounts (searchOpen flips to true this
-        // render, the ref attaches next paint).
-        requestAnimationFrame(() => searchInputRef.current?.focus());
-      }}
-      aria-label="Search all policies"
+  // Always rendered, never toggled. `pr-9` is reserved unconditionally so the
+  // clear button appearing (or leaving) cannot reflow the text; the button
+  // itself is absolutely positioned, so it is out of flow entirely.
+  const searchBar = (
+    <div
+      className="relative w-full sm:flex-1 sm:min-w-[220px] order-2 sm:order-1"
       data-print-hide
-      className="shrink-0 w-9 h-9 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
-      style={{ color: "hsl(var(--olivewood))" }}
     >
-      <Search className="w-4 h-4" />
-    </button>
-  );
-
-  // Expanded input — replaces the toggle in-place within the header row once
-  // open (see the two render sites below), instead of appearing disconnected
-  // further down the page.
-  const searchBar = searchOpen && (
-    <div className="relative flex-1 min-w-[220px]" data-print-hide>
       <Search
         className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
         style={{ color: "hsl(var(--olivewood) / 0.8)" }}
       />
       <input
-        ref={searchInputRef}
         type="text"
         aria-label="Search all policies"
         value={query}
@@ -317,18 +346,35 @@ const Legal = () => {
           color: "hsl(var(--ink-deep))",
         }}
       />
-      <button
-        type="button"
-        onClick={() => {
-          setQuery("");
-          setSearchOpen(false);
-        }}
-        aria-label="Close search"
-        className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
-        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-      >
-        <X className="w-4 h-4" />
-      </button>
+      {/* CLEAR, not close — there is nothing to close any more. Only shown
+          when there is a query to clear. */}
+      {query !== "" && (
+        <button
+          type="button"
+          onClick={() => setQuery("")}
+          aria-label="Clear search"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+
+  // The one control row, shared verbatim by the native and web branches below
+  // so the two can't drift. Stacked on a phone (tabs above the search, both
+  // full-width), side by side from `sm` up (search flexes on the left, tabs
+  // pinned at their natural width on the right). `order-*` keeps the tabs
+  // first in the stacked layout while leaving them last on the wide one, and
+  // the tabs are NEVER hidden — the old `hidden sm:block` made them vanish on
+  // a phone the instant search opened.
+  const controlRow = (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-1">
+      {searchBar}
+      <div className="w-full sm:w-auto sm:shrink-0 order-1 sm:order-2">
+        {tabBar}
+      </div>
     </div>
   );
 
@@ -447,28 +493,11 @@ const Legal = () => {
                   screen edges so text doesn't show through the 20px gutters as
                   it passes underneath. */}
               <div
+                ref={stickyRowRef}
                 className="sticky top-0 z-30 -mx-5 px-5 py-2 bg-premium-page"
                 data-print-hide
               >
-                <div className="flex items-center gap-2">
-                  {/* One row, always — no wrap. Search leads; the tabs sit
-                      beside it on anything wider than a phone. On a phone the
-                      input's 220px minimum plus three tabs cannot fit, and
-                      wrapping them to a second line made the band grow and the
-                      page jump on every search toggle. Hiding them there costs
-                      nothing: this searches ALL policies, so which tab is
-                      selected has no bearing on the results, and closing the
-                      search brings them straight back. */}
-                  {searchBar}
-                  {searchToggle}
-                  <div
-                    className={
-                      searchOpen ? "shrink-0 hidden sm:block" : "flex-1 min-w-0"
-                    }
-                  >
-                    {tabBar}
-                  </div>
-                </div>
+                {controlRow}
               </div>
               {body}
             </div>
@@ -505,6 +534,7 @@ const Legal = () => {
                 band with real vertical padding gives the passing content
                 somewhere to disappear. */}
             <div
+              ref={stickyRowRef}
               className="sticky z-30 -mx-5 px-5 py-2"
               style={{
                 top: webBandStickyTop,
@@ -520,22 +550,10 @@ const Legal = () => {
               }}
             >
               <div
-                className="rounded-2xl flex items-center gap-2 p-1"
+                className="rounded-2xl"
                 style={{ border: "1px solid hsl(var(--bark) / 0.18)" }}
               >
-                {/* One row, always — see the native branch above for why the
-                    wrap went: an opened search pushed the tabs to a second
-                    line, growing the band and jumping the page. Below `sm` the
-                    tabs step aside for the input instead; search spans all
-                    three policies, so the selected tab doesn't affect results
-                    and closing search restores them. */}
-                {searchBar}
-                {searchToggle}
-                <div
-                  className={searchOpen ? "shrink-0 hidden sm:block" : "flex-1 min-w-0"}
-                >
-                  {tabBar}
-                </div>
+                {controlRow}
               </div>
             </div>
             {/* Full-width body at every breakpoint. The old lg+ two-column split

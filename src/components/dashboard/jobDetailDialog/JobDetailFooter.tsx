@@ -4,6 +4,7 @@ import { getCity } from "@/lib/locationUtils";
 import { IconActionButton } from "../IconActionButton";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import type { EnrichedJob } from "../types";
+import { signupUrlFor } from "@/lib/jobIntent";
 
 interface JobDetailFooterProps {
   job: EnrichedJob;
@@ -39,7 +40,14 @@ export const JobDetailFooter = ({
         size="lg"
         // See the note on `Get verified` below: navigate() alone, never
         // navigate() + onClose().
-        onClick={() => navigate("/signup")}
+        //
+        // The job rides along as `?redirect=/jobs/<id>` so the visitor is
+        // returned to it once the account is admitted, instead of having to
+        // find it again on a generic dashboard. Done HERE rather than via
+        // `onApply` because all three guest surfaces render this footer and
+        // only one of them wires a real `onApply` (Jobs.tsx and JobDetail.tsx
+        // pass a noop and rely on this button navigating itself).
+        onClick={() => navigate(signupUrlFor(`/jobs/${job.id}`))}
         className="btn-liquid-fill w-full rounded-ds-md h-11 sm:h-12 px-3 group relative overflow-hidden"
         style={{
           background:
@@ -220,10 +228,10 @@ export const JobDetailFooter = ({
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             {(job.credential_tier ?? 0) === 1
-              ? "Get verified to apply"
+              ? "Get Verified to Apply"
               : (job.credential_tier ?? 0) === 2
-                ? "Licensed pros only"
-                : "Licensed & insured only"}
+                ? "Licensed Pros Only"
+                : "Licensed & Insured Only"}
           </span>
           <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={2.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
         </button>
@@ -259,7 +267,7 @@ export const JobDetailFooter = ({
                 so the label sits at the button's true optical center instead of
                 being pushed left by the chevron. */}
             <span aria-hidden className="w-4 h-4 shrink-0" />
-            <span className="truncate">{job.instant_book ? "Book now" : "Apply now"}</span>
+            <span className="truncate">{job.instant_book ? "Book Now" : "Apply Now"}</span>
             <ChevronRight
               className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
               strokeWidth={2.5}

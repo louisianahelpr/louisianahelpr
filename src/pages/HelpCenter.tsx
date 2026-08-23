@@ -4,6 +4,9 @@ import { Search, X, ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import FaqRow from "@/components/marketing/FaqRow";
+// The card that closes every legal policy tab. Shared, not copied, so the
+// Help Center and the policy pages cannot drift into two support cards.
+import { PolicyFooter } from "@/pages/legal/LegalChrome";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import {
   TOPICS,
@@ -53,22 +56,6 @@ import {
 const topicSlug = (label: string) =>
   label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-// ─── Popular searches ─────────────────────────────────────────────────────────
-// Curated seed terms shown as clickable pills under the search input when the
-// visitor hasn't typed anything yet. Each term is chosen because it matches
-// at least one FAQ item in FAQ_SECTIONS via the existing q/a substring filter
-// (escrow → Payments & Escrow items; refund → Escrow + dispute items; posting
-// → Posting a Job section; fees → Payments & Escrow "What fees" item;
-// cancel → cancellation copy across Posting/Trust/Membership). Clicking a
-// pill calls setQuery(term), which triggers the same in-memory filter as
-// typing it in and expands the matching FAQ sections.
-const POPULAR_SEARCHES = [
-  "escrow",
-  "refund",
-  "posting",
-  "fees",
-  "cancel",
-];
 
 // Blurb lookup for the merged topic list — TOPICS still owns the copy even
 // though its card grid is gone.
@@ -176,6 +163,13 @@ const TopicSection = ({
 
 const HelpCenter = () => {
   const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Focus on open, or the icon costs a second tap to start typing — which
+  // would make the collapsed field strictly worse than the pill it replaced.
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
   // Track which FAQ topic sections were requested to open via the topic
   // cards up in Section 2. Set-based so multiple can be open at once.
   const [expandedSlugs, setExpandedSlugs] = useState<Set<string>>(new Set());
@@ -312,96 +306,6 @@ const HelpCenter = () => {
               work" fallback in front of the thing it is a fallback for, and
               added to the stack of blocks pushing the topics below the fold.
               It closes the page now — see the bottom of this file. */}
-          <div className="w-full max-w-2xl mt-4 md:mt-5">
-            <div
-              className="flex items-center gap-3 rounded-2xl px-5 py-4 sm:px-6 sm:py-5 transition-shadow focus-within:shadow-md"
-              style={{
-                background: "hsl(var(--parchment) / 0.85)",
-                border: "1.5px solid hsl(var(--olivewood) / 0.35)",
-                boxShadow:
-                  "inset 0 1px 0 hsl(var(--parchment) / 0.5), 0 8px 24px -12px hsl(var(--olivewood) / 0.18)",
-              }}
-            >
-              <Search
-                className="w-5 h-5 shrink-0"
-                style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                strokeWidth={1.75}
-                aria-hidden
-              />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                // Short on purpose: "Search answers, guides, and topics..." is
-                // ~34 characters, and at 375px — after the icon, the pill's
-                // 20px padding and the clear button's lane — the field has room
-                // for about 24. It rendered clipped mid-word ("...and to") on
-                // every phone.
-                placeholder="Search answers…"
-                aria-label="Search help articles"
-                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ds-15 sm:text-ds-17 placeholder:text-[hsl(var(--olivewood)/0.8)]"
-                style={{
-                  fontFamily: "Montserrat, system-ui, sans-serif",
-                  color: "hsl(var(--ink-deep))",
-                }}
-              />
-              {searching && (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  aria-label="Clear search"
-                  className="shrink-0 transition-opacity hover:opacity-70"
-                >
-                  <X
-                    className="w-5 h-5"
-                    style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                    strokeWidth={1.75}
-                  />
-                </button>
-              )}
-            </div>
-
-            {/* Popular searches — surface a handful of common queries so
-                first-time visitors can jump into a topic without knowing
-                the vocabulary. Hidden the moment the visitor starts
-                typing; clicking a pill drives the same client-side
-                filter as typing the term into the input. */}
-            {/* The chips used to sit under a full-width "POPULAR SEARCHES"
-                eyebrow — uppercase, 0.22em tracking, its own row. That is a
-                section-heading treatment for five one-word shortcuts, and it
-                cost a whole block of vertical space above the fold. The label
-                is now an inline lead-in on the same row, which says the same
-                thing in a quarter of the height. */}
-            {!searching && (
-              <div className="mt-4 flex items-center gap-x-2 min-w-0">
-                <span
-                  className="font-sans font-medium text-ds-11 shrink-0"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Popular:
-                </span>
-                <div className="flex items-center justify-start gap-2 min-w-0 overflow-x-auto pb-1 pr-5 scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]">
-                  {POPULAR_SEARCHES.map((term) => (
-                    <button
-                      key={term}
-                      type="button"
-                      onClick={() => setQuery(term)}
-                      className="h-8 px-3.5 rounded-2xl inline-flex items-center shrink-0 whitespace-nowrap transition-colors hover:bg-[hsl(var(--olivewood)/0.06)]"
-                      style={{
-                        border: "1px solid hsl(var(--olivewood) / 0.2)",
-                        color: "hsl(var(--olivewood))",
-                      }}
-                    >
-                      <span className="font-sans font-semibold text-ds-13">
-                        {term}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-          </div>
         </div>
       </section>
 
@@ -419,6 +323,20 @@ const HelpCenter = () => {
               it was a THIRD hero on the same screen. */}
           <div className="md:col-span-4 lg:col-span-3 text-left">
             <span className="hidden md:inline text-display-eyebrow">FAQ</span>
+            {/* Heading and search on ONE row (owner: "move to right of quick
+                answers"). The control used to sit in the page header, two
+                sections up, where it read as an unexplained icon floating in
+                empty space under the title — nothing next to it said what it
+                searched. Beside the heading it labels itself: this searches
+                these answers.
+
+                Search is an icon until it is wanted. It was a full-width pill
+                plus a "Popular:" chips row, always open — two blocks of
+                permanent chrome in front of the thing people come here for, the
+                topic list, pushing it below the fold on a phone. It stays open
+                while there is a query (so results are not stranded with no
+                visible box) and re-collapses on blur once cleared. */}
+            <div className="flex items-start justify-between gap-3">
             <h2
               id="faq-heading"
               className="font-display font-bold italic md:not-italic text-balance leading-tight tracking-[-0.02em] text-[length:var(--headline-section)] md:mt-3 md:leading-[1.05] md:tracking-[-0.025em] md:text-[length:clamp(2.25rem,3.4vw,3.25rem)] md:max-w-none"
@@ -438,6 +356,81 @@ const HelpCenter = () => {
                 </em>
               </span>
             </h2>
+              <div className="shrink-0">
+                {!searchOpen && !searching ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearchOpen(true)}
+                    aria-label="Search help articles"
+                    aria-expanded={false}
+                    // No outline (owner). Sitting beside the "Quick answers"
+                    // heading it no longer has to announce itself as a control
+                    // in empty space, so the olivewood border and the lifted
+                    // shadow it needed there are gone — the glyph alone reads
+                    // as the affordance, and a bare icon next to a heading is
+                    // quieter than a boxed one.
+                    className="w-11 h-11 rounded-2xl inline-flex items-center justify-center transition-colors hover:bg-[hsl(var(--olivewood)/0.08)]"
+                  >
+                    <Search
+                      className="w-5 h-5"
+                      style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                      strokeWidth={1.75}
+                      aria-hidden
+                    />
+                  </button>
+                ) : (
+                <div
+                  className="flex items-center gap-3 rounded-2xl px-5 py-4 sm:px-6 sm:py-5 transition-shadow focus-within:shadow-md"
+                  style={{
+                    background: "hsl(var(--parchment) / 0.85)",
+                    border: "1.5px solid hsl(var(--olivewood) / 0.35)",
+                    boxShadow:
+                      "inset 0 1px 0 hsl(var(--parchment) / 0.5), 0 8px 24px -12px hsl(var(--olivewood) / 0.18)",
+                  }}
+                >
+                  <Search
+                    className="w-5 h-5 shrink-0"
+                    style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
+                  <input
+                    ref={searchInputRef}
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onBlur={() => { if (!query) setSearchOpen(false); }}
+                    // Short on purpose: "Search answers, guides, and topics..." is
+                    // ~34 characters, and at 375px — after the icon, the pill's
+                    // 20px padding and the clear button's lane — the field has room
+                    // for about 24. It rendered clipped mid-word ("...and to") on
+                    // every phone.
+                    placeholder="Search answers…"
+                    aria-label="Search help articles"
+                    className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ds-15 sm:text-ds-17 placeholder:text-[hsl(var(--olivewood)/0.8)]"
+                    style={{
+                      fontFamily: "Montserrat, system-ui, sans-serif",
+                      color: "hsl(var(--ink-deep))",
+                    }}
+                  />
+                  {searching && (
+                    <button
+                      type="button"
+                      onClick={() => { setQuery(""); setSearchOpen(false); }}
+                      aria-label="Clear search"
+                      className="shrink-0 transition-opacity hover:opacity-70"
+                    >
+                      <X
+                        className="w-5 h-5"
+                        style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                        strokeWidth={1.75}
+                      />
+                    </button>
+                  )}
+                </div>
+                )}
+              </div>
+            </div>
             {searching && (
               <p
                 className="mt-2 md:mt-4 font-serif italic text-ds-14 leading-relaxed md:max-w-xs"
@@ -522,28 +515,14 @@ const HelpCenter = () => {
           to be dead for a chunk of visitors. */}
       <section className="px-5 sm:px-8 lg:px-12 pb-12 md:pb-16 lg:pb-24">
         <div className="mx-auto page-measure">
-          <div
-            className="rounded-2xl px-5 py-4 sm:px-6 sm:py-5 text-center"
-            style={{
-              background: "hsl(var(--parchment) / 0.6)",
-              border: "1px solid hsl(var(--olivewood) / 0.18)",
-            }}
-          >
-            <p
-              className="font-sans text-ds-13 sm:text-ds-15 leading-relaxed"
-              style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-            >
-              Still stuck?{" "}
-              <Link
-                to="/support"
-                className="font-semibold underline"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
-              >
-                Contact support
-              </Link>{" "}
-              — no account needed.
-            </p>
-          </div>
+          {/* The SAME card the legal tabs close with (PolicyFooter), not a
+              lookalike — owner: "help center contact support should be more
+              similar to legals". It used to be a centred parchment panel with a
+              burnt-sienna underlined link, which is a different card doing an
+              identical job two clicks away. No right-hand slot here (owner):
+              the policy tabs use it for their revision date, and the Help
+              Center has no equivalent fact to put there. */}
+          <PolicyFooter />
         </div>
       </section>
     </PublicLayout>

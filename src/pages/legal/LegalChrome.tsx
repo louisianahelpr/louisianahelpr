@@ -60,6 +60,13 @@ export const TldrCard = ({ items }: { items: string[] }) => {
 // screen. The header no longer carries it, so this is the single instance
 // again — and it pairs naturally with the support link: when this last changed,
 // and who to ask about it.
+//
+// Also used by the Help Center (src/pages/HelpCenter.tsx), which closes its FAQ
+// with the same "here is who to ask" card — owner: "help center contact support
+// should be more similar to legals". Shared rather than restyled to match,
+// because two copies of one card is exactly how they drift apart again. The
+// right-hand slot takes either a revision date (`updated`, the legal tabs) or a
+// plain `note` (the Help Center's "No account needed").
 export const PolicyFooter = ({ updated }: { updated?: string }) => (
   <div
     data-print-hide

@@ -1,13 +1,8 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 
-import { Search, SlidersHorizontal, X, Briefcase } from "lucide-react";
+import { Search, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BackButton from "@/components/BackButton";
-import {
-  FilterSheet,
-  buildJobFilterSections,
-  type FilterSheetSection,
-} from "@/components/dashboard/FilterSheet";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -75,11 +70,14 @@ const Jobs = () => {
   const [boostedOnly, setBoostedOnly] = useState(() => seed("boost") === "1");
   const [urgentOnly, setUrgentOnly] = useState(() => seed("urgent") === "1");
   const [sortBy, setSortBy] = useState("smart");
-  // Collapsed-toolbar state mirroring the logged-in BrowseTasksToolbar: search
-  // and filters are hidden behind icon buttons and expand on tap, instead of
-  // sitting always-open. Search expands inline; filters open the shared sheet.
-  const [searchOpen, setSearchOpen] = useState(() => !!seed("q"));
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  // NOTE: there is no search box and no filter sheet on this surface any more.
+  // The public web board matches the native guest board (/browse, DashboardGuest),
+  // which carries no title-bar search/filter icons — a signed-out visitor has
+  // nothing saved to filter against and hasn't been given a reason to narrow
+  // anything, so those controls spent the top strip of the page answering a
+  // question nobody asked. The filter STATE above survives on purpose: it is
+  // seeded from and mirrored back into the URL, so marketing/SEO/share deep
+  // links (/jobs?cat=cleaning, /jobs?q=lawn) still narrow the feed.
   // The job a guest tapped to preview — opens the read-only JobDetailDialog.
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -101,7 +99,6 @@ const Jobs = () => {
     },
     (read) => {
       setSearch(read("q"));
-      if (read("q")) setSearchOpen(true);
       setSelectedCategory(read("cat") || null);
       setMinBudget(read("min"));
       setMaxBudget(read("max"));
@@ -210,7 +207,11 @@ const Jobs = () => {
     });
   }, [authLoading, jobsLoading, user?.id]);
 
-  // Drives the badge on the Filters icon + the sheet's "Clear all" gate.
+  // With the Filters icon gone this no longer drives a badge — it feeds
+  // `isNarrowed`, which decides whether the empty state offers "Clear Filters".
+  // A URL deep link is the only thing that can set these now, so this is what
+  // tells a guest who landed on /jobs?cat=… with no matches that the board is
+  // narrowed rather than empty, and gives them the way out.
   // Counted the same way the authed toolbar counts (sort is a presentation
   // choice, not a filter, so it's excluded there and here).
   // Budget counts ONCE, not once per bound: a budget band ("$50 – $150") sets
@@ -237,26 +238,6 @@ const Jobs = () => {
     setBoostedOnly(false);
     setSortBy("smart");
   }, []);
-
-  // Guest filter sheet — built by the SAME `buildJobFilterSections` the
-  // signed-in browse toolbar uses, so the two sheets can't drift: Category,
-  // Budget, Pricing, When (expires within), Show only (boosted), Sort by. Two
-  // authed sections are deliberately withheld because a signed-out visitor has
-  // no data to make them mean anything:
-  //   • Distance radius — the public feed (get_ranked_open_jobs) masks every
-  //     address to "City, ST" and returns no coordinates, and a guest has no
-  //     saved location/parish for the authed string-match fallback. The chips
-  //     could not filter anything.
-  //   • Only my hours — reads the account's saved weekly availability rows.
-  const guestFilterSections = useMemo<FilterSheetSection[]>(() => buildJobFilterSections({
-    selectedCategory, setSelectedCategory,
-    sortBy, setSortBy,
-    expiresWithin, setExpiresWithin,
-    boostedOnly, setBoostedOnly,
-    urgentOnly, setUrgentOnly,
-    showNearby: false,
-    showAvailability: false,
-  }), [selectedCategory, expiresWithin, boostedOnly, urgentOnly, sortBy]);
 
   // Native app: /jobs is the WEB SEO browse surface — it carries the marketing
   // Navbar + Footer per the "every web page carries chrome" rule, which must
@@ -285,17 +266,13 @@ const Jobs = () => {
         <div className="page-measure">
           {/* Header — canonical BackButton sits to the LEFT of the title block
               (same row, chevron as lead-in), matching PageHeader everywhere.
-              The icon-button cluster (Search + Filters) sits on the right,
-              mirroring the logged-in BrowseTasksToolbar collapsed toolbar.
-
-              Search opens ALONGSIDE the title, never on top of it — the title
-              is the page's identity and shouldn't vanish to make room for a
-              text box. `order-*` is what makes that work at both widths: on
-              phones the field wraps to its own full-width line BELOW the
-              title+buttons row (order-4); from `md` up it slides inline
-              between them (md:order-3) at a fixed 18rem. */}
-          <div className="flex flex-wrap items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4 animate-in fade-in slide-in-from-bottom-4 duration-400">
-            <div className="shrink-0 order-1">
+              Nothing sits on the right: the Search + Filters icon cluster that
+              used to mirror the logged-in BrowseTasksToolbar was removed so
+              this board matches the native guest board (/browse), which has
+              never carried them. With only two children left there is no wrap
+              to orchestrate, so the `order-*` classes went with them. */}
+          <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4 animate-in fade-in slide-in-from-bottom-4 duration-400">
+            <div className="shrink-0">
 {/* to="/" — NOT bare history-back. These are top-nav / footer
                   destinations reachable from anywhere, so `navigate(-1)` sent
                   you to whatever you happened to view last: opening Terms, then
@@ -305,96 +282,25 @@ const Jobs = () => {
               <BackButton to="/" />
             </div>
 
-            <div className="flex flex-col leading-none min-w-0 flex-1 order-2">
+            <div className="flex flex-col leading-none min-w-0 flex-1">
               <h1 className="text-page-title leading-tight truncate">
                 Browse Jobs
               </h1>
             </div>
-
-            {searchOpen && (
-              <div className="relative order-4 md:order-3 w-full md:w-72 shrink-0">
-                {/* olivewood/55 rather than `text-muted-foreground`: the muted
-                    token is a desaturated blue-grey that all but disappears
-                    against this field's translucent near-white fill. */}
-                {/* z-10 is load-bearing, not decoration. This icon precedes the
-                    input in DOM order, and `.glass-field` gives the input a
-                    translucent fill plus `backdrop-filter: blur(4px)` — which
-                    establishes a stacking context and paints the field OVER the
-                    icon. The icon was rendering as a blurred smudge behind the
-                    glass, reading as "the icon is missing / in the wrong place"
-                    when it was actually just underneath. The clear (X) button
-                    needs no such fix: it comes after the input, so it already
-                    paints on top. */}
-                <Search
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 w-4 h-4 pointer-events-none"
-                  style={{ color: "hsl(var(--olivewood) / 0.55)" }}
-                />
-                <input
-                  type="text"
-                  aria-label="Search jobs"
-                  placeholder="Search jobs…"
-                  enterKeyHint="search"
-                  inputMode="search"
-                  autoComplete="off"
-                  autoFocus
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  // rounded-ds-md, matching the Search/Filters icon buttons
-                  // beside it and the chips in the sheet below — one corner
-                  // radius across the whole toolbar. This was briefly a pill,
-                  // but only to dodge `.squircle` rendering superellipse(4) as
-                  // a hard rectangle; that implementation was reverted, so
-                  // `rounded-ds-md` is a proper rounded corner again and the
-                  // pill was left as an odd shape out.
-                  // focus:ring-inset — an outset ring on a wide input paints
-                  // outside the row's edge and clips against the page gutter.
-                  className="w-full h-10 pl-10 pr-9 text-ds-13 rounded-ds-md glass-field border border-[hsl(var(--bark)/0.22)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/40 transition-shadow placeholder:text-muted-foreground"
-                />
-                <button
-                  type="button"
-                  onClick={() => { setSearch(""); setSearchOpen(false); }}
-                  aria-label="Close search"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-
-            <div className="flex items-center gap-1 shrink-0 order-3 md:order-4">
-              {!searchOpen && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => { setSearchOpen(true); if (filtersOpen) setFiltersOpen(false); }}
-                  className={`h-10 w-10 rounded-ds-md btn-press focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${search ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
-                  aria-label="Search jobs"
-                  aria-expanded={searchOpen}
-                >
-                  <Search className="w-5 h-5" />
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => { setFiltersOpen((v) => !v); if (searchOpen) setSearchOpen(false); }}
-                className={`h-10 w-10 rounded-ds-md btn-press relative focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filtersOpen || activeFilterCount > 0 ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
-                aria-label={activeFilterCount > 0 ? `Filters (${activeFilterCount} active)` : "Filters"}
-                aria-expanded={filtersOpen}
-              >
-                <SlidersHorizontal className="w-5 h-5" />
-                {activeFilterCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </Button>
-            </div>
           </div>
 
-          {/* One-tap category switcher — hidden until a category is picked in
-              the filter sheet, then expands so guests can switch/clear with a
-              single tap. Mirrors the logged-in CategoryChipRow. */}
+          {/* One-tap category switcher — only renders when a category is set,
+              which now happens ONLY via a URL deep link (/jobs?cat=cleaning
+              from marketing/SEO/share links), since this page no longer has a
+              filter sheet to set one from.
+
+              It is deliberately NOT removed with the rest of the filter UI: it
+              is the only in-page way out of a deep-linked category when that
+              category still matches jobs. The empty state's "Clear Filters"
+              button only renders at zero results, so without this row a guest
+              who arrived on /jobs?cat=cleaning and sees three cleaning jobs
+              would be stuck on a permanently narrowed board with no affordance
+              to see the rest. Mirrors the logged-in CategoryChipRow. */}
           {selectedCategory && (
             <div className="-mx-5 px-5 mb-5 overflow-x-auto scrollbar-hide overscroll-x-contain">
               <div className="flex gap-2 w-max">
@@ -419,18 +325,6 @@ const Jobs = () => {
               </div>
             </div>
           )}
-
-          {/* Shared filter bottom sheet — the Filters icon toggles it open.
-              Same sheet AND same section builder the signed-in dashboard uses;
-              see `guestFilterSections` above for the two sections a guest
-              can't be given and why. */}
-          <FilterSheet
-            open={filtersOpen}
-            onOpenChange={setFiltersOpen}
-            activeFilterCount={activeFilterCount}
-            onClearAll={clearAllFilters}
-            sections={guestFilterSections}
-          />
 
           {/* Jobs Grid */}
           {jobsLoading ? (
@@ -458,7 +352,7 @@ const Jobs = () => {
                       onClick={() => { setSearch(""); clearAllFilters(); }}
                       className="squircle"
                     >
-                      Clear filters
+                      Clear Filters
                     </Button>
                   ) : (
                     <Button
@@ -467,7 +361,7 @@ const Jobs = () => {
                       asChild
                       className="squircle"
                     >
-                      <Link to="/signup">Sign up to get notified</Link>
+                      <Link to="/signup">Sign up to Get Notified</Link>
                     </Button>
                   )
                 }
@@ -540,7 +434,7 @@ const Jobs = () => {
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
               >
-                {isFetchingNextPage ? "Loading…" : "Load more jobs"}
+                {isFetchingNextPage ? "Loading…" : "Load More Jobs"}
               </Button>
             </div>
           )}

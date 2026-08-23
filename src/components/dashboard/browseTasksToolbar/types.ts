@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 
@@ -14,6 +14,12 @@ export interface BrowseTasksToolbarProps {
    *  section, not as an icon in the header row. */
   view: "list" | "map";
   setView: (next: "list" | "map") => void;
+  /**
+   * The Filters button that opens the panel, so the desktop-web popover can
+   * anchor to it. Created by the page, which is the one component that renders
+   * both the button (in the title card) and this toolbar.
+   */
+  filtersAnchorRef?: RefObject<HTMLElement | null>;
   /** Drop the filter sheet's "View" section entirely. On the desktop web the
    *  feed and map sit side by side, so the choice is meaningless — both panes
    *  are visible. */

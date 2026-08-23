@@ -65,8 +65,6 @@ export interface SignupStep2Props {
   setPhone: (v: string) => void;
   dateOfBirth: string;
   setDateOfBirth: (v: string) => void;
-  location: string;
-  setLocation: (v: string) => void;
   bio: string;
   setBio: (v: string) => void;
   inputCls: string;
@@ -105,8 +103,6 @@ export function SignupStep2(props: SignupStep2Props) {
     setPhone,
     dateOfBirth,
     setDateOfBirth,
-    location,
-    setLocation,
     bio,
     setBio,
     inputCls,
@@ -137,7 +133,6 @@ export function SignupStep2(props: SignupStep2Props) {
   const firstNameValid = firstName.trim().length > 0;
   const lastNameValid = lastName.trim().length > 0;
   const phoneValid = phone.replace(/\D/g, "").length >= 10;
-  const locationValid = location.trim().length > 0;
 
   return (
     <div className="space-y-6">
@@ -273,16 +268,13 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="phone-error" message={fieldErrors.phone} />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="location" className={labelCls}>City</Label>
-          <div className="relative">
-            <Input id="location" placeholder="e.g. Baton Rouge" value={location} onChange={(e) => { setLocation(e.target.value); clearFieldError?.("location"); }} autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" aria-invalid={!!fieldErrors.location} aria-describedby={fieldErrors.location ? "location-error" : undefined} className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`} />
-            {locationValid && !fieldErrors.location && (
-              <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
-            )}
-          </div>
-          <FieldError id="location-error" message={fieldErrors.location} />
-        </div>
+        {/* No City field. It was free text with nothing behind it — any
+            string was accepted, so it collected values that were not real
+            Louisiana cities and `profiles.location` filled up with garbage.
+            Removed rather than "validated": a trustworthy city needs a picker
+            or geocode lookup, and signup is the wrong place to add that
+            friction. The column is untouched and still settable from Profile.
+            Owner decision 2026-08-22. */}
         <div className="space-y-2">
           <Label htmlFor="bio" className={labelCls}>About you</Label>
           <Textarea
@@ -320,7 +312,7 @@ export function SignupStep2(props: SignupStep2Props) {
           onClick={onContinue}
           disabled={loading}
         >
-          {loading ? "Creating account…" : "Create account"}
+          {loading ? "Creating Account…" : "Create Account"}
         </Button>
       </div>
     </div>

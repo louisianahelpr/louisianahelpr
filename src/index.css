@@ -782,25 +782,31 @@ body {
     background-color: hsl(20 12% 5%);
   }
   html.app-shell:not(.web-desktop) .app-shell-frame {
-    /* Tablet / mid-band app-frame. Evolution: 480 → 680 → responsive fill.
-       A flat 680px cap stranded a growing gray gutter across the 768–1023px
-       band (e.g. ~160px each side at a 1000px viewport) before the ≥1024px
-       web-desktop treatment takes over. We now fill the band with
-       `min(94vw, 880px)`: near-full-bleed up through ~936px viewport, then a
-       gentle 880px ceiling so the single-column UI never stretches
-       unreadably wide right before the desktop sidebar layout kicks in.
-       (max-width can't itself cause overflow; 94vw at 768 = 722 > the old
-       680, so inner content has strictly MORE room, not less.) */
-    max-width: min(94vw, 880px);
-    margin-inline: auto;
-    box-shadow:
-      0 0 0 1px hsl(36 14% 70% / 0.55),
-      0 24px 70px -20px hsl(64 16% 16% / 0.35);
+    /* Tablet / mid-band app-frame. Evolution: 480 → 680 → min(94vw, 880px) →
+       FILL. Every previous step was a smaller cap on the same idea — present
+       the app as a centered device frame floating on a neutral backdrop — and
+       every step left a grey gutter down both sides that had to be shrunk
+       again. At a 1018px viewport (the width a docked preview pane lands on,
+       6px under the 1024px `web-desktop` breakpoint) `min(94vw, 880px)`
+       resolved to 880px and stranded 69px of dead grey on each side.
+
+       So the cap is gone rather than lowered once more: this band now fills
+       exactly the way `web-desktop` does above 1024px, which also means the
+       two sides of that breakpoint no longer disagree about whether the app
+       is a floating frame or the page itself. The centering ring goes with
+       it — a full-bleed frame has no edges to draw.
+
+       Phone width is NOT affected: this whole block is inside
+       `@media (min-width: 768px)`, so the native shell and mobile web never
+       saw these rules and still don't. */
+    max-width: none;
+    margin-inline: 0;
+    box-shadow: none;
   }
   html.app-shell:not(.web-desktop) .mobile-nav-frame {
     /* Keep the floating bottom-nav pill aligned to the frame width above. */
-    max-width: min(94vw, 880px);
-    margin-inline: auto;
+    max-width: none;
+    margin-inline: 0;
   }
   /* PageScaffold's "wide" pages (Dashboard/Messages/Activity) additionally
      cap their inner content column at max-w-3xl (768px) via Tailwind — a

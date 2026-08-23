@@ -32,6 +32,7 @@ import type { EnrichedJob } from "@/components/dashboard/types";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { signupUrlFor } from "@/lib/jobIntent";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 
 /**
@@ -266,8 +267,16 @@ const DashboardGuest = () => {
 
   // All interactive actions route to signup. Direct redirect matches what
   // authenticated users feel (immediate response, no toast noise).
-  const requireSignup = useCallback(() => {
-    navigate("/signup");
+  //
+  // Every action worth gating happens ON a job, so the job rides along as
+  // `?redirect=/jobs/<id>`. Signup persists it (see lib/jobIntent) and the
+  // account-pending screen spends it the moment the account is admitted, so
+  // the visitor lands back on the job that motivated them to sign up instead
+  // of on a bare dashboard with no trace of it. `signupUrlFor` sanitizes the
+  // path; the handful of call sites with no job in scope pass nothing and get
+  // a plain `/signup`.
+  const requireSignup = useCallback((jobId?: string) => {
+    navigate(signupUrlFor(jobId ? `/jobs/${jobId}` : null));
   }, [navigate]);
 
   // Read-only detail view for guests. Selecting a card opens the job's
@@ -275,17 +284,21 @@ const DashboardGuest = () => {
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Mirror the open job into the URL (?job=<id>) so a jump to a sub-route from
-  // inside the dialog — e.g. the Helper Pro "Learn more" → /subscription —
-  // returns to the open job on Back, instead of dropping onto the bare feed.
+  // Tapping a card sends a logged-out visitor to /signup rather than opening
+  // the read-only preview — matching /jobs, the web guest feed (Jobs.tsx:173).
+  // Owner decision 2026-08-22: the two guest browse surfaces had diverged
+  // (native previewed the job, web walled it), and this is the direction they
+  // were reconciled in.
+  //
+  // The preview dialog is NOT dead code: a direct link (/browse?job=<id>) still
+  // restores it below, same as its /jobs sibling. Only the in-feed tap changed.
+  //
+  // The tapped job rides to signup as `?redirect=/jobs/<id>` and survives the
+  // whole journey — including the email verification round-trip, which a query
+  // param alone cannot (see lib/jobIntent for why it has to be storage).
   const openDetailJob = useCallback((job: EnrichedJob) => {
-    setDetailJob(job);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("job", job.id);
-      return next;
-    }, { replace: true });
-  }, [setSearchParams]);
+    navigate(signupUrlFor(`/jobs/${job.id}`));
+  }, [navigate]);
 
   const closeDetailJob = useCallback(() => {
     setDetailJob(null);
@@ -326,6 +339,14 @@ const DashboardGuest = () => {
   if (!sessionChecked) return <GuestBrowseSkeleton />;
 
   return (
+    /* Bottom clearance uses the `pb-safe-nav` token, never a hardcoded 96px.
+       The token resolves to
+       `calc(safe-area-bottom + var(--bottom-nav-h, 96px) + 1rem)`, and
+       MobileNav sets `--bottom-nav-h: 0px` (through the `no-bottom-nav` class)
+       on every surface where the dock does not render. This is one of them:
+       MobileNav.tsx:284 returns null for guests. Inlining the 96px opted out
+       of that signal, so the guest feed reserved ~146px of clearance under the
+       last card for a dock that is never there. */
     <PageScaffold
       maxWidth="narrow"
       animate
@@ -435,8 +456,7 @@ const DashboardGuest = () => {
                     role="status"
                     aria-live="polite"
                     aria-busy="true"
-                    className="space-y-2.5"
-                    style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 1rem)" }}
+                    className="space-y-2.5 pb-safe-nav"
                   >
                     <span className="sr-only">Loading jobs…</span>
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -501,7 +521,7 @@ const DashboardGuest = () => {
                                 onClick={() => filters.setLocationFilter("")}
                                 className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
                               >
-                                Show all locations
+                                Show All Locations
                               </button>
                             </div>
                           ) : (
@@ -510,7 +530,7 @@ const DashboardGuest = () => {
                               onClick={filters.clearFilters}
                               className="text-ds-11 font-semibold text-primary hover:underline btn-press"
                             >
-                              Clear filters
+                              Clear Filters
                             </button>
                           )
                         ) : (
@@ -539,14 +559,14 @@ const DashboardGuest = () => {
                               onClick={() => navigate("/signup")}
                               className="rounded-ds-md h-11 px-5 font-semibold"
                             >
-                              Notify me when work lands
+                              Notify Me When Work Lands
                             </Button>
                             <button
                               type="button"
                               onClick={() => navigate("/signup")}
                               className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
                             >
-                              Or hire someone for a job
+                              Or Hire Someone for a Job
                             </button>
                           </div>
                         )
@@ -557,8 +577,7 @@ const DashboardGuest = () => {
                   );
                 })() : (
                   <div
-                    className="space-y-2.5 animate-in fade-in-0 duration-500"
-                    style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 1rem)" }}
+                    className="space-y-2.5 animate-in fade-in-0 duration-500 pb-safe-nav"
                   >
                     {filters.filteredJobs
                       .slice()

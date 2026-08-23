@@ -10,6 +10,7 @@ import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
+import { postAuthDestination } from "@/lib/jobIntent";
 
 const StepRow = ({
   label,
@@ -105,7 +106,15 @@ const AccountPending = () => {
     if (!user) { navigate("/login"); return; }
     if (profile?.approval_status === "approved") {
       toast.success("You're approved! Welcome in.");
-      navigate("/dashboard");
+      // THE hop where a new account is finally admitted to the app — and the
+      // end of the journey that began with a logged-out tap on a job card.
+      // `postAuthDestination` spends the stored `?redirect=` target here
+      // (re-validating it as same-origin first) and clears the key, so the
+      // visitor lands on the job they wanted instead of having to hunt for it
+      // on a generic dashboard. With nothing stored it returns "/dashboard",
+      // exactly as before. The read is destructive, so a later unrelated visit
+      // to this screen can never re-fire it.
+      navigate(postAuthDestination());
     } else if (profile?.approval_status === "denied") {
       navigate("/account-denied");
     }
@@ -240,7 +249,7 @@ const AccountPending = () => {
               variant="outline"
               className="w-full gap-2 rounded-ds-md"
             >
-              {resending ? (<><RefreshCw className="w-4 h-4 animate-spin" /> Sending…</>) : "Resend email"}
+              {resending ? (<><RefreshCw className="w-4 h-4 animate-spin" /> Sending…</>) : "Resend Email"}
             </Button>
             <p className="text-ds-11 text-muted-foreground mt-3">
               Didn&apos;t get it? Check your spam folder.
@@ -332,7 +341,7 @@ const AccountPending = () => {
                 size="lg"
                 className="w-full gap-2 rounded-ds-md"
               >
-                Explore jobs while you wait <ArrowRight className="w-4 h-4" />
+                Explore Jobs While You Wait <ArrowRight className="w-4 h-4" />
               </Button>
               <Button
                 onClick={handleSync}
@@ -344,7 +353,7 @@ const AccountPending = () => {
                 {syncing ? (
                   <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Syncing…</>
                 ) : (
-                  <><RefreshCw className="w-3.5 h-3.5" /> Sync status</>
+                  <><RefreshCw className="w-3.5 h-3.5" /> Sync Status</>
                 )}
               </Button>
               {/* Contact CTA — pre-fills the support email with the user's
@@ -388,7 +397,7 @@ const AccountPending = () => {
               onClick={async () => { await signOutWithPushCleanup(); navigate("/"); }}
               className="text-muted-foreground"
             >
-              <LogOut className="w-4 h-4 mr-1" /> Sign out
+              <LogOut className="w-4 h-4 mr-1" /> Sign Out
             </Button>
           </div>
         )}

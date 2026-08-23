@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
@@ -5,6 +6,13 @@ import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 export interface BrowseTasksActionsProps {
   /** Dashboard filter state + setters (from useDashboardFilters). */
   filters: ReturnType<typeof useDashboardFilters>;
+  /**
+   * Forwarded to the Filters button so the desktop-web filter popover can
+   * anchor to it. The panel is rendered by BrowseTasksToolbar, a different
+   * component, so the two are joined by this ref rather than by a shared
+   * <Popover> subtree. Omit it and nothing changes — the sheet still opens.
+   */
+  filtersButtonRef?: Ref<HTMLButtonElement>;
 }
 
 /**
@@ -27,7 +35,7 @@ export interface BrowseTasksActionsProps {
  * drive the input and the sheet that BrowseTasksToolbar renders around them —
  * there is only ever one copy of each piece.
  */
-export function BrowseTasksActions({ filters }: BrowseTasksActionsProps) {
+export function BrowseTasksActions({ filters, filtersButtonRef }: BrowseTasksActionsProps) {
   return (
     <>
       <Button
@@ -41,6 +49,7 @@ export function BrowseTasksActions({ filters }: BrowseTasksActionsProps) {
         <Search className="w-5 h-5" />
       </Button>
       <Button
+        ref={filtersButtonRef}
         variant="ghost"
         size="icon"
         onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}

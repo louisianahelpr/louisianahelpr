@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, type RefObject } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowUpRight, Clock, Rocket, X, Zap, type LucideIcon } from "lucide-react";
 import {
@@ -6,6 +6,8 @@ import {
   SheetContent,
   SheetHero,
 } from "@/components/ui/sheet";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { Switch } from "@/components/ui/switch";
 import { hapticLight } from "@/lib/haptics";
 import {
@@ -49,6 +51,23 @@ interface FilterSheetProps {
   /** Clears every filter this sheet controls. Rendered as a footer button
    *  only when at least one filter is active. */
   onClearAll?: () => void;
+  /**
+   * The button that opens this panel. Supply it and the WEB DESKTOP renders a
+   * popover anchored to that button instead of the bottom sheet; omit it and
+   * every surface keeps the sheet exactly as before.
+   *
+   * Why a ref rather than a <PopoverTrigger>: on the Browse feed the button
+   * (BrowseTasksActions, mounted in Dashboard's title card) and this panel
+   * (BrowseTasksToolbar) live in different components, so they cannot be
+   * wrapped in one Popover subtree. `virtualRef` is Radix Popper's supported
+   * way to anchor against an element the popover does not own.
+   *
+   * The native app and phone-width web are untouched — `useIsWebDesktop` is
+   * false for both by construction (it is `!isNativePlatform && >=1024px`), so
+   * a phone and the iOS shell still get the drag-to-dismiss sheet, which is
+   * the right idiom there.
+   */
+  anchorRef?: RefObject<HTMLElement | null>;
 }
 
 /** Uppercase eyebrow + content, the standard section shell. */
@@ -63,13 +82,94 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/** The panel's contents — the titled sections and the Clear-all footer.
+ *  Shared verbatim by the sheet and the desktop popover so the two
+ *  presentations cannot drift into two different filter sets. */
+function FilterBody({
+  sections,
+  activeFilterCount,
+  onClearAll,
+}: Pick<FilterSheetProps, "sections" | "activeFilterCount" | "onClearAll">) {
+  return (
+    <>
+      <div className="px-5 pb-4 space-y-4">
+        {sections.map((s) => (
+          <Section key={s.key} title={s.title}>
+            {s.content}
+          </Section>
+        ))}
+      </div>
+
+      {onClearAll && activeFilterCount > 0 && (
+        <div className="px-5 pb-2">
+          <button
+            type="button"
+            onClick={() => {
+              hapticLight();
+              onClearAll();
+            }}
+            className="w-full inline-flex items-center justify-center gap-1.5 h-11 rounded-ds-md text-ds-13 font-semibold btn-press"
+            style={{
+              color: "hsl(var(--burnt-sienna))",
+              background: "hsl(var(--burnt-sienna) / 0.10)",
+              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+            }}
+          >
+            <X className="w-4 h-4" strokeWidth={2.25} /> Clear All
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function FilterSheet({
   open,
   onOpenChange,
   sections,
   activeFilterCount,
   onClearAll,
+  anchorRef,
 }: FilterSheetProps) {
+  const isWebDesktop = useIsWebDesktop();
+
+  // Desktop web: a popover hanging off the Filters button, not a modal in the
+  // middle of the window. The bottom sheet is a phone idiom — at 1440 it
+  // resolved to a 448x596 dialog sitting under a full-window scrim, ON TOP of
+  // the very job cards it filters, with a vestigial drag handle for a gesture a
+  // mouse cannot make. A popover is non-modal by default, so the board stays
+  // lit and the results visibly change behind you as you pick.
+  if (isWebDesktop && anchorRef) {
+    return (
+      <Popover open={open} onOpenChange={onOpenChange}>
+        <PopoverAnchor virtualRef={anchorRef} />
+        <PopoverContent
+          align="end"
+          sideOffset={8}
+          // The trigger sits at the far right of the window; without this the
+          // panel would hang off the edge.
+          collisionPadding={16}
+          aria-label="Refine your search"
+          className="w-[400px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto overscroll-contain p-0 pt-4 rounded-ds-lg"
+          // The Filters button is OUTSIDE the popover, so Radix counts a click
+          // on it as an outside-dismiss — which would close the panel and then
+          // let the button's own handler toggle it straight back. Let the
+          // button keep sole ownership of the toggle.
+          onInteractOutside={(e) => {
+            const target = e.target as Node | null;
+            if (target && anchorRef.current?.contains(target)) e.preventDefault();
+          }}
+        >
+          <FilterBody
+            sections={sections}
+            activeFilterCount={activeFilterCount}
+            onClearAll={onClearAll}
+          />
+        </PopoverContent>
+      </Popover>
+    );
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -90,33 +190,11 @@ export function FilterSheet({
             "Clear all" footer below. */}
         <SheetHero className="px-5 pt-1 pb-2.5" title="Refine Your Search" />
 
-        <div className="px-5 pb-4 space-y-4">
-          {sections.map((s) => (
-            <Section key={s.key} title={s.title}>
-              {s.content}
-            </Section>
-          ))}
-        </div>
-
-        {onClearAll && activeFilterCount > 0 && (
-          <div className="px-5 pb-2">
-            <button
-              type="button"
-              onClick={() => {
-                hapticLight();
-                onClearAll();
-              }}
-              className="w-full inline-flex items-center justify-center gap-1.5 h-11 rounded-ds-md text-ds-13 font-semibold btn-press"
-              style={{
-                color: "hsl(var(--burnt-sienna))",
-                background: "hsl(var(--burnt-sienna) / 0.10)",
-                border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-              }}
-            >
-              <X className="w-4 h-4" strokeWidth={2.25} /> Clear all
-            </button>
-          </div>
-        )}
+        <FilterBody
+          sections={sections}
+          activeFilterCount={activeFilterCount}
+          onClearAll={onClearAll}
+        />
       </SheetContent>
     </Sheet>
   );
@@ -229,7 +307,7 @@ function AvailabilityRow({
             onClick={() => navigate("/availability")}
             className="inline-flex items-center gap-0.5 text-ds-11 font-semibold text-primary hover:text-primary/80 transition-colors btn-press"
           >
-            Set hours
+            Set Hours
             <ArrowUpRight className="w-2.5 h-2.5" />
           </button>
         ) : undefined

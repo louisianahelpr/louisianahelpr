@@ -3446,3 +3446,81 @@ html.simple-mode *::after {
   .plan-masthead-title { font-size: clamp(2.25rem, 3.4vw, 3.25rem); }
   .plan-card-name      { font-size: clamp(1.6rem, 2.4vw, 2.15rem); }
 }
+
+/* ── Job card head — the meta row moves UP beside the title when there is room
+   ─────────────────────────────────────────────────────────────────────────
+   Owner, twice: "move up to right of title when map is not there."
+
+   The card's width is not a viewport question — it depends on whether the map
+   pane is open beside the feed, so a `lg:` breakpoint cannot answer it. A
+   CONTAINER query can: the card measures itself. Native CSS, no plugin.
+
+   Narrow (map open, or phone) is unchanged from before this rule existed:
+
+     [ title .......... price ]
+     [ location · date · time ]
+
+   Wide (map closed) uses the dead band that used to sit between the title and
+   the price — measured at 1920 it was 92px of nothing:
+
+     [ title ][ location · date · time ......... price ]
+
+   `align-items: center` keeps the price centred against a two-line title, which
+   is what the old flex row did. */
+.jc-card-body {
+  container-type: inline-size;
+  container-name: jobcard;
+}
+
+.jc-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title price"
+    "meta  meta";
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.5rem;
+}
+/* `width: 100%` is load-bearing: the title carries `line-clamp-2`, which sets
+   `display: -webkit-box`, and a -webkit-box does not stretch to fill its grid
+   area the way a block does. Without it the column sized correctly to 240px
+   (max-content) while the h3 inside rendered at 132px and wrapped to two lines
+   with 108px of its own column sitting empty beside it. */
+.jc-title { grid-area: title; min-width: 0; width: 100%; }
+.jc-meta  { grid-area: meta;  min-width: 0; }
+.jc-price { grid-area: price; }
+
+@container jobcard (min-width: 30rem) {
+  .jc-head {
+    /* `max-content` for the title so it takes exactly the width its ONE line
+       needs and no more; the meta then absorbs all the slack, which is what
+       spaces the row out instead of bunching both against the left edge. */
+    grid-template-columns: minmax(0, max-content) minmax(0, 1fr) auto;
+    grid-template-areas: "title meta price";
+    row-gap: 0;
+    column-gap: 1.25rem;
+  }
+
+  /* ONE LINE (owner: "keep all in 1 line, space out better").
+     Selector is `.jc-head .jc-title` — two classes — because the h3 carries
+     Tailwind's `line-clamp-2` and `min-w-0`, and a single-class rule loses to
+     them. Overriding the clamp properties directly rather than fighting the
+     utility: line-clamp wins over text-overflow, so it has to be unset before
+     the ellipsis will ever appear.
+
+     A title too long for the space now truncates with an ellipsis instead of
+     wrapping — which is the right trade HERE and only here: this layout only
+     exists when the card is wide, so there is real room, and keeping the row
+     to one line is the whole point of the arrangement. The narrow layout
+     below 30rem still clamps to two lines and shows more of the title. */
+  .jc-head .jc-title {
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+}

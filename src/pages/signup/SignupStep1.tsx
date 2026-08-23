@@ -449,7 +449,7 @@ export function SignupStep1({
           className="font-semibold hover:underline whitespace-nowrap"
           style={{ color: "hsl(var(--bark))" }}
         >
-          Sign in
+          Sign In
         </Link>
       </p>
       </div>

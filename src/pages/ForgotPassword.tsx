@@ -134,21 +134,21 @@ const ForgotPassword = () => {
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</>
                   : resendCooldown > 0
                     ? `Resend in ${resendCooldown}s`
-                    : "Resend email"}
+                    : "Resend Email"}
               </Button>
               <Button
                 variant="outline"
                 className="w-full rounded-ds-md"
                 onClick={() => setSent(false)}
               >
-                Use a different email
+                Use a Different Email
               </Button>
             </div>
           </div>
         ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email address</Label>
+                <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
                 <div className="relative">
                   <Mail
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
@@ -193,7 +193,7 @@ const ForgotPassword = () => {
                 size="lg"
                 disabled={loading}
               >
-                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</> : "Send reset link"}
+                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</> : "Send Reset Link"}
               </Button>
             </form>
         )}

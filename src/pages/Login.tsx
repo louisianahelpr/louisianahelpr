@@ -423,7 +423,7 @@ const Login = () => {
                 className="min-h-[44px] -my-2 inline-flex items-center text-ds-12 font-sans font-semibold hover:underline active:opacity-60 transition-opacity"
                 style={{ color: "hsl(var(--bark))" }}
               >
-                Forgot password?
+                Forgot Password?
               </Link>
             </div>
           </div>
@@ -495,7 +495,7 @@ const Login = () => {
             className="font-semibold hover:underline whitespace-nowrap"
             style={{ color: "hsl(var(--bark))" }}
           >
-            Create an account
+            Create an Account
           </Link>
         </p>
         {/* Creating an account is the alternative to BOTH sign-in methods, so

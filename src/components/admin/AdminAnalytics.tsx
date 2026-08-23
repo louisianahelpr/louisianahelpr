@@ -42,6 +42,7 @@ const AdminAnalytics = () => {
   // Raw data
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [allJobs, setAllJobs] = useState<Job[]>([]);
+  const [transfers, setTransfers] = useState<{ amount_cents: number | string; status: string }[]>([]);
   const [tips, setTips] = useState<Tip[]>([]);
   const [drillUsers, setDrillUsers] = useState<Profile[]>([]);
   const [drillJobs, setDrillJobs] = useState<Job[]>([]);
@@ -67,10 +68,16 @@ const AdminAnalytics = () => {
         page++;
       }
 
-      const [profilesRes, tipsRes, rolesRes] = await Promise.all([
+      const [profilesRes, tipsRes, rolesRes, transfersRes] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("tips").select("*"),
         supabase.from("user_roles").select("user_id, role"),
+        // THE LEDGER. "Helpr Payouts" used to be recomputed from job budgets
+        // with a fee fallback, which overstated it — see computeMetrics.
+        // `as any`: payout_transfers landed in a recent migration that is not
+        // in the generated types yet, same cast AdminPayoutBatches uses.
+         
+        (supabase as any).from("payout_transfers").select("amount_cents, status"),
       ]);
       if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
       if (tipsRes.error) report(tipsRes.error, { tags: { source: "AdminAnalytics.loadTips" } });
@@ -78,6 +85,7 @@ const AdminAnalytics = () => {
       setProfiles(profilesRes.data || []);
       setAllJobs(allJobsData);
       setTips(tipsRes.data || []);
+      setTransfers((transfersRes.data as { amount_cents: number | string; status: string }[] | null) || []);
       // Build user_id → most-privileged role map (admin > helper > customer).
       const roleMap = new Map<string, string>();
       const priority = (r: string) => r === "admin" ? 1 : r === "helper" ? 2 : 3;
@@ -146,7 +154,7 @@ const AdminAnalytics = () => {
     approvedUsers,
     pendingUsers,
     deniedUsers,
-  } = computeMetrics(profiles, allJobs, tips);
+  } = computeMetrics(profiles, allJobs, tips, transfers);
 
   // ─── Drill-down handler ───
   const openDrillDown = async (type: DrillDown) => {

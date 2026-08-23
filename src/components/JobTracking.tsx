@@ -9,6 +9,7 @@ import { parseLocalDate } from "@/lib/dateUtils";
 import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { report } from "@/lib/errorLogger";
+import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import { isNativePlatform } from "@/lib/nativeInit";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
@@ -259,6 +260,8 @@ export function JobTracking({
   // fire one fetch per rendered card (N+1 across active jobs on Activity).
   const [tracking, setTracking] = useState<TrackingData | null>(initialTracking ?? null);
   const [updating, setUpdating] = useState(false);
+  // Arrival with no GPS fix — see the note in `updateStatus`.
+  const [manualArrivalOpen, setManualArrivalOpen] = useState(false);
   const [helperConfirmedAt, setHelperConfirmedAt] = useState(initialHelperConfirmedAt);
   const [posterConfirmedAt, setPosterConfirmedAt] = useState(initialPosterConfirmedAt);
   // Lifecycle stamps off the jobs row, mirrored into state so the realtime
@@ -395,28 +398,46 @@ export function JobTracking({
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
-  const updateStatus = async (newStatus: string) => {
+  const updateStatus = async (newStatus: string, opts?: { skipProximity?: boolean }) => {
     if (!helperId) return;
     setUpdating(true);
     const loc = await getLocation();
 
-    // GPS proximity check for "arrived" — must be within 500ft of job location
+    // ARRIVAL, when we can see where they are and when we cannot.
+    //
+    // With coordinates this stays a hard 500ft proximity check — that is the
+    // anti-fraud rule, and we have the evidence to enforce it.
+    //
+    // WITHOUT coordinates it used to be a dead end: "Enable GPS in Settings to
+    // mark Arrived", and nothing else. A helpr who has location switched off —
+    // or whose phone simply failed to get a fix — could not mark arrived, could
+    // not reach Working, could not reach Done, and therefore could not be paid,
+    // for a job they were physically standing at (owner: "if they dont have
+    // their location on, they need a way to show they have arrived").
+    //
+    // So: no fix, no proof, but still an answer. We ask them to attest it in a
+    // confirm dialog and write the row with null coordinates, which is itself
+    // the signal — the poster's tracker shows the coordinate stamp when there
+    // is one and says "Location not shared" when there is not, so a
+    // self-reported arrival never passes itself off as a GPS-verified one.
     if (newStatus === "arrived") {
       if (!loc) {
-        hapticError();
-        toast.error("Enable GPS in Settings to mark Arrived — then try again.");
-        setUpdating(false);
-        return;
-      }
-      const { data: job, error: jobErr } = await supabase.from("jobs").select("latitude, longitude").eq("id", jobId).single();
-      if (jobErr) report(jobErr, { tags: { source: "JobTracking.arrivedProximity" } });
-      if (job?.latitude && job?.longitude) {
-        const dist = getDistanceFt(loc.lat, loc.lng, Number(job.latitude), Number(job.longitude));
-        if (dist > 500) {
-          hapticError();
-          toast.error(`Couldn't mark arrived — you're about ${Math.round(dist)}ft from the job site. Move closer and try again.`);
+        if (!opts?.skipProximity) {
           setUpdating(false);
+          setManualArrivalOpen(true);
           return;
+        }
+      } else {
+        const { data: job, error: jobErr } = await supabase.from("jobs").select("latitude, longitude").eq("id", jobId).single();
+        if (jobErr) report(jobErr, { tags: { source: "JobTracking.arrivedProximity" } });
+        if (job?.latitude && job?.longitude) {
+          const dist = getDistanceFt(loc.lat, loc.lng, Number(job.latitude), Number(job.longitude));
+          if (dist > 500) {
+            hapticError();
+            toast.error(`Couldn't mark arrived — you're about ${Math.round(dist)}ft from the job site. Move closer and try again.`);
+            setUpdating(false);
+            return;
+          }
         }
       }
     }
@@ -832,12 +853,24 @@ export function JobTracking({
       {tracking && (
         <p className="text-ds-10 text-muted-foreground text-center">
           Last updated: {new Date(tracking.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-          {tracking.latitude && (
+          {/* The coordinate stamp is the PROOF, so its absence has to be
+              stated rather than left blank. A helpr with location off can now
+              mark themselves arrived by attestation (see `updateStatus`), and
+              a self-reported arrival that rendered identically to a
+              GPS-confirmed one would be the app quietly overstating what it
+              knows. Only shown from `arrived` onward — before that there is
+              nothing to have proved. */}
+          {tracking.latitude ? (
             <span className="ml-2 inline-flex items-center gap-0.5">
               <MapPin className="w-2.5 h-2.5" />
               {tracking.latitude.toFixed(4)}, {tracking.longitude?.toFixed(4)}
             </span>
-          )}
+          ) : STATUS_IDX[tracking.status] >= STATUS_IDX.arrived ? (
+            <span className="ml-2 inline-flex items-center gap-0.5">
+              <MapPin className="w-2.5 h-2.5" />
+              Location not shared
+            </span>
+          ) : null}
         </p>
       )}
 
@@ -905,6 +938,24 @@ export function JobTracking({
           </div>
         );
       })()}
+
+      {/* NO GPS FIX — the manual attestation. See `updateStatus`. */}
+      <BrandConfirmDialog
+        open={manualArrivalOpen}
+        onOpenChange={setManualArrivalOpen}
+        title="Mark Yourself Arrived?"
+        description="We couldn't get your location, so we can't confirm you're at the job site. You can still tell the poster you're here."
+        callout={{
+          text: "The poster will see this arrival was self-reported, not GPS-confirmed. Turning location on in Settings confirms it automatically.",
+        }}
+        primaryLabel="Yes, I'm here"
+        primaryTone="bark"
+        onPrimary={() => {
+          setManualArrivalOpen(false);
+          void updateStatus("arrived", { skipProximity: true });
+        }}
+        secondaryLabel="Not yet"
+      />
     </div>
   );
 }

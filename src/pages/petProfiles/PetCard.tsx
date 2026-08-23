@@ -70,7 +70,7 @@ export function PetCard({
           {/* Trust signals */}
           <div className="flex flex-wrap gap-2">
             {pet.microchip_id && (
-              <span className="inline-flex items-center gap-1 text-ds-10 font-semibold px-2 py-0.5 rounded-full" style={{ background: "hsl(var(--sage) / 0.12)", color: "hsl(var(--sage))" }}>
+              <span className="inline-flex items-center gap-1 text-ds-10 font-semibold px-2 py-0.5 rounded-full" style={{ background: "hsl(var(--sage) / 0.12)", color: "hsl(var(--sage-ink))" }}>
                 <Fingerprint className="w-3 h-3" /> Microchipped
               </span>
             )}

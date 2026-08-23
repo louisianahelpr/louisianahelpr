@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { safeStorage } from "@/lib/safeStorage";
@@ -67,6 +67,19 @@ export function usePostJobForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("other");
+  /* Pet profiles attached to this job — written to `job_pets` after the insert.
+     Cleared when the category leaves pet_care so a poster who starts a dog-walk
+     post and switches it to yard work does not silently ship a pet list with a
+     job that has nothing to do with pets. */
+  const [selectedPetIds, setSelectedPetIds] = useState<string[]>([]);
+  const togglePet = useCallback((petId: string) => {
+    setSelectedPetIds((cur) =>
+      cur.includes(petId) ? cur.filter((id) => id !== petId) : [...cur, petId],
+    );
+  }, []);
+  useEffect(() => {
+    if (category !== "pet_care") setSelectedPetIds([]);
+  }, [category]);
   const [streetAddress, setStreetAddress] = useState("");
   const [city, setCity] = useState("");
   // State is locked to LA (Helpr is Louisiana-only) and the field is rendered
@@ -328,6 +341,8 @@ export function usePostJobForm() {
     title,
     description,
     category,
+    selectedPetIds,
+   
     streetAddress,
     city,
     addrState,
@@ -457,6 +472,8 @@ export function usePostJobForm() {
     setDescription,
     category,
     setCategory,
+    selectedPetIds,
+    togglePet,
     // logistics fields
     streetAddress,
     setStreetAddress,

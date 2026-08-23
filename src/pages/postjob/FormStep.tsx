@@ -137,6 +137,8 @@ export function FormStep({ form }: FormStepProps) {
             budgetNum={form.budgetNum}
             logisticsComplete={form.logisticsComplete}
             category={form.category}
+            selectedPetIds={form.selectedPetIds}
+            onTogglePet={form.togglePet}
             includeMaterials={form.includeMaterials}
             setIncludeMaterials={form.setIncludeMaterials}
             materialsNote={form.materialsNote}

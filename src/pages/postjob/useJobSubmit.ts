@@ -51,6 +51,8 @@ export interface UseJobSubmitParams {
   title: string;
   description: string;
   category: string;
+  /** Pet profile ids to attach after the insert (pet-care jobs). */
+  selectedPetIds?: string[];
   // Logistics fields
   streetAddress: string;
   city: string;
@@ -108,6 +110,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     title,
     description,
     category,
+    selectedPetIds,
     streetAddress,
     city,
     addrState,
@@ -394,6 +397,28 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
     // Set cooldown timestamp immediately after successful insert
     safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
+
+    /* PETS — attach the profiles the poster picked (migration 20260823160000).
+       Best-effort and non-blocking: the job exists and is paid for either way,
+       and failing the whole post because a care sheet did not link would be a
+       far worse outcome than a poster re-attaching from Edit. Reported so a
+       systematic failure is visible rather than silent. */
+    if (selectedPetIds && selectedPetIds.length > 0) {
+      const { error: petErr } = await supabase
+        .from("job_pets" as never)
+        .insert(
+          selectedPetIds.map((petId) => ({ job_id: jobData.id, pet_id: petId })) as never,
+        );
+      if (petErr) {
+        report(petErr, {
+          tags: { source: "useJobSubmit.attachPets" },
+          context: { job_id: jobData.id, pet_count: selectedPetIds.length },
+        });
+        toast.error("Your job posted, but the pet details didn't attach", {
+          description: "Open the job and add them from Edit so your Helpr can see them.",
+        });
+      }
+    }
 
     // Stash the just-posted job id so the post-payment success sheet can
     // show share-this-link / view-applicants / post-another-like-this

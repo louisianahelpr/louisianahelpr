@@ -6,6 +6,7 @@ import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { PetPicker } from "@/components/postjob/PetPicker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { MapPin, Shield, Users, Wrench } from "lucide-react";
@@ -79,8 +80,12 @@ interface LogisticsSectionProps {
   setHelpersNeeded: (v: string) => void;
   budgetNum: number;
   logisticsComplete: boolean;
-  /** Active category — drives whether the "I'll provide materials" toggle shows. */
+  /** Active category — drives whether the "I'll provide materials" toggle shows,
+      and whether the pet picker appears at all. */
   category?: string;
+  /** Pet profile ids attached to this job (pet-care category only). */
+  selectedPetIds?: string[];
+  onTogglePet?: (petId: string) => void;
   includeMaterials?: boolean;
   setIncludeMaterials?: (v: boolean) => void;
   materialsNote?: string;
@@ -129,6 +134,8 @@ export function LogisticsSection({
   budgetNum,
   logisticsComplete,
   category,
+  selectedPetIds,
+  onTogglePet,
   includeMaterials,
   setIncludeMaterials,
   materialsNote,
@@ -267,6 +274,14 @@ export function LogisticsSection({
           <span className="font-medium text-foreground">Flexible schedule</span> — Helpr can start earlier or later on the scheduled day
         </span>
       </label>
+
+      {/* PETS — only on a pet-care job. See PetPicker for why this exists at
+          all; in short, a pet profile could not previously reach the person
+          holding the leash. It sits directly above the access notes because
+          that is the box posters were retyping the pet's details into. */}
+      {category === "pet_care" && (
+        <PetPicker selectedIds={selectedPetIds ?? []} onToggle={onTogglePet ?? (() => {})} />
+      )}
 
       <div className="space-y-2.5">
         <Label htmlFor="requirements">Access &amp; parking notes</Label>

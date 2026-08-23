@@ -4,8 +4,8 @@
 // Drives all branching through signInWithProvider in src/lib/socialAuth.ts
 // so the per-provider flow stays in one place. The buttons themselves
 // only know:
-//   - render the provider mark (icon-only, side-by-side; the accessible
-//     name lives on aria-label)
+//   - render the provider mark + its name, side by side (the FULL accessible
+//     name — "Sign in with Apple" — stays on aria-label)
 //   - keep a spinner while sign-in is in flight
 //   - on cancel → hapticError + dismissable toast (no scary copy)
 //   - on success (native) → navigate to redirectTo (default /dashboard)
@@ -54,10 +54,19 @@ export function SocialAuthButtons({
     // Apple renders FIRST (left). Apple's HIG asks that Sign in with Apple be
     // at least as prominent as any other third-party option; equal-size
     // buttons with Apple leading satisfies that.
-    // Stacked, one per row (owner). Side by side, each button was a bare icon
-    // in a half-width box; full-width rows give each provider its own target
-    // and keep Apple first.
-    <div className="flex flex-col gap-3">
+    // Side by side WITH a visible provider word (owner, 2026-08-22).
+    //
+    // This block has been both ways. It was side-by-side icons, then stacked
+    // full-width rows because "each button was a bare icon in a half-width
+    // box" — the box was sized for a label it did not have. That objection was
+    // about the missing word, not about the arrangement, so the word is back
+    // and the arrangement can be too: two half-width buttons, each a mark plus
+    // "Apple" / "Google". On a 402pt screen that is ~175pt per button, well
+    // over Apple's 44pt minimum for a logo-only mark and comfortably over it
+    // with a label, and it returns ~60pt of vertical space to the card.
+    //
+    // Apple renders FIRST (left) — see the prominence note above.
+    <div className="grid grid-cols-2 gap-3">
       <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} />
       <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} />
     </div>
@@ -120,23 +129,31 @@ function SocialAuthButton({ provider, mode, redirectTo }: SocialAuthButtonProps)
       type="button"
       variant="outline"
       size="lg"
-      // Full width: the buttons stack one per row, so each owns its own line
-      // rather than splitting one. h-12 keeps the 44pt minimum target with
-      // room to spare.
-      className="w-full h-12 rounded-ds-md border-border/70 hover:bg-muted/40"
+      // w-full inside a half-width grid cell. h-12 keeps the 44pt minimum
+      // target with room to spare.
+      className="w-full h-12 rounded-ds-md border-border/70 hover:bg-muted/40 gap-2"
       onClick={handleClick}
       disabled={loading}
-      // The ONLY place the full label now lives. Never drop this: with no
-      // visible text it is the button's entire accessible name.
+      // Still carries the FULL label ("Sign in with Apple"), not just the
+      // provider word rendered beside the mark — a screen reader hears the
+      // whole action, a sighted user reads the short form.
       aria-label={loading ? "Connecting…" : label}
       title={label}
     >
       {loading ? (
         <Loader2 className="w-5 h-5 animate-spin" />
-      ) : provider === "apple" ? (
-        <AppleMark />
       ) : (
-        <GoogleMark />
+        <>
+          {provider === "apple" ? <AppleMark /> : <GoogleMark />}
+          {/* The visible word. Its absence is the whole reason this block was
+              stacked into full-width rows — an unlabelled icon in a box wide
+              enough for text reads as a rendering failure. aria-hidden because
+              the button's aria-label already names the action in full; without
+              it a screen reader would announce "Sign in with Apple, Apple". */}
+          <span aria-hidden className="font-sans font-medium text-ds-14">
+            {provider === "apple" ? "Apple" : "Google"}
+          </span>
+        </>
       )}
     </Button>
   );

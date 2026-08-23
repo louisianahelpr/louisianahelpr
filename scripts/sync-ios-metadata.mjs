@@ -103,6 +103,7 @@ const PERMISSION_KEYS = [
   "NSFaceIDUsageDescription",
   "NSLocationWhenInUseUsageDescription",
   "NSMicrophoneUsageDescription",
+  "NSSpeechRecognitionUsageDescription",
   "NSPhotoLibraryAddUsageDescription",
   "NSPhotoLibraryUsageDescription",
 ];

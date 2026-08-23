@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColorClasses } from "@/lib/statusColors";
-import { formatPrice, formatShortDate } from "@/lib/format";
+import { formatPrice, formatPriceExact, formatShortDate } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import type { Job } from "./types";
 
@@ -26,6 +26,21 @@ interface EarningHistoryProps {
    */
   feeFallbackPct: number;
 }
+
+/**
+ * Jobs with money attached — the only rows that belong under "Earning history".
+ *
+ * The list used to render every job the helpr had been awarded, so a screen
+ * headed "Earning history" opened with five rows reading "Accepted" and a blank
+ * right-hand column: no payout, no budget, no number of any kind. Those jobs
+ * have not earned anything and are not in flight — they are upcoming work, and
+ * upcoming work is My Jobs' subject, not this page's (owner: "needs a full
+ * upgrade and polish alot of the same info").
+ *
+ * `completed` carries a payout. `in_progress` carries a budget that is escrowed
+ * and about to become a payout. Everything else has nothing to say here.
+ */
+const EARNED_OR_IN_FLIGHT = new Set(["completed", "in_progress"]);
 
 export function EarningHistory({
   earningsJobs,
@@ -70,12 +85,18 @@ export function EarningHistory({
     );
   }
 
+  // See EARNED_OR_IN_FLIGHT above. Filtered here rather than in the parent
+  // because `earningsJobs` also feeds the charts and the totals, which do their
+  // own status filtering — narrowing the shared array would silently change
+  // three other numbers.
+  const moneyJobs = earningsJobs.filter((j) => EARNED_OR_IN_FLIGHT.has(j.status));
+
   return (
     <div>
       <h2 className="font-display italic font-bold leading-tight mb-3 text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
         Earning history
       </h2>
-      {earningsJobs.length === 0 ? (
+      {moneyJobs.length === 0 ? (
         <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-3 px-6 py-12">
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center"
@@ -113,7 +134,7 @@ export function EarningHistory({
         </div>
       ) : (
         <div className="space-y-3">
-          {earningsJobs.slice(0, historyVisible).map((job) => {
+          {moneyJobs.slice(0, historyVisible).map((job) => {
             // Same shared take-home definition as the tab's Total tile (group
             // budget + urgent fee split across the roster, #114), so a row can
             // never disagree with the number it rolls up into.
@@ -139,10 +160,10 @@ export function EarningHistory({
                   <div className="text-right shrink-0">
                     {payout !== null && (
                       <p className="font-display italic font-bold tabular-nums text-ds-16" style={{ color: "hsl(var(--ink-deep))" }}>
-                        ${formatPrice(payout)}
+                        ${formatPriceExact(payout)}
                       </p>
                     )}
-                    {tipTotal > 0 && <p className="text-ds-11 text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${formatPrice(tipTotal)}</p>}
+                    {tipTotal > 0 && <p className="text-ds-11 text-primary flex items-center gap-1 justify-end"><Gift className="w-3 h-3" /> +${formatPriceExact(tipTotal)}</p>}
                     {job.status === "in_progress" && (
                       <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                           ${formatPrice(job.budget)} budget
@@ -153,13 +174,13 @@ export function EarningHistory({
               </div>
             );
           })}
-          {earningsJobs.length > historyVisible && (
+          {moneyJobs.length > historyVisible && (
             <Button
               variant="outline"
               className="w-full rounded-ds-md"
               onClick={onLoadMore}
             >
-              Load {Math.min(page, earningsJobs.length - historyVisible)} More · {earningsJobs.length - historyVisible} remaining
+              Load {Math.min(page, moneyJobs.length - historyVisible)} More · {moneyJobs.length - historyVisible} remaining
             </Button>
           )}
         </div>

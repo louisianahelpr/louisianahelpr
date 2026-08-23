@@ -12,11 +12,9 @@
 import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Eye, Star, Target, Clock, Repeat } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Skeleton } from "@/components/ui/skeleton";
-import { fetchAnalytics, type Analytics } from "@/pages/helperAnalytics/fetchAnalytics";
+import { fetchAnalytics } from "@/pages/helperAnalytics/fetchAnalytics";
 import HeroSummary from "@/pages/helperAnalytics/HeroSummary";
 import EarningsByMonthCard from "@/pages/helperAnalytics/EarningsByMonthCard";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -53,110 +51,6 @@ const ANALYTICS_TIERS = new Set(["pro", "elite", "business"]);
 // aligned with SectionCard (liquid-glass, same shadow) so the strip reads as
 // part of the same dashboard rather than a bolted-on header.
 
-interface KpiTileProps {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: React.ReactNode;
-  isLoading: boolean;
-}
-
-const KpiTile = ({ label, value, sub, icon, isLoading }: KpiTileProps) => {
-  return (
-    <div
-      className="rounded-2xl liquid-glass p-4"
-      style={{
-        boxShadow:
-          "inset 0 1px 1px 0 rgba(255,255,255,0.4), " +
-          "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-          "0 12px 28px -10px hsl(var(--olivewood) / 0.14)",
-      }}
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <span style={{ color: "hsl(var(--burnt-sienna))" }}>{icon}</span>
-        <h3
-          className="font-serif italic uppercase text-ds-9"
-          style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-        >
-          {label}
-        </h3>
-      </div>
-      {isLoading ? (
-        <Skeleton className="h-7 w-20 rounded" />
-      ) : (
-        <>
-          <p
-            className="font-display italic font-bold tabular-nums text-ds-24"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-          >
-            {value}
-          </p>
-          {sub && (
-            <p className="text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {sub}
-            </p>
-          )}
-        </>
-      )}
-    </div>
-  );
-};
-
-// Build the 4 tiles shown in the desktop KPI strip. Kept as a small helper so
-// the JSX below stays readable; picks the four metrics with the highest
-// at-a-glance value (rating, success rate, profile views, and — depending on
-// what data exists — on-time or repeat-hire).
-function buildKpis(a: Analytics | undefined) {
-  const rating = a?.avgRating;
-  const success = a?.successRate;
-  const views = a?.profileViewCount;
-  // Prefer on-time rate when available (needs >=5 timed jobs); fall back to
-  // repeat-hire (needs >=3 completed jobs); if neither is available, show
-  // completed jobs count so the tile is never a "—".
-  const trustTile =
-    a?.onTimeRate !== null && a?.onTimeRate !== undefined
-      ? {
-          label: "On-time",
-          value: `${a.onTimeRate}%`,
-          sub: `${a.timingJobCount} timed job${a.timingJobCount === 1 ? "" : "s"}`,
-          icon: <Clock className="w-4 h-4" />,
-        }
-      : a?.repeatHirePercent !== null && a?.repeatHirePercent !== undefined
-      ? {
-          label: "Repeat hire",
-          value: `${a.repeatHirePercent}%`,
-          sub: "posters who rebook",
-          icon: <Repeat className="w-4 h-4" />,
-        }
-      : {
-          label: "Completed",
-          value: String(a?.completedCount ?? 0),
-          sub: "last 6 months",
-          icon: <Repeat className="w-4 h-4" />,
-        };
-
-  return [
-    {
-      label: "Avg rating",
-      value: rating !== null && rating !== undefined ? rating.toFixed(1) : "—",
-      sub: a?.reviewCount ? `${a.reviewCount} review${a.reviewCount === 1 ? "" : "s"}` : "no reviews yet",
-      icon: <Star className="w-4 h-4" />,
-    },
-    {
-      label: "Success rate",
-      value: success !== null && success !== undefined ? `${success}%` : "—",
-      sub: a?.totalApplications ? `${a.totalApplications} application${a.totalApplications === 1 ? "" : "s"}` : "no applications yet",
-      icon: <Target className="w-4 h-4" />,
-    },
-    {
-      label: "Profile views",
-      value: String(views ?? 0),
-      sub: "this month",
-      icon: <Eye className="w-4 h-4" />,
-    },
-    trustTile,
-  ];
-}
 export const HelperAnalyticsBody = () => {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
@@ -213,24 +107,22 @@ export const HelperAnalyticsBody = () => {
               full-width at every breakpoint. */}
           <HeroSummary analytics={analytics} isLoading={isLoadingData} />
 
-          {/* ── KPI strip (desktop-only) ────────────────────────────────
-              On lg+ we surface a 4-tile at-a-glance summary above the
-              detail-card grid so the page reads as a real dashboard
-              instead of a scroll of stacked cards. Hidden below lg to
-              preserve the existing mobile stack exactly — the same
-              numbers already live in the detail cards on that layout. */}
-          <div className="hidden lg:grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-            {buildKpis(analytics).map((k) => (
-              <KpiTile
-                key={k.label}
-                label={k.label}
-                value={k.value}
-                sub={k.sub}
-                icon={k.icon}
-                isLoading={isLoadingData}
-              />
-            ))}
-          </div>
+          {/* NO KPI STRIP. A desktop-only 4-tile summary — avg rating,
+              success rate, profile views, repeat hire — used to sit here,
+              above the card grid. Every one of those four numbers is also a
+              card below, so a Pro subscriber read each of them twice on one
+              screen, and a free user read three of them ABOVE a blurred panel
+              charging for the same figure ("Profile views · 0 · this month",
+              then "Profile views — PRO — See how many posters viewed your
+              profile this month"). The paywall was selling what the page had
+              already given away three inches higher.
+
+              The cards are the surviving rendering because they carry what the
+              tiles could not: the platform-average comparison on success rate,
+              the per-star breakdown on ratings, the empty-state copy, and the
+              paywall itself. One rendering per metric, and desktop and phone
+              now agree about what is free (owner: "needs a full upgrade and
+              polish alot of the same info"). */}
 
           {/* ── Analytics cards (gated for free tier) ─────────────────── */}
           {/* We still render the cards so free-tier users can see what

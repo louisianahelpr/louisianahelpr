@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { formatPrice } from "@/lib/format";
+import { formatPriceExact } from "@/lib/format";
 import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { toast } from "@/hooks/use-toast";
@@ -201,6 +201,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // PaymentTab now (#7), driven off the payout_transfers ledger so
   // it's reachable directly from the Payment settings surface.
 
+  const payoutSection = (
+    <section ref={payoutSectionRef} className="scroll-mt-4 space-y-4">
+      <SectionRule label="Payout & payments" />
+      <Suspense fallback={null}>
+        <PaymentTab earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
+      </Suspense>
+    </section>
+  );
+
   return (
     <div className="space-y-4">
       <ProfileTabHeader
@@ -253,6 +262,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         feeFallbackPercent={helperFeeFallbackPct}
       />
 
+      {/* NOT CONNECTED YET: the connect card is the page. Everything below it
+          — the wallet, the goal, the charts, the ledger — is either empty or
+          about money that cannot move until Stripe is set up, so the one thing
+          a helpr can do sits directly under the forecast rather than eight
+          sections down behind a card that only scrolls to it. */}
+      {!stripeLoading && !stripeData?.connected && payoutSection}
+
       {/* "Next 7 days" upcoming-jobs strip — pairs with the dollar
           forecast above to show the helper *which* jobs make up the
           projection. Gated behind Stripe-connected so pre-onboarded
@@ -279,7 +295,21 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
       {/* ─── COMPACT DASHBOARD: Wallet + Stats ─── */}
       <section className="space-y-3">
-        {/* Wallet card (Available + Pending side-by-side) */}
+        {/* Wallet card (Available + Pending side-by-side).
+            NOT RENDERED UNTIL STRIPE IS CONNECTED. Its disconnected state was
+            a second "Set up Payouts" card — the first thing on the page —
+            whose button did nothing but scroll down to the Payout & payments
+            section, which is a card that says the same sentence with the
+            button that actually starts Stripe onboarding. Two cards, one job,
+            one of them a signpost to the other (owner: "needs a full upgrade
+            and polish alot of the same info").
+
+            A helpr who has not connected does not have a wallet, so the
+            honest page for them has no wallet card. The Payout & payments
+            section moves up to just under the forecast in that state (see
+            below) so the connect CTA is still the first thing they can act
+            on. */}
+        {stripeData?.connected && (
         <WalletCard
           stripeData={stripeData}
           stripeLoading={stripeLoading}
@@ -292,6 +322,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           onCashOut={() => setPayoutDialogOpen(true)}
           onUpgrade={() => setUpgradeOpen(true)}
         />
+        )}
 
         {/* Monthly earnings goal — the only control for it in the app
             (/analytics carried a second one; removed). localStorage-backed,
@@ -313,8 +344,14 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         {!loading && (
           <div className="grid grid-cols-3 gap-2">
             {[
-              { icon: TrendingUp, label: "Net", value: `$${formatPrice(totalEarnings)}`, sub: `${completedJobs.length} job${completedJobs.length === 1 ? "" : "s"}` },
-              { icon: Gift, label: "Tips", value: `$${formatPrice(totalTips)}`, sub: `${tips.length} tip${tips.length === 1 ? "" : "s"}` },
+              /* NET IS TAKE-HOME, so it formats EXACT (format.ts: "NOT for the
+                 helper's net take-home… Take-home surfaces use
+                 `formatPriceExact`"). Rounded, this tile said "$229" while the
+                 payout ledger three sections below said "$228.80" for the same
+                 single job — one payment, two numbers, on one screen. Tips are
+                 money that moved too, so they take the same rule. */
+              { icon: TrendingUp, label: "Net", value: `$${formatPriceExact(totalEarnings)}`, sub: `${completedJobs.length} job${completedJobs.length === 1 ? "" : "s"}` },
+              { icon: Gift, label: "Tips", value: `$${formatPriceExact(totalTips)}`, sub: `${tips.length} tip${tips.length === 1 ? "" : "s"}` },
               { icon: Briefcase, label: "Active", value: String(inProgressJobs.length), sub: "in progress" },
             ].map(({ icon: Icon, label, value, sub }) => (
               <div key={label} className="rounded-ds-md liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">
@@ -382,13 +419,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       {/* ─── PAYOUT & PAYMENTS ───────────────────────────────────────
           Was the "payment" Profile tab. `onSeeEarnings` is deliberately not
           passed: its "See full breakdown →" link jumped to the Earnings tab,
-          which is the very screen it is now sitting inside. */}
-      <section ref={payoutSectionRef} className="scroll-mt-4 space-y-4">
-        <SectionRule label="Payout & payments" />
-        <Suspense fallback={null}>
-          <PaymentTab earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
-        </Suspense>
-      </section>
+          which is the very screen it is now sitting inside.
+
+          Rendered at the BOTTOM once Stripe is connected — settings, read
+          rarely — and near the TOP when it is not, because then it is the only
+          thing on the page a helpr can act on and the whole screen is waiting
+          on it. See `payoutSection` above. */}
+      {stripeData?.connected && payoutSection}
 
       {/* Muted legal/tax disclosure — bottom of page */}
       <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">

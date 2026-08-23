@@ -280,6 +280,86 @@ const HelpCenter = () => {
                 Help Center
               </h1>
             </div>
+            {/* Search sits on the TITLE row (owner). It has moved twice: it
+                began below the lede as an unexplained icon floating in empty
+                space, then beside the "Quick answers" heading. On the title row
+                it reads as the page's own control — the thing you search is the
+                page you are on — and, because it no longer occupies a line of
+                its own, the FAQ list starts higher up the screen. */}
+            <div className="shrink-0">
+              {!searchOpen && !searching ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchOpen(true)}
+                  aria-label="Search help articles"
+                  aria-expanded={false}
+                  // No outline (owner). Sitting beside the "Quick answers"
+                  // heading it no longer has to announce itself as a control
+                  // in empty space, so the olivewood border and the lifted
+                  // shadow it needed there are gone — the glyph alone reads
+                  // as the affordance, and a bare icon next to a heading is
+                  // quieter than a boxed one.
+                  className="w-11 h-11 rounded-2xl inline-flex items-center justify-center transition-colors hover:bg-[hsl(var(--olivewood)/0.08)]"
+                >
+                  <Search
+                    className="w-5 h-5"
+                    style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
+                </button>
+              ) : (
+              <div
+                className="flex items-center gap-3 rounded-2xl px-5 py-4 sm:px-6 sm:py-5 transition-shadow focus-within:shadow-md"
+                style={{
+                  background: "hsl(var(--parchment) / 0.85)",
+                  border: "1.5px solid hsl(var(--olivewood) / 0.35)",
+                  boxShadow:
+                    "inset 0 1px 0 hsl(var(--parchment) / 0.5), 0 8px 24px -12px hsl(var(--olivewood) / 0.18)",
+                }}
+              >
+                <Search
+                  className="w-5 h-5 shrink-0"
+                  style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                  strokeWidth={1.75}
+                  aria-hidden
+                />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onBlur={() => { if (!query) setSearchOpen(false); }}
+                  // Short on purpose: "Search answers, guides, and topics..." is
+                  // ~34 characters, and at 375px — after the icon, the pill's
+                  // 20px padding and the clear button's lane — the field has room
+                  // for about 24. It rendered clipped mid-word ("...and to") on
+                  // every phone.
+                  placeholder="Search answers…"
+                  aria-label="Search help articles"
+                  className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ds-15 sm:text-ds-17 placeholder:text-[hsl(var(--olivewood)/0.8)]"
+                  style={{
+                    fontFamily: "Montserrat, system-ui, sans-serif",
+                    color: "hsl(var(--ink-deep))",
+                  }}
+                />
+                {searching && (
+                  <button
+                    type="button"
+                    onClick={() => { setQuery(""); setSearchOpen(false); }}
+                    aria-label="Clear search"
+                    className="shrink-0 transition-opacity hover:opacity-70"
+                  >
+                    <X
+                      className="w-5 h-5"
+                      style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                      strokeWidth={1.75}
+                    />
+                  </button>
+                )}
+              </div>
+              )}
+            </div>
           </div>
 
           {/* One-line lede — the two audiences we serve, in one flowing line.
@@ -313,7 +393,12 @@ const HelpCenter = () => {
       <section
         id="faq"
         aria-labelledby="faq-heading"
-        className="px-5 sm:px-8 lg:px-12 pt-6 md:pt-16 lg:pt-24 pb-8 scroll-mt-24"
+        // pt-0 below md. The `pt-6` here was spacing the FAQ away from the
+        // lede above it — but that lede is `hidden md:block`, so on a phone
+        // this padding separated the title from nothing and left 45px of
+        // dead air under "Help Center". The md+ editorial spacing is
+        // unchanged, because there the lede really is there.
+        className="px-5 sm:px-8 lg:px-12 pt-0 md:pt-16 lg:pt-24 pb-8 scroll-mt-24"
       >
         <div className="mx-auto page-measure grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-10 lg:gap-16">
           {/* Left column — masthead. Same two-presentation h2 as the Topics
@@ -336,13 +421,18 @@ const HelpCenter = () => {
                 topic list, pushing it below the fold on a phone. It stays open
                 while there is a query (so results are not stranded with no
                 visible box) and re-collapses on blur once cleared. */}
-            <div className="flex items-start justify-between gap-3">
             <h2
               id="faq-heading"
               className="font-display font-bold italic md:not-italic text-balance leading-tight tracking-[-0.02em] text-[length:var(--headline-section)] md:mt-3 md:leading-[1.05] md:tracking-[-0.025em] md:text-[length:clamp(2.25rem,3.4vw,3.25rem)] md:max-w-none"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              <span className="md:hidden">Quick answers</span>
+              {/* The plain "Quick answers" label is gone from the phone/app
+                  surface (owner). It stays in the accessibility tree rather
+                  than being deleted outright: this <section> is
+                  `aria-labelledby="faq-heading"`, so an h2 with no text would
+                  leave the section unnamed and the page with a heading that
+                  announces nothing. Visually hidden, not removed. */}
+              <span className="sr-only md:hidden">Quick answers</span>
               <span className="hidden md:inline">
                 Quick{" "}
                 <em
@@ -356,81 +446,6 @@ const HelpCenter = () => {
                 </em>
               </span>
             </h2>
-              <div className="shrink-0">
-                {!searchOpen && !searching ? (
-                  <button
-                    type="button"
-                    onClick={() => setSearchOpen(true)}
-                    aria-label="Search help articles"
-                    aria-expanded={false}
-                    // No outline (owner). Sitting beside the "Quick answers"
-                    // heading it no longer has to announce itself as a control
-                    // in empty space, so the olivewood border and the lifted
-                    // shadow it needed there are gone — the glyph alone reads
-                    // as the affordance, and a bare icon next to a heading is
-                    // quieter than a boxed one.
-                    className="w-11 h-11 rounded-2xl inline-flex items-center justify-center transition-colors hover:bg-[hsl(var(--olivewood)/0.08)]"
-                  >
-                    <Search
-                      className="w-5 h-5"
-                      style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                      strokeWidth={1.75}
-                      aria-hidden
-                    />
-                  </button>
-                ) : (
-                <div
-                  className="flex items-center gap-3 rounded-2xl px-5 py-4 sm:px-6 sm:py-5 transition-shadow focus-within:shadow-md"
-                  style={{
-                    background: "hsl(var(--parchment) / 0.85)",
-                    border: "1.5px solid hsl(var(--olivewood) / 0.35)",
-                    boxShadow:
-                      "inset 0 1px 0 hsl(var(--parchment) / 0.5), 0 8px 24px -12px hsl(var(--olivewood) / 0.18)",
-                  }}
-                >
-                  <Search
-                    className="w-5 h-5 shrink-0"
-                    style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                    strokeWidth={1.75}
-                    aria-hidden
-                  />
-                  <input
-                    ref={searchInputRef}
-                    type="search"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onBlur={() => { if (!query) setSearchOpen(false); }}
-                    // Short on purpose: "Search answers, guides, and topics..." is
-                    // ~34 characters, and at 375px — after the icon, the pill's
-                    // 20px padding and the clear button's lane — the field has room
-                    // for about 24. It rendered clipped mid-word ("...and to") on
-                    // every phone.
-                    placeholder="Search answers…"
-                    aria-label="Search help articles"
-                    className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ds-15 sm:text-ds-17 placeholder:text-[hsl(var(--olivewood)/0.8)]"
-                    style={{
-                      fontFamily: "Montserrat, system-ui, sans-serif",
-                      color: "hsl(var(--ink-deep))",
-                    }}
-                  />
-                  {searching && (
-                    <button
-                      type="button"
-                      onClick={() => { setQuery(""); setSearchOpen(false); }}
-                      aria-label="Clear search"
-                      className="shrink-0 transition-opacity hover:opacity-70"
-                    >
-                      <X
-                        className="w-5 h-5"
-                        style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                        strokeWidth={1.75}
-                      />
-                    </button>
-                  )}
-                </div>
-                )}
-              </div>
-            </div>
             {searching && (
               <p
                 className="mt-2 md:mt-4 font-serif italic text-ds-14 leading-relaxed md:max-w-xs"

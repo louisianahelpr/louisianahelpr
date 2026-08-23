@@ -103,7 +103,14 @@ const Footer = () => (
               was removed from the top nav earlier for the same reason: it is an
               anchor into the home page (/#how-it-works), not a destination of
               its own, so from any other page it reads as a link that throws you
-              back to the marketing home. */}
+              back to the marketing home.
+
+              "Membership" is not here either (owner, 2026-08-22): plans are
+              something you meet once you have an account — "they will see once
+              they sign up" — so advertising the pricing page to a signed-out
+              visitor sells an upgrade before they have the thing being
+              upgraded. /subscription is still routable and still linked from
+              inside the app. */}
           {/* Single column, matching Legal and Follow. Uneven column LENGTHS
               are normal in a footer — three different list treatments side by
               side is what looks unfinished. */}
@@ -120,11 +127,6 @@ const Footer = () => (
               </Link>
             </li>
             )}
-            <li>
-              <Link to="/subscription" className="link-standard">
-                Membership
-              </Link>
-            </li>
             <li>
               <Link to="/help" className="link-standard">
                 Help Center

@@ -60,7 +60,7 @@ export function DeleteAccountDialog({
   // the BrandConfirmDialog contract.
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent className="max-w-md">
+      <AlertDialogContent>
         <AlertDialogHero
           title={<><AlertTriangle className="w-5 h-5" /> Final confirmation</>}
         />

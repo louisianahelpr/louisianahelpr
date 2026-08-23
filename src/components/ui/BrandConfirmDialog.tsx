@@ -115,7 +115,7 @@ export function BrandConfirmDialog({
   const CalloutIcon = callout?.icon ?? AlertTriangle;
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-md">
+      <AlertDialogContent>
         {/* NO per-dialog alignment. This confirm centred its title while the
             other ~147 popups in the app left-align theirs through the same
             Hero — and because BrandConfirmDialog is behind every confirm in

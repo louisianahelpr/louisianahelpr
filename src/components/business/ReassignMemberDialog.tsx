@@ -98,7 +98,7 @@ export function ReassignMemberDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent>
         <DialogHero
           eyebrow="Remove teammate"
           title={`Remove ${fromDisplay}?`}

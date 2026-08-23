@@ -346,7 +346,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       {/* Tip prompt — only opens after a 5-star review. Tighter than
           waiting for the separate tip flow on Activity. */}
       <Dialog open={tipPromptOpen} onOpenChange={(o) => { if (!o) { setTipPromptOpen(false); onClose(); } }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent>
           <DialogHero title={`Send ${revieweeName} a tip?`} />
           {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
               title": headers show a title and nothing else). Not dropped —

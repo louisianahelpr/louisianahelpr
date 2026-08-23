@@ -408,7 +408,7 @@ const AdminPayoutBatches = () => {
       </Dialog>
 
       <Dialog open={!!denyDraft} onOpenChange={(o) => { if (!o) setDenyDraft(null); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent>
           <DialogHero
             eyebrow={
               <>

@@ -119,7 +119,7 @@ export function TermsReconsentDialog() {
 
   return (
     <AlertDialog open={open}>
-      <AlertDialogContent className="max-w-md">
+      <AlertDialogContent>
         <AlertDialogHero
           eyebrow="We updated our terms"
           title="Please Take a Moment to Re-Agree"

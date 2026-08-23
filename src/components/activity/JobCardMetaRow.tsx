@@ -76,11 +76,12 @@ export function JobCardMetaRow({
               minute: "2-digit",
             })}
       </span>
-      {estimatedHours ? (
-        <span className="flex items-center gap-1">
-          <Clock className="w-3 h-3 shrink-0" /> {estimatedHours}h
-        </span>
-      ) : null}
+      {/* No "3h" estimate chip. Post a Job has no estimated-hours field any
+          more (owner), so on every job posted since it was dropped this
+          rendered nothing, and on the older ones it showed a second clock icon
+          beside the start time for a number the poster can no longer set or
+          correct. The column and its edit field are untouched — this is the
+          card display only. */}
       {expiresAt
         ? (() => {
             const expiry = new Date(expiresAt);

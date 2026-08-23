@@ -42,9 +42,19 @@ const STATUSES = [
  * reuse the exact step shape/styling of `STATUSES` rather than introducing a
  * second tracker.
  */
+/**
+ * ONE pre-assignment step, not two (owner: "I think posted and applicants can
+ * be merged").
+ *
+ * They were never two things that happen in sequence — a job is posted, and
+ * applications arrive against that same posted job — so the tracker spent two
+ * of its nine columns on one state, and the count they conveyed is already on
+ * the card. The step's icon and caption carry the difference now: a file with
+ * no caption while nobody has applied, and the people icon with "N applied"
+ * underneath once they have.
+ */
 const PRE_STATUSES = [
   { key: "posted", label: "Posted", icon: FileText, color: "text-primary" },
-  { key: "applicants", label: "Applicants", icon: Users, color: "text-primary" },
 ];
 
 /** Index of each step in `STATUSES`, by key. Keeps the derivation below
@@ -534,9 +544,7 @@ export function JobTracking({
   const displayIdx = includePostingSteps
     ? helperId
       ? PRE_STATUSES.length + currentStatusIdx
-      : applicantCount > 0
-        ? 1
-        : 0
+      : 0
     : currentStatusIdx;
 
   // SOS is a personal-safety escalation, so it only exists once someone is
@@ -635,8 +643,19 @@ export function JobTracking({
         // "Offered to Camille", "On the Way" + "Camille" as "Camille is on the
         // way". A helper tracking their own job needs no one named.
         const firstName = helperName?.trim().split(/\s+/)[0] ?? null;
-        const getSubtext = (idx: number): string | null =>
-          !isHelper && firstName && idx === displayIdx ? firstName : null;
+        const getSubtext = (idx: number): string | null => {
+          // The merged Posted step reports its applications here — the fact
+          // the old separate "Applicants" step existed to carry.
+          if (
+            includePostingSteps &&
+            idx === 0 &&
+            !helperId &&
+            applicantCount > 0
+          ) {
+            return `${applicantCount} applied`;
+          }
+          return !isHelper && firstName && idx === displayIdx ? firstName : null;
+        };
 
         // ONE scrolling line, seven steps (owner: "the live tracker should be
         // 1 scrollable line"). It was previously a 4 + 3 wrapping grid, which

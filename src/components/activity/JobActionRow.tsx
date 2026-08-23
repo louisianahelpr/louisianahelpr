@@ -42,7 +42,7 @@ const COLS: Record<number, string> = {
 export const JOB_ACTION_CHIP_CLASS =
   "w-full h-auto min-h-[44px] flex-col gap-0.5 px-1 py-1.5 glass-press border-0";
 
-export type JobActionTone = "info" | "boost" | "edit" | "danger" | "primary" | "neutral" | "share";
+export type JobActionTone = "info" | "boost" | "edit" | "danger" | "primary" | "neutral" | "share" | "done";
 
 /**
  * Tint/ink/border per chip tone.
@@ -71,9 +71,12 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
       };
     case "edit":
       return {
-        background: "hsl(var(--gold-warm) / 0.16)",
+        // Bumped from 0.16/0.36 — at chip size that was a beige rectangle
+        // rather than a gold one, and Review sat next to a solid bark primary
+        // looking like disabled chrome.
+        background: "hsl(var(--gold-warm) / 0.26)",
         color: "hsl(var(--amber-ink))",
-        border: "0.5px solid hsl(var(--gold-warm) / 0.36)",
+        border: "0.5px solid hsl(var(--gold-warm) / 0.55)",
       };
     case "danger":
       // --danger-ink, not a hardcoded dark red: the literal it replaced had no
@@ -106,6 +109,23 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
         background: "hsl(var(--olivewood) / 0.08)",
         color: "hsl(var(--olivewood))",
         border: "0.5px solid hsl(var(--olivewood) / 0.22)",
+      };
+    case "done":
+      // A finished action — Tipped, Reviewed. It used to borrow `neutral`,
+      // the same olivewood grey a disabled control wears, so "you already
+      // tipped them" read as "this button is broken" (owner: "tipped and
+      // reviewed should be better colors like the other pages"). Success
+      // tint + success ink is the pair every other done-state in the app uses
+      // — the completed status stripe, the tracker's finished steps — so a
+      // done chip now looks done rather than dead.
+      return {
+        // --success-tint is a 96%-lightness panel fill; on a chip it read as
+        // "off-white with a faint wash" — the owner's "meh". Tinting from
+        // --success-ink instead gives the same hue real presence at chip size
+        // while keeping the ink AA on it.
+        background: "hsl(var(--success-ink) / 0.14)",
+        color: "hsl(var(--success-ink-deep))",
+        border: "0.5px solid hsl(var(--success-ink) / 0.38)",
       };
     case "share":
       // SHARE. Owner call 2026-08-20: blue moved to Message ("I think blue

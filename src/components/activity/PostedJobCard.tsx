@@ -13,8 +13,6 @@ import { JobTracking } from "@/components/JobTracking";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
-import { JobCardStatusStripe } from "./JobCardStatusStripe";
-import { postedCardState } from "./activityStateLabel";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { IncomingReportCard } from "./PetReportCard";
@@ -97,7 +95,13 @@ function PostedJobCardInner({
     ((job.status === "accepted" ||
       job.status === "in_progress" ||
       job.status === "revision_requested" ||
-      job.status === "disputed") &&
+      job.status === "disputed" ||
+      // Completed keeps it too (owner: "remove [the stripe]. should show
+      // tracker"). A finished job's history is the most useful thing on the
+      // card once the actions are done — who did it and when each step
+      // landed — and it replaces a green band that only repeated the filter
+      // the user is already standing in.
+      job.status === "completed") &&
       !!job.helper_id) ||
     job.status === "open";
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
@@ -121,16 +125,15 @@ function PostedJobCardInner({
                 already underway all look alike. Unlike the old pill this also
                 colours the terminal statuses, so a Completed / Cancelled /
                 Disputed card is identifiable at a glance too. */}
-            <JobCardStatusStripe
-              state={postedCardState({
-                status: job.status,
-                helper_id: job.helper_id,
-                helper_confirmed_at: job.helper_confirmed_at,
-                offered_to_helper_id: job.offered_to_helper_id,
-                direct_offer_status: job.direct_offer_status,
-                applicantCount: applicantCounts[job.id] || 0,
-              })}
-            />
+            {/* NO STATUS STRIPE. Owner: "can be removed so we can better
+                organize on the top by active / completed / cancelled etc" —
+                the filter tabs above the list carry the status now, so a
+                coloured band on every card repeated the tab the reader is
+                standing in, once per card, all the way down the page. What
+                the band said that a tab cannot, each card still says better:
+                an assigned job shows the tracker sitting on its real step, an
+                open one shows its applicant count, a cancelled one leads with
+                "Re-post This Job". */}
 
             {/* Summary */}
             <div className="px-4 py-3 space-y-2.5">

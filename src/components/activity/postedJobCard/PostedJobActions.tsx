@@ -89,6 +89,13 @@ export function PostedJobActions({
   // supabase UPDATE is in-flight — prevents double-tap submission.
   const [disputeActing, setDisputeActing] = useState(false);
 
+  // A cancelled job has no actions here — its one move ("Re-post This Job")
+  // is rendered by the card itself. Without this the component still returned
+  // its bordered, padded shell around an empty div, so every cancelled card
+  // carried a ~44px band of ruled card stock below the button with nothing in
+  // it (owner: "remove this spacing").
+  if (job.status === "cancelled") return null;
+
   return (
     <div className="border-t border-[hsl(var(--olivewood)/0.1)] bg-card px-4 py-3">
       <div className="space-y-2">
@@ -387,12 +394,21 @@ export function PostedJobActions({
           const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
           return (
             <div className="space-y-2">
-              <PhotoProofGroup
-                jobId={job.id}
-                beforeUrls={job.proof_before_urls || []}
-                afterUrls={job.proof_after_urls || []}
-                canUpload={false}
-              />
+              {/* Photo proof only when there IS any (owner: "move to the
+                  collapsed part"). An empty group printed a header plus "No
+                  photos were uploaded for this job" — two rows of chrome to
+                  report an absence — directly above the action row on every
+                  completed job. When photos exist the group still renders here;
+                  the expandable body below carries the rest of the detail. */}
+              {((job.proof_before_urls?.length ?? 0) > 0 ||
+                (job.proof_after_urls?.length ?? 0) > 0) && (
+                <PhotoProofGroup
+                  jobId={job.id}
+                  beforeUrls={job.proof_before_urls || []}
+                  afterUrls={job.proof_after_urls || []}
+                  canUpload={false}
+                />
+              )}
               {/* ONE icon-over-label action row, same shape as the
                   in-progress state's. Tip / Review / Hire again / Something
                   wrong were four stacked full-width buttons (plus an italic
@@ -413,7 +429,17 @@ export function PostedJobActions({
                 // Revision first, dispute second — same escalation order the
                 // footnote used to spell out.
                 const canRevise = !job.poster_completed_at && !job.revision_requested_at;
-                const canDispute = !canRevise && shouldShowDisputeLink(job, "customer");
+                // NOT after the poster approved (owner: "if the job is already
+                // marked complete this should not be an option"). Approving IS
+                // the release — the money has left escrow and the poster said
+                // the work was good — so a Dispute chip there invites a fight
+                // over a decision they already made. A job that auto-released
+                // without them ever approving keeps the 7-day window: they
+                // never got their say.
+                const canDispute =
+                  !canRevise &&
+                  !job.poster_completed_at &&
+                  shouldShowDisputeLink(job, "customer");
                 const columns = (2 + (canReview ? 1 : 0) + (canRevise || canDispute ? 1 : 0)) as 2 | 3 | 4;
                 return (
                   <JobActionRow columns={columns}>
@@ -430,7 +456,7 @@ export function PostedJobActions({
                         icon={CheckCircle2}
                         label="Tipped"
                         ariaLabel={`Already tipped ${helperName}`}
-                        tone="neutral"
+                        tone="done"
                         disabled
                         onClick={() => {}}
                       />
@@ -449,11 +475,29 @@ export function PostedJobActions({
                           icon={CheckCircle2}
                           label="Reviewed"
                           ariaLabel={`Already reviewed ${helperName}`}
-                          tone="neutral"
+                          tone="done"
                           disabled
                           onClick={() => {}}
                         />
                       )
+                    )}
+                    {canRevise && (
+                      <JobActionChip
+                        icon={AlertTriangle}
+                        label="Revision"
+                        ariaLabel="Something wrong? Request a revision"
+                        tone="danger"
+                        onClick={() => onRevision(job.id)}
+                      />
+                    )}
+                    {canDispute && (
+                      <JobActionChip
+                        icon={AlertTriangle}
+                        label="Dispute"
+                        ariaLabel="Something wrong? Open a dispute about this job"
+                        tone="danger"
+                        onClick={() => onDispute(job)}
+                      />
                     )}
                     {/* Hire again — direct offer to the same helper.
                         Routes to PostJob with offerTo + rebook query so
@@ -474,24 +518,6 @@ export function PostedJobActions({
                         ariaLabel="Re-post this job"
                         tone="primary"
                         onClick={() => navigate(`/post-job?rebook=${job.id}`)}
-                      />
-                    )}
-                    {canRevise && (
-                      <JobActionChip
-                        icon={AlertTriangle}
-                        label="Revision"
-                        ariaLabel="Something wrong? Request a revision"
-                        tone="danger"
-                        onClick={() => onRevision(job.id)}
-                      />
-                    )}
-                    {canDispute && (
-                      <JobActionChip
-                        icon={AlertTriangle}
-                        label="Dispute"
-                        ariaLabel="Something wrong? Open a dispute about this job"
-                        tone="danger"
-                        onClick={() => onDispute(job)}
                       />
                     )}
                   </JobActionRow>

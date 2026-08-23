@@ -217,12 +217,12 @@ const AdminBroadcasts = () => {
       {showForm && (
         <div className="rounded-ds-md liquid-glass p-4 space-y-3">
           <div className="space-y-2">
-            <Label>Title</Label>
-            <Input aria-label="Broadcast title" value={title} onChange={e => setTitle(e.target.value)} maxLength={100} />
+            <Label htmlFor="broadcast-title">Title</Label>
+            <Input id="broadcast-title" value={title} onChange={e => setTitle(e.target.value)} maxLength={100} />
           </div>
           <div className="space-y-2">
-            <Label>Message</Label>
-            <Textarea aria-label="Broadcast message" value={message} onChange={e => setMessage(e.target.value)} placeholder="We'll be performing maintenance tonight from 10pm-12am CST." rows={2} maxLength={500} />
+            <Label htmlFor="broadcast-message">Message</Label>
+            <Textarea id="broadcast-message" value={message} onChange={e => setMessage(e.target.value)} placeholder="We'll be performing maintenance tonight from 10pm-12am CST." rows={2} maxLength={500} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">

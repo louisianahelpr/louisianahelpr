@@ -168,13 +168,12 @@ const UserProfile = () => {
     return wrap(
       <>
         <PageHeader
-          width="container-lg-5xl-6xl"
-          eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
+            eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           titleActions={headerActionPlaceholder}
         />
-        <div className="container mx-auto px-5 py-6">
+        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
           <div className="max-w-2xl mx-auto space-y-5">
             <div className="rounded-2xl liquid-glass p-5 text-center space-y-3">
               <div className="w-24 h-24 rounded-ds-avatar squircle bg-muted motion-safe:animate-pulse mx-auto" />
@@ -200,14 +199,13 @@ const UserProfile = () => {
     return wrap(
       <>
         <PageHeader
-          width="container-lg-5xl-6xl"
-          eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
+            eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           titleActions={headerActionPlaceholder}
         />
-        <div className="container mx-auto px-5 py-6">
-          <div className="max-w-2xl mx-auto flex">
+        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+          <div className="flex">
             <ErrorState variant="inline" onRetry={() => refetch()} />
           </div>
         </div>
@@ -219,14 +217,13 @@ const UserProfile = () => {
     return wrap(
       <>
         <PageHeader
-          width="container-lg-5xl-6xl"
-          eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
+            eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           titleActions={headerActionPlaceholder}
         />
-        <div className="container mx-auto px-5 py-6">
-          <div className="max-w-2xl mx-auto flex">
+        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+          <div className="flex">
             <EmptyState
               variant="inline"
               icon={UserX}
@@ -291,12 +288,21 @@ const UserProfile = () => {
   return wrap(
     <>
       <PageHeader
-        // Same width in EVERY state (loading / error / empty / loaded): this
-        // used to be "5xl" while loading and "lg" once data landed, so the
-        // title jumped hundreds of pixels the moment the query resolved. The
-        // value mirrors the loaded body below — `container mx-auto px-5` >
-        // `page-measure mx-auto`.
-        width="container-lg-5xl-6xl"
+        // DEFAULT width, in EVERY state (loading / error / empty / loaded).
+        //
+        // Two things this guards. First, the width used to be "5xl" while
+        // loading and "lg" once data landed, so the title jumped hundreds of
+        // pixels the moment the query resolved — hence the same value on all
+        // four headers on this page.
+        //
+        // Second, that value is now the SHARED one. This page used to carry a
+        // bespoke `container px-5 > max-w-lg lg:max-w-5xl xl:max-w-6xl` ladder,
+        // so "Profile" sat on a different left edge and a different column
+        // width from the title on every other document-scroll page (owner:
+        // "spacing for title should be the same as all other pages"). Header
+        // and body both use the canonical shell now — `page-measure mx-auto
+        // px-5 lg:px-8 xl:px-12 pt-4 pb-8` — which is exactly what the
+        // header's `default` width resolves to, so the two share one edge.
         eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
         title={isOwnProfile ? "Profile Review" : "Profile"}
         meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -381,7 +387,7 @@ const UserProfile = () => {
         }
       />
 
-      <div className="container mx-auto px-5 py-6">
+      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
         {/* Split-column desktop layout: the mobile-first single column
             (max-w-lg centered) widens to a two-column masthead + reviews
             layout at lg+. Below lg the grid collapses to one column and
@@ -398,7 +404,7 @@ const UserProfile = () => {
             sat alone across a much wider right column with a screen of empty
             page under them. A profile is read top to bottom; splitting it made
             the left half cramped and the right half hollow. */}
-        <div className="page-measure mx-auto flex flex-col gap-6 items-stretch">
+        <div className="flex flex-col gap-6 items-stretch">
           {/* ── LEFT COLUMN (masthead) ──
               Identity, trust chips, bio, career milestones. Sticky at
               lg+ so it stays visible as the viewer scrolls through the

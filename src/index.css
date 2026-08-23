@@ -144,7 +144,12 @@
   --sage:         78 9% 53%;    /* #8C947D — primary accent */
   --bark:         70 20% 33%;   /* #5E6544 — deep olive */
   --bark-light:   76 20% 44%;   /* bark FAB gradient highlight stop (orb top) */
-  --bark-border:  66 25% 19%;   /* bark CTA button border / dark gradient stop */
+  --bark-border:  66 25% 19%;   /* bark CTA button border */
+  /* The primary CTA gradient's FAR stop, split out from --bark-border because
+     the two want opposite things on dark. The border wants to stay dark (it is
+     the edge against the page); the gradient's corner has to carry the LABEL,
+     and on dark that label is near-black --parchment. See the dark value. */
+  --bark-deep:    66 25% 19%;   /* bark CTA gradient far stop */
   --olivewood:    64 16% 16%;   /* #2E2F22 — primary text + dark ground */
   --burnt-sienna: 19 75% 35%;   /* #984216 — warm accent / emphasis */
   /* Accent used as TEXT on a raised surface. Identical to --burnt-sienna in
@@ -448,6 +453,17 @@
   --bark:         72 22% 52%;   /* deep olive lightened for legibility */
   --bark-light:   76 20% 44%;   /* same as light mode — gradient stop, not theme-adaptive */
   --bark-border:  66 25% 19%;   /* same as light mode — button border, not theme-adaptive */
+  /* LIGHTER ON DARK, and this is the one bark token that has to be.
+     The ending shape is 125% of the box, so the button's bottom-right corner
+     sits at 0.828 of the ramp — an interpolation between the 46% stop and this
+     one. At 19% that painted rgb(87,93,58), and dark-mode --parchment (the
+     label, rgb(20,22,26)) measured 2.60:1 on it. AA needs 4.5. Not a
+     theoretical corner: "Post a Job" spans the whole rail and "Accept Job"
+     half a card, so the label's far end genuinely sits in it.
+     40% puts the darkest painted colour at rgb(130,141,83) — 5.07:1 — while
+     keeping a real falloff from the 52% centre, so the button still reads as
+     lit from the top-left rather than flat. */
+  --bark-deep:    66 25% 40%;
   --olivewood:    36 15% 80%;   /* primary text — near-white warm */
   --burnt-sienna: 19 65% 52%;   /* warm accent — slightly brighter on dark */
   --accent-ink:   19 70% 66%;   /* accent-as-text on a raised dark surface —
@@ -1678,11 +1694,16 @@ button,
      "Post a task" treatment used by the nav CTAs (MobileNav / DesktopSidebarNav
      / Community). Every primary green button (default / hero / bark variants)
      references this so the look can't drift across the app. */
+  /* TOKENS, not literals. These two stops were hardcoded here AND declared as
+     --bark-light / --bark-border, so the "single source of truth" had a second
+     copy that merely happened to agree — which is exactly why the dark-mode
+     contrast fix first landed here and changed nothing: the nav CTAs build the
+     same gradient inline from the tokens. One set of values now. */
   background-image: radial-gradient(
     125% 125% at 32% 22%,
-    hsl(76 20% 44%) 0%,
+    hsl(var(--bark-light)) 0%,
     hsl(var(--bark)) 46%,
-    hsl(66 25% 19%) 100%
+    hsl(var(--bark-deep)) 100%
   );
 }
 

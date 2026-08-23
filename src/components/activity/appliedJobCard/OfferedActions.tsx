@@ -71,14 +71,25 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   // is an inference from `updated_at` — fine for telling the helper how long
   // they have, never grounds for removing their ability to answer.
   const hardDeadline = job.response_deadline ?? job.direct_offer_expires_at ?? null;
-  const isExpired = !!hardDeadline && new Date(hardDeadline).getTime() <= Date.now();
-  // A derived clock may only COUNT DOWN, never declare an expiry. Once it
-  // passes we drop back to the prose rule: we inferred that window from
-  // `updated_at`, the server did not stamp it, and "Response deadline expired"
-  // over two live buttons is the app contradicting itself on screen.
-  const derivedStillRunning =
-    !!derivedDeadline && new Date(derivedDeadline).getTime() > Date.now();
-  const deadline = hardDeadline ?? (derivedStillRunning ? derivedDeadline : null);
+  /* TIME UP MEANS THE OFFER IS GONE — from either clock (owner: "once the time
+     is up they no longer have the option if the job was reoffered elsewhere").
+     This card used to keep Accept and Decline live past the derived window and
+     say "Waiting on your answer", on the reasoning that a clock the server did
+     not stamp should not take a decision away. That reasoning is now wrong in
+     both directions: `expire_unanswered_offers` DOES act on the deadline, so a
+     lapsed offer has genuinely been reopened and may already belong to somebody
+     else — and offering Accept on a job that is no longer yours is the worst
+     kind of dead control, because the one thing the helpr would reach for is
+     the one that fails.
+
+     The derived clock is only ever reached by legacy rows: every offer made
+     through `accept_application` carries a real `response_deadline` set by the
+     poster. */
+  const derivedClosed =
+    !hardDeadline && !!derivedDeadline && new Date(derivedDeadline).getTime() <= Date.now();
+  const isExpired =
+    (!!hardDeadline && new Date(hardDeadline).getTime() <= Date.now()) || derivedClosed;
+  const deadline = isExpired ? null : (hardDeadline ?? derivedDeadline);
   return (
     <div
       className="px-4 py-3 space-y-2.5"
@@ -157,37 +168,35 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           }
         />
       ) : (
-        /* NO COUNTDOWN AVAILABLE — same panel, different words.
+        /* NO LIVE COUNTDOWN — same panel, different words.
            This used to be a bare one-line sentence in sienna, so two offers
            sitting one above the other in the same list wore two completely
            different designs for the same fact: one a bordered amber panel with
-           a running clock, the other a naked line of text. Same shape now; only
-           the sentence changes.
+           a running clock, the other a naked line of text. Same shape now, and
+           the same weight as DeadlineCountdown's — only the sentence changes.
 
-           Two ways to land here, and they are not the same statement:
-           - the row carries no timestamp at all, so we state the 24-hour rule
-             in words rather than inventing a clock; or
-           - we DO have an offer stamp and the derived 24-hour window has
-             already elapsed. Repeating "Respond within 24 hours" there is the
-             app contradicting itself — the 24 hours are gone. We say what is
-             true instead, and still leave both buttons live, because only a
-             server-stamped deadline is allowed to take the decision away. */
+           Two ways to land here:
+           - the window has CLOSED, on either clock. The offer is gone and the
+             job has reopened to everyone, so this says so plainly and the
+             buttons below are not rendered at all.
+           - the row carries no timestamp we can reason about, so we state the
+             24-hour rule in words rather than inventing a clock. */
         <div
           className="flex items-start gap-2 p-2 rounded-ds-sm border"
           style={{
-            background: "hsl(var(--amber-tint) / 0.05)",
-            borderColor: "hsl(var(--amber-tint) / 0.20)",
-            color: "hsl(var(--muted-foreground))",
+            background: "hsl(var(--amber-tint) / 0.15)",
+            borderColor: "hsl(var(--amber-tint) / 0.30)",
+            color: "hsl(var(--amber-ink))",
           }}
         >
           <Timer className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
           <div className="min-w-0">
-            {derivedDeadline ? (
+            {isExpired ? (
               <>
-                <p className="text-ds-11 font-semibold">Waiting on your answer</p>
+                <p className="text-ds-11 font-semibold">This offer has expired</p>
                 <p className="text-ds-10 mt-0.5">
-                  The usual {DEFAULT_RESPONSE_WINDOW_HOURS}-hour window has passed — the
-                  poster can still offer this to somebody else.
+                  You didn't answer in time, so the job went back out to everyone — it
+                  may already be somebody else's.
                 </p>
               </>
             ) : (

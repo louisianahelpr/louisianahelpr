@@ -46,7 +46,15 @@ export function JobCardMetaRow({
   trailing,
 }: JobCardMetaRowProps) {
   return (
-    <div className="flex items-center gap-2.5 flex-wrap text-ds-11 text-muted-foreground">
+    /* `gap-x-5`, not `gap-2.5` (owner: "space location day and time out
+       better"). Three icon+label pairs 10px apart read as one run-on string —
+       the eye can't tell where the place ends and the date begins, because the
+       gap between "Lafayette" and the calendar icon was the same as the gap
+       between the calendar icon and its own text. Twenty pixels between the
+       GROUPS against six inside them makes the grouping do the separating, so
+       no middot or rule is needed. `gap-y-1.5` keeps the wrapped rows apart on
+       a narrow card. */
+    <div className="flex items-center gap-x-5 gap-y-1.5 flex-wrap text-ds-11 text-muted-foreground">
       {/* Location → date → time, matching the home feed ("Browse Tasks")
           card order so the two surfaces read consistently. */}
       <a
@@ -64,16 +72,16 @@ export function JobCardMetaRow({
            of WCAG 2.5.8's 24px minimum. The row's only other content is plain
            text, so the extra 8px above and below overlaps nothing that could
            steal the tap. */
-        className="flex items-center gap-1 py-2 -my-2 hover:text-primary transition-colors"
+        className="flex items-center gap-1.5 py-2 -my-2 hover:text-primary transition-colors"
       >
         <MapPin className="w-3 h-3 shrink-0" />
         <span className="truncate max-w-[140px]">{getCity(location)}</span>
       </a>
-      <span className="flex items-center gap-1">
+      <span className="flex items-center gap-1.5">
         <Calendar className="w-3 h-3 shrink-0" />
         {formatJobDate(dateNeeded)}
       </span>
-      <span className="flex items-center gap-1">
+      <span className="flex items-center gap-1.5">
         <Clock className="w-3 h-3 shrink-0" />
         {!startTime
           ? flexibleLabel

@@ -675,7 +675,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                   // fading to a deeper olive at the base gives the puck real
                   // sphere-like dimension instead of a flat disc.
                   background:
-                    "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-border)) 100%)",
+                    "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-deep)) 100%)",
                   color: "hsl(var(--parchment))",
                   border: "1px solid hsl(var(--bark-border))",
                   boxShadow:

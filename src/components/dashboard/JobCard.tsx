@@ -425,18 +425,23 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         {/* Title + price share the top row — price chip is vertically
             centered against the title so on a two-line title it sits in the
             middle. The location/date/time meta spans the full card width
-            below. Titles are one line — see line-clamp-1 note. */}
+            below. Titles clamp to two lines — see the note on the h3. */}
         <div className="flex items-center justify-between gap-3">
           <h3
-            // line-clamp-1, not a character cap: a fixed character count can't
-            // know the column width, so the same limit that fits one line in the
-            // wide single-column layout still wraps in the two-up grid, and an
-            // em-heavy title ("Assemble IKEA PAX wardrobe + dresser") wraps well
-            // before a digit-heavy one of equal length. Clamping to one LINE is
-            // the actual requirement, and it keeps every card the same height —
-            // reinforcing the equal-row-height fix rather than fighting it.
-            // `min-w-0` is what lets it shrink inside the flex row at all.
-            className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight line-clamp-1 min-w-0"
+            // TWO lines, not one (owner). Clamping by LINE rather than by a
+            // character count is still the right mechanism — a fixed character
+            // limit can't know the column width, and an em-heavy title
+            // ("Assemble IKEA PAX wardrobe + dresser") wraps well before a
+            // digit-heavy one of equal length. But one line was clamping the
+            // one thing the card is about: at 375 the feed read "Replace a
+            // leaking kitchen…" and "Grocery run and pharmacy…", so the reader
+            // had to open a job to find out what it was.
+            //
+            // Two lines keeps every card exactly the same height — which is
+            // what the clamp was protecting — and fits almost every real title
+            // whole. `min-w-0` is what lets it shrink inside the flex row at
+            // all.
+            className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
             style={{
               color: "hsl(var(--ink-deep))",
               letterSpacing: "-0.02em",

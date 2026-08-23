@@ -148,7 +148,13 @@ const JobDetailDialog = ({
           // modern iPhone. sm+ is a floating card again and returns to the
           // base p-7 padding.
           "pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:pb-7",
-          "lg:max-w-3xl xl:max-w-6xl",
+          /* CAPPED AT THE READING COLUMN (owner). `xl:max-w-6xl` opened this
+             at 1152px — half again as wide as `max-w-3xl`, the column every
+             page behind it uses — for a job that is usually a title, three
+             meta chips and a paragraph. It read as a modal dwarfing the page
+             rather than sitting over it. 3xl matches the page; phone sheet and
+             tablet are untouched, this only changes 1024px and up. */
+          "lg:max-w-3xl",
         ].join(" ")}
 
         onTouchStart={(e) => {

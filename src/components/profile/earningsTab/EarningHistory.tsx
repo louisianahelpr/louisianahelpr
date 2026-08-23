@@ -109,7 +109,7 @@ export function EarningHistory({
               Apply to a task and your earnings will land here.
             </p>
           </div>
-          <Button onClick={onBrowseJobs} className="rounded-ds-md mt-1">Browse tasks</Button>
+          <Button onClick={onBrowseJobs} className="rounded-ds-md mt-1">Browse Tasks</Button>
         </div>
       ) : (
         <div className="space-y-3">

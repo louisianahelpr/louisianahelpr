@@ -132,7 +132,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           />
           <div className="space-y-4">
             <p className="text-ds-11 text-muted-foreground">Describe what needs to be fixed or redone. The Helpr will be notified.</p>
-            <Textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} placeholder="Please fix…" rows={3} aria-label="Revision request details" />
+            <Textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} rows={3} aria-label="Revision request details" />
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => props.setRevisionJobId(null)}>Cancel</Button>

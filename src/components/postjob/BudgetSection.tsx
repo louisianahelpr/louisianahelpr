@@ -173,7 +173,6 @@ export function BudgetSection({
             id="budget"
             value={budget === "" ? undefined : Number.parseFloat(budget) || undefined}
             onChange={(next) => setBudget(next === undefined ? "" : next.toString())}
-            placeholder="50.00"
             className="text-ds-15 font-medium"
             required
             aria-label="Job budget in dollars"
@@ -335,7 +334,6 @@ export function BudgetSection({
                   step="1"
                   value={urgentFee}
                   onChange={(e) => setUrgentFee(e.target.value)}
-                  placeholder="$25"
                   className="w-32"
                   aria-label="Custom urgent fee amount in dollars"
                 />

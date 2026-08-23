@@ -91,7 +91,7 @@ function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup
         className="text-ds-11 h-11 px-2 rounded-ds-md font-sans font-semibold"
         style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
       >
-        Log in
+        Log In
       </Button>
       <Button
         variant="outline"
@@ -104,7 +104,7 @@ function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup
           background: "hsl(var(--bark) / 0.05)",
         }}
       >
-        Get started
+        Get Started
       </Button>
     </>
   );

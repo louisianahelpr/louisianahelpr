@@ -432,7 +432,6 @@ export function ApplicantsPanel({
                                   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveNote(app.id); }
                                   if (e.key === "Escape") setNoteEditing(null);
                                 }}
-                                placeholder="Private note — only you can see this"
                                 className="flex-1 text-ds-12 rounded-ds-sm border border-input bg-background px-2 py-1 resize-none"
                                 rows={2}
                               />

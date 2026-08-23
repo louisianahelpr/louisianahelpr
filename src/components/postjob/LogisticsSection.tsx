@@ -186,7 +186,7 @@ export function LogisticsSection({
             }}
           />
         ) : (
-          <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="Street address" required maxLength={200} autoComplete="street-address" autoCapitalize="words" aria-label="Street address" />
+          <Input id="streetAddress" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} required maxLength={200} autoComplete="street-address" autoCapitalize="words" aria-label="Street address" />
         )}
         <div className="grid grid-cols-3 gap-2.5">
           {/* City is the only address part shown publicly on job cards.
@@ -209,7 +209,7 @@ export function LogisticsSection({
             aria-label="State (Louisiana)"
             className="px-3 text-ds-14 bg-muted/50 text-muted-foreground cursor-default"
           />
-          <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Zip code" required maxLength={10} inputMode="numeric" autoComplete="postal-code" aria-label="Zip code" aria-invalid={streetAddress.trim().length > 0 && !zipCode.trim()} className="px-3 text-ds-14" />
+          <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} required maxLength={10} inputMode="numeric" autoComplete="postal-code" aria-label="Zip code" aria-invalid={streetAddress.trim().length > 0 && !zipCode.trim()} className="px-3 text-ds-14" />
         </div>
         {/* Address-gate hint — the submit button stays disabled until Zip is
             filled, but the Zip sits to the side of the read-only State field,
@@ -245,7 +245,6 @@ export function LogisticsSection({
           value={dateNeeded}
           onChange={setDateNeeded}
           min={todayLocalISO()}
-          placeholder="Choose a date"
         />
       </div>
 

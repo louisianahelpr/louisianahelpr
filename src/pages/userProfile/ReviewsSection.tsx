@@ -298,7 +298,6 @@ export const ReviewsSection = ({
                     aria-label="Write a public response"
                     maxLength={500}
                     rows={3}
-                    placeholder="Write a brief public response…"
                     className="w-full rounded-ds-md border border-[hsl(var(--bark)/0.20)] bg-background/60 px-3 py-2 text-ds-13 font-sans resize-none focus:outline-none focus:ring-1 focus:ring-[hsl(var(--bark)/0.40)]"
                     style={{ color: "hsl(var(--ink-deep))" }}
                   />

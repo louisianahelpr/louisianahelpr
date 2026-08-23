@@ -125,7 +125,7 @@ export function ProUpgradeSheet({
 
         <DialogFooter className="!gap-2 !flex-col-reverse sm:!flex-row">
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md">
-            Maybe later
+            Maybe Later
           </Button>
           <Button
             variant="primary"

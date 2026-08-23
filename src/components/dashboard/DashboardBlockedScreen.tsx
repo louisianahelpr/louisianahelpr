@@ -51,7 +51,7 @@ export const DashboardDeniedScreen = ({ onSignOut }: DeniedScreenProps) => (
         <p className="text-muted-foreground">Unfortunately, your profile was not approved. Please contact support.</p>
         <div className="flex items-center justify-center gap-2 pt-2">
           <Button variant="outline" onClick={onSignOut} className="rounded-ds-md">
-            Sign out
+            Sign Out
           </Button>
         </div>
       </div>

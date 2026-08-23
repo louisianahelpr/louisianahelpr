@@ -112,7 +112,6 @@ const AdminMarketing = () => {
               id="subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder="A new way to find help in your parish"
               maxLength={150}
             />
           </div>
@@ -179,7 +178,6 @@ const AdminMarketing = () => {
                 type="email"
                 value={testEmail}
                 onChange={(e) => setTestEmail(e.target.value)}
-                placeholder="you@louisianahelpr.com"
               />
               <Button variant="outline" disabled={sending} onClick={() => send(true)}>
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send test"}

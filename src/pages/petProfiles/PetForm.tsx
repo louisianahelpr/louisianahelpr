@@ -300,7 +300,6 @@ export function PetForm({
               <input
                 id="pet-name"
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
-                placeholder="Max, Luna, Biscuit…"
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
                 aria-invalid={isDirty && nameMissing ? true : undefined}
@@ -332,7 +331,6 @@ export function PetForm({
                   max={PET_AGE_MAX}
                   step={0.5}
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
-                  placeholder="3"
                   value={form.age_years ?? ""}
                   onChange={(e) =>
                     set("age_years", e.target.value ? Number(e.target.value) : null)
@@ -355,7 +353,6 @@ export function PetForm({
                   max={PET_WEIGHT_MAX}
                   step={0.5}
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
-                  placeholder="45"
                   value={form.weight_lbs ?? ""}
                   onChange={(e) =>
                     set("weight_lbs", e.target.value ? Number(e.target.value) : null)
@@ -372,7 +369,6 @@ export function PetForm({
                 <input
                   id="pet-color"
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
-                  placeholder="Black & white"
                   value={form.color_markings ?? ""}
                   onChange={(e) => set("color_markings", e.target.value)}
                 />
@@ -396,7 +392,6 @@ export function PetForm({
                 <input
                   id="pet-vet-name"
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
-                  placeholder="Dr. Tran"
                   value={form.vet_name ?? ""}
                   onChange={(e) => set("vet_name", e.target.value)}
                 />
@@ -407,7 +402,6 @@ export function PetForm({
                   id="pet-vet-phone"
                   type="tel"
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
-                  placeholder="(504) 555-0100"
                   value={form.vet_phone ?? ""}
                   onChange={(e) => set("vet_phone", e.target.value)}
                   aria-invalid={errors.vet_phone ? true : undefined}
@@ -423,7 +417,6 @@ export function PetForm({
               <input
                 id="pet-microchip"
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
-                placeholder="985112345678901"
                 value={form.microchip_id ?? ""}
                 onChange={(e) => set("microchip_id", e.target.value)}
                 aria-invalid={errors.microchip_id ? true : undefined}
@@ -441,7 +434,6 @@ export function PetForm({
                 id="pet-medical-notes"
                 rows={3}
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"
-                placeholder="Allergies, medications, special health needs…"
                 value={form.medical_notes ?? ""}
                 onChange={(e) => set("medical_notes", e.target.value)}
               />
@@ -477,7 +469,6 @@ export function PetForm({
                 id="pet-feeding"
                 rows={2}
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"
-                placeholder="1 cup dry food at 7am + 6pm, no table scraps…"
                 value={form.feeding_schedule ?? ""}
                 onChange={(e) => set("feeding_schedule", e.target.value)}
               />
@@ -487,7 +478,6 @@ export function PetForm({
               <input
                 id="pet-emergency-contact"
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
-                placeholder="Mom — (504) 555-0199"
                 value={form.emergency_contact ?? ""}
                 onChange={(e) => set("emergency_contact", e.target.value)}
               />

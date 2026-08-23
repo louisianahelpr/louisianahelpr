@@ -188,7 +188,6 @@ export function SettingsTab({ businessId, initial, isOwner }: SettingsTabProps) 
             <Input
               id="pm"
               type="text"
-              placeholder="pm_…"
               value={paymentMethodId}
               onChange={(e) => setPaymentMethodId(e.target.value)}
             />
@@ -229,7 +228,6 @@ export function SettingsTab({ businessId, initial, isOwner }: SettingsTabProps) 
               type="number"
               inputMode="decimal"
               min={0}
-              placeholder="5000"
               value={monthlyBudget}
               onChange={(e) => setMonthlyBudget(e.target.value)}
             />
@@ -244,7 +242,6 @@ export function SettingsTab({ businessId, initial, isOwner }: SettingsTabProps) 
               inputMode="numeric"
               min={1}
               max={100}
-              placeholder="80"
               value={alertAt}
               onChange={(e) => setAlertAt(e.target.value)}
             />

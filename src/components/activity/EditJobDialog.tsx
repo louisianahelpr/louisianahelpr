@@ -185,7 +185,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
                     value={dateNeeded}
                     onChange={setDateNeeded}
                     min={todayLocalISO()}
-                    placeholder="Choose a date"
                   />
                 )}
               </div>

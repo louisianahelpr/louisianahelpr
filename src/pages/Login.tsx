@@ -302,7 +302,6 @@ const Login = () => {
                   autoComplete="one-time-code"
                   enterKeyHint="done"
                   maxLength={6}
-                  placeholder="123456"
                   value={mfaCode}
                   onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   autoFocus

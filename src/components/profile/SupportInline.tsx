@@ -174,7 +174,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           </p>
         </div>
         <Button variant="outline" onClick={reset}>
-          Send another
+          Send Another
         </Button>
       </div>
     );
@@ -252,7 +252,6 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
               id="support-subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder="Brief summary…"
               maxLength={120}
               className="h-10"
             />

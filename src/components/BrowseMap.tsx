@@ -364,7 +364,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
             </div>
             {filtersActive && onClearFilters && (
               <Button variant="outline" onClick={onClearFilters} className="rounded-ds-md mt-1">
-                Clear filters
+                Clear Filters
               </Button>
             )}
             {/* Optional CTA — passed by the guest dashboard so the empty

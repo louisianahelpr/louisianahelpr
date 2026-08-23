@@ -450,7 +450,6 @@ const CompleteProfile = () => {
                   inputMode="tel"
                   autoComplete="tel"
                   maxLength={14}
-                  placeholder="(225) 555-0123"
                   value={phone}
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
                   className={`rounded-ds-md ${phoneValid ? "pr-10" : ""}`}

@@ -52,7 +52,13 @@ describe("EditEmailDialog", () => {
 
   it("disables Update button when emails don't match", () => {
     render(<EditEmailDialog profile={sampleProfile} onClose={vi.fn()} />);
-    const inputs = screen.getAllByPlaceholderText(/email/i);
+    // Query the exact accessible names, not /email/i: that pattern also
+    // matches the dialog's own heading and body text, and fireEvent then tries
+    // to set a value on a <p>.
+    const inputs = [
+      screen.getByLabelText("New email"),
+      screen.getByLabelText("Confirm new email"),
+    ];
     fireEvent.change(inputs[0], { target: { value: "new@example.com" } });
     fireEvent.change(inputs[1], { target: { value: "different@example.com" } });
     expect(screen.getByText(/Emails don't match/)).toBeInTheDocument();
@@ -62,7 +68,13 @@ describe("EditEmailDialog", () => {
 
   it("toasts error and skips invoke on invalid email format", async () => {
     render(<EditEmailDialog profile={sampleProfile} onClose={vi.fn()} />);
-    const inputs = screen.getAllByPlaceholderText(/email/i);
+    // Query the exact accessible names, not /email/i: that pattern also
+    // matches the dialog's own heading and body text, and fireEvent then tries
+    // to set a value on a <p>.
+    const inputs = [
+      screen.getByLabelText("New email"),
+      screen.getByLabelText("Confirm new email"),
+    ];
     fireEvent.change(inputs[0], { target: { value: "notanemail" } });
     fireEvent.change(inputs[1], { target: { value: "notanemail" } });
     fireEvent.click(screen.getByRole("button", { name: /Update Email/ }));
@@ -82,7 +94,13 @@ describe("EditEmailDialog", () => {
         onSuccess={onSuccess}
       />,
     );
-    const inputs = screen.getAllByPlaceholderText(/email/i);
+    // Query the exact accessible names, not /email/i: that pattern also
+    // matches the dialog's own heading and body text, and fireEvent then tries
+    // to set a value on a <p>.
+    const inputs = [
+      screen.getByLabelText("New email"),
+      screen.getByLabelText("Confirm new email"),
+    ];
     fireEvent.change(inputs[0], { target: { value: "new@example.com" } });
     fireEvent.change(inputs[1], { target: { value: "new@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: /Update Email/ }));

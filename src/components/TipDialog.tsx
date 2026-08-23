@@ -108,7 +108,6 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
             <CurrencyInput
               id="tip-dialog-amount"
               className="flex-1"
-              placeholder="0.00"
               value={amount}
               onChange={setAmount}
               min={1}

@@ -112,7 +112,6 @@ export function DeclineApplicantSheet({
                   value={declineNote}
                   onChange={(e) => setDeclineNote(e.target.value.slice(0, DECLINE_NOTE_MAX))}
                   maxLength={DECLINE_NOTE_MAX}
-                  placeholder="The Helpr will see this as a notification…"
                   rows={2}
                   className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14 leading-relaxed resize-none"
                 />

@@ -159,7 +159,7 @@ export function ActivityFeedTab({ businessId }: ActivityFeedTabProps) {
           disabled={isFetching}
           className="w-full"
         >
-          Load more
+          Load More
         </Button>
       )}
     </div>

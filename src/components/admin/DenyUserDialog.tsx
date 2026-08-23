@@ -105,7 +105,6 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
             aria-label="Reason for denial"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Reason for denial (optional)…"
             rows={3}
           />
         </div>

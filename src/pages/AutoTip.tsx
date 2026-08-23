@@ -203,7 +203,6 @@ const AutoTip = () => {
                   aria-label={mode === "percent" ? "Custom percentage" : "Custom amount in dollars"}
                   min={limits.min}
                   max={limits.max}
-                  placeholder="Custom"
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
                   className="flex-1 py-2 px-3 rounded-ds-sm text-ds-13 font-sans font-semibold text-center"
@@ -234,7 +233,6 @@ const AutoTip = () => {
                 aria-label="Maximum tip per job in dollars"
                 min={LIMITS.cap.min}
                 max={LIMITS.cap.max}
-                placeholder="No maximum"
                 value={cap}
                 onChange={(e) => setCap(e.target.value)}
                 className="w-full py-2 px-3 rounded-ds-sm text-ds-13 font-sans font-semibold"

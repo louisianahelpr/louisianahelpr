@@ -407,7 +407,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               id="cancel-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="What changed? Helps us improve."
               rows={2}
               className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-serif italic text-ds-14"
             />
@@ -421,7 +420,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             className="rounded-ds-md font-sans font-semibold"
             style={{ color: "hsl(var(--bark))" }}
           >
-            Keep the job
+            Keep the Job
           </Button>
           <Button
             onClick={handleCancel}

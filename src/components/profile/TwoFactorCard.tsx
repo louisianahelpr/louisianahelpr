@@ -288,7 +288,6 @@ function EnrollDialog({
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 maxLength={6}
-                placeholder="123456"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 onKeyDown={(e) => { if (e.key === "Enter") handleVerify(); }}
@@ -380,7 +379,6 @@ function DisableDialog({
             inputMode="numeric"
             autoComplete="one-time-code"
             maxLength={6}
-            placeholder="123456"
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
             onKeyDown={(e) => { if (e.key === "Enter") handleDisable(); }}
@@ -390,7 +388,7 @@ function DisableDialog({
 
         <DialogFooter className="!gap-2">
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md" style={{ color: "hsl(var(--bark))" }}>
-            Keep it on
+            Keep It On
           </Button>
           <Button
             onClick={handleDisable}

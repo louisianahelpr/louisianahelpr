@@ -91,7 +91,6 @@ export function CityAutocomplete({ id, value, onChange, className }: CityAutocom
           if (cleaned !== value) onChange(cleaned);
           setQuery(cleaned);
         }}
-        placeholder="City"
         required
         maxLength={100}
         // address-level2 is the WHATWG token for the city field: it lets the

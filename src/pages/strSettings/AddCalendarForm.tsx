@@ -121,7 +121,6 @@ export function AddCalendarForm({
         <Input
           id="ical-url"
           type="url"
-          placeholder="webcal://… or https://…"
           value={form.ical_url}
           onChange={(e) => set("ical_url", e.target.value)}
           className="rounded-ds-md"
@@ -188,7 +187,6 @@ export function AddCalendarForm({
               type="number"
               min={CLEANING_BUDGET_MIN}
               max={CLEANING_BUDGET_MAX}
-              placeholder="80"
               value={form.cleaning_budget}
               onChange={(e) => set("cleaning_budget", e.target.value)}
               className="rounded-ds-md mt-1"
@@ -216,7 +214,6 @@ export function AddCalendarForm({
         </Label>
         <Input
           id="str-cleaning-notes"
-          placeholder="Door code, special instructions…"
           value={form.cleaning_notes}
           onChange={(e) => set("cleaning_notes", e.target.value)}
           className="rounded-ds-md mt-1"

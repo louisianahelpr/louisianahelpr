@@ -346,7 +346,7 @@ export function BrowseTasksFeed({
                 </div>
               ) : (
                 <Button variant="outline" onClick={filters.clearFilters} className="rounded-ds-md">
-                  Clear filters
+                  Clear Filters
                 </Button>
               )
             ) : (

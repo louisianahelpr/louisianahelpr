@@ -279,7 +279,6 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
             aria-label="Rejection reason (optional)"
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
-            placeholder="Reason (optional, shown to the poster)…"
             rows={3}
           />
         </div>

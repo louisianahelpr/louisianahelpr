@@ -286,7 +286,6 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               type="email"
               inputMode="email"
               autoComplete="email"
-              placeholder="you@example.com"
               value={newEmail}
               onChange={(e) => {
                 setNewEmail(e.target.value);

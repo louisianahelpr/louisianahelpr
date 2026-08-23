@@ -426,7 +426,6 @@ const AdminPayoutBatches = () => {
             </p>
             <Textarea
               aria-label="Denial reason"
-              placeholder="Reason for denying this payout."
               value={denyDraft?.reason ?? ""}
               onChange={(e) => denyDraft && setDenyDraft({ ...denyDraft, reason: e.target.value })}
               rows={3}

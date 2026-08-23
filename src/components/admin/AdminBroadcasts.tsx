@@ -218,7 +218,7 @@ const AdminBroadcasts = () => {
         <div className="rounded-ds-md liquid-glass p-4 space-y-3">
           <div className="space-y-2">
             <Label>Title</Label>
-            <Input aria-label="Broadcast title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Scheduled Maintenance" maxLength={100} />
+            <Input aria-label="Broadcast title" value={title} onChange={e => setTitle(e.target.value)} maxLength={100} />
           </div>
           <div className="space-y-2">
             <Label>Message</Label>

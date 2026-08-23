@@ -363,7 +363,6 @@ const AdminSettings = () => {
           <Input
             id="socialWebhook"
             type="url"
-            placeholder="https://hook.us2.make.com/..."
             value={socialWebhookUrl}
             onChange={(e) => setSocialWebhookUrl(e.target.value)}
             autoComplete="off"

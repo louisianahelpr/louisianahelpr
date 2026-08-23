@@ -131,14 +131,12 @@ const AdminParishTaxRates = () => {
         <div className="flex gap-2 flex-wrap">
           <Input
             aria-label="Parish name"
-            placeholder="Parish name (e.g. Calcasieu)"
             value={newParish}
             onChange={(e) => setNewParish(e.target.value)}
             className="flex-1 min-w-[160px]"
           />
           <Input
             aria-label="Local tax rate (percent)"
-            placeholder="Local rate %"
             type="number"
             step="0.01"
             value={newLocalRate}

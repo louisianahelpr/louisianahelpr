@@ -218,7 +218,7 @@ export function ProfileEditForm({
             <div>
               <Label htmlFor="phone" className="text-ds-11 mb-1.5 block">Phone</Label>
               <div className="relative">
-                <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555 123 4567" className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
+                <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={phone} onChange={(e) => setPhone(e.target.value)} className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
                 {phoneValid && (
                   <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
                 )}
@@ -228,7 +228,7 @@ export function ProfileEditForm({
               <div className="col-span-2">
                 <Label htmlFor="location" className="text-ds-11 mb-1.5 block">City</Label>
                 <div className="relative">
-                  <Input id="location" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Baton Rouge" className={`h-10 ${locationValid ? "pr-10" : ""}`} />
+                  <Input id="location" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" value={location} onChange={(e) => setLocation(e.target.value)} className={`h-10 ${locationValid ? "pr-10" : ""}`} />
                   {locationValid && (
                     <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
                   )}
@@ -240,7 +240,6 @@ export function ProfileEditForm({
                   id="zipCode"
                   value={zipCode}
                   onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                  placeholder="70801"
                   inputMode="numeric"
                   autoComplete="postal-code"
                   maxLength={5}

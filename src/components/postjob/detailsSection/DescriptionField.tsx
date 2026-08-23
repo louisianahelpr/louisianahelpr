@@ -33,7 +33,6 @@ export function DescriptionField({
         id="description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        placeholder="Provide details about the job…"
         required
         rows={4}
         maxLength={DESCRIPTION_MAX}

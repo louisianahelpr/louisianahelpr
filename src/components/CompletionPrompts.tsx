@@ -238,7 +238,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                 </button>
               ))}
             </div>
-            <Textarea aria-label="Comment (optional)" value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Add a comment (optional)…" rows={2} />
+            <Textarea aria-label="Comment (optional)" value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={2} />
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setStep("tip")}>Skip</Button>
@@ -270,7 +270,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                 <CurrencyInput
                   id="custom-tip-amount"
                   className="flex-1 text-ds-17 font-semibold"
-                  placeholder="0.00"
                   value={customTip}
                   onChange={setCustomTip}
                   min={1}

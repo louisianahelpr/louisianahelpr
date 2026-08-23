@@ -109,7 +109,6 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
               aria-label="New email"
               value={email1}
               onChange={(e) => setEmail1(e.target.value)}
-              placeholder="Enter new email"
             />
           </div>
           <div className="space-y-2">
@@ -119,7 +118,6 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
               aria-label="Confirm new email"
               value={email2}
               onChange={(e) => setEmail2(e.target.value)}
-              placeholder="Re-enter new email"
             />
             {email2 && email1 !== email2 && (
               <p className="text-ds-11 text-destructive">Emails don't match</p>

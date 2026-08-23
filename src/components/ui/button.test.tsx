@@ -57,7 +57,7 @@ describe("Button", () => {
     };
 
     it("primary CTA gets all 4 treatments (gradient + highlight + 3-layer shadow + press)", () => {
-      render(<Button variant="primary">Sign in</Button>);
+      render(<Button variant="primary">Sign In</Button>);
       const cls = screen.getByRole("button").className;
       expectFilledElevation(cls);
       // Bark shares the primary CTA gradient via the hand-written
@@ -107,7 +107,7 @@ describe("Button", () => {
     });
 
     it("link stays intentionally flat", () => {
-      render(<Button variant="link">Learn more</Button>);
+      render(<Button variant="link">Learn More</Button>);
       const cls = screen.getByRole("button").className;
       expect(cls).not.toContain("0_1px_1px_hsl(var(--ink-deep)/0.10)");
       expect(cls).not.toContain("inset_0_1px_0_hsl(var(--parchment)/0.22)");
@@ -115,7 +115,7 @@ describe("Button", () => {
     });
 
     it("primary + shimmer (marketing CTA) keeps all 4 treatments", () => {
-      render(<Button variant="primary" shimmer>Get started</Button>);
+      render(<Button variant="primary" shimmer>Get Started</Button>);
       const cls = screen.getByRole("button").className;
       expectFilledElevation(cls);
       // Same gradient delivery as `default` — via .btn-grad-primary, see above.

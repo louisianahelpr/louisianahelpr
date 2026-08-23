@@ -221,7 +221,6 @@ export function AddressAutocomplete({
           // hit this. 120ms matches CityAutocomplete-style timings.
           setTimeout(() => setOpen(false), 120);
         }}
-        placeholder="Street address"
         required
         maxLength={200}
         autoComplete="street-address"

@@ -516,7 +516,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
                 onClick={handleSkip}
                 className="text-muted-foreground text-ds-11 rounded-ds-md"
               >
-                Skip tour
+                Skip Tour
               </Button>
             </div>
           </div>

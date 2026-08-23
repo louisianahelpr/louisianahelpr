@@ -243,7 +243,6 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           </div>
           <Textarea
             aria-label="Review comment (optional)"
-            placeholder="Add a comment (optional)…"
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             rows={3}
@@ -339,7 +338,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             disabled={submitting}
             className="rounded-ds-md w-full"
           >
-            Maybe later
+            Maybe Later
           </Button>
         </DialogFooter>
       </DialogContent>

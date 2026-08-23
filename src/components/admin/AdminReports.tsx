@@ -424,7 +424,6 @@ const AdminReports = () => {
               aria-label="Message to user"
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
-              placeholder="Type your message…"
               rows={4}
             />
           </div>

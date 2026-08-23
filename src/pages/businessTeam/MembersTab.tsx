@@ -133,7 +133,6 @@ const MembersTab = ({
               <Input
                 id="invite-email"
                 type="email"
-                placeholder="teammate@company.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 disabled={remainingSlots <= 0}

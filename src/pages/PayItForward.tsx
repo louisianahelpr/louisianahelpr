@@ -402,7 +402,6 @@ export default function PayItForward() {
                   type="email"
                   inputMode="email"
                   autoComplete="email"
-                  placeholder="friend@example.com"
                   value={recipientEmail}
                   onChange={(e) => setRecipientEmail(e.target.value)}
                   aria-label="Recipient's email"
@@ -530,7 +529,6 @@ export default function PayItForward() {
                     aria-label="Custom gift amount in dollars"
                     min={MIN_GIFT}
                     max={MAX_GIFT}
-                    placeholder="Custom"
                     value={customAmount}
                     onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
                     className="flex-1 py-2 px-3 rounded-ds-sm text-ds-13 font-sans font-semibold text-center"

@@ -179,7 +179,6 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
               type="number"
               min="1"
               step="50"
-              placeholder="500"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {

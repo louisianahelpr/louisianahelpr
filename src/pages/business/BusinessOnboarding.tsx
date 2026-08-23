@@ -100,7 +100,7 @@ const BusinessOnboarding = () => {
               </div>
               <div>
                 <Label htmlFor="o-industry">Industry (optional)</Label>
-                <Input id="o-industry" placeholder="Property management, retail, services…" value={state.industry} onChange={(e) => setState((s) => ({ ...s, industry: e.target.value }))} />
+                <Input id="o-industry" value={state.industry} onChange={(e) => setState((s) => ({ ...s, industry: e.target.value }))} />
               </div>
             </div>
           </>
@@ -117,7 +117,6 @@ const BusinessOnboarding = () => {
             <Textarea
               aria-label="Team member emails, one per line"
               rows={5}
-              placeholder="alice@yourcompany.com&#10;bob@yourcompany.com"
               value={state.invites}
               onChange={(e) => setState((s) => ({ ...s, invites: e.target.value }))}
             />
@@ -161,13 +160,13 @@ const BusinessOnboarding = () => {
             <div className="space-y-3">
               <div>
                 <Label htmlFor="o-job-title">Job title</Label>
-                <Input id="o-job-title" placeholder="Weekly office cleaning" value={state.firstJobTitle} onChange={(e) => setState((s) => ({ ...s, firstJobTitle: e.target.value }))} />
+                <Input id="o-job-title" value={state.firstJobTitle} onChange={(e) => setState((s) => ({ ...s, firstJobTitle: e.target.value }))} />
               </div>
               <div>
                 <Label htmlFor="o-job-budget">Budget</Label>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                  <Input id="o-job-budget" className="pl-7" type="number" min={0} step="1" inputMode="decimal" placeholder="125" value={state.firstJobBudget} onChange={(e) => setState((s) => ({ ...s, firstJobBudget: e.target.value }))} />
+                  <Input id="o-job-budget" className="pl-7" type="number" min={0} step="1" inputMode="decimal" value={state.firstJobBudget} onChange={(e) => setState((s) => ({ ...s, firstJobBudget: e.target.value }))} />
                 </div>
               </div>
             </div>
@@ -232,7 +231,7 @@ const BusinessOnboarding = () => {
             Next <ArrowRight className="w-4 h-4 ml-1" />
           </Button>
         ) : (
-          <Button onClick={finish}>Take me to my team</Button>
+          <Button onClick={finish}>Take Me to My Team</Button>
         )}
       </div>
     </BusinessLayout>

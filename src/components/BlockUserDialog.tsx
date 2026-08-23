@@ -138,7 +138,6 @@ export function BlockUserDialog({
                 </label>
                 <Textarea
                   aria-label="Block reason (optional, admin-only)"
-                  placeholder="Anything our trust team should know?"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   rows={2}

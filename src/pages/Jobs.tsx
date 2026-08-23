@@ -307,7 +307,7 @@ const Jobs = () => {
 
             <div className="flex flex-col leading-none min-w-0 flex-1 order-2">
               <h1 className="text-page-title leading-tight truncate">
-                Browse jobs
+                Browse Jobs
               </h1>
             </div>
 

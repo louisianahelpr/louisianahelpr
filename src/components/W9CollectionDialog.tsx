@@ -108,7 +108,6 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
             <Input
               id="w9-name"
               autoComplete="name"
-              placeholder="As shown on your tax return"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="font-display italic"

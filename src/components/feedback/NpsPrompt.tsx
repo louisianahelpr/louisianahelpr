@@ -201,7 +201,6 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
                 rows={3}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="What worked well or what we should improve…"
                 className="bg-[hsl(var(--parchment))] border-[hsl(var(--bark)/0.25)] focus-visible:ring-[hsl(var(--bark))]"
                 maxLength={500}
               />

@@ -203,7 +203,6 @@ export function InviteForm({
       <Input
         value={contact}
         onChange={(e) => setContact(e.target.value)}
-        placeholder="Email address"
         type="email"
         inputMode="email"
         autoComplete="email"

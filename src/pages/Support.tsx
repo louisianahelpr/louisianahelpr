@@ -74,13 +74,14 @@ const MESSAGE_MAX = 5000;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-type FieldKey = "name" | "email" | "topic" | "message";
+type FieldKey = "name" | "email" | "topic" | "subject" | "message";
 
 // Plain-language names for the "still needed" hint under a disabled submit.
 const FIELD_NOUNS: Record<FieldKey, string> = {
   name: "your name",
   email: "your email",
   topic: "a topic",
+  subject: "a subject",
   message: "a message",
 };
 
@@ -112,6 +113,11 @@ function validate(draft: Draft, identified: boolean): Partial<Record<FieldKey, s
 
   if (!draft.topic) errors.topic = "Choose what your message is about.";
 
+  // Required (owner). It was optional, so most tickets arrived with a blank
+  // subject line and support had to open each one to know what it was about.
+  const subject = draft.subject.trim();
+  if (!subject) errors.subject = "Add a short subject so we can triage this.";
+
   const message = draft.message.trim();
   if (!message) errors.message = "Tell us what's going on.";
   else if (message.length < MESSAGE_MIN) {
@@ -138,7 +144,7 @@ const PageIntro = () => (
           <BackButton />
         </div>
         <div className="flex flex-col leading-none min-w-0 flex-1">
-          <h1 className="text-page-title leading-tight truncate">Contact support</h1>
+          <h1 className="text-page-title leading-tight truncate">Contact Support</h1>
         </div>
       </div>
     </div>
@@ -248,7 +254,7 @@ const Support = () => {
 
     if (!isValid) {
       // Reveal every outstanding error at once rather than one per attempt.
-      setTouched({ name: true, email: true, topic: true, message: true });
+      setTouched({ name: true, email: true, topic: true, subject: true, message: true });
       return;
     }
 
@@ -334,7 +340,7 @@ const Support = () => {
                   </p>
                 </div>
                 <Button variant="outline" onClick={reset} className="mt-2">
-                  Send another
+                  Send Another
                 </Button>
               </div>
             ) : (
@@ -395,7 +401,6 @@ const Support = () => {
                         value={draft.name}
                         onChange={(e) => set("name", e.target.value)}
                         onBlur={() => markTouched("name")}
-                        placeholder="Jane Doe"
                         aria-invalid={!!showError("name")}
                         aria-describedby={showError("name") ? "support-name-error" : undefined}
                         className="mt-1.5"
@@ -417,7 +422,10 @@ const Support = () => {
                         value={draft.email}
                         onChange={(e) => set("email", e.target.value)}
                         onBlur={() => markTouched("email")}
-                        placeholder="you@example.com"
+                        // Kept: an example address teaches the FORMAT. The
+                        // name and subject placeholders were dropped — they
+                        // only restated their own labels, and grey text in an
+                        // empty field reads as a value that is already filled.
                         aria-invalid={!!showError("email")}
                         aria-describedby={showError("email") ? "support-email-error" : undefined}
                         className="mt-1.5"
@@ -469,10 +477,10 @@ const Support = () => {
                   )}
                 </div>
 
-                {/* Subject — optional, same as the in-app support tab. */}
+                {/* Subject — REQUIRED (owner). */}
                 <div>
                   <Label htmlFor="support-subject" className="text-ds-11">
-                    Subject <span className="text-muted-foreground/60">(optional)</span>
+                    Subject *
                   </Label>
                   <Input
                     id="support-subject"
@@ -480,9 +488,11 @@ const Support = () => {
                     maxLength={SUBJECT_MAX}
                     value={draft.subject}
                     onChange={(e) => set("subject", e.target.value)}
-                    placeholder="Brief summary…"
+                    onBlur={() => markTouched("subject")}
+                    aria-invalid={!!showError("subject")}
                     className="mt-1.5"
                   />
+                  <FieldError id="support-subject-error" message={showError("subject")} />
                 </div>
 
                 {/* Message */}

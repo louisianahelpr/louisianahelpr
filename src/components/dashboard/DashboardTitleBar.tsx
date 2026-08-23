@@ -123,7 +123,7 @@ export function DashboardTitleBar({
     return <div className="flex items-center gap-2">{searchBar}</div>;
   }
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center justify-between gap-1 sm:gap-2">
       {/* `dashboard-title-emblem` is hidden on web-desktop by index.css — the
           new full-bleed DashboardHeader above the title card now carries the
           emblem there, so showing it here too would say "Helpr" twice in one
@@ -132,11 +132,24 @@ export function DashboardTitleBar({
           Gated to the DEFAULT path (no custom `trailing`) for the same reason
           as the bell below: the guest feed (custom `trailing`) has no
           full-bleed header of its own, so its emblem must never be hidden. */}
+      {/* `shrink-0` is load-bearing, not decoration. This row is
+          `flex`, the actions cluster beside it is already `shrink-0`, and the
+          emblem was the only flexible item — so when the actions grew past the
+          available width (the saved-jobs bookmark made it four icons plus the
+          live pill), flexbox took the ENTIRE overflow out of the emblem. It
+          did not shrink gracefully: measured at 375 the row had 293px to give
+          and the actions alone wanted 311px, so the emblem resolved to 0x44
+          and the H mark silently vanished from phone web while native still
+          showed it (owner: "the phone webpage view needs to go back to how it
+          was so it matches the ios app"). Nothing was hidden — CSS `display`
+          was still `flex` — which is exactly why it did not look like a
+          hiding bug. Pinning the emblem makes the actions cluster the thing
+          that must fit instead. */}
       <HelprMark
         to={emblemTo}
         size="sm"
         emblemOnly
-        className={trailing ? "" : "dashboard-title-emblem"}
+        className={`shrink-0 ${trailing ? "" : "dashboard-title-emblem"}`}
       />
       {/* The negative margin pulls a trailing ICON button's own inner padding
           back to the card's optical edge, so the bell lines up with the content
@@ -144,7 +157,11 @@ export function DashboardTitleBar({
           It is deliberately NOT applied to a custom `trailing`: the guest pair
           ends in a bordered pill whose border IS its visual edge, so pulling it
           out would hang it 8px proud of everything beneath it. */}
-      <div className={`flex items-center gap-2 shrink-0${trailing ? "" : " -mr-2"}`}>
+      {/* gap-1.5 below sm. Four gaps between five items, so the tighter rung
+          reclaims 8px — small, but this row is decided by single-digit
+          margins: at 375 the actions overran the card by 16px and the bell,
+          being last, was the part that fell off the edge. */}
+      <div className={`flex items-center gap-1.5 sm:gap-2 shrink-0${trailing ? "" : " -mr-2"}`}>
         {status}
         {actions}
         {/* Only the DEFAULT bell (no custom `trailing` passed) is hidden on

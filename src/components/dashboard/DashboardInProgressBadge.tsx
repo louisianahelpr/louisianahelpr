@@ -104,8 +104,24 @@ const DashboardInProgressBadge = ({ job, onView }: DashboardInProgressBadgeProps
             style={{ background: "hsl(var(--live-pill-tint))" }}
           />
         </span>
+        {/* The WORD goes below 400px; the pulsing dot beside it does not.
+            This row has to hold the emblem, this pill, and four action
+            controls, and at 375 it simply cannot: the actions wanted 311px
+            against 256px available, so the overflow was silently eaten —
+            first by the emblem (which flexed to 0 and vanished), then, once
+            the emblem was pinned, by the BELL, which was pushed to right=398
+            and clipped off the card entirely.
+            Something has to yield, and it should be this: the pill is an
+            ambient indicator, while the emblem and the four controls are all
+            navigation. The dot still says "something is live" and the button
+            keeps its full accessible name, so nothing is lost to a screen
+            reader — only the redundant word is dropped, and only where there
+            is genuinely no room for it.
+            Width-based, NOT platform-based: a 390pt iPhone and a 390px
+            browser both get the word back, which is what keeps phone web and
+            the native app one surface. */}
         <span
-          className="font-serif italic uppercase tracking-[0.1em] text-ds-9"
+          className="hidden min-[400px]:inline font-serif italic uppercase tracking-[0.1em] text-ds-9"
           style={{ color: "hsl(var(--live-pill-ink))" }}
         >
           {label}

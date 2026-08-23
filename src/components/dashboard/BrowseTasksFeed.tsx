@@ -556,27 +556,6 @@ export function BrowseTasksFeed({
                 )}
               </div>
             )}
-            {/* THE END OF THE LIST, at any length. This was gated on
-                `>= 25` — the assumption being that a short list is obviously
-                complete — but a panel is a fixed-height shell here, so three
-                jobs left several hundred pixels of blank surface below them
-                with nothing closing it off, which reads as "still loading" or
-                "something broke" rather than "that's all there is" (owner: an
-                empty panel says nothing).
-
-                Wording splits on length because the two states mean different
-                things: a long feed you have exhausted, versus a short one that
-                is short because of where you are and what you filtered. The
-                second is the one worth telling somebody they can widen. */}
-            {!hasNextPage && visibleJobs.length > 0 && (
-              <div className="px-4 py-5 text-center text-ds-11 text-muted-foreground">
-                {visibleJobs.length >= 25
-                  ? "You've reached the end of the feed."
-                  : filters.hasFilters
-                    ? "That's everything matching your filters."
-                    : "That's everything nearby right now."}
-              </div>
-            )}
           </>
         );
       })()}

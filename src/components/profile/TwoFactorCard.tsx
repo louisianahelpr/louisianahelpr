@@ -26,12 +26,19 @@ export function TwoFactorCard() {
   const {
     data: verified,
     isLoading,
+    isError,
     refetch,
   } = useQuery<VerifiedFactor | null>({
     queryKey: ["security", "mfa-factor"],
     queryFn: async () => {
       const { data, error } = await supabase.auth.mfa.listFactors();
-      if (error) return null;
+      // THROW, don't return null. `null` here is indistinguishable from "this
+      // account has no TOTP factor", so a failed read rendered the card as
+      // "Two-factor authentication — Off / Turn on" to a user who HAS it on.
+      // A security control that misreports its own state is worse than one
+      // that admits it doesn't know. The enroll query below already throws for
+      // exactly this reason.
+      if (error) throw error;
       const totp = data.totp.find((f) => f.status === "verified");
       return totp ? { id: totp.id, friendlyName: totp.friendly_name } : null;
     },
@@ -61,7 +68,7 @@ export function TwoFactorCard() {
             Two-step verification
           </h2>
         </div>
-        {!isLoading && verified && (
+        {!isLoading && !isError && verified && (
           <span
             className="shrink-0 text-ds-10 font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
             style={{
@@ -73,7 +80,10 @@ export function TwoFactorCard() {
             On
           </span>
         )}
-        {!isLoading && (verified ? (
+        {/* Gated on !isError: with the state unknown, offering "Turn on" to
+            someone who already HAS 2FA — or "Turn off" to someone who doesn't
+            — is worse than offering nothing. */}
+        {!isLoading && !isError && (verified ? (
           <Button
             size="sm"
             variant="outline"
@@ -102,6 +112,18 @@ export function TwoFactorCard() {
 
       {isLoading ? (
         <Skeleton className="h-9 rounded-ds-md" />
+      ) : isError ? (
+        <div className="flex items-center justify-between gap-3">
+          <p
+            className="text-ds-11 font-serif italic"
+            style={{ color: "hsl(var(--destructive))" }}
+          >
+            We couldn&apos;t check your two-step verification status.
+          </p>
+          <Button size="sm" variant="outline" className="shrink-0" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </div>
       ) : (
         <p
           className="text-ds-11 font-serif italic"

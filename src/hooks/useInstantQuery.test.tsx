@@ -75,6 +75,27 @@ describe("useInstantQuery", () => {
     expect(result.current.isInitialLoading).toBe(false);
   });
 
+  it("isInitialLoading is TRUE when the fallback is an empty array (nothing to show)", () => {
+    // An empty array is not a shell — it renders as the EMPTY STATE. 15 admin
+    // surfaces pass `fallback: []`, and treating that as "we have something to
+    // show" made their skeletons unreachable: AdminFraudDashboard's first paint
+    // was "No unresolved fraud flags — looking good!" while the read was still
+    // in flight. An operator must never be told there is no fraud because a
+    // query hasn't finished.
+    const fetcher = vi.fn(() => new Promise<string[]>(() => {})); // never resolves
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () =>
+        useInstantQuery({
+          key: ["test-empty-fallback"],
+          fetcher,
+          fallback: [],
+        }),
+      { wrapper },
+    );
+    expect(result.current.isInitialLoading).toBe(true);
+  });
+
   it("isInitialLoading is true when no fallback AND fetcher hasn't resolved", () => {
     const fetcher = vi.fn(() => new Promise<string[]>(() => {})); // never resolves
     const { wrapper } = makeWrapper();

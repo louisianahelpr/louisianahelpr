@@ -455,14 +455,36 @@ export function JobTracking({
     } else if (["on_the_way", "arrived", "working"].includes(newStatus)) {
       const { data: job, error: statusErr } = await supabase.from("jobs").select("status").eq("id", jobId).single();
       if (statusErr) report(statusErr, { tags: { source: "JobTracking.autoTransition" } });
+      // These three writes used to drop their errors, while the `done` stamp
+      // directly above was carefully checked. That asymmetry was the bug: these
+      // are the exact columns the POSTER's timeline reads, so on an RLS or
+      // network failure the helper saw "Status updated: On the way" and the
+      // poster's screen never moved — a phantom success on the one signal the
+      // poster is waiting for.
+      //
+      // The tracking row itself is already written and is the source of truth
+      // for the helper's own view, so a failure here does not invalidate the
+      // action — it just means the poster won't see it. Hence: report, and tell
+      // the truth in the toast, rather than aborting the whole transition.
+      const stampErrors: string[] = [];
       if (job && job.status === "accepted") {
-        await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
+        const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
+        if (error) { report(error, { tags: { source: "JobTracking.statusInProgress" } }); stampErrors.push("status"); }
       }
       if (newStatus === "arrived") {
-        await supabase.from("jobs").update({ helper_arrived_at: now }).eq("id", jobId);
+        const { error } = await supabase.from("jobs").update({ helper_arrived_at: now }).eq("id", jobId);
+        if (error) { report(error, { tags: { source: "JobTracking.arrivedAt" } }); stampErrors.push("arrival time"); }
       }
       if (newStatus === "on_the_way") {
-        await supabase.from("jobs").update({ helper_on_the_way_at: now }).eq("id", jobId);
+        const { error } = await supabase.from("jobs").update({ helper_on_the_way_at: now }).eq("id", jobId);
+        if (error) { report(error, { tags: { source: "JobTracking.onTheWayAt" } }); stampErrors.push("departure time"); }
+      }
+      if (stampErrors.length > 0) {
+        hapticError();
+        toast.error("Saved for you, but we couldn't update the poster's view — check your connection.");
+        setUpdating(false);
+        loadTracking();
+        return;
       }
     }
 

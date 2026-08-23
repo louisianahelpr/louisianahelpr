@@ -45,7 +45,12 @@ export const ReadReceipt = ({
   if (!sentByMe) return null;
   if (!read) {
     return (
+      // role="img": ARIA prohibits aria-label on a roleless element, so the
+      // label was being DISCARDED and the receipt announced only its bare "✓"
+      // glyph. Same fix the codebase already uses on ProfileHeaderCard's star
+      // row (and the rule IdentityHeader.tsx documents in a comment).
       <span
+        role="img"
         className="text-ds-10 font-sans font-semibold ml-1"
         style={{ color: "hsl(var(--bark) / 0.55)" }}
         aria-label="Delivered"
@@ -64,12 +69,16 @@ export const ReadReceipt = ({
     .slice(0, 2) || "?";
   return (
     <span
+      role="img"
       className="inline-flex items-center justify-center w-4 h-4 rounded-full ml-1 overflow-hidden"
       style={{
         background: "hsl(var(--bark) / 0.18)",
         border: "0.5px solid hsl(var(--bark) / 0.32)",
       }}
-      aria-label="Read"
+      // Without role="img" this label was discarded, so the read receipt
+      // announced either nothing (avatar with alt="") or a bare initials
+      // fragment like "JD" — never that the message had been read.
+      aria-label={recipientName ? `Read by ${recipientName}` : "Read"}
       title="Read"
     >
       {recipientAvatarUrl ? (

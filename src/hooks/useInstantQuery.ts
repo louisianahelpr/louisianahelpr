@@ -53,7 +53,32 @@ export function useInstantQuery<T>({
      * caller-provided fallback shell. Components can render unconditionally.
      */
     data: (query.data ?? fallback) as T,
-    /** True only on the very first load when we have nothing to show yet. */
-    isInitialLoading: query.isLoading && query.data === undefined && fallback === undefined,
+    /**
+     * True on the very first load, while there is nothing real to show yet.
+     *
+     * The original rule was `fallback === undefined` — i.e. "a fallback means
+     * we have a shell to render, so this isn't a blank first load." That
+     * intent is right and `useInstantQuery.test.tsx:63` pins it.
+     *
+     * The gap was that 15 admin surfaces pass `fallback: []`, and an EMPTY
+     * array is not a shell — it renders as the EMPTY STATE. So their skeletons
+     * were unreachable and first paint asserted a falsehood:
+     * AdminFraudDashboard opened on "No unresolved fraud flags — looking
+     * good!" and AdminPayoutBatches on "All payouts are settled. Nothing to
+     * send." — while the read was still in flight. Telling an operator there
+     * is no fraud because the query hasn't finished is the worst version of
+     * this bug.
+     *
+     * So: a fallback still suppresses the skeleton, but an empty one doesn't
+     * count as having something to show.
+     *
+     * `query.isLoading` is `isPending && isFetching` in TanStack v5, so a
+     * DISABLED query reports false here — this cannot produce a permanent
+     * skeleton the way a bare `isPending` can.
+     */
+    isInitialLoading:
+      query.isLoading &&
+      query.data === undefined &&
+      (fallback === undefined || (Array.isArray(fallback) && fallback.length === 0)),
   };
 }

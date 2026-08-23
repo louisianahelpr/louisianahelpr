@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
+import { formatPriceExact } from "@/lib/format";
 import { CheckCircle2, AlertTriangle, History } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
@@ -438,8 +439,13 @@ const AdminDisputes = () => {
         title={confirm?.action === "release" ? "Release payment to Helpr?" : "Refund the customer?"}
         description={
           confirm?.action === "release"
-            ? `This releases the escrowed $${confirm?.job.budget} to ${profiles[confirm?.job.helper_id || ""] || "the Helpr"} and closes the dispute. This moves real money and can't be undone here.`
-            : `This refunds $${confirm?.job.budget} to ${profiles[confirm?.job.customer_id || ""] || "the customer"} and closes the dispute. This moves real money and can't be undone here.`
+            // formatPriceExact, not raw interpolation: this dialog states the
+            // amount of real escrow about to move, so it has to reconcile to
+            // the cent. Raw `${budget}` rendered a $1,200.40 job as "$1200.4"
+            // — no thousands separator, a truncated cent — on the one screen
+            // where an admin is asked to confirm moving that exact sum.
+            ? `This releases the escrowed $${formatPriceExact(confirm?.job.budget ?? 0)} to ${profiles[confirm?.job.helper_id || ""] || "the Helpr"} and closes the dispute. This moves real money and can't be undone here.`
+            : `This refunds $${formatPriceExact(confirm?.job.budget ?? 0)} to ${profiles[confirm?.job.customer_id || ""] || "the customer"} and closes the dispute. This moves real money and can't be undone here.`
         }
         primaryLabel={confirm && resolving === confirm.job.id ? "Working…" : (confirm?.action === "release" ? "Release payment" : "Refund customer")}
         primaryTone="sienna"

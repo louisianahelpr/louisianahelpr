@@ -120,14 +120,44 @@ export const makeAdminUserActions = ({
   };
 
   const unbanUser = async (profile: Profile) => {
-    await supabase.from("user_bans").update({ is_active: false }).eq("user_id", profile.user_id).eq("is_active", true);
-    await supabase.from("profiles").update({ ban_status: "active" }).eq("user_id", profile.user_id);
-    await supabase.from("notifications").insert({
+    // All three writes used to be fire-and-forget, followed by an
+    // unconditional "User unbanned." If RLS or the network refused, the
+    // moderator was told the ban was lifted while the user stayed banned —
+    // and nothing anywhere recorded that it hadn't worked.
+    //
+    // The two state writes are ordered deliberately and each aborts: lifting
+    // the `user_bans` row without clearing `profiles.ban_status` leaves the
+    // account in a half-banned state, so a failure on the second must be as
+    // loud as a failure on the first.
+    const { error: banErr } = await supabase
+      .from("user_bans").update({ is_active: false })
+      .eq("user_id", profile.user_id).eq("is_active", true);
+    if (banErr) {
+      report(banErr, { tags: { source: "AdminUsers.unbanUser.userBans" } });
+      toast.error(banErr.message || "Couldn't lift the ban — try again");
+      return;
+    }
+
+    const { error: profileErr } = await supabase
+      .from("profiles").update({ ban_status: "active" }).eq("user_id", profile.user_id);
+    if (profileErr) {
+      report(profileErr, { tags: { source: "AdminUsers.unbanUser.profile" } });
+      toast.error("Ban row cleared, but the account status didn't update — re-check this user.");
+      loadProfiles();
+      return;
+    }
+
+    // The user-facing notification is best-effort: the ban IS lifted at this
+    // point, so a failed notify must not report the unban as failed. Reported,
+    // not silent.
+    const { error: notifyErr } = await supabase.from("notifications").insert({
       user_id: profile.user_id, title: "✅ Ban lifted",
       message: "Your account ban has been lifted. Please follow community guidelines going forward.",
       type: "success", link: "/dashboard",
     });
-    toast.success("User unbanned.");
+    if (notifyErr) report(notifyErr, { tags: { source: "AdminUsers.unbanUser.notify" } });
+
+    toast.success(notifyErr ? "User unbanned — but we couldn't notify them." : "User unbanned.");
     loadProfiles();
     setViewProfile(null);
   };

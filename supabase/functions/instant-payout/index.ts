@@ -137,6 +137,20 @@ serve(async (req) => {
       .select()
       .single();
 
+    // 23505 = the `instant_payouts_one_pending_per_helper` partial unique index
+    // (migration 20260823010000). It is the real guard against a concurrent
+    // second payout: the Stripe idempotency keys below are derived from
+    // `record.id`, so two simultaneous requests would mint two rows, two ids,
+    // two keys and two Stripe calls — the key cannot bind what it is derived
+    // from. Surfacing it as a human 409 rather than the generic throw, because
+    // the helper needs to know their money is already moving, not that
+    // something broke.
+    if (recordErr && (recordErr as { code?: string }).code === "23505") {
+      return new Response(
+        JSON.stringify({ error: "A payout is already in progress. Give it a moment before trying again." }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     if (recordErr || !record) throw new Error("Failed to create payout record");
 
     // Track whether the fee transfer completed so the payout catch block can
@@ -179,9 +193,15 @@ serve(async (req) => {
         }
 
         if (platformAccountId) {
-        // Idempotency: keyed off the persisted instant_payouts.id so any retry —
-        // network blip, function-restart mid-flight, client double-tap — reuses
-        // the same Stripe Transfer instead of double-charging the helper.
+        // Idempotency: keyed off the persisted instant_payouts.id, so a retry of
+        // THIS request — network blip, function restart mid-flight — reuses the
+        // same Stripe Transfer instead of double-charging the helper.
+        //
+        // It does NOT cover a client double-tap, and the comment here used to
+        // claim it did. Two concurrent requests each INSERT their own row, so
+        // they get different ids and therefore different keys. That case is
+        // handled one level up by the partial unique index on
+        // (helper_id) WHERE status = 'pending' — see the 23505 branch above.
         await stripe.transfers.create(
           {
             amount: feeCents,

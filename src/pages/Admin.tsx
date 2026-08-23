@@ -64,6 +64,28 @@ const markSeen = (section: string) => safeStorage.setItem(`${SEEN_KEY_PREFIX}${s
 
 const navGroups = adminNavGroups;
 
+/** Every view /admin actually renders, and its title. Also the source of
+ *  truth for "is this a real view?" — see `isRealView` below, which is what
+ *  makes a deep link to a DELETED view (parishtax, geography) land on home
+ *  rather than stacking an empty <h1> on the dashboard. */
+const VIEW_LABELS: Record<View, string> = {
+    home: "Dashboard", analytics: "Analytics", people: "Users",
+    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
+    notifications: "Notifications", notiflogs: "Notification Logs",
+    reports: "Reports", support: "Support",
+    referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
+    audit: "Audit Log", health: "Health", export: "Export",
+    payouts: "Payout Batches", tiers: "Helpr Tiers",
+    idv: "Identity Verify", marketing: "Marketing",
+    credentials: "License & Insurance",
+    exceptions: "Exception Queue",
+    // Unreachable while BUSINESS_ENABLED is false — the nav rows are not
+    // rendered and `?view=business_*` is coerced to "home" — but kept so the
+    // map stays exhaustive over `View`.
+    business_verify: "Business Verification",
+    business_accounts: "Business Accounts",
+  };
+
 const Admin = () => {
   usePageTitle("Admin — Helpr");
   // Which chrome this page owns — see the two render sites below.
@@ -79,8 +101,24 @@ const Admin = () => {
   // an old admin notification or a bookmark — must not reopen a Business screen
   // while the product is hidden. Coerced to the dashboard home instead, which
   // is also what makes the two `renderContent` cases below unreachable.
+  //
+  // The SAME coercion has to cover any view that no longer exists. Parish Tax
+  // and Geography were deleted at the owner's request, and a `?view=parishtax`
+  // link (a bookmark, an old notification, the UI sweep) then rendered the
+  // dashboard home WITH an AdminSectionHeader whose title was `undefined` —
+  // an empty <h1> stacked on the home screen's own, which the sweep caught as
+  // "expected exactly 1 <h1>, found 2 [ | Welcome back]".
+  //
+  // So the guard is now "is this a view we actually render?" rather than a
+  // hardcoded pair, and a stale link lands cleanly on home instead of a
+  // half-rendered screen. `viewLabels` is the list of real views, which makes
+  // this self-maintaining: delete a view, its label goes with it, and its old
+  // deep links coerce automatically.
+  const isRealView = (v: string): v is View =>
+    v === "home" || Object.prototype.hasOwnProperty.call(VIEW_LABELS, v);
   const initialView: View =
-    !BUSINESS_ENABLED && (rawInitialView === "business_verify" || rawInitialView === "business_accounts")
+    !isRealView(rawInitialView) ||
+    (!BUSINESS_ENABLED && (rawInitialView === "business_verify" || rawInitialView === "business_accounts"))
       ? "home"
       : rawInitialView;
   const [view, setView] = useState<View>(initialView);
@@ -382,23 +420,7 @@ const Admin = () => {
     return "bg-primary text-primary-foreground";
   };
 
-  const viewLabels: Record<View, string> = {
-    home: "Dashboard", analytics: "Analytics", people: "Users",
-    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
-    notifications: "Notifications", notiflogs: "Notification Logs",
-    reports: "Reports", support: "Support",
-    referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
-    audit: "Audit Log", health: "Health", export: "Export",
-    payouts: "Payout Batches", tiers: "Helpr Tiers",
-    idv: "Identity Verify", marketing: "Marketing",
-    credentials: "License & Insurance",
-    exceptions: "Exception Queue",
-    // Unreachable while BUSINESS_ENABLED is false — the nav rows are not
-    // rendered and `?view=business_*` is coerced to "home" — but kept so the
-    // map stays exhaustive over `View`.
-    business_verify: "Business Verification",
-    business_accounts: "Business Accounts",
-  };
+  const viewLabels = VIEW_LABELS;
 
   const renderContent = () => {
     switch (view) {

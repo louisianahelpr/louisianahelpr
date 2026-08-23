@@ -462,7 +462,11 @@ export const ADMIN_VIEWS = [
   "analytics", "people", "jobs", "settings", "disputes", "broadcasts",
   "notifications", "notiflogs", "reports", "support", "referrals",
   "subscriptions", "fraud", "audit", "health", "export", "payouts",
-  "parishtax", "tiers", "idv", "geography", "marketing", "credentials",
+  // parishtax and geography were DELETED (owner: Stripe handles tax; geography
+  // was redundant). They are out of this list because they are out of the app —
+  // /admin coerces their old deep links to home now, so sweeping them would
+  // just be re-testing the dashboard under two extra names.
+  "tiers", "idv", "marketing", "credentials",
   "business_verify", "business_accounts", "exceptions",
 ] as const;
 

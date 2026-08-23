@@ -962,6 +962,7 @@ html.web-desktop {
     display: none !important;
   }
 
+
   /* Activity (My Posts / My Jobs) card column. Gated by web-desktop so the
      native app + phone-width browsers keep their identical single column.
      Used by both the sectioned view (ActivitySectionedView) and the flat

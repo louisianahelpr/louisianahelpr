@@ -443,6 +443,25 @@ const Dashboard = () => {
                       {filters.searchOpen ? (
                         <BrowseSearchBar filters={filters} />
                       ) : (
+                        <>
+                          {/* THE ROW EARNS ITS HEIGHT. With the emblem hidden
+                              on web-desktop and no title on this screen (owner:
+                              "home will not have a title just the H logo"), the
+                              left half of this 44px band was empty and the four
+                              icons huddled at the right — a full row saying
+                              nothing above the list it belongs to.
+                              The count is what it can honestly say instead:
+                              live, about the list directly beneath, and the
+                              same shape as the "N unread" and bucket counts
+                              every sibling screen puts in that slot. */}
+                          <span
+                            className="font-serif italic text-ds-11 min-w-0 truncate"
+                            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                          >
+                            {filters.filteredJobs.length}
+                            {filters.filteredJobs.length === 1 ? " job" : " jobs"}
+                            {filters.hasFilters ? " match your filters" : " nearby"}
+                          </span>
                         <div className="flex items-center gap-1 ml-auto">
                           <BrowseTasksActions
                             filters={filters}
@@ -474,6 +493,7 @@ const Dashboard = () => {
                             )}
                           </button>
                         </div>
+                        </>
                       )}
                     </div>
                   )}

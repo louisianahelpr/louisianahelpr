@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Flag, CheckCircle2 } from "lucide-react";
+import { Flag, CheckCircle2, Briefcase } from "lucide-react";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toast } from "sonner";
 import type { Job } from "./adminJobs/types";
@@ -13,6 +13,7 @@ import { JobDetailDialog } from "./adminJobs/JobDetailDialog";
 import { RemoveJobDialog } from "./adminJobs/RemoveJobDialog";
 import { RefundJobDialog } from "./adminJobs/RefundJobDialog";
 import { StatusOverrideDialog } from "./adminJobs/StatusOverrideDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const AdminJobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -322,9 +323,16 @@ const AdminJobs = () => {
           />
         ))}
         {filteredJobs.length === 0 && (
-          <p className="text-center text-muted-foreground py-8">
-            {filter === "flagged" ? "No flagged jobs found" : "No jobs found"}
-          </p>
+          <EmptyState
+            variant="inline"
+            icon={Briefcase}
+            title={filter === "flagged" ? "No flagged jobs" : "No jobs found"}
+            body={
+              filter === "flagged"
+                ? "Nothing has tripped a moderation flag."
+                : "Nothing matches the current filter."
+            }
+          />
         )}
       </div>
 

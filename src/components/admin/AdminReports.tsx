@@ -16,6 +16,7 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type Report = {
   id: string;
@@ -262,10 +263,16 @@ const AdminReports = () => {
       {isInitialLoading ? (
         <p className="text-muted-foreground text-ds-11 py-8 text-center">Loading reports…</p>
       ) : reports.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-40" />
-          <p className="text-ds-13">No {filter !== "all" ? filter : ""} reports found.</p>
-        </div>
+        <EmptyState
+          variant="inline"
+          icon={AlertTriangle}
+          title={filter !== "all" ? `No ${filter} reports` : "No reports"}
+          body={
+            filter !== "all"
+              ? "Nothing matches this filter — try All."
+              : "Nobody has reported anything. That is the good outcome."
+          }
+        />
       ) : (
         <div className="space-y-3">
           {reports.map(report => (

@@ -1,9 +1,4 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star, Clock } from "lucide-react";
-import {
-  RecommendedJobCardSkeleton,
-  RecentJobCardSkeleton,
-} from "@/components/ui/skeletons/JobCardSkeleton";
 
 export const JobCardSkeleton = () => (
   // Glass-tinted skeleton shaped like a real job card — chip row at top
@@ -111,42 +106,6 @@ export const DashboardTitleSkeleton = () => (
 );
 
 /**
- * Per-section header skeleton — the eyebrow strip that prefaces each
- * feed section (Picked for you / Nearby / Everything else). Mirrors the
- * real header so the section labels' bordered bands keep their bounds.
- */
-const SectionHeaderSkeleton = ({
-  icon: Icon,
-  label,
-  tint,
-}: {
-  icon: typeof Star;
-  label: string;
-  tint: string;
-}) => (
-  <div
-    className="px-4 pt-3 pb-1.5 flex items-center justify-between"
-    style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.06)" }}
-    aria-hidden
-  >
-    <div className="flex items-center gap-2">
-      <Icon
-        className="w-3.5 h-3.5"
-        style={{ color: `hsl(var(--${tint}))` }}
-        strokeWidth={2}
-        fill={`hsl(var(--${tint}) / 0.2)`}
-      />
-      <span
-        className="text-ds-11 font-serif italic uppercase tracking-[0.18em]"
-        style={{ color: `hsl(var(--${tint}))` }}
-      >
-        {label}
-      </span>
-    </div>
-  </div>
-);
-
-/**
  * Dashboard panel-interior skeleton. Renders the SAME three-section
  * structure the loaded panel has — Picked-for-you / Nearby / Everything
  * else — each with its own shape-matched card skeleton variant. A single
@@ -157,36 +116,26 @@ const SectionHeaderSkeleton = ({
  */
 export const DashboardSkeleton = () => (
   <>
-    <div
-      className="shrink-0 flex items-center justify-between px-4 py-3"
-      style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
-    >
-      <div className="space-y-1.5">
-        <Skeleton className="h-2.5 w-20 rounded" />
-        <Skeleton className="h-5 w-32 rounded-md" />
-      </div>
-      <div className="flex items-center gap-1.5">
-        <Skeleton className="h-8 w-8 rounded-ds-md" />
-        <Skeleton className="h-8 w-8 rounded-ds-md" />
-      </div>
-    </div>
+    {/* CALM. This used to render the feed's real section headers — "Picked for
+        you" and "Everything else", live colour, real icons, a real hairline
+        rule — wrapped around ghost cards each built from six grey bars of
+        differing widths, plus a header row with two button squares. Finished
+        chrome around unfinished content reads as a BROKEN page, not a loading
+        one, and the bar lattice gave it more visual detail than the real feed
+        it stands in for.
 
-    {/* "Picked for you" — sienna-accented, ~2 cards on first paint
-        matching what BrowseTasksFeed shows when recommendations resolve. */}
-    <SectionHeaderSkeleton icon={Star} label="Picked for you" tint="burnt-sienna" />
+        A skeleton's whole job is to hold the shape and then get out of the way.
+        So: no invented section labels (they may not even be the sections that
+        arrive), one soft silhouette per card instead of six bars, and the
+        card's own footprint carried by height alone. The layout still reserves
+        the same space, so nothing jumps when the feed lands. */}
     <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4" aria-hidden>
-      {[0, 1].map((i) => (
-        <RecommendedJobCardSkeleton key={`rec-${i}`} />
-      ))}
-    </div>
-
-    {/* "Everything else" — the recent feed. The real "Nearby" cards (when
-        the user has a parish-match set + ready coords) live mixed inside
-        this feed via the distance pill, not a separate visual section. */}
-    <SectionHeaderSkeleton icon={Clock} label="Everything else" tint="olivewood" />
-    <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4" aria-hidden>
-      {[0, 1, 2].map((i) => (
-        <RecentJobCardSkeleton key={`recent-${i}`} />
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="rounded-2xl skeleton-glass h-[104px]"
+          style={{ borderRadius: "1rem" }}
+        />
       ))}
     </div>
   </>

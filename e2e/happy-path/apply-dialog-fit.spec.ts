@@ -216,9 +216,15 @@ for (const { name, width, job } of [
     expect(m.dialog.bottom).toBeLessThanOrEqual(m.viewport.h);
 
     // 5. Both actions are on screen, tappable, and showing their full label.
+    //
+    // Matched case-INSENSITIVELY. The app-wide Title Case pass (Apple HIG —
+    // button labels are Title Case) renamed this control to "Apply Now", and an
+    // exact-string match reads a rename as a missing button, which is what this
+    // assertion was doing rather than measuring fit.
     const labels = m.actions.map((a) => a.text);
-    expect(labels).toContain(name);
-    expect(labels).toContain("Cancel");
+    const lower = labels.map((l) => l.toLowerCase());
+    expect(lower, `actions: ${JSON.stringify(labels)}`).toContain(name.toLowerCase());
+    expect(lower).toContain("cancel");
     for (const action of m.actions) {
       expect(action.inViewport, `${action.text} is off screen: ${JSON.stringify(action)}`).toBe(true);
       expect(action.labelTruncated, `${action.text} label is clipped`).toBe(false);

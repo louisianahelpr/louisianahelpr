@@ -92,12 +92,16 @@ test.describe("customer sees helper application", () => {
     await expect(applicantsButton).toBeVisible({ timeout: 10_000 });
 
     // ...and it appears EXACTLY once on the card. An open job with applicants
-    // used to state the same number three times within ~120px — this button,
-    // a "1 applicant" meta chip, and a "1 applicant · pick someone" state pill
-    // — which is what the owner reported. The chip is gone and the pill now
-    // reads "Pick someone", so a second copy of the tally is a regression.
+    // used to state the same number three times within ~120px — this button, a
+    // "1 applicant" meta chip, and a "1 applicant · pick someone" state pill —
+    // which is what the owner reported. All three duplicates are gone now: the
+    // chip, then the pill (the per-card status band came off entirely when the
+    // filter tabs took over saying what state a job is in), and most recently a
+    // "1 applied" caption under the tracker's Posted step. The count lives on
+    // the control that acts on it, and nowhere else.
     await expect(page.getByText(/\d+\s+applicants?\b/i)).toHaveCount(0);
-    await expect(page.getByText("Pick someone")).toBeVisible();
+    await expect(page.getByText(/\d+\s+applied\b/i)).toHaveCount(0);
+    await expect(page.locator("[data-status-stripe]")).toHaveCount(0);
 
     // Axe at the customer's see-applications surface — this is a high
     // signal page (decision-making happens here) so a11y matters most.

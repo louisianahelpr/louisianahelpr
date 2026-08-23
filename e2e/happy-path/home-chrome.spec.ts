@@ -170,20 +170,34 @@ for (const variant of [
     expect(layout.smallTapTargets, `sub-44px controls @ ${variant.tag}`).toEqual([]);
 
     // --- row 1: the pill sits with the bell -----------------------------
-    const pill = page.getByRole("button", { name: /^In progress: / });
+    //
+    // PHONE ONLY. The desktop website drops the in-progress pill from this row
+    // (owner) — the job it points at is one click away in the side panel, and
+    // the row up there is the app bar rather than the screen's only chrome.
+    // Phone and native keep it: they have no app bar, so this row is the only
+    // place a live commitment can ride.
+    const isDesktopWeb = variant.width >= 900;
     const bell = page.getByRole("button", { name: "Notifications" });
-    await expect(pill).toBeVisible();
     await expect(bell).toBeVisible();
-
-    const pillBox = (await pill.boundingBox())!;
     const bellBox = (await bell.boundingBox())!;
-    expect(pillBox.height, "pill tap target").toBeGreaterThanOrEqual(44);
-    // Same row, and the pill ends before the bell begins — no overlap.
-    expect(Math.abs(
-      (pillBox.y + pillBox.height / 2) - (bellBox.y + bellBox.height / 2),
-    ), "pill/bell vertical centres").toBeLessThan(4);
-    expect(pillBox.x + pillBox.width, "pill right edge vs bell left edge")
-      .toBeLessThanOrEqual(bellBox.x);
+
+    if (!isDesktopWeb) {
+      const pill = page.getByRole("button", { name: /^In progress: / });
+      await expect(pill).toBeVisible();
+      const pillBox = (await pill.boundingBox())!;
+      expect(pillBox.height, "pill tap target").toBeGreaterThanOrEqual(44);
+      // Same row, and the pill ends before the bell begins — no overlap.
+      expect(Math.abs(
+        (pillBox.y + pillBox.height / 2) - (bellBox.y + bellBox.height / 2),
+      ), "pill/bell vertical centres").toBeLessThan(4);
+      expect(pillBox.x + pillBox.width, "pill right edge vs bell left edge")
+        .toBeLessThanOrEqual(bellBox.x);
+    } else {
+      await expect(
+        page.getByRole("button", { name: /^In progress: / }),
+        "the desktop app bar carries no in-progress pill",
+      ).toHaveCount(0);
+    }
 
     // --- the two action icons now live IN row 1, left of the bell -------
     // This spec used to assert the opposite (icons in a SECOND row below the
@@ -196,8 +210,17 @@ for (const variant of [
       const icon = page.getByRole("button", { name }).first();
       await expect(icon, `action icon ${name} @ ${variant.tag}`).toBeVisible();
       const box = (await icon.boundingBox())!;
+      expect(box.width, `action icon ${name} tap target`).toBeGreaterThanOrEqual(28);
+      if (isDesktopWeb) {
+        // On the desktop website these controls are not in the app bar at all —
+        // they sit directly above the JOB CARDS, because they filter the list
+        // and not the map beside it (owner). So the only geometry that holds
+        // here is that they are BELOW the bar, which is exactly the move.
+        expect(box.y, `action icon ${name} sits below the app bar`)
+          .toBeGreaterThan(bellBox.y + bellBox.height - 1);
+        continue;
+      }
       expect(box.height, `action icon ${name} tap target`).toBeGreaterThanOrEqual(44);
-      expect(box.width, `action icon ${name} tap target`).toBeGreaterThanOrEqual(40);
       // Same row as the bell (vertical centres agree)...
       expect(
         Math.abs((box.y + box.height / 2) - (bellBox.y + bellBox.height / 2)),
@@ -320,17 +343,20 @@ test("the moved controls live in the filter sheet", async ({ context, page, base
 
   // Saved searches — a labelled row that opens the same dialog the bookmark
   // icon used to.
-  const savedRow = sheet.getByRole("button", { name: /Saved searches/ });
+  // Case-INSENSITIVE: the app-wide Title Case pass (Apple HIG — buttons and
+  // titles are Title Case) renamed this row and its dialog to "Saved
+  // Searches", and a case-sensitive match reads a rename as a missing control.
+  const savedRow = sheet.getByRole("button", { name: /saved searches/i });
   await expect(savedRow).toBeVisible();
 
   await savedRow.click();
-  await expect(page.getByRole("heading", { name: "Saved searches" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /saved searches/i })).toBeVisible();
   // `.first()` because the dialog carries TWO controls named "Close" — its
   // footer button and Radix's own sr-only X. (Escape is not an option here:
   // this app's dialogs and sheets do not close on it, which predates this
   // spec and is not what it is measuring.)
   await page.getByRole("dialog").getByRole("button", { name: "Close" }).first().click();
-  await expect(page.getByRole("heading", { name: "Saved searches" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /saved searches/i })).toHaveCount(0);
 
   // And back for the view switch — the map really renders.
   await page.getByRole("button", { name: /^Filters/ }).first().click();

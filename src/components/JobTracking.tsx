@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react"
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, CalendarCheck, FileText, Users } from "lucide-react";
+import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, CalendarCheck, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { parseLocalDate } from "@/lib/dateUtils";
@@ -199,7 +199,6 @@ export function JobTracking({
   jobLatitude,
   jobLongitude,
   includePostingSteps = false,
-  applicantCount = 0,
 }: {
   jobId: string;
   helperId: string | null;
@@ -256,8 +255,6 @@ export function JobTracking({
    * it stands. With this on the tracker renders without a `helperId`.
    */
   includePostingSteps?: boolean;
-  /** Applications received so far. Only read when `includePostingSteps`. */
-  applicantCount?: number;
 }) {
   // Seed from the parent-batched tracking row when present so we don't
   // fire one fetch per rendered card (N+1 across active jobs on Activity).
@@ -655,19 +652,14 @@ export function JobTracking({
         // "Offered to Camille", "On the Way" + "Camille" as "Camille is on the
         // way". A helper tracking their own job needs no one named.
         const firstName = helperName?.trim().split(/\s+/)[0] ?? null;
-        const getSubtext = (idx: number): string | null => {
-          // The merged Posted step reports its applications here — the fact
-          // the old separate "Applicants" step existed to carry.
-          if (
-            includePostingSteps &&
-            idx === 0 &&
-            !helperId &&
-            applicantCount > 0
-          ) {
-            return `${applicantCount} applied`;
-          }
-          return !isHelper && firstName && idx === displayIdx ? firstName : null;
-        };
+        // NO applicant tally here. The merged Posted step briefly carried one
+        // ("3 applied") to preserve what the deleted Applicants step conveyed —
+        // but the card's primary button is already "Applicants (3)", inches
+        // away, and stating one number twice within a card is the exact defect
+        // e2e/happy-path/customer-sees-application.spec.ts exists to catch. The
+        // count belongs on the control that acts on it.
+        const getSubtext = (idx: number): string | null =>
+          !isHelper && firstName && idx === displayIdx ? firstName : null;
 
         // ONE scrolling line, seven steps (owner: "the live tracker should be
         // 1 scrollable line"). It was previously a 4 + 3 wrapping grid, which

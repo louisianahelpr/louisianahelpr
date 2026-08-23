@@ -114,22 +114,6 @@ async function expandAllSections(page: Page) {
   await page.waitForTimeout(250);
 }
 
-/** Every status label the stripe can render on these two surfaces. */
-const STATUS_LABELS = [
-  "Open · no applicants yet",
-  "Pick someone",
-  "Offer sent · awaiting reply",
-  "Booked",
-  "In progress",
-  "Revision requested",
-  "Completed",
-  "Cancelled",
-  "Disputed",
-  "Applied · awaiting decision",
-  "Not selected",
-  "Job cancelled",
-];
-
 /**
  * Record axe's OWN measured contrast ratio for each status stripe it saw.
  *
@@ -346,12 +330,16 @@ test.describe("My Posts — card density + header", () => {
     await settle(page);
 
     await dismissNudge(page);
-    await expect(page.getByText("In progress", { exact: true })).toHaveCount(1);
+    // The card is identified by its live tracker, not by a status band: the
+    // per-card stripe was removed once the filter tabs took over saying what
+    // state a job is in. See ActivityBucket in activityFilters.ts.
+    await expect(page.getByRole("group", { name: "Job progress" })).toHaveCount(1);
     await expect(page.getByRole("button", { name: /no-show/i })).toHaveCount(0);
     // The rest of the row is still there — this is a gate, not an empty state,
-    // and a two-item row must still look deliberate.
+    // and a two-item row must still look deliberate. Share is NOT among them:
+    // a job that already has a helpr has nothing left to advertise.
     await expect(page.getByRole("button", { name: "Message Helpr" })).toHaveCount(1);
-    await expect(page.getByRole("button", { name: /share/i }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /share|copy link/i })).toHaveCount(0);
     // This page is a fixed 100dvh shell — the DOCUMENT does not scroll, so
     // `fullPage` captures the viewport and nothing else. Bring the row into it.
     await page.getByRole("button", { name: "Message Helpr" }).scrollIntoViewIfNeeded();
@@ -421,13 +409,14 @@ test.describe("My Posts — card density + header", () => {
     const tops = await row.evaluate((el) =>
       Array.from(el.children).map((c) => (c as HTMLElement).offsetTop),
     );
-    // NINE, not seven: this is the POSTER's own card, and a poster's tracker
-    // prepends the two pre-offer steps (Posted, Applicants) to the seven
-    // shared ones. Before that, an open job with nobody assigned had no
-    // tracker at all. The count is asserted rather than loosened to
-    // "greater than one" because the wrap this test exists to catch is only
-    // visible at the full step count.
-    expect(tops.length, "nine tracker steps (2 posting + 7 shared)").toBe(9);
+    // EIGHT, not seven: this is the POSTER's own card, and a poster's tracker
+    // prepends ONE pre-offer step (Posted) to the seven shared ones. It used to
+    // prepend two — Posted and Applicants — until they were merged, because
+    // applications arrive against the posted job rather than after it, so the
+    // pair described one state and pushed the row past the card's width. The
+    // count is asserted rather than loosened to "greater than one" because the
+    // wrap this test exists to catch is only visible at the full step count.
+    expect(tops.length, "eight tracker steps (1 posting + 7 shared)").toBe(8);
     expect(new Set(tops).size, `steps sit on ${new Set(tops).size} lines, expected 1`).toBe(1);
 
     // ...and it genuinely SCROLLS rather than squeezing seven steps into 375px.
@@ -454,7 +443,7 @@ test.describe("My Posts — card density + header", () => {
     await page.screenshot({ path: `${SHOTS}/tracker-one-line-375.png` });
   });
 
-  test("the action row reads SOS then Share then Message, and Message is one colour everywhere", async ({ page, context, baseURL }) => {
+  test("the action row reads SOS then Message, and Message is one colour everywhere", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     // `helper_arrived_at`, not just `helper_on_the_way_at`. SOS is gated on the
     // helper having ARRIVED — it is the control for something going wrong on
@@ -493,7 +482,12 @@ test.describe("My Posts — card density + header", () => {
     );
     expect(colours[0], `Message renders ${colours[0]} vs ${colours[1]}`).toBe(colours[1]);
 
-    // Order within the first card's row: SOS · Share · Message.
+    // Order within the first card's row: SOS · Message.
+    //
+    // Share used to sit between them and no longer does — a job that already
+    // has a helpr has nothing left to advertise, so the link it copied led
+    // somewhere nobody else could take. It is still one of the four main
+    // actions on an OPEN job, which is where it does work.
     const order = await page.evaluate(() => {
       const msg = document.querySelector('button[aria-label="Message Helpr"]');
       const row = msg?.parentElement;
@@ -502,10 +496,13 @@ test.describe("My Posts — card density + header", () => {
       );
     });
     expect(order[0]).toMatch(/SOS/i);
-    expect(order[1]).toMatch(/share/i);
-    expect(order[2]).toMatch(/message/i);
+    expect(order[1]).toMatch(/message/i);
+    // No JOB-share control anywhere in the row. Matched on its exact accessible
+    // name rather than a loose /share/ — the SOS chip's own label is about
+    // sharing your LOCATION, and a loose match reads that as a hit.
+    expect(order.some((l) => /^(share this job|copy a link to this job)$/i.test(l))).toBe(false);
 
-    await page.screenshot({ path: `${SHOTS}/actions-sos-share-message-375.png`, fullPage: true });
+    await page.screenshot({ path: `${SHOTS}/actions-sos-message-375.png`, fullPage: true });
   });
 
   test("Message opens the thread with THIS helpr on THIS job", async ({ page, context, baseURL }) => {
@@ -548,15 +545,22 @@ test.describe("My Posts — card density + header", () => {
     await expect(page.getByRole("button", { name: "Hide job description" }).first()).toBeVisible();
   });
 
-  test("the active status filter is named beside the title, and All is silent", async ({ page, context, baseURL }) => {
+  test("the active bucket is named beside the title", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
 
-
+    // The four buckets replaced Active / All / Completed / Cancelled — they
+    // sort by whose move it is rather than by the job's own lifecycle. See
+    // ActivityBucket in src/pages/activity/activityFilters.ts for why.
+    //
+    // "all" is gone from the chip set and deliberately NOT asserted here: it
+    // still resolves as a filter VALUE so notification deep links keep working,
+    // but it has no chip and therefore no label to name.
     for (const [filter, label] of [
-      ["active", "Active"],
-      ["completed", "Completed"],
-      ["cancelled", "Cancelled"],
+      ["needs_you", "Needs you"],
+      ["scheduled", "Scheduled"],
+      ["waiting", "Waiting"],
+      ["done", "Done"],
     ] as const) {
       await page.goto(`/my-posts?filter=${filter}`);
       await page.waitForSelector("h1");
@@ -566,81 +570,52 @@ test.describe("My Posts — card density + header", () => {
       await expect(header, `filter=${filter}`).toContainText(label);
       // Still exactly one heading — the indicator is a span, never an h2.
       await assertOneH1(page);
-      if (filter === "active") {
+      if (filter === "needs_you") {
         // The HEADER CARD itself, not the viewport — a plain screenshot here
         // caught wherever the list happened to be scrolled to and showed no
         // header at all.
-        await page.locator("h1").locator("../..").screenshot({ path: `${SHOTS}/header-filter-active-375.png` });
+        await page.locator("h1").locator("../..").screenshot({ path: `${SHOTS}/header-filter-needs-you-375.png` });
       }
     }
-
-    await page.goto("/my-posts?filter=all");
-    await page.waitForSelector("h1");
-    await settle(page);
-    await dismissNudge(page);
-    const header = page.locator("h1").locator("..");
-    await expect(header).toHaveText("My Posts");
-    await assertOneH1(page);
-    await page.locator("h1").locator("../..").screenshot({ path: `${SHOTS}/header-filter-all-375.png` });
   });
 
-  test("every job status renders its own coloured stripe", async ({ page, context, baseURL }) => {
+  test("a posted card carries NO status band — the tabs say it instead", async ({ page, context, baseURL }) => {
+    // This replaces a test that asserted the opposite. The per-card coloured
+    // stripe existed because one "Active" bucket held open, offered,
+    // in-progress and awaiting-decision jobs, so every card had to label
+    // itself. The filter tabs sort by whose move it is now (see ActivityBucket),
+    // which says the same thing once at the top instead of once per card — and
+    // on the Completed and Cancelled tabs the band was repeating the tab the
+    // reader was already standing in, all the way down the page.
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
     await page.goto("/my-posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);
-    // Completed / Cancelled ship collapsed, so three of the seven statuses are
-    // not in the DOM until this runs. Without it a match on the section HEADER
-    // reads as a match on the card's stripe.
     await expandAllSections(page);
-
-    // Read the bands straight off the page: text, background, and ink. A band
-    // with a transparent background is not a stripe, whatever its label says.
-    const bands = await page.evaluate((labels) => {
-      const out: { label: string; bg: string; fg: string }[] = [];
-      document.querySelectorAll<HTMLElement>("span").forEach((el) => {
-        const text = (el.textContent ?? "").trim();
-        if (!labels.includes(text)) return;
-        const band = el.parentElement;
-        if (!band) return;
-        const cs = getComputedStyle(band);
-        out.push({ label: text, bg: cs.backgroundColor, fg: cs.color });
-      });
-      return out;
-    }, STATUS_LABELS);
-
-    // "Completed" and "Cancelled" also name a collapsible SECTION, whose header
-    // row is transparent — so require at least one FILLED band per label rather
-    // than trusting the first text match.
-    const filled = bands.filter((b) => b.bg !== "rgba(0, 0, 0, 0)");
-    for (const label of ["In progress", "Revision requested", "Completed", "Cancelled", "Disputed"]) {
-      expect(
-        filled.some((b) => b.label === label),
-        `no filled stripe rendered for "${label}" — saw ${JSON.stringify(bands.filter((b) => b.label === label))}`,
-      ).toBe(true);
-    }
-    // Distinct fills, not one band colour with different words on it.
-    const fills = new Set(filled.map((b) => b.bg));
-    expect(fills.size).toBeGreaterThanOrEqual(4);
-
-    // Three statuses side by side, for judging the set as a system.
     await dismissNudge(page);
+
+    // The stripe carried a `data-status-stripe` hook. Zero of them on a posted
+    // list is the assertion — a text search would false-negative on the
+    // section headers, which legitimately name the same statuses.
+    await expect(page.locator("[data-status-stripe]")).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/statuses-side-by-side-375.png`, fullPage: true });
     await recordContrast(page, "statuses-375-light");
   });
 
-  test("the neutral tone is measured too — an open job nobody has applied to", async ({ page, context, baseURL }) => {
-    // The seeded open job has two applicants, so it renders "Pick someone"
-    // (action tone) and the NEUTRAL tone never appears in the main sweep. This
-    // is the only status that would otherwise ship without a measured number.
+  test("an open job nobody has applied to is Waiting, not Needs you", async ({ page, context, baseURL }) => {
+    // The distinction the whole `applicantCount` argument exists for: a queue
+    // of people waiting on a reply is the poster's move, an empty one is not.
+    // It used to be carried by a neutral "Open · no applicants yet" stripe on
+    // the card; it is a tab now, which is the version you can filter by.
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     const lonely = { ...(SEED_JOBS.find((j) => j.status === "open") as Row), id: "10000000-0000-4000-8000-0000000000ff" };
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: [jobsRule([lonely])] });
-    await page.goto("/my-posts?filter=all");
+    await page.goto("/my-posts?filter=waiting");
     await page.waitForSelector("h1");
     await settle(page);
-    await expect(page.getByText("Open · no applicants yet", { exact: true })).toHaveCount(1);
+    await dismissNudge(page);
+    await expect(page.getByText(lonely.title as string).first()).toBeVisible();
     await recordContrast(page, "neutral-375-light");
   });
 

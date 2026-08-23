@@ -59,8 +59,14 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
         // glass strip at every scroll position without triggering a
         // state change. Layers over the nav's existing bg (transparent
         // on landing, opaque on interior via is-scrolled).
-        backdropFilter: "blur(20px) saturate(150%)",
-        WebkitBackdropFilter: "blur(20px) saturate(150%)",
+        // Blur only — NO saturate(). `saturate()` on a backdrop filter
+        // amplifies the colour of whatever passes beneath the bar, so the
+        // olive "Get Started" button and the dark emblem bled a green cast up
+        // into the strip, and it shifted as the page scrolled under it. That is
+        // the "green jumping shadow" and the "jumping colours": not a shadow at
+        // all, but the nav re-saturating live content behind itself.
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
         // The iOS Capacitor WebView is edge-to-edge (`overlaysWebView: true`
         // in capacitor.config.ts + setOverlaysWebView({overlay:true}) in
         // nativeInit.ts), so the status bar overlaps the WebView on every
@@ -140,7 +146,12 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                   onMouseEnter={() => prefetchRoute("/dashboard")}
                   onFocus={() => prefetchRoute("/dashboard")}
                 >
-                  Open App
+                  {/* "Dashboard", not "Open App". This nav only ever renders on
+                      the WEB — the marketing chrome — so there is no separate app to
+                      open: the page you are on is it. It also names the
+                      destination, which is what the link actually goes to
+                      (/dashboard). */}
+                  Dashboard
                   <ArrowRight className="ml-1.5 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
                 </Link>
               </Button>

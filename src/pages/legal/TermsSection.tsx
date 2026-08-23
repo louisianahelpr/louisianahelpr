@@ -6,6 +6,7 @@ import {
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { BUSINESS_SEAT_TIERS, formatSeatPriceMonthly } from "@/lib/businessSeatTiers";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import {
   URGENT_FEE_FLOOR_DOLLARS,
   ONBOARDING_FEE_CENTS,
@@ -24,6 +25,21 @@ import { legalFmtMo } from "./legalSections";
 
 const ONBOARDING_FEE_DOLLARS = ONBOARDING_FEE_CENTS / 100;
 
+/**
+ * The bottom of the fee ladder a reader can actually reach.
+ *
+ * These Terms quoted "down to 6% on Business" and listed a Business plan with
+ * per-seat pricing — but BUSINESS_ENABLED has been false since 2026-08-20, so
+ * the product, its marketing page and every entry point are hidden. Terms was
+ * describing a plan nobody can buy and a rate nobody can get, which is a
+ * factual defect in a legal document rather than a stale marketing line.
+ *
+ * Tied to the same flag as the feature, so the two can never disagree again:
+ * flip BUSINESS_ENABLED back on and every percentage, name and bullet below
+ * returns by itself.
+ */
+const FEE_FLOOR = BUSINESS_ENABLED ? TIER_PERKS.business : TIER_PERKS.elite;
+
 /* ─────────────────────────────  TERMS  ───────────────────────────── */
 export const TermsContent = () => (
   <div className="space-y-3">
@@ -31,7 +47,7 @@ export const TermsContent = () => (
       items={[
         "You must be 18+. All accounts are reviewed before approval.",
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
-        `Both sides pay a plan-based platform fee: the poster pays a service fee added at checkout (${TIER_PERKS.free.platformFeePercent}% on Free down to ${TIER_PERKS.business.platformFeePercent}% on Business), and the Helpr's platform fee (${TIER_PERKS.business.platformFeePercent}–${TIER_PERKS.free.platformFeePercent}%, on the same ladder) is deducted from their payout. Each side's own plan determines their own %.`,
+        `Both sides pay a plan-based platform fee: the poster pays a service fee added at checkout (${TIER_PERKS.free.platformFeePercent}% on Free down to ${FEE_FLOOR.platformFeePercent}% on ${FEE_FLOOR.name}), and the Helpr's platform fee (${FEE_FLOOR.platformFeePercent}–${TIER_PERKS.free.platformFeePercent}%, on the same ladder) is deducted from their payout. Each side's own plan determines their own %.`,
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
         "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
@@ -101,8 +117,8 @@ export const TermsContent = () => (
         title="Split fee model"
         body={
           <>
-            <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Basic, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite, {TIER_PERKS.business.platformFeePercent}% Business (minimum covers card processing on small jobs).</p>
-            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Helpr Basic, {TIER_PERKS.pro.platformFeePercent}% Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% Helpr Elite, {TIER_PERKS.business.platformFeePercent}% Business.</p>
+            <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Basic, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite{BUSINESS_ENABLED ? `, ${TIER_PERKS.business.platformFeePercent}% Business` : ""} (minimum covers card processing on small jobs).</p>
+            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Helpr Basic, {TIER_PERKS.pro.platformFeePercent}% Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% Helpr Elite{BUSINESS_ENABLED ? `, ${TIER_PERKS.business.platformFeePercent}% Business` : ""}.</p>
             <p><strong className="text-foreground">Total platform take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus that goes to the Helpr, added by the poster for priority placement.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
@@ -157,7 +173,7 @@ export const TermsContent = () => (
     <PolicySection
       icon={Crown}
       title="Subscription tiers"
-      subtitle="Free, Helpr Basic, Helpr Pro, Helpr Elite, and Business plans"
+      subtitle={BUSINESS_ENABLED ? "Free, Helpr Basic, Helpr Pro, Helpr Elite, and Business plans" : "Free, Helpr Basic, Helpr Pro, and Helpr Elite plans"}
       anchorId="subscription-tiers"
     >
       <PolicyRowItem
@@ -168,8 +184,10 @@ export const TermsContent = () => (
             <p><strong className="text-foreground">Free:</strong> standard access at a {TIER_PERKS.free.platformFeePercent}% platform fee.</p>
             <p><strong className="text-foreground">{TIER_PERKS.basic.name}:</strong> {legalFmtMo(TIER_PERKS.basic.price)} — reduced {TIER_PERKS.basic.platformFeePercent}% platform fee with instant payouts and 20% off job boosts.</p>
             <p><strong className="text-foreground">{TIER_PERKS.pro.name}:</strong> {legalFmtMo(TIER_PERKS.pro.price)} — reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
-            <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)} — lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
-            <p><strong className="text-foreground">{TIER_PERKS.business.name}:</strong> per-seat pricing ({BUSINESS_SEAT_TIERS.map((t) => `${t.name} ${formatSeatPriceMonthly(t.priceLabel)}`).join(" · ")}) — team tools and a {TIER_PERKS.business.platformFeePercent}% platform fee across all seat plans.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)} — {BUSINESS_ENABLED ? "lowest consumer" : "lowest"} {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
+            {BUSINESS_ENABLED && (
+              <p><strong className="text-foreground">{TIER_PERKS.business.name}:</strong> per-seat pricing ({BUSINESS_SEAT_TIERS.map((t) => `${t.name} ${formatSeatPriceMonthly(t.priceLabel)}`).join(" · ")}) — team tools and a {TIER_PERKS.business.platformFeePercent}% platform fee across all seat plans.</p>
+            )}
             <p>Annual plans save about 2 months. Stripe handles billing automatically.</p>
           </>
         }

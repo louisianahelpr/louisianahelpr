@@ -1400,8 +1400,12 @@ button,
      card. Single state — `.is-scrolled` only adds the gold rule + a small
      opacity bump for stronger separation past the hero. */
   background-color: hsl(var(--background) / 0.72);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  /* Blur only. saturate() here amplified the colour of content passing under
+     the bar — the olive CTA and the emblem cast a green tint into the strip
+     that moved as the page scrolled. A nav should not restate the colours
+     underneath it. */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 /* Subtle scroll-state — only kicks in once the user scrolls past the hero,

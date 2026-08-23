@@ -464,7 +464,7 @@ const Login = () => {
         {/* Vertically centred against the taller credentials column, so the
             social buttons sit level with the form rather than hugging the top
             with dead space beneath them. */}
-        <div className="space-y-4 lg:flex lg:flex-col lg:justify-center lg:gap-6 lg:space-y-0">
+        <div className="space-y-6 lg:flex lg:flex-col lg:justify-center lg:gap-8 lg:space-y-0">
         {/* The OR rule only makes sense when the two methods are stacked. At
             lg+ they sit side by side, so the columns themselves do the
             separating. */}
@@ -486,6 +486,18 @@ const Login = () => {
         </div>
 
         <SocialAuthButtons mode="signin" />
+        {/* Under the providers (owner). It has been outside the card and under
+            both columns; back here, closing the social column. */}
+        <p className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          New to Helpr?{" "}
+          <Link
+            to="/signup"
+            className="font-semibold hover:underline whitespace-nowrap"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            Create an account
+          </Link>
+        </p>
         {/* Creating an account is the alternative to BOTH sign-in methods, so
             it closes the right column rather than floating under the card. */}
         {/* Only the BUSINESS offer stays in the card. The personal one is now
@@ -519,21 +531,6 @@ const Login = () => {
         </>
         )}
       </div>
-
-      {/* OUTSIDE the glass card (owner). Inside it, this read as one more row
-          of the sign-in form; it is not — it is the way to a different page.
-          Below the card it reads as what it is: "or you don't have an account
-          at all". */}
-      <p className="text-center text-ds-12 font-sans mt-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        New to Helpr?{" "}
-        <Link
-          to="/signup"
-          className="font-semibold hover:underline whitespace-nowrap"
-          style={{ color: "hsl(var(--bark))" }}
-        >
-          Create an account
-        </Link>
-      </p>
 
     </AuthShell>
   );

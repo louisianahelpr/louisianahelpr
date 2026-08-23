@@ -28,7 +28,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
   // Session-only auth (no profile DB round-trip) so the marketing nav can
   // reflect logged-in state: an authenticated visitor landing on a public
   // page (/for-business, /legal, /) should see an "Open app" CTA instead of
-  // the logged-out "Log in / Get started" pair.
+  // the logged-out "Log in / Get Started" pair.
   const { user } = useAuthReady();
   // On the wide desktop *website*, a signed-in visitor already has the
   // persistent left rail (DesktopSidebarNav) on app/marketing routes the rail
@@ -155,10 +155,10 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                     onMouseEnter={() => prefetchRoute("/login")}
                     onFocus={() => prefetchRoute("/login")}
                   >
-                    Log in
+                    Log In
                   </Link>
                 </Button>
-                {/* "Get started" — explicit light-cream text. The `default`
+                {/* "Get Started" — explicit light-cream text. The `default`
                     variant nominally resolves text-primary-foreground →
                     --parchment, but that two-hop token chain has repeatedly
                     rendered dark-on-olive in the WebView. Pin the color
@@ -176,7 +176,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                     onMouseEnter={() => prefetchRoute("/signup")}
                     onFocus={() => prefetchRoute("/signup")}
                   >
-                    Get started
+                    Get Started
                   </Link>
                 </Button>
               </>
@@ -184,7 +184,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
           </div>
         </div>
 
-        {/* Mobile cluster — a compact Get started CTA (guests, sm+ only,
+        {/* Mobile cluster — a compact Get Started CTA (guests, sm+ only,
             hidden at true-mobile), a subtle vertical divider, and the
             icon-only hamburger toggle. On phones only the hamburger
             shows so we don't crowd the narrow width. */}
@@ -209,7 +209,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                   onMouseEnter={() => prefetchRoute("/signup")}
                   onFocus={() => prefetchRoute("/signup")}
                 >
-                  Get started
+                  Get Started
                 </Link>
               </Button>
               <span
@@ -329,7 +329,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               <div className="flex flex-col gap-3 mt-auto pt-6">
                 {user ? (
                   // Authenticated visitor — single "Open app" CTA back into
-                  // the dashboard instead of the logged-out Log in/Get started.
+                  // the dashboard instead of the logged-out Log in/Get Started.
                   <Button
                     asChild
                     size="lg"
@@ -350,7 +350,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                   </Button>
                 ) : (
                   <>
-                    {/* Get started = primary CTA (bark fill). Log in = quiet
+                    {/* Get Started = primary CTA (bark fill). Log in = quiet
                         secondary text link underneath so the two actions have
                         clearly different weight, not two competing pills. */}
                     <Button
@@ -367,7 +367,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                       }}
                     >
                       <Link to="/signup" onClick={() => setMobileOpen(false)}>
-                        Get started
+                        Get Started
                         <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
                       </Link>
                     </Button>

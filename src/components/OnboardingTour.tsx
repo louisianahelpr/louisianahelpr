@@ -486,7 +486,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
                   onClick={handleNext}
                   className="rounded-ds-md"
                 >
-                  <CheckCircle2 className="w-4 h-4 mr-1" /> Get started
+                  <CheckCircle2 className="w-4 h-4 mr-1" /> Get Started
                 </Button>
               )}
             </div>

@@ -213,24 +213,17 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "help", url: "/help" },
   { name: "support", url: "/support" },
   { name: "accessibility", url: "/accessibility" },
-  { name: "how-it-works", url: "/how-it-works" },
-  { name: "become-a-partner", url: "/become-a-partner" },
-  { name: "benefits", url: "/benefits" },
-  { name: "community", url: "/community" },
-  { name: "enterprise", url: "/enterprise" },
-  { name: "evacuation", url: "/evacuation" },
-  { name: "gift-card", url: "/gift-card" },
-  { name: "impact", url: "/impact" },
-  { name: "local-guide", url: "/local-guide" },
-  { name: "parishes", url: "/parishes" },
-  { name: "parish-orleans", url: "/parish/orleans" },
-  // Slug variants: a two-word parish (hyphen), a saint-prefixed one, and a
-  // slug that does not exist. Punctuation and unknown slugs are where a
-  // params-driven page throws or renders a blank title.
-  { name: "parish-east-baton-rouge", url: "/parish/east-baton-rouge" },
-  { name: "parish-st-tammany", url: "/parish/st-tammany" },
-  { name: "parish-unknown", url: "/parish/not-a-real-parish" },
-  { name: "browse-jobs", url: "/browse-jobs" },
+  // REMOVED 2026-08-22: /how-it-works, /become-a-partner, /community,
+  // /enterprise, /evacuation, /impact, /local-guide, /parishes,
+  // /parish/:slug (x3) and /browse-jobs. Their redirect stubs were deleted in
+  // 2352466e, so every one of them rendered the NotFound page — the sweep
+  // opened `/parishes`, measured the 404 screen, found it clean, and counted a
+  // parish page as audited. Thirteen catalog rows, one screen, thirteen
+  // "covered" ticks. `not-found` below already covers that screen once, on
+  // purpose. The zz-catalog-routes-resolve test keeps this from recurring.
+  //
+  // /benefits and /gift-card moved to AUTHED_SCREENS: both sit behind
+  // ProtectedRoute, so on an ANON pass they render /login, not themselves.
   { name: "privacy", url: "/privacy" },
   { name: "terms", url: "/terms" },
   { name: "rules", url: "/rules" },
@@ -327,9 +320,16 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "earnings", url: "/earnings" },
   { name: "family", url: "/family" },
   { name: "family-accept", url: "/family/accept/test-invite-token" },
-  { name: "family-accept-empty", url: "/family/accept/" },
+  // REMOVED 2026-08-22: `family-accept-empty` pointed at "/family/accept/".
+  // The route is "/family/accept/:token" and React Router will not match an
+  // EMPTY path segment, so that row rendered the 404 page, not the page's
+  // bad-token branch. Verified in a browser. The branch it meant to reach is
+  // already covered by the row above — `test-invite-token` is not a real
+  // invite either, so it takes the same "invalid token" path.
   { name: "home-history", url: "/home-history" },
-  { name: "job-history", url: "/job-history" },
+  // REMOVED 2026-08-22: /job-history's redirect stub was deleted in 2352466e,
+  // so this row rendered the 404 page while reporting as the job-history
+  // screen. The real screen is /profile?tab=completed_jobs, already covered.
   // ⚠ These seven `/jobs/*` rows do NOT audit JobDetail. JobDetail.tsx:79
   // redirects every SIGNED-IN visitor to `/dashboard?quickApply={id}` by
   // design (the dashboard owns the apply flow), so all seven land on the
@@ -351,6 +351,10 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "user-profile-customer", url: `/user/${FAKE_CUSTOMER.id}` },
   { name: "user-profile-missing", url: "/user/10000000-0000-4000-8000-00000000dead" },
   { name: "pay-it-forward", url: "/pay-it-forward" },
+  // Both were listed as ANON until 2026-08-22, where ProtectedRoute meant they
+  // rendered the login screen and the sweep filed it under their name.
+  { name: "gift-card", url: "/gift-card" },
+  { name: "benefits", url: "/benefits" },
   { name: "pets", url: "/pets" },
   { name: "saved-helpers", url: "/saved-helpers" },
   { name: "schedule", url: "/schedule" },

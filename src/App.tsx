@@ -257,16 +257,18 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/home-history" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HomeHistory /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/work-record" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><WorkRecord /></ProtectedRoute>)}</RouteErrorBoundary>} />
 
-      {/* Growth / business-development pages — no auth required */}
-      {/* /become-a-partner retired: partner === business. Redirect legacy links. */}
-      {/* /enterprise retired until we're bigger — the industry verticals now
-          live under Business. Redirect legacy links so they don't 404. */}
-      {/* The standalone How It Works page was folded into the landing section
-          (poster/Helpr toggle) — keep old links landing on that anchor. */}
+      {/* /become-a-partner, /enterprise and /how-it-works were retired, and
+          their redirect stubs deleted in 2352466e. These comments used to say
+          the links were redirected "so they don't 404" — they are not; all
+          three now render NotFound. Left as a note rather than a promise:
+          error_logs shows zero hits on any of them in 90 days and none appear
+          in sitemap.xml, so no redirect is warranted. If that changes, add a
+          real <Route>, not a comment claiming one exists. */}
       <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
-      {/* Retired public discovery pages — redirect legacy links.
-          Jobs are discovered via the landing strip + /jobs; parish/impact/
-          pricing-guide standalone pages were removed. */}
+      {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
+          /browse-jobs were removed along with their redirect stubs (2352466e).
+          Same as above: no redirect exists, and none is warranted on current
+          evidence. */}
       {/* Helpr Wrapped — auth-gated at the route level so a logged-out
           visitor never sees a flash of authed chrome (HelprWrapped's own
           useEffect redirect used to fire only after the first paint). */}
@@ -275,7 +277,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/benefits" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BenefitsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Pet care — manage pet profiles and vet notes */}
       <Route path="/pets" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PetProfiles /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* /evacuation page removed — redirect old bookmarks/links to pets. */}
+      {/* /evacuation was removed; its redirect to /pets went with it in
+          2352466e. The path now 404s. */}
       {/* Legacy paths surfaced by 404s in error_logs (external links, old
           bookmarks, search-engine indexes) — redirect to their modern
           equivalents instead of dumping users on the NotFound page. */}

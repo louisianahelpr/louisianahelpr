@@ -12,14 +12,7 @@ export const HideOnSearch = ({ children }: { children: ReactNode }) => {
   return query.trim() ? null : <>{children}</>;
 };
 
-export const TldrCard = ({
-  items,
-  updated,
-}: {
-  items: string[];
-  /** e.g. "Jun 2026" — rendered right of the title on this card's header row. */
-  updated?: string;
-}) => {
+export const TldrCard = ({ items }: { items: string[] }) => {
   const query = useContext(PolicySearchContext);
   if (query.trim()) return null;
   return (
@@ -38,24 +31,11 @@ export const TldrCard = ({
         "0 8px 18px -8px hsl(var(--olivewood) / 0.12)",
     }}
   >
-    {/* Title left, revision date right (owner). The date was a stray
-        left-aligned line under the last policy card and before that it sat
-        beside the page title, where it competed with the page name. On this
-        row it rides along with the summary a reader actually starts on, and it
-        is the one place it appears — see PolicyFooter's note below. */}
     <div className="flex items-center gap-2">
       <ListChecks className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
       <span className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
         The short version
       </span>
-      {updated && (
-        <span
-          className="ml-auto shrink-0 text-ds-11 font-sans tabular-nums"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-        >
-          Updated {updated}
-        </span>
-      )}
     </div>
     <ul className="space-y-1.5 text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
       {items.map((item, i) => (
@@ -72,11 +52,15 @@ export const TldrCard = ({
   );
 };
 
-// Footer card closing every policy tab: just the support link. The revision
-// date used to sit on the right of this row, but the page header already shows
-// "Updated <month>" beside the title, so it stated the same fact twice on one
-// screen.
-export const PolicyFooter = () => (
+// Footer card closing every policy tab: the support link, and the revision date
+// back on its right (owner).
+//
+// The date lived here once and was pulled because the page header showed
+// "Updated <month>" beside the title, stating the same fact twice on one
+// screen. The header no longer carries it, so this is the single instance
+// again — and it pairs naturally with the support link: when this last changed,
+// and who to ask about it.
+export const PolicyFooter = ({ updated }: { updated?: string }) => (
   <div
     data-print-hide
     className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
@@ -95,5 +79,13 @@ export const PolicyFooter = () => (
         Contact support
       </Link>
     </p>
+    {updated && (
+      <span
+        className="shrink-0 text-ds-11 font-sans tabular-nums"
+        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+      >
+        Updated {updated}
+      </span>
+    )}
   </div>
 );

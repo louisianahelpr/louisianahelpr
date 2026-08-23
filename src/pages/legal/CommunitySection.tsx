@@ -32,7 +32,6 @@ import {
 export const CommunityContent = () => (
   <div className="space-y-3">
     <TldrCard
-      updated={LAST_UPDATED.community}
       items={[
         `Cancel free 24+ hours ahead. Inside 24h, fees apply (${LATE_CANCEL_PERCENT}% / ${VERY_LATE_CANCEL_PERCENT}%). No-show = permanent ban.`,
         `Payment auto-releases ${COPY_AUTO_RELEASE_HOURS} hours after completion if either side doesn't act.`,
@@ -372,7 +371,7 @@ export const CommunityContent = () => (
     </PolicySection>
 
     <HideOnSearch>
-      <PolicyFooter />
+      <PolicyFooter updated={LAST_UPDATED.community} />
     </HideOnSearch>
   </div>
 );

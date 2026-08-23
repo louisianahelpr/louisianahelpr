@@ -11,7 +11,6 @@ import { LAST_UPDATED } from "./legalSections";
 export const PrivacyContent = () => (
   <div className="space-y-3">
     <TldrCard
-      updated={LAST_UPDATED.privacy}
       items={[
         "We collect only what we need to match jobs and process payments — name, email, phone, ID, location, usage data.",
         "Stripe handles payments. We never store full card numbers.",
@@ -230,7 +229,7 @@ export const PrivacyContent = () => (
     </HideOnSearch>
 
     <HideOnSearch>
-      <PolicyFooter />
+      <PolicyFooter updated={LAST_UPDATED.privacy} />
     </HideOnSearch>
   </div>
 );

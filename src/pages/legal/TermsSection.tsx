@@ -28,7 +28,6 @@ const ONBOARDING_FEE_DOLLARS = ONBOARDING_FEE_CENTS / 100;
 export const TermsContent = () => (
   <div className="space-y-3">
     <TldrCard
-      updated={LAST_UPDATED.terms}
       items={[
         "You must be 18+. All accounts are reviewed before approval.",
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
@@ -299,7 +298,7 @@ export const TermsContent = () => (
     </PolicySection>
 
     <HideOnSearch>
-      <PolicyFooter />
+      <PolicyFooter updated={LAST_UPDATED.terms} />
     </HideOnSearch>
   </div>
 );

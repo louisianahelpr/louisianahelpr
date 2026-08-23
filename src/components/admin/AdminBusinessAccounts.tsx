@@ -162,7 +162,7 @@ const AdminBusinessAccounts = () => {
       )}
 
       <Dialog open={!!openBusiness} onOpenChange={(open) => { if (!open) setOpenBusiness(null); }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent>
           <DialogHero
             eyebrow={
               <>

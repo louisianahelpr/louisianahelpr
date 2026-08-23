@@ -102,7 +102,7 @@ export function IDVPromptDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-md gap-3"
+       
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero

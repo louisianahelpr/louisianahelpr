@@ -92,7 +92,27 @@ const DialogContent = React.forwardRef<
         // conventional grow-and-settle from just under, with a 2%-of-height
         // rise and NO positional jump. Resting geometry is unchanged. The
         // matching slide-out-* pair fixes the same inversion on close.
-        "glass-modal fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg max-h-[88dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 p-5 sm:p-7 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]",
+        // ANCHORED TO THE TOP, NOT VERTICALLY CENTRED.
+        //
+        // Centring is what made dialogs "open small then get bigger" (owner):
+        // a vertically-centred box re-centres every time its content grows, and
+        // this app's dialogs grow constantly after mount — a photo decodes, a
+        // poster card resolves, a lazy chunk lands, a fee query returns. Each
+        // one shifted the whole dialog UP by half the new height, so the title
+        // the user was already reading slid out from under their eyes.
+        //
+        // Pinned at 7vh, growth extends DOWNWARD from a top edge that never
+        // moves. `max-h-[86vh]` keeps the bottom off the viewport edge, and the
+        // box scrolls internally past that. Small dialogs now sit slightly
+        // above true centre — which is where optical centre is anyway, and is
+        // what every mature dialog system does.
+        //
+        // HORIZONTAL centring is unchanged, so `slide-in-from-left-1/2` is
+        // still load-bearing (see the note above: the enter keyframe REPLACES
+        // transform, so the -50% x has to be restated as an enter var or the
+        // dialog animates in from the left edge). The vertical pair is gone
+        // with the vertical transform, replaced by a plain 1rem rise.
+        "glass-modal fixed left-[50%] top-[7vh] z-50 grid w-[calc(100%-2rem)] max-w-lg max-h-[86vh] overflow-y-auto translate-x-[-50%] gap-4 p-5 sm:p-7 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-4 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-4",
         className,
       )}
       // Radix warns once per open when a Content has no `Description` and no
@@ -133,7 +153,7 @@ const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 DialogHeader.displayName = "DialogHeader";
 
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)} {...props} />
+  <div className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2", className)} {...props} />
 );
 DialogFooter.displayName = "DialogFooter";
 

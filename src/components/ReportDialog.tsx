@@ -142,7 +142,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-      <DialogContent className="max-w-md gap-3">
+      <DialogContent>
         <DialogHero
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><ShieldAlert className="w-3 h-3" strokeWidth={2} aria-hidden="true" /> {eyebrow}</>}

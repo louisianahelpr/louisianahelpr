@@ -280,7 +280,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHero
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={

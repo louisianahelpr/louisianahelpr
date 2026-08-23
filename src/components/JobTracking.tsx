@@ -9,7 +9,6 @@ import { parseLocalDate } from "@/lib/dateUtils";
 import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { report } from "@/lib/errorLogger";
-import { SosShareButton } from "@/components/SosShareButton";
 import { isNativePlatform } from "@/lib/nativeInit";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
@@ -562,19 +561,6 @@ export function JobTracking({
       : 0
     : currentStatusIdx;
 
-  // SOS is a personal-safety escalation, so it only exists once someone is
-  // actually there: it appears at "Arrived" and stays up through Working /
-  // Done-pending, dropping only once the job is closed out. It used to start at
-  // "On the Way" (and before that, at "Offered"), which put an SOS button on a
-  // job where nobody had met anybody — owner: "SOS should be when they are
-  // there arrived and working". Offering it that early both dilutes what it
-  // means and invites a mis-tap. Never deleted once shown: it is the one
-  // control that matters if a visit goes wrong.
-  const showSos =
-    currentStatusIdx >= STATUS_IDX.arrived &&
-    jobStatus !== "completed" &&
-    jobStatus !== "cancelled";
-
   // The step row is ONE horizontally-scrolling line (owner: "the live tracker
   // should be 1 scrollable line"). Because it scrolls, the current step can sit
   // off-screen — so it is scrolled back into view whenever the job advances.
@@ -653,12 +639,14 @@ export function JobTracking({
             {firstName}
           </span>
         )}
-        {/* SOS moved OUT of this header and into the owner's action row
-            ("move sos to the left of messages"), so on an OWNER card it is
-            rendered by PostedJobActions, not here. A HELPER's card was not part
-            of that reorganisation and keeps the original header pill — see
-            SosShareButton for why the button and its sheet travel together. */}
-        {showSos && isHelper && <SosShareButton jobId={jobId} variant="pill" />}
+        {/* NO SOS PILL HERE (owner: "remove globally"). It was the last
+            survivor of an older arrangement: the owner's SOS moved into the
+            action row long ago, and the helpr's stayed hanging off the tracker
+            heading — so one safety control lived in two different places
+            depending on which side of the job you were on, and on the helpr
+            side it sat inside a progress card rather than with the actions.
+            SosShareButton itself is untouched; it is still mounted from the
+            action row, which is where every other control on the card is. */}
       </div>
 
       {/* Progress timeline */}

@@ -200,7 +200,7 @@ export const DisputeTimelineDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="!gap-3">
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={

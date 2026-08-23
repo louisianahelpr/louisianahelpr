@@ -66,7 +66,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="!gap-4">
+      <DialogContent>
         <DialogHero
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={

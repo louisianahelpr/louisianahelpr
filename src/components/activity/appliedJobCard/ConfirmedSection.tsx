@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { messageButtonStyle } from "@/components/activity/JobActionRow";
 import {MessageSquare } from "lucide-react";
-import { AddToCalendarButton } from "./AddToCalendarButton";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
@@ -21,19 +20,10 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
     <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
       {/* Job countdown */}
       <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
-      {job.date_needed && (
-        <AddToCalendarButton
-          job={{
-            id: job.id,
-            title: job.title,
-            location: job.location ?? null,
-            description: job.description ?? null,
-            dateNeeded: job.date_needed,
-            startTime: job.start_time ?? null,
-            estimatedHours: typeof job.estimated_hours === "number" ? job.estimated_hours : null,
-          }}
-        />
-      )}
+      {/* No "Add to Calendar" (owner, twice — here and on the offer card):
+          "once they accept a job it will be on their calendar in the app".
+          Handing the helpr an .ics to download and import is asking the user
+          to do the app's job, on a job the app already knows the date of. */}
       {/* Tracking — only active on the day of the job */}
       <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
       {/* Job confirmation for helper */}

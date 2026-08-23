@@ -225,10 +225,17 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+  // ONE WIDTH, not a range (owner: "each one has a diff layout, make all
+  // consistent"). Leaflet sizes a popup to its CONTENT between min and max, so
+  // a range meant every pin opened a differently-shaped card — 225px for a
+  // short title, 265px for a long one — and the meta row wrapped onto one line
+  // or two depending on which pin you happened to tap. Setting min === max
+  // makes the popup a fixed object that the content flows into, which is what
+  // the feed card beside it already is.
+  //
   // 44px is Leaflet's fixed content margin; 16 more keeps the shadow off the
   // edge. Floor at 180 so a freak-narrow pane still renders a usable card.
-  const popupMax = paneWidth ? Math.max(180, Math.min(264, paneWidth - 60)) : 264;
-  const popupMin = Math.min(224, popupMax);
+  const popupWidth = paneWidth ? Math.max(180, Math.min(264, paneWidth - 60)) : 264;
 
   const retry = () => {
     setLoadError(false);
@@ -495,8 +502,8 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
                 narrowest surface this ships to — the 375px phone map pane,
                 which has 12px of padding a side. */}
             <Popup
-              minWidth={popupMin}
-              maxWidth={popupMax}
+              minWidth={popupWidth}
+              maxWidth={popupWidth}
               // Keep the pin visible when Leaflet does still need to nudge the
               // view, and give the nudge real breathing room rather than the
               // 5px default that left the card kissing the edge.

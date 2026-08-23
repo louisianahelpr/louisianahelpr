@@ -10,12 +10,9 @@ import {
 } from "lucide-react";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import type { AppliedApp } from "./activityConstants";
-import { EscrowProgressBar } from "@/components/payment/EscrowProgressBar";
 import { DisputeLink } from "@/components/jobs/DisputeLink";
 import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
-import { JobCardStatusStripe } from "./JobCardStatusStripe";
-import { appliedCardState } from "./activityStateLabel";
 import { JobActionRow, JobActionChip } from "./JobActionRow";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
@@ -109,7 +106,6 @@ function AppliedJobCardInner({
     commissionPercent,
     payout,
     isMinimalCard,
-    escrowStep,
     hasActionSection,
   } = deriveAppliedJobCardState(
     app,
@@ -139,33 +135,27 @@ function AppliedJobCardInner({
             amountTitle={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
           />
 
-          {/* Whose move is it? — the same full-width band the posted card
-              carries, so the two halves of Activity read as one system. These
-              are APPLICATION states, not job states ("Not selected" is a fact
-              about this application; the job itself may still be open), but
-              they come from the same single status→tone mapping. Sits directly
-              under the title/price divider on BOTH card types. */}
-          <JobCardStatusStripe
-            state={appliedCardState({
-              status: app.status,
-              job: {
-                status: job.status,
-                helper_confirmed_at: job.helper_confirmed_at,
-                offered_to_helper_id: job.offered_to_helper_id,
-                direct_offer_status: job.direct_offer_status,
-              },
-            })}
-          />
+          {/* NO STATUS BAND — the filter tabs say it (owner: "remove"). Same
+              removal the posted card took: with Needs you / Scheduled /
+              Waiting / Done at the top of the list, a coloured band on every
+              card repeats the tab the reader is standing in, once per card,
+              all the way down. */}
 
-          {/* Escrow progress — gives the helpr context on where the
-              customer's payment sits in the lifecycle (held / verified /
-              released). Sits above the action area for high context
-              without nudging. Hides itself when escrow does not apply. */}
-          {escrowStep && (
-            <div className="px-4 pt-3" onClick={(e) => e.stopPropagation()}>
-              <EscrowProgressBar currentStep={escrowStep} compact />
-            </div>
-          )}
+          {/* ONE TRACKER IN THE APP (owner: "remove this tracker globally,
+              there should only be the other live tracker").
+
+              This card used to open with a FOUR-step escrow bar — Paid /
+              Working / Verified / Released — while the poster's card for the
+              same job opened with the eight-step live tracker. Two different
+              progress strips, different lengths, different vocabularies, on
+              the two halves of one job; a helpr and a poster looking at the
+              same work saw two different pictures of where it was.
+
+              The live tracker below is the one that survives: it is about the
+              WORK, which is what both sides are actually tracking, and it
+              already carries the escrow milestones implicitly (Done is the
+              moment payment is released). Where the money sits is a fact for
+              the payout screen, not a second timeline on a job card. */}
 
           {/* Summary info line. The expand control rides the END of this row
               as a bare chevron — owner: "move the details arrow up and remove

@@ -95,7 +95,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="!gap-3">
+        <DialogContent>
           <DialogHero
             eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
@@ -351,7 +351,7 @@ export const PhotoProofGroup = ({
 
       {/* Full view dialog */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent>
           <DialogHero
             eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={

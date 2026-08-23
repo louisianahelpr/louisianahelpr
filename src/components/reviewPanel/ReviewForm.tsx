@@ -178,7 +178,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto !gap-3">
+      <DialogContent>
         <DialogHero title={`Rate ${titleName}`} />
         {/* `min-w-0` on the grid child: DialogContent is a `grid`, and a grid
             item's automatic minimum size is its min-content width — so one wide
@@ -346,7 +346,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       {/* Tip prompt — only opens after a 5-star review. Tighter than
           waiting for the separate tip flow on Activity. */}
       <Dialog open={tipPromptOpen} onOpenChange={(o) => { if (!o) { setTipPromptOpen(false); onClose(); } }}>
-        <DialogContent className="!gap-3 sm:max-w-sm">
+        <DialogContent className="max-w-sm">
           <DialogHero title={`Send ${revieweeName} a tip?`} />
           {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
               title": headers show a title and nothing else). Not dropped —

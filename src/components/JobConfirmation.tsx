@@ -174,7 +174,7 @@ export function JobConfirmation({
 
       {/* Confirmation popup */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="!gap-3">
+        <DialogContent>
           <DialogHero
             eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={

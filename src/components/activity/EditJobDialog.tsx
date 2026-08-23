@@ -125,7 +125,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   return (
     <>
     <Dialog open={!!job} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto !gap-3">
+      <DialogContent>
         <DialogHero eyebrow="Editing your job" title={title ? `"${title}"` : "Edit Job"} />
         <div className="space-y-5">
           {locked && (

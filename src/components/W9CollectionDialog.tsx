@@ -81,7 +81,7 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHero
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={

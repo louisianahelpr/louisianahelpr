@@ -998,6 +998,58 @@ html.web-desktop {
    a darker teal-blue that still reads as a link. Deliberately NOT theme-aware
    — the raster OSM tiles underneath are light in both themes, so a dark chip
    here would be the unreadable one. */
+/* The pin popup's CHROME. Leaflet ships a plain white box with a hard 12px
+   radius, a flat grey shadow and a 16px serif "×" — next to the app's frosted
+   job cards it read as a browser default someone forgot to style (owner:
+   "needs to be polished and premium"). The CONTENT already mirrors the job
+   card (see MapJobPopup); this is the frame around it.
+
+   Deliberately NOT theme-swapped: the raster OSM tiles underneath are light in
+   both themes, so a dark card here would float on a light map — the same
+   reasoning as the attribution chip above. */
+.leaflet-popup-content-wrapper {
+  background: hsl(var(--parchment) / 0.97) !important;
+  border: 0.5px solid hsl(var(--olivewood) / 0.18) !important;
+  border-radius: 18px !important;
+  padding: 2px !important;
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.55),
+    0 2px 4px hsl(var(--olivewood) / 0.08),
+    0 12px 24px -8px hsl(var(--olivewood) / 0.22),
+    0 24px 48px -16px hsl(var(--olivewood) / 0.18) !important;
+  backdrop-filter: blur(10px);
+}
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  line-height: inherit !important;
+}
+/* The little arrow. Same fill and hairline as the card so the tail reads as
+   part of it rather than a white triangle stuck underneath. */
+.leaflet-popup-tip {
+  background: hsl(var(--parchment) / 0.97) !important;
+  border: 0.5px solid hsl(var(--olivewood) / 0.18) !important;
+  box-shadow: none !important;
+}
+/* Close control — a real 28px target in the brand ink, not a serif glyph. */
+.leaflet-container a.leaflet-popup-close-button {
+  width: 28px !important;
+  height: 28px !important;
+  top: 6px !important;
+  right: 6px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px !important;
+  font: 400 18px/1 ui-sans-serif, system-ui, sans-serif !important;
+  color: hsl(var(--olivewood) / 0.7) !important;
+  padding: 0 !important;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.leaflet-container a.leaflet-popup-close-button:hover {
+  background: hsl(var(--olivewood) / 0.10) !important;
+  color: hsl(var(--olivewood)) !important;
+}
+
 .leaflet-control-attribution {
   background: rgba(255, 255, 255, 0.94) !important;
   color: hsl(220 10% 26%) !important;

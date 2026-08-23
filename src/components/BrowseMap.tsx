@@ -199,6 +199,37 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
   // worse than one the app says it can't apply here.
   const ignoredFilters = filters ? unsupportedMapFilters(filters) : [];
 
+  /**
+   * The map pane's own width, watched.
+   *
+   * A Leaflet popup is absolutely positioned over the marker and, if it does
+   * not fit, Leaflet PANS THE MAP to make room — so a popup wider than its
+   * pane both clips at the edge and drags the map out from under the pin every
+   * time one opens (owner: "why does it keep moving and cutting off"). The
+   * desktop column is ~270px and the popup was 224–264 plus Leaflet's own
+   * ~44px of content margin, i.e. up to 308: wider than the box, always.
+   *
+   * Capping to the measured width fixes both — nothing to clip, nothing to pan
+   * away from. Watched rather than read once because the column resizes with
+   * the window and with the side panel.
+   */
+  const mapBoxRef = useRef<HTMLDivElement | null>(null);
+  const [paneWidth, setPaneWidth] = useState(0);
+  useEffect(() => {
+    const el = mapBoxRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    setPaneWidth(el.getBoundingClientRect().width);
+    const ro = new ResizeObserver(([entry]) => {
+      setPaneWidth(entry.contentRect.width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  // 44px is Leaflet's fixed content margin; 16 more keeps the shadow off the
+  // edge. Floor at 180 so a freak-narrow pane still renders a usable card.
+  const popupMax = paneWidth ? Math.max(180, Math.min(264, paneWidth - 60)) : 264;
+  const popupMin = Math.min(224, popupMax);
+
   const retry = () => {
     setLoadError(false);
     setLoading(true);
@@ -242,7 +273,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
        a flex-1 wrapper) and bleeds under the dock with flat bottom
        corners. Top corners stay rounded so the panel still reads as a
        distinct surface above the dock. */
-    <div className={`relative h-full w-full overflow-hidden${shellClass}`}>
+    <div ref={mapBoxRef} className={`relative h-full w-full overflow-hidden${shellClass}`}>
       {/* Layer-toggle control card — top-right, surfaced prominently
           so helpers can scan job concentration at a glance and flip
           between individual Pins and the density Heat layer in one
@@ -463,7 +494,15 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
                 plus Leaflet's own 44px of content margin stays inside the
                 narrowest surface this ships to — the 375px phone map pane,
                 which has 12px of padding a side. */}
-            <Popup minWidth={224} maxWidth={264}>
+            <Popup
+              minWidth={popupMin}
+              maxWidth={popupMax}
+              // Keep the pin visible when Leaflet does still need to nudge the
+              // view, and give the nudge real breathing room rather than the
+              // 5px default that left the card kissing the edge.
+              keepInView
+              autoPanPadding={[16, 16]}
+            >
               <MapJobPopup
                 job={job}
                 onJobAction={onJobAction}

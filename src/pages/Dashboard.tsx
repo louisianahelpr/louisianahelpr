@@ -20,6 +20,7 @@ import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
+import { Map, MapPinned } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import DashboardStatusBanners from "@/components/dashboard/DashboardStatusBanners";
@@ -160,6 +161,30 @@ const Dashboard = () => {
       return stored === "compact" || stored === "comfortable" ? stored : "comfortable";
     } catch { return "comfortable"; }
   });
+
+  /**
+   * Is the map column showing? Desktop website only.
+   *
+   * The map is a second way to read the same board, not a required half of the
+   * screen — a helpr who knows their parish wants the list at full width
+   * (owner: "give them the option to get rid of the map"). Persisted, because a
+   * pane that reappears on every route change is one the user has to dismiss
+   * repeatedly. Default ON: the split view is the desktop layout, and a map
+   * nobody has been told exists is worse than one they can close.
+   */
+  const [mapVisible, setMapVisible] = useState<boolean>(
+    () => safeStorage.getItem("helpr.browseMapVisible") !== "0",
+  );
+  // The storage write is OUTSIDE the updater on purpose. React's StrictMode
+  // invokes a state updater twice in development to surface exactly this: with
+  // the setItem inside, the first call stored "0" and the second — re-run
+  // against the already-flipped value — stored "1" again, so the button
+  // appeared to do nothing at all.
+  const toggleMap = useCallback(() => {
+    const next = !mapVisible;
+    setMapVisible(next);
+    safeStorage.setItem("helpr.browseMapVisible", next ? "1" : "0");
+  }, [mapVisible]);
 
   // Desktop split-screen hover sync — hovering a list card scales up the
   // corresponding map pin. null = no card hovered.
@@ -400,6 +425,28 @@ const Dashboard = () => {
                             filters={filters}
                             filtersButtonRef={filtersButtonRef}
                           />
+                          {/* Show / hide the map column. It sits with search
+                              and filters because it is the same kind of
+                              control — it changes how you read the board, not
+                              what is on it. */}
+                          <button
+                            type="button"
+                            onClick={toggleMap}
+                            aria-pressed={mapVisible}
+                            aria-label={mapVisible ? "Hide the map" : "Show the map"}
+                            title={mapVisible ? "Hide the map" : "Show the map"}
+                            className={`h-10 w-10 rounded-ds-md inline-flex items-center justify-center btn-press transition-colors ${
+                              mapVisible
+                                ? "text-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.10)]"
+                                : "text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--bark)/0.06)]"
+                            }`}
+                          >
+                            {mapVisible ? (
+                              <Map className="w-5 h-5" />
+                            ) : (
+                              <MapPinned className="w-5 h-5" />
+                            )}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -469,7 +516,7 @@ const Dashboard = () => {
                     frame is full-width here (PageScaffold desktop), so the
                     map has real room and doesn't clip at a phone-width edge
                     the way the old side-map did (#12). */}
-                {isWebDesktop && (
+                {isWebDesktop && mapVisible && (
                   <div
                     className="w-[48%] shrink-0 min-h-0 flex flex-col"
                     style={{ borderLeft: "1px solid hsl(var(--olivewood) / 0.12)" }}

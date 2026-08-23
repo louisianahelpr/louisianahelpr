@@ -1,5 +1,6 @@
 import { report } from "@/lib/errorLogger";
 import { useEffect, useState } from "react";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
@@ -10,7 +11,6 @@ import {
   Plus,
   type LucideIcon,
 } from "lucide-react";
-import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { getBlockedUserIds } from "@/lib/userBlocks";
@@ -29,12 +29,12 @@ export { AUTH_PREFIXES, NO_NAV_PREFIXES, isDesktopRailRoute };
  *
  *   - Native iOS/Android app  → MobileNav (this component renders null).
  *   - Phone / tablet browser  → MobileNav.
- *   - Wide browser (≥1024px)  → DesktopSidebarNav (MobileNav is CSS-hidden via
+ *   - Wide browser (≥900px)  → DesktopSidebarNav (MobileNav is CSS-hidden via
  *                               `html.web-desktop .mobile-nav-frame { display:none }`).
  *
  * The gate here is identical to the one in useAppShellViewport that sets the
  * `web-desktop` class, so the rail can never appear in the native app:
- *   !Capacitor.isNativePlatform() && matchMedia('(min-width: 1024px)')
+ *   !isNativePlatform && matchMedia('(min-width: 900px)')
  *
  * This is intentionally a first-pass desktop chrome: brand wordmark, the five
  * primary destinations (Home / Posts / Jobs / Messages / Profile) plus the
@@ -55,26 +55,18 @@ const NAV_ITEMS: Array<{
   { path: "/profile", icon: User, label: "Profile" },
 ];
 
-export function useIsWebDesktop() {
-  const [isDesktop, setIsDesktop] = useState(false);
-  useEffect(() => {
-    if (Capacitor.isNativePlatform() || typeof window.matchMedia !== "function") {
-      setIsDesktop(false);
-      return;
-    }
-    const mql = window.matchMedia("(min-width: 1024px)");
-    const apply = (m: boolean) => setIsDesktop(m);
-    apply(mql.matches);
-    const onChange = (e: MediaQueryListEvent) => apply(e.matches);
-    if (typeof mql.addEventListener === "function") {
-      mql.addEventListener("change", onChange);
-      return () => mql.removeEventListener("change", onChange);
-    }
-    mql.addListener(onChange);
-    return () => mql.removeListener(onChange);
-  }, []);
-  return isDesktop;
-}
+/* RE-EXPORT, not a second implementation.
+   This file used to define its own copy of the hook with a `(min-width: 1024px)`
+   query while `src/hooks/useIsWebDesktop.ts` — and index.css, and tailwind's
+   `lg` — had already moved to 900. The two copies did not have the same
+   consumers: AppShell / DesktopTopNav / Activity / FilterSheet read the 900
+   version, while Navbar / Dashboard / Messages / this rail read the 1024 one.
+   Between 900 and 1023 the html gained `web-desktop desktop-rail` and reserved
+   248px for a rail that then returned null — a dead empty strip down the right
+   of every authed page, with the hamburger appearing to do nothing.
+   One query, one place. (Owner: "you need to fix this its currently 3
+   different things.") */
+export { useIsWebDesktop };
 
 const DesktopSidebarNav = () => {
   const { open: sidePanelOpen } = useSidePanel();

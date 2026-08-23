@@ -111,16 +111,28 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
   const monthName = new Date().toLocaleDateString("en-US", { month: "long" });
 
   return (
+    /* SAME SURFACE as its neighbours (owner: "August background should match
+       the others"). This card sat in a column with the projection card and the
+       Wallet card — both `rounded-2xl liquid-glass p-5` — while it wore a flat
+       parchment-tint box with a 1px border and tighter padding, so one card in
+       a stack of three read as a different kind of thing.
+
+       The GOAL-HIT state keeps its sage wash: that is a real state change worth
+       colouring, and it now paints over the shared glass rather than replacing
+       it, so the celebration is a tint on the card instead of a different card.
+       `undefined` rather than a background when the goal is not hit — otherwise
+       an inline value would override liquid-glass and put the odd one out
+       straight back. */
     <div
-      className="rounded-ds-lg px-4 py-3.5 space-y-3"
-      style={{
-        background: hitGoal
-          ? "hsl(var(--sage) / 0.08)"
-          : "hsl(var(--parchment) / 0.5)",
-        border: hitGoal
-          ? "1px solid hsl(var(--sage) / 0.25)"
-          : "1px solid hsl(var(--olivewood) / 0.12)",
-      }}
+      className="rounded-2xl liquid-glass p-5 space-y-3"
+      style={
+        hitGoal
+          ? {
+              background: "hsl(var(--sage) / 0.08)",
+              border: "1px solid hsl(var(--sage) / 0.25)",
+            }
+          : undefined
+      }
     >
       {/* Header row */}
       <div className="flex items-center justify-between">

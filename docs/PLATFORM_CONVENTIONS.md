@@ -96,3 +96,24 @@ Privacy purpose strings (all present and phrased as *why*), in-app account
 deletion (App Store 5.1.1(v)), Sign in with Apple, destructive red,
 `prefers-reduced-motion`, safe-area insets, swipe-back, haptics, splash screen,
 pinch-zoom, no input auto-zoom.
+
+## 7. Ownership split (2026-08-22)
+
+Two sessions were editing the same files and reverting each other. Owner's split:
+
+- **App surface** — auth screens, dashboard, post-job, activity, messages,
+  profile tabs, admin, and the shared UI primitives (`components/ui/*`,
+  `components/dashboard/*`, `components/auth/*`).
+- **Webpage surface** — landing, Footer, HelpCenter, Legal, Support,
+  ForBusiness, parish/impact/community pages, SEO metadata, desktop web shell.
+
+A change needed in a shared primitive is raised, not made unilaterally.
+
+### Settled questions — do not reopen without reading the history
+
+- **Social auth buttons: STACKED, full width, mark + word.** Four passes have
+  flipped this; the reasoning is in `SocialAuthButtons.tsx`.
+- **Business signup is not offered on the consumer create-account form.**
+  It stays reachable at `/signup?type=business` and from Sign in.
+- **Auth screens are label-only** — no field placeholders (the MFA code field's
+  format hint is the one exception).

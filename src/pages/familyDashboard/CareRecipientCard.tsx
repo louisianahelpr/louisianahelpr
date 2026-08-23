@@ -51,15 +51,15 @@ export function CareRecipientCard({
           <div className="flex items-center gap-1 mt-0.5">
             {isPending ? (
               <>
-                <Clock className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))" }} />
-                <span className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                <Clock className="w-3 h-3" style={{ color: "hsl(var(--accent-ink))" }} />
+                <span className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--accent-ink))" }}>
                   Invite pending
                 </span>
               </>
             ) : (
               <>
-                <CheckCircle2 className="w-3 h-3" style={{ color: "hsl(var(--sage))" }} />
-                <span className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--sage))" }}>
+                <CheckCircle2 className="w-3 h-3" style={{ color: "hsl(var(--sage-ink))" }} />
+                <span className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--sage-ink))" }}>
                   Active
                 </span>
               </>
@@ -101,7 +101,7 @@ export function CareRecipientCard({
             className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-ds-sm text-ds-12 font-sans font-medium transition-all active:scale-[0.98]"
             style={{
               background: "hsl(var(--burnt-sienna) / 0.1)",
-              color: "hsl(var(--burnt-sienna))",
+              color: "hsl(var(--accent-ink))",
             }}
           >
             <UserPlus className="w-3.5 h-3.5" />
@@ -124,7 +124,7 @@ export function CareRecipientCard({
             className="w-full flex items-center justify-center gap-1.5 h-9 rounded-ds-sm text-ds-12 font-sans font-medium transition-all active:scale-[0.98]"
             style={{
               background: "hsl(var(--burnt-sienna) / 0.1)",
-              color: "hsl(var(--burnt-sienna))",
+              color: "hsl(var(--accent-ink))",
             }}
           >
             Copy invite link

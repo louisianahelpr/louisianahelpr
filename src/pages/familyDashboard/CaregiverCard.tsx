@@ -26,7 +26,7 @@ export function CaregiverCard({
       <div className="flex items-start gap-3">
         <div
           className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 text-ds-14 font-sans font-semibold"
-          style={{ background: "hsl(var(--sage) / 0.14)", color: "hsl(var(--sage))" }}
+          style={{ background: "hsl(var(--sage) / 0.14)", color: "hsl(var(--sage-ink))" }}
         >
           {name.slice(0, 1).toUpperCase()}
         </div>

@@ -1,10 +1,8 @@
-import { Search, SlidersHorizontal, X } from "lucide-react";
-import { FilterSheet } from "@/components/dashboard/FilterSheet";
+import { Search, X } from "lucide-react";
 import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 import { hapticLight } from "@/lib/haptics";
 import type { StatusFilter } from "./activityFilters";
 import type { Tab } from "@/components/activity/activityConstants";
-import { defaultStatusFilterFor } from "@/components/activity/activityConstants";
 
 /**
  * ActivityHeader — the title row with search/filter toggle buttons, the
@@ -58,8 +56,6 @@ export interface ActivityHeaderProps {
   activeCounts: Record<string, number>;
   statusFilter: string;
   setStatusFilter: (filter: string) => void;
-  filterOpen: boolean;
-  setFilterOpen: (open: boolean) => void;
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
   searchQuery: string;
@@ -75,49 +71,92 @@ export function ActivityHeader({
   activeCounts,
   statusFilter,
   setStatusFilter,
-  filterOpen,
-  setFilterOpen,
   searchOpen,
   setSearchOpen,
   searchQuery,
   setSearchQuery,
 }: ActivityHeaderProps) {
-  // The "non-default" status that lights up the filter button + dot.
-  // Preserved verbatim from the prior dropdown so the active indicator
-  // behaves identically after the move to the bottom sheet.
-  const defaultStatus = defaultStatusFilterFor(tab);
-  const isStatusFiltered = statusFilter !== defaultStatus;
-
-  // What subset am I looking at? Without this the page says "My Posts" whether
-  // it is showing everything or two of eleven, and the only clue that a filter
-  // is on is a 2px dot on the filter button.
-  //
-  // "All" says nothing, deliberately — an unfiltered list needs no caveat, and
-  // it is the one value where the extra words would be pure noise. Note this is
-  // keyed on the literal "all", NOT on the tab's default: My Posts DEFAULTS to
-  // Active, which is a subset, and the whole point is to say so.
-  const activeFilter =
-    statusFilter === "all" ? undefined : activeStatusFilters.find((f) => f.key === statusFilter);
-  const activeFilterCount = activeFilter ? activeCounts[activeFilter.key] ?? 0 : 0;
-  // COUNT FIRST: "2 Active", not "Active 2".
-  //
-  // Owner's call, and it is a parsing fix rather than a preference. "Active 2"
-  // reads as a label with a trailing number of unclear meaning — a count? a
-  // rank? part of a name? — while "2 Active" reads as a quantity of a thing,
-  // which is what it is. It also matches the Messages chip this indicator was
-  // modelled on, which has always said "1 unread" and not "unread 1".
-  //
-  // Applies to every filter value (Active / Completed / Cancelled), not just
-  // Active, and the sr-only prefix below announces the same order the sighted
-  // reader gets.
-  // The inline set drops the catch-all. See the note on the control below.
+  /* The tab set drops the catch-all. On My Jobs "All" returned the same rows
+     as Active, so it was a quarter of the control spent on a duplicate
+     (owner). Which tab opens selected is the page's call
+     (`defaultStatusFilterFor`), not this row's. */
   const inlineStatusFilters = activeStatusFilters.filter((f) => f.key !== "all");
 
-  const filterLabel = activeFilter
-    ? activeFilterCount > 0
-      ? `${activeFilterCount} ${activeFilter.label}`
-      : activeFilter.label
-    : undefined;
+  /* THE TABS, built once and placed twice.
+
+     On the desktop website they ride in the header row's `meta` slot beside
+     the screen name — there is width to spare there. On phone the same four
+     labels cannot share a 375px row with a title and a search button, so the
+     row below places them on their own line, still directly above the first
+     job card (owner: "put the needs you etc at the top oiver the job card
+     same for search and remove the filter since they will all be ther").
+
+     ONE definition either way — the phone list and the desktop list must
+     never be able to offer different filters.
+
+     UNDERLINE TABS, not filled chips (owner: "make smaller", "could look
+     better in this space"). Bordered pills in a tinted track put four
+     rectangles of chrome above the cards to express one choice; the same
+     choice reads at a glance as the screen's own display italic with a rule
+     under the live one, and it costs a third of the height. It also stops
+     the filter competing with the job cards for weight — the cards are the
+     content, this is a caption on them. */
+  const statusTabs = (
+          <div
+            role="group"
+            aria-label="Filter by status"
+            className="flex items-baseline gap-4 shrink-0"
+          >
+            {inlineStatusFilters.map((f) => {
+              const count = activeCounts[f.key] || 0;
+              const isActive = statusFilter === f.key;
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => { hapticLight(); setStatusFilter(f.key); }}
+                  className="group inline-flex items-baseline gap-1 !min-h-0 !min-w-0 py-0.5 transition-colors"
+                  style={{
+                    color: isActive
+                      ? "hsl(var(--bark))"
+                      : "hsl(var(--olivewood) / 0.65)",
+                  }}
+                >
+                  <span
+                    /* `whitespace-nowrap`: "Needs you" wrapped to two lines
+                       on a 375px screen and the active underline then sat
+                       under "you" alone, which looked like a typo rather than
+                       a selected tab. The row scrolls horizontally instead —
+                       a tab label is a name, and a name does not wrap. */
+                    className="font-display italic text-ds-13 leading-none whitespace-nowrap"
+                    style={{
+                      fontWeight: isActive ? 700 : 500,
+                      borderBottom: isActive
+                        ? "1.5px solid hsl(var(--bark))"
+                        : "1.5px solid transparent",
+                      paddingBottom: "3px",
+                    }}
+                  >
+                    {f.label}
+                  </span>
+                  {count > 0 && (
+                    <span
+                      className="font-sans tabular-nums text-ds-9 leading-none"
+                      style={{
+                        color: isActive
+                          ? "hsl(var(--bark) / 0.6)"
+                          : "hsl(var(--olivewood) / 0.45)",
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+  );
 
   return (
     <>
@@ -175,88 +214,7 @@ export function ActivityHeader({
              for there: "put 1 unread to the right of messages bc i dont like
              it under"). It is a <span>, never a heading — the row's h1 is the
              whole page's only one. */
-          meta={
-            inlineFilters ? (
-              /* UNDERLINE TABS, not filled chips (owner: "make smaller",
-                 "could look better in this space"). Three bordered pills in a
-                 tinted track put four rectangles of chrome above the cards to
-                 express one choice; the same choice reads at a glance as the
-                 screen's own display italic with a rule under the live one,
-                 and it costs a third of the height. It also stops the filter
-                 competing with the job cards for weight — the cards are the
-                 content, this is a caption on them.
-
-                 "All" is deliberately absent (owner): on My Jobs it returned
-                 the same rows as Active, so it was a third of the control
-                 spent on a duplicate. */
-              <div
-                role="group"
-                aria-label="Filter by status"
-                className="flex items-baseline gap-4 shrink-0"
-              >
-                {inlineStatusFilters.map((f) => {
-                  const count = activeCounts[f.key] || 0;
-                  const isActive = statusFilter === f.key;
-                  return (
-                    <button
-                      key={f.key}
-                      type="button"
-                      aria-pressed={isActive}
-                      onClick={() => { hapticLight(); setStatusFilter(f.key); }}
-                      className="group inline-flex items-baseline gap-1 !min-h-0 !min-w-0 py-0.5 transition-colors"
-                      style={{
-                        color: isActive
-                          ? "hsl(var(--bark))"
-                          : "hsl(var(--olivewood) / 0.65)",
-                      }}
-                    >
-                      <span
-                        className="font-display italic text-ds-13 leading-none"
-                        style={{
-                          fontWeight: isActive ? 700 : 500,
-                          borderBottom: isActive
-                            ? "1.5px solid hsl(var(--bark))"
-                            : "1.5px solid transparent",
-                          paddingBottom: "3px",
-                        }}
-                      >
-                        {f.label}
-                      </span>
-                      {count > 0 && (
-                        <span
-                          className="font-sans tabular-nums text-ds-9 leading-none"
-                          style={{
-                            color: isActive
-                              ? "hsl(var(--bark) / 0.6)"
-                              : "hsl(var(--olivewood) / 0.45)",
-                          }}
-                        >
-                          {count}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : filterLabel ? (
-              <span
-                className="font-serif italic text-ds-11 leading-none shrink-0"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                {/* The middot is the ONLY decorative glyph in this label, and
-                    it leads. There is deliberately nothing after
-                    `filterLabel` — the owner reported "a stray character
-                    after the count"; what is actually there is the filter
-                    button's own active dot (the 8px bark pip pinned to that
-                    button's top-right, further along the row), which is a
-                    real state indicator and stays. Kept as a single leading
-                    span so a future edit can't reintroduce a trailing one. */}
-                <span aria-hidden className="mr-1">·</span>
-                <span className="sr-only">Filtered by </span>
-                {filterLabel}
-              </span>
-            ) : undefined
-          }
+          meta={inlineFilters ? statusTabs : undefined}
           actions={
             <>
               <button
@@ -269,90 +227,21 @@ export function ActivityHeader({
               >
                 <Search className={inlineFilters ? "w-3.5 h-3.5" : "w-4 h-4"} />
               </button>
-              {/* The sheet's trigger. Absent on the desktop website — the
-                  chips above ARE the filter there, so this would open a modal
-                  duplicating controls already in the row. */}
-              {!inlineFilters && (
-                <button
-                  type="button"
-                  aria-label="Filter by status"
-                  aria-expanded={filterOpen}
-                  onClick={() => { hapticLight(); setFilterOpen(true); }}
-                  className={`h-11 w-11 rounded-ds-md btn-press flex items-center justify-center relative transition ${
-                    filterOpen || isStatusFiltered
-                      ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                  }`}
-                >
-                  <SlidersHorizontal className="w-4 h-4" />
-                  {isStatusFiltered && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[hsl(var(--bark))] ring-2 ring-background" />
-                  )}
-                </button>
-              )}
             </>
           }
         />
       )}
 
-      {!inlineFilters && (
-      <FilterSheet
-        open={filterOpen}
-        onOpenChange={setFilterOpen}
-        activeFilterCount={isStatusFiltered ? 1 : 0}
-        onClearAll={() => setStatusFilter(defaultStatus)}
-        sections={[
-          {
-            key: "status",
-            title: "Filter by status",
-            content: (
-              <div className="grid grid-cols-2 gap-1.5">
-                {activeStatusFilters.map((f) => {
-                  const count = activeCounts[f.key] || 0;
-                  const isActive = statusFilter === f.key;
-                  return (
-                    <button
-                      key={f.key}
-                      onClick={() => { hapticLight(); setStatusFilter(f.key); setFilterOpen(false); }}
-                      className="inline-flex items-center justify-center gap-1.5 w-full px-2 h-9 rounded-ds-md squircle border text-ds-11 font-semibold tracking-tight transition-all btn-press active:scale-[0.98]"
-                      style={
-                        isActive
-                          ? {
-                              background: "hsl(var(--bark))",
-                              color: "hsl(var(--parchment))",
-                              borderColor: "hsl(var(--bark))",
-                              boxShadow: "var(--elev-bark-flat)",
-                            }
-                          : {
-                              background: "hsl(var(--background))",
-                              color: "hsl(var(--ink-deep))",
-                              borderColor: "hsl(var(--border) / 0.6)",
-                            }
-                      }
-                    >
-                      <span className="truncate">{f.label}</span>
-                      {count > 0 && (
-                        <span
-                          className="text-ds-10 tabular-nums font-semibold shrink-0 px-1.5 py-[1px] rounded-ds-pill leading-none inline-flex items-center"
-                          style={
-                            isActive
-                              ? { background: "hsl(var(--parchment) / 0.18)", color: "hsl(var(--parchment))" }
-                              : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.85)" }
-                          }
-                        >
-                          {count}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ),
-          },
-        ]}
-      />
+      {/* PHONE: the same tabs, on their own line under the title row. Rendered
+          only when they are not already IN that row, and hidden while the
+          search input has taken the row over — one control at a time. The
+          horizontal scroller is insurance for a 320px screen; from 375 up the
+          four labels fit without it. */}
+      {!inlineFilters && !searchOpen && (
+        <div className="-mx-1 px-1 pb-0.5 overflow-x-auto scrollbar-hide">
+          {statusTabs}
+        </div>
       )}
-
     </>
   );
 }

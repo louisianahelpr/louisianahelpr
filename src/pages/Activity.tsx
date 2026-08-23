@@ -81,7 +81,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // is too coarse for typing latency.
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
   const [searchOpen, setSearchOpen] = useState(() => !!searchParams.get("q"));
-  const [filterOpen, setFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     return searchParams.get("filter") ?? defaultFilter;
   });
@@ -292,8 +291,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       activeCounts={activeCounts}
       statusFilter={statusFilter}
       setStatusFilter={setStatusFilter}
-      filterOpen={filterOpen}
-      setFilterOpen={setFilterOpen}
       searchOpen={searchOpen}
       setSearchOpen={setSearchOpen}
       searchQuery={searchQuery}

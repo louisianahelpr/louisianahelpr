@@ -57,5 +57,6 @@ permission_strings:
   NSFaceIDUsageDescription: "Helpr uses Face ID to confirm it's you before cashing out your earnings."
   NSLocationWhenInUseUsageDescription: "Helpr uses your location to show nearby jobs and confirm helpr arrival."
   NSMicrophoneUsageDescription: "Record voice notes to send in chat."
+  NSSpeechRecognitionUsageDescription: "Helpr transcribes your voice so you can dictate chat messages instead of typing."
   NSPhotoLibraryAddUsageDescription: "Helpr can save downloaded receipts and shared images to your photo library."
   NSPhotoLibraryUsageDescription: "Helpr needs photo library access so you can upload job details, progress photos, and verification documents."

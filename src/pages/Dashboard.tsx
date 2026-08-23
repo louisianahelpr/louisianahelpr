@@ -20,7 +20,6 @@ import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
-import { useTopNavActions } from "@/components/topNavActions";
 import { Skeleton } from "@/components/ui/skeleton";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import DashboardStatusBanners from "@/components/dashboard/DashboardStatusBanners";
@@ -231,21 +230,6 @@ const Dashboard = () => {
     [upcomingJob, navigate],
   );
 
-  // On the desktop website this page's controls live in the global app bar,
-  // not in a title card of its own. Memoised because useTopNavActions depends
-  // on node identity — an inline element would be a new object every render
-  // and the effect would loop.
-  const topNavActions = useMemo(
-    () =>
-      isWebDesktop ? (
-        <>
-          {statusPill}
-          <BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />
-        </>
-      ) : null,
-    [isWebDesktop, statusPill, filters],
-  );
-  useTopNavActions(topNavActions);
 
   if (loading) {
     // Loading state mirrors the *exact* loaded layout: the same
@@ -324,18 +308,18 @@ const Dashboard = () => {
     <PageScaffold
       animate
       panelElevation="raised"
-      // On the desktop website this page has NO title card: the live-job pill
-      // and the search/filter controls are pushed up into the global app bar
-      // (DesktopTopNav) via useTopNavActions below, and the emblem + bell live
-      // there too — so a card here would repeat all three. Phone and native
-      // keep the card exactly as before; they have no app bar.
-      titleCard={isWebDesktop ? undefined : (
-          <DashboardTitleBar
-            status={statusPill}
-            actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
-            searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
-          />
-        )}
+      // A slim toolbar above the feed (owner: "move to section above the job
+      // card"). On desktop it carries only the search + filter controls — the
+      // emblem and bell live in the global app bar, and the IN PROGRESS pill
+      // was removed outright (owner). Phone/native keep the full card,
+      // emblem + pill included, since they have no app bar to hold them.
+      titleCard={
+        <DashboardTitleBar
+          status={isWebDesktop ? undefined : statusPill}
+          actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
+          searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
+        />
+      }
       titleCardClassName={TITLE_BAR_PADDING}
       aboveTitle={<BroadcastBanner />}
       beforePanel={

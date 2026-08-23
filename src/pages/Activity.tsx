@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { useTopNavActions } from "@/components/topNavActions";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -238,32 +237,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   const isWebDesktop = useIsWebDesktop();
 
-  // Desktop website: this row lives in the global app bar, with its title
-  // hidden (sr-only, so the page keeps its h1) — the bar already carries the
-  // page's chrome, so repeating "My Posts" under it was the duplicate the
-  // owner flagged. Phone and native keep the title card unchanged.
-  const activityTopNavActions = useMemo(
-    () =>
-      isWebDesktop && !isTrulyEmpty ? (
-        <ActivityHeader
-          title={tab === "posted" ? "My Posts" : "My Jobs"}
-          titleSrOnly
-          tab={tab}
-          activeStatusFilters={activeStatusFilters}
-          activeCounts={activeCounts}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          filterOpen={filterOpen}
-          setFilterOpen={setFilterOpen}
-          searchOpen={searchOpen}
-          setSearchOpen={setSearchOpen}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-        />
-      ) : null,
-    [isWebDesktop, isTrulyEmpty, tab, activeStatusFilters, activeCounts, statusFilter, setStatusFilter, filterOpen, setFilterOpen, searchOpen, setSearchOpen, searchQuery, setSearchQuery],
-  );
-  useTopNavActions(activityTopNavActions);
 
   if (loading) {
     // Loading state mirrors the loaded layout: two-box stack on a
@@ -314,9 +287,14 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       <PageScaffold
         animate
         titleCard={
-          isTrulyEmpty || isWebDesktop ? undefined : (
+          isTrulyEmpty ? undefined : (
             <ActivityHeader
               title={tab === "posted" ? "My Posts" : "My Jobs"}
+              // Desktop: the app bar already identifies the app, so the page
+              // name is sr-only here and the row is just its count + controls
+              // — the "small box above the cards" the owner asked for. Phone
+              // and native keep the visible title; they have no bar.
+              titleSrOnly={isWebDesktop}
               tab={tab}
               activeStatusFilters={activeStatusFilters}
               activeCounts={activeCounts}

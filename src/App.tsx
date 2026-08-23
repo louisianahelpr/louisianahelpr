@@ -61,6 +61,7 @@ const MobileNav = lazy(() => import("./components/MobileNav"));
 const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const DesktopTopNav = lazy(() => import("./components/DesktopTopNav"));
 import { TopNavActionsProvider } from "./components/topNavActions";
+import { SidePanelProvider } from "./components/sidePanelOpen";
 const PermissionRationaleDialog = lazy(() =>
   import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
 );
@@ -573,6 +574,7 @@ const App = () => (
           <Suspense fallback={null}>
             <StrikeBanner />
           </Suspense>
+          <SidePanelProvider>
           <TopNavActionsProvider>
           <main
             id="main-content"
@@ -588,6 +590,7 @@ const App = () => (
             <TermsReconsentDialog />
           </Suspense>
           </TopNavActionsProvider>
+          </SidePanelProvider>
           <SpeedInsightsRouted />
         </OfflineBannerLayoutProvider>
         </AppLockGate>

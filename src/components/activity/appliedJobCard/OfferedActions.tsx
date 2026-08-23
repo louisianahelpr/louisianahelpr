@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, CheckCircle2, XCircle, Timer } from "lucide-react";
 import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
-import { AddToCalendarButton } from "./AddToCalendarButton";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import type { Application, AppliedApp, Job } from "../activityConstants";
 
@@ -84,25 +83,12 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           respond. The deadline below is the clock that matters in this state;
           the start countdown appears once they have confirmed (see
           ConfirmedSection). */}
-      {/* Wrapped: AddToCalendarButton's root is inline-flex, and so was the
-          deadline line below it, so `space-y-2.5` added a margin between two
-          inline boxes that still shared a text line — the action and the
-          countdown rendered side by side and read as one run-on label. */}
-      {job.date_needed && (
-        <div>
-        <AddToCalendarButton
-          job={{
-            id: job.id,
-            title: job.title,
-            location: job.location ?? null,
-            description: job.description ?? null,
-            dateNeeded: job.date_needed,
-            startTime: job.start_time ?? null,
-            estimatedHours: typeof job.estimated_hours === "number" ? job.estimated_hours : null,
-          }}
-        />
-        </div>
-      )}
+      {/* No "Add to Calendar" here (owner). Accepting a job is what should
+          put it on the helper's calendar — the app owns that, so handing them
+          an .ics file to download and import themselves is asking the user to
+          do the app's job, on the screen where they have not even accepted
+          yet. */}
+
       {/* The clock that actually matters in this state.
           `response_deadline` is what accept_application stamps on an
           application offer; `direct_offer_expires_at` is what jobSubmitHelpers

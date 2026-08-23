@@ -846,7 +846,12 @@ html.web-desktop {
      grey band down the left of the whole page at 1440. The document-scroll
      twin below (`html.web-desktop.desktop-rail:not(.app-shell) #root`) has
      always been gated this way; this one was not, so the two disagreed. */
-  html.web-desktop.app-shell.desktop-rail .app-shell-frame {
+  /* The rail's width is only reserved while the panel is actually OPEN. It is
+     toggled by the hamburger in the top bar now, not by a breakpoint, so a
+     closed panel must give its width back — otherwise closing it leaves a
+     248px dead band where it used to be. `side-panel-open` is stamped on
+     <html> by SidePanelProvider. */
+  html.web-desktop.app-shell.desktop-rail.side-panel-open .app-shell-frame {
     /* Fill the viewport to the LEFT of the sidebar — the rail sits on the
        right edge now (owner). No max-width cap, no centered phone frame. */
     right: var(--desktop-sidebar-w);
@@ -943,7 +948,7 @@ html.web-desktop {
      #root by the rail width so the whole page sits to the right of the rail
      and re-centers in the remaining space. The fixed rail ignores this
      padding, so it stays pinned at the viewport's left edge. */
-  html.web-desktop.desktop-rail:not(.app-shell) #root {
+  html.web-desktop.desktop-rail.side-panel-open:not(.app-shell) #root {
     padding-right: var(--desktop-sidebar-w);
   }
 

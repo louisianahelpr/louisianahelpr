@@ -188,27 +188,6 @@ const DesktopSidebarNav = () => {
           at the top rather than a full header-height spacer. */}
       <div className="h-3 shrink-0" aria-hidden="true" />
 
-      {/* Post-task primary action */}
-      {!isPendingApproval && (
-        <div className="px-4 pb-3">
-          <button
-            onClick={() => navigate("/post-job")}
-            onMouseEnter={() => prefetchRoute("/post-job")}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-sans font-semibold text-ds-15 transition-transform active:scale-[0.98]"
-            style={{
-              background:
-                "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-border)) 100%)",
-              color: "hsl(var(--parchment))",
-              border: "1px solid hsl(var(--bark-border))",
-              boxShadow:
-                "inset 0 1.5px 1px 0 rgba(255,255,255,0.28), 0 8px 18px -6px hsl(var(--bark) / 0.5)",
-            }}
-          >
-            <Plus className="h-5 w-5" strokeWidth={2.5} />
-            Post a Job
-          </button>
-        </div>
-      )}
 
       {/* Destinations */}
       <ul className="flex flex-col gap-1 px-3 py-2">
@@ -256,6 +235,31 @@ const DesktopSidebarNav = () => {
           );
         })}
       </ul>
+
+      {/* Post a Job sits BELOW the destinations (owner). It is an ACTION, not
+          a place — above Home it made the primary CTA the first item in a list
+          of navigation, which is a different kind of thing entirely. */}
+      {/* Post-task primary action */}
+      {!isPendingApproval && (
+        <div className="px-4 pb-3">
+          <button
+            onClick={() => navigate("/post-job")}
+            onMouseEnter={() => prefetchRoute("/post-job")}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-sans font-semibold text-ds-15 transition-transform active:scale-[0.98]"
+            style={{
+              background:
+                "radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-border)) 100%)",
+              color: "hsl(var(--parchment))",
+              border: "1px solid hsl(var(--bark-border))",
+              boxShadow:
+                "inset 0 1.5px 1px 0 rgba(255,255,255,0.28), 0 8px 18px -6px hsl(var(--bark) / 0.5)",
+            }}
+          >
+            <Plus className="h-5 w-5" strokeWidth={2.5} />
+            Post a Job
+          </button>
+        </div>
+      )}
     </nav>
   );
 };

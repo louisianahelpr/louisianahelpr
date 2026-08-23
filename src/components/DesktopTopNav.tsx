@@ -5,6 +5,8 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { useTopNavActionsSlot } from "@/components/topNavActions";
+import { useSidePanel } from "@/components/sidePanelOpen";
+import { Menu } from "lucide-react";
 
 /**
  * The signed-in app bar for the DESKTOP WEBSITE — emblem left, notification
@@ -41,6 +43,7 @@ const DesktopTopNav = () => {
   // Whatever the current page pushed up — its status pill, search and filter
   // controls, "Select", and so on. Null on pages that contribute nothing.
   const pageActions = useTopNavActionsSlot();
+  const { open, toggle } = useSidePanel();
 
   if (!isWebDesktop) return null;
   if (!isDesktopRailRoute(location.pathname)) return null;
@@ -62,6 +65,19 @@ const DesktopTopNav = () => {
         <div className="flex items-center gap-1.5 -mr-1">
           {pageActions}
           <NotificationPanel />
+          {/* The hamburger OPENS AND CLOSES the side panel — it does not open a
+              menu sheet. It sits on the RIGHT (owner) because that is the edge
+              the panel itself is on, so the control and the thing it controls
+              are together rather than at opposite ends of the bar. */}
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={open ? "Close navigation panel" : "Open navigation panel"}
+            aria-expanded={open}
+            className="h-11 w-11 rounded-ds-md inline-flex items-center justify-center btn-press transition-colors text-[hsl(var(--olivewood))] hover:bg-[hsl(var(--olivewood)/0.08)]"
+          >
+            <Menu className="w-5 h-5" strokeWidth={2.25} />
+          </button>
         </div>
       </div>
     </header>

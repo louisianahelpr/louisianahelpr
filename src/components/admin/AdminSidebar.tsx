@@ -180,7 +180,10 @@ const AdminSidebar = ({
           {!collapsed && (
             <div className="min-w-0">
               <p
-                className="font-sans font-semibold leading-tight truncate text-ds-15"
+                // Same face as the section titles it sits above, and as every
+                // heading in the app — see AdminSectionHeader for why admin no
+                // longer sets its own type.
+                className="font-display font-bold leading-tight truncate text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
               >
                 Helpr Admin

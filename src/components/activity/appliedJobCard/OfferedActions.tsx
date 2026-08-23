@@ -142,15 +142,49 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           consequenceText="Accept or decline before the deadline"
         />
       ) : (
-        /* Only reachable when the row carries no timestamp at all — then we
-           state the rule in words rather than inventing a clock. */
-        <p
-          className="flex items-center gap-1.5 text-ds-11 font-sans"
-          style={{ color: "hsl(var(--burnt-sienna))" }}
+        /* NO COUNTDOWN AVAILABLE — same panel, different words.
+           This used to be a bare one-line sentence in sienna, so two offers
+           sitting one above the other in the same list wore two completely
+           different designs for the same fact: one a bordered amber panel with
+           a running clock, the other a naked line of text. Same shape now; only
+           the sentence changes.
+
+           Two ways to land here, and they are not the same statement:
+           - the row carries no timestamp at all, so we state the 24-hour rule
+             in words rather than inventing a clock; or
+           - we DO have an offer stamp and the derived 24-hour window has
+             already elapsed. Repeating "Respond within 24 hours" there is the
+             app contradicting itself — the 24 hours are gone. We say what is
+             true instead, and still leave both buttons live, because only a
+             server-stamped deadline is allowed to take the decision away. */
+        <div
+          className="flex items-start gap-2 p-2 rounded-ds-sm border"
+          style={{
+            background: "hsl(var(--amber-tint) / 0.05)",
+            borderColor: "hsl(var(--amber-tint) / 0.20)",
+            color: "hsl(var(--muted-foreground))",
+          }}
         >
-          <Timer className="w-3.5 h-3.5 shrink-0" aria-hidden />
-          Respond within {DEFAULT_RESPONSE_WINDOW_HOURS} hours
-        </p>
+          <Timer className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
+          <div className="min-w-0">
+            {derivedDeadline ? (
+              <>
+                <p className="text-ds-11 font-semibold">Waiting on your answer</p>
+                <p className="text-ds-10 mt-0.5">
+                  The usual {DEFAULT_RESPONSE_WINDOW_HOURS}-hour window has passed — the
+                  poster can still offer this to somebody else.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-ds-11 font-semibold">
+                  Respond within {DEFAULT_RESPONSE_WINDOW_HOURS} hours
+                </p>
+                <p className="text-ds-10 mt-0.5">Accept or decline before the window closes</p>
+              </>
+            )}
+          </div>
+        </div>
       )}
       {/* Equal width. Accept used to take flex-[2] so the money-earning action
           led, but the owner asked for the pair to match: "accept and decline

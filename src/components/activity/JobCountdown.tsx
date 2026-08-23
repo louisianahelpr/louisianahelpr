@@ -54,22 +54,18 @@ export const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: str
   return (
     <div className={`flex items-center gap-2 p-2.5 rounded-ds-sm border ${colorClasses}`}>
       <Timer className="w-4 h-4 shrink-0" />
-      <div className="min-w-0">
-        <p className="text-ds-11 font-semibold tabular-nums">{label}: {timeStr}</p>
-        {/* No opacity modifier. At 10px this line has to clear WCAG AA, and
-            `opacity-80` over the tinted card measured 3.72:1 (axe, serious) —
-            #7d8267 on #f7f7f6. opacity-90 fixes the primary branch (4.58) but
-            NOT the critical one (destructive lands at 4.35), and the critical
-            branch is the one that most needs reading. Full opacity clears all
-            three (5.71 / 5.06). The de-emphasis is already carried by size and
-            weight against the line above (text-ds-11 font-semibold). */}
-        <p className="text-ds-10 mt-0.5">
-          {startTime
-            ? jobDate.toLocaleString("en-US", { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-            : jobDate.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric' }) + " · Flexible"
-          }
-        </p>
-      </div>
+      {/* ONE LINE, not two. This pill used to restate the date and start time
+          underneath the countdown — "Job starts in: 5d 3h 42m" over "Fri, Aug
+          28, 8:00 AM" — while the card's own meta row, two rows above it,
+          already reads "Lafayette · Fri, Aug 28 · 8:00 AM". Same fact, twice,
+          a centimetre apart (owner, repeatedly: "remove it already says this
+          above"). What this pill knows that the meta row does not is the
+          COUNTDOWN, so that is all it says now.
+
+          `JobCardMetaRow` also covers the missing-time case — it prints
+          "Flexible" in the time slot — so there is nothing left for a second
+          line to add in either branch. */}
+      <p className="text-ds-11 font-semibold tabular-nums min-w-0">{label}: {timeStr}</p>
     </div>
   );
 };

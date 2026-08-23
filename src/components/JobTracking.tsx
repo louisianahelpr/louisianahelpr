@@ -857,6 +857,19 @@ export function JobTracking({
           if (bothConfirmed) {
             nextIdx++;
           } else {
+            /* "Confirm the job below" is only true once there IS something
+               below. JobConfirmation opens 24 hours out; before that it used
+               to render nothing, so this line pointed at an empty space.
+               JobConfirmation now shows its own "opens in …" card in that
+               window, and this line matches it rather than contradicting it. */
+            const confirmOpen =
+              !jobDay || jobDay.getTime() - Date.now() <= 24 * 3_600_000;
+            /* Silent before the window opens: JobConfirmation renders its own
+               "Confirmation opens in …" strip directly below in that state and
+               says the same thing with a clock attached. Two sentences saying
+               "you'll confirm later", stacked, is the duplication this card
+               keeps being audited for. */
+            if (!confirmOpen) return null;
             return (
               <div className="pt-2 border-t border-border">
                 <p className="text-ds-11 text-muted-foreground text-center">

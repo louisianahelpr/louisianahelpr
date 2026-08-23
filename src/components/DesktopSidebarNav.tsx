@@ -10,6 +10,7 @@ import {
   User,
   Plus,
   ShieldAlert,
+  ChevronDown,
   type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +18,7 @@ import { channelNonce } from "@/lib/realtimeChannel";
 import { getBlockedUserIds } from "@/lib/userBlocks";
 import { isArchived, ARCHIVE_CHANGED_EVENT } from "@/lib/archivedConversations";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { useSidePanel } from "@/components/sidePanelOpen";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRoute } from "@/lib/routePrefetch";
@@ -57,23 +59,20 @@ const NAV_ITEMS: Array<{
 ];
 
 /**
- * Admin, for the accounts that have it (owner: "for webpage, take admin panel
- * out of profile and move to side panel").
+ * Admin — the SAME five destinations for everyone, plus one expandable group
+ * for the accounts that have it (owner: "the side panel should be identical to
+ * a non-admin user, just add the admin sections under the Admin in the
+ * sidebar").
  *
- * It used to be a row inside Profile > Admin > "Admin Panel", which made a
- * top-level destination reachable only by going through one's own account
- * settings. It belongs beside the other primary destinations, and it renders
- * for nobody else — so it costs a normal user nothing, exactly as the Profile
- * row did.
+ * Nested rather than flat because admin is not a sixth peer of Home/Posts/Jobs
+ * — it is a console with twenty-odd sections of its own. Collapsed by default,
+ * so a non-admin's panel and an admin's are the same height and the same shape
+ * until the admin opens it.
  *
- * Separate from NAV_ITEMS rather than filtered into it so the five that
- * everyone gets stay a plain, non-conditional list.
+ * Sections come from `adminNavGroups`, the one list /admin itself renders, so
+ * the two can't drift. Each links to `/admin?view=<id>`, a deep link the page
+ * already handles.
  */
-const ADMIN_NAV_ITEM: (typeof NAV_ITEMS)[number] = {
-  path: "/admin",
-  icon: ShieldAlert,
-  label: "Admin",
-};
 
 /* RE-EXPORT, not a second implementation.
    This file used to define its own copy of the hook with a `(min-width: 1024px)`
@@ -94,6 +93,15 @@ const DesktopSidebarNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, isAdmin } = useCurrentUser();
+  // Admin's own sections, collapsed by default so an admin's panel is the same
+  // shape as everyone else's until they open it. Auto-opens while you are
+  // actually in the console, so the section you are looking at is never hidden.
+  const adminActive = location.pathname === "/admin";
+  const currentAdminView = new URLSearchParams(location.search).get("view") || "home";
+  const [adminOpen, setAdminOpen] = useState(false);
+  useEffect(() => {
+    if (adminActive) setAdminOpen(true);
+  }, [adminActive]);
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -249,7 +257,7 @@ const DesktopSidebarNav = () => {
 
       {/* Destinations */}
       <ul className="flex flex-col gap-1 px-3 py-2">
-        {[...NAV_ITEMS, ...(isAdmin ? [ADMIN_NAV_ITEM] : [])].map(({ path, icon: Icon, label, badgeKey }) => {
+        {NAV_ITEMS.map(({ path, icon: Icon, label, badgeKey }) => {
           const active = isActive(path);
           const count = badgeFor(badgeKey);
           return (
@@ -292,6 +300,72 @@ const DesktopSidebarNav = () => {
             </li>
           );
         })}
+
+        {/* ADMIN — one row for admins, its sections nested under it. */}
+        {isAdmin && (
+          <li className="mt-1">
+            <button
+              onClick={() => setAdminOpen((v) => !v)}
+              aria-expanded={adminOpen}
+              aria-controls="side-panel-admin-sections"
+              className="group relative flex w-full items-center gap-3 rounded-ds-md px-3 py-2.5 text-left transition-colors"
+              style={{
+                background: adminActive ? "hsl(var(--bark) / 0.08)" : "transparent",
+                color: adminActive ? "hsl(var(--bark))" : "hsl(var(--ink-deep))",
+              }}
+            >
+              <span className="relative inline-flex">
+                <ShieldAlert className="h-5 w-5" strokeWidth={adminActive ? 2.3 : 1.8} />
+              </span>
+              <span className="flex-1 text-ds-14 font-semibold">Admin</span>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 transition-transform duration-200 ${adminOpen ? "rotate-180" : ""}`}
+                strokeWidth={2.25}
+                aria-hidden
+              />
+            </button>
+
+            {adminOpen && (
+              <ul id="side-panel-admin-sections" className="mt-1 space-y-2 pb-1">
+                {adminNavGroups.map((group) => (
+                  <li key={group.title}>
+                    <p
+                      className="px-3 pt-1 pb-0.5 text-ds-10 font-semibold uppercase tracking-[0.08em]"
+                      style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                    >
+                      {group.title}
+                    </p>
+                    <ul>
+                      {group.items.map(({ id, label, icon: ItemIcon }) => {
+                        const on = adminActive && currentAdminView === id;
+                        return (
+                          <li key={id}>
+                            <button
+                              onClick={() => navigate(`/admin?view=${id}`)}
+                              aria-current={on ? "page" : undefined}
+                              // Indented to the parent's icon column, so the
+                              // nesting reads structurally rather than needing
+                              // a rule or a box.
+                              className="flex w-full items-center gap-2.5 rounded-ds-md py-1.5 pl-11 pr-3 text-left text-ds-12 transition-colors hover:bg-[hsl(var(--bark)/0.06)]"
+                              style={{
+                                background: on ? "hsl(var(--bark) / 0.08)" : "transparent",
+                                color: on ? "hsl(var(--bark))" : "hsl(var(--ink-deep) / 0.78)",
+                                fontWeight: on ? 700 : 500,
+                              }}
+                            >
+                              <ItemIcon className="h-3.5 w-3.5 shrink-0" strokeWidth={on ? 2.3 : 1.8} />
+                              <span className="truncate">{label}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        )}
       </ul>
 
     </nav>

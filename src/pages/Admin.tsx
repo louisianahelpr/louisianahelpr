@@ -54,71 +54,14 @@ const AdminExceptionQueue = lazy(() => import("@/components/admin/AdminException
 type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "idv" | "marketing" | "credentials" | "business_verify" | "business_accounts" | "exceptions";
 
 import { safeStorage } from "@/lib/safeStorage";
+import { adminNavGroups } from "@/components/admin/adminNavGroups";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => safeStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
 const markSeen = (section: string) => safeStorage.setItem(`${SEEN_KEY_PREFIX}${section}`, new Date().toISOString());
 
-const navGroups: { title: string; items: AdminNavItem[] }[] = [
-  {
-    title: "Overview",
-    items: [{ id: "analytics", label: "Analytics", icon: BarChart3 }],
-  },
-  {
-    title: "Operations",
-    items: [
-      { id: "people", label: "Users", icon: Users },
-      { id: "idv", label: "Identity Verify", icon: ShieldCheck },
-      { id: "credentials", label: "License & Insurance", icon: ShieldCheck },
-      { id: "exceptions", label: "Exception Queue", icon: ClipboardList },
-      // Business Verification / Business Accounts are the admin half of the
-      // Business product. They are spread in only while `BUSINESS_ENABLED` is
-      // true, because with the product hidden they are two dead sidebar rows
-      // naming a feature no user can reach — a verification queue for
-      // businesses nobody can create, and an accounts list that can only ever
-      // be empty. `?view=business_verify` also falls through to the dashboard
-      // home rather than rendering the queue (see `renderContent`).
-      ...(BUSINESS_ENABLED
-        ? ([
-            { id: "business_verify", label: "Business Verification", icon: Building2 },
-            { id: "business_accounts", label: "Business Accounts", icon: Building2 },
-          ] as AdminNavItem[])
-        : []),
-      { id: "jobs", label: "Jobs", icon: Briefcase },
-      { id: "fraud", label: "Fraud", icon: ShieldAlert },
-      { id: "disputes", label: "Disputes", icon: ShieldAlert },
-      { id: "reports", label: "Reports", icon: AlertTriangle },
-      { id: "support", label: "Support", icon: Headphones },
-    ],
-  },
-  {
-    title: "Revenue",
-    items: [
-      { id: "subscriptions", label: "Subscriptions", icon: Crown },
-      { id: "referrals", label: "Referrals", icon: Gift },
-      { id: "payouts", label: "Payout Batches", icon: Banknote },
-      { id: "tiers", label: "Helpr Tiers", icon: Award },
-    ],
-  },
-  {
-    title: "Engagement",
-    items: [
-      { id: "broadcasts", label: "Broadcasts", icon: Megaphone },
-      { id: "notifications", label: "Notifications", icon: BellRing },
-      { id: "notiflogs", label: "Notification Logs", icon: ClipboardCheck },
-      { id: "marketing", label: "Marketing", icon: Mail },
-    ],
-  },
-  {
-    title: "System",
-    items: [
-      { id: "settings", label: "Settings", icon: Settings },
-      { id: "audit", label: "Audit Log", icon: ClipboardCheck },
-      { id: "health", label: "Health", icon: Activity },
-      { id: "export", label: "Export", icon: DollarSign },
-    ],
-  },
-];
+
+const navGroups = adminNavGroups;
 
 const Admin = () => {
   usePageTitle("Admin — Helpr");

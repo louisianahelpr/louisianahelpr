@@ -920,10 +920,28 @@ html.web-desktop {
     display: none !important;
   }
   /* Widen the inner content column on desktop. PageScaffold's centered column
-     is capped at max-w-3xl (768px) on mobile; on desktop give it a roomy cap
-     so the multi-column rails have space to breathe. */
+     is capped at max-w-3xl (768px) on mobile; on desktop it FILLS the frame.
+
+     It used to stop at a flat 1280px, which is narrower than the space the
+     frame actually hands it on any large monitor — so the page floated in a
+     column with blank bands either side, the thing CLAUDE.md calls a hard
+     failure ("a page that floats in a lopsided column with blank bands has
+     failed the audit"). Measured on a 1920 viewport with the side panel open:
+
+       available (viewport 1920 − 248 rail) .... 1672px
+       content (cards + map) .................. 1265px, spanning x 210 → 1475
+       dead space ............................. 210px left + 197px right
+
+     The frame is already inset by the rail and already carries the page's
+     horizontal padding (px-5 / lg:px-8 / xl:px-12), so removing this cap does
+     not run anything to the bezel — it lets the two-pane layout use the width
+     it was given, which is what the map half wants anyway (owner, repeatedly:
+     "make the content fill the preview panel").
+
+     `none`, not a bigger number: any fixed value is wrong on the next monitor
+     size up, and re-creates exactly this defect one breakpoint later. */
   html.web-desktop .app-shell-frame .ds-desktop-wide {
-    max-width: 1280px;
+    max-width: none;
   }
 
   /* Full-bleed top header. On the desktop website the header spans the ENTIRE

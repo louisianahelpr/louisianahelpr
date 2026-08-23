@@ -27,6 +27,26 @@ The React code in `src/` *is* the iOS app.
   document-scroll), the migration rules, and the local gate. It is not optional
   context.
 
+## Get it running FIRST — this is where a fresh clone dies
+
+```bash
+npm ci
+cp .env.example .env
+npm run dev
+```
+
+**Do not skip the `cp`.** `.env` is gitignored, so a fresh clone has no
+configuration, and `createClient` throws at module scope before React mounts —
+the app serves a permanently blank white page whose only symptom is
+`supabaseUrl is required` in the console. That failure looks exactly like a code
+regression and has burned real hours, including a CI run where the built iOS app
+hung forever on the boot loader. `.env.example` holds the four `VITE_` values,
+which are public by construction (Vite inlines them into the client bundle), and
+its header explains what may never join them.
+
+Confirm you see the dashboard render before you grade a single screen. A white
+page is a setup problem until proven otherwise.
+
 ## What "audit" means here
 
 Three methods, all mandatory, none substitutes for another:

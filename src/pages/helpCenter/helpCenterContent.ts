@@ -6,6 +6,7 @@ import {
   CreditCard,
   ShieldCheck,
   Settings,
+  Crown,
   BookOpen,
   Scale,
 } from "lucide-react";
@@ -43,7 +44,12 @@ export const TOPICS: {
   },
   {
     icon: CreditCard,
-    label: "Payments & How Funds Work",
+    // Must be byte-identical to the FAQ_SECTIONS `topic` below. The lookup is
+    // `TOPICS.find(t => t.label.toLowerCase() === topic.toLowerCase())`, so
+    // this said "Payments & How Funds Work" against a topic of "Payments &
+    // Escrow" and silently resolved to undefined — the section rendered with
+    // no description at all, with nothing to indicate a miss.
+    label: "Payments & Escrow",
     desc: "How money is held, released, and paid.",
     color: "hsl(var(--gold-warm))",
     bg: "hsl(var(--gold-warm) / 0.15)",
@@ -61,6 +67,15 @@ export const TOPICS: {
     desc: "Email, password, deletion, Senior Mode.",
     color: "hsl(var(--olivewood))",
     bg: "hsl(var(--olivewood) / 0.10)",
+  },
+  {
+    // The seventh FAQ topic had no blurb entry, so it rendered bare next to
+    // six that carry one.
+    icon: Crown,
+    label: "Membership & Billing",
+    desc: "Plans, upgrades, and cancelling.",
+    color: "hsl(var(--burnt-sienna))",
+    bg: "hsl(var(--burnt-sienna) / 0.10)",
   },
 ];
 

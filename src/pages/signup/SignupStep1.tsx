@@ -258,7 +258,7 @@ export function SignupStep1({
             );
             return (
               <div className="flex flex-wrap gap-x-3 gap-y-1 px-0.5 mt-1">
-                <Req ok={hasLength} label="8+ chars" />
+                <Req ok={hasLength} label="8+ characters" />
                 <Req ok={hasUpper} label="Uppercase" />
                 <Req ok={hasNumber} label="Number" />
               </div>

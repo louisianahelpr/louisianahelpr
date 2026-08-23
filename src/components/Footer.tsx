@@ -69,11 +69,11 @@ const Footer = () => (
           than stacking one-per-row. At ~400-640px that was four full-width
           blocks of vertical scroll for content that fits in two columns.
           The brand block spans both so its tagline keeps one measure. */}
-      <div className="grid grid-cols-2 gap-6 md:gap-8 sm:grid-cols-12">
+      <div className="grid grid-cols-2 gap-6 min-[620px]:gap-x-4 min-[620px]:gap-y-6 md:gap-8 min-[620px]:grid-cols-12">
         {/* Brand — uses the shared HelprMark component so the wordmark
             here matches the top nav exactly (H emblem + non-italic
             "Helpr" + italic burnt-sienna "· LA" tail). */}
-        <div className="col-span-2 sm:col-span-4 space-y-3">
+        <div className="col-span-2 min-[620px]:col-span-4 space-y-3">
           <HelprMark to="/" size="md" hideEmblem />
           {/* Break after the first sentence so the tagline wraps predictably
               into two short lines instead of one long one that pushes the
@@ -86,7 +86,7 @@ const Footer = () => (
         </div>
 
         {/* Company */}
-        <div className="sm:col-span-3">
+        <div className="min-[620px]:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--burnt-sienna))" }}
@@ -139,14 +139,17 @@ const Footer = () => (
             short enough to fit two columns, and giving the third back to Follow
             pulls that group left, off the far edge.
 
-            The 4/3/2/3 split now starts at `sm` (640px) rather than `md`
-            (768px). It used to be 12/4/4/4 through that band, which handed the
+            The 4/3/2/3 split starts at 560px. It was `md` (768), then `sm`
+            (640) — and 640 still missed a 631px window by nine pixels, which is
+            exactly the kind of near-miss that makes a fix look like it never
+            landed. 560 is where the narrowest column ("Privacy", ~86px) still
+            fits, so it is the real floor rather than the next Tailwind step. It used to be 12/4/4/4 through that band, which handed the
             brand block a full row of its own and pushed the three link groups
             onto a second row — so a ~673px window (a docked browser pane) got a
             two-row footer even though all four columns fit side by side there.
             One split from 640px up, instead of a tier that only existed to
             wrap. */}
-        <div className="sm:col-span-2">
+        <div className="min-[620px]:col-span-2">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--burnt-sienna))" }}
@@ -174,7 +177,7 @@ const Footer = () => (
 
         {/* Follow — App Store icon (download) + Facebook + Instagram (socials).
             Compact squircle chips, one row. */}
-        <div className="sm:col-span-3">
+        <div className="min-[620px]:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--burnt-sienna))" }}

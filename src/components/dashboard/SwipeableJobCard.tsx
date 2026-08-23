@@ -151,10 +151,16 @@ const SwipeableJobCard = ({
             border: "0.5px solid hsl(var(--burnt-sienna) / 0.35)",
           }}
         >
-          <X className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.5} />
+          {/* --danger-ink, not raw --burnt-sienna: the brand hue has no dark
+              sibling, so on the dark canvas this label resolved to
+              rgb(212,103,53) over its own 0.15 tint and measured 3.68:1 at
+              10px — under AA, on the only thing telling the user what the
+              swipe they are mid-way through will do. Same fix, same reason, as
+              the SOS chip. Tint and border unchanged. */}
+          <X className="w-5 h-5" style={{ color: "hsl(var(--danger-ink))" }} strokeWidth={2.5} />
           <span
             className="text-ds-10 font-serif italic uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
+            style={{ color: "hsl(var(--danger-ink))" }}
           >
             Not interested
           </span>

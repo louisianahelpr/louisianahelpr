@@ -403,6 +403,13 @@
      fix. This light value IS the old light --bark, so light mode is
      byte-identical; the dark sibling below is the actual change. */
   --sage-ink:   70 20% 33%;   /* chip label */
+  /* The sienna family's LABEL ink — the third of the adaptive -ink pairs, after
+     --sage-ink and --danger-ink, and minted for the same reason. Raw
+     --burnt-sienna has a dark value tuned for accents, not for small text on
+     its own tint: the "In progress" status chip measured 3.83:1 on dark and
+     "Disputed" 3.52:1, both under AA. Light value is byte-identical to
+     --burnt-sienna, so light mode does not move at all. */
+  --sienna-ink: 19 75% 35%;   /* == --burnt-sienna in light */
 
   /* Cancel red — destructive "Cancel job" action button. Warmer & more
      saturated than the muted system --destructive, kept as its own pair.
@@ -572,6 +579,11 @@
 
   --boost-tint: 25 65% 56%;   /* lighter base so low-alpha fill reads on dark */
   --boost-ink:  25 80% 70%;   /* legible orange label on dark */
+  --sienna-ink: 19 72% 68%;   /* legible sienna label on dark. Sits in the same
+                                 68-70% lightness band as --sage-ink and
+                                 --danger-ink so a row of status chips stays
+                                 even. Measures 6.06:1 on the 0.12 tint and
+                                 5.57:1 on the 0.18 one. */
   --sage-ink:   78 30% 68%;   /* legible sage label on dark — measures 6.5:1 on
                                  the tinted chip, where the old --bark gave
                                  4.24. Held at 30% saturation rather than the

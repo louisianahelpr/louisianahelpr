@@ -35,19 +35,38 @@ const BackButton = ({ to, className, onClick }: BackButtonProps) => {
   // fallback for when there is no in-app history to return to, i.e. someone
   // deep-linked or opened the route cold.
   //
-  // The test is location.key, not window.history.length. history.length counts
-  // the whole TAB — pages visited before the app was ever opened — so it is
-  // true even on a cold deep-link, where navigate(-1) walks the user out of
-  // the app entirely. react-router stamps key "default" only on the first
-  // entry of its own history, which is exactly "there is nowhere in-app to go
-  // back to".
-  const hasInAppHistory = location.key !== "default";
+  // The test is NOT window.history.length: that counts the whole TAB — pages
+  // visited before the app was ever opened — so it is true even on a cold
+  // deep-link, where navigate(-1) walks the user out of the app entirely.
+  //
+  // It is also no longer location.key. `key` is "default" only on react-router's
+  // very first entry, but a REPLACE navigation mints a fresh key WITHOUT adding
+  // a history entry — so key stopped being a proxy for "there is somewhere to go
+  // back to" the moment anything redirected on mount. That is the /login bug:
+  // a guest who cold-opens /dashboard is bounced by ProtectedRoute's
+  // `<Navigate to="/login?redirect=…" replace />`, which leaves key random and
+  // the entry count at one. Back then ran navigate(-1) and left the app —
+  // observed landing on about:blank in Chrome; in a freshly-opened tab there is
+  // no prior entry at all, so history.back() is inert and the arrow simply does
+  // nothing. Both read to the user as "the back button is broken".
+  //
+  // react-router's own history stamps an `idx` (0-based position within ITS
+  // history) into window.history.state, and a replace deliberately keeps the
+  // index put. `idx > 0` is therefore the exact question we mean: is there an
+  // in-app entry behind this one? When that state is absent (MemoryRouter, SSR,
+  // any non-browser history) fall back to the old key heuristic.
+  const hasInAppHistory = () => {
+    if (typeof window !== "undefined") {
+      const idx = (window.history.state as { idx?: number } | null)?.idx;
+      if (typeof idx === "number") return idx > 0;
+    }
+    return location.key !== "default";
+  };
 
   const handleClick = () => {
     if (onClick) onClick();
-    else if (hasInAppHistory) navigate(-1);
-    else if (to) navigate(to);
-    else navigate("/");
+    else if (hasInAppHistory()) navigate(-1);
+    else navigate(to ?? "/");
   };
 
   return (

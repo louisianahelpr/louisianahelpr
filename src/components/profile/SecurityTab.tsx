@@ -264,7 +264,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           Dispute / Cancellation dialogs use). */}
       <Dialog open={emailDialogOpen} onOpenChange={(open) => { if (!open) setEmailDialogOpen(false); }}>
         <DialogContent
-          className="!gap-3"
+         
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHero

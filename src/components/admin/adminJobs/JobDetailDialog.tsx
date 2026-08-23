@@ -38,7 +38,7 @@ export const JobDetailDialog = ({
 }: JobDetailDialogProps) => {
   return (
     <Dialog open={!!detailJob && !deleteOpen} onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent>
         <DialogHero eyebrow="Job details" title={detailJob?.title} />
         {detailJob && (
           <div className="space-y-4">

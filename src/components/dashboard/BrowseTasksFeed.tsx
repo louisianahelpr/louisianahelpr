@@ -75,6 +75,8 @@ interface BrowseTasksFeedProps {
    *  collapsing then popping in (CLS) once recommendations resolve. */
   recommendedLoading: boolean;
   dismissedJobIds: Set<string>;
+  /** Show ONLY saved jobs — see BrowseTasksActions' bookmark toggle. */
+  savedOnly?: boolean;
   /** Platform commission percentage, forwarded to each job card. */
   effectiveFee: number;
   handleApplyRequest: (jobId: string) => void;
@@ -123,6 +125,7 @@ export function BrowseTasksFeed({
   recommendedJobs,
   recommendedLoading,
   dismissedJobIds,
+  savedOnly = false,
   effectiveFee,
   handleApplyRequest,
   handleDismissRequest,
@@ -212,6 +215,10 @@ export function BrowseTasksFeed({
   const { visibleJobs, recommendedVisible } = useMemo(() => {
     const visible = filters.filteredJobs
       .filter(j => !dismissedJobIds.has(j.id))
+      // Saved-only runs BEFORE the recommended/nearby de-dup below, so the
+      // saved list is a plain flat list rather than a saved job vanishing
+      // because it also happened to be a recommendation.
+      .filter(j => !savedOnly || savedJobIds.has(j.id))
       .filter(j => {
         // Hide jobs already shown in Recommended or Nearby sections
         if (!filters.hasFilters) {
@@ -226,11 +233,14 @@ export function BrowseTasksFeed({
       // feed's existing order, so this only lifts urgent jobs.
       .slice()
       .sort((a, b) => Number(b.is_urgent ?? false) - Number(a.is_urgent ?? false));
-    const recommended = !filters.hasFilters
+    // No "Picked for you" band while filtering to saved — the user asked for
+    // one specific list, and a personalised section above it is the app
+    // answering a question it wasn't asked.
+    const recommended = !filters.hasFilters && !savedOnly
       ? recommendedJobs.filter(j => !dismissedJobIds.has(j.id))
       : [];
     return { visibleJobs: visible, recommendedVisible: recommended };
-  }, [filters.filteredJobs, filters.hasFilters, filters.nearbyJobs, recommendedJobs, dismissedJobIds]);
+  }, [filters.filteredJobs, filters.hasFilters, filters.nearbyJobs, recommendedJobs, dismissedJobIds, savedOnly, savedJobIds]);
 
   return (
     <>
@@ -283,6 +293,17 @@ export function BrowseTasksFeed({
           onRetry={refresh}
         />
       </div>
+      ) : savedOnly && visibleJobs.length === 0 ? (
+        /* Saved-only with nothing saved. Handled BEFORE the generic empty
+           state below, which reads `filters.filteredJobs` — that list is full
+           (there are jobs, they just aren't saved), so without this branch the
+           feed rendered an empty panel with no explanation at all. */
+        <div className="px-3 pt-4 flex-1 min-h-0 flex">
+          <ErrorState
+            title="Nothing saved yet."
+            body="Tap the bookmark on a job to keep it here. Saved jobs stay put until you unsave them or they're filled."
+          />
+        </div>
       ) : filters.filteredJobs.length === 0 ? (() => {
         // Geo-aware empty copy: when the "Near me" radius filter is
         // active and the user's coords resolved, suggest a concrete

@@ -366,7 +366,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
           if (!o) setOpenDayISO(null);
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent>
           <DialogHero
             eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={

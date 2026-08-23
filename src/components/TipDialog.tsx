@@ -45,7 +45,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="!gap-4">
+      <DialogContent>
         <DialogHero
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><Gift className="w-3 h-3" /> A little extra</>}

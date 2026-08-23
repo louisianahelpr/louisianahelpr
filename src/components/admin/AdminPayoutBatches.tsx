@@ -369,7 +369,7 @@ const AdminPayoutBatches = () => {
 
       {/* Hold dialog — captures the reason that surfaces on the row + audit. */}
       <Dialog open={!!holdReasonDraft} onOpenChange={(o) => { if (!o) setHoldReasonDraft(null); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent>
           <DialogHero
             eyebrow={
               <>

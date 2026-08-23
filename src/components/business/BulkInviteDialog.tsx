@@ -202,7 +202,7 @@ export function BulkInviteDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent>
         <DialogHero
           eyebrow={
             <>

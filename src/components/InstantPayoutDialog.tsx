@@ -81,7 +81,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!gap-3">
+      <DialogContent>
         <DialogHero
           eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={

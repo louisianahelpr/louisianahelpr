@@ -95,7 +95,11 @@ const PostJob = () => {
           column is the feature. M2 unified the CONTENT pages, which were
           disagreeing with each other; forms are a different problem and
           keep their own width. */}
-      <div className="container mx-auto px-4 py-6">
+      {/* `pb-6`, not `py-6`. The page wrapper already carries `pb-safe-nav`
+           for the floating dock, so a second 24px of bottom padding stacked on
+           top of it and left a visible dead band under the last card (owner:
+           "too much spacing at the bottom"). */}
+      <div className="container mx-auto px-4 pt-6">
         {form.step === "entry" ? (
           <div className="max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto space-y-6">
             <EntryChoice form={form} />

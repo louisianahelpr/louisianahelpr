@@ -224,7 +224,7 @@ export function SavedSearches({
         </DialogTrigger>
       )}
       <DialogContent
-        className="max-w-md gap-4"
+       
         // Prevent Radix from auto-focusing the input, which pops the
         // iOS keyboard the moment the dialog opens. The user can tap
         // the field to focus when ready.

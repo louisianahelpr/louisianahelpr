@@ -220,7 +220,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-lg"
+       
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero

@@ -231,7 +231,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
 
   return (
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:p-6 gap-5">
+      <DialogContent>
         <DialogHero
           eyebrow={
             <>

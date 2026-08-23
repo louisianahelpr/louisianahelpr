@@ -1,4 +1,3 @@
-import { deriveEscrowStepFromJob } from "@/components/payment/EscrowProgressBar";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { AppliedApp, Job } from "../activityConstants";
@@ -81,7 +80,6 @@ export function deriveAppliedJobCardState(
   // Escrow progress for the helper's view — same source of truth as the
   // customer's PostedJobCard. Hides for jobs where escrow doesn't apply
   // (pending applications, rejected/cancelled, no payment intent).
-  const escrowStep = isMinimalCard || isPending ? null : deriveEscrowStepFromJob(job);
 
   // Does ANY branch of the card own the action area? Every state above renders
   // its own section; this is the "none of the above" detector. Silence is the
@@ -107,7 +105,6 @@ export function deriveAppliedJobCardState(
     commissionPercent,
     payout,
     isMinimalCard,
-    escrowStep,
     hasActionSection,
   };
 }

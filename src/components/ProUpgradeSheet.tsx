@@ -50,7 +50,7 @@ export function ProUpgradeSheet({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="!gap-4">
+      <DialogContent>
         <DialogHeader className="!text-left space-y-0">
           {/* Tier chip + DialogHero title. The chip is a Pro/Elite-tier
               decoration (accent-tinted rounded square with the tier's Lucide

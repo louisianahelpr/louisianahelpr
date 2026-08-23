@@ -387,7 +387,7 @@ test.describe("My Posts — card density + header", () => {
   // changing colour between cards, Message deep-links into the thread, and the
   // description toggle lost its words.
 
-  test("the live tracker is ONE scrollable line and the helpr captions the current step", async ({ page, context, baseURL }) => {
+  test("the live tracker is ONE scrollable line and the helpr is named in its heading", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, {
       user: FAKE_CUSTOMER,
@@ -431,14 +431,24 @@ test.describe("My Posts — card density + header", () => {
 
     // The status sentence is gone from the card; the name now rides the row.
     await expect(page.getByText(/is on the way|finished the job|Offered to/i)).toHaveCount(0);
-    // ...and it is re-stated as a caption on the step the job is ON — exactly
-    // one step carries a second line. Asserted structurally rather than by
-    // name: what the helpr resolves to here is the card's own display
-    // fallback, so matching a literal would test the fixture, not the feature.
+    // ...and it is re-stated in the tracking card's HEADING, not as a caption
+    // under the live step. The caption gave every step column a third line of
+    // vertical space to accommodate one word on one of them, and it moved down
+    // the row as the job advanced (owner: "can we move this somewhere else so
+    // we can tighten up the spacing"). Up in the heading it holds still.
+    //
+    // So the assertion inverts: NO step carries a second line, and the name is
+    // on the card heading instead. Asserted structurally rather than by name —
+    // what the helpr resolves to here is the card's own display fallback, so
+    // matching a literal would test the fixture, not the feature.
     const captioned = await row.evaluate((el) =>
       Array.from(el.children).filter((c) => c.querySelectorAll("span").length > 1).length,
     );
-    expect(captioned, "exactly one step carries the helpr caption").toBe(1);
+    expect(captioned, "no tracker step carries a caption line").toBe(0);
+    const headingRow = page.locator("h3", { hasText: "Job tracking" }).first().locator("..");
+    await expect(headingRow, "the helpr's name rides the tracking heading").not.toHaveText(
+      /^Job tracking$/,
+    );
 
     await page.screenshot({ path: `${SHOTS}/tracker-one-line-375.png` });
   });
@@ -545,7 +555,7 @@ test.describe("My Posts — card density + header", () => {
     await expect(page.getByRole("button", { name: "Hide job description" }).first()).toBeVisible();
   });
 
-  test("the active bucket is named beside the title", async ({ page, context, baseURL }) => {
+  test("the active bucket is the selected tab, not a caption beside the title", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
 
@@ -566,8 +576,17 @@ test.describe("My Posts — card density + header", () => {
       await page.waitForSelector("h1");
       await settle(page);
       await dismissNudge(page);
-      const header = page.locator("h1").locator("..");
-      await expect(header, `filter=${filter}`).toContainText(label);
+      /* The bucket is now a TAB, not a caption. It used to render as
+         "· 2 Needs you" beside the h1 while the actual control hid behind a
+         sliders icon and a "Refine your search" sheet — a label naming
+         whichever bucket the hidden sheet had selected. The sheet is gone and
+         the four tabs sit above the cards on every surface (owner: "put the
+         needs you etc at the top oiver the job card same for search and remove
+         the filter since they will all be ther"), so what has to be true is
+         that the deep link SELECTS the right tab. */
+      const tab = page.getByRole("group", { name: "Filter by status" }).getByRole("button", { name: new RegExp(`^${label}`) });
+      await expect(tab, `filter=${filter} tab is present`).toBeVisible();
+      await expect(tab, `filter=${filter} tab is selected`).toHaveAttribute("aria-pressed", "true");
       // Still exactly one heading — the indicator is a span, never an h2.
       await assertOneH1(page);
       if (filter === "needs_you") {

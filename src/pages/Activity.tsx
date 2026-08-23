@@ -225,6 +225,31 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const activeStatusFilters = tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS;
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
+  /* LAND ON A TAB THAT HAS SOMETHING IN IT.
+     The default is "Needs you" — the right first question — but a poster whose
+     only job is open with nobody applied yet has nothing needing them, and used
+     to arrive on an empty screen with the job they had just posted sitting one
+     tab over under Waiting. Same for a helpr between applications.
+
+     So: keep "Needs you" when it has items, otherwise fall through the buckets
+     in the order they are displayed and open on the first that does. Only ever
+     on the FIRST load of the tab, and never when the URL named a filter — a
+     deep link and a deliberate tap both mean "show me this one, even empty".
+     Same rule the Messages inbox uses for its Unread tab. */
+  const autoTabbedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (autoTabbedRef.current === tab) return;
+    if (searchParams.get("filter")) { autoTabbedRef.current = tab; return; }
+    if (loading) return;
+    const total = Object.values(activeCounts).reduce((a, b) => a + (b || 0), 0);
+    if (total === 0) return;
+    autoTabbedRef.current = tab;
+    if ((activeCounts[defaultFilter] ?? 0) > 0) return;
+    const firstFilled = activeStatusFilters.find((f) => (activeCounts[f.key] ?? 0) > 0);
+    if (firstFilled) setStatusFilter(firstFilled.key);
+    // `activeStatusFilters` is a stable per-tab list; the counts are what move.
+  }, [tab, loading, activeCounts, defaultFilter, activeStatusFilters, searchParams]);
+
   // "Truly empty" — the underlying list has zero items (not merely
   // filtered down to none). When there's nothing at all, the secondary
   // "Posted tasks / Open" header with its search + status-filter has

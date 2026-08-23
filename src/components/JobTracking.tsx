@@ -865,7 +865,7 @@ export function JobTracking({
               <MapPin className="w-2.5 h-2.5" />
               {tracking.latitude.toFixed(4)}, {tracking.longitude?.toFixed(4)}
             </span>
-          ) : STATUS_IDX[tracking.status] >= STATUS_IDX.arrived ? (
+          ) : (STATUS_IDX[tracking.status as keyof typeof STATUS_IDX] ?? -1) >= STATUS_IDX.arrived ? (
             <span className="ml-2 inline-flex items-center gap-0.5">
               <MapPin className="w-2.5 h-2.5" />
               Location not shared

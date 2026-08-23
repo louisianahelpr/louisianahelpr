@@ -1,16 +1,28 @@
+import type { ReactNode } from "react";
+
 interface JobCardTitleBarProps {
   title: string;
   /** Pre-formatted amount string (e.g. `"42"` or `"38.50"`). */
   amount: string;
   /** Optional native tooltip on the currency chip — e.g. budget + fee breakdown. */
   amountTitle?: string;
+  /**
+   * Location · date · time, moved UP beside the title (owner: "move these up
+   * to the right of the title to free up space, but only in webpage").
+   *
+   * Desktop only, and passed by the card rather than decided here: on a wide
+   * card the title uses a third of the row and the meta row below it uses a
+   * tenth of the next one, so the card spent two rows on what fits in one.
+   * Phone keeps them stacked — there is no spare width to move anything into.
+   */
+  meta?: ReactNode;
 }
 
 /**
  * Italic display title + sienna currency chip — the top bar shared by the
  * poster and helper activity cards. Visually identical across both surfaces.
  */
-export function JobCardTitleBar({ title, amount, amountTitle }: JobCardTitleBarProps) {
+export function JobCardTitleBar({ title, amount, amountTitle, meta }: JobCardTitleBarProps) {
   return (
     <div
       className="w-full px-4 py-2.5 flex items-center justify-between text-left"
@@ -22,6 +34,9 @@ export function JobCardTitleBar({ title, amount, amountTitle }: JobCardTitleBarP
       >
         {title}
       </h3>
+      {meta && (
+        <div className="hidden lg:flex min-w-0 shrink items-center ml-4 mr-2">{meta}</div>
+      )}
       {/* Same surface + ink as JobPrice's `chip` variant — the component
           documented as "THE single money element". The comment below already
           claimed an amount "reads identically everywhere", but it did not:

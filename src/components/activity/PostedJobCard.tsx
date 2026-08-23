@@ -106,37 +106,17 @@ function PostedJobCardInner({
     job.status === "open";
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
 
-  return (
-          <JobCardShell
-            expandable={isFullyCompleted}
-            expanded={isExpanded}
-            onToggle={() => setExpandedJobId(isExpanded ? null : job.id)}
-            // scroll-mt keeps a card's title from ghosting up under the
-            // translucent (~0.85 opacity) page title card when it scrolls
-            // to the top of the list.
-            className="group relative scroll-mt-3"
-          >
-            <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} />
-
-            {/* Where this job stands — a full-width band directly under the
-                title divider, not a pill floating in the body padding. Active
-                folds several statuses into one list, so without this a job
-                awaiting a reply, one whose offer was just declined, and one
-                already underway all look alike. Unlike the old pill this also
-                colours the terminal statuses, so a Completed / Cancelled /
-                Disputed card is identifiable at a glance too. */}
-            {/* NO STATUS STRIPE. Owner: "can be removed so we can better
-                organize on the top by active / completed / cancelled etc" —
-                the filter tabs above the list carry the status now, so a
-                coloured band on every card repeated the tab the reader is
-                standing in, once per card, all the way down the page. What
-                the band said that a tab cannot, each card still says better:
-                an assigned job shows the tracker sitting on its real step, an
-                open one shows its applicant count, a cancelled one leads with
-                "Re-post This Job". */}
-
-            {/* Summary */}
-            <div className="px-4 py-3 space-y-2.5">
+  /**
+   * Location · date · time — built ONCE and placed twice.
+   *
+   * On the desktop website it rides the TITLE row (owner: "move these up to
+   * the right of the title to free up space, but only in webpage"): a wide
+   * card gave the title a third of one row and this a tenth of the next, so
+   * the card spent two rows on what fits comfortably in one. On phone it stays
+   * exactly where it was — there is no spare width to move anything into.
+   * Same node either way, so the two placements cannot drift apart.
+   */
+  const metaRow = (
               <JobCardMetaRow
                 dateNeeded={job.date_needed}
                 startTime={job.start_time}
@@ -203,6 +183,40 @@ function PostedJobCardInner({
                    <span className="flex items-center gap-1"><Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} Helpr${job.helpers_needed === 1 ? "" : "s"}` : "Group job"}</span>
                  )}
                </JobCardMetaRow>
+  );
+
+  return (
+          <JobCardShell
+            expandable={isFullyCompleted}
+            expanded={isExpanded}
+            onToggle={() => setExpandedJobId(isExpanded ? null : job.id)}
+            // scroll-mt keeps a card's title from ghosting up under the
+            // translucent (~0.85 opacity) page title card when it scrolls
+            // to the top of the list.
+            className="group relative scroll-mt-3"
+          >
+            <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} meta={metaRow} />
+
+            {/* Where this job stands — a full-width band directly under the
+                title divider, not a pill floating in the body padding. Active
+                folds several statuses into one list, so without this a job
+                awaiting a reply, one whose offer was just declined, and one
+                already underway all look alike. Unlike the old pill this also
+                colours the terminal statuses, so a Completed / Cancelled /
+                Disputed card is identifiable at a glance too. */}
+            {/* NO STATUS STRIPE. Owner: "can be removed so we can better
+                organize on the top by active / completed / cancelled etc" —
+                the filter tabs above the list carry the status now, so a
+                coloured band on every card repeated the tab the reader is
+                standing in, once per card, all the way down the page. What
+                the band said that a tab cannot, each card still says better:
+                an assigned job shows the tracker sitting on its real step, an
+                open one shows its applicant count, a cancelled one leads with
+                "Re-post This Job". */}
+
+            {/* Summary */}
+            <div className="px-4 py-3 space-y-2.5">
+              <div className="lg:hidden">{metaRow}</div>
             {/* Description behind a tap.
                 The card used to print the brief in full (a short one cleared
                 the old `length > 100` gate, so no toggle was offered and the

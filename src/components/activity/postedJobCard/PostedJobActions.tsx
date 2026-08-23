@@ -8,7 +8,7 @@ import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import {
-  MapPin, DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
+   DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
   MessageCircle, Pencil, AlertTriangle, Rocket, Clock, Wrench,
 } from "lucide-react";
 import { SosShareButton } from "@/components/SosShareButton";
@@ -196,8 +196,23 @@ export function PostedJobActions({
               </Button>
             )}
             <div className="flex gap-2">
-              <Button size="sm" variant="destructive" className="flex-1" onClick={() => onCancel(job)}><XCircle className="w-4 h-4 mr-1" /> Cancel</Button>
               <Button size="sm" variant="outline" style={messageButtonStyle} className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+              {/* TINTED, not a solid red slab (owner: "cancel should be the
+                  lighter red, for the other tabs also"). Solid destructive is
+                  the loudest surface the app has and it belongs to a
+                  confirmation dialog's final button — on a card it made
+                  "Cancel this job" the visually dominant thing on a job that
+                  is going perfectly. Same triple the `danger` chip uses, so
+                  every Cancel in Activity now reads at one volume. */}
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 border-0"
+                style={jobActionChipStyle("danger")}
+                onClick={() => onCancel(job)}
+              >
+                <XCircle className="w-4 h-4 mr-1" /> Cancel
+              </Button>
             </div>
             {/* NO SHARE once a helpr is assigned (owner: "not sure this is
                 necessary in some places"). Share exists to get more eyes on a
@@ -210,23 +225,17 @@ export function PostedJobActions({
         )}
         {(job.status === "in_progress" || job.status === "revision_requested") && (
           <div className="space-y-2">
-            {/* Confirm Arrival notice */}
-            {job.helper_arrived_at && !job.poster_confirmed_arrival_at && (
-              <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm" style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}>
-                <MapPin className="w-3.5 h-3.5 shrink-0" />
-                <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
-                <span className="ml-auto text-ds-10 text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-            )}
-            {/* Confirm Arrival */}
-            {job.status === "in_progress" && (
-              <div className="flex items-center gap-2">
-                {job.helper_arrived_at && !job.poster_confirmed_arrival_at && (
-                  <Button size="sm" className="flex-1" disabled={confirmingArrivalJobId === job.id} onClick={() => onConfirmArrival(job.id)}>
-                    <CheckCircle2 className="w-4 h-4 mr-1" /> {confirmingArrivalJobId === job.id ? "…" : "Confirm Arrival"}
-                  </Button>
-                )}
-              </div>
+            {/* No arrival BANNER — see the note on the same removal in
+                PostedJobCard. The action survives, gated on the work not
+                already being finished: "confirm they arrived" under a tracker
+                sitting on Done is a question about a moment that has passed. */}
+            {job.status === "in_progress"
+              && job.helper_arrived_at
+              && !job.poster_confirmed_arrival_at
+              && !job.helper_completed_at && (
+              <Button size="sm" className="w-full" disabled={confirmingArrivalJobId === job.id} onClick={() => onConfirmArrival(job.id)}>
+                <CheckCircle2 className="w-4 h-4 mr-1" /> {confirmingArrivalJobId === job.id ? "…" : "Confirm Arrival"}
+              </Button>
             )}
             {/* Confirm Working */}
             {job.status === "in_progress" && !job.poster_confirmed_working_at && job.poster_confirmed_arrival_at && (

@@ -326,31 +326,36 @@ function PostedJobCardInner({
               {/* Accepted status */}
               {job.status === "accepted" && (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {job.helper_confirmed_at
-                      ? <span className="text-ds-11 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1"><Check className="w-3 h-3" strokeWidth={3} /> {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} accepted</span>
-                      : <span className="text-ds-11 px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1" style={{ background: "hsl(var(--amber-tint) / 0.10)", color: "hsl(var(--amber-ink))" }}><Clock className="w-3 h-3" /> Waiting for {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} to accept</span>
-                    }
-                  </div>
+                  {/* Only the WAITING half survives. "Eli T. accepted" was the
+                      tracker's Accepted step said again in words, a few rows
+                      above the tracker itself (owner: "remove", twice). The
+                      waiting pill is not a duplicate — nothing in the tracker
+                      says a step is overdue, only which one is current. */}
+                  {!job.helper_confirmed_at && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-ds-11 px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1" style={{ background: "hsl(var(--amber-tint) / 0.10)", color: "hsl(var(--amber-ink))" }}><Clock className="w-3 h-3" /> Waiting for {job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} to accept</span>
+                    </div>
+                  )}
                   {/* Job countdown */}
                   <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
                   {job.helper_confirmed_at && (
                     <div className="space-y-1.5">
-                      {job.helper_arrived_at && (
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm" style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}>
-                            <MapPin className="w-3.5 h-3.5 shrink-0" />
-                            <span className="font-medium">{job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr"} says they've arrived</span>
-                            <span className="ml-auto text-ds-10 text-muted-foreground">{new Date(job.helper_arrived_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          </div>
-                          {job.poster_confirmed_arrival_at ? (
-                            <span className="text-ds-11 px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1" style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}><Check className="w-3 h-3" strokeWidth={3} /> Arrival confirmed</span>
-                          ) : (
-                            <Button size="sm" className="w-full" onClick={() => onConfirmArrival(job.id)}>
-                              <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
-                            </Button>
-                          )}
-                        </div>
+                      {/* No "X says they've arrived" banner (owner: "remove") —
+                          the tracker's Arrived step is lit, which is the same
+                          statement with the whole timeline around it.
+
+                          The Confirm Arrival ACTION stays, and is gated on the
+                          work not being finished: a job whose helpr has marked
+                          it done cannot still be asking whether they turned up,
+                          and that impossible pair was on screen (owner: "they
+                          can't be done and you haven't even marked them
+                          arrived"). */}
+                      {job.helper_arrived_at
+                        && !job.poster_confirmed_arrival_at
+                        && !job.helper_completed_at && (
+                        <Button size="sm" className="w-full" onClick={() => onConfirmArrival(job.id)}>
+                          <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
+                        </Button>
                       )}
                     </div>
                   )}

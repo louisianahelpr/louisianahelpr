@@ -647,8 +647,8 @@ export function JobTracking({
             their own tracker does not need to be told it is theirs. */}
         {!isHelper && firstName && (
           <span
-            className="font-serif italic text-ds-11 leading-none shrink-0 ml-auto"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+            className="font-serif italic text-ds-13 leading-none shrink-0 ml-auto"
+            style={{ color: "hsl(var(--olivewood))" }}
           >
             {firstName}
           </span>

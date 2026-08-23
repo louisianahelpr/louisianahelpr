@@ -48,10 +48,21 @@ export function VirtualList<T>({
     scrollMargin: parentRef.current?.offsetTop ?? 0,
   });
 
-  // Re-measure when items change length (filter / refresh) so positions stay accurate.
+  // Re-measure when the list LENGTH changes (filter / refresh) so positions
+  // stay accurate.
+  //
+  // `virtualizer` must NOT be in the dep array. It is a fresh object on every
+  // render, so including it ran this effect on every render — and
+  // `measure()` RESETS every recorded item size back to `estimateSize`. The
+  // `ref={virtualizer.measureElement}` below would measure a row at its real
+  // height, the next render would throw that away, and the list kept laying
+  // itself out on the estimate forever. With estimateSize=250 against 101px
+  // rows, the browse feed rendered a 149px dead gap under every row.
+  //
+   
   useEffect(() => {
     virtualizer.measure();
-  }, [items.length, virtualizer]);
+  }, [items.length]);
 
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();

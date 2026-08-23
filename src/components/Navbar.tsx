@@ -84,7 +84,10 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
             the auth screens. The authed DashboardHeader deliberately stays
             wordmark-only (hideEmblem): in-app the user already knows where
             they are, and the top bar is tight on vertical space. */}
-        <HelprMark to="/" size="md" />
+        {/* emblemOnly (owner): the crest alone, no "Helpr · LA" wordmark. The
+            emblem keeps alt="Helpr", so the link's accessible name is unchanged
+            — dropping the words must not drop the name. */}
+        <HelprMark to="/" size="md" emblemOnly />
         {/* Smooth-scroll-to-top behavior on the marketing root used to
             live inline on this Link; HelprMark handles routing but if
             we want the same behavior in the future, replace with a

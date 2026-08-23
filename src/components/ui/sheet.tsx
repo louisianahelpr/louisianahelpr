@@ -50,7 +50,15 @@ const sheetVariants = cva(
           // becoming a 1400px band with a 13px label adrift in the middle).
           // A caller that genuinely needs a different width/radius still wins
           // via tailwind-merge — but it now has to say so on purpose.
-          "inset-x-0 bottom-0 max-w-md mx-auto border-t rounded-t-2xl pb-[calc(1.5rem_+_var(--safe-area-bottom,0px))] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+          // md+ : STOP being a bottom sheet. A sheet glued to the bottom edge
+          // is a phone idiom — on a desktop window it read as a 448px panel
+          // stuck to the floor under a full-screen dim, with the content it
+          // filters scrolled away above it. From md up it centres instead and
+          // rounds all four corners, i.e. it becomes the dialog it already
+          // behaves like. Vertical centring is done with `inset-y-0 + h-fit +
+          // my-auto` rather than a translate, because Radix animates the
+          // slide-in with a transform and a second transform would fight it.
+          "inset-x-0 bottom-0 max-w-md mx-auto border-t rounded-t-2xl pb-[calc(1.5rem_+_var(--safe-area-bottom,0px))] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom md:top-0 md:h-fit md:my-auto md:rounded-2xl md:border md:pb-6",
         left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
           "inset-y-0 right-0 h-full w-3/4  border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",

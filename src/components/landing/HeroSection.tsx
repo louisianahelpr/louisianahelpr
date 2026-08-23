@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Sparkles, ArrowRight, Search, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import HelprMark from "@/components/HelprMark";
 
 /**
  * Hero — Louisiana Helpr 2026 brand system.
@@ -135,6 +136,15 @@ const HeroSection = () => {
       <div className="relative z-10 w-full mx-auto max-w-5xl flex flex-col items-center text-center gap-10 sm:gap-14 lg:gap-16">
         {/* Warm ambient halo behind the title — subtle gold light source
             on the parchment. No box, no border. */}
+        {/* Wordmark above the headline (owner). The top nav now carries the
+            crest alone, so this is where the brand actually says its name on
+            the landing page. It sits ABOVE the h1 and does not touch it — the
+            hero headline's font, colour and copy are locked. `to={null}`
+            because a link back to "/" from the top of "/" is a no-op. */}
+        <div className="relative z-10 -mb-6 sm:-mb-8 lg:-mb-10">
+          <HelprMark to={null} size="md" hideEmblem />
+        </div>
+
         <div className="relative flex items-center justify-center w-full">
           <div
             aria-hidden

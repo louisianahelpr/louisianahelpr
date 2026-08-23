@@ -45,6 +45,7 @@ import {
   mockTable,
   seedAuthedSession,
 } from "./fixtures";
+import { ADMIN_VIEWS } from "./auditRoutes";
 
 const OUTPUT_DIR = "/tmp/ui-review";
 mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -115,7 +116,13 @@ const ROUTES = [
   "/business/onboarding",
   "/jobs/10000000-0000-4000-8000-000000000001",
   `/user/${FAKE_CUSTOMER.id}`,
+  // Every admin ?view=, not just the default one. `/admin` alone probed the
+  // `home` view, so the dialogs that actually carry risk — ban, delete user,
+  // escrow release, dispute resolution — were never opened by this sweep at
+  // all. Same one-entry blind spot ADMIN_SCREENS had; shared list so the two
+  // cannot drift apart again.
   "/admin",
+  ...ADMIN_VIEWS.map((v) => `/admin?view=${v}`),
 ];
 
 /**
@@ -376,7 +383,7 @@ sweepDescribe("overlay sweep", () => {
       await installSupabaseMocks(page, {
         user: FAKE_CUSTOMER,
         seed: true,
-        rules: route === "/admin" ? [mockTable("user_roles", [{ role: "admin" }])] : [],
+        rules: route.startsWith("/admin") ? [mockTable("user_roles", [{ role: "admin" }])] : [],
       });
       await probeRoute(page, route);
     });

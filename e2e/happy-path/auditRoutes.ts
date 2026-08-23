@@ -421,7 +421,7 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
 // below fails a screen that does not render, so a view listed here and broken is
 // loud, whereas a view missing from here is silent — the failure mode this list
 // exists to prevent.
-const ADMIN_VIEWS = [
+export const ADMIN_VIEWS = [
   "analytics", "people", "jobs", "settings", "disputes", "broadcasts",
   "notifications", "notiflogs", "reports", "support", "referrals",
   "subscriptions", "fraud", "audit", "health", "export", "payouts",

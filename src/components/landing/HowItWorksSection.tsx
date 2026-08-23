@@ -117,7 +117,14 @@ const HowItWorksSection = () => {
             that introduces it. `flex-wrap` means a narrow phone lets the
             toggle fall under the heading on its own; that is the same rule
             bending, not a second layout. */}
-        <div className="text-center flex flex-col items-center gap-4">
+        {/* ONE full-width row: heading hard left, side toggle hard right, the two
+            vertically centred against each other. Centring both left a short
+            heading floating in the middle of a wide measure with dead space on
+            either flank, directly above three cards that DO span the full width
+            — so the block above read as narrower than the block below, which is
+            what made it look wrong rather than airy. `flex-wrap` lets the toggle
+            drop under the heading on a phone, where there is no room for both. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-left">
           {/* No eyebrow. `.text-display-eyebrow` is `display:none` app-wide
               since the eyebrow-removal decision, so the "How it works" label
               that used to sit here was rendering as nothing — leaving the

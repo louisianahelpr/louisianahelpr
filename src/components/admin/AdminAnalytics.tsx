@@ -224,10 +224,16 @@ const AdminAnalytics = () => {
 
       {/* ── Row 1: Key Financial Metrics ── */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* NOT "Revenue" — this is budget + poster fee across captured jobs,
+            i.e. the gross value flowing THROUGH the platform, most of which is
+            owed to helpers. Calling it revenue put it beside "$0.00 Platform
+            Profit" and read as nonsense to an operator. It also had a second
+            name: Dashboard Home called the identical figure "Captured Revenue
+            (all-time)". One fact, one name. */}
         <MetricCard
-          label="Collected Revenue"
+          label="Payments Collected"
           value={`$${totalRevenue.toFixed(2)}`}
-          sub={`${capturedJobs.length} active payments (excl. refunds)`}
+          sub={`${capturedJobs.length} captured payments · gross, before payouts`}
           icon={DollarSign}
           onClick={() => openDrillDown("revenue")}
         />

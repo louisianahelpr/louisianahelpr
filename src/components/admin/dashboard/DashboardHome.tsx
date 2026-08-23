@@ -161,7 +161,10 @@ export const DashboardHome = ({
       <div className="space-y-2 sm:space-y-3">
         <p className="text-ds-10 sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-          <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
+          {/* Same figure, same name as Analytics — it was "Captured Revenue
+              (all-time)" here and "Collected Revenue" there. And it is gross
+              volume, not revenue: budget + poster fee, most of it owed out. */}
+          <KpiCard label="Payments Collected (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
           <KpiCard

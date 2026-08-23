@@ -7,7 +7,7 @@
  *
  * Source:      src/assets/helpr-logo-1024.png  (846×727, RGBA — transparent bg)
  * Destinations:
- *   public/app-icon-1024.png       — light: warm cream/ivory background
+ *   public/app-icon-1024.png       — light: cool parchment background
  *   public/app-icon-1024-dark.png  — dark:  deep warm charcoal background
  *
  * Both outputs are exactly 1024×1024, no alpha (Apple rejects icons with
@@ -21,7 +21,7 @@
  *  - A soft, blurred, dimmed silhouette of the logo is dropped below the
  *    mark (~18px offset) so the iron looks like it physically rests on
  *    the surface — a contact shadow, not a flat sticker.
- *  - A faint radial vignette warms the background edges so the canvas
+ *  - A faint radial vignette shades the background edges so the canvas
  *    isn't a dead-flat swatch.
  *  - The dark variant adds a warm radial glow behind the (near-black)
  *    iron so the mark doesn't vanish into the charcoal.
@@ -85,7 +85,10 @@ async function makeContactShadow(logoBuffer) {
             width: 1,
             height: 1,
             channels: 4,
-            background: { r: 20, g: 16, b: 8, alpha: 1 },
+            // #14161A — hsl(220 14% 9%), the dark-mode `--parchment` in
+            // src/index.css. Cool-neutral, matching the canvas hue; a
+            // warm-biased shadow would re-introduce the cream cast.
+            background: { r: 0x14, g: 0x16, b: 0x1a, alpha: 1 },
           },
         },
         tile: true,
@@ -211,14 +214,26 @@ async function buildVariant({
 
 console.log(`Building app icon variants from ${SRC}…`);
 
-// Light variant — warm cream/ivory background (#F0E7D6).
+// Light variant — cool parchment background (#F1F2F4).
+//
+// This MUST stay the same hex the app's other launch surfaces already
+// use: the Capacitor SplashScreen + StatusBar backgroundColor
+// (capacitor.config.ts), the `theme-color` meta in index.html, and
+// theme_color/background_color in public/manifest.webmanifest. It is
+// `--parchment`, hsl(220 14% 95%), in src/index.css. Matching it is the
+// whole point — the springboard icon hands off to the splash, and any
+// mismatch shows as a tint jump on every cold start.
+//
+// (Was #F0E7D6 warm cream, authored before the palette migrated
+// warm→cool in 9bdb3283e; the icon simply never followed.)
 await buildVariant({
   outPath: join(repoRoot, 'public', 'app-icon-1024.png'),
-  background: { r: 0xf0, g: 0xe7, b: 0xd6 },
-  // Slightly deeper warm tan for the edge vignette.
-  vignetteRgb: { r: 0xc9, g: 0xb8, b: 0x97 },
+  background: { r: 0xf1, g: 0xf2, b: 0xf4 },
+  // Edge vignette: #E2E4E9 — `--sand`, hsl(220 14% 90%), the cool-neutral
+  // token that replaced the warm tan #D6C7AD in the same migration.
+  vignetteRgb: { r: 0xe2, g: 0xe4, b: 0xe9 },
   vignetteAlpha: 0.13,
-  label: 'light  (cream #F0E7D6)',
+  label: 'light  (parchment #F1F2F4)',
 });
 
 // Dark variant — deep warm charcoal background (#24251C) with a warm

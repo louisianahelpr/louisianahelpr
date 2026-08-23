@@ -313,12 +313,24 @@ const Dashboard = () => {
       // emblem and bell live in the global app bar, and the IN PROGRESS pill
       // was removed outright (owner). Phone/native keep the full card,
       // emblem + pill included, since they have no app bar to hold them.
+      // MERGED (owner: "merge"). On the desktop website there is no separate
+      // floating title card above the panel any more — it was a second box
+      // stating nothing the app bar doesn't already carry, and it spanned the
+      // map as well as the feed. Its one remaining job, the search + filter
+      // controls, moved INTO the panel directly above the job cards (see the
+      // feed column below), so the screen is one box.
+      //
+      // Phone and native keep the card exactly as it was: they have no app
+      // bar, so this is the only thing carrying the emblem and the live
+      // in-progress pill.
       titleCard={
-        <DashboardTitleBar
-          status={isWebDesktop ? undefined : statusPill}
-          actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
-          searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
-        />
+        isWebDesktop ? undefined : (
+          <DashboardTitleBar
+            status={statusPill}
+            actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
+            searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
+          />
+        )
       }
       titleCardClassName={TITLE_BAR_PADDING}
       aboveTitle={<BroadcastBanner />}
@@ -355,24 +367,6 @@ const Dashboard = () => {
                 relevance-ranked jobs at the top, then "Everything else". One
                 clean, personalized, vertical list; no duplication. */}
 
-            <BrowseTasksToolbar
-              filtersAnchorRef={filtersButtonRef}
-              titleSrOnly
-              filters={filters}
-              user={user}
-              helperAvailability={helperAvailability}
-              view={view}
-              setView={setView}
-              hideViewToggle={isWebDesktop}
-              onClearAllFilters={() => {
-                // After clearing filters, snap the feed back to the top
-                // so the user lands on the fresh unfiltered head of the
-                // list rather than mid-scroll where the old filter ended.
-                const el = containerRef.current;
-                if (el) el.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            />
-
             {/* Browse-tasks feed is the main scroll surface of the
                 dashboard. Wrap so a render error in any job card (rare,
                 but cheap insurance) shows an inline retry banner inside
@@ -386,6 +380,49 @@ const Dashboard = () => {
                   edge of the centered phone-width frame. */}
               <div className="flex flex-1 min-h-0 overflow-hidden">
                 <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+                  {/* The feed's own controls, above the CARDS and nothing else
+                      (owner: "add section above just the job cards like it's
+                      their own box"). On the desktop website this column is one
+                      of two — a full-width strip above both would be filtering
+                      the map as much as the list, which is not what the search
+                      field does. Phone/native have no second column, so this
+                      renders exactly where the strip used to. */}
+                  {isWebDesktop && (
+                    <div
+                      className="shrink-0 flex items-center gap-2 px-4 py-2"
+                      style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}
+                    >
+                      {filters.searchOpen ? (
+                        <BrowseSearchBar filters={filters} />
+                      ) : (
+                        <div className="flex items-center gap-1 ml-auto">
+                          <BrowseTasksActions
+                            filters={filters}
+                            filtersButtonRef={filtersButtonRef}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <BrowseTasksToolbar
+                    filtersAnchorRef={filtersButtonRef}
+                    titleSrOnly
+                    filters={filters}
+                    user={user}
+                    helperAvailability={helperAvailability}
+                    view={view}
+                    setView={setView}
+                    hideViewToggle={isWebDesktop}
+                    onClearAllFilters={() => {
+                      // After clearing filters, snap the feed back to the top
+                      // so the user lands on the fresh unfiltered head of the
+                      // list rather than mid-scroll where the old filter ended.
+                      const el = containerRef.current;
+                      if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  />
+
                   <BrowseTasksFeed
                     view={isWebDesktop ? "list" : view}
                     density={density}
@@ -434,11 +471,12 @@ const Dashboard = () => {
                     the way the old side-map did (#12). */}
                 {isWebDesktop && (
                   <div
-                    className="w-[48%] shrink-0 min-h-0 flex flex-col pl-3 pt-2"
+                    className="w-[48%] shrink-0 min-h-0 flex flex-col"
                     style={{ borderLeft: "1px solid hsl(var(--olivewood) / 0.12)" }}
                   >
                     <Suspense fallback={<Skeleton className="h-full w-full rounded-2xl" />}>
                       <BrowseMap
+                        flush
                         onJobAction={handleApplyRequest}
                         ctaLabel="Apply"
                         currentUserId={user?.id}

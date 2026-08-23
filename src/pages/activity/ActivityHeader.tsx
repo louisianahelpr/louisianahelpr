@@ -41,6 +41,18 @@ export interface ActivityHeaderProps {
    *  `sr-only`, which is exactly what ScreenHeaderRow's own `titleSrOnly`
    *  does. */
   titleSrOnly?: boolean;
+  /**
+   * Render the status filters as chips IN THIS ROW instead of behind the
+   * "Refine your search" sheet (owner: "delete this pop up and just add it to
+   * the left of the search bar for webpages").
+   *
+   * Set on the desktop website only. Four mutually-exclusive statuses with
+   * counts is a segmented control, and putting a segmented control behind a
+   * modal costs two taps and a page-covering overlay to change one value that
+   * would fit in the row it filters. Phone and native keep the sheet — there
+   * the row is ~330px wide and four chips plus the page title do not fit.
+   */
+  inlineFilters?: boolean;
   tab: Tab;
   activeStatusFilters: StatusFilter[];
   activeCounts: Record<string, number>;
@@ -57,6 +69,7 @@ export interface ActivityHeaderProps {
 export function ActivityHeader({
   title,
   titleSrOnly = false,
+  inlineFilters = false,
   tab,
   activeStatusFilters,
   activeCounts,
@@ -97,6 +110,9 @@ export function ActivityHeader({
   // Applies to every filter value (Active / Completed / Cancelled), not just
   // Active, and the sr-only prefix below announces the same order the sighted
   // reader gets.
+  // The inline set drops the catch-all. See the note on the control below.
+  const inlineStatusFilters = activeStatusFilters.filter((f) => f.key !== "all");
+
   const filterLabel = activeFilter
     ? activeFilterCount > 0
       ? `${activeFilterCount} ${activeFilter.label}`
@@ -152,13 +168,77 @@ export function ActivityHeader({
         <ScreenHeaderRow
           title={title}
           titleSrOnly={titleSrOnly}
+          style={inlineFilters ? { minHeight: "34px" } : undefined}
+          className={inlineFilters ? "[&>div:first-child]:!py-0" : undefined}
           /* The active-filter indicator sits to the RIGHT of the name, the
              same shape Messages uses for "1 unread" (the one the owner asked
              for there: "put 1 unread to the right of messages bc i dont like
              it under"). It is a <span>, never a heading — the row's h1 is the
              whole page's only one. */
           meta={
-            filterLabel ? (
+            inlineFilters ? (
+              /* UNDERLINE TABS, not filled chips (owner: "make smaller",
+                 "could look better in this space"). Three bordered pills in a
+                 tinted track put four rectangles of chrome above the cards to
+                 express one choice; the same choice reads at a glance as the
+                 screen's own display italic with a rule under the live one,
+                 and it costs a third of the height. It also stops the filter
+                 competing with the job cards for weight — the cards are the
+                 content, this is a caption on them.
+
+                 "All" is deliberately absent (owner): on My Jobs it returned
+                 the same rows as Active, so it was a third of the control
+                 spent on a duplicate. */
+              <div
+                role="group"
+                aria-label="Filter by status"
+                className="flex items-baseline gap-4 shrink-0"
+              >
+                {inlineStatusFilters.map((f) => {
+                  const count = activeCounts[f.key] || 0;
+                  const isActive = statusFilter === f.key;
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      aria-pressed={isActive}
+                      onClick={() => { hapticLight(); setStatusFilter(f.key); }}
+                      className="group inline-flex items-baseline gap-1 !min-h-0 !min-w-0 py-0.5 transition-colors"
+                      style={{
+                        color: isActive
+                          ? "hsl(var(--bark))"
+                          : "hsl(var(--olivewood) / 0.65)",
+                      }}
+                    >
+                      <span
+                        className="font-display italic text-ds-13 leading-none"
+                        style={{
+                          fontWeight: isActive ? 700 : 500,
+                          borderBottom: isActive
+                            ? "1.5px solid hsl(var(--bark))"
+                            : "1.5px solid transparent",
+                          paddingBottom: "3px",
+                        }}
+                      >
+                        {f.label}
+                      </span>
+                      {count > 0 && (
+                        <span
+                          className="font-sans tabular-nums text-ds-9 leading-none"
+                          style={{
+                            color: isActive
+                              ? "hsl(var(--bark) / 0.6)"
+                              : "hsl(var(--olivewood) / 0.45)",
+                          }}
+                        >
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : filterLabel ? (
               <span
                 className="font-serif italic text-ds-11 leading-none shrink-0"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
@@ -183,31 +263,39 @@ export function ActivityHeader({
                 type="button"
                 onClick={() => { hapticLight(); setSearchOpen(true); }}
                 aria-label="Search jobs"
-                className="h-11 w-11 rounded-ds-md flex items-center justify-center btn-press transition text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                aria-label="Filter by status"
-                aria-expanded={filterOpen}
-                onClick={() => { hapticLight(); setFilterOpen(true); }}
-                className={`h-11 w-11 rounded-ds-md btn-press flex items-center justify-center relative transition ${
-                  filterOpen || isStatusFiltered
-                    ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                className={`rounded-ds-md flex items-center justify-center btn-press transition text-muted-foreground hover:text-foreground hover:bg-secondary/60 ${
+                  inlineFilters ? "h-7 w-7 !min-h-0 !min-w-0" : "h-11 w-11"
                 }`}
               >
-                <SlidersHorizontal className="w-4 h-4" />
-                {isStatusFiltered && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[hsl(var(--bark))] ring-2 ring-background" />
-                )}
+                <Search className={inlineFilters ? "w-3.5 h-3.5" : "w-4 h-4"} />
               </button>
+              {/* The sheet's trigger. Absent on the desktop website — the
+                  chips above ARE the filter there, so this would open a modal
+                  duplicating controls already in the row. */}
+              {!inlineFilters && (
+                <button
+                  type="button"
+                  aria-label="Filter by status"
+                  aria-expanded={filterOpen}
+                  onClick={() => { hapticLight(); setFilterOpen(true); }}
+                  className={`h-11 w-11 rounded-ds-md btn-press flex items-center justify-center relative transition ${
+                    filterOpen || isStatusFiltered
+                      ? "text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.45)]"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  }`}
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  {isStatusFiltered && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[hsl(var(--bark))] ring-2 ring-background" />
+                  )}
+                </button>
+              )}
             </>
           }
         />
       )}
 
+      {!inlineFilters && (
       <FilterSheet
         open={filterOpen}
         onOpenChange={setFilterOpen}
@@ -263,7 +351,9 @@ export function ActivityHeader({
           },
         ]}
       />
+      )}
 
     </>
   );
 }
+

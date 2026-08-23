@@ -74,6 +74,18 @@ interface BrowseMapProps {
   /** Clears every filter — the CTA on the "no pins match" empty state. */
   onClearFilters?: () => void;
   /**
+   * Fill the parent edge to edge — no rounded top corners, no border of its
+   * own (owner: "map should fill this space").
+   *
+   * Set on the desktop website's side-by-side column, where the map IS the
+   * column: its parent already draws the hairline that separates it from the
+   * feed, so a second border inset the tiles by a pixel on every side and the
+   * rounded top left two corner wedges of panel showing through. The phone's
+   * list⇄map toggle keeps the rounded, bordered treatment — there the map is a
+   * surface floating above the dock, not a column.
+   */
+  flush?: boolean;
+  /**
    * The viewer's platform commission percent — the SAME value the surrounding
    * feed passes to `JobCard`. With it the pin popup prints the helper's net
    * take-home, so a job can't read $110 on the map and $96 in the list beside
@@ -84,7 +96,8 @@ interface BrowseMapProps {
   effectiveFee?: number;
 }
 
-export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee }: BrowseMapProps) {
+export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false }: BrowseMapProps) {
+  const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";
   const [jobs, setJobs] = useState<MapJob[]>([]);
   // Total open jobs in the feed, including ones the map can't plot because
   // they lack geocoded coordinates. Lets the badge read "N of M" so a user
@@ -195,7 +208,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
   if (loading) {
     return (
       <div
-        className="flex items-center justify-center h-full w-full rounded-t-2xl border border-b-0 border-border bg-card/40"
+        className={`flex items-center justify-center h-full w-full bg-card/40${shellClass}`}
         style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 1rem)" }}
       >
         <HelprSpinner size={20} />
@@ -209,7 +222,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
   if (loadError && visibleJobs.length === 0) {
     return (
       <div
-        className="flex h-full w-full rounded-t-2xl border border-b-0 border-border bg-card/40 px-3 pt-4"
+        className={`flex h-full w-full bg-card/40 px-3 pt-4${shellClass}`}
         style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 1rem)" }}
       >
         <ErrorState
@@ -229,7 +242,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
        a flex-1 wrapper) and bleeds under the dock with flat bottom
        corners. Top corners stay rounded so the panel still reads as a
        distinct surface above the dock. */
-    <div className="relative h-full w-full rounded-t-2xl overflow-hidden border border-b-0 border-border">
+    <div className={`relative h-full w-full overflow-hidden${shellClass}`}>
       {/* Layer-toggle control card — top-right, surfaced prominently
           so helpers can scan job concentration at a glance and flip
           between individual Pins and the density Heat layer in one

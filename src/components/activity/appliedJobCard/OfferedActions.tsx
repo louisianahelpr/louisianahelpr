@@ -45,7 +45,40 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   const [confirmOpen, setConfirmOpen] = useState(false);
   const busy = respondingHelperAppId === app.id;
   const skipConfirm = isDirectOffer(app);
-  const deadline = job.response_deadline ?? job.direct_offer_expires_at ?? null;
+  // THE CLOCK, in priority order.
+  //
+  // 1. `response_deadline` — stamped by accept_application on an offer that
+  //    came from the helper's own application.
+  // 2. `direct_offer_expires_at` — stamped by jobSubmitHelpers on a direct
+  //    offer.
+  // 3. Derived: the offer stamp + the 24-hour rule. `updated_at` is the write
+  //    that moved this application into the offered state (the helper cannot
+  //    edit an offer, so nothing else touches the row here), so this is the
+  //    documented rule applied to a real timestamp — not a number invented to
+  //    fill a gap. Owner: the flat "Respond within 24 hours" sentence "should
+  //    be a count down", and it now is on every offer rather than only the
+  //    ones the backend happened to stamp.
+  const derivedDeadline = app.updated_at
+    ? new Date(
+        new Date(app.updated_at).getTime() +
+          DEFAULT_RESPONSE_WINDOW_HOURS * 3_600_000,
+      ).toISOString()
+    : null;
+  // The BACKEND-STAMPED deadline, kept separate from the derived one above.
+  // Only this one is allowed to take the buttons away: `respond_to_direct_offer`
+  // raises `offer_expired` past `direct_offer_expires_at`, so once it passes
+  // Accept and Decline are dead controls that error on tap. The derived clock
+  // is an inference from `updated_at` — fine for telling the helper how long
+  // they have, never grounds for removing their ability to answer.
+  const hardDeadline = job.response_deadline ?? job.direct_offer_expires_at ?? null;
+  const isExpired = !!hardDeadline && new Date(hardDeadline).getTime() <= Date.now();
+  // A derived clock may only COUNT DOWN, never declare an expiry. Once it
+  // passes we drop back to the prose rule: we inferred that window from
+  // `updated_at`, the server did not stamp it, and "Response deadline expired"
+  // over two live buttons is the app contradicting itself on screen.
+  const derivedStillRunning =
+    !!derivedDeadline && new Date(derivedDeadline).getTime() > Date.now();
+  const deadline = hardDeadline ?? (derivedStillRunning ? derivedDeadline : null);
   return (
     <div
       className="px-4 py-3 space-y-2.5"
@@ -109,6 +142,8 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           consequenceText="Accept or decline before the deadline"
         />
       ) : (
+        /* Only reachable when the row carries no timestamp at all — then we
+           state the rule in words rather than inventing a clock. */
         <p
           className="flex items-center gap-1.5 text-ds-11 font-sans"
           style={{ color: "hsl(var(--burnt-sienna))" }}
@@ -121,6 +156,11 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           led, but the owner asked for the pair to match: "accept and decline
           should be same size". Emphasis is carried by fill (Accept is the solid
           button, Decline is outline), not by width. */}
+      {/* An expired offer has no decision left to make. The server already
+          refuses it (`offer_expired`), so leaving Accept / Decline on screen
+          offered the helper two buttons that both fail — and the one they'd
+          reach for is the one that earns money. */}
+      {isExpired ? null : (
       <div className="flex gap-2 pt-1">
         <Button
           size="sm"
@@ -147,6 +187,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           <CheckCircle2 className="w-4 h-4 mr-1" /> {busy ? "Accepting…" : "Accept Job"}
         </Button>
       </div>
+      )}
       <BrandConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}

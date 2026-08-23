@@ -329,20 +329,6 @@ export function PostedJobActions({
                       // points already use.
                       onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
                     />
-                    {showApprove && (
-                      <JobActionChip
-                        icon={CheckCircle2}
-                        label={job.poster_completed_at ? "Approved" : "Approve"}
-                        ariaLabel="Approve the work and release payment"
-                        tone="primary"
-                        disabled={completingJobId === job.id || !!job.poster_completed_at}
-                        onClick={() => {
-                          if (!job.poster_completed_at) {
-                            setCompletionSheetOpen(true);
-                          }
-                        }}
-                      />
-                    )}
                     {showNoShow && (
                       <JobActionChip
                         icon={XCircle}
@@ -359,6 +345,20 @@ export function PostedJobActions({
                         ariaLabel="Something wrong? Open a dispute about this job"
                         tone="danger"
                         onClick={() => onDispute(job)}
+                      />
+                    )}
+                    {showApprove && (
+                      <JobActionChip
+                        icon={CheckCircle2}
+                        label={job.poster_completed_at ? "Approved" : "Approve"}
+                        ariaLabel="Approve the work and release payment"
+                        tone="primary"
+                        disabled={completingJobId === job.id || !!job.poster_completed_at}
+                        onClick={() => {
+                          if (!job.poster_completed_at) {
+                            setCompletionSheetOpen(true);
+                          }
+                        }}
                       />
                     )}
                   </JobActionRow>

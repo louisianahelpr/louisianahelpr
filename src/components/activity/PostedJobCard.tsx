@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   MapPin, CheckCircle2, RotateCcw,
-  Users, AlertTriangle, RefreshCw, Clock,
+  Users, RefreshCw, Clock,
   Check, ChevronDown, ChevronUp, Eye,
 } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
@@ -87,8 +87,18 @@ function PostedJobCardInner({
   // An OPEN job now shows the tracker too, sitting on its real pre-assignment
   // step (Posted / Applicants) — the owner asked for a tracker on posted jobs,
   // and the same component renders it with the two leading steps prepended.
+  // A job awaiting a revision or sitting in a dispute is still LIVE — the
+  // poster has a decision in front of them — so it keeps the tracker (owner:
+  // "where is the live tracker?"). It used to drop to the bare "Offered to …"
+  // pill the moment work was submitted, which hid the whole history at exactly
+  // the point the poster is judging it. `completed` still has no tracker: the
+  // job is over, and a full green bar is a trophy, not information.
   const showsTracker =
-    ((job.status === "accepted" || job.status === "in_progress") && !!job.helper_id) ||
+    ((job.status === "accepted" ||
+      job.status === "in_progress" ||
+      job.status === "revision_requested" ||
+      job.status === "disputed") &&
+      !!job.helper_id) ||
     job.status === "open";
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from "react";
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -277,40 +277,54 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
 
 
+  const headerEl = isTrulyEmpty ? null : (
+    <ActivityHeader
+      title={tab === "posted" ? "My Posts" : "My Jobs"}
+      // Desktop: the app bar already identifies the app, so the page name is
+      // sr-only here and the row is just its count + controls. Phone and
+      // native keep the visible title; they have no bar.
+      titleSrOnly={isWebDesktop}
+      // Status chips inline in the row, no "Refine your search" modal (owner).
+      inlineFilters={isWebDesktop}
+      tab={tab}
+      activeStatusFilters={activeStatusFilters}
+      activeCounts={activeCounts}
+      statusFilter={statusFilter}
+      setStatusFilter={setStatusFilter}
+      filterOpen={filterOpen}
+      setFilterOpen={setFilterOpen}
+      searchOpen={searchOpen}
+      setSearchOpen={setSearchOpen}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+    />
+  );
+
   return (
     <>
-      {/* The header is the scaffold's TITLE CARD now, not the panel's first
-          child — owner picked the card treatment, so it gets the same rounded
-          floating liquid-glass surface the panel below already has, with the
-          scaffold's own gap between them. It used to be a bare row inside the
-          panel separated by a 1px hairline. */}
+      {/* ONE BOX on the desktop website (owner: "merge into 1"). The header
+          used to be the scaffold's own floating title card, so the screen was
+          two stacked liquid-glass boxes with a gap between them saying one
+          thing between them. On desktop it is now the panel's first child,
+          under a hairline, so the count + controls sit directly on top of the
+          cards they describe.
+
+          Phone and native keep the two-card stack: there the header carries
+          the VISIBLE page name (no app bar exists to carry it), and that name
+          reads as chrome rather than as a row of the list. */}
       <PageScaffold
         animate
-        titleCard={
-          isTrulyEmpty ? undefined : (
-            <ActivityHeader
-              title={tab === "posted" ? "My Posts" : "My Jobs"}
-              // Desktop: the app bar already identifies the app, so the page
-              // name is sr-only here and the row is just its count + controls
-              // — the "small box above the cards" the owner asked for. Phone
-              // and native keep the visible title; they have no bar.
-              titleSrOnly={isWebDesktop}
-              tab={tab}
-              activeStatusFilters={activeStatusFilters}
-              activeCounts={activeCounts}
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              filterOpen={filterOpen}
-              setFilterOpen={setFilterOpen}
-              searchOpen={searchOpen}
-              setSearchOpen={setSearchOpen}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-            />
-          )
-        }
+        titleCard={isWebDesktop ? undefined : headerEl}
         titleCardClassName={ACTIVITY_HEADER_PADDING}
       >
+          {isWebDesktop && headerEl && (
+            <div
+              className="shrink-0 px-5 py-1"
+              style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}
+            >
+              {headerEl}
+            </div>
+          )}
           {/* Secondary header (status title + search/filter) is hidden
               when there's nothing to act on — see `isTrulyEmpty`.
 

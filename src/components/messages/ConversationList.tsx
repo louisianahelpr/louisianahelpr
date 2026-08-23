@@ -351,7 +351,20 @@ export function ConversationList({
                       the count is `shrink-0`, so a long title yields first and
                       the count is never the thing that gets cut. */}
                   <div className="flex items-baseline min-w-0 flex-1 gap-2 py-2.5">
-                    <h1 className="font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none min-w-0">
+                    {/* On the desktop website the page name is deleted from
+                        this row (owner) — the app bar and the side panel both
+                        already say where you are, so a third "Messages" three
+                        rows apart is chrome restating chrome. It goes
+                        `sr-only`, never away: a screen with no h1 is an a11y
+                        defect, and this is Messages' only one. Phone and
+                        native keep it visible — they have no app bar. */}
+                    <h1
+                      className={
+                        embedded
+                          ? "sr-only"
+                          : "font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none min-w-0"
+                      }
+                    >
                       Messages
                     </h1>
                     {headerSubtitle && (

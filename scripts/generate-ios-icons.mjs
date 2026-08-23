@@ -69,8 +69,21 @@ console.log(`Generating ${icons.length} iOS icons from ${SRC}…`);
 for (const icon of icons) {
   await sharp(SRC)
     .resize(icon.size, icon.size, { fit: 'cover' })
+    // Order matters: flatten FIRST (composite any alpha onto an opaque
+    // background), THEN removeAlpha (drop the now-redundant channel).
+    // Reversed, removeAlpha discards the alpha channel outright and
+    // flatten becomes a no-op — so a source that ever gained
+    // transparency would silently render whatever solid colour is named
+    // here across the whole icon. This previously read
+    // `.removeAlpha().flatten({ background: '#1FA678' })` — a teal-green
+    // that belongs to no current brand token and matched nothing else in
+    // the app.
+    //
+    // #F1F2F4 is `--parchment` (hsl(220 14% 95%) in src/index.css) and is
+    // the exact background public/app-icon-1024.png is built on, so this
+    // fallback is invisible even if it ever engages.
+    .flatten({ background: '#F1F2F4' })
     .removeAlpha()        // Apple rejects icons with alpha
-    .flatten({ background: '#1FA678' })
     .png({ compressionLevel: 9 })
     .toFile(join(OUT, icon.name));
   console.log(`  ✓ ${icon.name}  (${icon.size}×${icon.size})`);
@@ -143,8 +156,9 @@ if (!altSrc) {
   for (const icon of altIcons) {
     await sharp(altSrc)
       .resize(icon.size, icon.size, { fit: 'cover' })
-      .removeAlpha()
+      // flatten before removeAlpha — see the note in the main loop above.
       .flatten({ background: '#54583E' })  // Bark plate, matches the SVG
+      .removeAlpha()
       .png({ compressionLevel: 9 })
       .toFile(join(ALT_OUT, icon.name));
     console.log(`  ✓ ${icon.name}  (${icon.size}×${icon.size})`);

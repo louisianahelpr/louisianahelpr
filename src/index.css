@@ -836,7 +836,15 @@ body {
 html.web-desktop {
   --desktop-sidebar-w: 248px;
 }
-@media (min-width: 1024px) {
+/* 900, NOT 1024 — this MUST match `WEB_DESKTOP_QUERY` in useIsWebDesktop /
+   useAppShellViewport and Tailwind's `lg` screen, which are all 900px.
+   While it said 1024 the app had THREE renderings instead of two: under 900 the
+   phone/app design, over 1024 the desktop website, and a broken hybrid band
+   between them where JS rendered the desktop chrome (top bar + rail, both gated
+   at 900) but this CSS never inset the frame for it — so the rail painted over
+   a phone-width column. Owner: "it's currently 3 different things." Any future
+   change to the breakpoint has to move all four together. */
+@media (min-width: 900px) {
   /* `.desktop-rail` is REQUIRED, not decoration. The class is toggled by
      useAppShellViewport with the same `!!user` gate that DesktopSidebarNav
      renders on, so it means "the rail is actually on screen". Without it in
@@ -846,12 +854,15 @@ html.web-desktop {
      grey band down the left of the whole page at 1440. The document-scroll
      twin below (`html.web-desktop.desktop-rail:not(.app-shell) #root`) has
      always been gated this way; this one was not, so the two disagreed. */
-  /* The rail's width is only reserved while the panel is actually OPEN. It is
-     toggled by the hamburger in the top bar now, not by a breakpoint, so a
-     closed panel must give its width back — otherwise closing it leaves a
-     248px dead band where it used to be. `side-panel-open` is stamped on
-     <html> by SidePanelProvider. */
-  html.web-desktop.app-shell.desktop-rail.side-panel-open .app-shell-frame {
+  /* The rail's width is reserved WHETHER OR NOT the panel is open (owner:
+     the hamburger "should open and close the side panel. it should not change
+     the width of the page info").
+     Giving the width back on close made every toggle reflow the whole page —
+     cards re-wrapped, the map column resized, the reading position moved — so
+     a control that should just show and hide a panel read as a layout bug.
+     The strip left behind when the panel is closed is page background, not a
+     gutter, and it is the price of a toggle that never moves the content. */
+  html.web-desktop.app-shell.desktop-rail .app-shell-frame {
     /* Fill the viewport to the LEFT of the sidebar — the rail sits on the
        right edge now (owner). No max-width cap, no centered phone frame. */
     right: var(--desktop-sidebar-w);
@@ -948,7 +959,7 @@ html.web-desktop {
      #root by the rail width so the whole page sits to the right of the rail
      and re-centers in the remaining space. The fixed rail ignores this
      padding, so it stays pinned at the viewport's left edge. */
-  html.web-desktop.desktop-rail.side-panel-open:not(.app-shell) #root {
+  html.web-desktop.desktop-rail:not(.app-shell) #root {
     padding-right: var(--desktop-sidebar-w);
   }
 

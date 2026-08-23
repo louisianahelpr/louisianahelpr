@@ -136,10 +136,25 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           a timestamp we don't have, because a fabricated deadline is worse than
           none — the helper would plan around it. */}
       {deadline ? (
+        /* THE CONSEQUENCE IS STATED, because as of the
+           `expire_unanswered_offers` sweep there is one. Letting the clock run
+           out on an offer you applied for now files the same `job_denial`
+           strike that pressing Decline does — the job reopens either way, and
+           silence used to be the free option. Warning somebody before you
+           count a strike against them is the minimum; "Accept or decline
+           before the deadline" did not say what happens if you do neither.
+
+           Only shown for a HARD deadline. The derived 24-hour clock is an
+           inference from `updated_at` and the server does not act on it, so
+           threatening a strike against it would be a threat we cannot keep. */
         <DeadlineCountdown
           deadline={deadline}
           expiredText="Response deadline expired"
-          consequenceText="Accept or decline before the deadline"
+          consequenceText={
+            hardDeadline
+              ? "No answer counts the same as declining, and the job reopens to everyone."
+              : "Accept or decline before the deadline"
+          }
         />
       ) : (
         /* NO COUNTDOWN AVAILABLE — same panel, different words.

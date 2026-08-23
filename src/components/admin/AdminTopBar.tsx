@@ -43,7 +43,11 @@ const AdminTopBar = ({ onLogout }: { onLogout: () => void }) => (
             already linked to /dashboard but wasn't discoverable, so admins
             felt stranded in the console (no way to home / post / messages /
             profile short of logging out). This returns without signing out. */}
-        <Button asChild variant="ghost" className="h-11 gap-1.5 btn-press shrink-0 -ml-2">
+        {/* `size="sm"` — dropping it took the Button's DEFAULT size, which is
+            `px-6 text-ds-16`, so this grew to 173px of oversized label sitting
+            next to a 32px emblem. The row's `[&_button]:h-11` only normalises
+            HEIGHT; the padding and type scale come from the size variant. */}
+        <Button asChild variant="ghost" size="sm" className="h-11 gap-1.5 btn-press shrink-0 -ml-2">
           <Link to="/dashboard" aria-label="Back to the app">
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Back to App</span>

@@ -62,7 +62,13 @@ const DesktopTopNav = () => {
     >
       <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
         <HelprMark to="/dashboard" size="sm" emblemOnly />
-        <div className="flex items-center gap-1.5 -mr-1">
+        {/* `[&_button]:h-11 [&_button]:w-11` — the bell renders at the Button
+            component's `size="icon"` default (h-14) while the hamburger below
+            is h-11, so the two sat at different sizes and their hover and
+            focus outlines opened to different rectangles side by side (owner).
+            Normalised here, on the row, rather than by threading a size prop
+            through NotificationPanel to its trigger. */}
+        <div className="flex items-center gap-1.5 -mr-1 [&_button]:h-11 [&_button]:w-11">
           {pageActions}
           <NotificationPanel />
           {/* The hamburger OPENS AND CLOSES the side panel — it does not open a

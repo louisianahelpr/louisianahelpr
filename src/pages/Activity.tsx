@@ -284,9 +284,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       // sr-only here and the row is just its count + controls. Phone and
       // native keep the visible title; they have no bar.
       titleSrOnly={isWebDesktop}
-      // Status chips inline in the row, no "Refine your search" modal (owner).
+      // Desktop has room for the tabs beside the screen name; phone puts them
+      // on their own line under it. Same tabs either way.
       inlineFilters={isWebDesktop}
-      tab={tab}
       activeStatusFilters={activeStatusFilters}
       activeCounts={activeCounts}
       statusFilter={statusFilter}

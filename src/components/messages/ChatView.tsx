@@ -241,6 +241,10 @@ export function ChatView({
           activeConvo={activeConvo}
           isOtherOnline={isOtherOnline}
           hideBack={embedded}
+          /* The inbox stays on screen in the embedded (desktop two-pane)
+             layout, so the header drops its status chip — the selected row
+             already shows it. */
+          inboxVisible={embedded}
           ownsSafeArea={!embedded}
           onBack={() => { setDraft(""); setLightboxPhoto(null); onCloseThread(); }}
           onOpenMuteSheet={() => setMuteSheetOpen(true)}

@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
+import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 // Card-matching skeleton — mirrors the actual ConversationRow shape
 // (avatar + name/job/last-msg lines + timestamp + unread dot) so the
 // loading→loaded swap doesn't shift the row. See task #121.
@@ -20,6 +21,21 @@ import { ConversationRow } from "./ConversationRow";
 import { SwipeableConversationRow } from "./SwipeableConversationRow";
 import { getPinnedSet, loadPins, pinnedKey, togglePinned } from "@/lib/pinnedConversations";
 import type { Conversation } from "./types";
+
+/**
+ * Job states that mean "this work is still running", for the Active inbox tab.
+ * `open` is deliberately absent: a thread on an open posting is somebody asking
+ * about a job nobody has been awarded yet, which is a conversation, not a job in
+ * progress. Completed / cancelled are equally absent — those threads are
+ * history, and history lives under All.
+ */
+const LIVE_JOB_STATUSES = new Set([
+  "accepted",
+  "in_progress",
+  "revision_requested",
+  "disputed",
+  "pending_approval",
+]);
 
 // Cap the rendered list; "Show all" reveals the rest. The virtualizer
 // keeps long lists cheap, but a default cap keeps first paint trivial.
@@ -100,6 +116,16 @@ export function ConversationList({
   // a pure local filter over `conversations`, so no debounce needed.
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  /* Which slice of the inbox. Unread is the default WHEN THERE IS UNREAD —
+     opening a caught-up inbox on an empty "Unread" tab would be the app hiding
+     every conversation the user has to prove a point (owner: "i think unread
+     should be the default tab??"). Resolved once, on mount, from the first
+     load; changing tabs after that is the user's business.
+
+     `null` means "not chosen yet" so the effect below can seed it as soon as
+     the first page of threads lands — `conversations` is empty on the very
+     first render and a default computed then would always be "all". */
+  const [inboxFilter, setInboxFilter] = useState<string | null>(null);
   // Bump this nonce after a pin/unpin so the derived order re-reads
   // sessionStorage (the pin set is read directly to avoid a parallel
   // state branch). Cheap, scoped to a paint.
@@ -146,15 +172,32 @@ export function ConversationList({
   // snippet — the two fields a user scans when hunting for a thread.
   // Empty query is a no-op (returns the full ordered list).
   const filteredConversations = useMemo(() => {
+    // Tab first, then the search box. Searching inside the slice you are
+    // looking at is what a two-control list is expected to do; searching the
+    // whole inbox while a tab says "Unread" would make the tab a lie.
+    const byTab =
+      inboxFilter === "unread"
+        ? orderedConversations.filter((c) => c.unread > 0)
+        : inboxFilter === "active"
+          ? orderedConversations.filter(
+              (c) => c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus),
+            )
+          : orderedConversations;
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return orderedConversations;
-    return orderedConversations.filter((c) => {
+    if (!q) return byTab;
+    return byTab.filter((c) => {
       const name = c.otherUserName?.toLowerCase() ?? "";
       const snippet = c.lastMessage?.toLowerCase() ?? "";
       const title = c.jobTitle?.toLowerCase() ?? "";
       return name.includes(q) || snippet.includes(q) || title.includes(q);
     });
-  }, [orderedConversations, searchQuery]);
+  }, [orderedConversations, searchQuery, inboxFilter]);
+
+  // Seed the default tab from the FIRST loaded page, once. See the state decl.
+  useEffect(() => {
+    if (inboxFilter !== null || conversations.length === 0) return;
+    setInboxFilter(conversations.some((c) => c.unread > 0) ? "unread" : "all");
+  }, [conversations, inboxFilter]);
 
   // True when an active search filters every thread out — drives a tidy
   // "No conversations match" state in place of the list.
@@ -256,10 +299,22 @@ export function ConversationList({
   // Omitted entirely at zero rather than rendering "0 unread" — a caught-up
   // inbox should say nothing, not report an absence.
   const unreadThreads = conversations.filter((c) => c.unread > 0).length;
-  const headerSubtitle =
-    isEmpty || unreadThreads === 0
-      ? undefined
-      : `${unreadThreads} unread`;
+  /* The inbox had no filter at all — a single undifferentiated list, with
+     "2 unread" printed beside the title as the only acknowledgement that some
+     threads want you and the rest don't (owner: "i think unread should be the
+     default tab??" and "where are the other options?").
+
+     Three slices, and they answer three different questions: who is waiting on
+     me, which conversations belong to work that is still running, and
+     everything. Same control My Posts / My Jobs use — literally the same
+     component — because "which slice of this list am I looking at" is one idea
+     and the app should express it one way.
+
+     The count beside "Unread" is what "2 unread" used to say, so that caption
+     comes out rather than sitting next to a tab that already says it. */
+  const activeThreads = conversations.filter(
+    (c) => c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus),
+  ).length;
 
   // Pull-to-refresh: swiping down on the list re-runs loadConversations.
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
@@ -271,6 +326,19 @@ export function ConversationList({
   // below), and the "N threads" chip that used to be the card's only
   // content just restated the thread list directly beneath it. Same
   // call as My Posts / My Jobs, which dropped their count box too.
+
+  const inboxTabs = (
+    <UnderlineTabs
+      ariaLabel="Filter conversations"
+      tabs={[
+        { key: "unread", label: "Unread", count: unreadThreads },
+        { key: "active", label: "Active", count: activeThreads },
+        { key: "all", label: "All", count: conversations.length },
+      ]}
+      value={inboxFilter ?? "all"}
+      onChange={setInboxFilter}
+    />
+  );
 
   const listBody = (
     <>
@@ -367,14 +435,14 @@ export function ConversationList({
                     >
                       Messages
                     </h1>
-                    {headerSubtitle && (
-                      <span
-                        className="font-serif italic text-ds-11 leading-none shrink-0"
-                        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                      >
-                        {headerSubtitle}
-                      </span>
-                    )}
+                    {/* DESKTOP: the tabs ride beside the screen name, exactly
+                        as they do on My Posts / My Jobs. Phone puts them on
+                        their own line below this row — see after the toolbar.
+                        The "2 unread" caption that used to sit here is gone:
+                        the Unread tab carries that number now, and the caption
+                        beside a tab that already says it is the same fact
+                        twice. */}
+                    {embedded && !isEmpty && inboxTabs}
                   </div>
                   <div className={`flex items-center gap-1 shrink-0 ${isEmpty ? "hidden" : ""}`}>
                     <button
@@ -396,6 +464,15 @@ export function ConversationList({
                   </div>
                 </>
               )}
+            </div>
+          )}
+          {/* PHONE: the same tabs, on their own line under the toolbar —
+              there is no room for them beside a visible "Messages" title and
+              the Select / Search cluster. Hidden while search or select mode
+              has taken the row over: one control at a time. */}
+          {!embedded && !isEmpty && !searchOpen && !selectMode && (
+            <div className="shrink-0 px-4 pt-2.5 pb-1 overflow-x-auto scrollbar-hide">
+              {inboxTabs}
             </div>
           )}
           {!loading && loadError && conversations.length === 0 ? (

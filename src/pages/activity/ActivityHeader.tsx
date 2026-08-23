@@ -1,8 +1,8 @@
 import { Search, X } from "lucide-react";
+import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 import { hapticLight } from "@/lib/haptics";
 import type { StatusFilter } from "./activityFilters";
-import type { Tab } from "@/components/activity/activityConstants";
 
 /**
  * ActivityHeader — the title row with search/filter toggle buttons, the
@@ -40,18 +40,17 @@ export interface ActivityHeaderProps {
    *  does. */
   titleSrOnly?: boolean;
   /**
-   * Render the status filters as chips IN THIS ROW instead of behind the
-   * "Refine your search" sheet (owner: "delete this pop up and just add it to
-   * the left of the search bar for webpages").
+   * Put the status tabs IN THE HEADER ROW, beside the screen name, rather than
+   * on their own line beneath it.
    *
-   * Set on the desktop website only. Four mutually-exclusive statuses with
-   * counts is a segmented control, and putting a segmented control behind a
-   * modal costs two taps and a page-covering overlay to change one value that
-   * would fit in the row it filters. Phone and native keep the sheet — there
-   * the row is ~330px wide and four chips plus the page title do not fit.
+   * Set on the desktop website only, and it is purely about width: at 375px the
+   * four labels cannot share a row with a title and a search button, so phone
+   * gives them their own line. Both placements show the same tabs — the sheet
+   * they used to hide behind on phone is gone (owner: "put the needs you etc at
+   * the top oiver the job card same for search and remove the filter since they
+   * will all be ther").
    */
   inlineFilters?: boolean;
-  tab: Tab;
   activeStatusFilters: StatusFilter[];
   activeCounts: Record<string, number>;
   statusFilter: string;
@@ -66,7 +65,6 @@ export function ActivityHeader({
   title,
   titleSrOnly = false,
   inlineFilters = false,
-  tab,
   activeStatusFilters,
   activeCounts,
   statusFilter,
@@ -102,60 +100,16 @@ export function ActivityHeader({
      the filter competing with the job cards for weight — the cards are the
      content, this is a caption on them. */
   const statusTabs = (
-          <div
-            role="group"
-            aria-label="Filter by status"
-            className="flex items-baseline gap-4 shrink-0"
-          >
-            {inlineStatusFilters.map((f) => {
-              const count = activeCounts[f.key] || 0;
-              const isActive = statusFilter === f.key;
-              return (
-                <button
-                  key={f.key}
-                  type="button"
-                  aria-pressed={isActive}
-                  onClick={() => { hapticLight(); setStatusFilter(f.key); }}
-                  className="group inline-flex items-baseline gap-1 !min-h-0 !min-w-0 py-0.5 transition-colors"
-                  style={{
-                    color: isActive
-                      ? "hsl(var(--bark))"
-                      : "hsl(var(--olivewood) / 0.65)",
-                  }}
-                >
-                  <span
-                    /* `whitespace-nowrap`: "Needs you" wrapped to two lines
-                       on a 375px screen and the active underline then sat
-                       under "you" alone, which looked like a typo rather than
-                       a selected tab. The row scrolls horizontally instead —
-                       a tab label is a name, and a name does not wrap. */
-                    className="font-display italic text-ds-13 leading-none whitespace-nowrap"
-                    style={{
-                      fontWeight: isActive ? 700 : 500,
-                      borderBottom: isActive
-                        ? "1.5px solid hsl(var(--bark))"
-                        : "1.5px solid transparent",
-                      paddingBottom: "3px",
-                    }}
-                  >
-                    {f.label}
-                  </span>
-                  {count > 0 && (
-                    <span
-                      className="font-sans tabular-nums text-ds-9 leading-none"
-                      style={{
-                        color: isActive
-                          ? "hsl(var(--bark) / 0.6)"
-                          : "hsl(var(--olivewood) / 0.45)",
-                      }}
-                    >
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+    <UnderlineTabs
+      ariaLabel="Filter by status"
+      tabs={inlineStatusFilters.map((f) => ({
+        key: f.key,
+        label: f.label,
+        count: activeCounts[f.key] || 0,
+      }))}
+      value={statusFilter}
+      onChange={setStatusFilter}
+    />
   );
 
   return (

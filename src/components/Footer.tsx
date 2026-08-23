@@ -69,11 +69,11 @@ const Footer = () => (
           than stacking one-per-row. At ~400-640px that was four full-width
           blocks of vertical scroll for content that fits in two columns.
           The brand block spans both so its tagline keeps one measure. */}
-      <div className="grid grid-cols-2 gap-6 min-[620px]:gap-x-4 min-[620px]:gap-y-6 md:gap-8 min-[620px]:grid-cols-12">
+      <div className="grid grid-cols-2 min-[500px]:grid-cols-3 gap-x-4 gap-y-6 md:gap-8 min-[620px]:grid-cols-12">
         {/* Brand — uses the shared HelprMark component so the wordmark
             here matches the top nav exactly (H emblem + non-italic
             "Helpr" + italic burnt-sienna "· LA" tail). */}
-        <div className="col-span-2 min-[620px]:col-span-4 space-y-3">
+        <div className="col-span-2 min-[500px]:col-span-3 min-[620px]:col-span-4 space-y-3">
           <HelprMark to="/" size="md" hideEmblem />
           {/* Break after the first sentence so the tagline wraps predictably
               into two short lines instead of one long one that pushes the
@@ -139,7 +139,16 @@ const Footer = () => (
             short enough to fit two columns, and giving the third back to Follow
             pulls that group left, off the far edge.
 
-            The 4/3/2/3 split starts at 560px. It was `md` (768), then `sm`
+            500-619: the three LINK groups share one row (grid-cols-3, brand
+            spanning all three). Below 500 it drops back to two, because the
+            Follow column holds three 44px icons — a 152px floor that a third of
+            a 375px row cannot hold, and forcing it there overflowed the page by
+            31px. It used to be grid-cols-2, which handed Company
+            and Legal half the row each for two and three short words — and
+            pushed Follow onto a third row of its own for the sake of three
+            icons. Three narrow columns beat two fat ones and a widow.
+
+            The 4/3/2/3 split starts at 620px. It was `md` (768), then `sm`
             (640) — and 640 still missed a 631px window by nine pixels, which is
             exactly the kind of near-miss that makes a fix look like it never
             landed. 560 is where the narrowest column ("Privacy", ~86px) still

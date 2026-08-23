@@ -374,6 +374,12 @@ const Dashboard = () => {
                 savedOnly={savedOnly}
                 onToggleSavedOnly={toggleSavedOnly}
                 savedCount={savedJobIds.size}
+                // Phone + native: emblem, filter, bell. Search and Saved fold
+                // into the filter sheet, which is the only way this row fits —
+                // measured, the five-icon cluster wanted 386px against a card
+                // edge at 334, and the overflow was silently eating first the
+                // emblem and then the bell.
+                compact
               />
             }
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
@@ -507,6 +513,12 @@ const Dashboard = () => {
                     view={view}
                     setView={setView}
                     hideViewToggle={isWebDesktop}
+                    // The sheet grows Search + "Only saved jobs" sections on
+                    // exactly the surfaces whose header row lost those icons.
+                    compactActions={!isWebDesktop}
+                    savedOnly={savedOnly}
+                    onToggleSavedOnly={toggleSavedOnly}
+                    savedCount={savedJobIds.size}
                     onClearAllFilters={() => {
                       // After clearing filters, snap the feed back to the top
                       // so the user lands on the fresh unfiltered head of the

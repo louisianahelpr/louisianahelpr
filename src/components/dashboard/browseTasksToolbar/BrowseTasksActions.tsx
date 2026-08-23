@@ -22,6 +22,29 @@ export interface BrowseTasksActionsProps {
    * <Popover> subtree. Omit it and nothing changes — the sheet still opens.
    */
   filtersButtonRef?: Ref<HTMLButtonElement>;
+  /**
+   * Phone and native: render ONLY the Filters button.
+   *
+   * The brand row has to hold the emblem, the live pill, these controls and
+   * the notification bell, and at 375 it simply cannot — measured, the cluster
+   * wanted 386px against a card edge at 334. The overflow was absorbed
+   * silently: first by the emblem, which flexed to 0x44 and disappeared, and
+   * then (once the emblem was pinned) by the bell, which was pushed off the
+   * card entirely.
+   *
+   * So the phone row is emblem + filter + bell, and Search and Saved move
+   * INTO the filter sheet (owner: "phone view and ios should just be logo
+   * filter and notification, everything else there somehow folds into
+   * filter"). Both are filters in the plain sense — one narrows by text, the
+   * other by whether you saved it — so the sheet is where they belong anyway.
+   * Nothing is removed; both are one tap further in, labelled with words
+   * instead of a bare glyph. This is the same move the List/Map toggle and
+   * Saved searches already made.
+   *
+   * Desktop web keeps all three inline: it renders them in the in-panel
+   * toolbar, which has the room the phone brand row does not.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -50,10 +73,11 @@ export function BrowseTasksActions({
   savedOnly = false,
   onToggleSavedOnly,
   savedCount = 0,
+  compact = false,
 }: BrowseTasksActionsProps) {
   return (
     <>
-      {onToggleSavedOnly && (
+      {!compact && onToggleSavedOnly && (
         <Button
           variant="ghost"
           size="icon"
@@ -81,6 +105,7 @@ export function BrowseTasksActions({
           )}
         </Button>
       )}
+      {!compact && (
       <Button
         variant="ghost"
         size="icon"
@@ -91,6 +116,7 @@ export function BrowseTasksActions({
       >
         <Search className="w-5 h-5" />
       </Button>
+      )}
       <Button
         ref={filtersButtonRef}
         variant="ghost"

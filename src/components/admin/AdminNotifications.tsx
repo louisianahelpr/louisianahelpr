@@ -196,21 +196,35 @@ const AdminNotifications = () => {
             <div className="flex items-center gap-2">
               <Smartphone className="w-4 h-4 text-primary" />
               <div>
-                <p className="text-ds-13 font-medium text-foreground">All In-App</p>
+                <Label
+                  htmlFor="all-push"
+                  className="text-ds-13 font-medium text-foreground cursor-pointer"
+                >
+                  All In-App
+                </Label>
                 <p className="text-ds-11 text-muted-foreground">Push & in-app notifications</p>
               </div>
             </div>
-            <Switch checked={allPushOn} onCheckedChange={toggleAllPush} />
+            {/* id + htmlFor, matching the per-category switches below. These two
+                master toggles sat next to a plain <p>, so their accessible name
+                was empty — a screen reader announced "switch, on" with no way to
+                tell which of the two it was. */}
+            <Switch id="all-push" checked={allPushOn} onCheckedChange={toggleAllPush} />
           </div>
           <div className="flex items-center justify-between gap-3 flex-1 rounded-ds-sm border border-border bg-secondary/20 p-4">
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary" />
               <div>
-                <p className="text-ds-13 font-medium text-foreground">All Email</p>
+                <Label
+                  htmlFor="all-email"
+                  className="text-ds-13 font-medium text-foreground cursor-pointer"
+                >
+                  All Email
+                </Label>
                 <p className="text-ds-11 text-muted-foreground">Email notifications</p>
               </div>
             </div>
-            <Switch checked={allEmailOn} onCheckedChange={toggleAllEmail} />
+            <Switch id="all-email" checked={allEmailOn} onCheckedChange={toggleAllEmail} />
           </div>
         </div>
       </div>

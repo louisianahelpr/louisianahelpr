@@ -397,7 +397,13 @@ const AdminSettings = () => {
                 <div className="min-w-0">
                   <p className="text-ds-13 font-semibold text-foreground">{flag.label}</p>
                   <p className="text-ds-11 text-muted-foreground leading-tight">{flag.description}</p>
-                  <p className="text-ds-10 text-muted-foreground mt-0.5 font-mono opacity-70">{flag.id}</p>
+                  {/* No opacity here. --stormy-sky was set to 36% specifically to
+                      clear AA for small muted text (see the token comment in
+                      index.css); opacity-70 composited it against the card to
+                      #859095 = 3.27:1 at 10px, quietly undoing that tuning. The
+                      id stays de-emphasised by size + font-mono instead, which
+                      costs no contrast. */}
+                  <p className="text-ds-10 text-muted-foreground mt-0.5 font-mono">{flag.id}</p>
                 </div>
                 <Switch
                   checked={value}

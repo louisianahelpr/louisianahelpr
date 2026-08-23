@@ -1,4 +1,7 @@
-import { formatTimestamp, formatPrice } from "@/lib/format";
+// formatPriceExact: these rows are the LEDGER — amount_cents and
+// platform_fee_cents are exactly what Stripe moved. Rounding rendered an
+// $83.60 transfer as "$84", a number that never existed on any statement.
+import { formatTimestamp, formatPriceExact as formatPrice } from "@/lib/format";
 import { payoutStatusLabel } from "@/lib/statusLabels";
 import type { PayoutLedgerRow } from "./types";
 

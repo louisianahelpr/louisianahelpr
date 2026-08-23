@@ -290,7 +290,17 @@ const AdminIDVQueue = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <Button size="sm" variant="ghost" onClick={() => setSelected(p)}>
+                  {/* Icon-only, so it needs an explicit name — and a per-row one.
+                      "View" repeated down the queue tells a screen-reader user
+                      nothing about WHICH applicant they are about to open, on a
+                      screen where the next click approves or denies an identity
+                      check. Its siblings ("Approve"/"Deny") carry visible text. */}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSelected(p)}
+                    aria-label={`View verification details for ${formatName(p.full_name, "this applicant")}`}
+                  >
                     <Eye className="w-4 h-4" />
                   </Button>
                   {(p.idv_status === "manual_review" || p.idv_status === "failed") && (

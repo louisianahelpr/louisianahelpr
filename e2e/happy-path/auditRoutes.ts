@@ -406,13 +406,39 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
 
 // Admin surface — gated by AdminRoute, which redirects to /dashboard unless
 // user_roles reports role=admin. Override that one table so the real Admin
-// page renders. Captured once (admin is a single role-elevated customer).
+// page renders.
+//
+// This list used to hold ONE entry, `/admin`, under a comment reading "captured
+// once (admin is a single role-elevated customer)". That conflated one admin
+// PERSONA with one admin SCREEN. `/admin` is a `?view=`-switched shell over 27
+// distinct views (the `View` union in src/pages/Admin.tsx), so the sweep was
+// rendering `home` and reporting the whole admin surface clean while 26 views —
+// payouts, disputes, fraud, parish tax, IDV, exports — were never loaded at
+// all. Every admin defect found to date was found by hand, which is exactly
+// what a 26-screen hole in the only automated net predicts.
+//
+// Mirror of the `View` union. When a view is added there, add it here: the gate
+// below fails a screen that does not render, so a view listed here and broken is
+// loud, whereas a view missing from here is silent — the failure mode this list
+// exists to prevent.
+const ADMIN_VIEWS = [
+  "analytics", "people", "jobs", "settings", "disputes", "broadcasts",
+  "notifications", "notiflogs", "reports", "support", "referrals",
+  "subscriptions", "fraud", "audit", "health", "export", "payouts",
+  "parishtax", "tiers", "idv", "geography", "marketing", "credentials",
+  "business_verify", "business_accounts", "exceptions",
+] as const;
+
+const adminRules = () => [mockTable("user_roles", [{ role: "admin" }])];
+
 export const ADMIN_SCREENS: ScreenSpec[] = [
-  {
-    name: "admin",
-    url: "/admin",
-    rules: [mockTable("user_roles", [{ role: "admin" }])],
-  },
+  // `home` — the default view, reached with no ?view= param.
+  { name: "admin", url: "/admin", rules: adminRules() },
+  ...ADMIN_VIEWS.map((view) => ({
+    name: `admin-${view.replace(/_/g, "-")}`,
+    url: `/admin?view=${view}`,
+    rules: adminRules(),
+  })),
 ];
 
 /**

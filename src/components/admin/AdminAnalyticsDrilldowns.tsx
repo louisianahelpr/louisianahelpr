@@ -6,7 +6,9 @@ import { cn, formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
-import { formatCategory, formatPrice, formatShortDate } from "@/lib/format";
+// formatPriceExact for the payout column: it is budget minus fee to the cent,
+// and an admin reconciling against Stripe needs the real figure, not a rounded one.
+import { formatCategory, formatPrice, formatPriceExact, formatShortDate } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
 import { toneTextClasses, type Tone } from "@/components/admin/tones";
@@ -202,7 +204,7 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
             <div className="flex gap-4 mt-2 text-ds-11 text-muted-foreground">
               <span>Budget: ${formatPrice(j.budget)}</span>
               <span>Fee: ${formatPrice(j.platform_fee_amount || 0)}</span>
-              <span>Payout: ${formatPrice(j.budget - (j.platform_fee_amount || 0))}</span>
+              <span>Payout: ${formatPriceExact(j.budget - (j.platform_fee_amount || 0))}</span>
               {j.payout_scheduled_at && <span>Scheduled: {new Date(j.payout_scheduled_at).toLocaleString()}</span>}
             </div>
           </div>

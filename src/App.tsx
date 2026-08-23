@@ -185,7 +185,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
-      <Route path="/earnings" element={<Navigate to="/profile" replace />} />
+      {/* → the EARNINGS TAB, not the Profile landing. `/earnings` is the
+          deep link people bookmark and the one older notifications point at;
+          dropping them on the landing made them find the tab themselves. */}
+      <Route path="/earnings" element={<Navigate to="/profile?tab=earnings" replace />} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /support is linked from the footer, the legal pages, and the Profile
           Legal tab's data-rights footnote, so it must resolve WITHOUT auth.

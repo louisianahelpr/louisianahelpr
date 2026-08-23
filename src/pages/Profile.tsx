@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, lazy, Suspense } from "react";
+import { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -40,6 +40,7 @@ import { ProfileLanding } from "@/components/profile/ProfileLanding";
 import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./profile/ProfileTabPanels";
 import { TAB_TITLES, type Profile, type Tab } from "./profile/types";
+import { hasInAppHistory } from "@/lib/inAppHistory";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
 /**
@@ -73,6 +74,38 @@ const ProfilePage = () => {
   const [avatarBroken, setAvatarBroken] = useState(false);
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
+
+  /**
+   * Back out of a tab — to the Profile landing when that is where you came
+   * from, and otherwise to wherever you actually came from.
+   *
+   * The seventeen tabs all hardcoded `setTab("landing")`, so back from
+   * Earnings dropped you on the Profile landing whether you had tapped the
+   * Earnings row a second earlier or followed a payout notification straight
+   * to `/profile?tab=earnings`. In the second case that is the wrong screen
+   * AND an extra press, and it made Profile the only sub-surface in the app
+   * whose back button ignored history — `/work-record`, `/benefits` and
+   * `/pets` all return you to the previous page from the same starting point.
+   *
+   * `cameFromLanding` is the whole distinction: true once the landing has been
+   * rendered in this visit, which is exactly the case where "up" and "back"
+   * are the same screen. Deep-linked straight into a tab, we go back a real
+   * history entry instead, falling back to the landing when there is no
+   * in-app history to go back to (a cold open on the deep link) — the same
+   * has-history test `BackButton` already uses.
+   */
+  const cameFromLanding = useRef(initialTab === "landing");
+  useEffect(() => {
+    if (tab === "landing") cameFromLanding.current = true;
+  }, [tab]);
+  const backFromTab = useCallback(() => {
+    if (cameFromLanding.current) {
+      setTab("landing");
+      return;
+    }
+    if (hasInAppHistory()) navigate(-1);
+    else setTab("landing");
+  }, [navigate]);
 
   // One title per tab. Every one of the 18 tabs used to report the same
   // "My Profile — Helpr", so browser history, bookmarks and the tab bar could
@@ -570,6 +603,7 @@ const ProfilePage = () => {
           <div className="animate-ds-page-in">
           <ProfileTabPanels
             tab={tab}
+            onBackFromTab={backFromTab}
             user={user}
             profile={profile}
             setTab={setTab}

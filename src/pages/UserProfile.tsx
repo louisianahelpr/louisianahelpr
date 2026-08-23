@@ -42,6 +42,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUserLocation } from "@/hooks/useUserLocation";
+import { hasInAppHistory } from "@/lib/inAppHistory";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -228,8 +229,17 @@ const UserProfile = () => {
               icon={UserX}
               title="User not found"
               body="This profile may have been removed, or the link is no longer valid."
+              // Same guard as every other back affordance: a profile link
+              // shared into a messaging app opens cold, and `navigate(-1)`
+              // from there leaves the app instead of showing this person the
+              // rest of it. Browse is the honest fallback — they arrived
+              // looking for a helpr.
               action={
-                <BarkPillButton onClick={() => navigate(-1)}>Go back</BarkPillButton>
+                <BarkPillButton
+                  onClick={() => (hasInAppHistory() ? navigate(-1) : navigate("/dashboard"))}
+                >
+                  Go back
+                </BarkPillButton>
               }
             />
           </div>

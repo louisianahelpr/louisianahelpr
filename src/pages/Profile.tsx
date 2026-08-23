@@ -456,9 +456,9 @@ const ProfilePage = () => {
       <AppShell
         scrollable={false}
         contentClassName="overflow-hidden"
-        className="bg-premium-page"
+        className="bg-premium-page pt-safe-top"
       >
-        <div className="container mx-auto px-5 lg:px-8 xl:px-12 pb-4 flex-1 min-h-0 overflow-y-auto" style={{ paddingTop: "calc(var(--safe-area-top, 0px) + 1rem)" }}>
+        <div className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-4 flex-1 min-h-0 overflow-y-auto">
           <div className="page-measure mx-auto">
             <ProfilePageSkeleton />
           </div>
@@ -499,12 +499,23 @@ const ProfilePage = () => {
   return (
     <>
     <AppShell
-      
       scrollable={false}
       contentClassName="overflow-hidden"
-      className="bg-premium-page"
+      className="bg-premium-page pt-safe-top"
     >
-      <div className="container mx-auto px-5 lg:px-8 xl:px-12 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" style={{ paddingTop: "calc(var(--safe-area-top, 0px) + 0.75rem)" }}>
+      {/* THE SAME CONTAINER STRING PageScaffold USES, character for character.
+          Profile is the one main screen not built on PageScaffold, and it had
+          drifted: its container carried an inline
+          `calc(var(--safe-area-top) + 0.75rem)` while the wrapper INSIDE it
+          added another `pt-3 lg:pt-5`. Two paddings where its four siblings
+          have one, so the first card on Profile started at y=88 while Home,
+          Posts, Jobs and Messages all started at y=76 — measured at 1440.
+
+          The safe-area inset moves to the AppShell's `pt-safe-top`, which is
+          exactly where PageScaffold puts it, so the inset is applied in ONE
+          layer here too (owner: same spacing across Home / Posts / Jobs /
+          Messages / Profile). */}
+      <div className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
         {tab === "landing" ? (
           /* Landing scrolls inside a PullToRefreshWrapper so swiping
              down re-syncs the profile, Stripe status, stats + reviews. */
@@ -514,7 +525,7 @@ const ProfilePage = () => {
             refreshing={refreshing}
             isPulling={isPulling}
             canTrigger={canTrigger}
-            className="w-full page-measure mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pt-3 lg:pt-5 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]"
+            className="w-full page-measure mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]"
           >
             <ProfileLanding
               profile={profile}

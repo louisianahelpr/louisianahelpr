@@ -8,6 +8,7 @@ import {
 } from "framer-motion";
 import { useLocation, useNavigate, useNavigationType } from "react-router-dom";
 
+import { useHiddenAtMount } from "@/hooks/useHiddenAtMount";
 import { useReducedMotion } from "@/lib/accessibility";
 
 interface PageTransitionProps {
@@ -52,6 +53,12 @@ const PageTransition = ({ children }: PageTransitionProps) => {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
   const reducedMotion = useReducedMotion();
+  /* A route that mounts while the app is backgrounded has nobody to watch it
+     arrive, and framer's rAF tween would leave it at `opacity: 0` — slid
+     sideways by `offsetX` — until frames resume. That is the blank screen a
+     user meets when a push deep-link or a resume restores a route. Render the
+     settled state instead. See useHiddenAtMount. */
+  const hiddenAtMount = useHiddenAtMount();
 
   // POP = back navigation. PUSH/REPLACE = forward.
   const isBack = navigationType === "POP";
@@ -98,6 +105,10 @@ const PageTransition = ({ children }: PageTransitionProps) => {
   };
 
   // Reduced motion: keep the simple fade, no interactive drag follow.
+  if (hiddenAtMount) {
+    return <div key={location.key}>{children}</div>;
+  }
+
   if (reducedMotion) {
     return (
       <motion.div

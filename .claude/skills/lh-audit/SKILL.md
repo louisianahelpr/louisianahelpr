@@ -846,7 +846,7 @@ on the way to their first success.
   escrow stuck forever. A webhook that trusts unsigned input, double-applies on
   replay, or can strand escrow on a dropped event is a HIGH finding.
 - **Account lifecycle.** Delete / deactivate / reactivate account and data-export
-  (DataRights) each work end-to-end: destructive account actions confirm and
+  (Profile → Legal tab; `/data-rights` redirects there since 2026-08-18) each work end-to-end: destructive account actions confirm and
   state consequences (in-flight jobs, escrow, reviews), export returns real data,
   and a deactivated account is handled on next login rather than crashing. Ties
   to Destructive-action safeguards but is its own driven flow.

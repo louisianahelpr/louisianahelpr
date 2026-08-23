@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from "react";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -14,13 +14,13 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 // guest feed cannot drift apart on the one measurement that makes the row
 // read as a band of chrome rather than a card.
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
 import DashboardInProgressBadge from "@/components/dashboard/DashboardInProgressBadge";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
+import { useTopNavActions } from "@/components/topNavActions";
 import { Skeleton } from "@/components/ui/skeleton";
 import BroadcastBanner from "@/components/BroadcastBanner";
 import DashboardStatusBanners from "@/components/dashboard/DashboardStatusBanners";
@@ -222,9 +222,30 @@ const Dashboard = () => {
   // `loading` would hide a live commitment for as long as the feed took to
   // arrive and then slide it in sideways once the feed landed. Self-hides
   // when there is no accepted / in-progress job.
-  const statusPill = (
-    <DashboardInProgressBadge job={upcomingJob} onView={(to) => navigate(to)} />
+  // Memoised because it is handed to useTopNavActions, which keys its effect on
+  // node identity. As a bare inline element this was a NEW object every render,
+  // so the effect re-fired, setState ran, and the component re-rendered —
+  // "Maximum update depth exceeded", an infinite loop on Home.
+  const statusPill = useMemo(
+    () => <DashboardInProgressBadge job={upcomingJob} onView={(to) => navigate(to)} />,
+    [upcomingJob, navigate],
   );
+
+  // On the desktop website this page's controls live in the global app bar,
+  // not in a title card of its own. Memoised because useTopNavActions depends
+  // on node identity — an inline element would be a new object every render
+  // and the effect would loop.
+  const topNavActions = useMemo(
+    () =>
+      isWebDesktop ? (
+        <>
+          {statusPill}
+          <BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />
+        </>
+      ) : null,
+    [isWebDesktop, statusPill, filters],
+  );
+  useTopNavActions(topNavActions);
 
   if (loading) {
     // Loading state mirrors the *exact* loaded layout: the same
@@ -244,7 +265,6 @@ const Dashboard = () => {
         // would add a second, in-flow sticky header on phone/native (where
         // the "Full-bleed top header" CSS rule never fires), stacking on top
         // of the title card's own emblem+bell instead of replacing them.
-        header={isWebDesktop ? <DashboardHeader /> : undefined}
         titleCard={<DashboardTitleBar
             status={statusPill}
             actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
@@ -304,20 +324,18 @@ const Dashboard = () => {
     <PageScaffold
       animate
       panelElevation="raised"
-      // Full-bleed app bar on web-desktop only (see the loading-state
-      // PageScaffold above for why this is conditional, not unconditional).
-      // On phone/native there is still no app bar here, matching Messages /
-      // My Jobs / My Posts: the brand emblem, the live-job pill and the bell
-      // are the whole of the title card's row; the page's own name is the
-      // toolbar's "Browse jobs" h1 inside the panel (sr-only here — owner
-      // decision, "home will not have a title just the H logo"). PageScaffold
-      // takes on the top safe-area inset itself when no header is passed.
-      header={isWebDesktop ? <DashboardHeader /> : undefined}
-      titleCard={<DashboardTitleBar
+      // On the desktop website this page has NO title card: the live-job pill
+      // and the search/filter controls are pushed up into the global app bar
+      // (DesktopTopNav) via useTopNavActions below, and the emblem + bell live
+      // there too — so a card here would repeat all three. Phone and native
+      // keep the card exactly as before; they have no app bar.
+      titleCard={isWebDesktop ? undefined : (
+          <DashboardTitleBar
             status={statusPill}
             actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
-          />}
+          />
+        )}
       titleCardClassName={TITLE_BAR_PADDING}
       aboveTitle={<BroadcastBanner />}
       beforePanel={

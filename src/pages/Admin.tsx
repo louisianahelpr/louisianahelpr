@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import {
   Users, Briefcase, Settings, BarChart3, ClipboardCheck,
   AlertTriangle, DollarSign, ShieldAlert, Megaphone,
@@ -72,8 +73,19 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "idv", label: "Identity Verify", icon: ShieldCheck },
       { id: "credentials", label: "License & Insurance", icon: ShieldCheck },
       { id: "exceptions", label: "Exception Queue", icon: ClipboardList },
-      { id: "business_verify", label: "Business Verification", icon: Building2 },
-      { id: "business_accounts", label: "Business Accounts", icon: Building2 },
+      // Business Verification / Business Accounts are the admin half of the
+      // Business product. They are spread in only while `BUSINESS_ENABLED` is
+      // true, because with the product hidden they are two dead sidebar rows
+      // naming a feature no user can reach — a verification queue for
+      // businesses nobody can create, and an accounts list that can only ever
+      // be empty. `?view=business_verify` also falls through to the dashboard
+      // home rather than rendering the queue (see `renderContent`).
+      ...(BUSINESS_ENABLED
+        ? ([
+            { id: "business_verify", label: "Business Verification", icon: Building2 },
+            { id: "business_accounts", label: "Business Accounts", icon: Building2 },
+          ] as AdminNavItem[])
+        : []),
       { id: "jobs", label: "Jobs", icon: Briefcase },
       { id: "geography", label: "Geography", icon: MapPin },
       { id: "fraud", label: "Fraud", icon: ShieldAlert },
@@ -120,7 +132,15 @@ const Admin = () => {
   // right sub-view in one tap. ?user= is forwarded into AdminUsers so it
   // can openProfile() automatically.
   const [searchParams] = useSearchParams();
-  const initialView = (searchParams.get("view") as View) || "home";
+  const rawInitialView = (searchParams.get("view") as View) || "home";
+  // A stale `?view=business_verify` / `?view=business_accounts` deep-link — from
+  // an old admin notification or a bookmark — must not reopen a Business screen
+  // while the product is hidden. Coerced to the dashboard home instead, which
+  // is also what makes the two `renderContent` cases below unreachable.
+  const initialView: View =
+    !BUSINESS_ENABLED && (rawInitialView === "business_verify" || rawInitialView === "business_accounts")
+      ? "home"
+      : rawInitialView;
   const [view, setView] = useState<View>(initialView);
   const [notifLogsInitialSearch, setNotifLogsInitialSearch] = useState<string>("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -431,6 +451,9 @@ const Admin = () => {
     idv: "Identity Verify", geography: "Geography", marketing: "Marketing",
     credentials: "License & Insurance",
     exceptions: "Exception Queue",
+    // Unreachable while BUSINESS_ENABLED is false — the nav rows are not
+    // rendered and `?view=business_*` is coerced to "home" — but kept so the
+    // map stays exhaustive over `View`.
     business_verify: "Business Verification",
     business_accounts: "Business Accounts",
   };
@@ -459,8 +482,10 @@ const Admin = () => {
       case "idv": return <AdminIDVQueue />;
       case "credentials": return <AdminCredentialQueue />;
       case "exceptions": return <AdminExceptionQueue />;
-      case "business_verify": return <AdminBusinessVerificationQueue />;
-      case "business_accounts": return <AdminBusinessAccounts />;
+      case "business_verify":
+        return BUSINESS_ENABLED ? <AdminBusinessVerificationQueue /> : null;
+      case "business_accounts":
+        return BUSINESS_ENABLED ? <AdminBusinessAccounts /> : null;
       case "geography": return <AdminParishActivity />;
       case "marketing": return <AdminMarketing />;
       default: return (
@@ -507,16 +532,24 @@ const Admin = () => {
           </main>
         </div>
 
+        {/* ONE verb: "sign out". The app says Sign Out on nine screens
+            (Profile settings, Security, Account Pending/Denied/Banned,
+            Complete Profile, the blocked-dashboard state) and "log out" on
+            almost nothing, so the odd ones out were the two confirm dialogs and
+            the admin sidebar that opens this one — the control read "Log Out",
+            the dialog said "Log out", and the cancel offered "Stay logged in",
+            while every other surface in the product said sign. Title Case per
+            the app-wide Apple-HIG rule for buttons and alert titles. */}
         <BrandConfirmDialog
           open={showLogoutDialog}
           onOpenChange={setShowLogoutDialog}
-          title="See You Soon?"
+          title="Sign Out?"
           description="You'll need to sign back in next time. Your posts and messages stay safe."
-          primaryLabel="Log out"
+          primaryLabel="Sign Out"
           primaryTone="bark"
           primaryHaptic="medium"
           onPrimary={async () => { await signOutWithPushCleanup(); navigate("/"); }}
-          secondaryLabel="Stay logged in"
+          secondaryLabel="Stay Signed In"
         />
       </div>
     </SidebarProvider>

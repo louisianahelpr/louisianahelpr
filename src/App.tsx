@@ -25,6 +25,10 @@ import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import RouteMemory from "@/components/RouteMemory";
+// Tiny + Supabase-free by design (a synchronous localStorage probe plus a
+// lazy boundary) so it can be imported eagerly here without putting the
+// auth check — and therefore Supabase — on the landing page's LCP path.
+import MarketingRedirect from "@/components/MarketingRedirect";
 import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useAppLifecycle } from "@/lib/appLifecycle";
@@ -55,6 +59,8 @@ const PageTransition = lazy(() => import("@/components/PageTransition"));
 const ScrollToTop = lazy(() => import("@/components/ScrollToTop"));
 const MobileNav = lazy(() => import("./components/MobileNav"));
 const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
+const DesktopTopNav = lazy(() => import("./components/DesktopTopNav"));
+import { TopNavActionsProvider } from "./components/topNavActions";
 const PermissionRationaleDialog = lazy(() =>
   import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
 );
@@ -142,7 +148,20 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
   return (
     <Routes location={location}>
-      <Route path="/" element={<RouteErrorBoundary>{routeEl(<PageTransition><Index /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* SIGNED-IN VISITORS SKIP THE MARKETING SITE.
+          Owner decision: once someone is signed in there should be no
+          references back to landing — everything they need is in the app. So
+          the two purely promotional routes (this one and /for-business) bounce
+          an authenticated visitor to /dashboard.
+
+          <MarketingRedirect> wraps OUTSIDE routeEl() on purpose: it renders
+          `children` only in the guest branch, so a signed-in visitor never
+          starts the Index/ForBusiness chunk download at all, and a guest's
+          download starts on exactly the same tick as before.
+
+          Every other public route is deliberately NOT wrapped — see the
+          per-route notes below and the block comment in MarketingRedirect. */}
+      <Route path="/" element={<RouteErrorBoundary><MarketingRedirect>{routeEl(<PageTransition><Index /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />
       <Route path="/login" element={<RouteErrorBoundary>{routeEl(<PageTransition><Login /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/signup" element={<RouteErrorBoundary>{routeEl(<PageTransition><Signup /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/signup-pending" element={<RouteErrorBoundary>{routeEl(<PageTransition><SignupPending /></PageTransition>)}</RouteErrorBoundary>} />
@@ -175,7 +194,15 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           form that works signed-out AND signed-in (prefilled from the profile).
           Authed users still get the same form as a Profile tab.
           No PageTransition — it renders inside PublicLayout, so the fixed-nav
-          rule in the note directly below applies to it too. */}
+          rule in the note directly below applies to it too.
+
+          NOT wrapped in <MarketingRedirect>, even though /profile?tab=support
+          renders the same form from the same shared copy (lib/supportTopics.ts).
+          Two reasons it must stay on its own route: AccountBanned links here
+          for the suspension appeal, and /profile is behind ProtectedRoute whose
+          ban check fires BEFORE allowUnapproved — a banned user would be thrown
+          back to /account-banned, losing the only appeal path. It also carries
+          ?topic= / ?subject= prefill that the Profile tab does not read. */}
       <Route path="/support" element={<RouteErrorBoundary>{routeEl(<PageTransition><Support /></PageTransition>)}</RouteErrorBoundary>} />
 
       {/* Marketing routes intentionally skip PageTransition — its
@@ -186,6 +213,17 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Landing (/) also skips PageTransition for the same reason;
           this preserves the same fixed-nav behaviour on /legal,
           /for-business, /help, /subscription. */}
+      {/* NOT wrapped in <MarketingRedirect>, and must not be.
+          These are the only place the policy TEXT exists. The in-app Legal tab
+          (/profile?tab=legal) is NOT a second copy of it — read LegalTab.tsx:
+          it is a directory whose rows link to /rules, /terms, /privacy and to
+          /legal?tab=…#anchor. Bouncing a signed-in reader there would land
+          them on a page whose own links point straight back here, and they
+          would never actually reach Terms.
+          Legally load-bearing too: these are what the signup consent
+          checkboxes link to, so they stay reachable in every auth state.
+          Chrome is already handled — Legal.tsx renders inside AppShell on
+          native and PublicLayout on web. */}
       <Route path="/legal" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/terms" element={<Navigate to="/legal?tab=terms" replace />} />
       <Route path="/privacy" element={<Navigate to="/legal?tab=privacy" replace />} />
@@ -204,7 +242,13 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           "Sign up to apply" cards, so it must be reachable WITHOUT auth.
           It was previously behind ProtectedRoute, which redirected the
           exact guests it targets to /login. /browse remains the in-app
-          (AppShell) guest experience; this is its marketing-page sibling. */}
+          (AppShell) guest experience; this is its marketing-page sibling.
+
+          NOT wrapped in <MarketingRedirect>: Jobs.tsx already bounces
+          authenticated visitors itself, and does it better — it forwards a
+          ?job= deep link on to /dashboard?quickApply=<id>, which this wrapper
+          would flatten to a bare /dashboard. Same for /jobs/:id and /browse
+          (DashboardGuest holds its render on getSession before bouncing). */}
       <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<PageTransition><Jobs /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Public, deep-linkable job preview. Shared links (ShareJobButton →
           /jobs/{id}?ref=share) land here: guests get a read-only preview,
@@ -215,6 +259,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           routes to /signup. Public web visitors can hit it too if they want
           a no-account preview, though the marketing landing remains canonical. */}
       <Route path="/browse" element={<RouteErrorBoundary>{routeEl(<PageTransition><DashboardGuest /></PageTransition>, <GuestBrowseSkeleton />)}</RouteErrorBoundary>} />
+      {/* Same exception as /terms and /privacy above — a policy document, not
+          marketing. No signed-in bounce. */}
       <Route path="/rules" element={<Navigate to="/legal?tab=community" replace />} />
       {/* The Community page was removed; keep old links landing somewhere sane. */}
 
@@ -246,7 +292,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />
       <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />
-      {BUSINESS_ENABLED && <Route path="/for-business" element={<RouteErrorBoundary>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</RouteErrorBoundary>} />}
+      {/* Purely promotional (a Footer destination pitching business accounts),
+          so it takes the same signed-in bounce as the landing page. */}
+      {BUSINESS_ENABLED && <Route path="/for-business" element={<RouteErrorBoundary><MarketingRedirect>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />}
       <Route path="/analytics" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelperAnalytics /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {BUSINESS_ENABLED && <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />}
       {BUSINESS_ENABLED && <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />}
@@ -264,6 +312,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           error_logs shows zero hits on any of them in 90 days and none appear
           in sitemap.xml, so no redirect is warranted. If that changes, add a
           real <Route>, not a comment claiming one exists. */}
+      {/* NOT wrapped in <MarketingRedirect>. /help IS the in-app help screen
+          already — PublicLayout swaps its marketing chrome for AppShell on
+          native — and the Profile support tab links INTO it ("Browse the Help
+          Center"), so it is upstream of the in-app surface, not a marketing
+          duplicate of it. Support must stay reachable from anywhere. */}
       <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
       {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
           /browse-jobs were removed along with their redirect stubs (2352466e).
@@ -520,6 +573,7 @@ const App = () => (
           <Suspense fallback={null}>
             <StrikeBanner />
           </Suspense>
+          <TopNavActionsProvider>
           <main
             id="main-content"
             className="w-full max-w-full no-scrollbar"
@@ -529,9 +583,11 @@ const App = () => (
           <Suspense fallback={null}>
             <MobileNav />
             <DesktopSidebarNav />
+            <DesktopTopNav />
             <PermissionRationaleDialog />
             <TermsReconsentDialog />
           </Suspense>
+          </TopNavActionsProvider>
           <SpeedInsightsRouted />
         </OfflineBannerLayoutProvider>
         </AppLockGate>

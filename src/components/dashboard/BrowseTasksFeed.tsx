@@ -254,6 +254,9 @@ export function BrowseTasksFeed({
               currentUserId={user?.id}
               filters={filters.mapFilter}
               onClearFilters={filters.clearFilters}
+              // Same fee the cards below use — so a pin popup and the card for
+              // the same job print the same take-home, not gross vs net.
+              effectiveFee={effectiveFee}
             />
           </Suspense>
         </div>

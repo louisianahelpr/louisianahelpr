@@ -431,6 +431,10 @@ const DashboardGuest = () => {
                     ctaLabel="Sign up to apply"
                     filters={filters.mapFilter}
                     onClearFilters={filters.clearFilters}
+                    // Guests have no tier, so they see the free-plan rate —
+                    // the same assumption the guest JobCard below already
+                    // makes, so list and map quote one number.
+                    effectiveFee={TIER_PERKS.free.platformFeePercent}
                     emptyStateCta={{
                       label: "Get pinged when a job lands",
                       onClick: () => navigate("/signup"),

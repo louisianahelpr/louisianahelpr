@@ -5,6 +5,7 @@ import {
   Star, Share2, Edit,
 } from "lucide-react";
 import { useBusinessSeatTier } from "@/hooks/useBusinessSeatTier";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -73,7 +74,15 @@ export function IdentityHeader({
 }: IdentityHeaderProps) {
   // Crew/Team/Enterprise badge for a business member — see the note at the
   // render site for why it outranks the consumer tier chip.
-  const seatTier = useBusinessSeatTier(userId);
+  //
+  // Hard-nulled while `BUSINESS_ENABLED` is false. The hook already returns
+  // null in that case; the second `&&` here is deliberate belt-and-braces, so
+  // the render site reads as gated on its own and a future refactor of the
+  // hook can't silently put a TEAM chip back on the owner's profile for a
+  // product with no page, no pricing and no way to buy it. (The hook is still
+  // CALLED unconditionally — rules-of-hooks — it just no-ops internally.)
+  const rawSeatTier = useBusinessSeatTier(userId);
+  const seatTier = BUSINESS_ENABLED ? rawSeatTier : null;
 
   // Intro-video state — tracks the fullscreen preview open state.
   // Fee % for legacy job rows without a per-job helper_fee_percent —

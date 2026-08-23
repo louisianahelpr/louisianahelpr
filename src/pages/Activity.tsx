@@ -1,4 +1,6 @@
-import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from "react";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useTopNavActions } from "@/components/topNavActions";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -41,8 +43,6 @@ import { ActivityEmptyState } from "@/pages/activity/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import SectionBoundary from "@/components/SectionBoundary";
 import { defaultStatusFilterFor } from "@/components/activity/activityConstants";
-import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
@@ -54,7 +54,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // matching every other Activity/Messages screen; on web-desktop the new
   // full-bleed DashboardHeader spans above the sidebar rail the same way it
   // now does on Dashboard.
-  const isWebDesktop = useIsWebDesktop();
   const tab = defaultTab as Tab;
   // My Posts opens on "Active" — a flat list of every non-terminal task
   // (open / accepted / in_progress / …). Completed and Cancelled remain
@@ -224,12 +223,53 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     containerRef.current?.scrollTo(0, 0);
   }, [statusFilter, containerRef]);
 
+  const activeStatusFilters = tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS;
+  const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
+
+  // "Truly empty" — the underlying list has zero items (not merely
+  // filtered down to none). When there's nothing at all, the secondary
+  // "Posted tasks / Open" header with its search + status-filter has
+  // nothing to act on, and the "0 tasks" count chip is pure noise. Both
+  // are hidden so the empty state reads as a single, clean panel. When
+  // items exist but the active filter hides them all, we keep the header
+  // so the user can clear/change the filter that's hiding their tasks.
+  const sourceCount = tab === "posted" ? postedJobs.length : appliedApps.length;
+  const isTrulyEmpty = sourceCount === 0;
+
+  const isWebDesktop = useIsWebDesktop();
+
+  // Desktop website: this row lives in the global app bar, with its title
+  // hidden (sr-only, so the page keeps its h1) — the bar already carries the
+  // page's chrome, so repeating "My Posts" under it was the duplicate the
+  // owner flagged. Phone and native keep the title card unchanged.
+  const activityTopNavActions = useMemo(
+    () =>
+      isWebDesktop && !isTrulyEmpty ? (
+        <ActivityHeader
+          title={tab === "posted" ? "My Posts" : "My Jobs"}
+          titleSrOnly
+          tab={tab}
+          activeStatusFilters={activeStatusFilters}
+          activeCounts={activeCounts}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          filterOpen={filterOpen}
+          setFilterOpen={setFilterOpen}
+          searchOpen={searchOpen}
+          setSearchOpen={setSearchOpen}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
+      ) : null,
+    [isWebDesktop, isTrulyEmpty, tab, activeStatusFilters, activeCounts, statusFilter, setStatusFilter, filterOpen, setFilterOpen, searchOpen, setSearchOpen, searchQuery, setSearchQuery],
+  );
+  useTopNavActions(activityTopNavActions);
+
   if (loading) {
     // Loading state mirrors the loaded layout: two-box stack on a
     // bg-premium-page shell with skeleton cards inside the bottom box.
     return (
       <PageScaffold
-        header={isWebDesktop ? <DashboardHeader /> : undefined}
         // Same title-card padding + row height as the loaded header, so the
         // skeleton→loaded swap doesn't thump the card taller or shorter.
         titleCard={
@@ -261,18 +301,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     );
   }
 
-  const activeStatusFilters = tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS;
-  const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
-  // "Truly empty" — the underlying list has zero items (not merely
-  // filtered down to none). When there's nothing at all, the secondary
-  // "Posted tasks / Open" header with its search + status-filter has
-  // nothing to act on, and the "0 tasks" count chip is pure noise. Both
-  // are hidden so the empty state reads as a single, clean panel. When
-  // items exist but the active filter hides them all, we keep the header
-  // so the user can clear/change the filter that's hiding their tasks.
-  const sourceCount = tab === "posted" ? postedJobs.length : appliedApps.length;
-  const isTrulyEmpty = sourceCount === 0;
 
 
   return (
@@ -284,9 +313,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           panel separated by a 1px hairline. */}
       <PageScaffold
         animate
-        header={isWebDesktop ? <DashboardHeader /> : undefined}
         titleCard={
-          isTrulyEmpty ? undefined : (
+          isTrulyEmpty || isWebDesktop ? undefined : (
             <ActivityHeader
               title={tab === "posted" ? "My Posts" : "My Jobs"}
               tab={tab}

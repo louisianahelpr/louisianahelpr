@@ -29,7 +29,6 @@ import {
 import { useMessagesData } from "./messages/useMessagesData";
 import { useMessagesRealtime } from "./messages/useMessagesRealtime";
 import { useThreadMuteActions } from "./messages/useThreadMuteActions";
-import { MessagesTitleCard } from "./messages/MessagesTitleCard";
 import { MessagesEmptyThread } from "./messages/MessagesEmptyThread";
 
 const Messages = () => {
@@ -361,11 +360,7 @@ const Messages = () => {
   return (
     <>
       {isWebDesktop ? (
-        <PageScaffold
-          titleCard={
-            <MessagesTitleCard conversations={conversations} loading={loading} />
-          }
-        >
+        <PageScaffold>
           <div className="flex-1 min-h-0 flex">
             {/* Left pane — the inbox list. Fixed width so the thread pane
                 gets the remaining space; right border separates the two. */}

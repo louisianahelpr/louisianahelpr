@@ -1,6 +1,7 @@
 import { ReactNode, CSSProperties, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 interface AppShellProps {
   /** Optional fixed header (back button + title, tabs, etc.) */
@@ -52,6 +53,22 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
     // lock intact. 0 when the banner is hidden, so this is a no-op normally.
     const bannerOffset = useOfflineBannerOffset();
 
+    // The desktop website also carries a fixed global app bar (DesktopTopNav,
+    // h-14 = 3.5rem, rendered from App.tsx). Like the banner, it is out of
+    // flow, so this shell has to give the space back or the page's first row
+    // renders UNDERNEATH it — which is exactly what happened: the title card's
+    // status pill and its search/filter icons were clipped by the bar.
+    //
+    // It has to be folded in HERE rather than in a stylesheet rule, because
+    // `top`/`height` below are INLINE styles and an inline style always beats
+    // a stylesheet declaration — a `top: 3.5rem` rule in index.css was simply
+    // ignored. Both offsets stack: banner + bar.
+    //
+    // `useIsWebDesktop()` is `!isNativePlatform() && >= 900px`, so this is 0 on
+    // phone web and 0 in the native app, leaving both byte-identical.
+    const topBarOffset = useIsWebDesktop() ? 56 : 0;
+    const topOffset = bannerOffset + topBarOffset;
+
     return (
       <div
         className={cn(
@@ -59,9 +76,9 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
           className,
         )}
         style={{
-          top: bannerOffset ? `${bannerOffset}px` : 0,
-          height: bannerOffset
-            ? `calc(100dvh - ${bannerOffset}px)`
+          top: topOffset ? `${topOffset}px` : 0,
+          height: topOffset
+            ? `calc(100dvh - ${topOffset}px)`
             : "100dvh",
         }}
       >

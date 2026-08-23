@@ -34,6 +34,13 @@ export interface ActivityHeaderProps {
    *  above this row, which is the stacked-header problem already fixed on the
    *  message thread. */
   title: string;
+  /** Hide the title VISUALLY (it stays in the accessibility tree). Set on the
+   *  desktop website, where this row is rendered inside the global app bar and
+   *  the page name would otherwise repeat chrome the bar already carries. The
+   *  title is not dropped — a screen with no h1 is an a11y defect — it is
+   *  `sr-only`, which is exactly what ScreenHeaderRow's own `titleSrOnly`
+   *  does. */
+  titleSrOnly?: boolean;
   tab: Tab;
   activeStatusFilters: StatusFilter[];
   activeCounts: Record<string, number>;
@@ -49,6 +56,7 @@ export interface ActivityHeaderProps {
 
 export function ActivityHeader({
   title,
+  titleSrOnly = false,
   tab,
   activeStatusFilters,
   activeCounts,
@@ -107,7 +115,7 @@ export function ActivityHeader({
           `gap-1` icon cluster) that makes them read as one screen family. */}
       {searchOpen ? (
         /* Search mode — input replaces the title row inline (iOS pattern). */
-        <ScreenHeaderRow title={title}>
+        <ScreenHeaderRow title={title} titleSrOnly={titleSrOnly}>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
@@ -143,6 +151,7 @@ export function ActivityHeader({
         /* Normal mode — title + action buttons. */
         <ScreenHeaderRow
           title={title}
+          titleSrOnly={titleSrOnly}
           /* The active-filter indicator sits to the RIGHT of the name, the
              same shape Messages uses for "1 unread" (the one the owner asked
              for there: "put 1 unread to the right of messages bc i dont like

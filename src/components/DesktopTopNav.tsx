@@ -1,0 +1,71 @@
+import { useLocation } from "react-router-dom";
+import HelprMark from "@/components/HelprMark";
+import NotificationPanel from "@/components/NotificationPanel";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
+import { useTopNavActionsSlot } from "@/components/topNavActions";
+
+/**
+ * The signed-in app bar for the DESKTOP WEBSITE — emblem left, notification
+ * bell right, spanning the full viewport above the left sidebar rail.
+ *
+ * Rendered ONCE, globally, from App.tsx beside {@link DesktopSidebarNav}, and
+ * gated on the identical three conditions that component uses:
+ *
+ *   isWebDesktop && isDesktopRailRoute(pathname) && !!user
+ *
+ * Rendering it globally rather than per-page is deliberate. It was previously
+ * threaded through AppShell's `header` slot page by page, which meant every
+ * screen had to opt in individually — so Home and Activity had a bar while
+ * Profile, Messages and /user/:id did not, and any page added later would
+ * start life without one. Worse, `/user/:id` is a document-scroll page that
+ * never mounts AppShell at all, so it had no `header` slot to opt into. One
+ * global render is the only version that stays true as pages are added.
+ *
+ * NATIVE AND PHONE WEB ARE UNTOUCHED. `useIsWebDesktop` is
+ * `!isNativePlatform() && matchMedia('(min-width: 900px)')`, so the native
+ * iOS/Android shell fails it even on a wide iPad, and phone-width browsers
+ * fail it too — both keep the chrome they already had (MobileNav plus each
+ * screen's own title card). This must never be gated with a bare Tailwind
+ * `lg:` utility: `lg:` is pure CSS width and would fire inside a wide native
+ * WebView, putting a web app bar in the native app.
+ *
+ * Renders no heading element. The emblem's accessible name comes from its
+ * image `alt`, so the page below keeps exactly one `<h1>`.
+ */
+const DesktopTopNav = () => {
+  const isWebDesktop = useIsWebDesktop();
+  const location = useLocation();
+  const { user } = useCurrentUser();
+  // Whatever the current page pushed up — its status pill, search and filter
+  // controls, "Select", and so on. Null on pages that contribute nothing.
+  const pageActions = useTopNavActionsSlot();
+
+  if (!isWebDesktop) return null;
+  if (!isDesktopRailRoute(location.pathname)) return null;
+  if (!user) return null;
+
+  return (
+    <header
+      className="fixed top-0 left-0 right-0 z-50 glass-nav"
+      style={{
+        // Blur only, no saturate() — saturate on a backdrop filter amplifies
+        // the colour of whatever scrolls beneath the bar, which read as a
+        // green cast shifting under the nav on the marketing header.
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+      }}
+    >
+      <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
+        <HelprMark to="/dashboard" size="sm" emblemOnly />
+        <div className="flex items-center gap-1.5 -mr-1">
+          {pageActions}
+          <NotificationPanel />
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default DesktopTopNav;

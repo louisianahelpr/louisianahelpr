@@ -48,6 +48,32 @@ export interface MapJob {
   longitude: number;
   parish: string | null;
   created_at: string;
+
+  // ── Browse-card parity fields ───────────────────────────────────────────
+  // Added to `get_open_jobs_for_map` by migration 20260823120000 so a pin
+  // popup can describe a job with the same "what / where / when" a JobCard
+  // does. Every one of them is ALREADY public on /jobs via
+  // `get_ranked_open_jobs`, and `location` arrives pre-masked to "City, State"
+  // by `public.mask_job_location()` — no new PII reaches the map.
+  //
+  // DELIBERATELY OPTIONAL, not `| null`. Migrations auto-deploy on merge but
+  // not instantly, so between the merge and db-deploy finishing the RPC still
+  // returns the old nine-column row and these keys are ABSENT, not null.
+  // `MapJobPopup` distinguishes the two: an absent key hides the row, a null
+  // value renders the card's own fallback ("Flexible"). Without the
+  // distinction the popup would either print blank rows or claim a job is
+  // flexible when it simply hasn't been told the date yet.
+
+  /** Masked "City, State" — never the street line or ZIP. */
+  location?: string | null;
+  /** ISO `YYYY-MM-DD`. */
+  date_needed?: string | null;
+  /** Postgres `time` — `HH:MM:SS`. */
+  start_time?: string | null;
+  /** Customer-paid urgent bonus, in dollars. */
+  urgent_fee?: number | null;
+  is_group_job?: boolean | null;
+  helpers_needed?: number | null;
 }
 
 // The DEFAULT CAMERA: Louisiana's real geographic extent (state bounding

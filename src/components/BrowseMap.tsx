@@ -16,12 +16,11 @@
 // useMap()-driven child overlays in ./browseMap/MapLayers. This file
 // owns only the data fetch + top-level render/orchestration.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
-import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { BellRing, MapPin } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
@@ -31,12 +30,12 @@ import {
   LA_BOUNDS,
   LA_MIN_ZOOM,
   LA_STATE_BOUNDS,
-  categoryLabels,
   readStoredLayer,
   writeStoredLayer,
   type MapJob,
   type MapLayer,
 } from "./browseMap/config";
+import { MapJobPopup } from "./browseMap/MapJobPopup";
 import { bucketJobs, clusterIcon, pinIcon } from "./browseMap/mapMarkers";
 import {
   buildMapJobFilter,
@@ -74,9 +73,18 @@ interface BrowseMapProps {
   filters?: MapJobFilterInput;
   /** Clears every filter — the CTA on the "no pins match" empty state. */
   onClearFilters?: () => void;
+  /**
+   * The viewer's platform commission percent — the SAME value the surrounding
+   * feed passes to `JobCard`. With it the pin popup prints the helper's net
+   * take-home, so a job can't read $110 on the map and $96 in the list beside
+   * it. Without it the popup falls back to the gross posted budget rather than
+   * guessing a fee, because a payout figure must never read higher than the
+   * payout.
+   */
+  effectiveFee?: number;
 }
 
-export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta, filters, onClearFilters }: BrowseMapProps) {
+export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee }: BrowseMapProps) {
   const [jobs, setJobs] = useState<MapJob[]>([]);
   // Total open jobs in the feed, including ones the map can't plot because
   // they lack geocoded coordinates. Lets the badge read "N of M" so a user
@@ -163,8 +171,6 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
       cancelled = true;
     };
   }, [currentUserId, reloadNonce]);
-
-  const labels = useMemo(() => categoryLabels, []);
 
   // Filtered pin set. Every downstream consumer (count badge, heat buckets,
   // FitToPins, the markers themselves, the empty state) reads THIS, not the
@@ -436,31 +442,21 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
             position={[Number(job.latitude), Number(job.longitude)]}
             icon={pinIcon(job.category, job.is_urgent)}
           >
-            <Popup>
-              <div className="space-y-1.5 min-w-[180px]">
-                <p className="font-display font-bold text-ds-13 leading-tight">
-                  {job.title}
-                </p>
-                <p className="text-ds-11 text-muted-foreground">
-                  {labels[job.category as keyof typeof labels] ?? job.category}
-                  {job.parish ? ` · ${job.parish}` : ""}
-                </p>
-                <p className="font-mono text-ds-13 font-semibold">${formatPrice(Number(job.budget))}</p>
-                {job.is_urgent && (
-                  <p className="text-ds-10 uppercase tracking-wide text-destructive font-bold">
-                    Urgent
-                  </p>
-                )}
-                {onJobAction && (
-                  <Button
-                    size="sm"
-                    onClick={() => onJobAction(job.id)}
-                    className="w-full mt-1.5 h-8 text-ds-11"
-                  >
-                    {ctaLabel}
-                  </Button>
-                )}
-              </div>
+            {/* Width is pinned rather than left to Leaflet's content sizing:
+                the popup now carries a category chip, a title, a price chip
+                and a wrapping meta row, and an auto-sized box would stretch
+                to the widest of those (a long title) on desktop while
+                squeezing the meta row onto four lines on a phone. 224–264px
+                plus Leaflet's own 44px of content margin stays inside the
+                narrowest surface this ships to — the 375px phone map pane,
+                which has 12px of padding a side. */}
+            <Popup minWidth={224} maxWidth={264}>
+              <MapJobPopup
+                job={job}
+                onJobAction={onJobAction}
+                ctaLabel={ctaLabel}
+                effectiveFee={effectiveFee}
+              />
             </Popup>
           </Marker>
         ))}

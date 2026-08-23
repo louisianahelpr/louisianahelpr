@@ -191,7 +191,7 @@ export function useProfileLandingDerived({
           title: "Admin",
           items: [{
             key: "admin",
-            label: "Admin panel",
+            label: "Admin Panel",
             icon: <ShieldAlert className="w-5 h-5" />,
             desc: "Moderation queue, users & platform tools",
             tint: SECTION_TINT.danger,
@@ -226,7 +226,7 @@ export function useProfileLandingDerived({
         },
         {
           key: "family",
-          label: "Family & care",
+          label: "Family & Care",
           icon: <Users className="w-5 h-5" />,
           desc: "Manage jobs for a family member",
           tint: SECTION_TINT.account,
@@ -298,7 +298,7 @@ export function useProfileLandingDerived({
       items: [
         {
           key: "auto-tip",
-          label: "Auto-tip",
+          label: "Auto-Tip",
           icon: <Coins className="w-5 h-5" />,
           desc: "Tip automatically when a job is done",
           tint: SECTION_TINT.money,
@@ -313,7 +313,7 @@ export function useProfileLandingDerived({
         // this row with them, because it is still the row you tap to fix it.
         {
           key: "earnings",
-          label: "Earnings & payouts",
+          label: "Earnings & Payouts",
           icon: <TrendingUp className="w-5 h-5" />,
           desc: "Wallet, analytics, payout setup & tax exports",
           tint: SECTION_TINT.money,

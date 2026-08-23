@@ -27,7 +27,7 @@ const AdminTopBar = ({ onLogout }: { onLogout: () => void }) => (
         <AdminBadgeToggle />
 
         <NotificationPanel />
-        <Button variant="ghost" size="icon" onClick={onLogout} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-ds-md h-10 w-10" aria-label="Log out">
+        <Button variant="ghost" size="icon" onClick={onLogout} className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-ds-md h-10 w-10" aria-label="Sign out">
           <LogOut className="w-4 h-4" />
         </Button>
       </div>

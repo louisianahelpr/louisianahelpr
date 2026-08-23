@@ -847,9 +847,9 @@ html.web-desktop {
      twin below (`html.web-desktop.desktop-rail:not(.app-shell) #root`) has
      always been gated this way; this one was not, so the two disagreed. */
   html.web-desktop.app-shell.desktop-rail .app-shell-frame {
-    /* Fill the viewport to the right of the sidebar. No max-width cap, no
-       centered phone frame. */
-    left: var(--desktop-sidebar-w);
+    /* Fill the viewport to the LEFT of the sidebar — the rail sits on the
+       right edge now (owner). No max-width cap, no centered phone frame. */
+    right: var(--desktop-sidebar-w);
     max-width: none;
     margin-inline: 0;
     box-shadow: none;
@@ -923,16 +923,13 @@ html.web-desktop {
     align-items: start;
     max-width: 1400px;
   }
-  @media (min-width: 1024px) {
-    html.web-desktop .ds-activity-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-  @media (min-width: 1440px) {
-    html.web-desktop .ds-activity-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
+  /* ONE column at every width (owner). The 2-up at 1024 and 3-up at 1440 were
+     added to stop a narrow column stranding a wide monitor — but these are not
+     summary tiles, they are working cards: an in-progress job carries a job
+     tracker, an offered one carries Decline / Accept Job, a disputed one
+     carries four actions. Side by side they each lose about half their width,
+     so titles wrap to two lines and the action rows crowd. A single column
+     keeps each card readable and puts them in one scannable order. */
   html.web-desktop .ds-activity-grid > * {
     margin-top: 0 !important;
   }
@@ -947,7 +944,22 @@ html.web-desktop {
      and re-centers in the remaining space. The fixed rail ignores this
      padding, so it stays pinned at the viewport's left edge. */
   html.web-desktop.desktop-rail:not(.app-shell) #root {
-    padding-left: var(--desktop-sidebar-w);
+    padding-right: var(--desktop-sidebar-w);
+  }
+
+  /* Reserve the global top bar's height (DesktopTopNav, h-14 = 3.5rem).
+     The bar is `position: fixed` so it is out of flow and would otherwise sit
+     ON TOP of the first thing each page renders. Two surfaces need the space
+     back, and they need it in different places:
+
+       - app-shell pages: the frame itself starts below the bar.
+       - document-scroll pages (/user/:id and friends): #root pads down.
+
+     Both are scoped to `.desktop-rail`, which is only set when the rail — and
+     therefore the bar — is actually showing, so a page without them is not
+     left with a phantom 3.5rem of dead space at the top. */
+  html.web-desktop.desktop-rail:not(.app-shell) #root {
+    padding-top: 3.5rem;
   }
 }
 

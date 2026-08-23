@@ -22,6 +22,7 @@ import {
 } from "./signup/signupHelpers";
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -34,7 +35,18 @@ const Signup = () => {
   });
   const { user, isReady } = useAuthReady();
   const [searchParams] = useSearchParams();
-  const isBusinessSignup = searchParams.get("type") === "business";
+  // `?type=business` switches this screen into the business-account flow: a
+  // "Business account" banner on step 1, a required Company name field on
+  // step 2, and a `businesses` row created on submit.
+  //
+  // `&& BUSINESS_ENABLED` is what keeps that flow off the air while the
+  // Business product is hidden. The Login link that used to point here is
+  // already gated, but the URL itself is not a secret — anyone with an old
+  // link, an old email, or a browser history entry lands on a screen titled
+  // "Create a Business Account" for a product with no page and no pricing.
+  // With the flag off the param is ignored and /signup?type=business renders
+  // the ordinary Create Account screen.
+  const isBusinessSignup = BUSINESS_ENABLED && searchParams.get("type") === "business";
   // `?job=<id>` — the job a guest tapped on /browse or /jobs before the signup
   // wall. `?redirect=<path>` — the fuller form of the same idea: the exact
   // in-app route they were trying to reach (e.g. `/jobs/<id>`). Persist both

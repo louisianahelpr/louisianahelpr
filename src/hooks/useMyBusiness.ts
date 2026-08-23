@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 
 export type SeatTier = "starter" | "crew" | "team" | "enterprise";
 
@@ -166,15 +167,35 @@ const fetchMyBusiness = async (userId: string): Promise<BusinessMembership | nul
   };
 };
 
+/**
+ * The caller's business membership, or null.
+ *
+ * THE `BUSINESS_ENABLED` GATE IS THE APP-WIDE CHOKE POINT. Every consumer
+ * surface that leaks Business UI does so by branching on a truthy `business`:
+ * the "Share with Team" toggle on saved-helper cards, the W-9 requirement
+ * switch and the "exceeds your team's $N threshold" banner in Post a Job, the
+ * department/cost-centre tag, and the verification gate in `useJobSubmit` that
+ * blocks posting with "Your business is … Businesses must be verified". While
+ * the product is hidden (owner, 2026-08-22: "remove every single business
+ * reference globally") none of those may render, and returning null here
+ * switches all of them off at once — no per-call-site check to forget, and no
+ * `business_members` query fired on every Post-a-Job / Saved-Helprs render.
+ *
+ * The Business pages themselves are unaffected: their routes are already gated
+ * on the same flag in App.tsx, so flipping it back on restores hook and pages
+ * together.
+ */
 export const useMyBusiness = () => {
   const { user, isReady } = useAuthReady();
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.business.mine(user?.id),
     queryFn: () => fetchMyBusiness(user!.id),
-    enabled: isReady && !!user,
+    enabled: BUSINESS_ENABLED && isReady && !!user,
     staleTime: 2 * 60 * 1000,
   });
+
+  if (!BUSINESS_ENABLED) return { business: null, isLoading: false };
 
   return {
     business: data ?? null,

@@ -12,6 +12,16 @@ import { ShieldCheck, Trash2, Plus, Search, UserPlus, Flag, Smartphone } from "l
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
 import { Switch } from "@/components/ui/switch";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
+
+// The fee-ladder rungs an admin is shown. Business (6%) is only named while
+// the Business product is switched on — with `BUSINESS_ENABLED` false there
+// is no Business plan anyone can hold, so listing it in the console describes
+// a rate that can never apply. Same treatment as legal/TermsSection and the
+// Help Center fee answers.
+const FEE_LADDER_LABEL = BUSINESS_ENABLED
+  ? "Free 12 / Basic 11 / Pro 10 / Elite 8 / Business 6"
+  : "Free 12 / Basic 11 / Pro 10 / Elite 8";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -312,7 +322,7 @@ const AdminSettings = () => {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="custFee">Customer service fee (%) — fallback</Label>
-            <p className="text-ds-11 text-muted-foreground">Fallback only. Each poster is charged their own tier rate (Free 12 / Basic 11 / Pro 10 / Elite 8 / Business 6), floored at Stripe's cost. This value is used only when a poster's tier can't be read.</p>
+            <p className="text-ds-11 text-muted-foreground">Fallback only. Each poster is charged their own tier rate ({FEE_LADDER_LABEL}), floored at Stripe's cost. This value is used only when a poster's tier can't be read.</p>
             <Input
               id="custFee"
               type="number"
@@ -498,7 +508,7 @@ const AdminSettings = () => {
       <div className="max-w-md rounded-ds-md liquid-glass p-6 space-y-3">
         <h3 className="font-semibold text-foreground">How the split fee model works</h3>
         <ul className="text-ds-11 text-muted-foreground space-y-1.5 list-disc list-inside">
-          <li>Customer pays: job budget + their tier service fee (Free 12 / Basic 11 / Pro 10 / Elite 8 / Business 6; <strong className="text-foreground">{customerFee}%</strong> fallback) + sales tax, floored at Stripe's cost</li>
+          <li>Customer pays: job budget + their tier service fee ({FEE_LADDER_LABEL}; <strong className="text-foreground">{customerFee}%</strong> fallback) + sales tax, floored at Stripe's cost</li>
           <li>Helpr receives: job budget − their tier platform fee (<strong className="text-foreground">{helperFee}%</strong> fallback) + urgent bonus</li>
           <li>Platform keeps: service fee from customer + platform fee from Helpr</li>
           <li>Total platform take: <strong className="text-foreground">{(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}%</strong></li>

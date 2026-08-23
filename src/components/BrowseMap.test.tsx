@@ -78,7 +78,7 @@ vi.mock("leaflet", () => ({
 
 // --- Helpers ----------------------------------------------------------
 
-function makeJob(i: number) {
+function makeJob(i: number, overrides: Record<string, unknown> = {}) {
   return {
     id: `job-${i}`,
     title: `Job ${i}`,
@@ -89,6 +89,15 @@ function makeJob(i: number) {
     longitude: -91.0 + i * 0.001,
     parish: "Orleans",
     created_at: new Date().toISOString(),
+    // Card-parity columns, added to get_open_jobs_for_map by migration
+    // 20260823120000. `location` arrives pre-masked to "City, State".
+    location: "New Orleans, LA",
+    date_needed: "2099-09-19",
+    start_time: "08:30:00",
+    urgent_fee: 0,
+    is_group_job: false,
+    helpers_needed: 1,
+    ...overrides,
   };
 }
 
@@ -183,5 +192,100 @@ describe("BrowseMap layer toggle", () => {
     expect(heat).toHaveAttribute("aria-pressed", "true");
 
     window.localStorage.setItem = originalSetItem;
+  });
+});
+
+// The pin popup and the browse JobCard describe the same job, so they must say
+// the same things. `Popup` is mocked as a pass-through above, which means the
+// popup body renders inline in jsdom and is directly assertable.
+describe("BrowseMap pin popup — parity with the browse job card", () => {
+  it("shows the category, city, date and start time the card shows", async () => {
+    rpcResolver.value = [
+      makeJob(1, {
+        title: "Haul two loads to the dump",
+        category: "moving",
+        location: "Lake Charles, LA",
+        date_needed: "2099-09-19",
+        start_time: "08:30:00",
+      }),
+    ];
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap ctaLabel="Apply" onJobAction={vi.fn()} />);
+
+    const popup = await screen.findByTestId("map-job-popup");
+    expect(popup).toHaveTextContent("Haul two loads to the dump");
+    // Coloured category CHIP, not the old plain-grey "Moving · Orleans" line.
+    expect(screen.getByTestId("map-popup-category")).toHaveTextContent("Moving");
+    const meta = screen.getByTestId("map-popup-meta");
+    // City from the masked location — not the parish it used to print.
+    expect(meta).toHaveTextContent("Lake Charles");
+    expect(meta).toHaveTextContent("Sep 19");
+    expect(meta).toHaveTextContent("8:30 AM");
+    // The CTA and its behaviour survive the rewrite.
+    expect(screen.getByRole("button", { name: "Apply" })).toBeInTheDocument();
+  });
+
+  it("prints the helper's NET take-home when a fee is supplied, like the card", async () => {
+    rpcResolver.value = [makeJob(1, { budget: 110 })];
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap effectiveFee={12} />);
+
+    // $110 gross − 12% = $96.80, floored to $96 — exactly what JobPrice renders
+    // on the card beside it. The popup used to print the gross $110.
+    const popup = await screen.findByTestId("map-job-popup");
+    expect(popup).toHaveTextContent("$96");
+    expect(popup).not.toHaveTextContent("$110");
+  });
+
+  it("falls back to the gross budget when no fee is supplied", async () => {
+    rpcResolver.value = [makeJob(1, { budget: 110 })];
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+
+    const popup = await screen.findByTestId("map-job-popup");
+    expect(popup).toHaveTextContent("$110");
+  });
+
+  it("degrades to parish and hides the schedule when the RPC predates the card-fields migration", async () => {
+    // The old nine-column row: the new keys are ABSENT, not null.
+    rpcResolver.value = [
+      {
+        id: "job-legacy",
+        title: "Job legacy",
+        category: "cleaning",
+        budget: 50,
+        is_urgent: false,
+        latitude: 30.0,
+        longitude: -91.0,
+        parish: "Calcasieu",
+        created_at: new Date().toISOString(),
+      },
+    ];
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+
+    const meta = await screen.findByTestId("map-popup-meta");
+    expect(meta).toHaveTextContent("Calcasieu");
+    // No date/time row, and crucially no "Flexible" — that would claim the job
+    // has no schedule when we simply weren't told what it is.
+    expect(meta).not.toHaveTextContent("Flexible");
+  });
+
+  it('renders the card\'s "Flexible" fallback only when the row really has no schedule', async () => {
+    rpcResolver.value = [makeJob(1, { date_needed: null, start_time: null })];
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+
+    const meta = await screen.findByTestId("map-popup-meta");
+    expect(meta).toHaveTextContent("Flexible");
+  });
+
+  it("shows the urgent bonus the card shows", async () => {
+    rpcResolver.value = [makeJob(1, { is_urgent: true, urgent_fee: 12 })];
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+
+    const popup = await screen.findByTestId("map-job-popup");
+    expect(popup).toHaveTextContent("+$12 Urgent");
   });
 });

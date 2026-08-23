@@ -2,6 +2,7 @@ import { Building2, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 
 /**
  * "Verified Business" badge — appears on the profile of any user who is part
@@ -10,6 +11,14 @@ import { cn } from "@/lib/utils";
  * - Verified business member → solid teal/blue "Verified Business" badge.
  * - Pending business member  → 50% opacity "Business pending" badge.
  * - Otherwise renders nothing.
+ *
+ * RENDERS NOTHING AT ALL while `BUSINESS_ENABLED` is false. This badge is
+ * mounted on the PUBLIC user profile (userProfile/ProfileHeaderCard), so it is
+ * the one Business reference a stranger could hit without ever visiting a
+ * Business page — the words "Verified Business" / "Business pending" on
+ * someone else's profile, for a product with no marketing page, no signup and
+ * no way to get verified. The effect bails before the query too, so the
+ * `business_members` round-trip does not fire on every profile view.
  */
 export function BusinessBadge({
   userId,
@@ -21,7 +30,7 @@ export function BusinessBadge({
   const [state, setState] = useState<"verified" | "pending" | "none">("none");
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !BUSINESS_ENABLED) return;
     let cancelled = false;
     (async () => {
       // Find any active business membership for this user, then check status
@@ -44,7 +53,7 @@ export function BusinessBadge({
     };
   }, [userId]);
 
-  if (state === "none") return null;
+  if (!BUSINESS_ENABLED || state === "none") return null;
 
   const sizeCls =
     size === "lg"

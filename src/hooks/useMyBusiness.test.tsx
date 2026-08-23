@@ -21,6 +21,17 @@ vi.mock("@/hooks/useAuthReady", () => ({
   useAuthReady: () => mocks.useAuthReadyMock(),
 }));
 
+// `useMyBusiness` short-circuits to `{ business: null }` whenever
+// BUSINESS_ENABLED is false — that flag has been off since 2026-08-20 and is
+// what hides the Business product app-wide. Every case below exists to pin the
+// FETCH-AND-HYDRATE logic (seat_limit math, extended_role fallback, the
+// two-query degraded path), which is exactly what has to still be correct on
+// the day the flag flips back on. So the suite forces the flag TRUE and tests
+// the real code path; the kill switch itself is asserted separately in the
+// "BUSINESS_ENABLED kill switch" block at the bottom of this file, which
+// resets the module registry and re-imports with the flag false.
+vi.mock("@/config/businessEnabled", () => ({ BUSINESS_ENABLED: true }));
+
 import { useMyBusiness } from "./useMyBusiness";
 
 const wrap = ({ children }: { children: React.ReactNode }) => {
@@ -206,6 +217,48 @@ describe("useMyBusiness", () => {
   it("does NOT fire the query when isReady is false (gates DB calls behind auth)", () => {
     mocks.useAuthReadyMock.mockReturnValue({ user: null, isReady: false });
     renderHook(() => useMyBusiness(), { wrapper: wrap });
+    expect(mocks.fromMock).not.toHaveBeenCalled();
+  });
+});
+
+// ─── The kill switch ─────────────────────────────────────────────────────────
+//
+// This hook is the app-wide choke point for the hidden Business product: a
+// truthy `business` is what renders the "Share with Team" toggle on saved
+// helpers, the W-9 switch and the "exceeds your team's $N threshold" banner in
+// Post a Job, and the verification gate that BLOCKS posting with "Your
+// business is … Businesses must be verified". If this ever stops returning
+// null while BUSINESS_ENABLED is false, all of those come back at once — so
+// the guard is pinned here rather than left to each call site.
+describe("useMyBusiness — BUSINESS_ENABLED kill switch", () => {
+  beforeEach(() => {
+    mocks.maybeSingleMock.mockReset();
+    mocks.fromMock.mockClear();
+    mocks.useAuthReadyMock.mockReset();
+    vi.resetModules();
+  });
+
+  it("returns business=null and never queries when the flag is off", async () => {
+    vi.doMock("@/config/businessEnabled", () => ({ BUSINESS_ENABLED: false }));
+    const { useMyBusiness: gated } = await import("./useMyBusiness");
+
+    // A signed-in user who genuinely OWNS a verified business: the row is
+    // there and the mock would happily hand it over. The flag still wins.
+    mocks.useAuthReadyMock.mockReturnValue({ user: { id: "u1" }, isReady: true });
+    mocks.maybeSingleMock.mockResolvedValue({
+      data: {
+        business_id: "b1",
+        role: "owner",
+        extended_role: "owner",
+        businesses: { id: "b1", name: "Lexi LLC", owner_id: "u1", seat_tier: "team" },
+      },
+      error: null,
+    });
+
+    const { result } = renderHook(() => gated(), { wrapper: wrap });
+    expect(result.current.business).toBeNull();
+    expect(result.current.isLoading).toBe(false);
+    // No `business_members` round-trip on every Post-a-Job / Saved-Helprs render.
     expect(mocks.fromMock).not.toHaveBeenCalled();
   });
 });

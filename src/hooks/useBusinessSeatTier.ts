@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 
 export type BusinessSeatTier = "starter" | "crew" | "team" | "enterprise";
 
@@ -24,12 +25,21 @@ const PAID: BusinessSeatTier[] = ["crew", "team", "enterprise"];
  * Returns null while loading, on error, for a non-business user, and for
  * `starter` — every one of those cases means "render no seat badge", so
  * callers need no branching beyond a truthiness check.
+ *
+ * ALSO returns null unconditionally while `BUSINESS_ENABLED` is false. The
+ * whole Business product is hidden behind that switch (owner, 2026-08-22:
+ * "remove every single business reference globally"), and a CREW/TEAM/
+ * ENTERPRISE badge on a profile advertises a plan nobody can see, buy or
+ * manage. Gating the HOOK rather than each call site means a future badge
+ * cannot reintroduce the leak by forgetting the check — and it also skips the
+ * `business_members` round-trip on every profile render while the product is
+ * off.
  */
 export function useBusinessSeatTier(userId: string | null | undefined) {
   const [seatTier, setSeatTier] = useState<BusinessSeatTier | null>(null);
 
   useEffect(() => {
-    if (!userId) {
+    if (!userId || !BUSINESS_ENABLED) {
       setSeatTier(null);
       return;
     }

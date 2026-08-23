@@ -171,7 +171,7 @@ const DesktopSidebarNav = () => {
   return (
     <nav
       aria-label="Primary"
-      className="fixed left-0 bottom-0 z-40 hidden lg:flex lg:flex-col"
+      className="fixed right-0 bottom-0 z-40 hidden lg:flex lg:flex-col"
       style={{
         // Start the rail BELOW the full-width top header (h-14 = 3.5rem plus
         // any safe-area inset the header reserves) so the header — which spans
@@ -180,8 +180,8 @@ const DesktopSidebarNav = () => {
         top: "calc(var(--safe-area-top, 0px) + 3.5rem)",
         width: "var(--desktop-sidebar-w, 248px)",
         background: "var(--glass-bg-crisp, hsl(0 0% 100% / 0.97))",
-        borderRight: "1px solid hsl(var(--olivewood) / 0.12)",
-        boxShadow: "1px 0 2px hsl(var(--olivewood) / 0.06)",
+        borderLeft: "1px solid hsl(var(--olivewood) / 0.12)",
+        boxShadow: "-1px 0 2px hsl(var(--olivewood) / 0.06)",
       }}
     >
       {/* The rail now starts beneath the header, so add a little breathing room

@@ -1,6 +1,14 @@
 project_id = "fncmgoasalhdgfwzhsqa"
 
 [functions]
+  # Public on purpose. The token this mints is locked to the requesting origin
+  # and lives one hour, so a token obtained without a session only works on
+  # this app's own domain — the same thing a visitor gets by loading the page.
+  # Requiring a JWT would instead break maps for the guest-visible surfaces and
+  # add a failure mode inside the native WebView, where the anon session is not
+  # always established before the first map mounts.
+  [functions.mapkit-token]
+    verify_jwt = false
   [functions.auth-email-hook]
     verify_jwt = false
   [functions.create-payment]

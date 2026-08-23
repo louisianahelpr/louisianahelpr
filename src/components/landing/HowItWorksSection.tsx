@@ -117,7 +117,7 @@ const HowItWorksSection = () => {
             that introduces it. `flex-wrap` means a narrow phone lets the
             toggle fall under the heading on its own; that is the same rule
             bending, not a second layout. */}
-        <div className="text-left flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="text-center flex flex-col items-center gap-4">
           {/* No eyebrow. `.text-display-eyebrow` is `display:none` app-wide
               since the eyebrow-removal decision, so the "How it works" label
               that used to sit here was rendering as nothing — leaving the
@@ -125,7 +125,7 @@ const HowItWorksSection = () => {
               three steps are FOR. The heading below carries it instead, which
               is also what the nav link pointing at #how-it-works is called. */}
           <h2
-            className="order-1 font-display font-bold text-balance leading-[1.05] max-w-none"
+            className="font-display font-bold text-balance leading-[1.05] max-w-none"
             style={{
               // Matches the other section headings exactly (Help Center's "Quick
                 // answers" is clamp(2.25rem, 3.4vw, 3.25rem)). Only the floor differed.
@@ -145,7 +145,7 @@ const HowItWorksSection = () => {
           <div
             role="tablist"
             aria-label="Which side of Helpr are you on"
-            className="order-2 inline-flex flex-nowrap items-center justify-center gap-1 p-1 rounded-2xl"
+            className="inline-flex flex-nowrap items-center justify-center gap-1 p-1 rounded-2xl"
             style={{
               background: "hsl(var(--burnt-sienna) / 0.06)",
               border: "1px solid hsl(var(--burnt-sienna) / 0.18)",

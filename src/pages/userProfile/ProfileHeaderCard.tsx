@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, Clock, CheckCircle, Phone, ClipboardList, ShieldCheck, Users, Timer, RotateCcw } from "lucide-react";
+import { MapPin, Clock, CheckCircle, Phone, ClipboardList, ShieldCheck, Star, Users, Timer, RotateCcw } from "lucide-react";
 import { HelperBadges, type HelperBadge } from "@/components/HelperBadges";
 import CredentialBadge from "@/components/CredentialBadge";
 import BusinessBadge from "@/components/BusinessBadge";
@@ -13,6 +13,7 @@ import type {
   ProfileStatsShape,
   ResponseMetrics,
   CancellationRate,
+  PosterReputation,
   LastActiveLabel,
   PetCareSignal,
 } from "./types";
@@ -32,6 +33,8 @@ type Props = {
   onTimeArrivalRate: number | null;
   revisionFrequency: number | null;
   cancellationRate: CancellationRate;
+  /** Their rating AS A POSTER — a different thing from the helper rating. */
+  posterReputation: PosterReputation | null;
   hasCleanRecord: boolean;
   petCareSignal: PetCareSignal | null | undefined;
   badges: HelperBadge[];
@@ -59,6 +62,7 @@ export const ProfileHeaderCard = ({
   onTimeArrivalRate,
   revisionFrequency,
   cancellationRate,
+  posterReputation,
   hasCleanRecord,
   petCareSignal,
   badges,
@@ -470,7 +474,31 @@ export const ProfileHeaderCard = ({
                 </div>
               );
             })()}
-            {/* Cancellation rate (#30) — combined helper + poster jobs.
+                {/* THEIR RATING AS A POSTER. The whole "As a job poster" panel used
+                to sit lower down the page and was removed because its headline
+                number — jobs posted — was the "Posted" stat box restated a few
+                hundred pixels below itself (owner: "remove, it already says
+                this above"). But the panel carried one thing nothing else on
+                the app shows: what HELPERS thought of working for this person.
+                A helpr deciding whether to take your job had no signal about
+                you at all.
+
+                So the duplicate stayed removed and the unique fact moved here,
+                into the record column beside the helper-side numbers, as one
+                line. Hidden under three reviews — the query itself requires
+                three before it returns anything, so an average built from one
+                bad day never becomes somebody's reputation. */}
+            {posterReputation !== null && (
+              <div className="flex items-center justify-center sm:justify-start gap-1 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <Star className="w-3 h-3" style={{ fill: "hsl(var(--bark))", color: "hsl(var(--bark))" }} />
+                <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
+                  {posterReputation.avgRating.toFixed(1)}
+                </span>
+                <span>as a poster · {posterReputation.reviewCount} review{posterReputation.reviewCount === 1 ? "" : "s"}</span>
+              </div>
+            )}
+
+        {/* Cancellation rate (#30) — combined helper + poster jobs.
                 Only renders once the user has >=5 lifetime jobs so a
                 single early cancellation doesn't read as "100% cancel
                 rate". Color shifts olive→amber→sienna at 5%/15% so the

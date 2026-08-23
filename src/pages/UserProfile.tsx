@@ -124,7 +124,6 @@ const UserProfile = () => {
     tierProfile,
     posterReputation,
     postedTotalCount,
-    postedCancelledCount,
     loading,
   } = useUserProfileData(userId, currentUserId);
 
@@ -428,6 +427,7 @@ const UserProfile = () => {
               onTimeArrivalRate={onTimeArrivalRate}
               revisionFrequency={revisionFrequency}
               cancellationRate={cancellationRate}
+              posterReputation={posterReputation}
               hasCleanRecord={hasCleanRecord}
               petCareSignal={petCareSignal}
               badges={badges}

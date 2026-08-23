@@ -3,6 +3,7 @@ import { Calendar, Clock, MapPin, Timer } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { getCity } from "@/lib/locationUtils";
+import { mapsSearchUrl } from "@/lib/mapsLink";
 
 interface JobCardMetaRowProps {
   dateNeeded: string;
@@ -11,8 +12,12 @@ interface JobCardMetaRowProps {
       "Flexible time", Applied uses "Flexible". */
   flexibleLabel?: string;
   location: string;
-  latitude: number | null;
-  longitude: number | null;
+  /* Accepted but no longer read — the maps link uses the ADDRESS now (see the
+     href below). Kept in the interface because both cards pass them and both
+     may want them again for a distance chip; removing them would be an edit
+     across the call sites for no gain. */
+  latitude?: number | null;
+  longitude?: number | null;
   estimatedHours?: number | null;
   /** ISO timestamp of the application/post expiry. Pass `null`/`undefined`
       to hide the expiry chip; the caller is responsible for any extra
@@ -38,8 +43,6 @@ export function JobCardMetaRow({
   startTime,
   flexibleLabel = "Flexible",
   location,
-  latitude,
-  longitude,
   estimatedHours,
   expiresAt,
   children,
@@ -59,11 +62,14 @@ export function JobCardMetaRow({
           card order so the two surfaces read consistently. */}
       <a
         onClick={(e) => e.stopPropagation()}
-        href={
-          latitude && longitude
-            ? `https://www.google.com/maps?q=${latitude},${longitude}`
-            : `https://www.google.com/maps/search/${encodeURIComponent(location)}`
-        }
+        /* THE ADDRESS, not the coordinates. This linked to
+           `google.com/maps?q=<lat>,<lng>` at four decimal places — about eleven
+           metres, which on a residential job is the house — so the precise
+           location of a private home travelled to a third party in a query
+           string on every tap, for a convenience the address serves just as
+           well. See mapsLink.ts; it also picks the platform's own maps app in
+           the native shell instead of always sending people to the web. */
+        href={mapsSearchUrl(location)}
         target="_blank"
         rel="noopener noreferrer"
         /* `py-2 -my-2` grows the HIT AREA without moving anything. The link

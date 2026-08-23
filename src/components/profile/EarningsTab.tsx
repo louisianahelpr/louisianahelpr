@@ -250,36 +250,12 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         </div>
       )}
 
-      {/* Forward-looking "Projected by Sunday" card. Sums net take across
-          accepted/in-progress jobs whose date_needed falls in the current
-          week. Only renders for approved helpers — pre-onboarding helpers
-          have no earnings yet so a $0 forecast is just noise. Placed at
-          the very top of the tab so the helper sees their pipeline before
-          the historical ledger. */}
-      <EarningsForecastCard
-        helperId={helperId}
-        enabled={profile?.approval_status === "approved"}
-        feeFallbackPercent={helperFeeFallbackPct}
-      />
-
       {/* NOT CONNECTED YET: the connect card is the page. Everything below it
           — the wallet, the goal, the charts, the ledger — is either empty or
           about money that cannot move until Stripe is set up, so the one thing
           a helpr can do sits directly under the forecast rather than eight
           sections down behind a card that only scrolls to it. */}
       {!stripeLoading && !stripeData?.connected && payoutSection}
-
-      {/* "Next 7 days" upcoming-jobs strip — pairs with the dollar
-          forecast above to show the helper *which* jobs make up the
-          projection. Gated behind Stripe-connected so pre-onboarded
-          helpers (who can't accept jobs yet) don't see an empty week.
-          Closes #130. */}
-      <HelperScheduleStrip
-        helperId={helperId}
-        enabled={
-          profile?.approval_status === "approved" && !!stripeData?.connected
-        }
-      />
 
       {/* 1099-K banner — appears once YTD payouts cross the federal
           $600 threshold. Quiet, dismissible per-user-per-year so it
@@ -293,7 +269,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         />
       )}
 
-      {/* ─── COMPACT DASHBOARD: Wallet + Stats ─── */}
+      {/* ─── YOUR MONEY ─── */}
+      <SectionRule label="Your money" />
       <section className="space-y-3">
         {/* Wallet card (Available + Pending side-by-side).
             NOT RENDERED UNTIL STRIPE IS CONNECTED. Its disconnected state was
@@ -322,22 +299,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           onCashOut={() => setPayoutDialogOpen(true)}
           onUpgrade={() => setUpgradeOpen(true)}
         />
-        )}
-
-        {/* Monthly earnings goal — the only control for it in the app
-            (/analytics carried a second one; removed). localStorage-backed,
-            so no DB migration needed. */}
-        {!loading && (
-          <MonthlyGoalCard
-            completedJobs={completedJobs.map((j) => ({
-              // prefer helper_completed_at so the month bucket matches when
-              // the job was actually done, not when it was posted
-              created_at: j.helper_completed_at ?? j.created_at,
-              // Same shared take-home definition (and same group split) as the
-              // tab total above, so the goal ring and the Total tile agree.
-              netPayout: helperTakeHomeDollars(j, helperFeeFallbackPct),
-            }))}
-          />
         )}
 
         {/* Compact secondary stats — 3-up tiny tiles */}
@@ -372,25 +333,76 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           </div>
         )}
 
-        {/* Payout history — inline year picker, no big empty box */}
-        {stripeData?.connected && (
-          <PayoutHistory
-            stripeData={stripeData}
-            exportYear={exportYear}
-            onExportYearChange={setExportYear}
-            payoutYears={payoutYears}
-          />
-        )}
       </section>
 
-      {/* ─── PIE + YTD vs PRIOR-YTD compare ───────────────────
-          Self-hides if there's no completed-job data. Sits between the
-          payout history (the receipts) and the per-transfer ledger so
-          the helper sees their high-level breakdown before drilling
-          into individual transfers. */}
-      <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
+      {/* ─── COMING UP ────────────────────────────────────────────
+          The three forward-looking things, together. They used to be
+          scattered: the forecast above the connect card, the week strip
+          four blocks below it, and the goal buried inside the wallet
+          section — so "what am I about to earn" was answered in three
+          places a reader had to find. */}
+      <SectionRule label="Coming up" />
+      {/* Forward-looking "Projected by Sunday" card. Sums net take across
+          accepted/in-progress jobs whose date_needed falls in the current
+          week. Only renders for approved helpers — pre-onboarding helpers
+          have no earnings yet so a $0 forecast is just noise. Placed at
+          the very top of the tab so the helper sees their pipeline before
+          the historical ledger. */}
+      <EarningsForecastCard
+        helperId={helperId}
+        enabled={profile?.approval_status === "approved"}
+        feeFallbackPercent={helperFeeFallbackPct}
+      />
 
-      {/* ─── ACTUAL PAYOUTS (from payout_transfers ledger) ─── */}
+      {/* "Next 7 days" upcoming-jobs strip — pairs with the dollar
+          forecast above to show the helper *which* jobs make up the
+          projection. Gated behind Stripe-connected so pre-onboarded
+          helpers (who can't accept jobs yet) don't see an empty week.
+          Closes #130. */}
+      <HelperScheduleStrip
+        helperId={helperId}
+        enabled={
+          profile?.approval_status === "approved" && !!stripeData?.connected
+        }
+      />
+
+      {/* Monthly earnings goal — the only control for it in the app
+          (/analytics carried a second one; removed). localStorage-backed,
+          so no DB migration needed. */}
+      {!loading && (
+        <MonthlyGoalCard
+          completedJobs={completedJobs.map((j) => ({
+            // prefer helper_completed_at so the month bucket matches when
+            // the job was actually done, not when it was posted
+            created_at: j.helper_completed_at ?? j.created_at,
+            // Same shared take-home definition (and same group split) as the
+            // tab total above, so the goal ring and the Total tile agree.
+            netPayout: helperTakeHomeDollars(j, helperFeeFallbackPct),
+          }))}
+        />
+      )}
+
+
+      {/* ─── HISTORY ──────────────────────────────────────────────
+          THREE lists of past money used to sit in a row with nothing
+          separating them — Stripe's payout history inside the wallet block,
+          the per-transfer ledger, and the per-job earnings list — each with a
+          different source and no label saying which was which. They are one
+          section now, ordered widest to narrowest: what landed in the bank,
+          then each transfer, then the jobs behind them. */}
+      <SectionRule label="History" />
+
+{/* Payout history — inline year picker, no big empty box */}
+      {stripeData?.connected && (
+        <PayoutHistory
+          stripeData={stripeData}
+          exportYear={exportYear}
+          onExportYearChange={setExportYear}
+          payoutYears={payoutYears}
+        />
+      )}
+
+      {/* ACTUAL PAYOUTS (from the payout_transfers ledger) */}
       {payoutLedger.length > 0 && (
         <RecentTransfers payoutLedger={payoutLedger} />
       )}
@@ -411,7 +423,19 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           Was the standalone /analytics page ("Earnings & Analytics"). Same
           dashboard, rendered here as a section under a quiet rule instead of
           behind a second Profile row with a second header. */}
-      <SectionRule label="Analytics" />
+      {/* ─── INSIGHTS ─────────────────────────────────────────────
+          The breakdown charts and the analytics dashboard are the same kind of
+          thing — trends, not records — so they share one heading instead of
+          the charts floating unlabelled above a rule that said "Analytics". */}
+      <SectionRule label="Insights" />
+
+      {/* PIE + YTD vs PRIOR-YTD compare ───────────────────
+          Self-hides if there's no completed-job data. Sits between the
+          payout history (the receipts) and the per-transfer ledger so
+          the helper sees their high-level breakdown before drilling
+          into individual transfers. */}
+      <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
+
       <Suspense fallback={null}>
         <HelperAnalyticsBody />
       </Suspense>

@@ -284,8 +284,22 @@ function ToggleRow({
   );
 }
 
-/** "Only my hours" — a ToggleRow with a "Set hours" shortcut for accounts
- *  that haven't saved a weekly schedule yet (the switch is inert without one). */
+/**
+ * "Jobs during my hours" — the third row of SHOW ONLY, wearing the SAME shape
+ * as the two above it.
+ *
+ * It used to break the group two different ways depending on state. With no
+ * saved hours its hint was a bold `text-primary` "Set Hours ↗" button, so the
+ * one row whose switch is INERT was also the loudest thing in the section,
+ * while its working siblings sat in quiet grey. With hours saved the hint was
+ * `undefined`, so the row lost its second line entirely and stood shorter than
+ * the other two — the rhythm broke in one direction or the other, always.
+ *
+ * Now every row is icon + label + one grey `text-ds-11` line. The line says
+ * what the filter does once it can work, and what is missing when it cannot;
+ * the shortcut rides inside that sentence as an underlined link rather than
+ * standing in for the description. Disabled reads as disabled.
+ */
 function AvailabilityRow({
   matchAvailability,
   setMatchAvailability,
@@ -301,16 +315,25 @@ function AvailabilityRow({
       icon={Clock}
       label="Jobs during my hours"
       hint={
-        !hasAvailability ? (
-          <button
-            type="button"
-            onClick={() => navigate("/availability")}
-            className="inline-flex items-center gap-0.5 text-ds-11 font-semibold text-primary hover:text-primary/80 transition-colors btn-press"
-          >
-            Set Hours
-            <ArrowUpRight className="w-2.5 h-2.5" />
-          </button>
-        ) : undefined
+        hasAvailability ? (
+          <p className="text-ds-11 text-muted-foreground leading-snug">
+            Only jobs inside your saved hours
+          </p>
+        ) : (
+          // Same grey line as the siblings, with the remedy inside the
+          // sentence — not replacing it.
+          <p className="text-ds-11 text-muted-foreground leading-snug">
+            Add your weekly hours first —{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/availability")}
+              className="inline-flex items-center gap-0.5 font-semibold text-primary underline underline-offset-2 hover:text-primary/80 transition-colors btn-press"
+            >
+              set hours
+              <ArrowUpRight className="w-2.5 h-2.5" aria-hidden />
+            </button>
+          </p>
+        )
       }
       checked={matchAvailability}
       onChange={setMatchAvailability}

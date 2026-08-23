@@ -204,6 +204,14 @@ export function ConversationList({
   const noSearchMatches =
     !!searchQuery.trim() && filteredConversations.length === 0;
 
+  /* And the same thing for a TAB that filters everything out.
+     `isEmpty` asks whether the whole inbox is empty, so it stayed false while
+     the Unread tab was showing nothing — and the list column rendered as a
+     blank white panel with no message at all. A caught-up inbox is a good
+     outcome; it should say so rather than look broken. */
+  const noTabMatches =
+    !searchQuery.trim() && conversations.length > 0 && filteredConversations.length === 0;
+
   const handleTogglePin = (convo: Conversation) => {
     if (!userId) return;
     const next = togglePinned(userId, convo.jobId, convo.otherUserId);
@@ -521,6 +529,32 @@ export function ConversationList({
               {[1, 2, 3, 4].map((i) => (
                 <MessageThreadSkeleton key={i} />
               ))}
+            </div>
+          ) : noTabMatches ? (
+            <div className="flex flex-col items-center text-center py-14 gap-2">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{
+                  background: "hsl(var(--success-ink) / 0.10)",
+                  border: "0.5px solid hsl(var(--success-ink) / 0.24)",
+                }}
+              >
+                <MessageSquare className="w-5 h-5" style={{ color: "hsl(var(--success-ink))" }} strokeWidth={1.75} />
+              </div>
+              <p
+                className="font-display italic font-bold text-ds-16"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              >
+                {inboxFilter === "unread" ? "You're all caught up" : "Nothing here right now"}
+              </p>
+              <p
+                className="font-serif italic text-ds-13 max-w-[240px]"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              >
+                {inboxFilter === "unread"
+                  ? "Every thread has been read. Switch to All to see them."
+                  : "No conversations belong to a job that's still running. Switch to All to see them."}
+              </p>
             </div>
           ) : noSearchMatches ? (
             /* Active search filtered every thread out — a tidy in-place

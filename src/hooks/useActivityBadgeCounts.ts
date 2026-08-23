@@ -71,12 +71,19 @@ export function useActivityBadgeCounts(userId: string | undefined): ActivityBadg
       // Fallback: if the column doesn't exist yet (error code 42703 — column
       // undefined, migration not deployed to production), fall back to
       // counting all pending applications so the badge stays informative.
+      // SCOPED TO STILL-OPEN JOBS. An application keeps `status = 'pending'`
+      // forever once the poster picks somebody else, and it keeps it on a job
+      // that was completed or cancelled too — so the badge was counting
+      // decisions that had already been made, or could no longer be made at
+      // all (owner: "done should not be in this count"). A badge is a claim
+      // that something is waiting on you; only an OPEN job can have that.
       supabase
         .from("applications")
-        .select("id, jobs!inner(customer_id)", { count: "exact", head: true })
+        .select("id, jobs!inner(customer_id, status)", { count: "exact", head: true })
         .eq("status", "pending")
         .is("poster_viewed_at", null)
         .eq("jobs.customer_id", userId)
+        .eq("jobs.status", "open")
         .then(({ count, error }) => {
           // Never zero the badge on a failed/offline read — the cache is the
           // floor, matching the Messages badge's behaviour.
@@ -87,9 +94,10 @@ export function useActivityBadgeCounts(userId: string | undefined): ActivityBadg
             if (error.code === "42703") {
               supabase
                 .from("applications")
-                .select("id, jobs!inner(customer_id)", { count: "exact", head: true })
+                .select("id, jobs!inner(customer_id, status)", { count: "exact", head: true })
                 .eq("status", "pending")
                 .eq("jobs.customer_id", userId)
+                .eq("jobs.status", "open")
                 .then(({ count: fallbackCount, error: fallbackError }) => {
                   if (fallbackError) return;
                   const next = fallbackCount || 0;

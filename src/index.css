@@ -854,15 +854,17 @@ html.web-desktop {
      grey band down the left of the whole page at 1440. The document-scroll
      twin below (`html.web-desktop.desktop-rail:not(.app-shell) #root`) has
      always been gated this way; this one was not, so the two disagreed. */
-  /* The rail's width is reserved WHETHER OR NOT the panel is open (owner:
-     the hamburger "should open and close the side panel. it should not change
-     the width of the page info").
-     Giving the width back on close made every toggle reflow the whole page —
-     cards re-wrapped, the map column resized, the reading position moved — so
-     a control that should just show and hide a panel read as a layout bug.
-     The strip left behind when the panel is closed is page background, not a
-     gutter, and it is the price of a toggle that never moves the content. */
-  html.web-desktop.app-shell.desktop-rail .app-shell-frame {
+  /* Reserved only while the panel is actually OPEN.
+     This flip-flopped once and the reasoning is worth keeping. It was made
+     unconditional because the hamburger appeared to do nothing except reflow
+     the page — but that was a different bug: DesktopSidebarNav had no
+     `useSidePanel` gate, so the panel always rendered and the toggle really
+     was moving content for no visible reason. With the gate in place the panel
+     genuinely appears and disappears, and the content reclaiming its width is
+     the panel's absence rather than an unexplained jump. Keeping it reserved
+     instead left a 248px strip of empty page beside the content — owner: "why
+     isn't right panel opening here". */
+  html.web-desktop.app-shell.desktop-rail.side-panel-open .app-shell-frame {
     /* Fill the viewport to the LEFT of the sidebar — the rail sits on the
        right edge now (owner). No max-width cap, no centered phone frame. */
     right: var(--desktop-sidebar-w);
@@ -959,7 +961,7 @@ html.web-desktop {
      #root by the rail width so the whole page sits to the right of the rail
      and re-centers in the remaining space. The fixed rail ignores this
      padding, so it stays pinned at the viewport's left edge. */
-  html.web-desktop.desktop-rail:not(.app-shell) #root {
+  html.web-desktop.desktop-rail.side-panel-open:not(.app-shell) #root {
     padding-right: var(--desktop-sidebar-w);
   }
 

@@ -70,13 +70,17 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
         border: "0.5px solid hsl(var(--boost-tint) / 0.34)",
       };
     case "edit":
+      // SUNSHINE, not antique gold (owner: "make review a more sunshine
+      // yellow"). --gold-warm is 38° at 60% saturation — a muted brass that
+      // rendered as a beige rectangle at chip size. --live-pill-* is the app's
+      // existing bright yellow (45°/95%), already used by the in-progress
+      // pill, already carrying a legible dark-yellow ink for light AND a light
+      // one for dark. Reused rather than adding a fourth yellow token: the
+      // palette has enough of them, and one of them was already the right one.
       return {
-        // Bumped from 0.16/0.36 — at chip size that was a beige rectangle
-        // rather than a gold one, and Review sat next to a solid bark primary
-        // looking like disabled chrome.
-        background: "hsl(var(--gold-warm) / 0.26)",
-        color: "hsl(var(--amber-ink))",
-        border: "0.5px solid hsl(var(--gold-warm) / 0.55)",
+        background: "hsl(var(--live-pill-tint) / 0.30)",
+        color: "hsl(var(--live-pill-ink))",
+        border: "0.5px solid hsl(var(--live-pill-tint) / 0.60)",
       };
     case "danger":
       // --danger-ink, not a hardcoded dark red: the literal it replaced had no
@@ -149,12 +153,24 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
       };
     case "primary":
     default:
+      // A TINT, not a solid fill (owner: "make this lighter, it competes with
+      // Post a Task; make it the same green as the background of the money").
+      // Solid bark is the app's loudest surface and it belongs to the one CTA
+      // that sits above every screen — a card-level Approve or Hire again
+      // shouting at the same volume made two different-sized decisions look
+      // equally urgent. These are the exact three values the money chip uses
+      // (JobPrice's `chip`), so the card's primary action and its price now
+      // share one green.
+      //
+      // It is still the loudest chip IN ITS ROW: every other tone tints from a
+      // hue that means something specific (blue Message, red Dispute, gold
+      // Review), and bark is the brand's own, so it reads as "the main move"
+      // without borrowing the global CTA's weight.
       return {
-        background: "hsl(var(--bark))",
+        background: "hsl(var(--bark) / 0.10)",
         backgroundImage: "none",
-        color: "hsl(var(--parchment))",
-        border: "0.5px solid hsl(var(--bark))",
-        boxShadow: "var(--elev-bark-flat)",
+        color: "hsl(var(--bark))",
+        border: "0.5px solid hsl(var(--bark) / 0.28)",
       };
   }
 }

@@ -549,6 +549,12 @@ export function JobTracking({
   // behaviour (`STATUSES` / `currentStatusIdx`); with them the row is offset by
   // the two prepended steps, and a job with nobody assigned yet sits on
   // "Posted" or — once at least one application is in — "Applicants".
+  // WHOSE job this is, for the tracker heading. It used to caption the current
+  // STEP, which cost every step column a third line to hold one word on one of
+  // them and moved down the row as the job advanced. A helpr tracking their own
+  // job needs no one named, hence the `isHelper` gate at the call site.
+  const firstName = helperName?.trim().split(/\s+/)[0] ?? null;
+
   const displaySteps = includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES;
   const displayIdx = includePostingSteps
     ? helperId
@@ -632,6 +638,21 @@ export function JobTracking({
         >
           Job tracking
         </h3>
+        {/* WHOSE progress — in the heading, not under the current step. It used
+            to caption the live dot, which gave every step column a third line
+            of vertical space to accommodate one word on one of them, and moved
+            down the row as the job advanced. Up here it holds still, and the
+            step row lost a line (owner: "can we move this somewhere else so we
+            can tighten up the spacing"). Owner card only — a helpr looking at
+            their own tracker does not need to be told it is theirs. */}
+        {!isHelper && firstName && (
+          <span
+            className="font-serif italic text-ds-11 leading-none shrink-0 ml-auto"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+          >
+            {firstName}
+          </span>
+        )}
         {/* SOS moved OUT of this header and into the owner's action row
             ("move sos to the left of messages"), so on an OWNER card it is
             rendered by PostedJobActions, not here. A HELPER's card was not part
@@ -642,25 +663,6 @@ export function JobTracking({
 
       {/* Progress timeline */}
       {(() => {
-        // The helpr's name now captions the step the job is ON, instead of
-        // repeating it as a sentence below the row. Owner: "Camille is on the
-        // way should be just in the live tracker … all the updates should be
-        // on the live tracker itself."
-        //
-        // The step label already carries the verb, so the name alone completes
-        // it without duplicating it — "Offered" + "Camille" reads as the old
-        // "Offered to Camille", "On the Way" + "Camille" as "Camille is on the
-        // way". A helper tracking their own job needs no one named.
-        const firstName = helperName?.trim().split(/\s+/)[0] ?? null;
-        // NO applicant tally here. The merged Posted step briefly carried one
-        // ("3 applied") to preserve what the deleted Applicants step conveyed —
-        // but the card's primary button is already "Applicants (3)", inches
-        // away, and stating one number twice within a card is the exact defect
-        // e2e/happy-path/customer-sees-application.spec.ts exists to catch. The
-        // count belongs on the control that acts on it.
-        const getSubtext = (idx: number): string | null =>
-          !isHelper && firstName && idx === displayIdx ? firstName : null;
-
         // ONE scrolling line, seven steps (owner: "the live tracker should be
         // 1 scrollable line"). It was previously a 4 + 3 wrapping grid, which
         // was itself a fix for an earlier scroller that sliced whatever step
@@ -709,21 +711,39 @@ export function JobTracking({
             {displaySteps.map((s, idx) => {
               const isActive = idx <= displayIdx;
               const isCurrent = idx === displayIdx;
+              // THE CURRENT STEP CARRIES THE TROUBLE. A job in revision or in
+              // dispute used to paint the same bark green as one running
+              // perfectly, so the tracker — the biggest thing on the card —
+              // was the one element that never said anything had gone wrong.
+              // Amber for a revision, red for a dispute (owner). Only the
+              // CURRENT dot changes: the steps behind it really did happen and
+              // recolouring the whole line would read as "none of this counts".
+              const currentTone =
+                jobStatus === "disputed"
+                  ? { fill: "hsl(var(--destructive))", ring: "hsl(var(--destructive) / 0.30)" }
+                  : jobStatus === "revision_requested"
+                    ? { fill: "hsl(var(--amber-solid))", ring: "hsl(var(--amber-solid) / 0.30)" }
+                    : { fill: "hsl(var(--bark))", ring: "hsl(var(--bark) / 0.30)" };
               const Icon = s.icon;
-              const subtext = getSubtext(idx);
               return (
                 <div
                   key={s.key}
-                  className="w-[68px] shrink-0 snap-center flex flex-col items-center gap-1"
+                  // `grow` on a `w-[68px] shrink-0` basis: the steps SHARE any
+                  // spare width instead of huddling in the middle of a wide
+                  // card (owner: "spread out more to fill space"), and the
+                  // moment the row is narrower than 8 × 68px they stop growing,
+                  // hold their width and scroll — `shrink-0` is what keeps a
+                  // label from being squeezed into a hyphenated column.
+                  className="w-[68px] shrink-0 grow snap-center flex flex-col items-center gap-1"
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
                     style={
                       isCurrent
                         ? {
-                            background: "hsl(var(--bark))",
+                            background: currentTone.fill,
                             color: "hsl(var(--parchment))",
-                            boxShadow: "0 0 0 2px hsl(var(--bark) / 0.30), 0 0 0 4px hsl(var(--parchment))",
+                            boxShadow: `0 0 0 2px ${currentTone.ring}, 0 0 0 4px hsl(var(--parchment))`,
                           }
                         : isActive
                           ? { background: "hsl(var(--bark) / 0.18)", color: "hsl(var(--bark))" }
@@ -757,9 +777,6 @@ export function JobTracking({
                   >
                     {s.label}
                   </span>
-                  {subtext && (
-                    <span className="text-ds-9 text-muted-foreground text-center leading-none">{subtext}</span>
-                  )}
                 </div>
               );
             })}

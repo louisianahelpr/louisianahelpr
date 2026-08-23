@@ -80,13 +80,41 @@ describe("shouldShowDisputeLink", () => {
     expect(shouldShowDisputeLink(job, "helper", NOW)).toBe(false);
   });
 
-  it("still shows for the customer while a revision is pending", () => {
+  it("is HIDDEN for the customer while the revision window is still open", () => {
+    // Escalation happens in order (owner: "I don't want a dispute to be
+    // [available] until revision is requested" and "once the time is up for
+    // that then move to dispute"). Offering both at once put "open a dispute"
+    // in front of a poster whose helpr was still actively fixing the thing.
     const job = makeJob({
       status: "revision_requested",
       poster_completed_at: null,
       revision_requested_at: new Date(NOW.getTime() - HOURS(2)).toISOString(),
+      revision_deadline: new Date(NOW.getTime() + HOURS(22)).toISOString(),
+    });
+    expect(shouldShowDisputeLink(job, "customer", NOW)).toBe(false);
+  });
+
+  it("shows for the customer once the revision window has run out", () => {
+    const job = makeJob({
+      status: "revision_requested",
+      poster_completed_at: null,
+      revision_requested_at: new Date(NOW.getTime() - HOURS(48)).toISOString(),
+      revision_deadline: new Date(NOW.getTime() - HOURS(1)).toISOString(),
     });
     expect(shouldShowDisputeLink(job, "customer", NOW)).toBe(true);
+  });
+
+  it("stays hidden when no revision deadline was ever stamped", () => {
+    // No clock to wait on means the window is treated as OPEN, not expired —
+    // an unstamped row must not unlock a dispute the helpr never had a chance
+    // to pre-empt.
+    const job = makeJob({
+      status: "revision_requested",
+      poster_completed_at: null,
+      revision_requested_at: new Date(NOW.getTime() - HOURS(48)).toISOString(),
+      revision_deadline: null,
+    });
+    expect(shouldShowDisputeLink(job, "customer", NOW)).toBe(false);
   });
 
   it("does NOT show for the helper while a revision is pending (helper has its own path)", () => {

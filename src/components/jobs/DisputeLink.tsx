@@ -34,6 +34,8 @@ export interface DisputeLinkJob {
   disputed_at: string | null;
   /** Set when the customer asks for a fix — keeps the link visible for the customer side. */
   revision_requested_at: string | null;
+  /** When the helpr's window to fix it runs out. Dispute waits for this. */
+  revision_deadline?: string | null;
 }
 
 export type DisputeLinkSide = "customer" | "helper";
@@ -53,9 +55,23 @@ export function shouldShowDisputeLink(
   if (job.disputed_at) return false;
   if (job.status === "disputed") return false;
 
-  // Customer can still reach dispute while a revision is pending —
-  // that's the entire point of the revision → dispute escalation flow.
-  if (side === "customer" && job.status === "revision_requested") return true;
+  // ESCALATION, IN ORDER. A dispute is only reachable once a revision has been
+  // asked for AND the helpr's window to answer it has run out (owner: "I don't
+  // want a dispute to be [available] until revision is requested", and "once
+  // the time is up for that then move to dispute").
+  //
+  // Offering both at once — which is what returning true for the whole
+  // `revision_requested` state did — put "open a dispute" in front of a poster
+  // whose helpr was still actively fixing the thing, which is the one moment
+  // the flow exists to avoid.
+  //
+  // No deadline stamped means no clock to wait on, so the window is treated as
+  // open rather than expired: an unstamped row must not unlock a dispute the
+  // helpr never had a chance to pre-empt.
+  if (side === "customer" && job.status === "revision_requested") {
+    if (!job.revision_deadline) return false;
+    return new Date(job.revision_deadline).getTime() <= now.getTime();
+  }
 
   // Otherwise the job must be `completed` to qualify.
   if (job.status !== "completed") return false;

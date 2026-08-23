@@ -1008,6 +1008,22 @@ html.web-desktop {
     padding-right: var(--desktop-sidebar-w);
   }
 
+  /* The CONTENT has to move with the panel, not after it.
+     `side-panel-open` toggles instantly, so the inset above snapped to its new
+     value in a single frame while the panel itself slid over 300ms — the page
+     lurched, then the panel caught up. Matching duration and curve makes the
+     two read as one movement (owner: "side panel should move in and out
+     smoother"). Applied to the BASE selectors so it eases in both directions,
+     and only under motion-safe. */
+  @media (prefers-reduced-motion: no-preference) {
+    html.web-desktop.desktop-rail:not(.app-shell) #root {
+      transition: padding-right 300ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    html.web-desktop.app-shell.desktop-rail .app-shell-frame {
+      transition: right 300ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+  }
+
   /* Reserve the global top bar's height (DesktopTopNav, h-14 = 3.5rem).
      The bar is `position: fixed` so it is out of flow and would otherwise sit
      ON TOP of the first thing each page renders. Two surfaces need the space

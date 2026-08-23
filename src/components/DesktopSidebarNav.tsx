@@ -9,6 +9,7 @@ import {
   MessageSquare,
   User,
   Plus,
+  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +56,25 @@ const NAV_ITEMS: Array<{
   { path: "/profile", icon: User, label: "Profile" },
 ];
 
+/**
+ * Admin, for the accounts that have it (owner: "for webpage, take admin panel
+ * out of profile and move to side panel").
+ *
+ * It used to be a row inside Profile > Admin > "Admin Panel", which made a
+ * top-level destination reachable only by going through one's own account
+ * settings. It belongs beside the other primary destinations, and it renders
+ * for nobody else — so it costs a normal user nothing, exactly as the Profile
+ * row did.
+ *
+ * Separate from NAV_ITEMS rather than filtered into it so the five that
+ * everyone gets stay a plain, non-conditional list.
+ */
+const ADMIN_NAV_ITEM: (typeof NAV_ITEMS)[number] = {
+  path: "/admin",
+  icon: ShieldAlert,
+  label: "Admin",
+};
+
 /* RE-EXPORT, not a second implementation.
    This file used to define its own copy of the hook with a `(min-width: 1024px)`
    query while `src/hooks/useIsWebDesktop.ts` — and index.css, and tailwind's
@@ -73,7 +93,7 @@ const DesktopSidebarNav = () => {
   const isWebDesktop = useIsWebDesktop();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile } = useCurrentUser();
+  const { user, profile, isAdmin } = useCurrentUser();
   const { postsCount, jobsCount } = useActivityBadgeCounts(user?.id);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -142,11 +162,21 @@ const DesktopSidebarNav = () => {
   // /login. Gate on `!!user`, matching Navbar's `railOwnsNav` and the
   // `desktop-rail` inset gate in useAppShellViewport so all three move together.
   if (!user) return null;
-  // THE HAMBURGER'S JOB. The bar's Menu button toggles this flag; without the
-  // gate the panel rendered unconditionally and the button did nothing visible
-  // — it only released the rail's reserved width, which is not what "open and
-  // close the side panel" means (owner).
-  if (!sidePanelOpen) return null;
+  // THE HAMBURGER'S JOB. The bar's Menu button toggles this flag; without it
+  // the panel rendered unconditionally and the button did nothing visible — it
+  // only released the rail's reserved width, which is not what "open and close
+  // the side panel" means (owner).
+  //
+  // It is NOT `return null` any more. Unmounting is instantaneous, so the panel
+  // vanished and reappeared with no motion at all — "should move in and out
+  // smoother" (owner). It stays mounted and slides on `transform` instead, and
+  // `visibility` is what actually removes it from the tab order and the
+  // accessibility tree once it is off screen (a plain translate leaves a
+  // focusable, announced panel sitting just outside the viewport).
+  //
+  // transform + visibility are both GPU-cheap and both transition, so the slide
+  // stays at 60fps and nothing reflows while it moves — which is the other half
+  // of "smoother". `aria-hidden` and `inert` keep it out of reach mid-flight.
 
   const badgeFor = (key?: "messages" | "posts" | "jobs") => {
     if (key === "messages") return unreadCount;
@@ -170,7 +200,12 @@ const DesktopSidebarNav = () => {
   return (
     <nav
       aria-label="Primary"
-      className="fixed right-0 bottom-0 z-40 hidden lg:flex lg:flex-col"
+      aria-hidden={!sidePanelOpen}
+      // @ts-expect-error — `inert` is valid HTML; React's types lag it.
+      inert={!sidePanelOpen ? "" : undefined}
+      className={`fixed right-0 bottom-0 z-40 hidden lg:flex lg:flex-col motion-safe:transition-[transform,visibility] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] ${
+        sidePanelOpen ? "translate-x-0 visible" : "translate-x-full invisible"
+      }`}
       style={{
         // Start the rail BELOW the full-width top header (h-14 = 3.5rem plus
         // any safe-area inset the header reserves) so the header — which spans
@@ -214,7 +249,7 @@ const DesktopSidebarNav = () => {
 
       {/* Destinations */}
       <ul className="flex flex-col gap-1 px-3 py-2">
-        {NAV_ITEMS.map(({ path, icon: Icon, label, badgeKey }) => {
+        {[...NAV_ITEMS, ...(isAdmin ? [ADMIN_NAV_ITEM] : [])].map(({ path, icon: Icon, label, badgeKey }) => {
           const active = isActive(path);
           const count = badgeFor(badgeKey);
           return (

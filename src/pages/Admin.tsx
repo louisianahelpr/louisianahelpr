@@ -502,7 +502,9 @@ const Admin = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-premium-page">
-        <div className="flex-1 flex flex-col min-w-0">
+        {/* pt-14 clears the FIXED header above. It used to be sticky and
+            in-flow, so it reserved its own space. */}
+        <div className="flex-1 flex flex-col min-w-0 pt-14">
           <AdminTopBar />
 
           <main

@@ -31,7 +31,15 @@ const AdminTopBar = () => {
 
   return (
     <header
-      className="sticky top-0 z-40 glass-nav"
+      // FIXED and FULL-BLEED, spanning the whole viewport above the rail —
+      // the same arrangement as the signed-in app's DesktopTopNav (owner:
+      // "admin does the opposite and it needs to match").
+      //
+      // It was `sticky` INSIDE the content column, so the rail ran to y=0
+      // beside it and the header stopped at the rail's edge: the exact inverse
+      // of the app, where the header spans everything and the panel starts
+      // below it. z-50 clears the rail's z-10.
+      className="fixed top-0 left-0 right-0 z-50 glass-nav"
       style={{
         paddingTop: "var(--safe-area-top, 0px)",
         // Blur only, no saturate() — copied from DesktopTopNav, where saturate

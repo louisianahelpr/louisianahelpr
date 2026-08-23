@@ -157,7 +157,15 @@ const AdminSidebar = ({
     // opens and CLOSES it — the icon variant only ever narrows to a strip,
     // which is not what closing means. Border flips to the left edge, since
     // that is the side now facing the content.
-    <Sidebar side="right" collapsible="offcanvas" className="border-l border-sidebar-border">
+    // `!top-14` + the matching height start the rail BELOW the full-bleed
+    // header rather than at y=0 (shadcn's default is `fixed inset-y-0 h-svh`).
+    // The app's own rail does exactly this — see DesktopSidebarNav's
+    // `top: calc(safe-area + 3.5rem)`.
+    <Sidebar
+      side="right"
+      collapsible="offcanvas"
+      className="border-l border-sidebar-border !top-14 !h-[calc(100svh-3.5rem)]"
+    >
       {/* `min-h-14` + the safe-area inset, not a fixed `h-14`. As a mobile
           sheet this header starts at y=0, so on a notched device "Helpr Admin"
           rendered UNDERNEATH the Dynamic Island and collided with the status-bar

@@ -386,24 +386,11 @@ export function SignupStep1({
 
       <SocialAuthButtons mode="signup" />
 
-      {/* "Already have an account? Log in" is GONE from here — it is the
-          "Sign in" tab above the card now, which is both more findable and the
-          same control on both auth screens. Keeping it here too would put the
-          same choice on one screen twice.
-
-          The business switch stays: it is a different destination the two tabs
-          don't cover, and it's the quiet everyday entry to the company path.
-          Hidden in business mode (the banner above already offers the reverse
-          switch). The same-route `?type=` flip keeps the parent form mounted,
-          so a typed email/password survives the switch. */}
-      {!isBusinessSignup && (
-        <p className="text-center text-ds-11 font-sans pt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          Setting up for a company?{" "}
-          <Link to="/signup?type=business" replace className="font-semibold hover:underline whitespace-nowrap" style={{ color: "hsl(var(--bark))" }}>
-            Business account
-          </Link>
-        </p>
-      )}
+      {/* No "Setting up for a company?" link here (owner, 2026-08-22).
+          Business signup stays reachable at /signup?type=business and from the
+          Sign in screen; it is just not offered as a fork on the consumer
+          create-account form, where it was a third decision on a screen whose
+          job is to get one person an account. */}
     </div>
   );
 }

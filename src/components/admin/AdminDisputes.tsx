@@ -323,7 +323,7 @@ const AdminDisputes = () => {
   const list = filteredList;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Filter tabs — Open queue vs. Decided audit log. */}
       <div className="flex gap-1.5 border-b border-border">
         <button

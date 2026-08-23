@@ -157,7 +157,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
        the rest, and `min-h-full` stretched the tab to the panel even when its
        content was short (owner, twice: "all profile tabs should share the same
        shell"). Guarded by profileTabShell.test.ts. */
-    <div className="space-y-4 pb-4">
+    <div className="space-y-4">
       <ProfileTabHeader
         title="Membership"
         onBack={onBack}

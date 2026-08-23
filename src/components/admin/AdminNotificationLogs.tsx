@@ -132,7 +132,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
   const failureCount = rows.filter(r => r.status === "failed").length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <p className="text-ds-11 text-muted-foreground">
           Every alert sent via in-app or email. Failed deliveries are highlighted in red.

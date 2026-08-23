@@ -240,7 +240,7 @@ const AdminReports = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex gap-2 flex-wrap">
         {(["pending", "investigating", "resolved", "dismissed", "all"] as const).map(f => (
           <Button

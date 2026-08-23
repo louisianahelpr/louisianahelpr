@@ -251,7 +251,7 @@ const AdminUsers = () => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       {/* Scrolls rather than dividing the width six ways. With `flex-1` each
           tab got ~1/6 of 402pt and had to share that with a count badge, so
           "Active" rendered as "Acti…" — a filter that will not say what it

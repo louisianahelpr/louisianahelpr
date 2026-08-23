@@ -90,7 +90,7 @@ const AdminSupport = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex gap-2">
         {(["pending", "resolved", "all"] as const).map(f => (
           <Button

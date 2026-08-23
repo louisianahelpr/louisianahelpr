@@ -145,7 +145,7 @@ const ExceptionQueueInner = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center gap-2">
         <p className="text-ds-11 text-muted-foreground">
           Verification cases flagged for manual review — adverse actions, name mismatches, boards with no API.

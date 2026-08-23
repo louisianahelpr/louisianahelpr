@@ -308,7 +308,7 @@ const AdminSettings = () => {
   if (loading) return <p className="text-muted-foreground">Loading settings…</p>;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       
 
       {/* Split Fee Settings */}

@@ -185,7 +185,7 @@ const AdminNotifications = () => {
   const allEmailOn = NOTIFICATION_GROUPS.every(g => prefs[g.emailKey]);
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6">
       {/* Master toggles */}
       <div className="rounded-ds-md liquid-glass p-5 space-y-4">
         <h3 className="font-display font-bold text-foreground flex items-center gap-2">

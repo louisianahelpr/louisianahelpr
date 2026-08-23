@@ -182,7 +182,7 @@ const AdminBroadcasts = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Undo countdown banner — server-driven. Visible whenever
           pending_push_fan_out_at is set and push_fanned_out_at is not.
           Survives tab close: pg_cron runs the fan-out regardless. */}

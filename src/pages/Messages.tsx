@@ -395,7 +395,10 @@ const Messages = () => {
               {chatEl ? (
                 <SectionBoundary label="chat">{chatEl}</SectionBoundary>
               ) : (
-                <MessagesEmptyThread />
+                // Tell it whether there is anything to pick. Without this it
+                // said "pick a thread on the left" beside a list showing
+                // "No messages yet."
+                <MessagesEmptyThread hasConversations={conversations.length > 0} />
               )}
             </div>
           </div>

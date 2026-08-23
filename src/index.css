@@ -1229,6 +1229,18 @@ html.web-desktop {
 
   .link-standard {
     display: inline-block;
+    /* A 44px TAP TARGET without a 44px box.
+       These links sit in tight footer columns and inline in body copy, so
+       growing the visible box would blow the column's rhythm apart. The
+       pseudo-element is centred on the link and hit-testable while the link
+       itself keeps its text-sized layout — the same trick the filter chips
+       already use. Measured before: Jobs 25x16, Terms 34x16, Rules 30x16,
+       Privacy 39x16, Help Center 66x16 — every one under half the minimum,
+       and on phone width this is the same surface as the native app.
+       `pointer: coarse` only: on a mouse a 16px link is genuinely fine, and an
+       invisible 44px overlay there would swallow clicks meant for its
+       neighbours in a dense footer column. */
+    position: relative;
     text-decoration-line: underline;
     text-decoration-color: transparent;
     text-underline-offset: 0.18em;
@@ -1239,6 +1251,19 @@ html.web-desktop {
                 filter 0.15s var(--ease-spring);
   }
   @media (hover: hover) {
+  @media (pointer: coarse) {
+    .link-standard::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      min-height: 44px;
+      height: 100%;
+    }
+  }
+
     .link-standard:hover {
       text-decoration-color: currentColor;
       transform: translateY(-1px);

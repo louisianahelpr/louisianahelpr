@@ -220,7 +220,14 @@ serve(async (req) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": authHeader,
+              // Always use the service role key here: release-payout has
+              // verify_jwt=true, so Supabase validates the Authorization header
+              // at the gateway before the function runs. Forwarding the incoming
+              // authHeader works when the caller used the service role key, but
+              // fails silently (401 before function code runs) when the caller
+              // used CRON_SECRET — which is not a valid Supabase JWT. Using the
+              // service role key directly guarantees the request is accepted.
+              "Authorization": `Bearer ${serviceRoleKey}`,
             },
             body: JSON.stringify({ job_id: job.id, initiated_by: "auto" }),
           });

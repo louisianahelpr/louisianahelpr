@@ -54,23 +54,26 @@ export function SocialAuthButtons({
     // Apple renders FIRST (left). Apple's HIG asks that Sign in with Apple be
     // at least as prominent as any other third-party option; equal-size
     // buttons with Apple leading satisfies that.
-    // Side by side WITH a visible provider word (owner, 2026-08-22).
+    // STACKED, one provider per full-width row, each showing its mark AND its
+    // word. Settled 2026-08-22 — do not flip this again without reading the
+    // history, because it has now been changed three times:
     //
-    // This block has been both ways. It was side-by-side icons, then stacked
-    // full-width rows because "each button was a bare icon in a half-width
-    // box" — the box was sized for a label it did not have. That objection was
-    // about the missing word, not about the arrangement, so the word is back
-    // and the arrangement can be too: two half-width buttons, each a mark plus
-    // "Apple" / "Google". On a 402pt screen that is ~175pt per button, well
-    // over Apple's 44pt minimum for a logo-only mark and comfortably over it
-    // with a label, and it returns ~60pt of vertical space to the card.
+    //   1. side-by-side, icons only  → objection: "a bare icon in a half-width
+    //      box" (the box was sized for a label it did not have)
+    //   2. stacked, icons only       → the box got smaller but the icon was
+    //      still unlabelled
+    //   3. side-by-side, labelled    → fixed the label, reopened (1)'s layout
+    //   4. STACKED, labelled         ← here. Both halves of the objection are
+    //      answered: every button has a word, and no button is a wide box with
+    //      a small mark adrift in it.
     //
-    // Apple renders FIRST (left) — see the prominence note above.
-    // Stacked, one per row (owner). Side by side they were half-width boxes;
-    // full-width rows give each provider its own target. Apple stays first per
-    // Apple's HIG, which asks that Sign in with Apple be at least as prominent
-    // as any other third-party option.
-    <div className="flex flex-col gap-3">
+    // The ~59pt a two-column row would save is real, and it is not worth
+    // reopening a question that has already cost four passes.
+    //
+    // Apple renders FIRST (top). Apple's HIG asks that Sign in with Apple be at
+    // least as prominent as any other third-party option; identical full-width
+    // rows with Apple leading satisfies that.
+    <div className="flex flex-col gap-4">
       <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} />
       <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} />
     </div>

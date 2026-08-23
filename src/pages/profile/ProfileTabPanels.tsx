@@ -335,7 +335,7 @@ export const ProfileTabPanels = ({
       {tab === "referral" && user && (
         <div className="space-y-5">
           <ProfileTabHeader
-            title="Referral Program"
+            title="Referrals"
             onBack={() => setTab("landing")}
           />
           <Suspense fallback={<TabFallback />}>

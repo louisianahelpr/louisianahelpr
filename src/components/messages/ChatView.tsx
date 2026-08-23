@@ -328,7 +328,6 @@ export function ChatView({
             bottomRef={bottomRef}
             retryMessage={retryMessage}
             setLightboxPhoto={setLightboxPhoto}
-            setReportTarget={setReportTarget}
             setDeleteMessageConfirm={setDeleteMessageConfirm}
             setActionMessage={setActionMessage}
             reactions={reactions}

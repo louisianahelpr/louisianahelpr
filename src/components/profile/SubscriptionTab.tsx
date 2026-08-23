@@ -153,7 +153,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   return (
     <div className="flex flex-col min-h-full gap-4 pb-4">
       <ProfileTabHeader
-        title="My Membership"
+        title="Membership"
         onBack={onBack}
       />
 

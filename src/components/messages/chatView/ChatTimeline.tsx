@@ -67,7 +67,6 @@ export function ChatTimeline({
   bottomRef,
   retryMessage,
   setLightboxPhoto,
-  setReportTarget,
   setDeleteMessageConfirm,
   setActionMessage,
   reactions,
@@ -96,7 +95,6 @@ export function ChatTimeline({
   bottomRef: Ref<HTMLDivElement>;
   retryMessage: (clientId: string) => void;
   setLightboxPhoto: Dispatch<SetStateAction<string | null>>;
-  setReportTarget: Dispatch<SetStateAction<{ type: "message" | "user"; id: string } | null>>;
   setDeleteMessageConfirm: Dispatch<SetStateAction<string | null>>;
   setActionMessage: Dispatch<SetStateAction<Message | null>>;
 }) {
@@ -297,7 +295,6 @@ export function ChatTimeline({
             activeConvo={activeConvo}
             retryMessage={retryMessage}
             setLightboxPhoto={setLightboxPhoto}
-            onReport={(id) => setReportTarget({ type: "message", id })}
             onDelete={setDeleteMessageConfirm}
             onLongPress={setActionMessage}
           />

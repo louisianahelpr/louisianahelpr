@@ -171,22 +171,26 @@ const JobDetailDialog = ({
             dot + icon + label treatment as the feed card so the two read as
             the same object. */}
         <div className="flex items-center gap-1.5 pr-10">
+          {/* THE SAME CHIP the feed card and the map popup wear (owner: "should
+              be in top left like the job card"). It used to be a bespoke
+              treatment here — a coloured dot in a circle plus burnt-sienna
+              serif caps — so the one object had three appearances across the
+              three surfaces it shows up on, two of which sit side by side on
+              the desktop website. Now it is `catStyle.badge` + CategoryIcon +
+              the serif-italic label, verbatim, and a change to the category
+              palette moves all three together. */}
           <span
-            aria-hidden
-            className={`inline-flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${catStyle.dot}`}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-ds-sm border text-ds-10 font-semibold leading-none ${catStyle.badge}`}
           >
             <CategoryIcon
               category={job.category}
               aria-hidden
-              className="w-2.5 h-2.5 text-white/90"
-              strokeWidth={2.5}
+              className="w-2.5 h-2.5 shrink-0"
+              strokeWidth={2.25}
             />
-          </span>
-          <span
-            className="font-serif italic uppercase text-ds-11 truncate"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.1em" }}
-          >
-            {categoryLabels[job.category] || job.category}
+            <span className="font-serif italic">
+              {categoryLabels[job.category] || job.category}
+            </span>
           </span>
         </div>
         <DialogHero title={job.title} />

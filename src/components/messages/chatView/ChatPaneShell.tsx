@@ -32,7 +32,13 @@ export function ChatPaneShell({
     // Desktop two-pane: the chat header belongs inside the pane, above the
     // thread. No safe-area concerns — it isn't against the status bar.
     return (
-      <div className="flex-1 min-h-0 flex flex-col">
+      // `px-4` is load-bearing, not decoration. The phone branch below gets its
+      // horizontal gutter from AppShell's container; this branch had NONE, so
+      // the composer's controls ran flush to the pane's edge and the send
+      // button — the last thing in the row — was sliced by the pane's own
+      // overflow clip (owner: "doesn't fit very well"). The header and thread
+      // take the same gutter so the whole column shares one edge.
+      <div className="flex-1 min-h-0 flex flex-col px-4">
         {header}
         {children}
       </div>

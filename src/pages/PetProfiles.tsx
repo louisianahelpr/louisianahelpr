@@ -140,11 +140,18 @@ const PetProfiles = () => {
       <PageHeader
         title="My Pets"
         backTo="/profile"
-        // Mirrors the body ladder below (max-w-lg → lg:5xl → xl:6xl, px-5 → lg:px-8).
-        width="lg-5xl-6xl"
+        // No `width` — the header takes its `default` geometry, which IS the
+        // body class below, so title and content share one edge at every size.
       />
 
-      <div className="page-measure mx-auto px-5 lg:px-8 pt-4">
+            {/* CANONICAL DOCUMENT-SCROLL SHELL — identical on every page that wears
+          it: `min-h-screen bg-premium-page pb-safe-nav` > <PageHeader> (default
+          width) > `page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8`.
+          The header's `default` width IS this body class, so the title and the
+          content share one left edge at every breakpoint. Owner: these pages
+          "should share layouts ... there should not be any off from the rest",
+          so do not give this page its own max-width or gutter ladder. */}
+      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
         {/* ─── Mobile (default): stacked list ─────────────────────────── */}
         <div className="lg:hidden space-y-3">
           {isLoading && (

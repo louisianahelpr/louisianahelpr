@@ -245,6 +245,32 @@ export function ShareJobButton({
 
   if (variant === "icon") {
     return (
+      /**
+       * The icon variant has NO LABEL to flip, so the inline confirmation the
+       * default variant relies on came down to a 16px glyph swapping for two
+       * seconds — which is why the owner reported this one as "does nothing"
+       * even after the toast fix. It gets a real, readable confirmation: a
+       * chip that floats ABOVE the button, absolutely positioned so the footer
+       * row never reflows, and it says which of the two things happened.
+       *
+       * `pointer-events-none` so the chip can never eat the next click, and it
+       * is `aria-hidden` because {@link liveRegion} already announces this to a
+       * screen reader — two announcements of one event is worse than none.
+       */
+      <span className="relative inline-flex shrink-0">
+      {copied && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap rounded-ds-sm px-2 py-1 text-ds-10 font-sans font-semibold"
+          style={{
+            background: "hsl(var(--ink-deep) / 0.92)",
+            color: "hsl(var(--parchment))",
+            boxShadow: "0 6px 16px -6px hsl(var(--ink-deep) / 0.45)",
+          }}
+        >
+          {canNativeShare ? "Shared" : "Link copied"}
+        </span>
+      )}
       <Button
         type="button"
         variant="ghost"
@@ -278,6 +304,7 @@ export function ShareJobButton({
         )}
         {liveRegion}
       </Button>
+      </span>
     );
   }
 

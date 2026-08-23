@@ -32,20 +32,34 @@ export function JobCardTitleBar({ title, amount, amountTitle }: JobCardTitleBarP
           My Jobs. Aligned to JobPrice rather than the reverse because
           JobPrice also owns the job-detail payout tile, so it is the shape a
           user sees most and the one the codebase treats as canonical. */}
+      {/* GEOMETRY matched too, not just the palette (owner: "should be same
+          format font style etc"). The surface and ink already came from
+          JobPrice, but this chip was `text-ds-13 / weight 700 / px-2 py-0.5`
+          against JobPrice's `text-ds-17 / weight 800 / px-2.5 py-1` — so on the
+          desktop website the same money, on two cards a column apart, was set
+          two sizes and two weights. Every value below is JobPrice's `chip`
+          variant verbatim; change one, change both. */}
       <span
-        className="inline-flex items-baseline font-display font-bold tabular-nums text-ds-13 px-2 py-0.5 rounded-ds-md shrink-0 ml-3"
+        className="inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center shrink-0 ml-3"
         title={amountTitle}
         style={{
           background: "hsl(var(--bark) / 0.10)",
           border: "0.5px solid hsl(var(--bark) / 0.28)",
-          color: "hsl(var(--bark))",
-          letterSpacing: "-0.02em",
         }}
       >
-        {/* Tight text "$" pulled to the digits — matches JobPrice, the canonical
-            money element, so an amount reads identically everywhere. */}
-        <span style={{ fontSize: "0.82em", marginRight: "0.5px" }}>$</span>
-        {amount}
+        <span
+          className="font-display leading-none tabular-nums text-ds-17"
+          style={{
+            fontWeight: 800,
+            color: "hsl(var(--bark))",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          <span style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}>
+            $
+          </span>
+          {amount}
+        </span>
       </span>
     </div>
   );

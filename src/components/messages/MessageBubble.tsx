@@ -1,4 +1,4 @@
-import { Flag, Trash2, Loader2, RotateCw, MapPin } from "lucide-react";
+import { Trash2, Loader2, RotateCw, MapPin } from "lucide-react";
 import { MessageAttachment } from "@/components/MessageAttachment";
 import { ReadReceipt } from "@/components/ChatPresence";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -87,7 +87,6 @@ export function MessageBubble({
   activeConvo,
   retryMessage,
   setLightboxPhoto,
-  onReport,
   onDelete,
   onLongPress,
 }: {
@@ -115,7 +114,6 @@ export function MessageBubble({
   activeConvo: Conversation;
   retryMessage: (clientId: string) => void;
   setLightboxPhoto: (url: string | null) => void;
-  onReport: (id: string) => void;
   onDelete: (id: string) => void;
   onLongPress: (m: Message) => void;
 }) {
@@ -327,16 +325,11 @@ export function MessageBubble({
                 recipientAvatarUrl={activeConvo?.otherUserAvatarUrl}
               />
             )}
-            {!mine && (
-              <button
-                onClick={() => onReport(m.id)}
-                className="ml-0.5 opacity-50 hover:opacity-100 hover:text-destructive transition-opacity flex items-center justify-center w-5 h-5 rounded-full"
-                title="Report"
-                aria-label="Report message"
-              >
-                <Flag className="w-2.5 h-2.5" />
-              </button>
-            )}
+            {/* No inline Report flag. Owner: it is "already at the top of the
+                page" — the ⋮ menu in the chat header reports the person, and
+                a long press on the bubble opens MessageActionSheet, which
+                reports THIS message. A third affordance, 10px wide, hung off
+                every inbound timestamp for the whole conversation. */}
             {mine && (
               <button
                 onClick={() => onDelete(m.id)}

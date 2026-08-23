@@ -19,21 +19,25 @@ import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
 import { FieldError } from "@/components/ui/FieldError";
 
 /**
- * Repeats is built but not yet WIRED END TO END, so the door stays shut.
+ * Repeats is ON as of 2026-08-23 (owner approved).
  *
- * The picker, the schema, the per-visit charge cron and the standing-helper
- * model all exist. What does not exist yet is the deployment: until
- * `charge-recurring-visits` is deployed as an edge function AND scheduled to
- * run daily, nothing bills the saved card for visit 2 onward — so a poster
- * would book twelve visits and receive one. That is the exact failure the
- * rebuild set out to remove, and shipping the picker ahead of the cron would
- * re-create it with a nicer UI.
+ * The gate this replaces was a WIRING gate, not a feature flag: the picker, the
+ * schema, the standing-helper model and the per-visit charge function were all
+ * finished and tested, and the only thing missing was the deployment. Until
+ * `charge-recurring-visits` was deployed AND scheduled, nothing billed the saved
+ * card for visit 2 onward — a poster would book twelve visits and receive one.
  *
- * Flip to `true` only once the cron is deployed and scheduled. Everything on
- * the other side of this flag is finished and tested; this is a wiring gate,
- * not a feature flag for unfinished work.
+ * Both halves are now true: the function is deployed and ACTIVE on prod, and
+ * migration 20260823170000 schedules it daily at 06:00 UTC. That migration ships
+ * in the SAME COMMIT as this line, which is what 20260821020000 asked for when
+ * it unscheduled the withdrawn path — so the charge path and the feature cannot
+ * drift apart again.
+ *
+ * The ordering that makes this safe lives in the function, not here: the
+ * PaymentIntent succeeds FIRST and the visit's job row is inserted after, so an
+ * unfunded visit cannot exist for a helpr to walk into.
  */
-const RECURRING_ENABLED = false;
+const RECURRING_ENABLED = true;
 
 // Normalize a reverse-geocoder's state value (full name or abbreviation)
 // to the canonical 2-letter code the form stores. We special-case the only

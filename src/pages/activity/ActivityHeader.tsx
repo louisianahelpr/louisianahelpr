@@ -1,8 +1,10 @@
-import { Search, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, Search, X } from "lucide-react";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 import { hapticLight } from "@/lib/haptics";
 import type { StatusFilter } from "./activityFilters";
+import { defaultStatusFilterFor } from "@/components/activity/activityConstants";
 
 /**
  * ActivityHeader — the title row with search/filter toggle buttons, the
@@ -61,6 +63,11 @@ export interface ActivityHeaderProps {
   setSearchQuery: (query: string) => void;
 }
 
+/** The filter both this disclosure and Activity.tsx call the default.
+ *  Read from the same function Activity.tsx seeds its state with, so the two
+ *  can never disagree about what "unfiltered" means. */
+const DEFAULT_STATUS_FILTER = defaultStatusFilterFor("posted");
+
 export function ActivityHeader({
   title,
   titleSrOnly = false,
@@ -79,6 +86,27 @@ export function ActivityHeader({
      (owner). Which tab opens selected is the page's call
      (`defaultStatusFilterFor`), not this row's. */
   const inlineStatusFilters = activeStatusFilters.filter((f) => f.key !== "all");
+
+  /**
+   * The status tabs are behind a disclosure now (owner: "add a dropdown arrow
+   * next to search so these aren't always showing, but then always open to
+   * needs you"). Four labelled buttons with counts sat permanently above the
+   * cards to express one choice that is usually left on its default.
+   *
+   * It starts OPEN when the filter is not the default. Collapsing a screen
+   * that is silently showing you a subset — arrived at by a deep link, or by
+   * back/forward restoring `?filter=` — would mean looking at four of your
+   * twelve jobs with nothing on screen saying why. The disclosure hides a
+   * control, never an active filter.
+   */
+  const isDefaultFilter = statusFilter === DEFAULT_STATUS_FILTER;
+  const [tabsOpen, setTabsOpen] = useState(!isDefaultFilter);
+  // A filter arriving later (deep link resolving, or a tab switch that resets
+  // it) has to be able to open the disclosure too — otherwise the same
+  // "filtered, but nothing says so" state comes back through the side door.
+  useEffect(() => {
+    if (!isDefaultFilter) setTabsOpen(true);
+  }, [isDefaultFilter]);
 
   /* THE TABS, built once and placed twice.
 
@@ -171,9 +199,26 @@ export function ActivityHeader({
              for there: "put 1 unread to the right of messages bc i dont like
              it under"). It is a <span>, never a heading — the row's h1 is the
              whole page's only one. */
-          meta={inlineFilters ? statusTabs : undefined}
+          meta={inlineFilters && tabsOpen ? statusTabs : undefined}
           actions={
             <>
+              <button
+                type="button"
+                onClick={() => { hapticLight(); setTabsOpen((v) => !v); }}
+                aria-expanded={tabsOpen}
+                aria-controls="activity-status-tabs"
+                aria-label={tabsOpen ? "Hide status filters" : "Filter by status"}
+                className={`rounded-ds-md flex items-center justify-center btn-press transition ${
+                  tabsOpen || !isDefaultFilter
+                    ? "text-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.12)]"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                } ${inlineFilters ? "h-7 w-7 !min-h-0 !min-w-0" : "h-11 w-11"}`}
+              >
+                <ChevronDown
+                  className={`${inlineFilters ? "w-3.5 h-3.5" : "w-4 h-4"} transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
+                  strokeWidth={2.25}
+                />
+              </button>
               <button
                 type="button"
                 onClick={() => { hapticLight(); setSearchOpen(true); }}
@@ -194,8 +239,8 @@ export function ActivityHeader({
           search input has taken the row over — one control at a time. The
           horizontal scroller is insurance for a 320px screen; from 375 up the
           four labels fit without it. */}
-      {!inlineFilters && !searchOpen && (
-        <div className="-mx-1 px-1 pb-0.5 overflow-x-auto scrollbar-hide">
+      {!inlineFilters && !searchOpen && tabsOpen && (
+        <div id="activity-status-tabs" className="-mx-1 px-1 pb-0.5 overflow-x-auto scrollbar-hide">
           {statusTabs}
         </div>
       )}

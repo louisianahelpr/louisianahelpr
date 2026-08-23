@@ -117,7 +117,14 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnl
   // Applied ONLY to the interactive variant — the `to === null` span above is
   // decorative chrome inside dialogs, not a tap target.
   return (
-    <Link to={to} className={`${cls} min-h-11`}>
+    // Explicit accessible name. Most link call sites pass `emblemOnly`, so the
+    // anchor wrapped nothing but `<img alt="Helpr">` — a screen reader
+    // announced "Helpr, link", naming the logo instead of where it goes, on
+    // every authed screen. Labelling the anchor REPLACES its inner text rather
+    // than adding to it, so the wordmark variants stop reading "Helpr Helpr
+    // · LA" too. One label covers every consumer: `to` is only ever "/" or
+    // "/dashboard", both of which are home.
+    <Link to={to} aria-label="Helpr home" className={`${cls} min-h-11`}>
       {inner}
     </Link>
   );

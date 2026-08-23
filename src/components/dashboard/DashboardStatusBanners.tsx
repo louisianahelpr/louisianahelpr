@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { Clock } from "lucide-react";
+import { REVIEW_SLA } from "@/lib/reviewSla";
 
 /** Nearest accepted / in-progress job where the user is the helper. */
 export type UpcomingJob = {
@@ -60,7 +61,7 @@ const DashboardStatusBanners = ({
               Verification in progress — browse and apply now.
             </p>
             <p className="font-serif italic mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Review usually finishes in 24–48 hours. You'll just need it cleared before you can accept a job. Tap to track status.
+              Review usually finishes in {REVIEW_SLA}. You'll just need it cleared before you can accept a job. Tap to track status.
             </p>
           </button>
         </motion.div>

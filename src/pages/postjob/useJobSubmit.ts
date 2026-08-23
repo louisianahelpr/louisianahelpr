@@ -147,7 +147,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) { toast.error("Give your task a title"); scrollToField("title"); return; }
+    if (!title.trim()) { toast.error("Give your job a title"); scrollToField("title"); return; }
     if (!description.trim()) { toast.error("Add a description"); scrollToField("description"); return; }
     if (hasUnfilledPlaceholders(description)) { toast.error("Replace the [bracketed] placeholders with your own details before posting"); scrollToField("description"); return; }
     if (!category) { toast.error("Pick a category"); scrollToField("category-picker"); return; }
@@ -158,7 +158,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     if (!city.trim()) { toast.error("Add a city"); scrollToField("city"); return; }
     if (!addrState.trim()) { toast.error("Add a state"); scrollToField("state"); return; }
     if (!zipCode.trim()) { toast.error("Add a zip code"); scrollToField("zipCode"); return; }
-    if (!dateNeeded) { toast.error("Pick a date for the task"); scrollToField("date"); return; }
+    if (!dateNeeded) { toast.error("Pick a date for the job"); scrollToField("date"); return; }
     // Validate date is not in the past
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -217,7 +217,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      toast.error("Sign in to post a task");
+      toast.error("Sign in to post a job");
       setSaving(false);
       submittingRef.current = false;
       return null;

@@ -11,6 +11,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
 import { postAuthDestination } from "@/lib/jobIntent";
+import { REVIEW_SLA, REVIEW_SLA_HOURS } from "@/lib/reviewSla";
 
 const StepRow = ({
   label,
@@ -275,10 +276,14 @@ const AccountPending = () => {
                 >
                   We&apos;re verifying your details
                 </h1>
+                {/* Deliberately carries no turnaround number: the banner below
+                    owns the SLA. This line used to say "24–48 hours" while that
+                    banner said "under 2 hours", and both always render — so the
+                    screen contradicted itself in front of someone waiting on
+                    approval. One statement, one number, one source. */}
                 <p className="text-ds-13 text-muted-foreground leading-relaxed max-w-[90%] sm:max-w-[28ch]">
                   {firstName ? `Hang tight, ${firstName}. ` : ""}
-                  Our team is reviewing your credentials. This usually takes
-                  {" "}<span className="font-medium text-foreground">24–48 hours</span>.
+                  Our team is reviewing your credentials.
                 </p>
               </div>
 
@@ -306,9 +311,10 @@ const AccountPending = () => {
               </div>
             </div>
 
-            {/* Estimated review-time banner — sets a clearer
-                expectation than the generic "24-48 hours" line in the
-                hero, calibrated for business-hour reviewers. Renders
+            {/* Estimated review-time banner — the ONE place this screen
+                states a turnaround, calibrated for business-hour reviewers.
+                The number comes from REVIEW_SLA so the dashboard's
+                pending-review banner can never drift away from it. Renders
                 only when there's still review work in flight. */}
             {!reviewInProgress || progressPct < 100 ? (
               <div
@@ -326,9 +332,9 @@ const AccountPending = () => {
                 />
                 <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--ink-deep))" }}>
                   Reviews usually finish in{" "}
-                  <span className="font-semibold">under 2 hours</span>{" "}
-                  during business hours (8a–6p CT). Overnight signups clear
-                  next morning.
+                  <span className="font-semibold">{REVIEW_SLA}</span>{" "}
+                  during business hours ({REVIEW_SLA_HOURS}). Overnight signups
+                  clear next morning.
                 </p>
               </div>
             ) : null}

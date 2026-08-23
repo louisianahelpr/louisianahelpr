@@ -11,7 +11,7 @@ import type { Tab } from "@/components/activity/activityConstants";
  *
  * Every account in Helpr can both post AND do jobs (the app is never
  * role-based — see memory `app-is-never-role-based`). So when a user has
- * posted nothing yet, the most useful nudge is "go browse tasks and
+ * posted nothing yet, the most useful nudge is "go browse jobs and
  * apply" — the helper side may be where they get their first win. And
  * vice-versa: when they haven't applied to anything, "post a job"
  * surfaces the other half of the marketplace they may not have tried.
@@ -92,8 +92,8 @@ export function ActivityEmptyState({
         : `${elsewhere.slice(0, -1).join(", ")} and ${elsewhere[elsewhere.length - 1]}`;
   const body = isTrulyEmpty
     ? (isPosted
-        ? "While you wait for the right moment to post, you can earn by helping — browse open tasks near you and apply."
-        : "While you scout for the right task, post one of your own — your neighbors might be the perfect match.")
+        ? "While you wait for the right moment to post, you can earn by helping — browse open jobs near you and apply."
+        : "While you scout for the right job, post one of your own — your neighbors might be the perfect match.")
     : hasSearch
       ? "No jobs match your search — try a different term."
       : statusFilter === "all"
@@ -105,9 +105,11 @@ export function ActivityEmptyState({
   // of the marketplace. When the user has data ("no matches" view) we
   // keep them on the same side they're filtering.
   const isCrossTabSuggestion = isTrulyEmpty;
+  // "job", not "task" — the nav, the feed heading and the Messages empty
+  // state all say job, and these four labels were the last holdouts.
   const ctaLabel = isCrossTabSuggestion
-    ? (isPosted ? "Browse tasks" : "Post a task")
-    : (isPosted ? "Post a task" : "Browse tasks");
+    ? (isPosted ? "Browse jobs" : "Post a job")
+    : (isPosted ? "Post a job" : "Browse jobs");
   const ctaTo = isCrossTabSuggestion
     ? (isPosted ? "/dashboard" : "/post-job")
     : (isPosted ? "/post-job" : "/dashboard");

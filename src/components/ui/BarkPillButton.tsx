@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 /**
  * BarkPillButton — the bark-filled rounded pill used for the primary CTA
- * on empty-state cards (Browse tasks / Post a Job / Post the first job).
+ * on empty-state cards (Browse jobs / Post a job / Post the first job).
  *
  * Delegates entirely to `<Button variant="primary">` so there is a single
  * implementation of the bark style. Caller-supplied className/style still

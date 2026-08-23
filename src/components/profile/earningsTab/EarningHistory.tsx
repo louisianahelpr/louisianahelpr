@@ -127,10 +127,10 @@ export function EarningHistory({
               className="font-serif italic text-ds-13 leading-relaxed max-w-sm mx-auto"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              Apply to a task and your earnings will land here.
+              Apply to a job and your earnings will land here.
             </p>
           </div>
-          <Button onClick={onBrowseJobs} className="rounded-ds-md mt-1">Browse Tasks</Button>
+          <Button onClick={onBrowseJobs} className="rounded-ds-md mt-1">Browse jobs</Button>
         </div>
       ) : (
         <div className="space-y-3">

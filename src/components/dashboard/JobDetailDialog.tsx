@@ -91,7 +91,51 @@ const JobDetailDialog = ({
         // xl+ bumps to max-w-6xl so the two-column split-pane layout below
         // has breathing room (left 7/12 job content, right 5/12 sticky
         // apply pane). Below xl the dialog keeps its single-column stack.
-        className="grid-cols-1 sm:max-w-lg lg:max-w-3xl xl:max-w-6xl !gap-2"
+        // PHONE = BOTTOM SHEET, sm+ = the usual centred dialog.
+        //
+        // As a centred card this used ~58% of a 402x874 screen with ~21% dead
+        // scrim above AND below it — a job preview, the densest read in the
+        // app, boxed into the middle half of the phone while the thumb sat
+        // over empty backdrop. Anchoring it to the bottom is the standard iOS
+        // presentation for exactly this (a detail sheet over a list), gives
+        // the content ~92dvh instead of 88% of a shrunken box, and puts the
+        // "Sign up to apply" CTA in the thumb arc rather than mid-screen.
+        //
+        // The overrides come in three parts because the base DialogContent is
+        // centred by transform, not by inset:
+        //   1. geometry — top-auto/bottom-0 + zeroed translate, full width,
+        //      square bottom corners (28px top only, from .glass-modal).
+        //   2. animation — the base sets --tw-enter-translate-x:-50% via
+        //      `slide-in-from-left-1/2` to compensate for its own centering
+        //      transform. With the transform gone that would fly the sheet in
+        //      from off-screen left, so it is neutralised to -0 and the sheet
+        //      rises from the bottom instead. zoom is dropped to 100 — a
+        //      bottom sheet slides, it does not scale.
+        //   3. sm: — every one of the above is restored so tablet/desktop
+        //      render EXACTLY as before. This is a phone-only presentation.
+        // tailwind-merge resolves each against the base class in the same
+        // group, so ordering here is the whole mechanism.
+        className={[
+          "grid-cols-1 !gap-2",
+          // 1. phone geometry
+          "left-0 top-auto bottom-0 translate-x-0 translate-y-0",
+          "w-full max-w-none max-h-[92dvh] rounded-b-none rounded-t-[28px]",
+          // 2. phone animation
+          "data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-bottom-full data-[state=open]:zoom-in-100",
+          "data-[state=closed]:slide-out-to-left-0 data-[state=closed]:slide-out-to-bottom-full data-[state=closed]:zoom-out-100",
+          // 3. sm+ restores the centred dialog verbatim
+          "sm:left-[50%] sm:top-[50%] sm:bottom-auto sm:translate-x-[-50%] sm:translate-y-[-50%]",
+          "sm:w-[calc(100%-2rem)] sm:max-w-lg sm:max-h-[88dvh] sm:rounded-t-[28px] sm:rounded-b-[28px]",
+          "sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%] sm:data-[state=open]:zoom-in-95",
+          "sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%] sm:data-[state=closed]:zoom-out-95",
+          // Home-indicator clearance. The sheet is flush to the bottom edge,
+          // so without this the footer CTA sits under the indicator on every
+          // modern iPhone. sm+ is a floating card again and returns to the
+          // base p-7 padding.
+          "pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:pb-7",
+          "lg:max-w-3xl xl:max-w-6xl",
+        ].join(" ")}
+
         onTouchStart={(e) => {
           if (!_allJobs || !_onSelect) return;
           const t = e.touches[0];
@@ -117,29 +161,35 @@ const JobDetailDialog = ({
           _onSelect(_allJobs[nextIdx]);
         }}
       >
-        {/* Canonical popup header (DialogHero). The category dot keeps its
-            category color; the eyebrow text stays the canonical burnt-sienna,
-            so this job dialog reads as a sibling of every other popup. */}
-        <DialogHero
-          eyebrowClassName="flex items-center gap-1.5"
-          eyebrow={
-            <>
-              <span
-                aria-label={categoryLabels[job.category] || job.category}
-                className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ${catStyle.dot}`}
-              >
-                <CategoryIcon
-                  category={job.category}
-                  aria-hidden
-                  className="w-2.5 h-2.5 text-white/90"
-                  strokeWidth={2.5}
-                />
-              </span>
-              {categoryLabels[job.category] || job.category}
-            </>
-          }
-          title={job.title}
-        />
+        {/* Category chip, then the canonical popup title (DialogHero).
+            The chip is rendered HERE rather than passed to DialogHero as an
+            `eyebrow`: DialogHero accepts that prop but deliberately does not
+            render it (the 2026-07-25 "one main title" decision), so the
+            category this dialog used to pass was silently discarded. The
+            browse card leads with the category — it is the first thing a
+            helpr filters on — and opening the job dropped it entirely. Same
+            dot + icon + label treatment as the feed card so the two read as
+            the same object. */}
+        <div className="flex items-center gap-1.5 pr-10">
+          <span
+            aria-hidden
+            className={`inline-flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${catStyle.dot}`}
+          >
+            <CategoryIcon
+              category={job.category}
+              aria-hidden
+              className="w-2.5 h-2.5 text-white/90"
+              strokeWidth={2.5}
+            />
+          </span>
+          <span
+            className="font-serif italic uppercase text-ds-11 truncate"
+            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.1em" }}
+          >
+            {categoryLabels[job.category] || job.category}
+          </span>
+        </div>
+        <DialogHero title={job.title} />
 
         {/* Split-pane wrapper. Below xl this is a no-op flex column
             (contents flow like they used to). At xl+ it's a 12-col grid:
@@ -392,14 +442,21 @@ const JobDetailDialog = ({
           />
         </div>
 
-        {/* Poster card shows for guests too — the guest feed already enriches
-            each job with the poster's name, avatar, rating and review count, so
-            the logged-out preview carries the same social proof as the authed
-            dialog. The two authed-only signals (repeat-customer count, poster
-            cancellation rate) stay at their guest defaults (0 / null) and their
-            lines simply hide, so the only real difference remains the footer
-            CTA below. */}
-        <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} guest={guest} />
+        {/* Poster card is AUTHED-ONLY (owner decision 2026-08-22: "guest page
+            should not have who posted the job").
+
+            It used to render for guests as social proof, but on the logged-out
+            preview it is the weakest tile on the screen and the most costly:
+            its two differentiating signals (repeat-customer count, poster
+            cancellation rate) are authed-only and silently collapse to their
+            guest defaults, so a guest saw a name and an avatar and nothing
+            that helps them judge the job. Worse, the tile is a link to
+            /user/:id — a ProtectedRoute — so the one tappable thing in it
+            bounced a guest to /login mid-preview. The guest dialog now stays
+            about the JOB; identity is something you get after signing up. */}
+        {!guest && (
+          <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} guest={guest} />
+        )}
 
         <ApplicantQueueBanner guest={guest} applicationCount={applicationCount} viewerAppPosition={viewerAppPosition} />
 

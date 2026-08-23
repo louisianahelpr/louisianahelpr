@@ -4,7 +4,6 @@ import { MailCheck, LogIn, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
-import BackButton from "@/components/BackButton";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 // How long to disable the resend button after each send. Supabase's own
@@ -119,26 +118,19 @@ const SignupPending = () => {
        above it. This screen used to be the odd one out — a 448px card
        under a big Helpr·LA lockup, in a flow whose other two screens are
        1024px cards with their own headings. */
-    <AuthShell hideHeader hideBack centerColumn maxWidth="2xl">
+    <AuthShell
+      hideHeader
+      centerColumn
+      maxWidth="2xl"
+      // Home, not /signup. The account already EXISTS by the time this screen
+      // renders — sending the arrow back to the signup form invites a
+      // duplicate attempt on an address that is already registered. The
+      // wrong-address case has its own explicit "Start over" link inside the
+      // resend panel.
+      backTo="/"
+      title="Check your inbox"
+    >
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
-        <div className="flex items-center gap-3">
-          {/* Home, not /signup. The account already EXISTS by the time this
-              screen renders — sending the arrow back to the signup form
-              invites a duplicate attempt on an address that is already
-              registered. The wrong-address case has its own explicit
-              "Start over" link inside the resend panel. */}
-          <div className="shrink-0"><BackButton to="/" /></div>
-          <h1
-            className="font-display italic font-bold leading-tight min-w-0 flex-1"
-            style={{
-              fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.03em",
-            }}
-          >
-            Check your inbox
-          </h1>
-        </div>
         {/* Name the ADDRESS. It's the one fact this screen exists to
             convey — how someone catches "jane@gmial.com" without opening
             the resend panel to look. Falls back to the generic sentence on

@@ -9,7 +9,6 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
-import BackButton from "@/components/BackButton";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
@@ -382,68 +381,29 @@ const Signup = () => {
   // bottom of a 922px-tall window. One emblem now sits beside the heading at
   // every width.
   return (
-    <AuthShell hideHeader centerColumn hideBack maxWidth="2xl">
+    <AuthShell
+      hideHeader
+      centerColumn
+      maxWidth="2xl"
+      // Step 1 exits to home; step 2 walks the wizard back rather than leaving
+      // the page, because exiting from step 2 discards the credentials already
+      // typed. Both render through the SAME shell row, so the two steps no
+      // longer differ in title size (step 2 used to be a hand-rolled row inside
+      // the card at clamp(1.6rem,2.4vw+0.5rem,2.1rem) against step 1's ds-24).
+      {...(step === 1 ? { backTo: "/" } : { backOnClick: () => { setStep2Errors({}); setStep(1); } })}
+      title={step === 1 ? (isBusinessSignup ? "Create a business account" : "Create account") : stepHeading.title}
+    >
       <div>
-          {/* Sign in ⇄ Create account, OUTSIDE the card — navigation between
-              the two auth cards, not a control belonging to either. Step 1
-              ONLY: on step 2 the credentials are already entered and leaving
-              for /login would silently discard them, which is exactly why the
-              step-2 back arrow walks the flow instead of exiting. */}
-          {step === 1 && (
-            <div className="flex items-center gap-2 mb-4">
-              <div className="shrink-0"><BackButton to="/" /></div>
-              {/* Title right of the chevron, same row — matches Login and the
-                  canonical PageHeader pattern in CLAUDE.md. */}
-              <h1
-                className="flex-1 min-w-0 font-display italic font-bold text-ds-24 leading-tight"
-                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-              >
-                {isBusinessSignup ? "Create a business account" : "Create account"}
-              </h1>
-            </div>
-          )}
           {/* Liquid-glass card — matches the Login screen so the two auth
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}
           <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
-            {/* Heading INSIDE the card, no H emblem — identical treatment to
-                Login. The emblem stacked above a heading that sat above the
-                card meant three bands of vertical space before the email
-                field, and it clipped the Google button off a 922px window.
-                The card is now the whole composition. */}
-            {/* [back] [title] on ONE row, identical to Login. The arrow used
-                to be absolutely positioned in the card corner with the heading
-                indented pl-12/pl-14 to clear it, which left the heading
-                aligned to nothing. */}
+            {/* No heading inside the card. Both steps' [back] [title] rows
+                are now AuthShell's `title` row above the card — step 2 used to
+                hand-roll its own here, at a LARGER font than step 1's, which
+                made the wizard's title change size as you advanced. The
+                subtitle stays: it is supporting copy for the card, not a
+                heading. */}
             <div className="text-left space-y-1">
-              <div className="flex items-center gap-3">
-                {/* Step 2 ONLY. The arrow walks the FLOW back a step here —
-                    leaving signup entirely from step 2 silently discards the
-                    email and password already typed. Step 1's exit-to-home
-                    arrow lives beside the mode tabs above the card, where it
-                    anchors that row instead of floating alone in the card. */}
-                {step === 2 && (
-                  <div className="shrink-0">
-                    <BackButton onClick={() => { setStep2Errors({}); setStep(1); }} />
-                  </div>
-                )}
-                {/* Step 2 ONLY. Step 1's heading now sits beside the exit
-                    arrow ABOVE the card, so rendering one here too would put
-                    two h1s in the document — the page must have exactly one.
-                    This used to be sr-only on step 1 for the same reason in
-                    reverse, back when the tab row above carried the title. */}
-                {step === 2 && (
-                  <h1
-                    className="font-display italic font-bold leading-tight min-w-0 flex-1"
-                    style={{
-                      fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
-                      color: "hsl(var(--ink-deep))",
-                      letterSpacing: "-0.03em",
-                    }}
-                  >
-                    {stepHeading.title}
-                  </h1>
-                )}
-              </div>
               {stepHeading.subtitle && (
                 <p
                   className="font-sans text-ds-15"

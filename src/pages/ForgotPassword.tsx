@@ -7,7 +7,6 @@ import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
 import { Mail, Loader2, Check } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
-import BackButton from "@/components/BackButton";
 import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
 import HelprMark from "@/components/HelprMark";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -92,27 +91,8 @@ const ForgotPassword = () => {
   };
 
   return (
-    <AuthShell hideHeader backTo="/login"  centerColumn hideBack maxWidth="2xl">
+    <AuthShell hideHeader backTo="/login" centerColumn maxWidth="2xl" title="Password reset">
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
-        {!sent && (
-          <>
-            {/* Same [back] [title] header row as Login: heading INSIDE the
-                card, no emblem, one left edge down the card. */}
-            <div className="flex items-center gap-3">
-              <div className="shrink-0"><BackButton to="/login" /></div>
-              <h1
-                className="font-display italic font-bold leading-tight min-w-0 flex-1"
-                style={{
-                  fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
-                  color: "hsl(var(--ink-deep))",
-                  letterSpacing: "-0.03em",
-                }}
-              >
-                Password reset
-              </h1>
-            </div>
-          </>
-        )}
         {sent ? (
           <div className="text-center space-y-4">
             <div
@@ -121,9 +101,14 @@ const ForgotPassword = () => {
             >
               <Mail className="w-7 h-7" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={1.5} />
             </div>
-            <h1 className="text-page-title leading-tight">
+            {/* h2, not h1. The shell's `title` row renders "Password reset"
+                as the page h1 in BOTH states, so this confirmation heading is
+                a section heading under it. It was an h1 back when the title
+                row lived inside the `!sent` branch and disappeared here —
+                lifting the row into AuthShell made the page briefly carry two. */}
+            <h2 className="text-page-title leading-tight">
               Check your inbox.
-            </h1>
+            </h2>
             {/* Neutral confirmation copy — leaks no signal about whether
                 the address is registered (see performSend comment). */}
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

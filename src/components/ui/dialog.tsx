@@ -19,14 +19,22 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      // Deeper parchment-tinted backdrop with saturate boost so the
-      // dialog reads as a clear focal point. Heavier blur than the
-      // previous version + warm tint replaces flat black/50.
+      // Parchment-tinted backdrop. The 24px blur — not the tint — is what
+      // separates the dialog from the page, so the tint only has to knock the
+      // background back, not black it out.
+      //
+      // Was 45% of a near-black brown, which on the light parchment canvas
+      // read as a heavy grey slab (owner, 2026-08-22: "i also dont like the
+      // dark background"). Dropped to 26% and warmed toward the brand olive:
+      // the page behind stays legibly Helpr-coloured instead of going muddy,
+      // and the blur still does the focal work. Contrast against the white
+      // .glass-modal surface is unaffected — the card is opaque enough that
+      // its edge never depended on the scrim.
       "fixed inset-0 z-50 backdrop-blur-[24px] backdrop-saturate-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     style={{
-      backgroundColor: "hsla(38, 18%, 12%, 0.45)",
+      backgroundColor: "hsla(38, 22%, 22%, 0.26)",
       WebkitBackdropFilter: "blur(24px) saturate(1.5)",
     }}
     {...props}

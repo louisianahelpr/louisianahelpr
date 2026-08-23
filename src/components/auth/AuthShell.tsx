@@ -44,6 +44,37 @@ interface AuthShellProps {
       page background and read as unrelated chrome. Absolute, so it costs no
       vertical space and the heading stays optically centred. */
   backInCard?: boolean;
+  /** Vertical placement of the content column within the viewport.
+      "top" (default) anchors the card just under the safe area. "center"
+      restores the old `justify-center` behaviour for a caller that wants it.
+
+      Top is the default because centring is what produced the complaint that
+      started this: on a 402x874 phone the Password-reset card sat with ~330pt
+      of blank canvas above it and ~290pt below, and Sign in with ~200pt above.
+      A card the user is about to read or type into should start where their
+      eye starts, and every one of these screens is short enough that centring
+      only ever moved it further from the top. Owner decision 2026-08-22, applied
+      to all ten AuthShell screens. */
+  anchor?: "center" | "top";
+  /** Page title. When set, AuthShell renders the ONE canonical
+      `[back] [title]` row above the card — chevron first in a `shrink-0`
+      wrapper, heading to its RIGHT on the SAME row in a `flex-1 min-w-0`
+      column. This is the pattern CLAUDE.md mandates globally (see
+      PageHeader.tsx) and it now lives in one place instead of being
+      hand-copied per page, which is how it drifted: Login rendered the row
+      ABOVE the card while ForgotPassword rendered a near-identical one INSIDE
+      it, at a larger font, under a comment claiming the two matched.
+
+      `hideBack` still applies — a status screen (banned/denied/pending) gets
+      the title with no chevron rather than a back route it must not offer. */
+  title?: ReactNode;
+  /** Click handler for the title row's back control, INSTEAD of a route.
+      Signup's step-2 arrow walks the wizard back a step rather than leaving
+      the page — exiting from step 2 would silently discard the email and
+      password already typed. Without this the row could only host a
+      route-back, which is why that one arrow stayed hand-rolled inside the
+      card (at a different font size) after every other screen adopted the row. */
+  backOnClick?: () => void;
 }
 
 const widthMap = {
@@ -72,6 +103,9 @@ const AuthShell = ({
   desktopBrandPanel,
   centerColumn,
   backInCard = false,
+  anchor = "top",
+  title,
+  backOnClick,
 }: AuthShellProps) => {
   const showCompactTopBar = compactHeader && !hideHeader;
   const showFullHeader = !compactHeader && !hideHeader;
@@ -90,7 +124,7 @@ const AuthShell = ({
   // is no history to pop (a cold launch or a direct link). On native, "/" is
   // the NativeRedirect that lands on /browse, so the old native default is
   // preserved without hard-coding it here. An explicit `backTo` still wins.
-  const backLink = <BackButton to={backTo} />;
+  const backLink = <BackButton to={backTo} onClick={backOnClick} />;
 
   return (
     <div className="min-h-screen bg-premium-page relative overflow-hidden">
@@ -141,7 +175,7 @@ const AuthShell = ({
           {backLink}
         </div>
       )}
-      <div className={`relative z-10 flex flex-col ${centered ? "items-center" : alignClass} ${centered ? "lg:justify-center" : ""} justify-center min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(var(--safe-area-top,0px)_+_10px)] sm:pt-10" : "pt-[calc(var(--safe-area-top,0px)_+_24px)] sm:pt-8 lg:pt-6"}`}>
+      <div className={`relative z-10 flex flex-col ${centered ? "items-center" : alignClass} ${anchor === "top" ? "justify-start" : `${centered ? "lg:justify-center" : ""} justify-center`} min-h-screen px-5 sm:px-8 ${align === "center" ? "pb-[30vh] sm:pb-[26vh]" : "pb-10 sm:pb-8 lg:pb-6"} ${compactHeader ? "pt-[calc(var(--safe-area-top,0px)_+_10px)] sm:pt-10" : "pt-[calc(var(--safe-area-top,0px)_+_24px)] sm:pt-8 lg:pt-6"}`}>
         {/* Brand mark hero — desktop-only. Sits as a sibling INSIDE the
             same vertically-centered flex column as the form so hero +
             form read as one composed unit centered on the viewport
@@ -158,7 +192,11 @@ const AuthShell = ({
               <HelprMark to={null} size="md" emblemOnly />
             </div>
           ) : (
-            !hideBack && align !== "center" && (
+            // `!title`: when a title is set the canonical row below owns the
+            // chevron, so this standalone one would render a SECOND back
+            // arrow stacked above it — the exact duplicated-chrome defect the
+            // row exists to remove.
+            !hideBack && !title && align !== "center" && (
               // Hide the in-flow back button at lg+ when a brand pane is
               // rendered — the pinned top-left back button covers desktop.
               // `backInCard` overlays it in the card's top-left corner (see the
@@ -173,6 +211,28 @@ const AuthShell = ({
                 {backLink}
               </div>
             )
+          )}
+
+          {/* THE canonical [back] [title] row. Chevron in a shrink-0 wrapper
+              as the FIRST child, heading to its RIGHT on the SAME row in a
+              flex-1 min-w-0 column, so the arrow reads as a lead-in to the
+              words rather than floating above an untitled card
+              (CLAUDE.md / PageHeader.tsx). Rendered ABOVE the card: the row is
+              page-level chrome, not a control belonging to the glass.
+
+              `hideBack` yields the title alone — AccountBanned / AccountDenied
+              / AccountPending / PaymentSuccess / CompleteProfile deliberately
+              offer no way back, and a chevron there would be a dead end. */}
+          {title && (
+            <div className="flex items-center gap-2 mb-4">
+              {!hideBack && <div className="shrink-0">{backLink}</div>}
+              <h1
+                className="flex-1 min-w-0 font-display italic font-bold text-ds-24 leading-tight"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+              >
+                {title}
+              </h1>
+            </div>
           )}
 
           {showFullHeader && (

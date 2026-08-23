@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { Loader2, Check, X } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
-import HelprMark from "@/components/HelprMark";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { friendlyAuthError } from "@/lib/authErrors";
 import { passwordStrength } from "./signup/signupHelpers";
@@ -99,22 +98,16 @@ const ResetPassword = () => {
   };
 
   return (
-    <AuthShell hideHeader maxWidth="sm" backTo="/login" desktopBrandPanel={<AuthBrandPane />}>
+    <AuthShell hideHeader maxWidth="sm" backTo="/login" title="Choose a new one." desktopBrandPanel={<AuthBrandPane />}>
+      {/* Heading + emblem removed. The heading is now AuthShell's `title` row
+          (left of the chevron, ds-24) like every other auth screen — this one
+          rendered it centred at clamp(1.85rem,3vw+0.5rem,2.5rem), a third
+          distinct auth title size alongside Login's ds-24 and
+          ForgotPassword/SignupPending's clamp(1.6rem…2.1rem). The mobile
+          emblem went with it for the reason Login dropped its own: it stacked
+          a third band of vertical space above a heading that was already above
+          the card. */}
       <div className="text-center mb-8 space-y-2">
-        {/* Redundant on desktop — AuthBrandPane hero already shows H. */}
-        <div className="flex justify-center mb-3 lg:hidden">
-          <HelprMark to={null} size="md" emblemOnly />
-        </div>
-        <h1
-          className="font-display italic font-bold leading-tight"
-          style={{
-            fontSize: "clamp(1.85rem, 3vw + 0.5rem, 2.5rem)",
-            color: "hsl(var(--ink-deep))",
-            letterSpacing: "-0.03em",
-          }}
-        >
-          Choose a new one.
-        </h1>
         <p
           className="font-sans text-ds-15"
           style={{

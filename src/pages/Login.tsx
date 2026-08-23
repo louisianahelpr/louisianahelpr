@@ -12,7 +12,6 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import AuthShell from "@/components/auth/AuthShell";
-import BackButton from "@/components/BackButton";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { queryKeys } from "@/lib/queryKeys";
 import { friendlyAuthError } from "@/lib/authErrors";
@@ -253,53 +252,26 @@ const Login = () => {
   };
 
   return (
-    <AuthShell hideHeader centerColumn hideBack maxWidth="2xl">
-      {/* [back] [Sign in | Create account] on ONE row above the card.
-          The tabs are navigation between the two auth cards, not a control
-          belonging to either, and the back arrow is page-level chrome for the
-          same reason — so both live outside the glass.
+    <AuthShell hideHeader centerColumn backTo="/" maxWidth="2xl" title="Sign in">
+      {/* The [back] [Sign in] row now comes from AuthShell's `title` prop —
+          it was hand-rolled here, then hand-copied (and drifted) into
+          ForgotPassword, Signup and SignupPending. One implementation, in the
+          shell, so all ten auth screens carry the identical row.
 
-          The arrow used to sit inside the card on its own row beside a "Sign
-          in" heading. With that heading now `sr-only` (the tab says it), a
-          lone arrow in the card left an empty band above the email field with
-          nothing to anchor it. Out here it anchors the tab row instead.
-
-          The tabs replace the "New to Helpr? Sign up" link that used to sit at
-          the very bottom of the card — below the password field, the CTA, the
-          divider and the social buttons. */}
-      <div className="flex items-center gap-2 mb-4">
-        {/* to="/" — NOT bare history-back. Without an explicit target
-            BackButton falls through to history.back(), so arriving at /login
-            FROM /forgot-password made Back bounce you straight back into
-            password reset. Sign-in is a top-level destination reached from all
-            over; it needs one predictable parent. */}
-        <div className="shrink-0"><BackButton to="/" /></div>
-        {/* Title to the RIGHT of the chevron on the SAME row — the canonical
-            PageHeader pattern (see CLAUDE.md), so the arrow reads as a lead-in
-            to the heading instead of floating above an untitled card. */}
-        <h1
-          className="flex-1 min-w-0 font-display italic font-bold text-ds-24 leading-tight"
-          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-        >
-          Sign in
-        </h1>
-      </div>
+          `backTo="/"` — NOT bare history-back. Without an explicit target
+          BackButton falls through to history.back(), so arriving at /login
+          FROM /forgot-password made Back bounce you straight back into
+          password reset. Sign-in is a top-level destination reached from all
+          over; it needs one predictable parent. */}
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6 lg:space-y-6">
-        {/* Heading lives INSIDE the card, and the H emblem is gone entirely.
-            Previously the emblem stacked above a heading that sat above the
-            card — three separate bands of vertical space before a user reached
-            the email field, which is what left the form floating in the middle
-            of a tall window with dead bands top and bottom. Folding the
-            heading in makes the card the whole composition, so it fills the
-            column properly. The mark still appears in the top-left back-nav
-            and throughout the app; an auth screen does not need to re-announce
-            the brand three times. */}
-        {/* `sr-only`: the "Sign in" tab directly above the card already names
-            this screen, and printing the same two words again a hundred pixels
-            below it was the page saying one thing twice. The heading is
-            HIDDEN, not removed — the screen still needs exactly one h1, and
-            the tab row is navigation, not a heading. The back arrow moved up
-            beside those tabs. */}
+        {/* No heading inside the card. The H emblem and the in-card heading
+            are both gone: the emblem used to stack above a heading that sat
+            above the card — three separate bands of vertical space before the
+            user reached the email field. The single visible h1 is the one
+            AuthShell renders in its `title` row above the card, so the card
+            itself starts at the first input. The mark still appears in the
+            back-nav and throughout the app; an auth screen does not need to
+            re-announce the brand three times. */}
         {mfaChallenge ? (
           <div className="space-y-5">
             <div className="flex flex-col items-center text-center gap-2">
@@ -394,14 +366,6 @@ const Login = () => {
             </div>
           </div>
           <div className="space-y-2">
-            {/* "Forgot password?" sits on the Password label row — the
-                conventional place people look for it, and adjacent to the field
-                they just failed to fill. It was previously a tiny ds-11 line
-                stranded BELOW the field and ABOVE the primary CTA, which both
-                buried the recovery path for the one user who most needs it (the
-                locked-out one) and pushed the CTA down. Styled as the page's
-                canonical actionable link (`font-semibold` + bark), matching
-                "Create a personal account" below rather than a one-off. */}
             <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
             <div className="relative">
               <Lock
@@ -433,24 +397,22 @@ const Login = () => {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            {/* Recovery link, under the field it belongs to.
-            
-                It previously sat on the label row, opposite "Password". That
-                placement was chosen because an earlier version stranded it
-                between the field and the Sign in button, which pushed the CTA
-                down — a real cost, and the reason it moved. But a label row is
-                for naming the field, not for actions, and at 111x17 the link
-                was also well under the 44px touch target the rest of the app
-                holds to.
-            
-                Under the field, right-aligned, it reads as "what to do if this
-                didn't work" — and the min-height gives it a real target
-                without adding a full row of height, because the 44px box
-                overlaps the existing gap above the button. */}
-            <div className="flex justify-end -mb-1">
+            {/* Recovery link, under the field it belongs to and above the CTA.
+
+                The gaps are controlled on the LINK (`-my-2`), not on this
+                wrapper's top margin. That distinction is the whole fix: the
+                wrapper is a `space-y-2` sibling, and `.space-y-2 > * ~ *`
+                outranks `.-mt-*` on specificity, so every negative top margin
+                put here was silently discarded — which is why the link sat in
+                ~27pt above / ~32pt below, the two largest gaps in the card.
+                Shrinking the 44px box from the inside works because nothing
+                competes for the link's own margins, and `-mb-4` on the wrapper
+                collapses against the card's `space-y-6` to bring the button up.
+                Touch target stays 44px; only the whitespace around it moves. */}
+            <div className="flex justify-end -mb-4">
               <Link
                 to="/forgot-password"
-                className="min-h-[44px] inline-flex items-center text-ds-12 font-sans font-semibold hover:underline active:opacity-60 transition-opacity"
+                className="min-h-[44px] -my-2 inline-flex items-center text-ds-12 font-sans font-semibold hover:underline active:opacity-60 transition-opacity"
                 style={{ color: "hsl(var(--bark))" }}
               >
                 Forgot password?

@@ -15,7 +15,21 @@ interface JobStatTilesProps {
 /* Stat strip — sits ABOVE the payout pill so the helpr scans the
    facts (where, when, how long, deadline) before they see the
    payout. Where + Date are clickable: Where opens Google Maps,
-   Date opens Google Calendar. */
+   Date opens Google Calendar.
+
+   WHERE / DATE / TIME render as ONE compact row, not three tiles
+   (owner decision 2026-08-22). As tiles those three short values —
+   "Lake Charles", "Sat, Sep 19", "8:30 AM" — cost ~250pt of an 874pt
+   phone screen for about twelve characters each, pushing the payout
+   and the CTA off the first read. They are also exactly the triplet
+   the feed card already prints on one line, so the tile treatment made
+   the detail view LESS scannable than the card it came from.
+
+   Estimated / Closes keep the tile treatment: both are optional, both
+   carry an urgency state (Closes pulses under 24h), and neither
+   appears on the feed card, so they are new information that earns the
+   space. The row stays >=44pt tall so Where/Date remain HIG-legal tap
+   targets. */
 export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStatTilesProps) => {
   // auto-rows-fr + the last-child span keeps the final tile from sitting as a
   // lone full-width slab. With an ODD tile count (5 here: Where, Date, Time,
@@ -24,7 +38,7 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
   // happening by accident, and auto-rows-fr keeps every row the same height so
   // the block reads as one unit.
   return (
-    <div className="grid grid-cols-2 auto-rows-fr gap-2 [&>*:last-child:nth-child(odd)]:col-span-2">
+    <div className="flex flex-col gap-2">
       {(() => {
         const dateNeeded = parseLocalDate(job.date_needed);
         const dateValid = !isNaN(dateNeeded.getTime());
@@ -110,11 +124,76 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
               }]
             : []),
         ];
-        return tiles.map(({ Icon, label, value, sub, href, urgent }, index) => {
+        // First three entries (Where, Date, Time) are the compact row; the
+        // optional Estimated / Closes entries stay as tiles below it.
+        const rowItems = tiles.filter((t) => ["Where", "Date", "Time"].includes(t.label));
+        const tileItems = tiles.filter((t) => !["Where", "Date", "Time"].includes(t.label));
+
+        const compactRow = (
+          <div
+            key="compact-meta"
+            className="flex items-stretch rounded-ds-md overflow-hidden min-h-[44px]"
+            style={{
+              backgroundColor: "var(--glass-bg-soft)",
+              backdropFilter: "blur(18px) saturate(160%)",
+              WebkitBackdropFilter: "blur(18px) saturate(160%)",
+              border: "0.5px solid var(--glass-border)",
+              boxShadow:
+                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 1px 2px hsl(var(--olivewood) / 0.05)",
+            }}
+          >
+            {rowItems.map(({ Icon, label, value, sub, href }, i) => {
+              const Wrapper: ElementType = href ? "a" : "div";
+              const wrapperProps: { href?: string; target?: string; rel?: string } = href
+                ? { href, target: "_blank", rel: "noopener noreferrer" }
+                : {};
+              return (
+                <Wrapper
+                  key={label}
+                  {...wrapperProps}
+                  aria-label={href ? `${label}: ${value}` : undefined}
+                  className={`flex-1 min-w-0 flex flex-col items-center justify-center px-1.5 py-2 ${
+                    i > 0 ? "border-l" : ""
+                  } ${href ? "glass-press cursor-pointer" : ""}`}
+                  style={i > 0 ? { borderLeftColor: "var(--glass-border)", borderLeftWidth: "0.5px" } : undefined}
+                >
+                  <span className="flex items-center gap-1 min-w-0 max-w-full">
+                    <Icon
+                      className="w-3.5 h-3.5 shrink-0"
+                      style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+                      aria-hidden
+                    />
+                    <span
+                      className="font-sans font-semibold text-ds-14 leading-tight tracking-tight truncate"
+                      style={{ color: "hsl(var(--ink-deep))" }}
+                    >
+                      {value}
+                    </span>
+                  </span>
+                  {sub && (
+                    <span
+                      className="font-serif italic text-ds-11 truncate max-w-full mt-0.5"
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                    >
+                      {sub}
+                    </span>
+                  )}
+                </Wrapper>
+              );
+            })}
+          </div>
+        );
+
+        const tileGrid = tileItems.length > 0 && (
+          <div
+            key="stat-tiles"
+            className="grid grid-cols-2 auto-rows-fr gap-2 [&>*:last-child:nth-child(odd)]:col-span-2"
+          >
+            {tileItems.map(({ Icon, label, value, sub, href, urgent }, index) => {
           // An odd tile count leaves the last tile alone in the 2-col
           // grid with an empty cell beside it — let it span the full
           // width instead so the strip reads as intentional.
-          const fillsRow = tiles.length % 2 === 1 && index === tiles.length - 1;
+          const fillsRow = tileItems.length % 2 === 1 && index === tileItems.length - 1;
           const Wrapper: ElementType = href ? "a" : "div";
           // Only the anchor branch carries href/target/rel; an empty object
           // for the div branch. Typed as the minimal shared shape so the
@@ -170,7 +249,16 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
               </div>
             </Wrapper>
           );
-        });
+            })}
+          </div>
+        );
+
+        return (
+          <>
+            {compactRow}
+            {tileGrid}
+          </>
+        );
       })()}
     </div>
   );

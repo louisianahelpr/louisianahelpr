@@ -1,9 +1,8 @@
-import { LogOut, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/NotificationPanel";
-import AdminBadgeToggle from "@/components/admin/AdminBadgeToggle";
+import { useSidebar } from "@/components/ui/sidebar";
 
 /**
  * The admin console's top bar — the SAME bar as the rest of the signed-in app.
@@ -25,55 +24,54 @@ import AdminBadgeToggle from "@/components/admin/AdminBadgeToggle";
  * `sticky`, not `fixed`: the console lays out as a sidebar + scrolling main,
  * and a fixed bar would sit over the sidebar rather than beside it.
  */
-const AdminTopBar = ({ onLogout }: { onLogout: () => void }) => (
-  <header
-    className="sticky top-0 z-40 glass-nav"
-    style={{
-      paddingTop: "var(--safe-area-top, 0px)",
-      // Blur only, no saturate() — copied from DesktopTopNav, where saturate
-      // on a backdrop filter amplified the colour of whatever scrolled beneath
-      // and read as a cast shifting under the bar.
-      backdropFilter: "blur(20px)",
-      WebkitBackdropFilter: "blur(20px)",
-    }}
-  >
-    <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
-      <div className="flex items-center gap-1.5 min-w-0">
-        {/* Explicit, always-visible exit back to the normal app. The logo
-            already linked to /dashboard but wasn't discoverable, so admins
-            felt stranded in the console (no way to home / post / messages /
-            profile short of logging out). This returns without signing out. */}
-        {/* `size="sm"` — dropping it took the Button's DEFAULT size, which is
-            `px-6 text-ds-16`, so this grew to 173px of oversized label sitting
-            next to a 32px emblem. The row's `[&_button]:h-11` only normalises
-            HEIGHT; the padding and type scale come from the size variant. */}
-        <Button asChild variant="ghost" size="sm" className="h-11 gap-1.5 btn-press shrink-0 -ml-2">
-          <Link to="/dashboard" aria-label="Back to the app">
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Back to App</span>
-          </Link>
-        </Button>
+const AdminTopBar = () => {
+  // The hamburger toggles the SAME shadcn sidebar this page already provides,
+  // so open/close state has one owner rather than a second copy living here.
+  const { toggleSidebar, state } = useSidebar();
+
+  return (
+    <header
+      className="sticky top-0 z-40 glass-nav"
+      style={{
+        paddingTop: "var(--safe-area-top, 0px)",
+        // Blur only, no saturate() — copied from DesktopTopNav, where saturate
+        // on a backdrop filter amplified the colour of whatever scrolled beneath
+        // and read as a cast shifting under the bar.
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+      }}
+    >
+      <div className="w-full flex h-14 items-center justify-between gap-2 px-5 lg:px-8 xl:px-12">
+        {/* EMBLEM LEFT, BELL + HAMBURGER RIGHT — the same shape as the signed-in
+            app's DesktopTopNav, because admin is the same product (owner,
+            after this bar was got wrong repeatedly).
+
+            What used to be here and is now gone: an "← Back to App" button, an
+            ADMIN badge toggle, and a sign-out button. Back to App and Sign Out
+            both already exist as rows at the BOTTOM OF THE SIDEBAR, so the bar
+            was a second copy of two controls that already had a home, next to a
+            badge that only restated the page you were already on. */}
         <HelprMark to="/dashboard" size="sm" emblemOnly />
+        {/* `[&_button]:h-11 [&_button]:w-11` — verbatim from DesktopTopNav. The
+            bell renders at the Button component's `size="icon"` default (h-14)
+            while its neighbours are h-11, so without this the hover and focus
+            outlines opened to different rectangles side by side. */}
+        <div className="flex items-center gap-1.5 -mr-1 [&_button]:h-11 [&_button]:w-11">
+          <NotificationPanel />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            aria-expanded={state === "expanded"}
+            aria-label={state === "expanded" ? "Close the admin menu" : "Open the admin menu"}
+            className="btn-press rounded-ds-md"
+          >
+            <Menu className="w-5 h-5" strokeWidth={2.25} />
+          </Button>
+        </div>
       </div>
-      {/* `[&_button]:h-11 [&_button]:w-11` — verbatim from DesktopTopNav. The
-          bell renders at the Button component's `size="icon"` default (h-14)
-          while its neighbours are h-11, so without this the hover and focus
-          outlines opened to different rectangles side by side. */}
-      <div className="flex items-center gap-1.5 -mr-1 [&_button]:h-11 [&_button]:w-11">
-        <AdminBadgeToggle />
-        <NotificationPanel />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onLogout}
-          className="hover:bg-destructive/10 hover:text-destructive btn-press rounded-ds-md"
-          aria-label="Sign out"
-        >
-          <LogOut className="w-4 h-4" />
-        </Button>
-      </div>
-    </div>
-  </header>
-);
+    </header>
+  );
+};
 
 export default AdminTopBar;

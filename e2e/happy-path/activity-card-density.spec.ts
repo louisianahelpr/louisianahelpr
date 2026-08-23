@@ -583,7 +583,23 @@ test.describe("My Posts — card density + header", () => {
          the four tabs sit above the cards on every surface (owner: "put the
          needs you etc at the top oiver the job card same for search and remove
          the filter since they will all be ther"), so what has to be true is
-         that the deep link SELECTS the right tab. */
+         that the deep link SELECTS the right tab.
+
+         The tabs then went BEHIND A CHEVRON next to search (owner: "add a
+         dropdown arrow next to search so these aren't always showing"). A
+         non-default `?filter=` is supposed to open that disclosure on its own,
+         precisely so a filtered screen never hides why it is filtered — but
+         `needs_you` IS the default, so that one arrives collapsed and has to be
+         opened here. Asserting the toggle's state first is what proves the
+         auto-open rule rather than silently papering over it. */
+      const toggle = page.getByRole("button", { name: /Filter by status|Hide status filters/ }).first();
+      const alreadyOpen = (await toggle.getAttribute("aria-expanded")) === "true";
+      expect(
+        alreadyOpen,
+        `filter=${filter}: a non-default filter must open the disclosure itself`,
+      ).toBe(filter !== "needs_you");
+      if (!alreadyOpen) await toggle.click();
+
       const tab = page.getByRole("group", { name: "Filter by status" }).getByRole("button", { name: new RegExp(`^${label}`) });
       await expect(tab, `filter=${filter} tab is present`).toBeVisible();
       await expect(tab, `filter=${filter} tab is selected`).toHaveAttribute("aria-pressed", "true");

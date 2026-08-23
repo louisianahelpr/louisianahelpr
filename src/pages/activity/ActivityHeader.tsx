@@ -154,38 +154,77 @@ export function ActivityHeader({
           drift apart on the geometry (44px floor, title block, trailing
           `gap-1` icon cluster) that makes them read as one screen family. */}
       {searchOpen ? (
-        /* Search mode — input replaces the title row inline (iOS pattern). */
+        /* Search mode — the field GROWS LEFTWARD out of the search button it
+           came from, and the title stays exactly as it was (owner: "search
+           should expand to the left if it's selected without coloring the
+           title"). It used to swap the whole row for the input, so the screen
+           you were on lost its name the moment you tapped search — the one
+           piece of context you need while typing into it.
+           `origin-right` + a width transition means the animation reads as the
+           button opening out, rather than a panel appearing from nowhere. */
         <ScreenHeaderRow title={title} titleSrOnly={titleSrOnly}>
-          <div className="relative flex-1">
+          {/* The screen keeps its NAME while you type into it. ScreenHeaderRow's
+              `children` branch renders the h1 sr-only, so this is a <span>, not
+              a second heading — the row still has exactly one h1.
+              `shrink-0` on the name and `flex-1 min-w-0` on the field is what
+              makes the field grow leftward INTO the empty middle of the row and
+              stop at the title, rather than over it. */}
+          {!titleSrOnly && (
+            <span
+              aria-hidden
+              className="font-display font-bold text-foreground text-ds-20 leading-none shrink-0 max-w-[40%] truncate"
+            >
+              {title}
+            </span>
+          )}
+          <div className="relative flex-1 min-w-0 origin-right motion-safe:animate-in motion-safe:slide-in-from-right-4 motion-safe:duration-200">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
               autoFocus
               type="search"
               aria-label="Search jobs"
-              placeholder="Search jobs…"
+              /* No placeholder (owner). The magnifier already says what the
+                 field is, and greyed placeholder text inside a field that only
+                 exists because you just tapped search is repeating it. */
+              placeholder=""
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+              className="w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
             />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
+            {/* The X lives INSIDE the field, on its right (owner). Always
+                present, not only once you have typed: it is the way OUT of
+                search, so hiding it until there is a query left an empty
+                search bar with no visible dismiss. Clears the query and closes
+                in one press — the two things "done searching" means. */}
+            <button
+              type="button"
+              onClick={() => { hapticLight(); setSearchQuery(""); setSearchOpen(false); }}
+              aria-label="Close search"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+            >
+              <X className="w-4 h-4" strokeWidth={2.25} />
+            </button>
           </div>
+          {/* An X, not the word "Cancel" (owner). It sits beside the status
+              chevron, which STAYS available while searching — the two filters
+              are independent, and making you leave search to change a status
+              filter you can see the results of is a needless round trip. */}
           <button
             type="button"
-            onClick={() => { hapticLight(); setSearchOpen(false); setSearchQuery(""); }}
-            className="shrink-0 text-ds-13 font-medium btn-press py-2"
-            style={{ color: "hsl(var(--bark))" }}
+            onClick={() => { hapticLight(); setTabsOpen((v) => !v); }}
+            aria-expanded={tabsOpen}
+            aria-controls={tabsOpen ? "activity-status-tabs" : undefined}
+            aria-label={tabsOpen ? "Hide status filters" : "Filter by status"}
+            className={`shrink-0 rounded-ds-md flex items-center justify-center btn-press transition hover:bg-secondary/60 h-11 w-11 ${
+              !isDefaultFilter ? "text-[hsl(var(--bark))]" : "text-muted-foreground hover:text-foreground"
+            }`}
           >
-            Cancel
+            <ChevronDown
+              className={`w-4 h-4 transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
+              strokeWidth={2.25}
+            />
           </button>
+
         </ScreenHeaderRow>
       ) : (
         /* Normal mode — title + action buttons. */
@@ -199,26 +238,15 @@ export function ActivityHeader({
              for there: "put 1 unread to the right of messages bc i dont like
              it under"). It is a <span>, never a heading — the row's h1 is the
              whole page's only one. */
-          meta={inlineFilters && tabsOpen ? statusTabs : undefined}
+          /* Same id as the phone row below. Only ONE of the two ever renders
+             (inlineFilters is exactly one of true/false), so the id stays
+             unique — and `aria-controls` on the chevron resolves on BOTH
+             surfaces. Without this the desktop chevron pointed at an id that
+             only existed in the phone branch, which axe flags
+             `aria-valid-attr-value` critical. */
+          meta={inlineFilters && tabsOpen ? <div id="activity-status-tabs">{statusTabs}</div> : undefined}
           actions={
             <>
-              <button
-                type="button"
-                onClick={() => { hapticLight(); setTabsOpen((v) => !v); }}
-                aria-expanded={tabsOpen}
-                aria-controls="activity-status-tabs"
-                aria-label={tabsOpen ? "Hide status filters" : "Filter by status"}
-                className={`rounded-ds-md flex items-center justify-center btn-press transition ${
-                  tabsOpen || !isDefaultFilter
-                    ? "text-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.12)]"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                } ${inlineFilters ? "h-7 w-7 !min-h-0 !min-w-0" : "h-11 w-11"}`}
-              >
-                <ChevronDown
-                  className={`${inlineFilters ? "w-3.5 h-3.5" : "w-4 h-4"} transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
-                  strokeWidth={2.25}
-                />
-              </button>
               <button
                 type="button"
                 onClick={() => { hapticLight(); setSearchOpen(true); }}
@@ -228,6 +256,32 @@ export function ActivityHeader({
                 }`}
               >
                 <Search className={inlineFilters ? "w-3.5 h-3.5" : "w-4 h-4"} />
+              </button>
+              <button
+                type="button"
+                onClick={() => { hapticLight(); setTabsOpen((v) => !v); }}
+                aria-expanded={tabsOpen}
+                /* Only while the panel EXISTS. The tabs unmount when
+                   collapsed, so emitting this unconditionally pointed at a
+                   missing id — axe flags it `aria-valid-attr-value` critical,
+                   and it is a real lie to a screen reader. */
+                aria-controls={tabsOpen ? "activity-status-tabs" : undefined}
+                aria-label={tabsOpen ? "Hide status filters" : "Filter by status"}
+                className={`rounded-ds-md flex items-center justify-center btn-press transition hover:bg-secondary/60 ${
+                  // No filled pill. The chevron's ROTATION already carries
+                  // open/closed, and a tinted box beside a plain search glyph
+                  // made two siblings read as different kinds of control. Ink
+                  // still darkens while a non-default filter is on, so an
+                  // active filter is never silent.
+                  !isDefaultFilter
+                    ? "text-[hsl(var(--bark))]"
+                    : "text-muted-foreground hover:text-foreground"
+                } ${inlineFilters ? "h-7 w-7 !min-h-0 !min-w-0" : "h-11 w-11"}`}
+              >
+                <ChevronDown
+                  className={`${inlineFilters ? "w-3.5 h-3.5" : "w-4 h-4"} transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
+                  strokeWidth={2.25}
+                />
               </button>
             </>
           }
@@ -239,7 +293,7 @@ export function ActivityHeader({
           search input has taken the row over — one control at a time. The
           horizontal scroller is insurance for a 320px screen; from 375 up the
           four labels fit without it. */}
-      {!inlineFilters && !searchOpen && tabsOpen && (
+      {!inlineFilters && tabsOpen && (
         <div id="activity-status-tabs" className="-mx-1 px-1 pb-0.5 overflow-x-auto scrollbar-hide">
           {statusTabs}
         </div>

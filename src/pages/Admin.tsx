@@ -16,7 +16,6 @@ import { channelNonce } from "@/lib/realtimeChannel";
 import { lazy, Suspense } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import AdminSidebar, { AdminNavItem } from "@/components/admin/AdminSidebar";
-import AdminParishActivity from "@/components/admin/AdminParishActivity";
 import AdminTopBar from "@/components/admin/AdminTopBar";
 import AdminSectionHeader from "@/components/admin/AdminSectionHeader";
 import { DashboardHome } from "@/components/admin/dashboard/DashboardHome";
@@ -43,7 +42,6 @@ const AdminHealth = lazy(() => import("@/components/admin/AdminHealth"));
 const AdminExport = lazy(() => import("@/components/admin/AdminExport"));
 
 const AdminPayoutBatches = lazy(() => import("@/components/admin/AdminPayoutBatches"));
-const AdminParishTaxRates = lazy(() => import("@/components/admin/AdminParishTaxRates"));
 const AdminHelperTiers = lazy(() => import("@/components/admin/AdminHelperTiers"));
 const AdminIDVQueue = lazy(() => import("@/components/admin/AdminIDVQueue"));
 const AdminNotificationLogs = lazy(() => import("@/components/admin/AdminNotificationLogs"));
@@ -53,7 +51,7 @@ const AdminBusinessVerificationQueue = lazy(() => import("@/components/admin/Adm
 const AdminBusinessAccounts = lazy(() => import("@/components/admin/AdminBusinessAccounts"));
 const AdminExceptionQueue = lazy(() => import("@/components/admin/AdminExceptionQueue"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials" | "business_verify" | "business_accounts" | "exceptions";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "idv" | "marketing" | "credentials" | "business_verify" | "business_accounts" | "exceptions";
 
 import { safeStorage } from "@/lib/safeStorage";
 
@@ -87,7 +85,6 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
           ] as AdminNavItem[])
         : []),
       { id: "jobs", label: "Jobs", icon: Briefcase },
-      { id: "geography", label: "Geography", icon: MapPin },
       { id: "fraud", label: "Fraud", icon: ShieldAlert },
       { id: "disputes", label: "Disputes", icon: ShieldAlert },
       { id: "reports", label: "Reports", icon: AlertTriangle },
@@ -100,7 +97,6 @@ const navGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "subscriptions", label: "Subscriptions", icon: Crown },
       { id: "referrals", label: "Referrals", icon: Gift },
       { id: "payouts", label: "Payout Batches", icon: Banknote },
-      { id: "parishtax", label: "Parish Tax", icon: MapPin },
       { id: "tiers", label: "Helpr Tiers", icon: Award },
     ],
   },
@@ -447,8 +443,8 @@ const Admin = () => {
     reports: "Reports", support: "Support",
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
     audit: "Audit Log", health: "Health", export: "Export",
-    payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helpr Tiers",
-    idv: "Identity Verify", geography: "Geography", marketing: "Marketing",
+    payouts: "Payout Batches", tiers: "Helpr Tiers",
+    idv: "Identity Verify", marketing: "Marketing",
     credentials: "License & Insurance",
     exceptions: "Exception Queue",
     // Unreachable while BUSINESS_ENABLED is false — the nav rows are not
@@ -477,7 +473,6 @@ const Admin = () => {
       case "health": return <AdminHealth />;
       case "export": return <AdminExport />;
       case "payouts": return <AdminPayoutBatches />;
-      case "parishtax": return <AdminParishTaxRates />;
       case "tiers": return <AdminHelperTiers />;
       case "idv": return <AdminIDVQueue />;
       case "credentials": return <AdminCredentialQueue />;
@@ -486,7 +481,6 @@ const Admin = () => {
         return BUSINESS_ENABLED ? <AdminBusinessVerificationQueue /> : null;
       case "business_accounts":
         return BUSINESS_ENABLED ? <AdminBusinessAccounts /> : null;
-      case "geography": return <AdminParishActivity />;
       case "marketing": return <AdminMarketing />;
       default: return (
         <DashboardHome
@@ -508,17 +502,8 @@ const Admin = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-premium-page">
-        <AdminSidebar
-          navGroups={navGroups}
-          activeView={view}
-          onSelect={handleViewChange}
-          getBadge={getBadge}
-          getBadgeColor={getBadgeColor}
-          onLogout={() => setShowLogoutDialog(true)}
-        />
-
         <div className="flex-1 flex flex-col min-w-0">
-          <AdminTopBar onLogout={() => setShowLogoutDialog(true)} />
+          <AdminTopBar />
 
           <main
             className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-[calc(2rem_+_var(--safe-area-bottom,0px))]"
@@ -531,6 +516,19 @@ const Admin = () => {
             </Suspense>
           </main>
         </div>
+
+        {/* AFTER the content in the DOM, because it is the RIGHT-hand rail now.
+            It keeps its own "Back to App" and "Sign Out" rows at the bottom —
+            those are the single home for both, which is what let the top bar
+            drop its duplicates. */}
+        <AdminSidebar
+          navGroups={navGroups}
+          activeView={view}
+          onSelect={handleViewChange}
+          getBadge={getBadge}
+          getBadgeColor={getBadgeColor}
+          onLogout={() => setShowLogoutDialog(true)}
+        />
 
         {/* ONE verb: "sign out". The app says Sign Out on nine screens
             (Profile settings, Security, Account Pending/Denied/Banned,

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -15,7 +15,6 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 // read as a band of chrome rather than a card.
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
 import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
-import DashboardInProgressBadge from "@/components/dashboard/DashboardInProgressBadge";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
@@ -214,7 +213,7 @@ const Dashboard = () => {
   const userParish = profile?.parish ?? null;
 
   const {
-    pifCount, upcomingJob,
+    pifCount,
     savedJobIds, setSavedJobIds, dismissedJobIds, setDismissedJobIds,
   } = useDashboardSideQueries({ userId: user?.id, userParish, allJobs });
 
@@ -265,10 +264,10 @@ const Dashboard = () => {
   // node identity. As a bare inline element this was a NEW object every render,
   // so the effect re-fired, setState ran, and the component re-rendered —
   // "Maximum update depth exceeded", an infinite loop on Home.
-  const statusPill = useMemo(
-    () => <DashboardInProgressBadge job={upcomingJob} onView={(to) => navigate(to)} />,
-    [upcomingJob, navigate],
-  );
+  // The in-progress pill is no longer rendered in the brand row (owner:
+  // "remove"). That row is logo, filter, notification. The job it pointed at is
+  // still one tap away via the Jobs tab, and DashboardInProgressBadge itself
+  // stays — ScheduleTab imports `inProgressBadgeTarget` from it.
 
 
   if (loading) {
@@ -290,7 +289,6 @@ const Dashboard = () => {
         // the "Full-bleed top header" CSS rule never fires), stacking on top
         // of the title card's own emblem+bell instead of replacing them.
         titleCard={<DashboardTitleBar
-            status={statusPill}
             actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
           />}
@@ -366,7 +364,6 @@ const Dashboard = () => {
       titleCard={
         isWebDesktop ? undefined : (
           <DashboardTitleBar
-            status={statusPill}
             actions={
               <BrowseTasksActions
                 filters={filters}

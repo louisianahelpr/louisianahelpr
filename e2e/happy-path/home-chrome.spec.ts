@@ -45,9 +45,15 @@ mkdirSync(SHOT_DIR, { recursive: true });
 // /dashboard).
 
 /** The feed's header-row action icons, in row order. Accessible names, not
- *  classes. Two, not four — see the note above. */
+ *  classes.
+ *
+ *  ONE, not two. The phone brand row is emblem + filter + bell now (owner:
+ *  "phone view and ios should just be logo filter and notification, everything
+ *  else there somehow folds into filter"). Search joined the sheet alongside
+ *  the map toggle and saved searches — it had to, because the row physically
+ *  did not fit: measured at 375 the cluster wanted 386px against a card edge at
+ *  334, and the overflow was silently eating the emblem and then the bell. */
 const ACTION_ICON_NAMES = [
-  /^Search jobs$/,
   /^Filters/,
 ];
 
@@ -138,7 +144,8 @@ async function gotoBrowseSurface(
   // The <h1> is the durable signal: DashboardGuest renders a skeleton with no
   // heading until its session check resolves, and the title card after.
   await Promise.race([
-    page.getByRole("button", { name: /^Search jobs$/ }).waitFor({ timeout: 20_000 }),
+    // Filters, not Search — Search is inside the sheet now.
+    page.getByRole("button", { name: /^Filters/ }).waitFor({ timeout: 20_000 }),
     page.getByRole("heading", { level: 1 }).waitFor({ timeout: 20_000 }),
   ]);
   await settleAnimations(page);
@@ -181,23 +188,15 @@ for (const variant of [
     await expect(bell).toBeVisible();
     const bellBox = (await bell.boundingBox())!;
 
-    if (!isDesktopWeb) {
-      const pill = page.getByRole("button", { name: /^In progress: / });
-      await expect(pill).toBeVisible();
-      const pillBox = (await pill.boundingBox())!;
-      expect(pillBox.height, "pill tap target").toBeGreaterThanOrEqual(44);
-      // Same row, and the pill ends before the bell begins — no overlap.
-      expect(Math.abs(
-        (pillBox.y + pillBox.height / 2) - (bellBox.y + bellBox.height / 2),
-      ), "pill/bell vertical centres").toBeLessThan(4);
-      expect(pillBox.x + pillBox.width, "pill right edge vs bell left edge")
-        .toBeLessThanOrEqual(bellBox.x);
-    } else {
-      await expect(
-        page.getByRole("button", { name: /^In progress: / }),
-        "the desktop app bar carries no in-progress pill",
-      ).toHaveCount(0);
-    }
+    // THE PILL IS GONE, on every width (owner, pointing at it: "remove").
+    // The brand row is emblem + filter + bell and nothing else; the job the
+    // pill pointed at is still reachable from the Jobs tab, which carries its
+    // own count. Asserted as absent rather than deleted so putting it back is a
+    // deliberate act that trips this test, not a silent reappearance.
+    await expect(
+      page.getByRole("button", { name: /^In progress: / }),
+      "the brand row carries no in-progress pill on any width",
+    ).toHaveCount(0);
 
     // --- the two action icons now live IN row 1, left of the bell -------
     // This spec used to assert the opposite (icons in a SECOND row below the
@@ -231,6 +230,16 @@ for (const variant of [
         .toBeLessThanOrEqual(bellBox.x + 1);
     }
     // ...and the two that moved into the sheet are not back in the row.
+    // PHONE ONLY. Search folded into the filter sheet because the phone brand
+    // row could not fit it (emblem + filter + bell is the whole row now);
+    // desktop web renders the cluster in the in-panel toolbar, which has the
+    // width, so Search is still an icon there.
+    if (!isDesktopWeb) {
+      await expect(
+        page.getByRole("button", { name: /^Search jobs$/ }),
+        "Search belongs in the filter sheet on phone, not the brand row",
+      ).toHaveCount(0);
+    }
     for (const name of MOVED_OUT_OF_ROW) {
       await expect(
         page.getByRole("button", { name }),
@@ -241,8 +250,10 @@ for (const variant of [
     // The header row is the SAME height My Posts' header row is — one row of
     // chrome, not a band. Both are the shared <ScreenHeaderRow>, floored at
     // 44px by its own minHeight and by the HIG button rule.
+    // Was Search vs Filters; Search moved into the sheet, so the surviving
+    // icon is compared against itself for the 44px floor below.
     const searchBox = (await page
-      .getByRole("button", { name: /^Search jobs$/ })
+      .getByRole("button", { name: /^Filters/ })
       .first()
       .boundingBox())!;
     const filtersBox = (await page
@@ -270,60 +281,12 @@ for (const variant of [
   });
 }
 
-test("the pill is a shortcut — 'In progress' opens that job", async ({
-  context,
-  page,
-  baseURL,
-}) => {
-  await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");
-  await installSupabaseMocks(page, {
-    user: FAKE_HELPER,
-    seed: true,
-    rules: [upcomingJobRule("in_progress")],
-  });
-  await gotoHome(page, { width: 375, height: 812, theme: "light" });
-
-  const pill = page.getByRole("button", { name: /^In progress: Mow and edge a corner lot\./ });
-  await expect(pill).toBeVisible();
-  // The accessible name must say where it goes, not just what it is.
-  await expect(pill).toHaveAttribute("aria-label", /open this job in My Jobs/);
-
-  await pill.click();
-  await page.waitForURL(/\/my-jobs\?filter=in_progress/, { timeout: 10_000 });
-  expect(new URL(page.url()).pathname).toBe("/my-jobs");
-  expect(new URL(page.url()).searchParams.get("filter")).toBe("in_progress");
-});
-
-test("the pill is a shortcut — 'Upcoming' opens the active list", async ({
-  context,
-  page,
-  baseURL,
-}) => {
-  await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");
-  await installSupabaseMocks(page, {
-    user: FAKE_HELPER,
-    seed: true,
-    rules: [upcomingJobRule("accepted")],
-  });
-  await gotoHome(page, { width: 375, height: 812, theme: "light" });
-
-  const pill = page.getByRole("button", { name: /^Upcoming: Mow and edge a corner lot\./ });
-  await expect(pill).toBeVisible();
-  await expect(pill).toHaveAttribute("aria-label", /open your active jobs/);
-
-  await pill.click();
-  // Activity's applied tab defaults to the "active" bucket and strips the
-  // param when it matches that default, so the settled URL is bare /my-jobs
-  // showing the active list — NOT /my-posts, which is where the old
-  // /activity redirect used to dump this.
-  await page.waitForURL(/\/my-jobs/, { timeout: 10_000 });
-  expect(new URL(page.url()).pathname).toBe("/my-jobs");
-  const filter = new URL(page.url()).searchParams.get("filter");
-  expect(filter === null || filter === "active").toBe(true);
-});
-
-// The point of the move: neither control was dropped. Both are one tap
-// further in, LABELLED, inside the sheet the sliders icon opens.
+/* REMOVED: the two "the pill is a shortcut" tests.
+   They drove the in-progress pill into /my-jobs?filter=in_progress and
+   ?filter=active. The pill is no longer rendered anywhere (owner: "remove"),
+   so they were asserting a control that does not exist. The deep links they
+   protected are still real and still exported as `inProgressBadgeTarget`,
+   which ScheduleTab uses — if the pill ever returns, these come back with it. */
 test("the moved controls live in the filter sheet", async ({ context, page, baseURL }) => {
   await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");
   await installSupabaseMocks(page, { user: FAKE_HELPER, seed: true });

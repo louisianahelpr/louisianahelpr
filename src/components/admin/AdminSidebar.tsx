@@ -3,7 +3,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Shield, Home, LogOut, Pin, PinOff } from "lucide-react";
+import { Shield, Home, LogOut, Pin, PinOff, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -151,7 +151,13 @@ const AdminSidebar = ({
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+    // RIGHT-HAND rail, matching every other signed-in page (owner: "move the
+    // side bar to the right like the other pages and put a hamburger to open
+    // and close it"). `offcanvas` rather than `icon` so the hamburger actually
+    // opens and CLOSES it — the icon variant only ever narrows to a strip,
+    // which is not what closing means. Border flips to the left edge, since
+    // that is the side now facing the content.
+    <Sidebar side="right" collapsible="offcanvas" className="border-l border-sidebar-border">
       {/* `min-h-14` + the safe-area inset, not a fixed `h-14`. As a mobile
           sheet this header starts at y=0, so on a notched device "Helpr Admin"
           rendered UNDERNEATH the Dynamic Island and collided with the status-bar
@@ -261,6 +267,28 @@ const AdminSidebar = ({
             <Home className="w-4 h-4" />
             {!collapsed && <span>Back to App</span>}
           </Link>
+        </Button>
+        {/* Stripe is where the money actually lives (owner). Payouts, refunds
+            and tax are settled there, and several admin figures on this side
+            are derived rather than read from it — so the fastest honest answer
+            to "what really moved" is a direct door to the dashboard.
+            External, so it opens in a new tab and says so; `noreferrer` because
+            this is an authenticated console. */}
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className={cn("justify-start gap-2", collapsed && "justify-center px-0")}
+        >
+          <a
+            href="https://dashboard.stripe.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open the Stripe dashboard in a new tab"
+          >
+            <ExternalLink className="w-4 h-4" />
+            {!collapsed && <span>Stripe Dashboard</span>}
+          </a>
         </Button>
         <Button
           variant="ghost"

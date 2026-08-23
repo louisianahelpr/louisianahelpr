@@ -185,7 +185,7 @@ export function SavedHelperCard({
           className="flex-1 rounded-ds-md"
         >
           <Send className="w-3.5 h-3.5 mr-1.5" />
-          Offer a job
+          Offer a Job
         </Button>
         <Button
           size="sm"
@@ -230,7 +230,7 @@ export function SavedHelperCard({
               looked like two different controls down a list. State is
               carried by aria-pressed and the colour shift. */}
           <Users className="w-3 h-3" />
-          Share with team
+          Share with Team
         </button>
       )}
     </div>

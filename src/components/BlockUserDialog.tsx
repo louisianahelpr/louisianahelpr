@@ -196,7 +196,7 @@ export function BlockUserDialog({
                 Blocking…
               </>
             ) : (
-              "Just block"
+              "Just Block"
             )}
           </AlertDialogAction>
           {onReportAndBlock && (
@@ -225,7 +225,7 @@ export function BlockUserDialog({
                   Working…
                 </>
               ) : (
-                "Block and report"
+                "Block and Report"
               )}
             </AlertDialogAction>
           )}

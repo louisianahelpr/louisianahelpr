@@ -214,7 +214,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
               disabled={submitting}
               className="text-[hsl(var(--olivewood)/0.8)]"
             >
-              Maybe later
+              Maybe Later
             </Button>
             <Button
               variant="primary"

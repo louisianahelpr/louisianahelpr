@@ -130,7 +130,7 @@ const ResetPassword = () => {
             </p>
             <Link to="/forgot-password">
               <Button variant="outline" className="w-full rounded-ds-md">
-                {linkError ? "Request a new reset link" : "Go to forgot password"}
+                {linkError ? "Request a New Reset Link" : "Go to Forgot Password"}
               </Button>
             </Link>
           </div>
@@ -239,7 +239,7 @@ const ResetPassword = () => {
               size="lg"
               disabled={loading}
             >
-              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Updating…</> : "Update password"}
+              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Updating…</> : "Update Password"}
             </Button>
           </form>
         )}

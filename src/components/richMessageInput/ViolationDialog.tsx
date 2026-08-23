@@ -26,9 +26,9 @@ export const ViolationDialog = ({
           title="This Violates Platform Rules"
         />
         <AlertDialogFooter>
-          <AlertDialogCancel>Edit message</AlertDialogCancel>
+          <AlertDialogCancel>Edit Message</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            Send anyway
+            Send Anyway
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

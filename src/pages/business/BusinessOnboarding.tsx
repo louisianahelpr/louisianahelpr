@@ -139,7 +139,7 @@ const BusinessOnboarding = () => {
                   onClick={() => setState((s) => ({ ...s, paymentMethod: m }))}
                   className={`p-4 rounded-ds-md border text-left ${state.paymentMethod === m ? "border-primary bg-primary/5" : "border-border bg-card"}`}
                 >
-                  <p className="font-semibold capitalize">{m === "card" ? "Card on file" : "Invoice (Net-30)"}</p>
+                  <p className="font-semibold capitalize">{m === "card" ? "Card on File" : "Invoice (Net-30)"}</p>
                   <p className="text-ds-11 text-muted-foreground mt-1">
                     {m === "card" ? "Charge a card at job post time." : "Bill monthly with 30-day terms."}
                   </p>

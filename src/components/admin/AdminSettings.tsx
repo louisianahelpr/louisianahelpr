@@ -346,7 +346,7 @@ const AdminSettings = () => {
           </div>
         </div>
         <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Saving…" : "Save fee settings"}
+          {saving ? "Saving…" : "Save Fee Settings"}
         </Button>
       </div>
 
@@ -372,7 +372,7 @@ const AdminSettings = () => {
           </p>
         </div>
         <Button onClick={handleSaveWebhook} disabled={savingWebhook}>
-          {savingWebhook ? "Saving…" : "Save webhook URL"}
+          {savingWebhook ? "Saving…" : "Save Webhook URL"}
         </Button>
       </div>
 

@@ -326,7 +326,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
               boxShadow: canSubmit ? "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)" : undefined,
             }}
           >
-            {submitting ? "Submitting…" : allRated ? "Submit review" : "Post review"}
+            {submitting ? "Submitting…" : allRated ? "Submit Review" : "Post Review"}
           </Button>
           {/* A non-destructive escape hatch. "Cancel" reads as "discard",
               which is wrong here — the review isn't lost, it can still be
@@ -364,14 +364,14 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
               onClick={() => { setTipPromptOpen(false); onClose(); }}
               className="rounded-ds-md"
             >
-              No thanks
+              No Thanks
             </Button>
             <Button
               variant="primary"
               onClick={() => { setTipPromptOpen(false); setTipDialogOpen(true); }}
               className="rounded-ds-md"
             >
-              Send a tip
+              Send a Tip
             </Button>
           </DialogFooter>
         </DialogContent>

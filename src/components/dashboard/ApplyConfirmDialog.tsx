@@ -210,7 +210,7 @@ export function ApplyConfirmDialog({
         <div className="min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain !text-left space-y-0">
           <AlertDialogHero
             eyebrow={isInstantBook ? "You're booking" : "You're applying"}
-            title={confirmApplyJob ? `"${confirmApplyJob.title}"` : isInstantBook ? "Book this job" : "Apply for this job"}
+            title={confirmApplyJob ? `"${confirmApplyJob.title}"` : isInstantBook ? "Book This Job" : "Apply for This Job"}
           />
           {/* Restored into the body after the app-wide "one main title" sweep
               stripped `subtitle` from every hero. Everywhere else that copy was
@@ -326,7 +326,7 @@ export function ApplyConfirmDialog({
                   style={{ color: "hsl(var(--sage))" }}
                 >
                   <BookmarkCheck className="w-3.5 h-3.5" />
-                  Use saved pitch
+                  Use Saved Pitch
                 </button>
               );
             })()}
@@ -432,7 +432,7 @@ export function ApplyConfirmDialog({
                   aria-expanded
                 >
                   <ChevronDown className="w-3.5 h-3.5 rotate-180" strokeWidth={2.25} aria-hidden />
-                  <span>Hide attachments</span>
+                  <span>Hide Attachments</span>
                 </button>
               )}
 
@@ -563,7 +563,7 @@ export function ApplyConfirmDialog({
           >
             {applyLoading
               ? isInstantBook ? "Booking…" : "Applying…"
-              : !online ? "Try again" : isInstantBook ? "Book now" : "Apply now"}
+              : !online ? "Try Again" : isInstantBook ? "Book Now" : "Apply Now"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -168,7 +168,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             className="rounded-ds-md"
           >
             <Rocket className="w-4 h-4 mr-1.5" />
-            {boosting ? "Boosting…" : isSubscriber ? "Boost — included" : `Boost for ${BOOST_PRICE}`}
+            {boosting ? "Boosting…" : isSubscriber ? "Boost — Included" : `Boost for ${BOOST_PRICE}`}
           </Button>
         </DialogFooter>
       </DialogContent>

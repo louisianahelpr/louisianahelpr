@@ -22,7 +22,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        title={isPosted ? "Posted jobs" : "Completed jobs"}
+        title={isPosted ? "Posted Jobs" : "Completed Jobs"}
         onBack={onBack}
       />
       {jobs.length === 0 ? (
@@ -37,7 +37,7 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
           }
           action={
             isPosted ? (
-              <Button onClick={() => navigate("/post-job")}>Post your first job</Button>
+              <Button onClick={() => navigate("/post-job")}>Post Your First Job</Button>
             ) : undefined
           }
         />

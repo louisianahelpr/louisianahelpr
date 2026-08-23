@@ -69,7 +69,7 @@ export function YourHelpersRow() {
           className="text-ds-10 font-sans font-semibold active:opacity-60 transition-opacity"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          See all
+          See All
         </button>
       </div>
       <div className="flex gap-3.5 overflow-x-auto no-scrollbar -mx-4 px-4">

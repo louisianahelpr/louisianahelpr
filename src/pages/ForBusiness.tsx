@@ -475,7 +475,7 @@ const TierComparison = () => {
             letterSpacing: "-0.005em",
           }}
         >
-          {showCompare ? "Hide comparison" : "Compare all features"}
+          {showCompare ? "Hide Comparison" : "Compare All Features"}
           <ChevronDown
             className="w-4 h-4 transition-transform duration-200"
             strokeWidth={2}
@@ -1141,7 +1141,7 @@ const ClosingSection = () => (
         >
           <Link to="/signup">
             <Sparkles className="mr-2.5 w-5 h-5" strokeWidth={1.25} />
-            Start a business account
+            Start a Business Account
             <ArrowRight
               className="ml-2.5 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
               strokeWidth={1.25}

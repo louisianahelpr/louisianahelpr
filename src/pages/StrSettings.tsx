@@ -384,7 +384,7 @@ export default function StrSettings() {
         title={
           connToRemove
             ? `Remove ${connToRemove.property_name || "this calendar"}?`
-            : "Remove this calendar?"
+            : "Remove This Calendar?"
         }
         description="Helpr will stop syncing it and won't post any more cleaning jobs from it. Cleaning jobs already posted stay exactly as they are."
         callout={{

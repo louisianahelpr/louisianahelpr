@@ -161,7 +161,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
             className="rounded-ds-md"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            {chunkError ? "Reload" : "Try again"}
+            {chunkError ? "Reload" : "Try Again"}
           </Button>
           <Button
             variant="outline"
@@ -169,7 +169,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
             className="rounded-ds-md"
           >
             <Home className="h-4 w-4 mr-2" />
-            Go home
+            Go Home
           </Button>
         </div>
       </div>

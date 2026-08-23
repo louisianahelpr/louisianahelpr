@@ -396,7 +396,7 @@ const AdminDisputes = () => {
               }}
               className="text-ds-11 text-primary hover:underline px-2 self-center"
             >
-              Reset filters
+              Reset Filters
             </button>
           )}
         </div>
@@ -436,7 +436,7 @@ const AdminDisputes = () => {
       <BrandConfirmDialog
         open={!!confirm}
         onOpenChange={(open) => { if (!open) setConfirm(null); }}
-        title={confirm?.action === "release" ? "Release payment to Helpr?" : "Refund the customer?"}
+        title={confirm?.action === "release" ? "Release Payment to Helpr?" : "Refund the Customer?"}
         description={
           confirm?.action === "release"
             // formatPriceExact, not raw interpolation: this dialog states the

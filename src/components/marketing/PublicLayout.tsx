@@ -178,7 +178,7 @@ const PublicLayout = ({
                   className="group rounded-2xl px-8 w-full sm:w-auto"
                 >
                   <Link to="/dashboard">
-                    Open app
+                    Open App
                     <ArrowRight className="ml-1.5 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
                 </Button>
@@ -205,7 +205,7 @@ const PublicLayout = ({
                       color: "hsl(var(--ink-deep))",
                     }}
                   >
-                    <Link to="/#how-it-works">How it works</Link>
+                    <Link to="/#how-it-works">How It Works</Link>
                   </Button>
                 </>
               )}

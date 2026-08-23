@@ -266,7 +266,7 @@ export function SettingsTab({ businessId, initial, isOwner }: SettingsTabProps) 
           ) : (
             <>
               <BellRing className="w-4 h-4 mr-1.5" />
-              Save budget alert
+              Save Budget Alert
             </>
           )}
         </Button>

@@ -223,7 +223,7 @@ export default function BusinessVerificationCard() {
               ) : (
                 <>
                   <Upload className="w-4 h-4 mr-2" />
-                  {data.verification_document_url ? "Replace document" : "Upload document"}
+                  {data.verification_document_url ? "Replace Document" : "Upload Document"}
                 </>
               )}
             </Button>

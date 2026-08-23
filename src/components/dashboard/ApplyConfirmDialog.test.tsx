@@ -79,7 +79,7 @@ describe("ApplyConfirmDialog", () => {
 
   it("shows a generic prompt when no job is resolved", () => {
     render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: null })} />);
-    expect(screen.getByText("Apply for this job")).toBeInTheDocument();
+    expect(screen.getByText("Apply for This Job")).toBeInTheDocument();
   });
 
   it("calls setApplyMessage as the pitch is typed", () => {
@@ -94,7 +94,7 @@ describe("ApplyConfirmDialog", () => {
   it("submits via handleApplyConfirm when Apply now is clicked", () => {
     const props = makeProps();
     render(<ApplyConfirmDialog {...props} />);
-    fireEvent.click(screen.getByRole("button", { name: "Apply now" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply Now" }));
     expect(props.handleApplyConfirm).toHaveBeenCalledTimes(1);
   });
 

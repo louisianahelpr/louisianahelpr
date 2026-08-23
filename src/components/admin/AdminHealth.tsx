@@ -160,7 +160,7 @@ const AdminHealth = () => {
                 toast({ title: "Test event sent", description: "Check Sentry in ~30 seconds." });
               }}
             >
-              Send test event
+              Send Test Event
             </Button>
             <Button
               variant="destructive"
@@ -172,7 +172,7 @@ const AdminHealth = () => {
                 toast({ title: "Throwing uncaught error", description: "Check Sentry in ~30 seconds." });
               }}
             >
-              Throw uncaught
+              Throw Uncaught
             </Button>
           </div>
         </div>
@@ -409,7 +409,7 @@ const AdminHealth = () => {
             {sendingTestPush ? (
               <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Sending…</>
             ) : (
-              <><Send className="w-3.5 h-3.5 mr-1.5" /> Send test push to me</>
+              <><Send className="w-3.5 h-3.5 mr-1.5" /> Send Test Push to Me</>
             )}
           </Button>
         </div>

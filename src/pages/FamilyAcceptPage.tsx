@@ -183,7 +183,7 @@ export default function FamilyAcceptPage() {
               {error}
             </p>
             <Button variant="outline" className="w-full mt-1" onClick={() => navigate("/")}>
-              Go home
+              Go Home
             </Button>
           </div>
         )}
@@ -205,7 +205,7 @@ export default function FamilyAcceptPage() {
               {caregiverName} can now help manage your jobs on Louisiana Helpr.
             </p>
             <Button className="w-full mt-1" onClick={() => navigate("/family")}>
-              View family dashboard
+              View Family Dashboard
             </Button>
           </div>
         )}
@@ -264,14 +264,14 @@ export default function FamilyAcceptPage() {
                   className="w-full h-12"
                   onClick={() => navigate(`/login?redirect=/family/accept/${token}`)}
                 >
-                  Sign in to accept
+                  Sign in to Accept
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full h-12"
                   onClick={() => navigate(`/signup?redirect=/family/accept/${token}`)}
                 >
-                  Create an account
+                  Create an Account
                 </Button>
               </div>
             ) : (

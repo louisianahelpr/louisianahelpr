@@ -147,7 +147,7 @@ export function DeclineApplicantSheet({
                     color: "hsl(var(--parchment))",
                   }}
                 >
-                  {declineSending ? "Declining…" : "Confirm decline"}
+                  {declineSending ? "Declining…" : "Confirm Decline"}
                 </Button>
               </div>
             </div>

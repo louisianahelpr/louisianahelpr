@@ -205,7 +205,7 @@ const DesktopSidebarNav = () => {
             }}
           >
             <Plus className="h-5 w-5" strokeWidth={2.5} />
-            Post a job
+            Post a Job
           </button>
         </div>
       )}

@@ -341,7 +341,7 @@ export function BrowseTasksFeed({
                     className="rounded-ds-md font-sans font-medium"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
-                    Show all locations
+                    Show All Locations
                   </Button>
                 </div>
               ) : (
@@ -366,7 +366,7 @@ export function BrowseTasksFeed({
                   className="rounded-ds-md"
                 >
                   <Plus className="w-4 h-4 mr-1" strokeWidth={2.25} />
-                  Post your first job
+                  Post Your First Job
                 </Button>
                 <Button
                   variant="ghost"
@@ -377,7 +377,7 @@ export function BrowseTasksFeed({
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   <Bell className="w-4 h-4 mr-1" strokeWidth={2.25} />
-                  Notify me when one lands
+                  Notify Me When One Lands
                 </Button>
               </div>
             )
@@ -527,7 +527,7 @@ export function BrowseTasksFeed({
                     onClick={() => fetchNextPage()}
                     className="text-ds-11 text-muted-foreground hover:text-foreground rounded-ds-md btn-press"
                   >
-                    Load more
+                    Load More
                   </Button>
                 )}
               </div>

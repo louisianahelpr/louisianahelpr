@@ -203,7 +203,7 @@ const PetProfiles = () => {
               onClick={openAddMobile}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Add a pet
+              Add a Pet
             </Button>
           )}
 
@@ -373,7 +373,7 @@ const PetProfiles = () => {
       <BrandConfirmDialog
         open={petToDelete !== null}
         onOpenChange={(open) => { if (!open) setPetToDelete(null); }}
-        title={petToDelete ? `Remove ${petToDelete.name}?` : "Remove pet?"}
+        title={petToDelete ? `Remove ${petToDelete.name}?` : "Remove Pet?"}
         description="This can't be undone."
         primaryLabel="Remove"
         primaryTone="sienna"

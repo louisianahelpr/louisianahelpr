@@ -42,7 +42,7 @@ export function ProfileSectionError({ section, onRetry }: ProfileSectionErrorPro
         style={{ color: "hsl(var(--burnt-sienna))" }}
       >
         <RotateCw className="w-3 h-3" strokeWidth={2.5} />
-        Try again
+        Try Again
       </button>
     </div>
   );

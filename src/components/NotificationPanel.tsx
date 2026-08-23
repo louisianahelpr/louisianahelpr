@@ -259,7 +259,7 @@ const NotificationPanel = () => {
                   onClick={enablePush}
                   className="text-ds-11 text-[hsl(var(--bark))] h-7 px-2 rounded-full hover:bg-[hsl(var(--bark)/0.08)] hover:text-[hsl(var(--bark))]"
                 >
-                  <BellRing className="w-3.5 h-3.5 mr-1" /> Enable push
+                  <BellRing className="w-3.5 h-3.5 mr-1" /> Enable Push
                 </Button>
               )}
               {unreadCount > 0 && (
@@ -269,7 +269,7 @@ const NotificationPanel = () => {
                   onClick={markAllRead}
                   className="text-ds-11 text-[hsl(var(--bark))] h-7 px-2 rounded-full hover:bg-[hsl(var(--bark)/0.08)] hover:text-[hsl(var(--bark))]"
                 >
-                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark all read
+                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark All Read
                 </Button>
               )}
             </div>
@@ -348,7 +348,7 @@ const NotificationPanel = () => {
                   onClick={() => setFilter("all")}
                   className="rounded-ds-md mt-1"
                 >
-                  Show all notifications
+                  Show All Notifications
                 </Button>
               )}
               {filter === "all" && pushSupported && !pushEnabled && (
@@ -357,7 +357,7 @@ const NotificationPanel = () => {
                   onClick={enablePush}
                   className="rounded-ds-md mt-1"
                 >
-                  <BellRing className="w-4 h-4 mr-2" /> Turn on push notifications
+                  <BellRing className="w-4 h-4 mr-2" /> Turn on Push Notifications
                 </Button>
               )}
             </div>

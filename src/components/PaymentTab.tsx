@@ -282,7 +282,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
               className="mt-3 w-full inline-flex items-center justify-center gap-1 py-2 rounded-ds-md text-ds-12 font-sans font-semibold active:opacity-70 transition-opacity"
               style={{ color: "hsl(var(--bark))" }}
             >
-              See full breakdown
+              See Full Breakdown
               <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.25} />
             </button>
           )}

@@ -294,8 +294,8 @@ const AdminAnalytics = () => {
             {[
               { label: "Elite", count: subElite, color: "bg-accent/20 text-accent" },
               { label: "Pro", count: subPro, color: "bg-primary/10 text-primary" },
-              { label: "Basic", count: subBasic, color: "bg-secondary text-secondary-foreground" },
-              { label: "Free", count: subFree, color: "bg-muted text-muted-foreground" },
+              { label: "Basic", count: subBasic, color: "Bg-secondary Text-secondary-foreground" },
+              { label: "Free", count: subFree, color: "Bg-muted Text-muted-foreground" },
             ].map(t => (
               <div key={t.label} className="text-center">
                 <p className="text-ds-17 font-bold text-foreground">{t.count}</p>

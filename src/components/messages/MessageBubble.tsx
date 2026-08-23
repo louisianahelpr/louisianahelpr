@@ -303,7 +303,7 @@ export function MessageBubble({
             title="Retry sending"
           >
             <RotateCw className="w-2.5 h-2.5" />
-            Not sent — tap to retry
+            Not Sent — Tap to Retry
           </button>
         ) : (
           <>

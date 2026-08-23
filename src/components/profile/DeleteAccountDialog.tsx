@@ -101,7 +101,7 @@ export function DeleteAccountDialog({
             }}
           >
             {deletingAccount ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Delete forever
+            Delete Forever
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

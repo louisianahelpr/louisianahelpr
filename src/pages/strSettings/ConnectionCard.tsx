@@ -129,7 +129,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
           ) : (
             <RefreshCw className="w-3.5 h-3.5" />
           )}
-          {syncing ? "Syncing…" : "Sync now"}
+          {syncing ? "Syncing…" : "Sync Now"}
         </Button>
         <button
           type="button"

@@ -212,7 +212,7 @@ export function IDVPromptDialog({
 
         <DialogFooter className="!gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-ds-md h-11">
-            {isPending || isAdminReview ? "OK" : "Not now"}
+            {isPending || isAdminReview ? "OK" : "Not Now"}
           </Button>
           {!isPending && !isAdminReview && (
             <Button
@@ -222,7 +222,7 @@ export function IDVPromptDialog({
               className="rounded-ds-md h-11"
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Icon className="w-4 h-4 mr-2" />}
-              Start verification
+              Start Verification
             </Button>
           )}
         </DialogFooter>

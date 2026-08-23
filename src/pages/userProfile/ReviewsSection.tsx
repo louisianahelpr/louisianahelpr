@@ -286,7 +286,7 @@ export const ReviewsSection = ({
                     onStartResponding(r.id, r.response_text ?? "");
                   }}
                 >
-                  Edit response
+                  Edit Response
                 </button>
               )}
               {/* Inline response editor */}

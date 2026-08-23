@@ -260,7 +260,7 @@ export function PayoutSetupForm() {
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           <RefreshCw className={`w-3 h-3 ${statusQuery.isFetching ? "animate-spin" : ""}`} />
-          {statusQuery.isFetching ? "Refreshing…" : "Refresh status"}
+          {statusQuery.isFetching ? "Refreshing…" : "Refresh Status"}
         </button>
       )}
       {!status?.connected && (
@@ -308,14 +308,14 @@ export function PayoutSetupForm() {
             {onboarding ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to Stripe…</>
             ) : needsMoreInfo ? (
-              <><RefreshCw className="w-4 h-4 mr-2" /> Complete Stripe verification</>
+              <><RefreshCw className="w-4 h-4 mr-2" /> Complete Stripe Verification</>
             ) : (
-              <><ExternalLink className="w-4 h-4 mr-2" /> Set up payouts with Stripe</>
+              <><ExternalLink className="w-4 h-4 mr-2" /> Set up Payouts with Stripe</>
             )}
           </Button>
           {status?.connected && (
             <Button variant="ghost" size="sm" onClick={() => setConfirmReset(true)} disabled={resetting} className="w-full text-ds-11 text-muted-foreground">
-              {resetting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Resetting…</> : "Having issues? Reset & start fresh"}
+              {resetting ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Resetting…</> : "Having Issues? Reset & Start Fresh"}
             </Button>
           )}
         </>
@@ -373,7 +373,7 @@ export function PayoutSetupForm() {
       {isFullyOnboarded && (
         <>
           <Button variant="outline" onClick={handleManageDashboard} className="w-full rounded-ds-md">
-            <ExternalLink className="w-4 h-4 mr-2" /> Manage payouts on Stripe
+            <ExternalLink className="w-4 h-4 mr-2" /> Manage Payouts on Stripe
           </Button>
           <div
             className="rounded-ds-md p-3"

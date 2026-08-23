@@ -507,7 +507,7 @@ const WorkRecord = () => {
                 }}
               >
                 <Share2 className="w-4 h-4" />
-                Share summary
+                Share Summary
               </button>
               {canPrintDocument && (
                 <button

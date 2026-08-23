@@ -130,7 +130,7 @@ class ErrorBoundary extends React.Component<Props, State> {
             className="rounded-ds-md"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            {chunkError ? "Reload" : "Try again"}
+            {chunkError ? "Reload" : "Try Again"}
           </Button>
         </div>
       );

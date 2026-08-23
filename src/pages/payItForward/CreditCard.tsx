@@ -102,7 +102,7 @@ export function CreditCard({
             border: "none",
           }}
         >
-          Use this gift
+          Use This Gift
         </Button>
       )}
     </div>

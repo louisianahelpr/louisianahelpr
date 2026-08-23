@@ -86,7 +86,7 @@ export function MaterialsPanel({ category, className }: MaterialsPanelProps) {
             className="font-display font-semibold text-ds-13"
             style={{ color: "hsl(var(--foreground))" }}
           >
-            You might need:
+            You Might Need:
           </span>
         </span>
         {open ? (

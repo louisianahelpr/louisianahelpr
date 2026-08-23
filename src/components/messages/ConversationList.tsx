@@ -543,7 +543,7 @@ export function ConversationList({
                         "0 1px 2px hsl(var(--bark) / 0.10)",
                     }}
                   >
-                    Show all {filteredConversations.length} conversations
+                    Show All {filteredConversations.length} conversations
                   </button>
                 </div>
               )}

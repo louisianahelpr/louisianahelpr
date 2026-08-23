@@ -410,7 +410,7 @@ const HelprWrapped = () => {
                       disabled={isFetching}
                       className="underline underline-offset-2 disabled:opacity-60"
                     >
-                      Try again
+                      Try Again
                     </button>
                   </p>
                 )}
@@ -428,7 +428,7 @@ const HelprWrapped = () => {
                 onClick={handleShare}
               >
                 <Share2 className="w-4 h-4 mr-2" />
-                {SEASON.isYearEnd ? "Share your Wrapped" : "Share your year"}
+                {SEASON.isYearEnd ? "Share Your Wrapped" : "Share Your Year"}
               </Button>
               <p
                 className="text-center text-ds-11 font-serif italic"

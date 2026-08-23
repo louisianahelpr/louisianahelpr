@@ -172,7 +172,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 onClick={() => navigate("/post-job")}
                 className="text-ds-13"
               >
-                Post a job instead
+                Post a Job Instead
               </Button>
             }
           />

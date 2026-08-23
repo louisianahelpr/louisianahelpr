@@ -356,7 +356,7 @@ export function SendReportCard({
         </section>
 
         <Button className="w-full" size="lg" disabled={saving} onClick={handleSubmit}>
-          {saving ? "Sending…" : "Send report card"}
+          {saving ? "Sending…" : "Send Report Card"}
         </Button>
       </div>
     </div>

@@ -229,7 +229,7 @@ export function PostedJobApplicants({
                       }}
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
-                      Message all {pendingCount} applicants
+                      Message All {pendingCount} applicants
                     </button>
                   ) : (
                     /* Inline compose area */

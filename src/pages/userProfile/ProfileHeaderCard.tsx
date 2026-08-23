@@ -362,7 +362,7 @@ export const ProfileHeaderCard = ({
                   }}
                 >
                   <MapPin className="w-3 h-3" />
-                  Show jobs near you
+                  Show Jobs Near You
                 </button>
               </div>
             );

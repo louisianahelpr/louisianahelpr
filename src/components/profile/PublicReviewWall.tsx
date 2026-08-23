@@ -352,7 +352,7 @@ export function PublicReviewWall({
           className="w-full text-center font-sans font-semibold text-ds-13 py-2 rounded-ds-md hover:bg-[hsl(var(--bark)/0.04)] transition-colors"
           style={{ color: "hsl(var(--burnt-sienna))" }}
         >
-          See all {totalReviewCount ?? reviews.length} review
+          See All {totalReviewCount ?? reviews.length} review
           {(totalReviewCount ?? reviews.length) === 1 ? "" : "s"}
         </button>
       )}

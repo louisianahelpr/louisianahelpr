@@ -167,7 +167,7 @@ export function JobConfirmation({
             className="w-full rounded-ds-md"
           >
             <CheckCircle2 className="w-4 h-4 mr-1" />
-            I'm still on
+            I'm Still On
           </Button>
         )}
       </div>
@@ -229,7 +229,7 @@ export function JobConfirmation({
               disabled={confirming}
               className="rounded-ds-md"
             >
-              {confirming ? "Confirming…" : "Yes, I confirm"}
+              {confirming ? "Confirming…" : "Yes, I Confirm"}
             </Button>
           </DialogFooter>
         </DialogContent>

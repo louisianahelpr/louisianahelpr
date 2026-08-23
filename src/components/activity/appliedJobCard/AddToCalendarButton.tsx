@@ -66,7 +66,7 @@ export function AddToCalendarButton({ job }: { job: CalendarJobEvent }) {
       ) : (
         <Icon className="w-3.5 h-3.5" aria-hidden />
       )}
-      {state === "working" ? "Preparing…" : state === "done" ? "Calendar file ready" : "Add to Calendar"}
+      {state === "working" ? "Preparing…" : state === "done" ? "Calendar File Ready" : "Add to Calendar"}
     </button>
   );
 }

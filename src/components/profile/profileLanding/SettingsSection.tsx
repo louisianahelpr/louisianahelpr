@@ -99,7 +99,7 @@ export function SettingsSection({
                                 }}
                               >
                                 <AlertTriangle className="w-2.5 h-2.5" strokeWidth={2.5} />
-                                {blocking ? "Action needed" : item.incompleteLabel}
+                                {blocking ? "Action Needed" : item.incompleteLabel}
                               </span>
                             );
                           })()}
@@ -133,7 +133,7 @@ export function SettingsSection({
               fontWeight: 600,
             }}
           >
-            <LogOut className="w-4 h-4" /> Sign out
+            <LogOut className="w-4 h-4" /> Sign Out
           </button>
           <button
             type="button"
@@ -147,7 +147,7 @@ export function SettingsSection({
               fontWeight: 600,
             }}
           >
-            <Trash2 className="w-4 h-4" /> Delete account
+            <Trash2 className="w-4 h-4" /> Delete Account
           </button>
         </div>
       </div>

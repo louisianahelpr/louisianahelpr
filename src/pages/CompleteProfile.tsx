@@ -312,7 +312,7 @@ const CompleteProfile = () => {
             }}
             className="mt-5 w-full rounded-ds-md"
           >
-            <X className="w-4 h-4 mr-2" /> Sign out
+            <X className="w-4 h-4 mr-2" /> Sign Out
           </Button>
         </div>
       </div>
@@ -577,7 +577,7 @@ const CompleteProfile = () => {
               disabled={submitting || !allComplete}
             >
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
-              {submitting ? "Saving…" : allComplete ? "Enter app" : "Complete all items above"}
+              {submitting ? "Saving…" : allComplete ? "Enter App" : "Complete All Items Above"}
             </Button>
 
             <Button
@@ -590,7 +590,7 @@ const CompleteProfile = () => {
               }}
               className="w-full rounded-ds-md"
             >
-              <X className="w-4 h-4 mr-2" /> Sign out
+              <X className="w-4 h-4 mr-2" /> Sign Out
             </Button>
           </form>
       </div>

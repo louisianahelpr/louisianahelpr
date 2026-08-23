@@ -296,7 +296,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
             style={{ color: "hsl(var(--primary))" }}
           />
           <span className="font-serif italic text-ds-13">
-            Resume tour
+            Resume Tour
           </span>
           <span
             className="font-serif italic uppercase text-ds-10 px-1.5 py-0.5 rounded-full"
@@ -477,7 +477,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
                   onClick={() => handleGoToStep(currentStep.action)}
                   className="group rounded-ds-md"
                 >
-                  {currentStep.action ? "Go there" : "Next"} <ArrowRight className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" />
+                  {currentStep.action ? "Go There" : "Next"} <ArrowRight className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" />
                 </Button>
               ) : (
                 <Button

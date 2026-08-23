@@ -259,7 +259,7 @@ const AdminSidebar = ({
         >
           <Link to="/dashboard" aria-label="Back to the app">
             <Home className="w-4 h-4" />
-            {!collapsed && <span>Back to app</span>}
+            {!collapsed && <span>Back to App</span>}
           </Link>
         </Button>
         <Button
@@ -273,7 +273,7 @@ const AdminSidebar = ({
           )}
         >
           <LogOut className="w-4 h-4" />
-          {!collapsed && <span>Log out</span>}
+          {!collapsed && <span>Log Out</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>

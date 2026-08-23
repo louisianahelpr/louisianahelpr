@@ -222,7 +222,7 @@ const AdminIDVQueue = () => {
           />
         </div>
         <Button onClick={saveSettings} disabled={savingSettings} size="sm">
-          {savingSettings ? "Saving…" : "Save settings"}
+          {savingSettings ? "Saving…" : "Save Settings"}
         </Button>
       </div>
 
@@ -355,7 +355,7 @@ const AdminIDVQueue = () => {
       <BrandConfirmDialog
         open={!!confirmAction}
         onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
-        title={confirmAction?.action === "approve" ? "Approve this verification?" : "Deny this verification?"}
+        title={confirmAction?.action === "approve" ? "Approve This Verification?" : "Deny This Verification?"}
         description={
           confirmAction?.action === "approve"
             ? `${formatName(confirmAction?.profile.full_name, "This user")} will be marked verified and cleared to use Helpr.`

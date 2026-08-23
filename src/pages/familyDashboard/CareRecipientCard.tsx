@@ -91,7 +91,7 @@ export function CareRecipientCard({
             }}
           >
             <Briefcase className="w-3.5 h-3.5" />
-            View jobs
+            View Jobs
           </button>
           <button
             onClick={() => {
@@ -105,7 +105,7 @@ export function CareRecipientCard({
             }}
           >
             <UserPlus className="w-3.5 h-3.5" />
-            Post job
+            Post Job
           </button>
         </div>
       )}
@@ -127,7 +127,7 @@ export function CareRecipientCard({
               color: "hsl(var(--accent-ink))",
             }}
           >
-            Copy invite link
+            Copy Invite Link
           </button>
         </div>
       )}

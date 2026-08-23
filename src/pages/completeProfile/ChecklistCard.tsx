@@ -27,7 +27,7 @@ export const ChecklistCard = ({ checklist, expanded, onToggle }: ChecklistCardPr
       onClick={onToggle}
       className="w-full flex items-center justify-between sm:cursor-default"
     >
-      <p className="text-ds-13 font-semibold text-foreground">Verification checklist</p>
+      <p className="text-ds-13 font-semibold text-foreground">Verification Checklist</p>
       <div className="flex items-center gap-2">
         <p className="text-ds-11 text-muted-foreground">
           {checklist.filter((c) => c.done).length}/{checklist.length}

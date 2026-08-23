@@ -119,7 +119,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
               onClick={() => handleSend(amount ?? 0)}
               disabled={sending || amount === undefined || amount <= 0}
             >
-              {sending ? "…" : "Send tip"}
+              {sending ? "…" : "Send Tip"}
             </Button>
           </div>
         </div>

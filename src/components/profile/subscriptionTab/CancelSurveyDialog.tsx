@@ -89,7 +89,7 @@ export const CancelSurveyDialog = ({
         </div>
         <DialogFooter className="!gap-2">
           <Button variant="ghost" onClick={() => setCancelSurveyOpen(false)} className="rounded-ds-md">
-            Never mind
+            Never Mind
           </Button>
         </DialogFooter>
       </DialogContent>

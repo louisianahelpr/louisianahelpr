@@ -24,7 +24,7 @@ export function RecentReviewsList({
           className="text-ds-11 font-semibold active:opacity-70"
           style={{ color: "hsl(var(--bark))" }}
         >
-          See all →
+          See All →
         </button>
       </div>
       <div className="space-y-2">

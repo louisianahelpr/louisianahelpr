@@ -216,7 +216,7 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
               className="mt-2"
               onClick={() => navigate("/dashboard")}
             >
-              Browse tasks
+              Browse Tasks
             </Button>
           </div>
         </div>

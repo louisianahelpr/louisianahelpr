@@ -205,13 +205,13 @@ export function CompletionChoiceSheet({
                       className="font-display italic font-bold leading-tight text-ds-16"
                       style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
                     >
-                      All done — looks great!
+                      All Done — Looks Great!
                     </p>
                     <p
                       className="font-serif italic mt-0.5 text-ds-12"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
-                      Release payment to {helperName}
+                      Release Payment to {helperName}
                     </p>
                   </div>
                 </div>
@@ -240,13 +240,13 @@ export function CompletionChoiceSheet({
                       className="font-display italic font-bold leading-tight text-ds-16"
                       style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
                     >
-                      I need something fixed first
+                      I Need Something Fixed First
                     </p>
                     <p
                       className="font-serif italic mt-0.5 text-ds-12"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
-                      Request a revision — payment stays held
+                      Request a Revision — Payment Stays Held
                     </p>
                   </div>
                 </div>
@@ -387,7 +387,7 @@ export function CompletionChoiceSheet({
                       : undefined
                   }
                 >
-                  {submitting ? "Sending…" : "Send revision request"}
+                  {submitting ? "Sending…" : "Send Revision Request"}
                 </Button>
               </div>
             </div>

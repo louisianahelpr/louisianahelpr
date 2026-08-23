@@ -232,7 +232,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           </div>
           <Button onClick={handleCashOut} disabled={cashingOut || !hasStripeAccount} size="sm" className="h-10 shrink-0">
             {cashingOut ? (
-              <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Cashing out</>
+              <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Cashing Out</>
             ) : (
               <><Banknote className="w-4 h-4 mr-1.5" /> ${formatPriceExact(unredeemedCredits)}</>
             )}

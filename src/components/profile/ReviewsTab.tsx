@@ -222,7 +222,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   className="inline-flex items-center gap-1.5 text-ds-11 font-sans font-semibold active:opacity-70 transition-opacity"
                   style={{ color: "hsl(var(--bark))" }}
                 >
-                  <Info className="w-3.5 h-3.5" /> How reviews work
+                  <Info className="w-3.5 h-3.5" /> How Reviews Work
                 </button>
               </PopoverTrigger>
               <PopoverContent
@@ -359,7 +359,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
               disabled={loadingMore}
               className="w-full mt-2"
             >
-              {loadingMore ? "Loading…" : "Load more reviews"}
+              {loadingMore ? "Loading…" : "Load More Reviews"}
             </Button>
           )}
         </div>

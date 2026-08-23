@@ -143,7 +143,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                       "0 8px 18px -6px hsl(var(--bark) / 0.45)",
                   }}
                 >
-                  Thank you
+                  Thank You
                 </button>
               </motion.div>
             </DialogPrimitive.Content>

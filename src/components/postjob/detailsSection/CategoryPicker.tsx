@@ -44,7 +44,7 @@ export function CategoryPicker({
             aria-label="Auto-selected from title — tap to dismiss"
           >
             <Sparkles className="w-3 h-3" aria-hidden />
-            Auto-selected from title — tap to change
+            Auto-selected from Title — Tap to Change
           </button>
         )}
       </div>

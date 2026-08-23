@@ -298,7 +298,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setStep("share")}>No thanks</Button>
+            <Button variant="ghost" onClick={() => setStep("share")}>No Thanks</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -367,7 +367,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setStep("nps")}>Maybe later</Button>
+            <Button variant="ghost" onClick={() => setStep("nps")}>Maybe Later</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

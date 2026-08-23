@@ -327,7 +327,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                   : undefined,
               }}
             >
-              {submitting ? "Sending…" : "Confirm change"}
+              {submitting ? "Sending…" : "Confirm Change"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -563,7 +563,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               color: "hsl(var(--burnt-sienna))",
             }}
           >
-            <LogOut className="w-3.5 h-3.5 mr-1.5" /> Sign out everywhere
+            <LogOut className="w-3.5 h-3.5 mr-1.5" /> Sign Out Everywhere
           </Button>
         )}
       </div>

@@ -69,7 +69,7 @@ export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarPro
                 cursor: saving || idle ? "not-allowed" : "pointer",
               }}
             >
-              {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? (<><Check className="w-4 h-4" strokeWidth={3} /> Saved</>) : idle ? "Up to date" : "Save changes"}
+              {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? (<><Check className="w-4 h-4" strokeWidth={3} /> Saved</>) : idle ? "Up to Date" : "Save Changes"}
             </button>
           );
         })()}

@@ -218,7 +218,7 @@ export const DisputeCard = ({
               onClick={() => decide(job)}
               disabled={submittingDecision || !decisionText.trim()}
             >
-              {submittingDecision ? "Recording…" : "Record decision"}
+              {submittingDecision ? "Recording…" : "Record Decision"}
             </Button>
             <Button
               size="sm"

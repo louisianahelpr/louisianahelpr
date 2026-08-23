@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BUSINESS_ENABLED } from "@/config/businessEnabled";
+import { postAuthDestination } from "@/lib/jobIntent";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -224,7 +225,10 @@ const Login = () => {
       }
     } catch { /* fall through to generic copy */ }
     toast.success(firstName ? `Welcome back, ${firstName}.` : "Welcome back.");
-    navigate(postLoginDest, { replace: true });
+    // postAuthDestination keeps this on the home dashboard per the note above;
+    // it only appends ?quickApply=<id> when the visitor got here from a job
+    // card they tapped while logged out. See lib/jobIntent.
+    navigate(postAuthDestination(postLoginDest), { replace: true });
   };
 
   const handleVerifyMfa = async (e: React.FormEvent) => {
@@ -323,7 +327,7 @@ const Login = () => {
                 className="w-full text-center text-ds-11 font-sans tracking-wide hover:opacity-70 active:opacity-50 transition-opacity"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Use a different account
+                Use a Different Account
               </button>
             </form>
           </div>
@@ -434,7 +438,7 @@ const Login = () => {
             size="lg"
             disabled={loading}
           >
-            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing in…</> : "Sign In"}
+            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing In…</> : "Sign In"}
           </Button>
           {/* No "By signing in you agree to our Terms · Rules · Privacy" here.
               Consent is CAPTURED on signup — Signup.tsx has real, recorded

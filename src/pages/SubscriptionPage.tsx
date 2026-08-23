@@ -407,7 +407,7 @@ export default function SubscriptionPage() {
                 style={{ color: "hsl(var(--bark))" }}
               >
                 {upgrading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                Manage membership
+                Manage Membership
                 <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
               </button>
             )}
@@ -942,7 +942,7 @@ export default function SubscriptionPage() {
                 letterSpacing: "-0.005em",
               }}
             >
-              {showCompare ? "Hide comparison" : "Compare all features"}
+              {showCompare ? "Hide Comparison" : "Compare All Features"}
               <ChevronDown
                 className="w-4 h-4 transition-transform duration-200"
                 strokeWidth={2}

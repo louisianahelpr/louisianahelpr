@@ -284,7 +284,7 @@ export const PhotoProofGroup = ({
         </div>
         {(hasBefore || hasAfter) && (
           <button onClick={() => setViewOpen(true)} className="text-ds-10 text-primary hover:underline font-medium">
-            View all
+            View All
           </button>
         )}
       </div>

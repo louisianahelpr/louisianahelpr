@@ -305,7 +305,7 @@ function PostedJobCardInner({
                     onClick={(e) => { e.stopPropagation(); navigate(`/post-job?rebook=${job.id}`); }}
                   >
                     <RotateCcw className="w-4 h-4 mr-1.5" />
-                    Re-post this job
+                    Re-post This Job
                   </Button>
                 </div>
               )}

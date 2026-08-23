@@ -145,7 +145,7 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
           className="font-serif italic uppercase text-ds-9"
           style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
         >
-          Activity trend
+          Activity Trend
         </span>
         <span
           className="inline-flex items-center gap-1 text-ds-11 font-semibold"

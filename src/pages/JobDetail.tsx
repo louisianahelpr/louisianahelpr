@@ -119,7 +119,7 @@ const JobDetail = () => {
                   onClick={() => navigate("/jobs")}
                   className="squircle"
                 >
-                  Browse open jobs
+                  Browse Open Jobs
                 </Button>
               }
             />
@@ -136,7 +136,7 @@ const JobDetail = () => {
                   onClick={() => navigate("/jobs")}
                   className="squircle"
                 >
-                  Browse open jobs
+                  Browse Open Jobs
                 </Button>
               }
             />

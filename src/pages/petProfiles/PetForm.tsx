@@ -560,7 +560,7 @@ export function PetForm({
           disabled={saving || !canSave}
           onClick={handleSave}
         >
-          {saving ? "Saving…" : initialValues ? "Save changes" : "Add pet"}
+          {saving ? "Saving…" : initialValues ? "Save Changes" : "Add pet"}
         </Button>
       </div>
     </div>
@@ -574,7 +574,7 @@ export function PetForm({
       title={
         initialValues
           ? `Discard changes to ${initialValues.name}?`
-          : "Discard this pet?"
+          : "Discard This Pet?"
       }
       description={
         initialValues

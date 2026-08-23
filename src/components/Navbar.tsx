@@ -138,7 +138,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                   onMouseEnter={() => prefetchRoute("/dashboard")}
                   onFocus={() => prefetchRoute("/dashboard")}
                 >
-                  Open app
+                  Open App
                   <ArrowRight className="ml-1.5 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
                 </Link>
               </Button>
@@ -344,7 +344,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
                     }}
                   >
                     <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
-                      Open app
+                      Open App
                       <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
                     </Link>
                   </Button>

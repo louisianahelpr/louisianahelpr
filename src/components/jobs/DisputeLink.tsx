@@ -116,7 +116,7 @@ export function DisputeLink({
         aria-label="Open a dispute about this job"
       >
         <AlertTriangle className="w-3 h-3" strokeWidth={2.25} />
-        Something wrong? Open a dispute
+        Something Wrong? Open a Dispute
       </button>
     </div>
   );

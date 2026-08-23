@@ -100,7 +100,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             className="block font-display italic font-bold text-ds-17"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
           >
-            Start fresh
+            Start Fresh
           </span>
           <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Build your request from a blank form.
@@ -128,7 +128,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               className="block font-display italic font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
             >
-              Pick up your draft
+              Pick up Your Draft
             </span>
             <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Continue the request you saved earlier.
@@ -181,7 +181,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                 className="block font-display italic font-bold text-ds-17"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
               >
-                Repost a recent job
+                Repost a Recent Job
               </span>
               <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Quickest way to ask for the same help again.
@@ -272,7 +272,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               className="block font-display italic font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
             >
-              Use a template
+              Use a Template
             </span>
             <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Start from a common job and tweak the details.
@@ -340,7 +340,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                 style={{ color: "hsl(var(--bark))" }}
               >
                 {showAllTemplates
-                  ? "Show fewer"
+                  ? "Show Fewer"
                   : `Show all ${sampleJobs.length} templates`}
               </button>
             )}

@@ -180,7 +180,7 @@ const AdminMarketing = () => {
                 onChange={(e) => setTestEmail(e.target.value)}
               />
               <Button variant="outline" disabled={sending} onClick={() => send(true)}>
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send test"}
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Test"}
               </Button>
             </div>
           </div>
@@ -194,7 +194,7 @@ const AdminMarketing = () => {
             {sending ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</>
             ) : (
-              <><Send className="w-4 h-4 mr-2" /> Send campaign</>
+              <><Send className="w-4 h-4 mr-2" /> Send Campaign</>
             )}
           </Button>
 

@@ -334,7 +334,7 @@ export function SavedSearches({
                 className="mt-1 gap-1.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                Try again
+                Try Again
               </Button>
             </div>
           ) : searches.length === 0 ? (
@@ -404,7 +404,7 @@ export function SavedSearches({
                       s.location_keyword && `Loc: ${s.location_keyword}`,
                     ]
                       .filter(Boolean)
-                      .join(" · ") || "Any job"}
+                      .join(" · ") || "Any Job"}
                   </p>
                 </button>
                 <button

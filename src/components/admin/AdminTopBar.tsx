@@ -17,7 +17,7 @@ const AdminTopBar = ({ onLogout }: { onLogout: () => void }) => (
         <Button asChild variant="ghost" size="sm" className="gap-1.5 btn-press shrink-0">
           <Link to="/dashboard" aria-label="Back to the app">
             <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Back to app</span>
+            <span className="hidden sm:inline">Back to App</span>
           </Link>
         </Button>
         <HelprMark to="/dashboard" size="sm" />

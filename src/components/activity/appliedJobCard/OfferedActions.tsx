@@ -158,7 +158,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           aria-busy={busy}
           onClick={() => onHelperResponse(app, true)}
         >
-          <CheckCircle2 className="w-4 h-4 mr-1" /> {busy ? "Accepting…" : "Accept job"}
+          <CheckCircle2 className="w-4 h-4 mr-1" /> {busy ? "Accepting…" : "Accept Job"}
         </Button>
       </div>
       <BrandConfirmDialog

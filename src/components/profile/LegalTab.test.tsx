@@ -77,7 +77,7 @@ describe("Legal & policies — data rights", () => {
   it("offers the data export the Privacy Policy links here for", () => {
     renderTab();
     expect(screen.getByRole("heading", { name: "Download your data" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Download my data" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Download My Data" })).toBeEnabled();
   });
 
   it("keeps the GDPR/CCPA footnote with the control", () => {
@@ -89,7 +89,7 @@ describe("Legal & policies — data rights", () => {
   it("exports profile, jobs, applications and reviews as one JSON file", async () => {
     renderTab();
 
-    fireEvent.click(screen.getByRole("button", { name: "Download my data" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download My Data" }));
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Your data has been downloaded"));
 
     expect(createdBlobs).toHaveLength(1);
@@ -112,7 +112,7 @@ describe("Legal & policies — data rights", () => {
     );
     renderTab();
 
-    fireEvent.click(screen.getByRole("button", { name: "Download my data" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download My Data" }));
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
 
     expect(createdBlobs).toHaveLength(0);
@@ -123,7 +123,7 @@ describe("Legal & policies — data rights", () => {
     );
     // The button must come back, not stay stuck in "Preparing…".
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Download my data" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Download My Data" })).toBeEnabled(),
     );
   });
 

@@ -183,7 +183,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
   return (
     <div className="space-y-4">
       <ProfileTabHeader
-        title={selected ? selected.label : "Help & support"}
+        title={selected ? selected.label : "Help & Support"}
         onBack={selected ? () => setCategory(null) : onBack}
       />
 

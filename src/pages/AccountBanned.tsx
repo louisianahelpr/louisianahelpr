@@ -120,7 +120,7 @@ const AccountBanned = () => {
               size="lg"
             >
               <Mail className="w-4 h-4 mr-2" />
-              Contact support
+              Contact Support
             </Button>
           </Link>
           <Link to="/rules">
@@ -138,7 +138,7 @@ const AccountBanned = () => {
           onClick={async () => { await signOutWithPushCleanup(); navigate("/"); }}
           className="text-muted-foreground"
         >
-          <LogOut className="w-4 h-4 mr-1" /> Sign out
+          <LogOut className="w-4 h-4 mr-1" /> Sign Out
         </Button>
       </div>
     </AuthShell>

@@ -18,7 +18,7 @@ export function DismissJobDialog({ confirmDismissJobId, confirmDismissJob, onOpe
           title="Not Interested?"
         />
         <AlertDialogFooter className="flex-row justify-end gap-2 sm:gap-2">
-          <AlertDialogCancel className="mt-0 h-9 px-3 text-ds-13">Keep it</AlertDialogCancel>
+          <AlertDialogCancel className="mt-0 h-9 px-3 text-ds-13">Keep It</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} className="h-9 px-3 text-ds-13 bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

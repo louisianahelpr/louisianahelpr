@@ -185,7 +185,7 @@ export function PostedJobActions({
             {startRequestedJobIds.has(job.id) && !job.helper_confirmed_at && (
               <Button size="sm" className="w-full" disabled={confirmingStartJobId === job.id} onClick={() => onConfirmStart(job.id)}>
                 <CheckCircle2 className="w-4 h-4 mr-1" />
-                {confirmingStartJobId === job.id ? "Starting…" : "Confirm start"}
+                {confirmingStartJobId === job.id ? "Starting…" : "Confirm Start"}
               </Button>
             )}
             <div className="flex gap-2">
@@ -590,7 +590,7 @@ export function PostedJobActions({
             </Button>
             <div className="grid grid-cols-2 gap-2">
               <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>
-              <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact admin</Button>
+              <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact Admin</Button>
             </div>
           </div>
           );

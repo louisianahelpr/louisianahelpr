@@ -276,7 +276,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
               boxShadow: reason ? "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)" : undefined,
             }}
           >
-            {submitting ? "Submitting…" : "Submit dispute"}
+            {submitting ? "Submitting…" : "Submit Dispute"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -430,7 +430,7 @@ export function IdentityHeader({
           >
             <QrCode className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
             <span className="text-ds-9 font-sans font-semibold" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-              QR code
+              QR Code
             </span>
           </button>
         </div>
@@ -453,7 +453,7 @@ export function IdentityHeader({
                 className="font-serif italic uppercase text-ds-9"
                 style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
               >
-                Earnings · last 6 weeks
+                Earnings · Last 6 Weeks
               </p>
               <p className="text-ds-15 font-bold leading-tight mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
                 ${formatPrice(totalEarnings)}

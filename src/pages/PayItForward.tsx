@@ -598,7 +598,7 @@ export default function PayItForward() {
                 }}
               >
                 <Gift className="w-4 h-4 mr-2" />
-                {donateMutation.isPending ? "Starting checkout…" : "Continue to checkout"}
+                {donateMutation.isPending ? "Starting Checkout…" : "Continue to Checkout"}
               </Button>
             </div>
           </aside>

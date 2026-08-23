@@ -135,7 +135,7 @@ export function TermsReconsentDialog() {
             }}
             className="rounded-ds-md"
           >
-            {submitting ? "Saving…" : "I agree"}
+            {submitting ? "Saving…" : "I Agree"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

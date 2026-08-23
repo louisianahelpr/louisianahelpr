@@ -293,7 +293,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                     Submitting…
                   </span>
                 ) : (
-                  "Submit report"
+                  "Submit Report"
                 )}
               </Button>
             </div>

@@ -69,7 +69,7 @@ export function HelperAvailabilityDisplay({ helperId, showEmpty = false, onSetUp
             onClick={onSetUp}
             className="shrink-0 text-ds-11 font-semibold text-primary hover:underline active:opacity-70"
           >
-            Set hours →
+            Set Hours →
           </button>
         )}
       </div>

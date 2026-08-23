@@ -437,7 +437,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               boxShadow: "var(--elev-sienna-raised)",
             }}
           >
-            {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel · pay $${cancellationFee}` : "Cancel job"}
+            {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel · pay $${cancellationFee}` : "Cancel Job"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -340,7 +340,7 @@ const PaymentSuccess = () => {
       style={{ color: "hsl(var(--bark))" }}
     >
       <LifeBuoy className="w-4 h-4 mr-2" />
-      Contact support
+      Contact Support
     </Button>
   );
 
@@ -482,7 +482,7 @@ const PaymentSuccess = () => {
                 className="w-full rounded-ds-md"
               >
                 <UsersIcon className="w-4 h-4 mr-2" />
-                View applicants
+                View Applicants
               </Button>
               {/* Secondary CTA row — share + post-another-like-this. */}
               <div className="grid grid-cols-2 gap-2.5">
@@ -501,7 +501,7 @@ const PaymentSuccess = () => {
                   onClick={handlePostAnother}
                   className="w-full rounded-ds-md"
                 >
-                  <RotateCcw className="w-4 h-4 mr-1" /> Post another
+                  <RotateCcw className="w-4 h-4 mr-1" /> Post Another
                 </Button>
               </div>
             </>
@@ -529,7 +529,7 @@ const PaymentSuccess = () => {
                   className="w-full rounded-ds-md"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
-                  {confirmState === "checking" ? "Checking…" : "Try again"}
+                  {confirmState === "checking" ? "Checking…" : "Try Again"}
                 </Button>
               )}
               {confirmState !== "checking" && supportAction}
@@ -544,7 +544,7 @@ const PaymentSuccess = () => {
             className="w-full rounded-ds-md"
             style={{ color: "hsl(var(--bark))" }}
           >
-            Back to dashboard
+            Back to Dashboard
           </Button>
         </div>
 

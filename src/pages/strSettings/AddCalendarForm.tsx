@@ -227,7 +227,7 @@ export function AddCalendarForm({
         style={{ background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }}
       >
         {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-        {loading ? "Connecting…" : "Connect calendar"}
+        {loading ? "Connecting…" : "Connect Calendar"}
       </Button>
     </div>
   );

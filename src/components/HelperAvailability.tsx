@@ -318,7 +318,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
         size="lg"
         className="w-full h-12 rounded-2xl text-ds-15 font-semibold"
       >
-        {saving ? "Saving…" : "Save availability"}
+        {saving ? "Saving…" : "Save Availability"}
       </Button>
     </div>
   );

@@ -181,7 +181,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
               </>
             ) : (
               <>
-                <Zap className="w-4 h-4" /> Cash out {quote ? fmt(quote.net_cents) : ""}
+                <Zap className="w-4 h-4" /> Cash Out {quote ? fmt(quote.net_cents) : ""}
               </>
             )}
           </Button>

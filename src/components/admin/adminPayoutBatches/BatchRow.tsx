@@ -95,7 +95,7 @@ export const BatchRow = ({
               onClick={() => onPay(batch)}
             >
               <Send className="w-3 h-3 mr-1" />
-              {paying === batch.helper_id ? "Sending…" : "Pay out"}
+              {paying === batch.helper_id ? "Sending…" : "Pay Out"}
             </Button>
           </div>
         ) : (

@@ -54,7 +54,7 @@ export const PauseOfferDialog = ({
             className="rounded-ds-md"
             style={{ color: "hsl(var(--burnt-sienna))" }}
           >
-            Cancel instead
+            Cancel Instead
           </Button>
           <div className="flex gap-2">
             <Button
@@ -62,7 +62,7 @@ export const PauseOfferDialog = ({
               onClick={() => setPauseOfferOpen(false)}
               className="rounded-ds-md"
             >
-              Never mind
+              Never Mind
             </Button>
             <Button
               onClick={handleAcceptPause}
@@ -77,7 +77,7 @@ export const PauseOfferDialog = ({
               {acceptingPause ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Requesting</>
               ) : (
-                <><PauseCircle className="w-4 h-4 mr-2" /> Request 1 month free</>
+                <><PauseCircle className="w-4 h-4 mr-2" /> Request 1 Month Free</>
               )}
             </Button>
           </div>

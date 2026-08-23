@@ -294,7 +294,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
                     "0 6px 14px -6px hsl(var(--bark) / 0.45)",
                 }}
               >
-                View details
+                View Details
               </button>
             )}
           </div>

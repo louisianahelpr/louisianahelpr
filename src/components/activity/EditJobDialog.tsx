@@ -126,7 +126,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     <>
     <Dialog open={!!job} onOpenChange={handleClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto !gap-3">
-        <DialogHero eyebrow="Editing your job" title={title ? `"${title}"` : "Edit job"} />
+        <DialogHero eyebrow="Editing your job" title={title ? `"${title}"` : "Edit Job"} />
         <div className="space-y-5">
           {locked && (
             <p
@@ -232,7 +232,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               boxShadow: "var(--elev-bark-raised)",
             }}
           >
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? "Saving…" : "Save Changes"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -246,7 +246,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         />
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={save}>Save changes</AlertDialogAction>
+          <AlertDialogAction onClick={save}>Save Changes</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -262,8 +262,8 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           title="Discard Your Changes?"
         />
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep editing</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmDiscard}>Discard changes</AlertDialogAction>
+          <AlertDialogCancel>Keep Editing</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDiscard}>Discard Changes</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

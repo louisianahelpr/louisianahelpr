@@ -71,9 +71,9 @@ export default function BusinessNoAccountState({ title }: { title: string }) {
         body="Create a business account to add teammates and manage jobs together under one account."
         action={
           <div className="flex flex-col items-center gap-2">
-            <Button onClick={() => setOpen(true)}>Create business account</Button>
+            <Button onClick={() => setOpen(true)}>Create Business Account</Button>
             <Button variant="ghost" size="sm" onClick={() => navigate("/for-business")}>
-              Learn more
+              Learn More
             </Button>
           </div>
         }
@@ -106,7 +106,7 @@ export default function BusinessNoAccountState({ title }: { title: string }) {
               Cancel
             </Button>
             <Button onClick={createBusiness} disabled={!companyName.trim() || submitting}>
-              {submitting ? "Creating…" : "Create business"}
+              {submitting ? "Creating…" : "Create Business"}
             </Button>
           </DialogFooter>
         </DialogContent>

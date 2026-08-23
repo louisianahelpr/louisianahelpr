@@ -234,7 +234,7 @@ const ExceptionQueueInner = () => {
                 if (resolveTarget) resolve(resolveTarget, resolution);
               }}
             >
-              Mark resolved
+              Mark Resolved
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

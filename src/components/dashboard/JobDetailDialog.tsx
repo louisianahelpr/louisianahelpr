@@ -293,7 +293,7 @@ const JobDetailDialog = ({
                   boxShadow: "0 1px 4px hsl(var(--bark) / 0.18)",
                 }}
               >
-                View all
+                View All
               </button>
             )}
           </div>
@@ -412,7 +412,7 @@ const JobDetailDialog = ({
                 className="mt-1.5 text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] hover:opacity-80 transition-opacity"
                 style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}
               >
-                {descExpanded ? "Show less" : "Read more"}
+                {descExpanded ? "Show Less" : "Read More"}
               </button>
             )}
           </div>

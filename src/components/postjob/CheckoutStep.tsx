@@ -646,12 +646,12 @@ export function CheckoutStep({
           {uploadProgress
             ? `Uploading photo ${uploadProgress.done + 1} of ${uploadProgress.total}…`
             : uploading
-              ? "Uploading photos…"
+              ? "Uploading Photos…"
               : saving
                 ? "Processing…"
                 : !confirmed
-                  ? "Confirm details to continue"
-                  : "Continue to payment"}
+                  ? "Confirm Details to Continue"
+                  : "Continue to Payment"}
         </Button>
         {/* Escrow-trust microline — sits right under the pay CTA so the
             reassurance lands at the moment of commitment, in the poster's

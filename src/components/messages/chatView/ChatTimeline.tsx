@@ -118,7 +118,7 @@ export function ChatTimeline({
             }}
           >
             {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
-            {loadingMore ? "Loading…" : "Load earlier messages"}
+            {loadingMore ? "Loading…" : "Load Earlier Messages"}
           </button>
         </div>
       )}

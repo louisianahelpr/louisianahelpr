@@ -90,7 +90,7 @@ export function PermissionRationaleDialog() {
             onClick={() => __resolveRationale(false)}
             className="rounded-ds-md h-11 mt-0"
           >
-            Not now
+            Not Now
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={() => __resolveRationale(true)}

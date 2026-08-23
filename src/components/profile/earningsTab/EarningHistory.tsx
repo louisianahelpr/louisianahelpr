@@ -159,7 +159,7 @@ export function EarningHistory({
               className="w-full rounded-ds-md"
               onClick={onLoadMore}
             >
-              Load {Math.min(page, earningsJobs.length - historyVisible)} more · {earningsJobs.length - historyVisible} remaining
+              Load {Math.min(page, earningsJobs.length - historyVisible)} More · {earningsJobs.length - historyVisible} remaining
             </Button>
           )}
         </div>

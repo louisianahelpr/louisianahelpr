@@ -26,7 +26,7 @@ export const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onC
     </div>
     <p className={`text-ds-24 font-bold ${accent ? "text-primary" : "text-foreground"}`}>{value}</p>
     <p className="text-ds-11 text-muted-foreground mt-1">{sub}</p>
-    {onClick && <p className="text-ds-10 text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to view details →</p>}
+    {onClick && <p className="text-ds-10 text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to View Details →</p>}
   </button>
 );
 

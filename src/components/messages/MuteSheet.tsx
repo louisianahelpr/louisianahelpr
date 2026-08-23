@@ -121,7 +121,7 @@ export function MuteSheet({
                 className="font-sans font-medium text-ds-15"
                 style={{ color: "hsl(var(--burnt-sienna))" }}
               >
-                Turn notifications back on
+                Turn Notifications Back On
               </span>
               <Bell
                 className="w-4 h-4 shrink-0"

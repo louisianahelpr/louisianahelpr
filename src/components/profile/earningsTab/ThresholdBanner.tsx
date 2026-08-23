@@ -59,7 +59,7 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
             }}
           >
             <FileText className="w-3.5 h-3.5" />
-            Download tax statement
+            Download Tax Statement
           </button>
         </div>
       </div>

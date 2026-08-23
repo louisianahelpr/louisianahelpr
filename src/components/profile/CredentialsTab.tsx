@@ -461,7 +461,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                   onClick={() => openDoc(url)}
                   className="flex-1 text-left text-ds-13 text-primary underline truncate"
                 >
-                  View the {noun} you sent
+                  View the {noun} You Sent
                 </button>
                 <Button
                   variant="ghost"
@@ -534,8 +534,8 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           pullBackState === "verified"
             ? `Remove your verified ${pullBackNoun}?`
             : pullBackState === "review"
-              ? "Take this out of review?"
-              : "Remove this document?"
+              ? "Take This Out of Review?"
+              : "Remove This Document?"
         }
         description={
           pullBackState === "verified"
@@ -715,7 +715,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             {submitting
               ? "Sending…"
               : draftKinds.length > 1
-                ? "Send both for review"
+                ? "Send Both for Review"
                 : `Send ${KIND_NOUN[draftKinds[0]]} for review`}
           </Button>
         </div>

@@ -40,7 +40,7 @@ export function CompletionChecklist({
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-ds-13 font-semibold text-foreground">Finish your profile</span>
+            <span className="text-ds-13 font-semibold text-foreground">Finish Your Profile</span>
             <span
               className="text-ds-10 font-bold tabular-nums px-1.5 py-0.5 rounded-full"
               style={{

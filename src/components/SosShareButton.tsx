@@ -97,7 +97,7 @@ export function SosShareButton({
               style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
             >
               <Share2 className="w-4 h-4 mr-2" />
-              Share location link
+              Share Location Link
             </Button>
             <Button variant="ghost" className="w-full" onClick={() => setOpen(false)}>
               Cancel

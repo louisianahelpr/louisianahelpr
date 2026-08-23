@@ -86,7 +86,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
                 className="font-display italic font-bold leading-tight text-ds-14"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
-                Need help?
+                Need Help?
               </p>
               <p
                 className="font-serif italic mt-0.5 text-ds-12 leading-snug"
@@ -102,7 +102,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
                 color: "hsl(var(--bark))",
               }}
             >
-              Post a job
+              Post a Job
             </span>
           </button>
 
@@ -128,7 +128,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
                 className="font-display italic font-bold leading-tight text-ds-14"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
-                Want to earn?
+                Want to Earn?
               </p>
               <p
                 className="font-serif italic mt-0.5 text-ds-12 leading-snug"
@@ -144,7 +144,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
                 color: "hsl(var(--burnt-sienna))",
               }}
             >
-              Browse jobs
+              Browse Jobs
             </span>
           </button>
         </div>
@@ -173,7 +173,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
             className="font-serif italic text-ds-12 underline underline-offset-2 active:opacity-60 transition-opacity"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Skip for now
+            Skip for Now
           </button>
         </div>
       </DialogContent>

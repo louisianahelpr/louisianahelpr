@@ -272,7 +272,7 @@ const AdminPayoutBatches = () => {
             }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <Pause className="w-3.5 h-3.5" /> Hold for review
+              <Pause className="w-3.5 h-3.5" /> Hold for Review
               <span className="text-ds-11 tabular-nums">({heldBatches.length})</span>
             </span>
           </button>
@@ -286,7 +286,7 @@ const AdminPayoutBatches = () => {
           </button>
           {selected.size > 0 && (
             <button type="button" onClick={clearSelection} className="text-muted-foreground hover:text-foreground">
-              Clear selection
+              Clear Selection
             </button>
           )}
         </div>
@@ -361,7 +361,7 @@ const AdminPayoutBatches = () => {
             <Button variant="ghost" size="sm" onClick={clearSelection}>Clear</Button>
             <Button size="sm" onClick={() => setConfirmBulk(true)} disabled={bulkPaying || selected.size === 0}>
               <Send className="w-3 h-3 mr-1" />
-              {bulkPaying ? "Queuing…" : "Bulk approve"}
+              {bulkPaying ? "Queuing…" : "Bulk Approve"}
             </Button>
           </div>
         </div>
@@ -402,7 +402,7 @@ const AdminPayoutBatches = () => {
               }}
               disabled={!holdReasonDraft?.reason.trim()}
             >
-              Hold for review
+              Hold for Review
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -444,7 +444,7 @@ const AdminPayoutBatches = () => {
               }}
               disabled={!denyDraft?.reason.trim()}
             >
-              Deny payout
+              Deny Payout
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -214,7 +214,7 @@ export function HelperRevisionCard({
           }}
         >
           <Wrench className="w-3.5 h-3.5 mr-1" />
-          {accepting ? "Acknowledged…" : "I'll fix it"}
+          {accepting ? "Acknowledged…" : "I'll Fix It"}
         </Button>
         <Button
           size="sm"

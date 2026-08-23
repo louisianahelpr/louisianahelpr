@@ -151,7 +151,7 @@ export function InviteForm({
             }
           }}
         >
-          Copy link
+          Copy Link
         </Button>
         <Button variant="ghost" className="h-9 flex-1 text-ds-12" onClick={() => setInviteUrl(null)}>
           Done
@@ -243,7 +243,7 @@ export function InviteForm({
           onClick={() => inviteMut.mutate()}
           disabled={!contact.trim() || inviteMut.isPending}
         >
-          {inviteMut.isPending ? "Creating…" : "Create invite link"}
+          {inviteMut.isPending ? "Creating…" : "Create Invite Link"}
         </Button>
       </div>
     </div>

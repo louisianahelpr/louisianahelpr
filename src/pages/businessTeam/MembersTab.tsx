@@ -235,7 +235,7 @@ const MembersTab = ({
                 {opt.label}
                 {opt.key === "year" && annualMonthsFree > 0 && (
                   <span className="ml-1.5 text-ds-10 text-primary">
-                    {annualMonthsFree} months free
+                    {annualMonthsFree} Months Free
                   </span>
                 )}
               </button>
@@ -292,7 +292,7 @@ const MembersTab = ({
                       ) : isDowngrade && !wouldFitCurrent ? (
                         `Remove ${totalSlots - tierSeats} seat${totalSlots - tierSeats === 1 ? "" : "s"} first`
                       ) : (
-                        "Switch via portal"
+                        "Switch via Portal"
                       )}
                     </Button>
                   )}

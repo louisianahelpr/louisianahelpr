@@ -95,7 +95,7 @@ export function TwoFactorCard() {
             aria-label="Turn off two-step verification"
             onClick={() => setDisableOpen(true)}
           >
-            Turn off
+            Turn Off
           </Button>
         ) : (
           <Button
@@ -105,7 +105,7 @@ export function TwoFactorCard() {
             aria-label="Turn on two-step verification"
             onClick={() => setEnrollOpen(true)}
           >
-            Turn on
+            Turn On
           </Button>
         ))}
       </div>
@@ -307,7 +307,7 @@ function EnrollDialog({
             disabled={verifying || code.length !== 6 || !data}
             className="rounded-ds-md"
           >
-            {verifying ? "Verifying…" : "Verify & turn on"}
+            {verifying ? "Verifying…" : "Verify & Turn On"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -401,7 +401,7 @@ function DisableDialog({
               color: "hsl(var(--parchment))",
             }}
           >
-            {working ? "Turning off…" : "Turn off"}
+            {working ? "Turning Off…" : "Turn Off"}
           </Button>
         </DialogFooter>
       </DialogContent>

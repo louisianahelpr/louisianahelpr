@@ -68,7 +68,7 @@ export function WalletCard({
         <p className="font-serif italic text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Connect your payout account to see your live balance.
         </p>
-        <Button variant="primary" size="sm" className="w-full" onClick={onNavigatePayment}>Set Up Payouts</Button>
+        <Button variant="primary" size="sm" className="w-full" onClick={onNavigatePayment}>Set up Payouts</Button>
       </div>
     );
   }
@@ -172,7 +172,7 @@ export function WalletCard({
               }}
               className="h-8 text-ds-11 gap-1.5 shrink-0"
             >
-              <Zap className="w-3.5 h-3.5" /> Cash out
+              <Zap className="w-3.5 h-3.5" /> Cash Out
             </Button>
           </div>
         );

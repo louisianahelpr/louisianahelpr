@@ -250,7 +250,7 @@ function AppliedJobCardInner({
                     className="rounded-ds-md"
                     onClick={(e) => { e.stopPropagation(); navigate("/dashboard"); }}
                   >
-                    <Eye className="w-3.5 h-3.5 mr-1.5" /> Browse open jobs
+                    <Eye className="w-3.5 h-3.5 mr-1.5" /> Browse Open Jobs
                   </Button>
                 )}
               </div>

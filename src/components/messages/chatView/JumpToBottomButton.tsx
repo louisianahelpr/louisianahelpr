@@ -66,7 +66,7 @@ export function JumpToBottomButton({
         <ChevronsDown className="w-3 h-3" />
         {firstUnreadOffscreen
           ? `${initialUnreadCountRef.current} new message${initialUnreadCountRef.current === 1 ? "" : "s"}`
-          : "New messages"}
+          : "New Messages"}
       </button>
     </div>
   );

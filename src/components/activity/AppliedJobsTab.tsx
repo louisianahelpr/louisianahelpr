@@ -290,7 +290,7 @@ export const AppliedJobsTab = ({
           action={
             <>
               <Button onClick={() => navigate("/jobs")} className="rounded-ds-md btn-press">
-                <Briefcase className="w-4 h-4 mr-1.5" /> Browse open jobs
+                <Briefcase className="w-4 h-4 mr-1.5" /> Browse Open Jobs
               </Button>
               <p
                 className="font-serif italic text-ds-13 mt-2"
@@ -465,7 +465,7 @@ export const AppliedJobsTab = ({
                 setWithdrawDetail("");
               }}
             >
-              Keep it
+              Keep It
             </Button>
             <Button
               className="flex-1 rounded-ds-md"
@@ -478,7 +478,7 @@ export const AppliedJobsTab = ({
                 color: "hsl(var(--parchment))",
               }}
             >
-              {withdrawingAppId ? "Withdrawing…" : "Confirm withdrawal"}
+              {withdrawingAppId ? "Withdrawing…" : "Confirm Withdrawal"}
             </Button>
           </div>
         </SheetContent>

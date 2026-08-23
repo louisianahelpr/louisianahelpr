@@ -346,7 +346,7 @@ const AdminReports = () => {
                         onClick={() => assignToSelf(report.id)}
                         disabled={updating === report.id}
                       >
-                        <User className="w-3.5 h-3.5 mr-1" /> Assign to me
+                        <User className="w-3.5 h-3.5 mr-1" /> Assign to Me
                       </Button>
                     )}
                     {report.status !== "investigating" && (

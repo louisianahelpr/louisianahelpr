@@ -73,7 +73,7 @@ export function SocialAuthButtons({
     // Apple renders FIRST (top). Apple's HIG asks that Sign in with Apple be at
     // least as prominent as any other third-party option; identical full-width
     // rows with Apple leading satisfies that.
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-8">
       <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} />
       <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} />
     </div>

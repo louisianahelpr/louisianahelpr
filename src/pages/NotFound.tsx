@@ -86,7 +86,7 @@ const NotFound = () => {
               onClick={() => (window.history.length <= 1 ? navigate("/") : window.history.back())}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Go back
+              Go Back
             </Button>
             <Button
               asChild
@@ -95,7 +95,7 @@ const NotFound = () => {
             >
               <Link to="/">
                 <Home className="h-4 w-4 mr-2" />
-                Back to home
+                Back to Home
               </Link>
             </Button>
           </div>

@@ -329,7 +329,7 @@ const AdminUsers = () => {
               navigate(`/admin?view=jobs&job=${trimmedQuery}`);
             }}
           >
-            Open job
+            Open Job
           </button>
         </div>
       )}
@@ -343,7 +343,7 @@ const AdminUsers = () => {
             onClick={() => setSearchQuery("")}
             className="text-ds-11 text-primary hover:underline"
           >
-            Clear search
+            Clear Search
           </button>
         )}
       </div>

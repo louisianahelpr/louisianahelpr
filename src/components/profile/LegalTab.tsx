@@ -133,7 +133,7 @@ function DataExportCard() {
             size="sm"
             className="shrink-0"
           >
-            {exporting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />Preparing…</> : "Download my data"}
+            {exporting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />Preparing…</> : "Download My Data"}
           </Button>
         </div>
       </section>

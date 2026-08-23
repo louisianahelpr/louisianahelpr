@@ -201,7 +201,7 @@ export default function FamilyDashboard() {
                 disabled={profilesQuery.isFetching}
                 className="underline underline-offset-2 disabled:opacity-60"
               >
-                Try again
+                Try Again
               </button>
             </p>
           )}

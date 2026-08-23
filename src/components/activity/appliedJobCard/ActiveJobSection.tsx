@@ -60,7 +60,7 @@ export function ActiveJobSection({
           onClick={() => setShowReportCard(true)}
         >
           <ClipboardList className="w-4 h-4 mr-1.5" />
-          Send report card
+          Send Report Card
         </Button>
       )}
 
@@ -135,7 +135,7 @@ export function ActiveJobSection({
               )}
             </div>
           ) : (
-            <Button size="sm" variant="outline" className="w-full" disabled={resolving} onClick={handleMarkFixed}><RefreshCw className={`w-4 h-4 mr-1${resolving ? " animate-spin" : ""}`} /> {resolving ? "Marking…" : "Mark fixed"}</Button>
+            <Button size="sm" variant="outline" className="w-full" disabled={resolving} onClick={handleMarkFixed}><RefreshCw className={`w-4 h-4 mr-1${resolving ? " animate-spin" : ""}`} /> {resolving ? "Marking…" : "Mark Fixed"}</Button>
           )}
         </div>
       )}
@@ -185,7 +185,7 @@ export function ActiveJobSection({
                 }
               >
                 <CheckCircle2 className="w-4 h-4 mr-1" />
-                {label === "Mark Complete" ? "I'm done — request payout" : label}
+                {label === "Mark Complete" ? "I'm Done — Request Payout" : label}
               </Button>
               {tooEarly && (
                 <p className="font-serif italic text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

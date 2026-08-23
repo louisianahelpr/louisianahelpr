@@ -68,8 +68,13 @@ export function buildStarterSentences(job: EnrichedJob | null): StarterSentence[
       sentence: `I've done ${cat} before and can bring the right tools for the job.`,
     },
     {
-      label: "Happy to quote",
-      sentence: `Happy to send a quick quote or answer any questions before you decide.`,
+      // NOT "Happy to quote" (owner: "we don't send quotes, they post their
+      // price"). Bidding was removed — the poster sets the budget and the
+      // helpr applies at it — so a canned line offering to quote described a
+      // negotiation this marketplace does not have, on the one screen where a
+      // helpr is deciding whether to take the posted price.
+      label: "Any questions?",
+      sentence: `Happy to answer any questions before you decide.`,
     },
   ];
 }

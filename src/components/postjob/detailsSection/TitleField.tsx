@@ -1,24 +1,27 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Mic } from "lucide-react";
+import { Check } from "lucide-react";
 import { TITLE_MAX, titlePlaceholders } from "./detailsSectionConstants";
-import type { Dictation } from "./useTitleDictation";
 
 interface TitleFieldProps {
   title: string;
   setTitle: (v: string) => void;
   category: string;
-  dictation: Dictation;
-  startTitleDictation: Dictation["start"];
 }
 
-export function TitleField({
-  title,
-  setTitle,
-  category,
-  dictation,
-  startTitleDictation,
-}: TitleFieldProps) {
+/**
+ * NO DICTATION MIC (owner: "remove the mic").
+ *
+ * It sat inside the field, so the input reserved `pr-24` for a mic plus a
+ * check, and the check itself moved between two positions depending on whether
+ * the browser happened to support SpeechRecognition — one field with four
+ * possible right-hand paddings, on the first thing anyone types when posting a
+ * job. A job title is a handful of words; the keyboard is already open.
+ *
+ * `useTitleDictation` is left in the tree unreferenced rather than deleted —
+ * removing a hook is a separate call from removing a button.
+ */
+export function TitleField({ title, setTitle, category }: TitleFieldProps) {
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
@@ -35,50 +38,16 @@ export function TitleField({
           maxLength={TITLE_MAX}
           autoCapitalize="sentences"
           enterKeyHint="next"
-          // Reserve space for the mic + check icons together so they
-          // never overlap each other or the text.
-          className={
-            dictation.supported
-              ? title.trim().length > 0 ? "pr-24" : "pr-12"
-              : title.trim().length > 0 ? "pr-10" : ""
-          }
+          // One padding, one condition: room for the check when there is a
+          // check, and nothing to reserve when there isn't.
+          className={title.trim().length > 0 ? "pr-10" : ""}
         />
-        {dictation.supported && (
-          <button
-            type="button"
-            onClick={
-              dictation.isListening
-                ? dictation.stop
-                : startTitleDictation
-            }
-            aria-label={dictation.isListening ? "Stop dictation" : "Dictate job title"}
-            aria-pressed={dictation.isListening}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            style={
-              dictation.isListening
-                ? {
-                    background: "hsl(var(--burnt-sienna))",
-                    color: "hsl(var(--parchment))",
-                    boxShadow: "var(--elev-sienna-glow)",
-                  }
-                : {
-                    background: "hsl(var(--parchment) / 0.7)",
-                    color: "hsl(var(--bark))",
-                    border: "0.5px solid hsl(var(--olivewood) / 0.22)",
-                  }
-            }
-          >
-            <Mic
-              className={`w-4 h-4 ${dictation.isListening ? "motion-safe:animate-pulse" : ""}`}
-              strokeWidth={2}
-            />
-          </button>
-        )}
-        {title.trim().length > 0 && !dictation.supported && (
-          <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
-        )}
-        {title.trim().length > 0 && dictation.supported && (
-          <Check className="absolute right-14 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+        {title.trim().length > 0 && (
+          <Check
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none"
+            strokeWidth={2.5}
+            aria-hidden
+          />
         )}
       </div>
     </div>

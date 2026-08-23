@@ -3,7 +3,6 @@ import { Briefcase } from "lucide-react";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { CREDENTIAL_TIER_CATEGORIES } from "./detailsSection/detailsSectionConstants";
 import { useAutoCategory } from "./detailsSection/useAutoCategory";
-import { useTitleDictation } from "./detailsSection/useTitleDictation";
 import { CategoryPicker } from "./detailsSection/CategoryPicker";
 import { TitleField } from "./detailsSection/TitleField";
 import { DescriptionField } from "./detailsSection/DescriptionField";
@@ -48,7 +47,6 @@ export function DetailsSection({
   const { autoCategoryArmedRef, autoCategoryHint, setAutoCategoryHint } =
     useAutoCategory({ title, category, setCategory });
 
-  const { dictation, startTitleDictation } = useTitleDictation({ title, setTitle });
 
   return (
     <SectionCard
@@ -69,8 +67,6 @@ export function DetailsSection({
         title={title}
         setTitle={setTitle}
         category={category}
-        dictation={dictation}
-        startTitleDictation={startTitleDictation}
       />
 
       <DescriptionField

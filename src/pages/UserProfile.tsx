@@ -26,7 +26,6 @@ import { ProfileHeaderCard } from "./userProfile/ProfileHeaderCard";
 import BackgroundCheckCard from "@/components/profile/BackgroundCheckCard";
 import { ProfileStatsGrid } from "./userProfile/ProfileStatsGrid";
 import { RatingBreakdown } from "./userProfile/RatingBreakdown";
-import { PosterReputationCard } from "./userProfile/PosterReputationCard";
 import { ReviewsSection } from "./userProfile/ReviewsSection";
 import { JobsList } from "./userProfile/JobsList";
 import { useUserProfileData } from "./userProfile/useUserProfileData";
@@ -378,7 +377,14 @@ const UserProfile = () => {
             below. Outer container widens per Profile.tsx precedent so
             desktop uses the full app-shell width instead of an lg-column
             marooned in dead margin. */}
-        <div className="page-measure mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-12 items-start">
+        {/* ONE COLUMN at every width (owner: "should all be in 1 column", and
+            "fix this to all go up and down"). The 12-col split put the identity
+            card in a narrow left rail — where "You've worked together 1 time"
+            wrapped to two lines and the bio to three — while three stat tiles
+            sat alone across a much wider right column with a screen of empty
+            page under them. A profile is read top to bottom; splitting it made
+            the left half cramped and the right half hollow. */}
+        <div className="page-measure mx-auto flex flex-col gap-6 items-stretch">
           {/* ── LEFT COLUMN (masthead) ──
               Identity, trust chips, bio, career milestones. Sticky at
               lg+ so it stays visible as the viewer scrolls through the
@@ -386,7 +392,7 @@ const UserProfile = () => {
               working under `items-start` (otherwise the grid would
               stretch this column to match the taller right column and
               the sticky element would have nothing to slide against). */}
-          <div className="lg:col-span-4 xl:col-span-3 space-y-5 lg:sticky lg:top-6 lg:self-start">
+          <div className="space-y-5">
             {/* Profile Card — brand-aligned hero. Avatar with tier ring,
                 italic display name, italic serif meta and bio. */}
             <ProfileHeaderCard
@@ -448,7 +454,7 @@ const UserProfile = () => {
               availability, portfolio, member-since, report affordance.
               This column takes the scroll so the masthead can stay
               pinned as the viewer reads reviews. */}
-          <div className="lg:col-span-8 xl:col-span-9 space-y-5">
+          <div className="space-y-5">
             {/* Profile completion nudge — only shown to the owner, hidden at 100% */}
             {isOwnProfile && userId && (
               <ProfileCompletionCard
@@ -503,14 +509,13 @@ const UserProfile = () => {
                 reviews expansion; on its own it was a chart with no context. */}
             {showReviews && <RatingBreakdown reviews={reviews} />}
 
-            {/* ── As a job poster (1c) ── Collapsed by default: it now opens
-                only when the viewer taps the "Posted" stat box, so the page
-                leads with identity rather than a wall of always-on panels. */}
-            {showPostedJobs && <PosterReputationCard
-              postedTotalCount={postedTotalCount}
-              postedCancelledCount={postedCancelledCount}
-              posterReputation={posterReputation}
-            />}
+            {/* No "As a job poster — N jobs posted" panel (owner: "remove, it
+                already says this above"). It opened from the "Posted" stat box
+                and its headline number WAS that stat box's number, restated a
+                few hundred pixels lower with a label around it. Tapping a stat
+                to be told the stat again is the definition of a dead expand.
+                The posted-jobs LIST it reveals below is the useful half and
+                still opens on the same tap. */}
 
             {/* Skill endorsements — pills showing the helper's endorsed
                 skills. Past clients (mutual job count > 0) see a + button

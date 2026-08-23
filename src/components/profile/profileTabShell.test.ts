@@ -3,81 +3,79 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 /**
- * Every Profile tab wears the same shell.
+ * EVERY Profile tab wears the SAME shell. Asserted against the router, which
+ * is where the shells actually live.
  *
- * `ProfileTabHeader` already gave them a shared title row, but each tab builds
- * its own wrapper around it and those had drifted — `SubscriptionTab` used
- * `flex flex-col min-h-full gap-4 pb-4` where the other eleven used
- * `space-y-4`, so Membership's title row and body sat on a different rhythm
- * from Security, Legal and Earnings, and `min-h-full` stretched the tab to the
- * panel even on short content. The owner reported it twice as "all profile tabs
- * should share the same shell", and the second time as "the profile tabs still
- * have not been fixed".
+ * The previous version of this test globbed `src/components/profile/*Tab.tsx`
+ * and checked each file's own wrapper. All thirteen passed — and the tabs were
+ * still visibly inconsistent, because SEVEN of them do not have a `*Tab.tsx`
+ * file at all: their wrapper is written inline in ProfileTabPanels. Scanning
+ * the components proved something true about the wrong set of files, and the
+ * owner reported the same defect more than ten times while the suite stayed
+ * green. Found by dumping the router's actual wrappers:
  *
- * This is deliberately a STATIC source check rather than a rendered one: the
- * drift is a className, it costs milliseconds to catch here, and the failure
- * mode it guards is somebody adding a thirteenth tab with its own idea of the
- * body rhythm. If the shared value ever needs to change, change SHELL below and
- * the test tells you every file to change with it.
+ *   space-y-3 .............................................. schedule,
+ *                                    posted_jobs, completed_jobs, warnings
+ *   space-y-5 .............................................. referral
+ *   h-full min-h-0 flex flex-col gap-3 overflow-hidden ...... notifications
+ *   space-y-4 .............................................. credentials
+ *
+ * Four different shells. So this reads ProfileTabPanels.tsx and requires every
+ * `{tab === "…" && (<div className="…">` to be exactly SHELL — no allowance
+ * for "contains", which is what let `space-y-4 pb-4` and friends through.
  */
 const SHELL = "space-y-4";
 
-/** Every tab panel that renders its own ProfileTabHeader. */
-const TABS = [
-  "AccessibilityTab",
-  "AvailabilityTab",
-  "CredentialsTab",
-  "EarningsTab",
-  "JobListTab",
-  "LegalTab",
-  "ReviewsTab",
-  "SavedHelpersTab",
-  "ScheduleTab",
-  "ScheduleAvailabilityTab",
-  "SecurityTab",
-  "SubscriptionTab",
-  "WarningsTab",
-];
+const SRC = readFileSync(
+  resolve(__dirname, "../../pages/profile/ProfileTabPanels.tsx"),
+  "utf8",
+);
 
-const read = (name: string) =>
-  readFileSync(resolve(__dirname, `${name}.tsx`), "utf8");
+/** Every tab branch in the router, with the wrapper class it opens with. */
+function routerWrappers(): Array<{ tab: string; wrapper: string }> {
+  const re = /\{tab === "([a-z_]+)"[^&]*&&[^(]*\(\s*\n\s*<div className="([^"]*)"/g;
+  const out: Array<{ tab: string; wrapper: string }> = [];
+  for (const m of SRC.matchAll(re)) out.push({ tab: m[1], wrapper: m[2] });
+  return out;
+}
 
 describe("Profile tabs share one shell", () => {
-  it("every tab's outermost wrapper uses the shared body rhythm", () => {
-    const wrong: string[] = [];
-    for (const name of TABS) {
-      let src: string;
-      try {
-        src = read(name);
-      } catch {
-        continue; // tab removed or renamed — the list below catches that
-      }
-      // The wrapper is the div immediately enclosing this tab's own
-      // ProfileTabHeader. Take the LAST className that opens before it, which
-      // is the innermost enclosing wrapper on the top-level return.
-      const headerAt = src.indexOf("<ProfileTabHeader");
-      if (headerAt === -1) continue;
-      const before = src.slice(0, headerAt);
-      const opens = [...before.matchAll(/<div[^>]*className="([^"]*)"/g)];
-      const wrapper = opens.length ? opens[opens.length - 1][1] : "";
-      if (!wrapper.includes(SHELL)) {
-        wrong.push(`${name}: "${wrapper}"`);
-      }
-    }
-    expect(wrong, `tabs not on the shared shell ("${SHELL}")`).toEqual([]);
+  it("finds the tab branches at all (guards the regex rotting)", () => {
+    // If the router is refactored and this stops matching, the test would
+    // vacuously pass on an empty list — which is exactly how the old one hid a
+    // real defect. Fail loudly instead.
+    expect(routerWrappers().length).toBeGreaterThanOrEqual(5);
   });
 
-  it("every tab in the list still exists", () => {
-    const missing = TABS.filter((name) => {
+  it("every tab rendered by the router uses the shared shell exactly", () => {
+    const wrong = routerWrappers()
+      .filter((r) => r.wrapper !== SHELL)
+      .map((r) => `${r.tab}: "${r.wrapper}"`);
+    expect(wrong, `tabs off the shared shell ("${SHELL}")`).toEqual([]);
+  });
+
+  it("tabs that own their wrapper use it too", () => {
+    // The other half: components that render their own ProfileTabHeader.
+    const names = [
+      "AccessibilityTab", "AvailabilityTab", "CredentialsTab", "EarningsTab",
+      "JobListTab", "LegalTab", "ReviewsTab", "SavedHelpersTab", "ScheduleTab",
+      "ScheduleAvailabilityTab", "SecurityTab", "SubscriptionTab", "WarningsTab",
+    ];
+    const wrong: string[] = [];
+    for (const name of names) {
+      let src: string;
       try {
-        read(name);
-        return false;
+        src = readFileSync(resolve(__dirname, `${name}.tsx`), "utf8");
       } catch {
-        return true;
+        wrong.push(`${name}: file missing — update this list`);
+        continue;
       }
-    });
-    // A renamed or deleted tab silently drops out of the check above, which is
-    // exactly how a list like this rots into covering nothing.
-    expect(missing, "listed tabs with no file — update TABS").toEqual([]);
+      const at = src.indexOf("<ProfileTabHeader");
+      if (at === -1) continue;
+      const opens = [...src.slice(0, at).matchAll(/<div[^>]*className="([^"]*)"/g)];
+      const wrapper = opens.length ? opens[opens.length - 1][1] : "";
+      if (!wrapper.split(/\s+/).includes(SHELL)) wrong.push(`${name}: "${wrapper}"`);
+    }
+    expect(wrong, `tab components off the shared shell`).toEqual([]);
   });
 });

@@ -235,7 +235,7 @@ export const ProfileTabPanels = ({
       )}
 
       {tab === "schedule" && user && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {scheduleQuery.isError && (
             <ProfileSectionError section="your schedule" onRetry={() => { scheduleQuery.refetch(); }} />
           )}
@@ -264,7 +264,7 @@ export const ProfileTabPanels = ({
       )}
 
       {tab === "posted_jobs" && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {inlineJobsQuery.isError && (
             <ProfileSectionError section="your posted jobs" onRetry={() => { inlineJobsQuery.refetch(); }} />
           )}
@@ -275,7 +275,7 @@ export const ProfileTabPanels = ({
       )}
 
       {tab === "completed_jobs" && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {inlineJobsQuery.isError && (
             <ProfileSectionError section="your completed jobs" onRetry={() => { inlineJobsQuery.refetch(); }} />
           )}
@@ -308,7 +308,7 @@ export const ProfileTabPanels = ({
       )}
 
       {tab === "notifications" && (
-        <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div className="space-y-4">
           <ProfileTabHeader
             title="Notifications"
             onBack={onBackFromTab}
@@ -345,7 +345,7 @@ export const ProfileTabPanels = ({
       )}
 
       {tab === "referral" && user && (
-        <div className="space-y-5">
+        <div className="space-y-4">
           <ProfileTabHeader
             title="Referrals"
             onBack={onBackFromTab}
@@ -363,7 +363,7 @@ export const ProfileTabPanels = ({
       )}
 
       {tab === "warnings" && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {violationsQuery.isError && (
             <ProfileSectionError
               section="your warnings & strikes"

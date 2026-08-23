@@ -44,7 +44,7 @@ import {
  *     compact header below carries the canonical BackButton, which is the
  *     page's only back affordance.
  *   • Magazine layout (left masthead / right content) on the standard
- *     `max-w-5xl → 2xl:max-w-[90rem]` container, so the form fills the page at
+ *     `page-measure` container, so the form fills the page at
  *     every breakpoint instead of floating in a narrow column with dead side
  *     gutters. The rail inset is NOT applied here — it comes from the global
  *     `#root` padding rule for document-scroll routes (see CLAUDE.md).
@@ -132,7 +132,7 @@ function validate(draft: Draft, identified: boolean): Partial<Record<FieldKey, s
  */
 const PageIntro = () => (
   <section className="container mx-auto px-5">
-    <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
+    <div className="page-measure mx-auto">
       <div className="flex items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8">
         <div className="shrink-0">
           <BackButton />
@@ -295,7 +295,7 @@ const Support = () => {
       <PageIntro />
 
       <section className="container mx-auto px-5 pt-0 pb-8">
-        <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
+        <div className="page-measure mx-auto">
 
           {/* Right column — the form (or its success state). */}
           {/* Full 12 columns now that the left masthead is gone — at

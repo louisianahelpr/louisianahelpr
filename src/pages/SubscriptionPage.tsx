@@ -293,7 +293,7 @@ export default function SubscriptionPage() {
           The container/padding match the sections below so the title lines
           up with the plans grid. */}
       <section className="px-5 sm:px-8 lg:px-12">
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+        <div className="mx-auto page-measure">
           <div className="flex items-center gap-3 mt-2 md:mt-6 mb-2 md:mb-4">
             <div className="shrink-0">
 {/* to="/" — NOT bare history-back. These are top-nav / footer
@@ -328,7 +328,7 @@ export default function SubscriptionPage() {
             side by side and the gap is horizontal, but at phone width it is a
             48px horizontal rule of nothing between the billing toggle and the
             first plan — pure fold budget. */}
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 lg:gap-16 md:items-start">
+        <div className="mx-auto page-measure grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 lg:gap-16 md:items-start">
           {/* Left masthead */}
           <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32">
             {/* "Membership" is the canonical user-facing noun for this feature
@@ -926,7 +926,7 @@ export default function SubscriptionPage() {
             left cell, so the button centres under the CARD COLUMN rather than
             under the whole section. Centred on the full width it sat well left
             of the cards, since the masthead occupies the left third. */}
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-12 md:gap-10 lg:gap-16">
+        <div className="mx-auto page-measure mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-12 md:gap-10 lg:gap-16">
           <div className="hidden md:block md:col-span-4 lg:col-span-3" aria-hidden />
           <div className="md:col-span-8 lg:col-span-9 flex justify-center">
             <button
@@ -1115,7 +1115,7 @@ export default function SubscriptionPage() {
         ref={benefitsRef}
         className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-24 pb-12 sm:pb-16 lg:pb-24"
       >
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-center">
+        <div className="mx-auto page-measure grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-center">
           {/* Left masthead */}
           <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
             <span className="text-display-eyebrow">Why upgrade</span>

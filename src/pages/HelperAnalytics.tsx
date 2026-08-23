@@ -27,7 +27,7 @@ const HelperAnalytics = () => {
         onBack={() => navigate("/profile?tab=earnings")}
       />
 
-      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
         <HelperAnalyticsBody />
       </div>
     </div>

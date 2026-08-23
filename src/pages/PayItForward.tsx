@@ -321,7 +321,7 @@ export default function PayItForward() {
         backTo="/profile"
       />
 
-      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
         {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
         {/* Spans full width above the split so the status is visible regardless
             of which column the eye lands on first. */}

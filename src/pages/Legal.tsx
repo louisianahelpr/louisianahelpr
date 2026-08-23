@@ -192,7 +192,7 @@ const Legal = () => {
   // preserved and the cross-page mismatch is gone. Change them as a pair.
   const webHeader = (
     <section className="px-5 sm:px-8 lg:px-12">
-      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
+      <div className="page-measure mx-auto">
         <div className="flex items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8">
           <div data-print-hide className="shrink-0">
 {/* to="/" — NOT bare history-back. These are top-nav / footer
@@ -212,12 +212,6 @@ const Legal = () => {
                 and canonical via usePageMeta, which is what SEO reads. */}
             <h1 className="text-page-title leading-tight truncate">Legal</h1>
           </div>
-          <span
-            className="shrink-0 text-ds-11 font-sans tabular-nums"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Updated {LAST_UPDATED[tab]}
-          </span>
         </div>
       </div>
     </section>
@@ -438,7 +432,7 @@ const Legal = () => {
           contentClassName="bg-premium-page"
         >
           <div className="px-5 pt-3">
-            <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-3">
+            <div className="page-measure mx-auto space-y-3">
               {nativeHeaderRow}
               {/* Terms / Rules / Privacy stay PUT while the policy scrolls.
                   They used to scroll away with the body — so on a document
@@ -499,7 +493,7 @@ const Legal = () => {
         {webHeader}
 
         <div className="px-5 sm:px-8 lg:px-12 pb-8">
-          <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto space-y-3">
+          <div className="page-measure mx-auto space-y-3">
             {/* Opaque, not just blurred. `backdrop-blur-md` alone left the
                 band see-through: scrolled policy text read straight through
                 the pinned control ("…liability", "…not a party" ghosting
@@ -511,11 +505,15 @@ const Legal = () => {
               className="sticky z-30 -mx-5 px-5 py-2"
               style={{
                 top: webBandStickyTop,
-                // Solid, not `bg-premium-page`: the web branch renders inside
-                // PublicLayout's warmth/mesh background, so the app-canvas
-                // gradient would read as a mismatched stripe here. `--background`
-                // is the base both are built on.
-                backgroundColor: "hsl(var(--background))",
+                // No solid fill (owner). `--background` is a flat neutral and
+                // PublicLayout's ground is a warm mesh gradient, so painting the
+                // band with it produced exactly the mismatched stripe the old
+                // note here was worried about — a grey slab sitting across a
+                // warm page. A blur keeps the band doing its real job (giving
+                // scrolled policy text somewhere to disappear) without
+                // introducing a colour that has to match anything.
+                backdropFilter: "blur(14px)",
+                WebkitBackdropFilter: "blur(14px)",
               }}
             >
               <div
@@ -542,6 +540,18 @@ const Legal = () => {
                 grid wrapper would leave that column empty — a dead rail this
                 project treats as a layout failure. */}
             {body}
+
+            {/* "Updated <month>" lives at the FOOT of the policy (owner). It
+                sat in the header row beside the title, where it competed with
+                the page name for the first thing you read — and it answers a
+                question you only ask after reading the document, not before.
+                Web branch only; the native screen is untouched. */}
+            <p
+              className="pt-6 text-ds-11 font-sans tabular-nums"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+            >
+              Updated {LAST_UPDATED[tab]}
+            </p>
           </div>
         </div>
       </Tabs>

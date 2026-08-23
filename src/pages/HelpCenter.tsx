@@ -276,7 +276,7 @@ const HelpCenter = () => {
           Container + padding match every section below so the title lines up
           with the topic / FAQ columns. */}
       <section className="px-5 sm:px-8 lg:px-12">
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+        <div className="mx-auto page-measure">
           <div className="flex items-center gap-3 mt-6 mb-4 md:mt-8 md:mb-5">
             <div className="shrink-0">
               <BackButton />
@@ -411,7 +411,7 @@ const HelpCenter = () => {
         aria-labelledby="faq-heading"
         className="px-5 sm:px-8 lg:px-12 pt-6 md:pt-16 lg:pt-24 pb-8 scroll-mt-24"
       >
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-10 lg:gap-16">
+        <div className="mx-auto page-measure grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-10 lg:gap-16">
           {/* Left column — masthead. Same two-presentation h2 as the Topics
               section above (see the note there): a plain section label at
               `--headline-section` on the app surface, the editorial two-tone
@@ -521,7 +521,7 @@ const HelpCenter = () => {
           which is exactly how the old zero-results contact affordance managed
           to be dead for a chunk of visitors. */}
       <section className="px-5 sm:px-8 lg:px-12 pb-12 md:pb-16 lg:pb-24">
-        <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+        <div className="mx-auto page-measure">
           <div
             className="rounded-2xl px-5 py-4 sm:px-6 sm:py-5 text-center"
             style={{

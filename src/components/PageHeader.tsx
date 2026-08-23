@@ -108,7 +108,7 @@ interface PageHeaderProps {
 type WidthSpec = { outer: string; inner?: string };
 
 const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
-  default: { outer: "max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-5 lg:px-8 xl:px-12" },
+  default: { outer: "page-measure px-5 lg:px-8 xl:px-12" },
   lg: { outer: "max-w-lg px-5 lg:px-8" },
   "2xl": { outer: "max-w-2xl px-5 lg:px-8" },
   "3xl": { outer: "max-w-3xl px-5 lg:px-8" },
@@ -136,7 +136,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
   // actually uses. Body: FamilyDashboard — copied from its column verbatim so
   // the back button + h1 land in the same column as the content beneath them.
   "lg-5xl-6xl-7xl-tight": {
-    outer: "max-w-lg md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] px-4 md:px-6 lg:px-4",
+    outer: "max-w-lg md:page-measure px-4 md:px-6 lg:px-4",
   },
 
   // Wide-reading body that grows to 7xl on large desktops. Body: PayItForward.

@@ -295,7 +295,7 @@ const UserProfile = () => {
         // used to be "5xl" while loading and "lg" once data landed, so the
         // title jumped hundreds of pixels the moment the query resolved. The
         // value mirrors the loaded body below — `container mx-auto px-5` >
-        // `max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto`.
+        // `page-measure mx-auto`.
         width="container-lg-5xl-6xl"
         eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
         title={isOwnProfile ? "Profile Review" : "Profile"}
@@ -378,7 +378,7 @@ const UserProfile = () => {
             below. Outer container widens per Profile.tsx precedent so
             desktop uses the full app-shell width instead of an lg-column
             marooned in dead margin. */}
-        <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-12 items-start">
+        <div className="page-measure mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-12 items-start">
           {/* ── LEFT COLUMN (masthead) ──
               Identity, trust chips, bio, career milestones. Sticky at
               lg+ so it stays visible as the viewer scrolls through the

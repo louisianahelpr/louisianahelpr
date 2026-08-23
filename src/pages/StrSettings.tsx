@@ -213,7 +213,7 @@ export default function StrSettings() {
         backTo="/profile"
       />
 
-      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
 
         <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
           {/* Desktop-only left rail.

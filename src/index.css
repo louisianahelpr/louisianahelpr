@@ -999,6 +999,29 @@ html.web-desktop {
    footer email link) still wins; plain links fall back to inline-block, which
    is required for the transform lift to apply to otherwise-inline anchors. */
 @layer components {
+  /**
+   * The one page measure.
+   *
+   * Was hand-copied as `page-measure`
+   * into 17 files. That capped every page at 1440px while the marketing nav
+   * ran edge to edge, so on a 1920 monitor the logo sat 48px from the left and
+   * the content it introduced started at 240px — the page's own header and body
+   * did not share an edge, and the gap grew with the screen.
+   *
+   * No max-width: the column now runs to whatever horizontal padding its
+   * wrapper sets (px-5 / sm:px-8 / lg:px-12 — the same scale the nav uses), so
+   * content lines up with the logo at every size and a big screen actually
+   * fills. Prose that needs a shorter line still caps itself locally (see the
+   * lede in HelpCenter), which is where a reading measure belongs — on the
+   * text, not on the whole page.
+   *
+   * One definition so it cannot drift back into 17 copies.
+   */
+  .page-measure {
+    width: 100%;
+    margin-inline: auto;
+  }
+
   .link-standard {
     display: inline-block;
     text-decoration-line: underline;

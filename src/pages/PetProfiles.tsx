@@ -144,7 +144,7 @@ const PetProfiles = () => {
         width="lg-5xl-6xl"
       />
 
-      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto px-5 lg:px-8 pt-4">
+      <div className="page-measure mx-auto px-5 lg:px-8 pt-4">
         {/* ─── Mobile (default): stacked list ─────────────────────────── */}
         <div className="lg:hidden space-y-3">
           {isLoading && (

@@ -302,7 +302,7 @@ const useInViewOnce = () => {
  */
 const PageIntro = () => (
   <section className="px-5 sm:px-8 lg:px-12">
-    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem]">
+    <div className="mx-auto page-measure">
       <div className="flex items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8">
         <div className="shrink-0">
 {/* to="/" — NOT bare history-back. These are top-nav / footer
@@ -341,7 +341,7 @@ const BuiltForSection = () => {
       ref={ref}
       className="px-5 sm:px-8 lg:px-12 pt-10 sm:pt-12 lg:pt-16 pb-12 sm:pb-16 lg:pb-24"
     >
-      <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
+      <div className="mx-auto page-measure grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
         <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
           <span className="text-display-eyebrow">Built for</span>
           <h2
@@ -459,7 +459,7 @@ const TierComparison = () => {
   // section — the masthead owns the left third, so plain `justify-center` put
   // it well left of the cards it belongs to. Same shape as /subscription's.
   return (
-    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-12 md:gap-10 lg:gap-16">
+    <div className="mx-auto page-measure mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-12 md:gap-10 lg:gap-16">
       <div className="hidden md:block md:col-span-4 lg:col-span-3" aria-hidden />
       <div className="md:col-span-8 lg:col-span-9 flex justify-center">
         <button
@@ -665,7 +665,7 @@ const PricingSection = () => {
   // header), so the old pt-24/32/40 — sized to clear a full-height hero — left
   // a large dead band above the plans.
   <section className="px-5 sm:px-8 lg:px-12 pt-0 pb-12 sm:pb-16 lg:pb-24">
-    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
+    <div className="mx-auto page-measure grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
       <div className="md:col-span-4 lg:col-span-3 text-center md:text-left">
         <span className="text-display-eyebrow">Pricing</span>
         <p
@@ -998,7 +998,7 @@ const BusinessFaqSection = () => (
     aria-labelledby="business-faq-heading"
     className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
   >
-    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
+    <div className="mx-auto page-measure grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-10 lg:gap-16 md:items-start">
       <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
         <span className="text-display-eyebrow">Frequent</span>
         <h2
@@ -1057,7 +1057,7 @@ const BusinessFaqSection = () => (
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ClosingSection = () => (
   <section className="px-5 sm:px-8 lg:px-12 pt-24 sm:pt-32 lg:pt-40 pb-8">
-    <div className="mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] flex flex-col items-center text-center">
+    <div className="mx-auto page-measure flex flex-col items-center text-center">
       {/* Trust band — Montserrat semibold caps, separated by gold-warm dots. */}
       <div
         className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-12 sm:mb-16 lg:mb-20 text-ds-12"

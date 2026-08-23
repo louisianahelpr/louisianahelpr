@@ -59,7 +59,7 @@ const Footer = () => (
       color: "hsl(var(--olivewood))",
     }}
   >
-    <div className="container mx-auto max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] pt-6 md:pt-8 pb-2">
+    <div className="page-measure pt-6 md:pt-8 pb-2">
       {/* Columns go side-by-side from sm (640px), not md (768px). At tablet
           widths the old md-only grid stacked brand + Company + Legal + Follow
           into ONE tall column, which made the footer dominate the page. From

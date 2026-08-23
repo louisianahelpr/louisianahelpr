@@ -124,7 +124,20 @@ export function DashboardTitleBar({
   }
   return (
     <div className="flex items-center justify-between gap-2">
-      <HelprMark to={emblemTo} size="sm" emblemOnly />
+      {/* `dashboard-title-emblem` is hidden on web-desktop by index.css — the
+          new full-bleed DashboardHeader above the title card now carries the
+          emblem there, so showing it here too would say "Helpr" twice in one
+          screen. Phone width and the native app keep it: they have no
+          full-bleed header, so this is still the only emblem on screen.
+          Gated to the DEFAULT path (no custom `trailing`) for the same reason
+          as the bell below: the guest feed (custom `trailing`) has no
+          full-bleed header of its own, so its emblem must never be hidden. */}
+      <HelprMark
+        to={emblemTo}
+        size="sm"
+        emblemOnly
+        className={trailing ? "" : "dashboard-title-emblem"}
+      />
       {/* The negative margin pulls a trailing ICON button's own inner padding
           back to the card's optical edge, so the bell lines up with the content
           below instead of sitting inset from it — and buys 8px of the row back.
@@ -134,7 +147,15 @@ export function DashboardTitleBar({
       <div className={`flex items-center gap-2 shrink-0${trailing ? "" : " -mr-2"}`}>
         {status}
         {actions}
-        {trailing ?? <NotificationPanel />}
+        {/* Only the DEFAULT bell (no custom `trailing` passed) is hidden on
+            web-desktop — same duplicate-chrome reasoning as the emblem above.
+            The guest feed's custom `trailing` (Log In / Get Started) is never
+            wrapped in this class, so it is untouched on every width. */}
+        {trailing ?? (
+          <span className="dashboard-title-bell">
+            <NotificationPanel />
+          </span>
+        )}
       </div>
     </div>
   );

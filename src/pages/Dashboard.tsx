@@ -14,6 +14,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 // guest feed cannot drift apart on the one measurement that makes the row
 // read as a band of chrome rather than a card.
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
 import DashboardInProgressBadge from "@/components/dashboard/DashboardInProgressBadge";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
@@ -239,6 +240,11 @@ const Dashboard = () => {
       <PageScaffold
         animate
         panelElevation="raised"
+        // Full-bleed app bar — web-desktop ONLY. Passing it unconditionally
+        // would add a second, in-flow sticky header on phone/native (where
+        // the "Full-bleed top header" CSS rule never fires), stacking on top
+        // of the title card's own emblem+bell instead of replacing them.
+        header={isWebDesktop ? <DashboardHeader /> : undefined}
         titleCard={<DashboardTitleBar
             status={statusPill}
             actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
@@ -298,12 +304,15 @@ const Dashboard = () => {
     <PageScaffold
       animate
       panelElevation="raised"
-      // No `header` — Home carries no app bar, matching Messages / My Jobs /
-      // My Posts. The brand emblem, the live-job pill and the bell are the
-      // whole of the title card's row; the page's own name is the toolbar's
-      // "Browse jobs" h1 inside the panel (sr-only here — owner decision,
-      // "home will not have a title just the H logo"). PageScaffold takes on
-      // the top safe-area inset itself when no header is passed.
+      // Full-bleed app bar on web-desktop only (see the loading-state
+      // PageScaffold above for why this is conditional, not unconditional).
+      // On phone/native there is still no app bar here, matching Messages /
+      // My Jobs / My Posts: the brand emblem, the live-job pill and the bell
+      // are the whole of the title card's row; the page's own name is the
+      // toolbar's "Browse jobs" h1 inside the panel (sr-only here — owner
+      // decision, "home will not have a title just the H logo"). PageScaffold
+      // takes on the top safe-area inset itself when no header is passed.
+      header={isWebDesktop ? <DashboardHeader /> : undefined}
       titleCard={<DashboardTitleBar
             status={statusPill}
             actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}

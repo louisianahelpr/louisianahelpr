@@ -93,6 +93,7 @@ export function SignupStep2(props: SignupStep2Props) {
     isBusinessSignup,
     companyName,
     setCompanyName,
+    avatarFile,
     avatarPreview,
     onAvatarChange,
     firstName,
@@ -133,6 +134,12 @@ export function SignupStep2(props: SignupStep2Props) {
   const firstNameValid = firstName.trim().length > 0;
   const lastNameValid = lastName.trim().length > 0;
   const phoneValid = phone.replace(/\D/g, "").length >= 10;
+  // Drives the primary button's disabled state below — mirrors the same
+  // required fields validateAboutYouStep enforces on submit (avatar, first
+  // name, last name, date of birth all carry the red asterisk), so a user
+  // sees the button reflect invalidity live instead of only after tapping it.
+  const avatarValid = !!avatarFile;
+  const dobValid = !!dateOfBirth;
 
   return (
     <div className="space-y-6">
@@ -310,7 +317,7 @@ export function SignupStep2(props: SignupStep2Props) {
           className="flex-1 rounded-ds-md"
           size="lg"
           onClick={onContinue}
-          disabled={loading}
+          disabled={loading || !avatarValid || !firstNameValid || !lastNameValid || !dobValid}
         >
           {loading ? "Creating Account…" : "Create Account"}
         </Button>

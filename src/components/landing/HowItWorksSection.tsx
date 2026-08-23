@@ -124,7 +124,13 @@ const HowItWorksSection = () => {
             — so the block above read as narrower than the block below, which is
             what made it look wrong rather than airy. `flex-wrap` lets the toggle
             drop under the heading on a phone, where there is no room for both. */}
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-left">
+        {/* Centered stacked on phone, flush left/right from `sm` (owner: "center
+            how it works and toggle on phone view"). Below `sm` the heading and
+            toggle wrap onto separate lines — matching the desktop flush-left
+            justification there left both hugging the left edge with the whole
+            right half of the screen empty, which reads as off-centre rather than
+            deliberate. */}
+        <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-6 gap-y-3 text-center sm:text-left">
           {/* No eyebrow. `.text-display-eyebrow` is `display:none` app-wide
               since the eyebrow-removal decision, so the "How it works" label
               that used to sit here was rendering as nothing — leaving the

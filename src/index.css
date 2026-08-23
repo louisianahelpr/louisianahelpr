@@ -887,6 +887,21 @@ html.web-desktop {
     padding-top: 3.5rem;
   }
 
+  /* DashboardTitleBar's own emblem + default bell duplicate the full-bleed
+     DashboardHeader above them on web-desktop (Dashboard's title card sits
+     BELOW that header, inset by the sidebar rail — see the "Full-bleed top
+     header" rule above). Hide only those two elements, scoped by their own
+     class hooks so the status pill and the search/filter `actions` sitting in
+     the same row are untouched. The guest feed's custom `trailing` (Log In /
+     Get Started) never gets the `dashboard-title-bell` wrapper, so it is
+     unaffected. Phone width and native have no full-bleed header, so this
+     rule — gated to `web-desktop` — never fires there and the title card's
+     emblem + bell keep showing exactly as before. */
+  html.web-desktop .dashboard-title-emblem,
+  html.web-desktop .dashboard-title-bell {
+    display: none !important;
+  }
+
   /* Activity (My Posts / My Jobs) card column. Gated by web-desktop so the
      native app + phone-width browsers keep their identical single column.
      Used by both the sectioned view (ActivitySectionedView) and the flat

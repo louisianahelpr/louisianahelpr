@@ -41,12 +41,20 @@ import { ActivityEmptyState } from "@/pages/activity/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import SectionBoundary from "@/components/SectionBoundary";
 import { defaultStatusFilterFor } from "@/components/activity/activityConstants";
+import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 
 const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied" }) => {
   usePageTitle(defaultTab === "posted" ? "My Posts — Helpr" : "My Jobs — Helpr");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useCurrentUser();
+  // Full-bleed app bar — web-desktop ONLY. My Posts / My Jobs carry no app
+  // bar on phone/native (ActivityHeader's own title is the page name there),
+  // matching every other Activity/Messages screen; on web-desktop the new
+  // full-bleed DashboardHeader spans above the sidebar rail the same way it
+  // now does on Dashboard.
+  const isWebDesktop = useIsWebDesktop();
   const tab = defaultTab as Tab;
   // My Posts opens on "Active" — a flat list of every non-terminal task
   // (open / accepted / in_progress / …). Completed and Cancelled remain
@@ -221,6 +229,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // bg-premium-page shell with skeleton cards inside the bottom box.
     return (
       <PageScaffold
+        header={isWebDesktop ? <DashboardHeader /> : undefined}
         // Same title-card padding + row height as the loaded header, so the
         // skeleton→loaded swap doesn't thump the card taller or shorter.
         titleCard={
@@ -275,6 +284,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
           panel separated by a 1px hairline. */}
       <PageScaffold
         animate
+        header={isWebDesktop ? <DashboardHeader /> : undefined}
         titleCard={
           isTrulyEmpty ? undefined : (
             <ActivityHeader

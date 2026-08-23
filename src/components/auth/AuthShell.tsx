@@ -7,6 +7,18 @@ import HelprMark from "@/components/HelprMark";
 import BackButton from "@/components/BackButton";
 
 interface AuthShellProps {
+  /**
+   * Drop the marketing Navbar + Footer on the WEB (native is always
+   * chrome-less regardless of this prop). Off by default — every AuthShell
+   * screen keeps the public site's nav/footer, deliberately, so a visitor who
+   * lands mid-flow from search or a shared link isn't stuck with no way out.
+   *
+   * Login and Signup opt OUT of that (owner, 2026-08-23): those two are
+   * reached by clicking "Sign In" / "Get Started" FROM the site, not landed
+   * on cold, so the exit-hatch argument doesn't apply the same way, and a
+   * focused credential/create-account flow reads better without a nav bar
+   * competing for attention above the form. */
+  noWebChrome?: boolean;
   children: ReactNode;
   eyebrow?: string;
   hideBack?: boolean;
@@ -110,6 +122,7 @@ const AuthShell = ({
   anchor = "top",
   title,
   backOnClick,
+  noWebChrome = false,
 }: AuthShellProps) => {
   const showCompactTopBar = compactHeader && !hideHeader;
   const showFullHeader = !compactHeader && !hideHeader;
@@ -139,7 +152,7 @@ const AuthShell = ({
   // shell, and a marketing footer offering an App Store download would be
   // nonsense there. Same split PublicLayout makes.
   const withWebChrome = (content: React.ReactNode) =>
-    isNativePlatform ? content : (
+    isNativePlatform || noWebChrome ? content : (
       <>
         <Navbar solid={false} />
         {/* Spacer clears the FIXED navbar. Without it the nav sat directly on

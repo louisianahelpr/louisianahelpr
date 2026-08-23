@@ -111,12 +111,11 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               where you stood. The landing page still carries that section in
               its own reading order, and the Help Center covers the explaining
               job for everyone else. */}
-          <Link
-            to="/jobs"
-            className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--bark))]"
-          >
-            Jobs
-          </Link>
+          {/* "Jobs" removed from the nav (owner). It's still reachable — the
+              footer's Company column links to it, and "Browse Jobs" is a
+              primary hero CTA — so this is one fewer top-level item competing
+              with the two actions the bar actually exists to drive: Log In /
+              Get Started. */}
           {BUSINESS_ENABLED && <Link
             to="/for-business"
             className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--bark))]"

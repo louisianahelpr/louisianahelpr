@@ -410,6 +410,7 @@ const Signup = () => {
       hideHeader
       centerColumn
       maxWidth="2xl"
+      noWebChrome
       // Step 1 exits to home; step 2 walks the wizard back rather than leaving
       // the page, because exiting from step 2 discards the credentials already
       // typed. Both render through the SAME shell row, so the two steps no

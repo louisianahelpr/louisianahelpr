@@ -256,7 +256,7 @@ const Login = () => {
   };
 
   return (
-    <AuthShell hideHeader centerColumn backTo="/" maxWidth="2xl" title="Sign In">
+    <AuthShell hideHeader centerColumn backTo="/" maxWidth="2xl" title="Sign In" noWebChrome>
       {/* The [back] [Sign in] row now comes from AuthShell's `title` prop —
           it was hand-rolled here, then hand-copied (and drifted) into
           ForgotPassword, Signup and SignupPending. One implementation, in the
@@ -436,7 +436,7 @@ const Login = () => {
             type="submit"
             className="w-full rounded-ds-md"
             size="lg"
-            disabled={loading}
+            disabled={loading || !emailValid || password.length === 0}
           >
             {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing In…</> : "Sign In"}
           </Button>

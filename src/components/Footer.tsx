@@ -86,7 +86,14 @@ const Footer = () => (
         </div>
 
         {/* Company */}
-        <div className="min-[620px]:col-span-3">
+        {/* col-span-2 + order-1 below 500 ONLY: Company takes the full row to
+            itself there (its "Help Center" link is the longest label in the
+            footer), which frees Follow to sit beside Legal on the row below
+            instead of stranded alone with 3 icons in a whole empty row (owner:
+            "follow can fit on the left of legal"). order-none from 500 up
+            restores the natural DOM order the 3-col/4-col layouts already rely
+            on. */}
+        <div className="col-span-2 order-1 min-[500px]:col-span-1 min-[500px]:order-none min-[620px]:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--burnt-sienna))" }}
@@ -158,7 +165,7 @@ const Footer = () => (
             two-row footer even though all four columns fit side by side there.
             One split from 640px up, instead of a tier that only existed to
             wrap. */}
-        <div className="min-[620px]:col-span-2">
+        <div className="order-3 min-[500px]:order-none min-[620px]:col-span-2">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--burnt-sienna))" }}
@@ -186,7 +193,7 @@ const Footer = () => (
 
         {/* Follow — App Store icon (download) + Facebook + Instagram (socials).
             Compact squircle chips, one row. */}
-        <div className="min-[620px]:col-span-3">
+        <div className="order-2 min-[500px]:order-none min-[620px]:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--burnt-sienna))" }}

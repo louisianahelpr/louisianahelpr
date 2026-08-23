@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { Search, X } from "lucide-react";
+import { ChevronLeft, Search, X } from "lucide-react";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import AppShell from "@/components/AppShell";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -64,14 +64,31 @@ const Legal = () => {
   // is derived after render by counting the section cards that survived the
   // filter, so we can show a clean empty state when nothing matches.
   const [query, setQuery] = useState("");
-  // The search input is ALWAYS rendered — there is no collapse/expand toggle
-  // any more. It used to start collapsed to an icon and swap in an input on
-  // tap, which meant the control row changed shape mid-interaction: the tabs
-  // went from three equal 292px columns to a compact right-aligned trio,
-  // slid across the row, and (below `sm`) disappeared entirely. Owner's
-  // call: search always visible, tabs a fixed size. Nothing in this row may
-  // resize or move as a result of switching tabs or focusing search — the
-  // only permitted change is the `sm` breakpoint itself.
+  // The search field collapses to an icon by default (owner, 2026-08-23),
+  // matching HelpCenter/BrowseTasksActions/ActivityHeader's icon-that-expands
+  // pattern elsewhere in this app. It PREVIOUSLY collapsed the same way and
+  // was changed to always-visible because the collapse/expand made the
+  // control row change SHAPE: the tabs went from three equal 292px columns
+  // to a compact right-aligned trio, sliding across the row, and (below
+  // `sm`) vanished entirely. That regression came from the search slot's
+  // width itself changing between states.
+  //
+  // This time the outer search slot (`searchBar` below) keeps the EXACT
+  // same width/order classes in both the icon and the input state — only
+  // the content painted inside that fixed-width slot changes (a 40px icon
+  // button vs. the full input). Because the slot's own footprint never
+  // changes, the tab row after it in the flex layout never moves — verified
+  // with Playwright: identical tab bounding-box before/after toggling
+  // search, and before/after switching tabs while search is open.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setQuery("");
+  };
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   // The sticky Terms/Rules/Privacy band, so a tab switch can scroll to the
@@ -322,41 +339,85 @@ const Legal = () => {
     </TabsList>
   );
 
-  // Always rendered, never toggled. `pr-9` is reserved unconditionally so the
-  // clear button appearing (or leaving) cannot reflow the text; the button
-  // itself is absolutely positioned, so it is out of flow entirely.
+  // The slot SHRINKS to the icon when collapsed and only claims the row when
+  // open. Holding it at `flex-1 min-w-[220px]` in both states — to stop the
+  // tabs shifting — left a 44px icon marooned in a 611px slot with 567px of
+  // dead gap beside it and the tabs jammed against the far edge. Reserving
+  // half the row for a control that is not currently there is a worse defect
+  // than the shift it was avoiding, and the shift is avoidable anyway: the
+  // TABS keep a fixed width of their own (see the tab wrapper below), so they
+  // hold their size whichever state this slot is in — they simply sit further
+  // left when there is more room.
   const searchBar = (
     <div
-      className="relative w-full sm:flex-1 sm:min-w-[220px] order-2 sm:order-1"
+      className={
+        searchOpen
+          ? "relative w-full sm:flex-1 sm:min-w-[220px] order-2 sm:order-1"
+          : "relative self-start shrink-0 order-2 sm:order-1"
+      }
       data-print-hide
     >
-      <Search
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-      />
-      <input
-        type="text"
-        aria-label="Search all policies"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search all policies…"
-        className="w-full h-10 rounded-ds-md pl-9 pr-9 text-ds-13 font-sans bg-card outline-none transition-shadow focus:ring-2 focus:ring-inset"
-        style={{
-          border: "1px solid hsl(var(--bark) / 0.18)",
-          color: "hsl(var(--ink-deep))",
-        }}
-      />
-      {/* CLEAR, not close — there is nothing to close any more. Only shown
-          when there is a query to clear. */}
-      {query !== "" && (
+      {searchOpen ? (
+        <>
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+          />
+          <input
+            ref={searchInputRef}
+            type="text"
+            aria-label="Search all policies"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") closeSearch();
+            }}
+            placeholder="Search all policies…"
+            className="w-full h-10 rounded-ds-md pl-9 pr-16 text-ds-13 font-sans bg-card outline-none transition-shadow focus:ring-2 focus:ring-inset"
+            style={{
+              border: "1px solid hsl(var(--bark) / 0.18)",
+              color: "hsl(var(--ink-deep))",
+            }}
+          />
+          {/* CLEAR — only shown when there is a query to clear. Sits to the
+              left of the always-present close button so the two never
+              overlap. */}
+          {query !== "" && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="absolute right-9 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+          {/* CLOSE — collapses the field back to the icon button and clears
+              the query, same as Escape. */}
+          <button
+            type="button"
+            onClick={closeSearch}
+            aria-label="Close search"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        </>
+      ) : (
         <button
           type="button"
-          onClick={() => setQuery("")}
-          aria-label="Clear search"
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+          onClick={() => setSearchOpen(true)}
+          aria-label="Search all policies"
+          aria-expanded={searchOpen}
+          className="h-10 w-10 rounded-ds-md inline-flex items-center justify-center btn-press hover:bg-primary/5"
+          style={{
+            border: "1px solid hsl(var(--bark) / 0.18)",
+            color: "hsl(var(--olivewood) / 0.8)",
+          }}
         >
-          <X className="w-4 h-4" />
+          <Search className="w-4 h-4" />
         </button>
       )}
     </div>

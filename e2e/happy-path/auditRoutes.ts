@@ -19,6 +19,9 @@
  */
 
 import type { Page } from "@playwright/test";
+// The REAL flag, not a mirrored copy — a duplicate boolean here would
+// drift silently, which is the whole failure mode this guards against.
+import { BUSINESS_ENABLED } from "../../src/config/businessEnabled";
 import { FAKE_CUSTOMER, FAKE_HELPER, mockRpc, mockTable, type MockSupabaseOptions } from "./fixtures";
 import {
   BUSINESS_ID,
@@ -203,7 +206,6 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "account-pending", url: "/account-pending" },
   { name: "account-denied", url: "/account-denied" },
   { name: "account-banned", url: "/account-banned" },
-  { name: "for-business", url: "/for-business" },
   { name: "legal-terms", url: "/legal?tab=terms" },
   { name: "legal-privacy", url: "/legal?tab=privacy" },
   { name: "legal-community", url: "/legal?tab=community" },
@@ -262,6 +264,10 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "not-found", url: "/this-route-does-not-exist" },
 ];
 
+// /for-business is registered as `{BUSINESS_ENABLED && <Route …>}`, so with the
+// flag off it 404s exactly like the /business/* screens. Verified in a browser.
+if (BUSINESS_ENABLED) ANON_SCREENS.push({ name: "for-business", url: "/for-business" });
+
 // Authenticated surfaces. EVERY protected route in src/App.tsx + EVERY one
 // of the 18 Profile tabs (see Tab union in src/pages/Profile.tsx). Each of
 // these is captured under BOTH the customer and helper roles, since the
@@ -284,7 +290,6 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "post-job", url: "/post-job" },
   { name: "payment-success", url: "/payment-success" },
   { name: "complete-profile", url: "/complete-profile" },
-  { name: "business-team", url: "/business/team" },
   { name: "user-profile", url: `/user/${FAKE_HELPER.id}` },
   // All 18 Profile tabs.
   { name: "profile-landing", url: "/profile" },
@@ -365,6 +370,25 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "work-record", url: "/work-record" },
   { name: "wrapped", url: "/wrapped" },
   { name: "post-login", url: "/dashboard/post-login" },
+  // Business screens are appended below, behind the real BUSINESS_ENABLED flag.
+];
+
+/**
+ * The /business/* screens, audited ONLY when the Business product is on.
+ *
+ * All five business routes are registered as `{BUSINESS_ENABLED && <Route …>}`
+ * (App.tsx), and the flag has been false since 2026-08-20. With it off the
+ * routes are not registered at all, so every one of these rows rendered the
+ * NotFound page — under BOTH roles, at every variant — and each 404 was
+ * recorded as a clean audit of a business screen. Verified in a browser:
+ * /business/billing returns the 404 page today.
+ *
+ * Kept rather than deleted, because businessEnabled.ts is explicit that nothing
+ * was removed and flipping the flag restores the feature; deleting these rows
+ * would silently drop the coverage on the day it comes back.
+ */
+const BUSINESS_SCREENS: ScreenSpec[] = [
+  { name: "business-team", url: "/business/team" },
   { name: "business-billing", url: "/business/billing" },
   { name: "business-exports", url: "/business/exports" },
   { name: "business-onboarding", url: "/business/onboarding" },
@@ -407,6 +431,9 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "business-exports-owned", url: "/business/exports", rules: businessRules("verified") },
   { name: "business-onboarding-owned", url: "/business/onboarding", rules: businessRules("verified") },
 ];
+
+if (BUSINESS_ENABLED) AUTHED_SCREENS.push(...BUSINESS_SCREENS);
+
 
 // Admin surface — gated by AdminRoute, which redirects to /dashboard unless
 // user_roles reports role=admin. Override that one table so the real Admin

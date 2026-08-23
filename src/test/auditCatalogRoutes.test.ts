@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 /**
@@ -33,10 +33,37 @@ const catalogSrc = readFileSync(
   "utf8",
 );
 
-/** Every `path=` registered in the router, redirects included. */
-const registered = [...appSrc.matchAll(/<Route\s+path="([^"]+)"/g)].map(
-  (m) => m[1],
-);
+/**
+ * Resolve a build-time feature flag (`export const X = true|false`) out of
+ * src/config. Routes written as `{FLAG && <Route …>}` are NOT registered when
+ * the flag is false, and a text-only scan of App.tsx cannot tell the
+ * difference — the first version of this test could not, and duly passed while
+ * /for-business and all five /business/* routes were 404ing.
+ */
+function flagValue(name: string): boolean | null {
+  for (const file of readdirSync(resolve(repoRoot, "src/config"))) {
+    if (!file.endsWith(".ts")) continue;
+    const src = readFileSync(resolve(repoRoot, "src/config", file), "utf8");
+    const m = new RegExp(`export const ${name}\\s*=\\s*(true|false)`).exec(src);
+    if (m) return m[1] === "true";
+  }
+  return null;
+}
+
+/**
+ * Every `path=` actually registered in the router, redirects included, with
+ * flag-gated routes dropped when their flag is off.
+ */
+const registered = [...appSrc.matchAll(/(\{\s*(\w+)\s*&&\s*)?<Route\s+path="([^"]+)"/g)]
+  .filter((m) => {
+    const guard = m[2];
+    if (!guard) return true;
+    const value = flagValue(guard);
+    // An unknown guard is treated as ON: better to let a row through than to
+    // silently drop coverage because a flag moved out of src/config.
+    return value !== false;
+  })
+  .map((m) => m[3]);
 
 /** Paths whose element tree includes ProtectedRoute. */
 const protectedPaths = new Set(

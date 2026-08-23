@@ -376,7 +376,6 @@ const AdminPayoutBatches = () => {
                 <Pause className="w-3.5 h-3.5" /> Hold payout
               </>
             }
-            eyebrowClassName="inline-flex items-center gap-1.5"
             title="Hold Payout for Review"
           />
           <div className="space-y-3">
@@ -416,7 +415,6 @@ const AdminPayoutBatches = () => {
                 <AlertTriangle className="w-3.5 h-3.5" /> Deny payout
               </>
             }
-            eyebrowClassName="inline-flex items-center gap-1.5"
             title="Deny This Payout"
           />
           <div className="space-y-3">

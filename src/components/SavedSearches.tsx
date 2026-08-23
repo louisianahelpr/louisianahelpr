@@ -231,7 +231,6 @@ export function SavedSearches({
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <Bookmark className="w-3 h-3" strokeWidth={2} aria-hidden="true" /> Get notified

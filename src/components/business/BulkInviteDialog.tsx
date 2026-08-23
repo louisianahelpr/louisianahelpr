@@ -209,7 +209,6 @@ export function BulkInviteDialog({
               <FileSpreadsheet className="w-3.5 h-3.5" /> Bulk invite
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title="Bulk Invite by CSV"
         />
 

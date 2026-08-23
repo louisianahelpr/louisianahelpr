@@ -62,10 +62,7 @@ export function DeleteAccountDialog({
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHero
-          className="text-center"
           title={<><AlertTriangle className="w-5 h-5" /> Final confirmation</>}
-          titleClassName="flex items-center justify-center gap-2 text-balance"
-          titleStyle={{ color: "hsl(var(--burnt-sienna))" }}
         />
         <Input
           autoFocus

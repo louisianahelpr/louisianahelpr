@@ -169,7 +169,6 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       <Dialog open={!!props.noShowJobId} onOpenChange={() => props.setNoShowJobId(null)}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <AlertTriangle className="w-3 h-3" /> No-show

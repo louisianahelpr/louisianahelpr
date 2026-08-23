@@ -116,11 +116,15 @@ export function BrandConfirmDialog({
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-md">
-        <AlertDialogHero
-          className="text-center"
-          title={title}
-          titleClassName="text-center text-balance"
-        />
+        {/* NO per-dialog alignment. This confirm centred its title while the
+            other ~147 popups in the app left-align theirs through the same
+            Hero — and because BrandConfirmDialog is behind every confirm in
+            the product ("Log Out?", "Decline This Job?", "Delete account"),
+            it was the difference the owner kept running into. One shell means
+            one shell: the Hero owns the layout and no caller can override it.
+            (Owner, more than once: "these pop ups need to share the same
+            shell ... none of them have the same layout.") */}
+        <AlertDialogHero title={title} />
 
         {callout && (
           <div
@@ -138,7 +142,12 @@ export function BrandConfirmDialog({
 
         {children}
 
-        <AlertDialogFooter className="flex-col-reverse sm:flex-col-reverse gap-2 sm:space-x-0">
+        {/* AlertDialogFooter's OWN arrangement — inline and right-aligned from
+            `sm` up, like every DialogFooter in the app. This overrode it to
+            stay a full-width stack at every width, so a confirm box's buttons
+            sat one above the other while the buttons in every other popup sat
+            side by side. */}
+        <AlertDialogFooter>
           <AlertDialogCancel
             onClick={onSecondary ? (e) => { e.preventDefault(); onSecondary(); } : undefined}
             className="mt-0 rounded-ds-md border-border/60"

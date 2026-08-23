@@ -112,7 +112,6 @@ export function BlockUserDialog({
       <AlertDialogContent>
         <AlertDialogHero
           eyebrow={<><ShieldAlert className="w-3 h-3" /> Safety</>}
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title={<>Block {blockedUserName}?</>}
         />
         <div className="space-y-3 mt-2">

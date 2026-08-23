@@ -99,12 +99,7 @@ AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayNam
  *
  *   <AlertDialogHero eyebrow="Safety" title="Block Sarah?" subtitle="They won't…" />
  */
-const AlertDialogHero = ({
-  title,
-  className,
-  titleClassName,
-  titleStyle,
-}: {
+const AlertDialogHero = ({ title }: {
   // `eyebrow` and `subtitle` remain ACCEPTED but are not rendered — the
   // 2026-07-25 "one main title" decision: a popup header shows its title and
   // nothing stacked above or below it. Every call site has had the props
@@ -118,16 +113,15 @@ const AlertDialogHero = ({
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
-  className?: string;
-  titleClassName?: string;
-  titleStyle?: React.CSSProperties;
-  eyebrowClassName?: string;
-  eyebrowStyle?: React.CSSProperties;
+  // NO className / titleClassName / style escape hatches. They existed, and
+  // three dialogs used them to centre a title the other ~147 left-aligned —
+  // which is exactly the drift this component was created to prevent. A popup
+  // header is one layout; if it needs to change, it changes here, once.
 }) => (
-  <AlertDialogHeader className={cn("space-y-0 text-left", className)}>
+  <AlertDialogHeader className="space-y-0 text-left">
     <AlertDialogTitle
-      className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
-      style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}
+      className="font-display italic font-bold leading-tight pt-2"
+      style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
     >
       {title}
     </AlertDialogTitle>

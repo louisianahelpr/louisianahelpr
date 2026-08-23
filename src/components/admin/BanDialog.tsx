@@ -238,7 +238,6 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
               <ShieldAlert className="w-3.5 h-3.5" /> Take action
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title={`Take Action: ${profile?.full_name || "User"}`}
         />
         <div className="space-y-5">

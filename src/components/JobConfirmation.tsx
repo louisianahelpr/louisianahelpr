@@ -235,7 +235,6 @@ export function JobConfirmation({
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <ShieldCheck className="w-3 h-3" /> Locking it in

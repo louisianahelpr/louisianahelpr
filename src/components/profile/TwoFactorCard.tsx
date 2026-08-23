@@ -229,7 +229,6 @@ function EnrollDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><Smartphone className="w-3 h-3" /> Authenticator app</>}
           title="Turn On Two-Step."
         />
@@ -361,7 +360,6 @@ function DisableDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><ShieldCheck className="w-3 h-3" /> Two-step verification</>}
           title="Turn Off Two-Step?"
         />

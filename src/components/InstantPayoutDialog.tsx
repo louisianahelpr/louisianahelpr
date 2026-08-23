@@ -83,7 +83,6 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <Zap className="w-3 h-3" /> Skip the wait

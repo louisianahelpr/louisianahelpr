@@ -121,10 +121,8 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                     larger title reflect the celebratory layout — those
                     are per-instance overrides, not a bespoke header. */}
                 <DialogHero
-                  className="text-center space-y-0"
                   eyebrow="From the Helpr family"
                   title={`Happy birthday, ${firstName}.`}
-                  titleStyle={{ fontSize: "clamp(1.5rem, 2.5vw + 0.4rem, 1.85rem)", letterSpacing: "-0.025em" }}
                 />
                 <button
                   type="button"

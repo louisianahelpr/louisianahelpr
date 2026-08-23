@@ -282,7 +282,6 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
       )}
       <DialogContent>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <Receipt className="w-3 h-3" /> Tax export

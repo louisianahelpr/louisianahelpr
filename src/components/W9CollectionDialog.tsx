@@ -83,7 +83,6 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <FileSignature className="w-3 h-3" /> Tax form

@@ -205,7 +205,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       <Dialog open={step === "review"} onOpenChange={() => { setStep("tip"); }}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <PartyPopper className="w-3 h-3" /> Job complete
@@ -254,7 +253,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       <Dialog open={step === "tip"} onOpenChange={() => setStep("share")}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <Gift className="w-3 h-3" /> Optional
@@ -309,7 +307,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       <Dialog open={step === "share"} onOpenChange={() => setStep("nps")}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <Heart className="w-3 h-3" /> Spread the word

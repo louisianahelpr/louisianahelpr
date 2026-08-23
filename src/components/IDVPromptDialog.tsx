@@ -106,7 +106,6 @@ export function IDVPromptDialog({
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <Icon className="w-3 h-3" strokeWidth={2} aria-hidden="true" />

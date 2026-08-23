@@ -451,12 +451,14 @@ const WorkRecord = () => {
                 className="px-5 py-4 text-center"
                 style={{ background: "var(--doc-band)" }}
               >
-                {/* TWO LINES (owner). Left to the full sheet width this ran one
-                    long line and dropped the email onto a second as a centred
-                    orphan. A 62ch measure plus `text-wrap: balance` splits it
-                    into two even lines at every width the sheet takes. */}
+                {/* TWO LINES (owner). Two things had to give: the measure and
+                    the copy. A 62ch cap balanced the old sentence into THREE
+                    even lines — balancing distributes, it does not shorten — so
+                    the cap comes off and the sentence is cut to what a landlord
+                    or lender actually needs: when it was generated, what it is
+                    generated from, what Helpr is, and where to verify it. */}
                 <p
-                  className="font-serif italic text-ds-11 leading-relaxed max-w-[62ch] mx-auto"
+                  className="font-serif italic text-ds-11 leading-relaxed mx-auto"
                   style={{ color: "hsl(var(--olivewood) / 0.8)", textWrap: "balance" }}
                 >
                   {/* "verified" is only true of an account whose identity Helpr

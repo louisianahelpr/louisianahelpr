@@ -97,7 +97,6 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <Camera className="w-3 h-3" /> Proof of work
@@ -353,7 +352,6 @@ export const PhotoProofGroup = ({
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <Image className="w-3 h-3" /> Proof of work

@@ -60,7 +60,6 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
               <Trash2 className="w-3.5 h-3.5" /> Delete account
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title="Delete Account"
         />
         <div className="space-y-4">

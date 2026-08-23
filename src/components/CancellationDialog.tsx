@@ -224,7 +224,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <Clock className="w-3 h-3" /> Heads up

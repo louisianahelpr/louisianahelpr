@@ -89,7 +89,6 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
               <Pencil className="w-3.5 h-3.5" /> Change email
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title={`Change Email for ${profile?.full_name || "User"}`}
         />
         <div className="space-y-4">

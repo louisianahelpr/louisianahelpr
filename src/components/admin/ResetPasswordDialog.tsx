@@ -64,7 +64,6 @@ export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswo
               <KeyRound className="w-3.5 h-3.5" /> Password reset
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title="Send Password Reset Link"
         />
         <div className="space-y-3">

@@ -368,7 +368,6 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
       >
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <CalendarDays className="w-3 h-3" /> Your schedule

@@ -26,7 +26,6 @@ export const PauseOfferDialog = ({
     <Dialog open={pauseOfferOpen} onOpenChange={setPauseOfferOpen}>
       <DialogContent>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><PauseCircle className="w-3 h-3" /> Take a breather</>}
           title="Pause 1 Month Free Instead?"
         />

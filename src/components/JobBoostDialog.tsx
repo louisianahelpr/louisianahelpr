@@ -68,7 +68,6 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <Rocket className="w-3 h-3" /> Lift it to the top

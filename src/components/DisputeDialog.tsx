@@ -169,7 +169,6 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <AlertTriangle className="w-3 h-3" /> Last resort

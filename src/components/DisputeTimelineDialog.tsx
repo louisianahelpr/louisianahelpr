@@ -202,7 +202,6 @@ export const DisputeTimelineDialog = ({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <AlertTriangle className="w-3 h-3" /> Dispute in progress

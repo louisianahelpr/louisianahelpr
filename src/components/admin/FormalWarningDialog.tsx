@@ -87,7 +87,6 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
               <MessageSquareWarning className="w-3.5 h-3.5" /> Manual strike
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title="Issue Manual Strike"
         />
         <div className="space-y-5">

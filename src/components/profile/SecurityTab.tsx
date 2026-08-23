@@ -268,7 +268,6 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={<><Mail className="w-3 h-3" /> Account</>}
             title="Change Email Address."
           />

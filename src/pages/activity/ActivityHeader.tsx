@@ -101,6 +101,9 @@ export function ActivityHeader({
      content, this is a caption on them. */
   const statusTabs = (
     <UnderlineTabs
+      /* Inline in the header row on the desktop website; on its own line on
+         phone, where the taps need a real target. */
+      dense={inlineFilters}
       ariaLabel="Filter by status"
       tabs={inlineStatusFilters.map((f) => ({
         key: f.key,

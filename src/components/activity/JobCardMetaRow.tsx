@@ -58,7 +58,13 @@ export function JobCardMetaRow({
         }
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1 hover:text-primary transition-colors"
+        /* `py-2 -my-2` grows the HIT AREA without moving anything. The link
+           measured 77x16 on a 375px screen — a thumb target a third of the
+           44px floor index.css puts on every button in the app, and short even
+           of WCAG 2.5.8's 24px minimum. The row's only other content is plain
+           text, so the extra 8px above and below overlaps nothing that could
+           steal the tap. */
+        className="flex items-center gap-1 py-2 -my-2 hover:text-primary transition-colors"
       >
         <MapPin className="w-3 h-3 shrink-0" />
         <span className="truncate max-w-[140px]">{getCity(location)}</span>

@@ -290,6 +290,8 @@ export function IdentityHeader({
                     <span>{memberSinceLabel}</span>
                   </span>
                 )}
+              </p>
+            )}
             {/* Bio sits directly under the location / member-since line —
                 with the rest of WHO THIS PERSON IS. It had drifted below the
                 stat row, separating it from the name it describes.
@@ -297,7 +299,23 @@ export function IdentityHeader({
                 No top rule. The divider that used to sit here was drawn when
                 the bio was a separate section further down; now that it's part
                 of the identity block, a line between the name and the bio
-                implied they were unrelated. */}
+                implied they were unrelated.
+
+                A SIBLING of the location line, not a child of it. This block
+                used to sit INSIDE that <p>, which put a <div> — and a second
+                <p> — inside a paragraph. React logged it on every profile
+                render (`validateDOMNesting: <div> cannot appear as a
+                descendant of <p>`), and the HTML parser silently closed the
+                paragraph early to cope, so the DOM the browser built was not
+                the tree the code described. It happened to look right because
+                the parser's repair produced these same siblings; React
+                reconciling against a tree the parser rewrote is not something
+                to leave to luck. Nothing moves — this is the arrangement that
+                was already being rendered, now actually written down.
+
+                It is also OUTSIDE the `profile?.location` guard now, where it
+                belongs: a profile with no location still has a bio, and used
+                to lose it along with the location line. */}
             <div className="mt-2">
               {profile?.bio?.trim() ? (
                 <p
@@ -315,8 +333,6 @@ export function IdentityHeader({
                 >+ Add a short bio so applicants know who they're hiring.</button>
               )}
             </div>
-              </p>
-            )}
             {/* Earned trust badges — only the EARNED ones render, so the
                 row reads as proof, not a checklist of gaps. The
                 verification-ladder badge (#112) lives alongside them as

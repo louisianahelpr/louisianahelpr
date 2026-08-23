@@ -329,6 +329,7 @@ export function ConversationList({
 
   const inboxTabs = (
     <UnderlineTabs
+      dense={embedded}
       ariaLabel="Filter conversations"
       tabs={[
         { key: "unread", label: "Unread", count: unreadThreads },

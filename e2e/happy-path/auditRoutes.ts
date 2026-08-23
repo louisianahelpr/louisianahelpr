@@ -319,7 +319,10 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // fixture values; a route that redirects (many of these do, depending on
   // profile state) still gets audited, just as whatever it lands on.
   { name: "activity", url: "/activity" },
-  { name: "analytics", url: "/analytics" },
+  // REMOVED 2026-08-23: /analytics is a <Navigate> to /profile?tab=earnings
+  // now, not a screen. Left in, this row would have audited the Earnings tab
+  // under the wrong name and counted it twice — the over-counting the catalog
+  // guard exists to catch. `profile-earnings` already covers the destination.
   { name: "auto-tip", url: "/auto-tip" },
   { name: "availability", url: "/availability" },
   { name: "earnings", url: "/earnings" },

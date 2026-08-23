@@ -143,7 +143,15 @@
   --olive:        78 23% 70%;   /* #B7C3A1 — secondary green */
   --sage:         78 9% 53%;    /* #8C947D — primary accent */
   --bark:         70 20% 33%;   /* #5E6544 — deep olive */
-  --bark-light:   76 20% 44%;   /* bark FAB gradient highlight stop (orb top) */
+  /* The CTA gradient's NEAR stop, and the light-mode mirror of --bark-deep's
+     problem. At 44% the highlight rendered rgb(123,135,90), and the near-white
+     --primary-foreground label on it measured 3.45:1 — under AA, at the END of
+     the ramp the label most often sits over, because the gradient's centre is
+     at 32%/22% and a wide button's text runs straight through it.
+     36% takes it to 4.82:1. The highlight is still visibly lighter than the
+     52%→19% falloff around it, so the button still reads as lit from the
+     top-left; it is simply no longer lit past the point the label survives. */
+  --bark-light:   76 20% 36%;   /* bark CTA / FAB gradient highlight stop */
   --bark-border:  66 25% 19%;   /* bark CTA button border */
   /* The primary CTA gradient's FAR stop, split out from --bark-border because
      the two want opposite things on dark. The border wants to stay dark (it is
@@ -451,7 +459,13 @@
   --olive:        78 15% 42%;   /* secondary green — lightened for dark bg */
   --sage:         78 12% 60%;   /* primary accent — noticeably lighter */
   --bark:         72 22% 52%;   /* deep olive lightened for legibility */
-  --bark-light:   76 20% 44%;   /* same as light mode — gradient stop, not theme-adaptive */
+  /* DELIBERATELY NOT the light value any more. The two themes put opposite
+     labels on this gradient — near-white --primary-foreground on light,
+     near-black on dark — so the stop that is too light for one is correct for
+     the other. Light darkens this to 36% to carry a white label; dark keeps 44%,
+     where the near-black label measures 4.71:1. See --bark-deep for the other
+     end of the same ramp, which needed the mirror treatment. */
+  --bark-light:   76 20% 44%;
   --bark-border:  66 25% 19%;   /* same as light mode — button border, not theme-adaptive */
   /* LIGHTER ON DARK, and this is the one bark token that has to be.
      The ending shape is 125% of the box, so the button's bottom-right corner

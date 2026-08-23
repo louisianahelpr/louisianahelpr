@@ -102,7 +102,6 @@ const JobDetail = lazy(() => import("./pages/JobDetail"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
-const HelperAnalytics = lazy(() => import("./pages/HelperAnalytics"));
 const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 const HelprWrapped = lazy(() => import("./pages/HelprWrapped"));
 const BusinessBilling = lazy(() => import("./pages/business/BusinessBilling"));
@@ -300,7 +299,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Purely promotional (a Footer destination pitching business accounts),
           so it takes the same signed-in bounce as the landing page. */}
       {BUSINESS_ENABLED && <Route path="/for-business" element={<RouteErrorBoundary><MarketingRedirect>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />}
-      <Route path="/analytics" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelperAnalytics /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* /analytics rendered the SAME body as the Earnings tab under a
+          different title — an orphan route kept for deep links, and a second
+          screen for one subject. It redirects now, so the bookmarks keep
+          working and there is one Earnings & Analytics, not two (owner). */}
+      <Route path="/analytics" element={<Navigate to="/profile?tab=earnings" replace />} />
       {BUSINESS_ENABLED && <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />}
       {BUSINESS_ENABLED && <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />}
       {BUSINESS_ENABLED && <Route path="/business/exports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessExports /></ProtectedRoute>)}</RouteErrorBoundary>} />}

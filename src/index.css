@@ -2083,18 +2083,13 @@ button,
   .hero-mesh-bg { animation: none; }
 }
 
-/* (4) H1 letter-spacing settle — starts tight, relaxes 0.02em over 400 ms
-   on mount. One-time, non-looping. Feels like the H1 is "arriving." */
-@keyframes hero-h1-settle-in {
-  from { letter-spacing: -0.045em; }
-  to   { letter-spacing: -0.025em; }
-}
-.hero-h1-settle {
-  animation: hero-h1-settle-in 400ms cubic-bezier(0.22, 1, 0.36, 1) 1;
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-h1-settle { animation: none; }
-}
+/* (4) The H1 letter-spacing "settle" is GONE. It animated tracking from
+   -0.045em to -0.025em over 400ms on mount, which read as the headline
+   arriving — but tracking is a layout property, and this H1 sits right at its
+   wrap point, so the animation carried it across a line break: the hero
+   painted on two lines and then re-wrapped onto three, 400ms after you saw it.
+   That is the "it opens one way and then settles into another" the owner
+   reported. An entrance animation may not change how many lines the page has. */
 
 /* Jobs strip auto-scroll — mirrors the category marquee pattern but at
    a slower pace since job cards carry more visual info than pills. Cards

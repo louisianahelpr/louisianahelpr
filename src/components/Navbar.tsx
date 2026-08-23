@@ -1,9 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Sparkles, Briefcase, Building2, ArrowRight } from "lucide-react";
-import { useState, forwardRef } from "react";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ArrowRight } from "lucide-react";
+import { forwardRef } from "react";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import HelprMark from "@/components/HelprMark";
 import { cn } from "@/lib/utils";
@@ -24,7 +23,6 @@ interface NavbarProps {
 }
 
 const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => {
-  const [mobileOpen, setMobileOpen] = useState(false);
   // Session-only auth (no profile DB round-trip) so the marketing nav can
   // reflect logged-in state: an authenticated visitor landing on a public
   // page (/for-business, /legal, /) should see an "Open app" CTA instead of
@@ -93,9 +91,13 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
             we want the same behavior in the future, replace with a
             local onClick wrapper. */}
 
-        {/* Desktop nav — text links, subtle vertical divider, then auth
-            actions. Two visual groups instead of six things in a row. */}
-        <div className="hidden lg:flex items-center gap-10">
+        {/* ONE nav at every width — text links, a subtle divider, then the auth
+            actions. There is no hamburger below lg any more (owner). It opened a
+            sheet whose contents were Jobs, Log In, Get Started and a list of
+            links the footer already carries in full — a second copy of the site
+            index behind an extra tap. The three things that matter fit the bar
+            on a phone, so they sit in it. */}
+        <div className="flex items-center gap-4 sm:gap-6 lg:gap-10">
           {/* "How it works" removed (owner). It pointed at /#how-it-works — an
               ANCHOR on the landing page, not a page. From /login or /jobs it
               threw you off the page you were on and onto the homepage before
@@ -184,207 +186,6 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
           </div>
         </div>
 
-        {/* Mobile cluster — a compact Get Started CTA (guests, sm+ only,
-            hidden at true-mobile), a subtle vertical divider, and the
-            icon-only hamburger toggle. On phones only the hamburger
-            shows so we don't crowd the narrow width. */}
-        <div className="lg:hidden flex items-center gap-2 sm:gap-3">
-          {!user && (
-            <>
-              <Button
-                asChild
-                size="sm"
-                // h-11 (44px), matching the menu button beside it. It was h-9 (36px)
-                // and looked 8px short next to it — because the 44px tap-target
-                // floor in index.css targets `button` only, and this renders as
-                // an <a> via asChild, so it slipped under the minimum it was
-                // meant to have. Raising it fixes the mismatch AND closes a real
-                // touch-target gap on a primary CTA, rather than shrinking the
-                // menu button below the floor to meet it.
-                className="hidden sm:inline-flex rounded-2xl btn-press h-11 px-4 !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
-                style={{ color: "hsl(var(--parchment))" }}
-              >
-                <Link
-                  to="/signup"
-                  onMouseEnter={() => prefetchRoute("/signup")}
-                  onFocus={() => prefetchRoute("/signup")}
-                >
-                  Get Started
-                </Link>
-              </Button>
-              <span
-                aria-hidden
-                className="hidden sm:block w-px h-5"
-                style={{ background: "hsl(var(--olivewood) / 0.18)" }}
-              />
-            </>
-          )}
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                // Cannot be made smaller than 44px: index.css enforces
-                // `button:not([role=checkbox|radio|switch]) { min-height:44px;
-                // min-width:44px }` app-wide for the WCAG 2.5.8 / 44pt tap
-                // target. An `!h-9` here computes to 36px and is then floored
-                // back to 44 — a dead class that reads like it does something.
-                // Shrinking this would mean opting a primary nav control out of
-                // that guarantee on touch.
-                // !h-11/!w-11 = 44px, the smallest this can legally be. Two forces
-                // fight here: Button's size="icon" variant emits h-14 (56px),
-                // and index.css floors EVERY button at 44px min-height/min-width
-                // for the WCAG 2.5.8 tap target. Without an explicit size the
-                // 56px variant wins; anything below 44px is silently floored
-                // back up. 44 is therefore the only real choice, and `!` is
-                // needed to beat the variant.
-                className="btn-press rounded-2xl shrink-0 !h-11 !w-11"
-                style={{
-                  background: "hsl(0 0% 100% / 0.2)",
-                  border: "1px solid hsl(var(--olivewood) / 0.08)",
-                  boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.3)",
-                  color: "hsl(var(--bark))",
-                }}
-                aria-label={mobileOpen ? "Close menu" : "Open menu"}
-              >
-                {mobileOpen ? <X className="w-4 h-4" strokeWidth={2.25} /> : <Menu className="w-4 h-4" strokeWidth={2.25} />}
-              </Button>
-            </SheetTrigger>
-            <SheetContent
-              side="right"
-              className="w-[280px] sm:w-[320px] p-6 flex flex-col gap-2"
-              style={{
-                backgroundColor: "hsl(var(--parchment))",
-                color: "hsl(var(--olivewood))",
-                // Push content below the status bar / dynamic island — the
-                // sheet is full-height, so without the safe-area top inset the
-                // HelprMark header clips behind the notch on iOS.
-                paddingTop: "calc(var(--safe-area-top, 0px) + 1.5rem)",
-                paddingBottom: "calc(var(--safe-area-bottom, 0px) + 1.5rem)",
-              }}
-            >
-              {/* Radix points `aria-labelledby` at a SheetTitle that has to
-                  exist. Without one it referenced a missing id and this menu
-                  announced as bare "dialog". Visually hidden — the HelprMark
-                  below is the visible header, and it's a logo, not a heading. */}
-              <SheetTitle className="sr-only">Navigation menu</SheetTitle>
-              <div
-                className="flex flex-col gap-1 pb-5 mb-2"
-                style={{
-                  borderBottom: "1px solid hsl(var(--burnt-sienna) / 0.4)",
-                }}
-              >
-                {/* HelprMark again — to=null since we're inside a Sheet
-                    and a Link would close the menu via navigation. */}
-                <HelprMark to={null} size="md" />
-              </div>
-              <Link
-                to="/jobs"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"
-                style={{
-                  color: "hsl(var(--ink-deep))",
-                  borderBottom: "1px solid hsl(var(--olivewood) / 0.1)",
-                }}
-                onClick={() => setMobileOpen(false)}
-              >
-                <Briefcase className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
-                Jobs
-              </Link>
-              {BUSINESS_ENABLED && <Link
-                to="/for-business"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"
-                style={{
-                  color: "hsl(var(--ink-deep))",
-                  borderBottom: "1px solid hsl(var(--olivewood) / 0.1)",
-                }}
-                onClick={() => setMobileOpen(false)}
-              >
-                <Building2 className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
-                Business
-              </Link>}
-              <Link
-                to="/subscription"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"
-                style={{
-                  color: "hsl(var(--ink-deep))",
-                  borderBottom: "1px solid hsl(var(--olivewood) / 0.1)",
-                }}
-                onClick={() => setMobileOpen(false)}
-              >
-                <Sparkles className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
-                Membership
-              </Link>
-              <Link
-                to="/help"
-                className="group font-sans font-semibold py-3 min-h-[44px] flex items-center gap-3 transition-colors duration-200 hover:text-[hsl(var(--bark))] text-ds-16"
-                style={{
-                  color: "hsl(var(--ink-deep))",
-                  borderBottom: "1px solid hsl(var(--olivewood) / 0.1)",
-                }}
-                onClick={() => setMobileOpen(false)}
-              >
-                <Briefcase className="w-[1.15rem] h-[1.15rem] shrink-0" strokeWidth={1.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
-                Help Center
-              </Link>
-              <div className="flex flex-col gap-3 mt-auto pt-6">
-                {user ? (
-                  // Authenticated visitor — single "Open app" CTA back into
-                  // the dashboard instead of the logged-out Log in/Get Started.
-                  <Button
-                    asChild
-                    size="lg"
-                    className="btn-liquid-fill group w-full rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
-                    style={{
-                      color: "hsl(var(--parchment))",
-                      backgroundColor: "hsl(var(--bark))",
-                      backgroundImage: "none",
-                      border: "1px solid hsl(var(--bark))",
-                      boxShadow:
-                        "inset 0 1px 0 0 rgba(255,255,255,0.25), 0 1px 2px rgba(0,0,0,0.04), 0 8px 32px -8px rgba(0,0,0,0.06)",
-                    }}
-                  >
-                    <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
-                      Open App
-                      <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
-                    </Link>
-                  </Button>
-                ) : (
-                  <>
-                    {/* Get Started = primary CTA (bark fill). Log in = quiet
-                        secondary text link underneath so the two actions have
-                        clearly different weight, not two competing pills. */}
-                    <Button
-                      asChild
-                      size="lg"
-                      className="btn-liquid-fill group w-full rounded-2xl font-sans font-semibold !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
-                      style={{
-                        color: "hsl(var(--parchment))",
-                        backgroundColor: "hsl(var(--bark))",
-                        backgroundImage: "none",
-                        border: "1px solid hsl(var(--bark))",
-                        boxShadow:
-                          "inset 0 1px 0 0 rgba(255,255,255,0.25), 0 1px 2px rgba(0,0,0,0.04), 0 8px 32px -8px rgba(0,0,0,0.06)",
-                      }}
-                    >
-                      <Link to="/signup" onClick={() => setMobileOpen(false)}>
-                        Get Started
-                        <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
-                      </Link>
-                    </Button>
-                    <Link
-                      to="/login"
-                      onClick={() => setMobileOpen(false)}
-                      className="text-center font-sans font-medium text-ds-13 mt-1 underline underline-offset-4 decoration-[hsl(var(--olivewood)/0.3)] hover:decoration-[hsl(var(--olivewood)/0.7)] transition-colors"
-                      style={{ color: "hsl(var(--olivewood))" }}
-                    >
-                      Already have an account? Log in
-                    </Link>
-                  </>
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
       </div>
     </nav>
   );

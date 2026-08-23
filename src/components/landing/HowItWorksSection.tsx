@@ -96,10 +96,28 @@ const HowItWorksSection = () => {
       ref={sectionRef}
       className="px-5 sm:px-8 lg:px-12 pt-8 sm:pt-16 lg:pt-24 pb-8 sm:pb-24 lg:pb-32 scroll-mt-24"
     >
-      <div className="mx-auto page-measure grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 lg:gap-16 md:items-center">
+      {/* ONE layout at every width: heading block on top, three steps below.
+          This section used to carry TWO independent responsive ladders that
+          fought each other — an outer 12-column grid that moved the heading
+          into a sticky 4/12 left rail from md up, and an inner card grid with
+          its own breakpoints. The result was three different designs: stacked
+          and centred on a phone, three cards under a centred heading at sm,
+          then at md a left rail with the cards crushed into the remaining
+          8/12 — about 150px each, narrow enough that "Post the job" set one
+          word per line. Scaling a layout with width is fine; swapping which
+          layout it is, twice, is not. The rail is gone, so the steps always
+          get the full measure. */}
+        <div className="mx-auto page-measure flex flex-col gap-6 md:gap-10">
         {/* Left column — masthead. Sticky at md+ so it stays anchored
             while the reader scrolls through the numbered steps. */}
-        <div className="md:col-span-4 lg:col-span-3 text-center md:text-left md:sticky md:top-32 md:self-start">
+        {/* Heading and the side toggle share ONE row (owner: "move to the
+            right of how it works"); the subhead drops beneath both via
+            `w-full`. Ordered with `order-*` rather than by moving the JSX, so
+            the toggle stays where it reads in source — right after the line
+            that introduces it. `flex-wrap` means a narrow phone lets the
+            toggle fall under the heading on its own; that is the same rule
+            bending, not a second layout. */}
+        <div className="text-left flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           {/* No eyebrow. `.text-display-eyebrow` is `display:none` app-wide
               since the eyebrow-removal decision, so the "How it works" label
               that used to sit here was rendering as nothing — leaving the
@@ -107,9 +125,11 @@ const HowItWorksSection = () => {
               three steps are FOR. The heading below carries it instead, which
               is also what the nav link pointing at #how-it-works is called. */}
           <h2
-            className="mt-3 font-display font-bold text-balance leading-[1.05] max-w-none sm:max-w-[10ch] md:max-w-none mx-auto md:mx-0"
+            className="order-1 font-display font-bold text-balance leading-[1.05] max-w-none"
             style={{
-              fontSize: "clamp(2rem, 3.4vw, 3.25rem)",
+              // Matches the other section headings exactly (Help Center's "Quick
+                // answers" is clamp(2.25rem, 3.4vw, 3.25rem)). Only the floor differed.
+                fontSize: "clamp(2.25rem, 3.4vw, 3.25rem)",
               letterSpacing: "-0.025em",
               color: "hsl(var(--ink-deep))",
             }}
@@ -117,39 +137,15 @@ const HowItWorksSection = () => {
             How it works.
           </h2>
 
-          {/* Sits between the heading and the side toggle it describes, so the
-              sentence reads straight into the control → [I need help | I want
-              to work].
-
-              Deliberately does NOT say "three steps". The real flow has more
-              than three (apply, accept, ID gate, escrow fund, completion,
-              release), and these cards are a simplification of it — so the
-              subhead says "the basics", which is true, rather than putting a
-              count on it that the product doesn't match. Covers BOTH
-              sides, since the same line stays on screen whichever side is
-              selected. Same type treatment as the /subscription and
-              /for-business section subheads. */}
-          <p
-            className="mt-3 font-sans text-ds-13 sm:text-ds-15 leading-relaxed max-w-xs mx-auto md:mx-0"
-            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-          >
-            The basics, whether you're hiring or working.
-          </p>
-
-          {/* Side segmented control — same shape/treatment as the billing-cycle
-              toggle on SubscriptionPage. Sits directly under the "Three steps."
-              masthead so the choice reads as part of the heading it modifies.
-              One line, always (`flex-nowrap`). It used to wrap: measured at
-              840px the pair needs 264px while the left column is 232px, so the
-              pills stacked. Fixed by tightening them inside the narrow md
-              column only — px-3 and one type step down — which recovers the
-              32px without shortening the labels or moving the masthead off the
-              left. Below md the column is full width and at lg it widens, so
-              both keep the roomier px-4/px-5 sizing. */}
+          {/* No subhead (owner). "The basics, whether you're hiring or
+              working." sat between the heading and the toggle, restating what
+              the toggle already shows: the two sides are literally labelled "I
+              need help" and "I want to work". The heading and the control now
+              share one row with nothing between them. */}
           <div
             role="tablist"
             aria-label="Which side of Helpr are you on"
-            className="mt-4 inline-flex flex-nowrap items-center justify-center md:justify-start gap-1 p-1 rounded-2xl"
+            className="order-2 inline-flex flex-nowrap items-center justify-center gap-1 p-1 rounded-2xl"
             style={{
               background: "hsl(var(--burnt-sienna) / 0.06)",
               border: "1px solid hsl(var(--burnt-sienna) / 0.18)",
@@ -185,21 +181,13 @@ const HowItWorksSection = () => {
         </div>
 
         {/* Right column — 3 steps with sequential fade-in. */}
-        <div className="md:col-span-8 lg:col-span-9">
-          {/* `md:grid-cols-1` between sm and lg on purpose. From md up this
-              column is only 8/12 wide, so three cards side by side were ~150px
-              each — narrow enough that "Post the job" broke across two lines and
-              the body copy set two or three words to a line. One per row at md
-              gives each the full ~500px; lg is wide enough to go back to three.
-
-              Heights are held by an explicit `min-h`, NOT by `items-stretch`
-              alone. Stretch only equalises within a ROW, and at md each card is
-              its own row (grid-cols-1) — so the three drifted apart, and the
-              block jumped when the side toggle swapped in longer copy ("I want
-              to work" ran 247px against 225px). The floor is set per breakpoint
-              because the card width, and so the wrap height, changes with the
-              column count. */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 items-stretch gap-3 sm:gap-8 lg:gap-10">
+        <div>
+          {/* Three across from `sm` up — one row, always. The old ladder was
+              `sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3`, so the 768-1023px
+              band dropped to two columns and wrapped step 03 onto a line of its
+              own: a numbered 01/02/03 sequence broken across rows, which reads
+              as two things and then an afterthought rather than one process. */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 items-stretch gap-3 sm:gap-8 lg:gap-10">
             {/* Keyed by index, not title: switching sides swaps the copy in
                 the SAME three nodes instead of remounting them, so the
                 observer's staggered fade-in isn't re-armed (or skipped) on
@@ -223,7 +211,18 @@ const HowItWorksSection = () => {
                 // was inflating a two-line row card to 304px. sm/lg keep their
                 // floors because those are the 3-up stacked layouts, where the
                 // cards genuinely need matching height.
-                className="h-full flex flex-col md:flex-row md:items-start md:gap-6 lg:flex-col lg:gap-0 text-center md:text-left rounded-2xl p-3.5 sm:p-7 lg:p-8 sm:min-h-[19rem] md:min-h-0 lg:min-h-[21rem]"
+                // The number stays ABOVE the copy at every width. It used to go
+                // `md:flex-row` — number beside text — which only worked while md
+                // was a TWO-column band. At three columns each card is a third of
+                // the row, and a side-by-side number left the copy about ten
+                // characters wide.
+                // No `min-h`. The floor was 19rem/21rem, set back when each card
+                // was its own row at md and the three drifted to different
+                // heights. They share one row at every width now, so
+                // `items-stretch` on the grid equalises them for free — and the
+                // floor was leaving each card about half empty, roughly 150px of
+                // blank below three lines of copy.
+                className="h-full flex flex-col text-center rounded-2xl p-5 sm:p-7 lg:p-8"
                 style={{
                   opacity: inView ? 1 : 0,
                   transform: inView ? "translateY(0)" : "translateY(24px)",
@@ -266,7 +265,7 @@ const HowItWorksSection = () => {
                   {step.title}
                 </h3>
                 <p
-                  className="mt-2 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-xs mx-auto md:mx-0"
+                  className="mt-2 font-sans text-ds-13 sm:text-ds-15 lg:text-ds-17 leading-relaxed max-w-sm mx-auto"
                   style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                 >
                   {step.desc}

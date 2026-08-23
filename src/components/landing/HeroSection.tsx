@@ -42,36 +42,13 @@ const HeroSection = () => {
     };
   }, []);
 
-  // Variable kerning on scroll — the H1 letter-spacing tightens slightly as
-  // the user scrolls past the hero. Restrained: clamps at -0.06 em max.
-  // Skipped for users who prefer reduced motion.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    if (reduceMotion) return;
-
-    let raf = 0;
-    const update = () => {
-      const el = headlineRef.current;
-      if (!el) return;
-      const scroll = Math.min(window.scrollY, 600);
-      const tighten = (scroll / 600) * 0.035; // 0 -> 0.035 em over 600 px
-      el.style.letterSpacing = `${-0.025 - tighten}em`;
-    };
-    const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(update);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    update();
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
-
+  // NO variable kerning on scroll. An effect here used to tighten the H1's
+  // letter-spacing from -0.025em to -0.06em as you scrolled the first 600px.
+  // On a display headline sitting exactly at its wrap point that is not a
+  // decorative flourish, it is a relayout: measured at 668px, the headline went
+  // from 212px tall on three lines to 141px on two, so scrolling re-wrapped the
+  // hero and shifted everything under it by 71px. Tracking is also a layout
+  // property, so it was doing that work on every animation frame.
   // Defer auth check until after first interaction (or 25 s) so the supabase
   // chunk doesn't block LCP. CTA handlers re-fetch session inline, so this
   // only changes optimistic logged-in routing for the first click.
@@ -165,7 +142,7 @@ const HeroSection = () => {
             // landscape) the headline swelled ~30% out of proportion and then
             // visibly SHRANK as you widened past 1024. Only `sm` and `md` moved;
             // `lg`/`xl` — the sizes on a normal desktop — are untouched.
-            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6rem] xl:text-[7.25rem] hero-h1-settle"
+            className="relative z-10 font-display font-black leading-[0.98] text-balance break-words text-[3.5rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6rem] xl:text-[7.25rem]"
             style={{
               color: "hsl(var(--olivewood))",
               letterSpacing: "-0.03em",

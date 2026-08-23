@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { Search, X, ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import FaqRow from "@/components/marketing/FaqRow";
@@ -66,15 +65,11 @@ const topicDesc = (topic: string): string | undefined =>
 const TopicSection = ({
   section,
   accent,
-  forceOpen,
   externallyOpened,
-  itemKeyQuery,
 }: {
   section: { topic: string; items: Array<{ q: string; a: string }> };
   accent: string;
-  forceOpen: boolean;
   externallyOpened: boolean;
-  itemKeyQuery: string;
 }) => {
   const [manualOpen, setManualOpen] = useState(false);
   // When the parent flips externallyOpened to true (user clicked a topic
@@ -83,7 +78,7 @@ const TopicSection = ({
   useEffect(() => {
     if (externallyOpened) setManualOpen(true);
   }, [externallyOpened]);
-  const open = forceOpen || manualOpen;
+  const open = manualOpen;
   return (
     <div
       id={`faq-${topicSlug(section.topic)}`}
@@ -146,12 +141,7 @@ const TopicSection = ({
       {open && (
         <div className="px-5 sm:px-6 pb-2">
           {section.items.map((item) => (
-            <FaqRow
-              key={`${item.q}-${itemKeyQuery}`}
-              q={item.q}
-              a={item.a}
-              defaultOpen={forceOpen}
-            />
+            <FaqRow key={item.q} q={item.q} a={item.a} />
           ))}
         </div>
       )}
@@ -162,38 +152,17 @@ const TopicSection = ({
 // ─── HelpCenter ───────────────────────────────────────────────────────────────
 
 const HelpCenter = () => {
-  const [query, setQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  // Focus on open, or the icon costs a second tap to start typing — which
-  // would make the collapsed field strictly worse than the pill it replaced.
-  useEffect(() => {
-    if (searchOpen) searchInputRef.current?.focus();
-  }, [searchOpen]);
   // Track which FAQ topic sections were requested to open via the topic
   // cards up in Section 2. Set-based so multiple can be open at once.
   const [expandedSlugs, setExpandedSlugs] = useState<Set<string>>(new Set());
 
-  // Client-side KB search (preserved from the previous implementation) — the
-  // whole knowledge base is the static FAQ_SECTIONS array, so we filter
-  // in-memory. Topic-name match surfaces the entire section; otherwise we
-  // match question/answer text.
-  const q = query.trim().toLowerCase();
-  const filteredSections = q
-    ? FAQ_SECTIONS.map((section) => {
-        const topicMatch = section.topic.toLowerCase().includes(q);
-        const items = topicMatch
-          ? section.items
-          : section.items.filter(
-              (i) =>
-                i.q.toLowerCase().includes(q) ||
-                i.a.toLowerCase().includes(q),
-            );
-        return { ...section, items };
-      }).filter((section) => section.items.length > 0)
-    : FAQ_SECTIONS;
-  const searching = q.length > 0;
-  const noResults = searching && filteredSections.length === 0;
+  // No search on this page (owner, 2026-08-22). It was a client-side filter
+  // over FAQ_SECTIONS — a static array of seven topics — reached through a
+  // control that had already been moved three times looking for a place where
+  // it did not read as clutter. Seven labelled, collapsible topics are a list
+  // you scan, not a corpus you query, and the browser's own find-in-page
+  // already covers the rest. The whole feature is gone rather than relocated
+  // again: the filter, its "Matching …" caption, and the no-results dead end.
 
   usePageMeta({
     title: "Help Center — Helpr",
@@ -280,86 +249,6 @@ const HelpCenter = () => {
                 Help Center
               </h1>
             </div>
-            {/* Search sits on the TITLE row (owner). It has moved twice: it
-                began below the lede as an unexplained icon floating in empty
-                space, then beside the "Quick answers" heading. On the title row
-                it reads as the page's own control — the thing you search is the
-                page you are on — and, because it no longer occupies a line of
-                its own, the FAQ list starts higher up the screen. */}
-            <div className="shrink-0">
-              {!searchOpen && !searching ? (
-                <button
-                  type="button"
-                  onClick={() => setSearchOpen(true)}
-                  aria-label="Search help articles"
-                  aria-expanded={false}
-                  // No outline (owner). Sitting beside the "Quick answers"
-                  // heading it no longer has to announce itself as a control
-                  // in empty space, so the olivewood border and the lifted
-                  // shadow it needed there are gone — the glyph alone reads
-                  // as the affordance, and a bare icon next to a heading is
-                  // quieter than a boxed one.
-                  className="w-11 h-11 rounded-2xl inline-flex items-center justify-center transition-colors hover:bg-[hsl(var(--olivewood)/0.08)]"
-                >
-                  <Search
-                    className="w-5 h-5"
-                    style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                    strokeWidth={1.75}
-                    aria-hidden
-                  />
-                </button>
-              ) : (
-              <div
-                className="flex items-center gap-3 rounded-2xl px-5 py-4 sm:px-6 sm:py-5 transition-shadow focus-within:shadow-md"
-                style={{
-                  background: "hsl(var(--parchment) / 0.85)",
-                  border: "1.5px solid hsl(var(--olivewood) / 0.35)",
-                  boxShadow:
-                    "inset 0 1px 0 hsl(var(--parchment) / 0.5), 0 8px 24px -12px hsl(var(--olivewood) / 0.18)",
-                }}
-              >
-                <Search
-                  className="w-5 h-5 shrink-0"
-                  style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                  strokeWidth={1.75}
-                  aria-hidden
-                />
-                <input
-                  ref={searchInputRef}
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onBlur={() => { if (!query) setSearchOpen(false); }}
-                  // Short on purpose: "Search answers, guides, and topics..." is
-                  // ~34 characters, and at 375px — after the icon, the pill's
-                  // 20px padding and the clear button's lane — the field has room
-                  // for about 24. It rendered clipped mid-word ("...and to") on
-                  // every phone.
-                  placeholder="Search answers…"
-                  aria-label="Search help articles"
-                  className="flex-1 min-w-0 bg-transparent border-0 outline-none text-ds-15 sm:text-ds-17 placeholder:text-[hsl(var(--olivewood)/0.8)]"
-                  style={{
-                    fontFamily: "Montserrat, system-ui, sans-serif",
-                    color: "hsl(var(--ink-deep))",
-                  }}
-                />
-                {searching && (
-                  <button
-                    type="button"
-                    onClick={() => { setQuery(""); setSearchOpen(false); }}
-                    aria-label="Clear search"
-                    className="shrink-0 transition-opacity hover:opacity-70"
-                  >
-                    <X
-                      className="w-5 h-5"
-                      style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                      strokeWidth={1.75}
-                    />
-                  </button>
-                )}
-              </div>
-              )}
-            </div>
           </div>
 
           {/* One-line lede — the two audiences we serve, in one flowing line.
@@ -408,19 +297,6 @@ const HelpCenter = () => {
               it was a THIRD hero on the same screen. */}
           <div className="md:col-span-4 lg:col-span-3 text-left">
             <span className="hidden md:inline text-display-eyebrow">FAQ</span>
-            {/* Heading and search on ONE row (owner: "move to right of quick
-                answers"). The control used to sit in the page header, two
-                sections up, where it read as an unexplained icon floating in
-                empty space under the title — nothing next to it said what it
-                searched. Beside the heading it labels itself: this searches
-                these answers.
-
-                Search is an icon until it is wanted. It was a full-width pill
-                plus a "Popular:" chips row, always open — two blocks of
-                permanent chrome in front of the thing people come here for, the
-                topic list, pushing it below the fold on a phone. It stays open
-                while there is a query (so results are not stranded with no
-                visible box) and re-collapses on blur once cleared. */}
             <h2
               id="faq-heading"
               className="font-display font-bold italic md:not-italic text-balance leading-tight tracking-[-0.02em] text-[length:var(--headline-section)] md:mt-3 md:leading-[1.05] md:tracking-[-0.025em] md:text-[length:clamp(2.25rem,3.4vw,3.25rem)] md:max-w-none"
@@ -446,67 +322,25 @@ const HelpCenter = () => {
                 </em>
               </span>
             </h2>
-            {searching && (
-              <p
-                className="mt-2 md:mt-4 font-serif italic text-ds-14 leading-relaxed md:max-w-xs"
-                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-              >
-                Matching &ldquo;{query.trim()}&rdquo;.
-              </p>
-            )}
           </div>
 
           {/* Right column — hairline accordion, no glass panels. */}
           <div className="md:col-span-8 lg:col-span-9">
-            {noResults ? (
-              <div
-                className="py-10 text-center md:text-left"
-                style={{ color: "hsl(var(--olivewood))" }}
-              >
-                <p
-                  className="font-display italic font-bold text-ds-20 sm:text-ds-24 leading-tight"
-                  style={{ color: "hsl(var(--ink-deep))" }}
-                >
-                  No results for &ldquo;{query.trim()}&rdquo;.
-                </p>
-                <p
-                  className="mt-3 font-serif italic text-ds-15 leading-relaxed"
-                  style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-                >
-                  {/* /support, not a raw mailto: — a mailto needs a configured
-                      mail client and does nothing at all inside the native app,
-                      so the one contact affordance on a dead-end search was
-                      dead too for a chunk of visitors. */}
-                  Try a different word, or{" "}
-                  <Link
-                    to="/support"
-                    className="font-semibold underline"
-                    style={{ color: "hsl(var(--burnt-sienna))" }}
-                  >
-                    message our team
-                  </Link>
-                  .
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3 sm:space-y-4">
-                {filteredSections.map((section) => (
-                  <TopicSection
-                    key={section.topic}
-                    section={section}
-                    accent={
-                      SECTION_ACCENTS[section.topic] ??
-                      "hsl(var(--burnt-sienna))"
-                    }
-                    forceOpen={searching}
-                    externallyOpened={expandedSlugs.has(
-                      topicSlug(section.topic),
-                    )}
-                    itemKeyQuery={q}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="space-y-3 sm:space-y-4">
+              {FAQ_SECTIONS.map((section) => (
+                <TopicSection
+                  key={section.topic}
+                  section={section}
+                  accent={
+                    SECTION_ACCENTS[section.topic] ??
+                    "hsl(var(--burnt-sienna))"
+                  }
+                  externallyOpened={expandedSlugs.has(
+                    topicSlug(section.topic),
+                  )}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>

@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { loadAdminIds } from "../../_shared/adminIds.ts";
 
 export async function handleChargeDisputeClosed(
   event: Stripe.Event,
@@ -113,20 +114,18 @@ export async function handleChargeDisputeClosed(
         // Admin uses admin_release_dispute (which sets payment_status =
         // "released") or manually sets dispute_status = "resolved" to
         // let release-payout through its dispute gate.
-        const { data: wonAdminRoles } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "admin");
-        if (wonAdminRoles) {
-          for (const admin of wonAdminRoles) {
-            await supabase.from("notifications").insert({
-              user_id: admin.user_id,
-              title: "✅ Chargeback WON — release helper payout",
-              message: `Stripe ruled in our favor on the $${(closedDispute.amount / 100).toFixed(2)} chargeback for "${closedJob.title}". Funds are restored. Please release the helper's payout from the Admin panel.`,
-              type: "payment",
-              link: "/admin",
-            });
-          }
+        const { ids: wonAdminIds } = await loadAdminIds(
+          supabase,
+          "stripe-webhook.chargeDisputeClosed.won",
+        );
+        for (const adminId of wonAdminIds) {
+          await supabase.from("notifications").insert({
+            user_id: adminId,
+            title: "✅ Chargeback WON — release helper payout",
+            message: `Stripe ruled in our favor on the $${(closedDispute.amount / 100).toFixed(2)} chargeback for "${closedJob.title}". Funds are restored. Please release the helper's payout from the Admin panel.`,
+            type: "payment",
+            link: "/admin",
+          });
         }
       } else if (outcome === "warning_closed") {
         // A retrieval request (card-network inquiry, no funds ever withdrawn) was
@@ -179,20 +178,18 @@ export async function handleChargeDisputeClosed(
             disputeId: closedDispute.id,
           });
           // Let admins know the automatic unblock happened.
-          const { data: warnAdminRoles } = await supabase
-            .from("user_roles")
-            .select("user_id")
-            .eq("role", "admin");
-          if (warnAdminRoles) {
-            for (const admin of warnAdminRoles) {
-              await supabase.from("notifications").insert({
-                user_id: admin.user_id,
-                title: "ℹ️ Retrieval request closed — payout auto-unblocked",
-                message: `A card-network retrieval request for "${closedJob.title}" was dismissed with no chargeback. The helper's temporarily-blocked payout has been automatically unblocked and will proceed on the normal schedule.`,
-                type: "info",
-                link: "/admin",
-              });
-            }
+          const { ids: warnAdminIds } = await loadAdminIds(
+            supabase,
+            "stripe-webhook.chargeDisputeClosed.warningClosed",
+          );
+          for (const adminId of warnAdminIds) {
+            await supabase.from("notifications").insert({
+              user_id: adminId,
+              title: "ℹ️ Retrieval request closed — payout auto-unblocked",
+              message: `A card-network retrieval request for "${closedJob.title}" was dismissed with no chargeback. The helper's temporarily-blocked payout has been automatically unblocked and will proceed on the normal schedule.`,
+              type: "info",
+              link: "/admin",
+            });
           }
         } else {
           // Job was not in "chargeback" state — it was already released when the

@@ -187,11 +187,25 @@ serve(async (req) => {
         // same source the checkout screen quotes from.
         let parishRate = 0;
         if (parent.parish) {
-          const { data: rateRow } = await supabase
+          // Fail closed, or the comment above stops being true. Dropping this
+          // error made a failed rate read indistinguishable from "this parish
+          // has no rate": `rateRow` is null, `parishRate` stays 0, and the visit
+          // is charged with the sales tax silently zeroed out. We would still
+          // owe Louisiana that tax, having never collected it, on a charge the
+          // poster already sees as final. Skip the visit and retry next run.
+          const { data: rateRow, error: rateErr } = await supabase
             .from("parish_tax_rates")
             .select("total_rate")
             .eq("parish_name", parent.parish)
             .maybeSingle();
+          if (rateErr) {
+            console.error(
+              `[charge-recurring-visits] parish tax rate read failed for series ${parent.id} (${parent.parish}); skipping rather than charging untaxed`,
+              rateErr,
+            );
+            results.errors++;
+            continue;
+          }
           const r = rateRow?.total_rate;
           parishRate = typeof r === "number" && r > 0 ? r : 0;
         }

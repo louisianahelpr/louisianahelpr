@@ -86,10 +86,24 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   // 1. Check rate-limit cooldown and read queue config
-  const { data: state } = await supabase
+  // Fail closed. `retry_after_until` is the cooldown Resend told us to observe
+  // after rate-limiting us. Dropping the error meant a failed config read left
+  // `state` null, the cooldown check below silently evaluated false, and this
+  // worker resumed hammering the provider mid-penalty — the one moment when
+  // ignoring the backoff risks the sending domain. Skip this run instead; the
+  // cron fires again shortly.
+  const { data: state, error: stateError } = await supabase
     .from('email_send_state')
     .select('retry_after_until, batch_size, send_delay_ms, auth_email_ttl_minutes, transactional_email_ttl_minutes')
     .single()
+
+  if (stateError) {
+    console.error('[process-email-queue] send-state read failed:', stateError.message)
+    return new Response(
+      JSON.stringify({ skipped: true, reason: 'send_state_unavailable' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
 
   if (state?.retry_after_until && new Date(state.retry_after_until) > new Date()) {
     return new Response(
@@ -181,12 +195,27 @@ Deno.serve(async (req) => {
 
       // Guard: skip if another worker already sent this message
       if (payload.message_id) {
-        const { data: alreadySent } = await supabase
+        // Fail closed: this is the ONLY thing preventing a duplicate send when
+        // two workers race the same message. Dropping the error made
+        // `alreadySent` null on a failed read — indistinguishable from
+        // "definitely not sent yet" — so the guard waved the message through
+        // and the recipient got it twice. Leave the message on the queue and
+        // let the next tick re-check.
+        const { data: alreadySent, error: alreadySentError } = await supabase
           .from('email_send_log')
           .select('id')
           .eq('message_id', payload.message_id)
           .eq('status', 'sent')
           .maybeSingle()
+
+        if (alreadySentError) {
+          console.error('Duplicate-send check failed; leaving message queued', {
+            queue,
+            msg_id: msg.msg_id,
+            error: alreadySentError.message,
+          })
+          continue
+        }
 
         if (alreadySent) {
           console.warn('Skipping duplicate send (already sent)', {

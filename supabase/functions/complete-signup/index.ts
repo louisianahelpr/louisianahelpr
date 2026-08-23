@@ -313,11 +313,26 @@ serve(async (req) => {
     }
 
     // 4. Check current profile to determine if this is a resubmission
-    const { data: currentProfile } = await supabase
+    // Fail closed, matching the lookup at :125. This row feeds BOTH the 18+
+    // gate below (via currentProfile.date_of_birth) and the resubmission ID
+    // requirement. Dropping the error degraded the legal age gate to
+    // attestation-only: a caller who omits dateOfBirth and sends
+    // ageAttested:true would skip the stored DOB entirely, so a profile with a
+    // known under-18 DOB could pass a check that exists to stop exactly that.
+    // PGRST116 (no row yet) stays a legitimate initial-completion path.
+    const { data: currentProfile, error: currentProfileError } = await supabase
       .from("profiles")
       .select("approval_status, application_count, date_of_birth")
       .eq("user_id", userId)
       .single();
+
+    if (currentProfileError && currentProfileError.code !== "PGRST116") {
+      console.error("[complete-signup] profile lookup failed:", currentProfileError.message);
+      return new Response(
+        JSON.stringify({ error: "We couldn't load your account. Please try again." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const isResubmission = currentProfile?.approval_status === "denied";
 

@@ -564,8 +564,24 @@ Deno.serve(async (req) => {
   }
 
   // Best-effort cleanup of dead tokens.
+  //
+  // `void supabase.from(...).delete()` did not do this. A PostgrestBuilder is a
+  // thenable that only issues its fetch inside then(); `void` evaluates the
+  // expression without ever awaiting it, so the builder was constructed and
+  // discarded and the DELETE never reached the network. Dead tokens accumulated
+  // forever while the response below reported them as cleaned_up. Await it, and
+  // report what actually happened rather than what we intended.
+  let cleanedUp = 0
   if (deadTokenIds.length > 0) {
-    void supabase.from('push_tokens').delete().in('id', deadTokenIds)
+    const { error: cleanupError } = await supabase
+      .from('push_tokens')
+      .delete()
+      .in('id', deadTokenIds)
+    if (cleanupError) {
+      console.error('[send-push-notification] dead token cleanup failed:', cleanupError.message)
+    } else {
+      cleanedUp = deadTokenIds.length
+    }
   }
 
   return new Response(
@@ -574,7 +590,7 @@ Deno.serve(async (req) => {
       failed,
       no_tokens: false,
       total: tokens.length,
-      cleaned_up: deadTokenIds.length,
+      cleaned_up: cleanedUp,
       ...result,
     }),
     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

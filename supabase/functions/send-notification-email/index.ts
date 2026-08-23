@@ -182,11 +182,23 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { data: suppressed } = await supabase
+    // Fail closed: `suppressed === null` must mean "confirmed not suppressed",
+    // never "we could not check". Dropping the error collapsed those two into
+    // the same falsy value, so a failed read sent mail to a bounced or
+    // complained address — the case most likely to cost us sender reputation.
+    const { data: suppressed, error: suppressedError } = await supabase
       .from('suppressed_emails')
       .select('id')
       .eq('email', profile.email)
       .maybeSingle()
+
+    if (suppressedError) {
+      await logSkip('failed', `suppression_check_failed: ${suppressedError.message}`)
+      return new Response(
+        JSON.stringify({ skipped: true, reason: 'suppression_check_failed' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
 
     if (suppressed) {
       await logSkip('suppressed', 'on_suppression_list')

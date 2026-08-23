@@ -40,11 +40,25 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated");
 
     // Find the business this user owns (or has any active membership in)
-    const { data: ownedBiz } = await supabaseAdmin
+    // Fail closed rather than answering with a downgrade. On a read failure
+    // `ownedBiz` was null, which is the same shape as "owns no business", so a
+    // paying business owner got a confident `subscribed: false, tier: starter,
+    // seat_limit: 2` — their real plan replaced by a wrong one the UI then
+    // renders as fact. A 503 lets the client show "couldn't load" instead of
+    // quietly telling a customer they don't have what they paid for.
+    const { data: ownedBiz, error: ownedBizError } = await supabaseAdmin
       .from("businesses")
       .select("id, owner_id, seat_tier")
       .eq("owner_id", user.id)
       .maybeSingle();
+
+    if (ownedBizError) {
+      console.error("[check-business-seat-subscription] business lookup failed:", ownedBizError.message);
+      return new Response(
+        JSON.stringify({ error: "We couldn't load your plan. Please try again." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+      );
+    }
 
     if (!ownedBiz) {
       return new Response(

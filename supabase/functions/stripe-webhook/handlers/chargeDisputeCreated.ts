@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { loadAdminIds } from "../../_shared/adminIds.ts";
 
 export async function handleChargeDisputeCreated(
   event: Stripe.Event,
@@ -130,20 +131,18 @@ export async function handleChargeDisputeCreated(
 
       // Notify all admins — chargebacks require a Stripe Dashboard response
       // or the platform auto-loses and pays both the customer AND a $15 fee.
-      const { data: chargebackAdminRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin");
-      if (chargebackAdminRoles) {
-        for (const admin of chargebackAdminRoles) {
-          await supabase.from("notifications").insert({
-            user_id: admin.user_id,
-            title: "⚠️ Stripe chargeback filed",
-            message: `A $${(dispute.amount / 100).toFixed(2)} chargeback was filed for "${chargebackJob.title}". Respond in Stripe Dashboard before the evidence deadline or the dispute is auto-lost.`,
-            type: "warning",
-            link: "/admin",
-          });
-        }
+      const { ids: chargebackAdminIds } = await loadAdminIds(
+        supabase,
+        "stripe-webhook.chargeDisputeCreated",
+      );
+      for (const adminId of chargebackAdminIds) {
+        await supabase.from("notifications").insert({
+          user_id: adminId,
+          title: "⚠️ Stripe chargeback filed",
+          message: `A $${(dispute.amount / 100).toFixed(2)} chargeback was filed for "${chargebackJob.title}". Respond in Stripe Dashboard before the evidence deadline or the dispute is auto-lost.`,
+          type: "warning",
+          link: "/admin",
+        });
       }
     }
   }

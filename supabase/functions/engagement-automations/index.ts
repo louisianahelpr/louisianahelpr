@@ -145,9 +145,24 @@ Deno.serve(async (_req) => {
 
   try {
     // ─── Load suppressed emails to avoid CAN-SPAM violations ─────
-    const { data: suppressedList } = await supabase
+    // Fail closed. `suppressedSet` is the only thing standing between this cron
+    // and the addresses that bounced, complained, or unsubscribed. Dropping the
+    // error meant a failed read produced an EMPTY suppression set, so every
+    // drip/approval/win-back sequence below would mail the exact people we are
+    // required not to mail — and would look like a normal successful run.
+    const { data: suppressedList, error: suppressedError } = await supabase
       .from('suppressed_emails')
       .select('email')
+    if (suppressedError) {
+      console.error('[engagement-automations] suppression list unavailable:', suppressedError.message)
+      return new Response(
+        JSON.stringify({
+          error: 'Suppression list unavailable — aborted before sending.',
+          details: suppressedError.message,
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
     const suppressedSet = new Set((suppressedList || []).map(s => s.email.toLowerCase()))
 
     // ─── 1. Welcome Drip Sequence ─────────────────────────────────

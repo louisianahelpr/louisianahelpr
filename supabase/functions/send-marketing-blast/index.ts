@@ -131,9 +131,23 @@ Deno.serve(async (req) => {
       if (error) throw error;
 
       // Honor email opt-out: drop anyone with email_promotions=false.
-      const { data: prefs } = await supabase
+      //
+      // This read MUST fail closed, exactly like the recipient query above.
+      // Dropping the error made the opt-out list fail OPEN: `prefs` comes back
+      // null, `|| []` turns it into an empty set, nobody matches `optedOut`,
+      // and the blast goes to every user who explicitly unsubscribed from
+      // promotions. A single transient read failure is the difference between
+      // honoring an opt-out and a CAN-SPAM violation across up to 5000
+      // recipients, with no error surfaced. Abort the blast instead — an
+      // unsent campaign is retryable, an unwanted one is not.
+      const { data: prefs, error: prefsError } = await supabase
         .from("notification_preferences")
         .select("user_id, email_promotions");
+      if (prefsError) {
+        throw new Error(
+          `Could not load email opt-out preferences (${prefsError.message}). Blast aborted — no email was sent.`,
+        );
+      }
       const optedOut = new Set(
         (prefs || []).filter((p) => p.email_promotions === false).map((p) => p.user_id),
       );

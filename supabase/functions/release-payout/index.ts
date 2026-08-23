@@ -147,10 +147,27 @@ serve(async (req) => {
   // group job stuck in payout_pending is recoverable, whereas an under-paid
   // roster is not.
   if (job.is_group_job && (job.helpers_needed ?? 1) > 1) {
-    const { data: roster } = await supabaseAdmin
+    const { data: roster, error: rosterError } = await supabaseAdmin
       .from("group_job_helpers")
       .select("helper_id")
       .eq("job_id", job.id);
+
+    // Dropping this error made the guard fail OPEN, which is the exact outcome
+    // the guard exists to prevent: a failed lookup yields roster === null, so
+    // rosterSize is 0, the `> 1` test is false, and we fall through and pay the
+    // lead helper on a job we could not confirm was single-helper. Refuse
+    // instead — we already know is_group_job and helpers_needed > 1, so the
+    // roster read is a detail check, not the thing that decides group-ness.
+    if (rosterError) {
+      console.error(
+        `[release-payout] roster lookup failed for group job ${job.id}: ${rosterError.message}`,
+      );
+      return jsonResponse(
+        { error: "Could not verify the helper roster for this group job. No payout was made." },
+        503,
+      );
+    }
+
     const rosterSize = (roster ?? []).length;
     if (rosterSize > 1) {
       console.error(

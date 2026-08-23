@@ -491,6 +491,55 @@ describe("release-payout edge function", () => {
       expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(8800);
     });
 
+    it("refuses the payout when the group roster CANNOT be read, instead of paying the lead helper", async () => {
+      // Regression: the roster guard used to drop the read error, so a failed
+      // lookup produced roster === null → rosterSize 0 → the `> 1` refusal
+      // never fired → we transferred to the lead helper and flipped the job to
+      // "released", permanently stranding the rest of the roster's shares. A
+      // guard that disappears when its own lookup fails is not a guard.
+      seedPayableJob(scenario, {
+        budget: 300,
+        is_group_job: true,
+        helpers_needed: 3,
+      });
+      scenario.reads.group_job_helpers = {
+        error: { message: "connection reset by peer" },
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      expect(res.status).toBe(503);
+      expect((await json(res)).error).toMatch(/roster/i);
+      // The whole point: no money moved.
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("refuses a multi-member group roster with 409 and moves no money", async () => {
+      seedPayableJob(scenario, {
+        budget: 300,
+        is_group_job: true,
+        helpers_needed: 3,
+      });
+      scenario.reads.group_job_helpers = {
+        rows: [{ helper_id: "helper-1" }, { helper_id: "helper-2" }],
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          body: { job_id: "job-1" },
+        }),
+      );
+      const out = await json(res);
+      expect(res.status).toBe(409);
+      expect(out.roster_size).toBe(2);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
     it("refuses to transfer and returns 409 when the escrow charge did not capture", async () => {
       seedPayableJob(scenario);
       stripeMock.paymentIntents.retrieve.mockResolvedValue({

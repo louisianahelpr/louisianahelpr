@@ -125,11 +125,25 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Never delete admins
-        const { data: roles } = await supabase
+        // Never delete admins.
+        //
+        // This guard MUST fail closed. Dropping the error meant a transient
+        // user_roles failure produced roles === null, `?.some()` short-circuited
+        // to undefined, and the account fell through to irreversible deletion —
+        // so the one lookup standing between an admin and `deleteUser` was also
+        // the one whose failure removed the protection. Skip on error instead:
+        // a missed cleanup run is free, a deleted admin is not.
+        const { data: roles, error: rolesError } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", u.id);
+        if (rolesError) {
+          console.error(
+            `[cleanup-abandoned-accounts] role lookup failed for ${u.id}, skipping to avoid deleting an admin: ${rolesError.message}`,
+          );
+          skipped.push(u.id);
+          continue;
+        }
         if (roles?.some((r) => r.role === "admin")) {
           skipped.push(u.id);
           continue;

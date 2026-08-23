@@ -115,6 +115,7 @@ const UserProfile = () => {
     responseMetrics,
     cancellationRate,
     mutualJobsCount,
+    canMessage,
     onTimeArrivalRate,
     revisionFrequency,
     lastActiveAt,
@@ -315,21 +316,34 @@ const UserProfile = () => {
         titleActions={
           !isOwnProfile && currentUserId ? (
             <>
-              {/* Persistent Message button (#2). Always shown for any
-                  signed-in viewer who isn't viewing themselves, no matter
-                  whether there's an active job context. Hitting it deep-
-                  links into Messages scoped to this user — the inbox
-                  picks up an existing thread, or surfaces a "no thread
-                  yet" affordance. */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-ds-md h-10 w-10 shrink-0"
-                aria-label={`Message ${displayName}`}
-                onClick={() => navigate(`/messages?userId=${userId}`)}
-              >
-                <MessageSquare className="w-4 h-4" />
-              </Button>
+              {/* Message — NOT shown to a stranger (owner: "shouldnt be able
+                  to message the poster. poster must message them first").
+
+                  It used to render for every signed-in viewer on every
+                  profile, which meant a helpr could open a cold thread with
+                  anyone whose posting they had merely looked at. `canMessage`
+                  (see useUserProfileData) is true on any of three grounds: a
+                  thread already exists in either direction, this person has
+                  applied to one of the viewer's jobs, or the two have worked a
+                  job together. A poster reaching a candidate always passes;
+                  cold-messaging a poster never does.
+
+                  Hidden rather than disabled: a greyed button invites a tap
+                  and then explains a rule, where nothing at all simply is not
+                  an offer. The poster's route to the helpr is unaffected —
+                  they message from the application, which is where they were
+                  going to do it anyway. */}
+              {canMessage && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-ds-md h-10 w-10 shrink-0"
+                  aria-label={`Message ${displayName}`}
+                  onClick={() => navigate(`/messages?userId=${userId}`)}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                </Button>
+              )}
               <SaveHelperButton helperId={userId!} customerId={currentUserId} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

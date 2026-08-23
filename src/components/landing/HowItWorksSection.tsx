@@ -160,8 +160,16 @@ const HowItWorksSection = () => {
               // a control read as a fourth content panel and competed with the
               // thing it is meant to filter. Sienna stays the content colour;
               // the control sits on the neutral.
-              background: "hsl(var(--olivewood) / 0.06)",
-              border: "1px solid hsl(var(--olivewood) / 0.16)",
+              // BARK, the page's one control colour. The landing page was
+              // running three families at once: bark on the hero buttons,
+              // olivewood on this track, burnt sienna on the step cards — so a
+              // visitor met three different greens/browns before scrolling
+              // once. The rule now: bark = controls, sienna = content accent
+              // (cards, the 01/02/03 numerals), olivewood = text. This track is
+              // a control, so it is bark, and it matches the "Browse Jobs"
+              // button directly above it.
+              background: "hsl(var(--bark) / 0.06)",
+              border: "1px solid hsl(var(--bark) / 0.16)",
               boxShadow: "var(--elev-inset-hairline)",
             }}
           >
@@ -179,7 +187,7 @@ const HowItWorksSection = () => {
                     background: active ? "hsl(var(--bark))" : "transparent",
                     color: active
                       ? "hsl(var(--parchment))"
-                      : "hsl(var(--olivewood))",
+                      : "hsl(var(--bark) / 0.75)",
                     boxShadow: active
                       ? "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)"
                       : "none",

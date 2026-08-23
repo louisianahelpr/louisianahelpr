@@ -5,11 +5,13 @@ import {
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
+import { LAST_UPDATED } from "./legalSections";
 
 /* ───────────────────────  PRIVACY  ─────────────────────── */
 export const PrivacyContent = () => (
   <div className="space-y-3">
     <TldrCard
+      updated={LAST_UPDATED.privacy}
       items={[
         "We collect only what we need to match jobs and process payments — name, email, phone, ID, location, usage data.",
         "Stripe handles payments. We never store full card numbers.",

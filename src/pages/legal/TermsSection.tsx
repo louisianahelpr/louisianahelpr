@@ -12,6 +12,7 @@ import {
   formatDollarsWhole,
 } from "@/lib/moneyLimits";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
+import { LAST_UPDATED } from "./legalSections";
 // The auto-release window and the total time-to-funds are the platform's
 // binding promises about when money moves; derive them from the same config
 // the cron enforces rather than restating "48"/"72" as prose literals.
@@ -27,6 +28,7 @@ const ONBOARDING_FEE_DOLLARS = ONBOARDING_FEE_CENTS / 100;
 export const TermsContent = () => (
   <div className="space-y-3">
     <TldrCard
+      updated={LAST_UPDATED.terms}
       items={[
         "You must be 18+. All accounts are reviewed before approval.",
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",

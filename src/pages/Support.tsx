@@ -133,7 +133,7 @@ function validate(draft: Draft, identified: boolean): Partial<Record<FieldKey, s
 const PageIntro = () => (
   <section className="container mx-auto px-5">
     <div className="page-measure mx-auto">
-      <div className="flex items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8">
+      <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4">
         <div className="shrink-0">
           <BackButton />
         </div>

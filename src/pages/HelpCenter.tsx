@@ -277,7 +277,7 @@ const HelpCenter = () => {
           with the topic / FAQ columns. */}
       <section className="px-5 sm:px-8 lg:px-12">
         <div className="mx-auto page-measure">
-          <div className="flex items-center gap-3 mt-6 mb-4 md:mt-8 md:mb-5">
+          <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4">
             <div className="shrink-0">
               <BackButton />
             </div>

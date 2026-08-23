@@ -303,7 +303,7 @@ const useInViewOnce = () => {
 const PageIntro = () => (
   <section className="px-5 sm:px-8 lg:px-12">
     <div className="mx-auto page-measure">
-      <div className="flex items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8">
+      <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4">
         <div className="shrink-0">
 {/* to="/" — NOT bare history-back. These are top-nav / footer
               destinations reachable from anywhere, so `navigate(-1)` sent

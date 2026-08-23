@@ -21,7 +21,6 @@ import {
   TAB_LABELS,
   TAB_ICONS,
   TAB_ORIGIN_LABELS,
-  LAST_UPDATED,
 } from "./legal/legalSections";
 
 /* ─────────────────────────  PER-TAB TITLE  ───────────────────────── */
@@ -193,7 +192,11 @@ const Legal = () => {
   const webHeader = (
     <section className="px-5 sm:px-8 lg:px-12">
       <div className="page-measure mx-auto">
-        <div className="flex items-center gap-3 mt-6 mb-6 md:mt-8 md:mb-8">
+        {/* Tighter than the 24/32px this row used to carry top and bottom
+            (owner). "Legal" is a one-word title over a tab bar that names the
+            actual document — it does not need a hero's worth of air, and the
+            gap pushed the policy itself further below the fold on every load. */}
+        <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4">
           <div data-print-hide className="shrink-0">
 {/* to="/" — NOT bare history-back. These are top-nav / footer
                 destinations reachable from anywhere, so `navigate(-1)` sent
@@ -540,18 +543,6 @@ const Legal = () => {
                 grid wrapper would leave that column empty — a dead rail this
                 project treats as a layout failure. */}
             {body}
-
-            {/* "Updated <month>" lives at the FOOT of the policy (owner). It
-                sat in the header row beside the title, where it competed with
-                the page name for the first thing you read — and it answers a
-                question you only ask after reading the document, not before.
-                Web branch only; the native screen is untouched. */}
-            <p
-              className="pt-6 text-ds-11 font-sans tabular-nums"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              Updated {LAST_UPDATED[tab]}
-            </p>
           </div>
         </div>
       </Tabs>

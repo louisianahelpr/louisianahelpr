@@ -12,7 +12,14 @@ export const HideOnSearch = ({ children }: { children: ReactNode }) => {
   return query.trim() ? null : <>{children}</>;
 };
 
-export const TldrCard = ({ items }: { items: string[] }) => {
+export const TldrCard = ({
+  items,
+  updated,
+}: {
+  items: string[];
+  /** e.g. "Jun 2026" — rendered right of the title on this card's header row. */
+  updated?: string;
+}) => {
   const query = useContext(PolicySearchContext);
   if (query.trim()) return null;
   return (
@@ -31,11 +38,24 @@ export const TldrCard = ({ items }: { items: string[] }) => {
         "0 8px 18px -8px hsl(var(--olivewood) / 0.12)",
     }}
   >
+    {/* Title left, revision date right (owner). The date was a stray
+        left-aligned line under the last policy card and before that it sat
+        beside the page title, where it competed with the page name. On this
+        row it rides along with the summary a reader actually starts on, and it
+        is the one place it appears — see PolicyFooter's note below. */}
     <div className="flex items-center gap-2">
       <ListChecks className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
       <span className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
         The short version
       </span>
+      {updated && (
+        <span
+          className="ml-auto shrink-0 text-ds-11 font-sans tabular-nums"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+        >
+          Updated {updated}
+        </span>
+      )}
     </div>
     <ul className="space-y-1.5 text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
       {items.map((item, i) => (

@@ -54,7 +54,10 @@ export function SocialAuthButtons({
     // Apple renders FIRST (left). Apple's HIG asks that Sign in with Apple be
     // at least as prominent as any other third-party option; equal-size
     // buttons with Apple leading satisfies that.
-    <div className="flex items-center gap-3 lg:gap-4">
+    // Stacked, one per row (owner). Side by side, each button was a bare icon
+    // in a half-width box; full-width rows give each provider its own target
+    // and keep Apple first.
+    <div className="flex flex-col gap-3">
       <SocialAuthButton provider="apple" mode={mode} redirectTo={redirectTo} />
       <SocialAuthButton provider="google" mode={mode} redirectTo={redirectTo} />
     </div>
@@ -117,9 +120,10 @@ function SocialAuthButton({ provider, mode, redirectTo }: SocialAuthButtonProps)
       type="button"
       variant="outline"
       size="lg"
-      // `flex-1` so the pair splits the row evenly — equal weight, Apple
-      // first. h-12 keeps the 44pt minimum target with room to spare.
-      className="flex-1 h-12 rounded-ds-md border-border/70 hover:bg-muted/40"
+      // Full width: the buttons stack one per row, so each owns its own line
+      // rather than splitting one. h-12 keeps the 44pt minimum target with
+      // room to spare.
+      className="w-full h-12 rounded-ds-md border-border/70 hover:bg-muted/40"
       onClick={handleClick}
       disabled={loading}
       // The ONLY place the full label now lives. Never drop this: with no

@@ -9,7 +9,6 @@ import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
 import AuthShell from "@/components/auth/AuthShell";
-import { AuthModeTabs } from "@/components/auth/AuthModeTabs";
 import BackButton from "@/components/BackButton";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -393,11 +392,14 @@ const Signup = () => {
           {step === 1 && (
             <div className="flex items-center gap-2 mb-4">
               <div className="shrink-0"><BackButton to="/" /></div>
-              <AuthModeTabs
-                active="signup"
-                signupSearch={isBusinessSignup ? "?type=business" : ""}
-                className="flex-1"
-              />
+              {/* Title right of the chevron, same row — matches Login and the
+                  canonical PageHeader pattern in CLAUDE.md. */}
+              <h1
+                className="flex-1 min-w-0 font-display italic font-bold text-ds-24 leading-tight"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+              >
+                {isBusinessSignup ? "Create a business account" : "Create account"}
+              </h1>
             </div>
           )}
           {/* Liquid-glass card — matches the Login screen so the two auth
@@ -424,32 +426,23 @@ const Signup = () => {
                     <BackButton onClick={() => { setStep2Errors({}); setStep(1); }} />
                   </div>
                 )}
-                {/* Hidden when it would just repeat the active tab a hundred
-                    pixels above it — personal step 1's "Create account" is the
-                    tab's own label verbatim. Business signup ("Create business
-                    account") and step 2 ("About you") say something the tabs
-                    don't, so those stay visible.
-
-                    `sr-only`, never removed: the screen still needs exactly one
-                    h1, and the tab row is navigation, not a heading. */}
-                <h1
-                  className={
-                    stepHeading.title === "Create account"
-                      ? "sr-only"
-                      : "font-display italic font-bold leading-tight min-w-0 flex-1"
-                  }
-                  style={
-                    stepHeading.title === "Create account"
-                      ? undefined
-                      : {
-                          fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
-                          color: "hsl(var(--ink-deep))",
-                          letterSpacing: "-0.03em",
-                        }
-                  }
-                >
-                  {stepHeading.title}
-                </h1>
+                {/* Step 2 ONLY. Step 1's heading now sits beside the exit
+                    arrow ABOVE the card, so rendering one here too would put
+                    two h1s in the document — the page must have exactly one.
+                    This used to be sr-only on step 1 for the same reason in
+                    reverse, back when the tab row above carried the title. */}
+                {step === 2 && (
+                  <h1
+                    className="font-display italic font-bold leading-tight min-w-0 flex-1"
+                    style={{
+                      fontSize: "clamp(1.6rem, 2.4vw + 0.5rem, 2.1rem)",
+                      color: "hsl(var(--ink-deep))",
+                      letterSpacing: "-0.03em",
+                    }}
+                  >
+                    {stepHeading.title}
+                  </h1>
+                )}
               </div>
               {stepHeading.subtitle && (
                 <p
@@ -524,6 +517,21 @@ const Signup = () => {
               setStep(2);
             }}
           />
+        )}
+        {/* Step 1 only: on step 2 the credentials are already entered and
+            leaving for /login would silently discard them. Replaces the
+            segmented tab row that used to carry this route. */}
+        {step === 1 && (
+          <p className="text-center text-ds-11 font-sans mt-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="font-semibold hover:underline whitespace-nowrap"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Sign in
+            </Link>
+          </p>
         )}
           </div>
       </div>

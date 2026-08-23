@@ -11,7 +11,6 @@ import { Loader2, Eye, EyeOff, Mail, Lock, Check, ShieldCheck } from "lucide-rea
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
-import { AuthModeTabs } from "@/components/auth/AuthModeTabs";
 import AuthShell from "@/components/auth/AuthShell";
 import BackButton from "@/components/BackButton";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -275,7 +274,15 @@ const Login = () => {
             password reset. Sign-in is a top-level destination reached from all
             over; it needs one predictable parent. */}
         <div className="shrink-0"><BackButton to="/" /></div>
-        <AuthModeTabs active="signin" className="flex-1" />
+        {/* Title to the RIGHT of the chevron on the SAME row — the canonical
+            PageHeader pattern (see CLAUDE.md), so the arrow reads as a lead-in
+            to the heading instead of floating above an untitled card. */}
+        <h1
+          className="flex-1 min-w-0 font-display italic font-bold text-ds-24 leading-tight"
+          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+        >
+          Sign in
+        </h1>
       </div>
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6 lg:space-y-6">
         {/* Heading lives INSIDE the card, and the H emblem is gone entirely.
@@ -293,7 +300,6 @@ const Login = () => {
             HIDDEN, not removed — the screen still needs exactly one h1, and
             the tab row is navigation, not a heading. The back arrow moved up
             beside those tabs. */}
-        <h1 className="sr-only">Sign in</h1>
         {mfaChallenge ? (
           <div className="space-y-5">
             <div className="flex flex-col items-center text-center gap-2">
@@ -525,6 +531,19 @@ const Login = () => {
             375px; `whitespace-nowrap` guarantees that if the copy ever grows
             the link drops to its own line intact rather than splitting in the
             middle again. */}
+        {/* The way to the OTHER page. The segmented tabs used to carry this;
+            with them gone, sign-in needs an explicit route to sign-up or the
+            two separate pages become one-way. */}
+        <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          New to Helpr?{" "}
+          <Link
+            to="/signup"
+            className="font-semibold hover:underline whitespace-nowrap"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            Create an account
+          </Link>
+        </p>
         {BUSINESS_ENABLED && (
         <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Setting up a company?{" "}

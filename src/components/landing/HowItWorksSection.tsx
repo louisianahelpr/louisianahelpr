@@ -168,8 +168,15 @@ const HowItWorksSection = () => {
               // (cards, the 01/02/03 numerals), olivewood = text. This track is
               // a control, so it is bark, and it matches the "Browse Jobs"
               // button directly above it.
-              background: "hsl(var(--bark) / 0.06)",
-              border: "1px solid hsl(var(--bark) / 0.16)",
+              // Matched to the hero's "Browse Jobs" button (owner), which is
+              // `bg-background/70` inside a `1.5px solid hsl(var(--bark)/0.4)`
+              // border. Same surface, same edge — so the two secondary controls
+              // on the landing page read as the same material instead of two
+              // different tinted panels.
+              background: "transparent",
+              backdropFilter: "blur(20px) saturate(180%)",
+              WebkitBackdropFilter: "blur(20px) saturate(180%)",
+              border: "1.5px solid hsl(var(--bark) / 0.4)",
               boxShadow: "var(--elev-inset-hairline)",
             }}
           >

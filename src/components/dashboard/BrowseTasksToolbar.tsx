@@ -84,7 +84,7 @@ export function BrowseTasksToolbar({
 
   // One source for the row's heading text, used by both the normal and the
   // search state (search keeps it sr-only rather than dropping the h1).
-  const headingTitle = filters.hasFilters ? "Filtered results" : "Browse jobs";
+  const headingTitle = filters.hasFilters ? "Filtered Results" : "Browse Jobs";
 
   const recapChips: ChipDef[] = [];
   if (filters.selectedCategory) {

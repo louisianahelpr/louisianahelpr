@@ -295,7 +295,7 @@ const Dashboard = () => {
         {/* The loaded screen's only <h1> lives in BrowseTasksToolbar, which
             doesn't exist yet here — so the pending screen had no heading at
             all. Visually hidden; the skeleton stays the visible design. */}
-        <LoadingHeading title="Browse jobs" message="Loading jobs near you…" />
+        <LoadingHeading title="Browse Jobs" message="Loading jobs near you…" />
         <DashboardSkeleton />
       </PageScaffold>
     );

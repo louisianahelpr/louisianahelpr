@@ -179,11 +179,11 @@ const FieldError = ({ id, message }: { id: string; message?: string }) =>
 
 const Support = () => {
   usePageMeta({
-    title: "Contact support — Helpr | Louisiana's Local Job Partner",
+    title: "Contact Support — Helpr | Louisiana's Local Job Partner",
     description:
       "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
     canonical: "https://www.louisianahelpr.com/support",
-    ogTitle: "Contact support — Helpr",
+    ogTitle: "Contact Support — Helpr",
     ogDescription:
       "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
   });

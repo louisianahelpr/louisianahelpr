@@ -72,7 +72,7 @@ export const TITLE_BAR_PADDING = "!py-2 lg:!py-2.5";
  * recognise the screen they were just on.
  *
  * The feed's action icons are NOT here. They live one row down, in
- * `BrowseTasksToolbar`'s header row, next to the "Browse jobs" heading they
+ * `BrowseTasksToolbar`'s header row, next to the "Browse Jobs" heading they
  * act on — owner decision, reverting the 2026-08-17 lift that had briefly
  * pulled them up here. There are TWO of them now (search · filters): the view
  * toggle and saved searches moved into the filter sheet, so the row below is a

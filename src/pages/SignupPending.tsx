@@ -26,7 +26,7 @@ const SignupPending = () => {
   // check your email, so the user comes back to a tab strip and has to pick
   // it out. It is also the moment a screen reader should announce where the
   // user landed after submitting the signup form.
-  usePageTitle("Check your email — Helpr");
+  usePageTitle("Check Your Email — Helpr");
 
   const location = useLocation();
   const navigate = useNavigate();

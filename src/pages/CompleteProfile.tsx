@@ -33,7 +33,7 @@ import {
 } from "./completeProfile/constants";
 
 const CompleteProfile = () => {
-  usePageTitle("Complete your profile — Helpr");
+  usePageTitle("Complete Your Profile — Helpr");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, profile, isLoading, refresh } = useCurrentUser();

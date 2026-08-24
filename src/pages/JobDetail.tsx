@@ -40,7 +40,7 @@ const JobDetail = () => {
   const { user, isLoading: authLoading } = useCurrentUser();
   // Capture ?ref= attribution (share / email / notif) on mount.
   useJobRef();
-  usePageTitle("Job details — Helpr");
+  usePageTitle("Job Details — Helpr");
 
   // Guests fetch the single job from the RLS-public masked view. We skip
   // the fetch entirely for authed users — they're redirected below.

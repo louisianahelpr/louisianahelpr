@@ -20,7 +20,7 @@ mkdirSync(SHOT_DIR, { recursive: true });
 // measurement rather than by comment:
 //
 //   row 1 (PageScaffold titleCard)  [emblem] ............ [job pill] [bell]
-//   row 2 (BrowseTasksToolbar)      [h1 "Browse jobs"] ... [search] [filters]
+//   row 2 (BrowseTasksToolbar)      [h1 "Browse Jobs"] ... [search] [filters]
 //
 // The 2026-08-17 build had the icons in row 1 and the pill in row 2. The owner
 // saw it on device and asked for the swap. Both halves are asserted

@@ -28,7 +28,7 @@ const LIMITS = { percent: { min: 1, max: 50 }, fixed: { min: 1, max: 500 }, cap:
  * that actually happened.
  */
 const AutoTip = () => {
-  usePageTitle("Auto-tip — Helpr");
+  usePageTitle("Auto-Tip — Helpr");
   const { user, profile, refresh } = useCurrentUser();
 
   const [mode, setMode] = useState<Mode>("off");

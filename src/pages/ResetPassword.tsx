@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Check, X } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
-import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { friendlyAuthError } from "@/lib/authErrors";
 import { passwordStrength } from "./signup/signupHelpers";
@@ -96,8 +95,15 @@ const ResetPassword = () => {
     }
   };
 
+  // Login's exact shell (owner, V4): `noWebChrome` drops the marketing Navbar
+  // + Footer this screen used to carry, `centerColumn` centres the column and
+  // keeps the ambient brand wash that used to ride on `desktopBrandPanel`.
+  // Dropping the brand pane also removes the second, pinned top-left chevron it
+  // rendered at lg+ beside the title row's own — the same stacked-arrow defect
+  // /forgot-password showed. Tab title ("Set New Password — Helpr") already
+  // matches this h1.
   return (
-    <AuthShell hideHeader maxWidth="sm" backTo="/login" title="Set New Password" desktopBrandPanel={<AuthBrandPane />}>
+    <AuthShell hideHeader centerColumn maxWidth="sm" backTo="/login" title="Set New Password" noWebChrome>
       {/* Heading + emblem removed. The heading is now AuthShell's `title` row
           (left of the chevron, ds-24) like every other auth screen — this one
           rendered it centred at clamp(1.85rem,3vw+0.5rem,2.5rem), a third
@@ -109,7 +115,10 @@ const ResetPassword = () => {
       {/* No subhead — "Set a new password for your account." restated the
           title immediately above it. The card below carries the state-specific
           explanation, which is the only line that adds information. */}
-      <div className="liquid-glass p-6 sm:p-8 space-y-6">
+      {/* Same card rhythm as Login / Signup / ForgotPassword
+          (p-5 sm:p-6 lg:p-10). It was p-6 sm:p-8 — a fourth padding scale on
+          the one card component all four auth screens share. */}
+      <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
         {!ready ? (
           <div className="text-center space-y-4">
             <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

@@ -96,7 +96,40 @@ const DOCUMENT_SCROLL_ROUTES = [
 // stays long-form document-scroll for SEO.
 const NATIVE_APP_SHELL_ROUTES = ["/legal"];
 
+/**
+ * The pathname currently rendering the `path="*"` catch-all (NotFound), or
+ * null. Reported by NotFound itself via `setNotFoundPathname`.
+ *
+ * Why this can't be a list entry: DOCUMENT_SCROLL_ROUTES is matched against
+ * the pathname, and the 404's "path" is every string that is NOT a declared
+ * route — unknowable from the pathname alone without duplicating the whole
+ * router table here (which would then drift silently, the failure mode
+ * auditCatalogRoutes.test.ts exists to catch). The page is the only thing that
+ * knows it is the 404, so the page says so.
+ *
+ * It matters because since 2026-08-24 (audit V12) NotFound renders inside
+ * PublicLayout — marketing Navbar + Footer — which is far taller than a
+ * viewport. Left under `html.app-shell { overflow: hidden }`, the footer and
+ * usually the "Back to Home" button sit below the fold with no way to scroll
+ * to them: a dead end on the page whose entire job is to be an exit.
+ */
+let notFoundPathname: string | null = null;
+/** Re-runs the class-toggling effect below. Set while the hook is mounted. */
+let reapplyShellClasses: (() => void) | null = null;
+
+export const setNotFoundPathname = (pathname: string | null) => {
+  if (notFoundPathname === pathname) return;
+  notFoundPathname = pathname;
+  // Push, don't wait to be polled: the hook lives in a SIBLING component of
+  // <Routes> (App.tsx's SessionManager), so relying on React's effect ordering
+  // between the two would make correctness depend on their JSX order. This
+  // re-applies the classes immediately, whichever effect ran first.
+  reapplyShellClasses?.();
+};
+
 const isDocumentScrollRoute = (pathname: string) => {
+  // The 404 catch-all is document-scroll — see setNotFoundPathname above.
+  if (notFoundPathname === pathname) return true;
   if (
     isNativePlatform &&
     NATIVE_APP_SHELL_ROUTES.some(
@@ -150,24 +183,32 @@ export const useAppShellViewport = () => {
   const { user } = useAuthReady();
 
   useEffect(() => {
-    const html = document.documentElement;
-    if (isDocumentScrollRoute(pathname)) {
-      html.classList.remove("app-shell");
-    } else {
-      html.classList.add("app-shell");
-    }
-    // Mirror the DesktopSidebarNav's own visibility gate onto <html> so the
-    // CSS that insets pages from the fixed left rail turns on/off with the
-    // rail itself. The gate MUST include `!!user`, exactly like the rail's
-    // render gate (DesktopSidebarNav) and the marketing Navbar's step-aside
-    // gate — otherwise a guest-reachable rail route (e.g. /browse, which
-    // bounces authed users away, so its visitor is ALWAYS logged out) insets
-    // the shell 248px for a rail that never renders, leaving a dead gutter.
-    // app-shell pages inset via .app-shell-frame; document-scroll pages via
-    // the #root rule — both keyed off this class, so both stay in lockstep.
-    html.classList.toggle("desktop-rail", isDesktopRailRoute(pathname) && !!user);
+    const apply = () => {
+      const html = document.documentElement;
+      if (isDocumentScrollRoute(pathname)) {
+        html.classList.remove("app-shell");
+      } else {
+        html.classList.add("app-shell");
+      }
+      // Mirror the DesktopSidebarNav's own visibility gate onto <html> so the
+      // CSS that insets pages from the fixed left rail turns on/off with the
+      // rail itself. The gate MUST include `!!user`, exactly like the rail's
+      // render gate (DesktopSidebarNav) and the marketing Navbar's step-aside
+      // gate — otherwise a guest-reachable rail route (e.g. /browse, which
+      // bounces authed users away, so its visitor is ALWAYS logged out) insets
+      // the shell 248px for a rail that never renders, leaving a dead gutter.
+      // app-shell pages inset via .app-shell-frame; document-scroll pages via
+      // the #root rule — both keyed off this class, so both stay in lockstep.
+      html.classList.toggle("desktop-rail", isDesktopRailRoute(pathname) && !!user);
+    };
+    apply();
+    // Published so NotFound's `setNotFoundPathname` can re-apply the moment it
+    // reports itself, regardless of which component's effect ran first.
+    reapplyShellClasses = apply;
     return () => {
-      // Don't strip on unmount — the next route effect will set it correctly.
+      // Don't strip the classes on unmount — the next route effect will set
+      // them correctly. Only the re-apply hook is released.
+      if (reapplyShellClasses === apply) reapplyShellClasses = null;
     };
   }, [pathname, user]);
 

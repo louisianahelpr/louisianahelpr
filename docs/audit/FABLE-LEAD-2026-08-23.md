@@ -78,6 +78,38 @@ stop, the question-mark idiom keeps its mark, nothing is stripped. Applied to th
 
 ---
 
+## ✅ CLOSED 2026-08-24 — R1–R18 all fixed (owner approved the money + security lanes)
+
+Every finding below R1–R18 has been fixed, gated and deployed; the section
+is kept for the reasoning, not as a to-do list. Highlights and corrections:
+
+- **R1 (release-blocking) is closed and live-verified.** Guards: job must be
+  FUNDED, start time must have PASSED, escalation counts DISTINCT reporters,
+  one report per job. An accepted-application check was considered and
+  REJECTED against live data (only 6 of 20 assigned jobs carry an application
+  row — it would have broken legitimate direct assignment; all 20 are funded).
+  Attack replayed read-only against the deployed function: blocked.
+- **R2/R3/R4/R11 live-verified in prod** — email-queue grants revoked,
+  always-locked money columns, distance RPC gated to the job's poster, and
+  `messages` UPDATE reduced to exactly one column (`read`).
+- **R5 measured, not assumed:** 2,199 (budget, tier) pairs under $200
+  diverged between the two payout paths — e.g. $5.05 @ 10% paid 454¢ one way
+  and 455¢ the other. One shared `helperCommissionDollars()` now.
+- **R7 was worse than reported:** the same `limit: 1` customer bug existed in
+  BOTH polls, and the personal one could wipe a BUSINESS SEAT tier it never
+  granted. Both enumerate all customers; the revoke now refuses to clear a
+  tier it doesn't own and fails closed.
+- **R10 is moot** — bidding was removed by the owner, so `proposed_price` has
+  no live write path.
+- **R15 was partly inaccurate:** `RecentTransfers` was already cents-exact
+  (`formatPriceExact` over `amount_cents`) and needed no change.
+- **R18's own guard was the point:** the pre-existing escrow parity test
+  asserted against a comment, so the cron could drift silently. The
+  replacement parses the cron's arithmetic — verified by a negative control
+  (48→47 fails, revert restores green).
+
+---
+
 ## REPORTED — needs a tone / money / legal / product decision (severity-ranked)
 
 ### CRITICAL — trust (load-bearing wall)

@@ -531,7 +531,13 @@ export function BrowseTasksFeed({
                     // virtualizer absolutely-positions rows, so the gap is
                     // bottom padding measured as part of the row height.
                     <div
-                      className="pb-2.5 lg:pb-4 xl:pb-5"
+                      className=/* 8 / 10 / 12, not 10 / 16 / 20 (owner: "tighter together").
+                       The gap GREW with viewport width while the card it
+                       separates stayed 85px tall, so the desktop feed spent a
+                       fifth of a card's height on the space between every pair.
+                       A list reads as a list when the rows are closer to each
+                       other than they are tall. */
+                    "pb-2 lg:pb-2.5 xl:pb-3"
                       onMouseEnter={() => setHoveredJobId?.(job.id)}
                       onMouseLeave={() => setHoveredJobId?.(null)}
                     >

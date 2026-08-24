@@ -4,7 +4,6 @@ import { useDraftJob } from "@/hooks/useDraftJob";
 import { safeStorage } from "@/lib/safeStorage";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useParishTaxRate } from "@/hooks/useParishTaxRate";
 import type { Step } from "./postJobFormTypes";
 import { useJobMediaUpload } from "./useJobMediaUpload";
 import { useJobSubmit } from "./useJobSubmit";
@@ -166,8 +165,17 @@ export function usePostJobForm() {
   // every other category the DB carried ~10% of the budget in tax that was
   // never collected — and the admin revenue rollups sum that column.
   // `null` (parish not resolved yet) means 0, not a guess.
-  const { totalRatePercent: parishTaxRate } = useParishTaxRate(parish);
-  const salesTaxRate = parishTaxRate ?? 0;
+  // 0 at insert time, ON PURPOSE — no longer an estimate from `parish_tax_rates`.
+  //
+  // The row is corrected the moment Stripe charges: the checkout webhook writes
+  // BOTH `sales_tax_amount` and `sales_tax_rate` from the payment intent's own
+  // tax details, so the persisted rate is the effective one Stripe applied.
+  // Seeding a guess here only created a window where a job carried our number
+  // instead of Stripe's — and that guess came from the table whose DeSoto /
+  // LaSalle spelling mismatch resolved to a rate of 0 for seven ZIP codes
+  // anyway. A known-provisional 0 that is overwritten within seconds beats a
+  // confident wrong number that never is.
+  const salesTaxRate = 0;
 
   // True once the user has restored the saved draft via loadDraft. The inline
   // "Pick up draft" pill hides after this so an accidental re-tap can't replace

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, TriangleAlert } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -26,6 +26,8 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
   const [hours, setHours] = useState("24");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const selectedLabel =
+    deadlineOptions.find((o) => o.value === hours)?.label ?? `${hours} hours`;
 
   const handleConfirm = async () => {
     setSubmitting(true);
@@ -41,8 +43,11 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
       <DialogContent>
         <DialogHero eyebrow="Send a direct offer" title="Set a Response Deadline" />
         <div className="space-y-4">
-          <p className="text-ds-11 text-muted-foreground">
-            How long should <span className="font-medium text-foreground">{helperName}</span> have to accept or decline this job?
+          {/* Lede in the same serif-italic olivewood every other money/offer
+              dialog opens with (TipDialog, InstantPayoutDialog). This dialog
+              was the one all-grayscale member of that set. */}
+          <p className="font-serif italic leading-relaxed text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            How long should <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{helperName}</span> have to accept or decline this job?
           </p>
           <div className="space-y-2">
             <Select value={hours} onValueChange={setHours}>
@@ -55,8 +60,13 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-ds-11 text-muted-foreground">
-              If they don't respond in time, the job will be reopened automatically.
+            {/* Says the window back to you the way JobBoostDialog says
+                "runs for 24 hours" — the choice you just made, in display type,
+                rather than a grey "in time". */}
+            <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              If they don't respond within{" "}
+              <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{selectedLabel}</span>
+              , the job will be reopened automatically.
             </p>
           </div>
 
@@ -76,11 +86,28 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
             />
           </div>
 
-          <div className="rounded-ds-sm bg-muted/50 border border-border p-3">
-            <p className="text-ds-11 text-muted-foreground">
-              <span className="font-medium text-foreground">⚠️ Denial policy:</span> Helprs who decline jobs repeatedly will face escalating consequences:
+          {/* The one notice block, painted the way InstantPayoutDialog paints
+              its notice: a burnt-sienna wash and hairline, not `bg-muted/50`.
+              The icon is the lucide stroke glyph the rest of the app uses —
+              this was the last raw ⚠️ emoji standing in for one. */}
+          <div
+            className="rounded-ds-sm p-3"
+            style={{
+              background: "hsl(var(--burnt-sienna) / 0.08)",
+              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+            }}
+          >
+            <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+              <span
+                className="inline-flex items-center gap-1.5 font-semibold align-[-2px]"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              >
+                <TriangleAlert aria-hidden className="w-3.5 h-3.5 shrink-0" />
+                Denial policy:
+              </span>{" "}
+              Helprs who decline jobs repeatedly will face escalating consequences:
             </p>
-            <ul className="text-ds-11 text-muted-foreground mt-1 space-y-0.5 list-disc pl-4">
+            <ul className="text-ds-11 mt-1 space-y-0.5 list-disc pl-4" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
               <li>1st & 2nd decline — no penalty</li>
               <li>3rd decline — warning issued</li>
               <li>4th decline — temporary ban</li>

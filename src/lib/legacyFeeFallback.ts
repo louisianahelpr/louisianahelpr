@@ -28,3 +28,25 @@ export const HELPER_FEE_LEGACY_FALLBACK_PERCENT = 10;
  * `HELPER_FEE_LEGACY_FALLBACK_PERCENT`, mirrored for the poster leg.
  */
 export const CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT = 10;
+
+/**
+ * Resolve a job row's `helper_fee_percent` to a number, falling back ONLY when
+ * the column is genuinely absent.
+ *
+ * Written because two admin surfaces read it as
+ * `Number(j.helper_fee_percent) || HELPER_FEE_LEGACY_FALLBACK_PERCENT`. `||`
+ * treats 0 as missing, so a legitimately COMPED job — commission deliberately
+ * set to 0% — was silently restated at 10%, and admin saw a helper paid less
+ * than they were. `??` is the correct operator, with a NaN guard for the
+ * string/garbage case that `??` alone does not cover.
+ */
+export function helperFeePercentOrLegacy(
+  raw: number | string | null | undefined,
+): number {
+  if (raw === null || raw === undefined || raw === "") {
+    return HELPER_FEE_LEGACY_FALLBACK_PERCENT;
+  }
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : HELPER_FEE_LEGACY_FALLBACK_PERCENT;
+}
+

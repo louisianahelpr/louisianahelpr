@@ -1,7 +1,9 @@
 import { TrendingUp } from "lucide-react";
 import SectionCard from "./SectionCard";
 import type { Analytics } from "./fetchAnalytics";
-import { formatPrice } from "@/lib/format";
+// Take-home per month (fetchAnalytics uses helperTakeHomeDollars), so the
+// bar labels are payout figures and floor rather than round up.
+import { formatPriceFloor } from "@/lib/format";
 
 interface EarningsByMonthCardProps {
   analytics: Analytics | undefined;
@@ -35,7 +37,7 @@ const EarningsByMonthCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Ear
             return (
               <div key={m.label} className="flex-1 flex flex-col items-center gap-1">
                 <span className="text-ds-10 font-semibold" style={{ color: "hsl(var(--bark))" }}>
-                  {m.amount > 0 ? `$${formatPrice(m.amount)}` : ""}
+                  {m.amount > 0 ? `$${formatPriceFloor(m.amount)}` : ""}
                 </span>
                 <div
                   className="w-full rounded-t-sm transition-all duration-500"

@@ -6,7 +6,7 @@ import { TabsContent } from "@/components/ui/tabs";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
 import { formatTimestamp } from "@/lib/format";
-import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
+import { helperFeePercentOrLegacy } from "@/lib/legacyFeeFallback";
 import type { Profile } from "../adminUserHelpers";
 
 interface JobsTabProps {
@@ -25,7 +25,9 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
     const isCustomer = j.customer_id === viewProfile.user_id;
     const budget = Number(j.budget) || 0;
     if (isHelper) {
-      const fee = (Number(j.helper_fee_percent) || HELPER_FEE_LEGACY_FALLBACK_PERCENT) / 100;
+      // `??`-semantics, not `||`: a stamped 0% (comped job) is a real fee and
+      // must not be re-inflated to the legacy 10% fallback.
+      const fee = helperFeePercentOrLegacy(j.helper_fee_percent) / 100;
       // Group jobs split the budget across the roster (mirrors computeNet):
       // this helper's net is on their per-helper share, not the whole budget.
       const helpers = Number(j.helpers_needed) > 0 ? Number(j.helpers_needed) : 1;

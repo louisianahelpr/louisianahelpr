@@ -1,7 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { formatCategory } from "@/lib/format";
 import { shortMonth, DOW_LABELS } from "./analyticsUtils";
-import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
+import {
+  helperPlatformFeeDollars,
+  helperTakeHomeDollars,
+  type HelperEarningsJob,
+} from "@/lib/helperEarnings";
 
 export async function fetchAnalytics(userId: string) {
   const sixMonthsAgo = new Date();
@@ -11,14 +16,22 @@ export async function fetchAnalytics(userId: string) {
   const [profileRes, completedJobsRes, allAppsRes, ratingsRes, benchRes, repeatHireRes, profileViewsRes] = await Promise.all([
     supabase
       .from("profiles")
-      .select("subscription_tier, full_name")
+      .select("subscription_tier, subscription_expires_at, full_name")
       .eq("user_id", userId)
       .maybeSingle(),
     // Completed jobs where this user was the helper — last 6 months.
     // Include timing fields for on-time arrival rate.
     supabase
       .from("jobs")
-      .select("id, budget, category, updated_at, helper_arrived_at, date_needed, start_time")
+      // The money columns are NOT optional here. `budget` alone cannot answer
+      // "what did this helpr earn": a group job's budget is shared by
+      // `helpers_needed` people, the commission was frozen per job
+      // (`platform_fee_amount` / `helper_fee_percent`), and the urgent bonus
+      // passes through on top. Selecting them is what lets
+      // helperTakeHomeDollars resolve the real figure — see helperEarnings.ts.
+      .select(
+        "id, budget, platform_fee_amount, helper_fee_percent, urgent_fee, is_group_job, helpers_needed, category, updated_at, helper_arrived_at, date_needed, start_time",
+      )
       .eq("helper_id", userId)
       .eq("status", "completed")
       .gte("updated_at", iso6m),
@@ -71,6 +84,20 @@ export async function fetchAnalytics(userId: string) {
   const allRatings = ratingsRes.error ? [] : (ratingsRes.data ?? []);
 
   // ── Earnings by month ─────────────────────────────────────────────────────
+  // TAKE-HOME, from the one shared definition (helperEarnings.ts) that every
+  // other earnings surface uses. This used to add up `job.budget` verbatim,
+  // which was wrong three ways at once on the same row: it ignored the roster
+  // split on a group job, ignored the fee frozen on the job, and ignored the
+  // urgent bonus. A 3-helpr $300 job that transferred ~$88 to this helpr was
+  // charted as $300.
+  //
+  // The fallback percent is the helper's OWN tier rate, expiry-aware, and is
+  // consulted only for legacy rows that carry neither a stamped fee nor a
+  // frozen percent — exactly as WorkRecord and the Earnings tab do it.
+  const feeFallbackPercent = tierFeePercent(
+    profileRes.data?.subscription_tier ?? null,
+    profileRes.data?.subscription_expires_at ?? null,
+  );
   const earningsByMonth: Record<string, number> = {};
   const today = new Date();
   for (let i = 5; i >= 0; i--) {
@@ -78,14 +105,19 @@ export async function fetchAnalytics(userId: string) {
     earningsByMonth[`${d.getFullYear()}-${d.getMonth()}`] = 0;
   }
   let totalEarnings = 0;
+  let platformFee = 0;
   for (const job of completedJobs) {
+    const takeHome = helperTakeHomeDollars(job as HelperEarningsJob, feeFallbackPercent);
     const d = new Date(job.updated_at);
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     if (key in earningsByMonth) {
-      earningsByMonth[key] += job.budget ?? 0;
+      earningsByMonth[key] += takeHome;
     }
-    totalEarnings += job.budget ?? 0;
+    totalEarnings += takeHome;
+    platformFee += helperPlatformFeeDollars(job as HelperEarningsJob, feeFallbackPercent);
   }
+  // Cents, not sub-cent floats: the ledger this sits above is cents-exact.
+  platformFee = Math.round(platformFee * 100) / 100;
 
   const earningsMonths = Object.entries(earningsByMonth).map(([key, amount]) => {
     const [year, month] = key.split("-").map(Number);
@@ -127,22 +159,16 @@ export async function fetchAnalytics(userId: string) {
     ? 32
     : (benchRow.avg_application_success_rate ?? 32);
 
-  // ── Platform fee estimate ─────────────────────────────────────────────────
-  // Derived from the helper's actual subscription tier (fetched above at line
-  // 58) so a Free helper sees 12%, Pro 10%, Elite 8%, Business 6%. Previously
-  // hardcoded to 0.10 → Free helpers saw net earnings computed under Pro's
-  // fee. TIER_PERKS is the single source of truth for the fee ladder.
-  const tierKey = tier as SubscriptionTier;
-  const platformFeePercent =
-    (TIER_PERKS[tierKey] ?? TIER_PERKS.free).platformFeePercent / 100;
-  // CENTS, not whole dollars. `Math.round(gross * pct)` rounded the FEE to the
-  // nearest dollar, so on a single $260 job the 12% fee became $31 instead of
-  // $31.20 and net came out $229 — while the payout ledger on the same screen,
-  // reading the real Stripe transfer, said $228.80. Not a formatting
-  // difference: the two surfaces were computing different money. Rounding to
-  // cents makes the estimate agree with the ledger it sits above.
-  const platformFee = Math.round(totalEarnings * platformFeePercent * 100) / 100;
-  const netEarnings = totalEarnings - platformFee;
+  // ── Platform fee ──────────────────────────────────────────────────────────
+  // Summed PER JOB above rather than by applying today's tier rate to a total.
+  // Applying one current rate to six months of history restates jobs that were
+  // charged a different (frozen) commission — a helpr who upgraded last week
+  // would see every older job recomputed at the new rate.
+  //
+  // `netEarnings` is retained as the take-home total under its old name so the
+  // two figures still add up: gross-to-this-helpr = netEarnings + platformFee.
+  const netEarnings = totalEarnings;
+  const grossEarnings = totalEarnings + platformFee;
 
   // ── On-time arrival rate ─────────────────────────────────────────────────
   // Requires at least 5 jobs with both helper_arrived_at and date_needed.
@@ -193,6 +219,7 @@ export async function fetchAnalytics(userId: string) {
     totalEarnings,
     platformFee,
     netEarnings,
+    grossEarnings,
     completedCount: completedJobs.length,
     earningsMonths,
     maxEarnings,

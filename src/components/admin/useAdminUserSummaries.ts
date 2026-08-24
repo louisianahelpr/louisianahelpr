@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
+import { helperFeePercentOrLegacy } from "@/lib/legacyFeeFallback";
 import type { Profile } from "./adminUserHelpers";
 
 /**
@@ -114,7 +114,9 @@ export function useAdminUserSummaries() {
     for (const j of data) {
       const budget = Number(j.budget) || 0;
       if (j.helper_id && userIds.includes(j.helper_id)) {
-        const fee = (Number(j.helper_fee_percent) || HELPER_FEE_LEGACY_FALLBACK_PERCENT) / 100;
+        // `??`-semantics, not `||`: a stamped 0% (comped job) is a real fee
+        // and must not be re-inflated to the legacy 10% fallback.
+        const fee = helperFeePercentOrLegacy(j.helper_fee_percent) / 100;
         totals[j.helper_id] = (totals[j.helper_id] || 0) + budget * (1 - fee);
       }
       if (j.customer_id && userIds.includes(j.customer_id)) {

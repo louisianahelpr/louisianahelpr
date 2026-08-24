@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatPrice } from "@/lib/format";
+import { formatPriceFloor } from "@/lib/format";
 import type { Analytics } from "./fetchAnalytics";
 
 interface HeroSummaryProps {
@@ -28,11 +28,15 @@ const HeroSummary = ({ analytics, isLoading }: HeroSummaryProps) => {
             className="font-display italic font-bold text-ds-28"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
-            {analytics ? "$" + formatPrice(analytics.totalEarnings) : "$0"}
+            {analytics ? "$" + formatPriceFloor(analytics.totalEarnings) : "$0"}
             {/* A real space, not just `ml-2`. The margin gives visual air but
                 leaves nothing between the two tokens in the accessibility tree
                 or on copy-paste, so the line read "$260gross earned". */}{" "}
-            <span className="text-ds-14 font-normal ml-2 text-muted-foreground">gross earned</span>
+            {/* "gross earned" was never true of this number and is now plainly
+                false: fetchAnalytics returns TAKE-HOME (helperTakeHomeDollars),
+                net of the per-job commission and split across a group job's
+                roster. It is a payout figure, so it floors. */}
+            <span className="text-ds-14 font-normal ml-2 text-muted-foreground">take-home</span>
           </p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-ds-13">
             <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

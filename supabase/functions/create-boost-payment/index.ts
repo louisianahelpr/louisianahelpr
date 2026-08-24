@@ -3,7 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
-import { BOOST_FEE_CENTS, BOOST_DURATION_HOURS } from "../_shared/productPrices.ts";
+import { BOOST_FEE_CENTS, BOOST_DURATION_HOURS, BOOST_DISCOUNT_PCT, BOOST_MIN_UNIT_AMOUNT_CENTS } from "../_shared/productPrices.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -123,7 +123,6 @@ serve(async (req) => {
     // product description names the subscriber discount so the receipt is
     // legible. Elite is already returned above (free), and Free/Business
     // fall through to the full BOOST_FEE_CENTS price.
-    const BOOST_DISCOUNT_PCT = 20;
     const isBoostDiscountTier = subActive && (subTier === "basic" || subTier === "pro");
     // MIN_UNIT_AMOUNT_CENTS: an absolute floor covering Stripe's per-charge
     // cost (~30¢ fixed + 2.9% variable) plus a thin platform margin, so a
@@ -132,7 +131,7 @@ serve(async (req) => {
     // the current $3 gross the discounted $2.40 nets ~$2.03 to platform;
     // 100¢ is a defensive floor well below that, only relevant if the base
     // fee is ever cut below ~$1.25.
-    const MIN_UNIT_AMOUNT_CENTS = 100;
+    const MIN_UNIT_AMOUNT_CENTS = BOOST_MIN_UNIT_AMOUNT_CENTS;
     const rawDiscounted = Math.round(BOOST_FEE_CENTS * (100 - BOOST_DISCOUNT_PCT) / 100);
     const unitAmount = isBoostDiscountTier
       ? Math.max(rawDiscounted, MIN_UNIT_AMOUNT_CENTS)

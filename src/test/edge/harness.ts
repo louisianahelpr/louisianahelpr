@@ -101,6 +101,17 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/helperFees.ts";`,
   );
 
+  // Stripe product -> membership tier: `_shared/productTiers.ts` is a plain
+  // constant map (no Deno/remote imports), so the generated file points at the
+  // REAL module. Matched for BOTH forms, because stripe-webhook/constants.ts
+  // RE-EXPORTS it (`export { PRODUCT_TO_TIER } from ...`) rather than importing
+  // it — a re-export the import-only rules above would have missed, leaving an
+  // unresolvable `../_shared/...` specifier in the emitted sibling.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/productTiers\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/productTiers.ts";`,
+  );
+
   // Stripe processing-cost floor: `_shared/stripeFees.ts` is likewise pure
   // TypeScript (plain constants + arithmetic, no Deno/remote imports), so the
   // generated file points at the REAL module — the actual withholding math the

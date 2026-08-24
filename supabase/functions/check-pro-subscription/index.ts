@@ -1,26 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { PRODUCT_TO_TIER } from "../_shared/productTiers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PRODUCT_TO_TIER: Record<string, string> = {
-  // Monthly recurring
-  "prod_U8rS2fR6KvQoRk": "basic",
-  "prod_U8rTRJZSUyzaha": "pro",
-  "prod_U8rTUX4EhN5wG3": "elite",
-  // Annual recurring
-  "prod_U8rTux09RGNWWd": "basic",
-  "prod_U8rTiOIcITvnIT": "pro",
-  "prod_U8rT5zWKWe29By": "elite",
-  // One-time month pass
-  "prod_U8rTPMHf6IQnGE": "basic",
-  "prod_U8rThLQr2jThoM": "pro",
-  "prod_U8rT0f4UtNPrrs": "elite",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

@@ -674,7 +674,9 @@ serve(async (req) => {
     title: "Payment released",
     message: `Your earnings for "${job.title}" ($${formatPayoutDollars(netDollars)}) have been sent to your bank${feeNote}.`,
     type: "payment",
-    link: "/dashboard?tab=earnings",
+    // Dashboard reads no `tab` param — the canonical earnings screen is the
+    // profile tab (execute-dispute-split and /earnings both point there).
+    link: "/profile?tab=earnings",
   });
 
   return jsonResponse({

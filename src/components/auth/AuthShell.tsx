@@ -17,7 +17,14 @@ interface AuthShellProps {
    * reached by clicking "Sign In" / "Get Started" FROM the site, not landed
    * on cold, so the exit-hatch argument doesn't apply the same way, and a
    * focused credential/create-account flow reads better without a nav bar
-   * competing for attention above the form. */
+   * competing for attention above the form.
+   *
+   * ForgotPassword and ResetPassword joined them (owner, 2026-08-24, audit
+   * V4). Both are reached from INSIDE the funnel — /login's "Forgot Password?"
+   * link, or a link in the reset email — so the same reasoning holds, and the
+   * split was the more visible problem: half the auth flow wore marketing
+   * chrome and half didn't. The back chevron in the title row is the exit
+   * hatch on all four. */
   noWebChrome?: boolean;
   children: ReactNode;
   eyebrow?: string;
@@ -212,8 +219,15 @@ const AuthShell = ({
       {/* Desktop-brand-hero variant: pin the back button top-LEFT so it
           sits above the horizontal brand band rather than in the form
           column. Mobile keeps the in-flow back button inside the form
-          column, unchanged. */}
-      {desktopBrandPanel && align !== "center" && !hideBack && (
+          column, unchanged.
+
+          `!title` — same guard the standalone in-flow arrow below carries, and
+          for the same reason. Without it a caller passing BOTH a brand pane and
+          a title got two chevrons at lg+: this pinned one AND the canonical
+          row's. That is exactly what /forgot-password shipped (audit V4). The
+          row is the single owner of the back control whenever a title exists,
+          on every branch — not just the one that happened to be guarded. */}
+      {desktopBrandPanel && align !== "center" && !hideBack && !title && (
         <div className="hidden lg:block absolute left-8 top-8 z-20">
           {backLink}
         </div>

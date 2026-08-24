@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Clock } from "lucide-react";
 import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { postAuthDestination } from "@/lib/jobIntent";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, Mail, Lock, Check, ShieldCheck } from "lucide-react";
+import { Loader2, Eye, EyeOff, Mail, Lock, Check, ShieldCheck, X } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQueryClient } from "@tanstack/react-query";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
@@ -125,10 +125,35 @@ const Login = () => {
   const [mfaCode, setMfaCode] = useState("");
   const [mfaVerifying, setMfaVerifying] = useState(false);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  // Set once Sign In has been tapped — lets an UNTOUCHED field surface its
+  // "add this" error, which a purely value-driven check can never do.
+  const [attempted, setAttempted] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  // Shared by the field's aria-invalid and the message under it, so a field
+  // can never show one without the other. A malformed address complains as you
+  // type; an empty one only after a submit attempt (SignupStep1's split).
+  const emailError = (email.length > 0 && !emailValid) || (attempted && !email.trim());
+  const passwordError = attempted && password.length === 0;
 
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Field validation runs BEFORE the lockout check and before the network
+    // call: an incomplete form is not a failed sign-in attempt and must not
+    // count toward the 5-strike lockout, nor reach signInWithPassword.
+    setAttempted(true);
+    if (!emailValid) {
+      hapticError();
+      emailRef.current?.focus();
+      return;
+    }
+    if (password.length === 0) {
+      hapticError();
+      passwordRef.current?.focus();
+      return;
+    }
 
     if (attemptState.lockedUntil && Date.now() < attemptState.lockedUntil) {
       const msLeft = attemptState.lockedUntil - Date.now();
@@ -347,7 +372,12 @@ const Login = () => {
             for something real instead of inflating one field. Stacks below lg,
             unchanged. */}
         <div className="grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:gap-14 lg:items-stretch">
-        <form onSubmit={handleLogin} className="space-y-3.5 lg:space-y-6">
+        {/* noValidate: `required` stays on both inputs for semantics, but the
+            browser's own validation bubble would intercept the submit and
+            replace our inline messages with a native tooltip — so the "name
+            what's missing" path in handleLogin could never run. React owns
+            the validation on this form. */}
+        <form onSubmit={handleLogin} noValidate className="space-y-3.5 lg:space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
             <div className="relative">
@@ -357,6 +387,7 @@ const Login = () => {
                 strokeWidth={1.75}
               />
               <Input
+                ref={emailRef}
                 id="email"
                 type="email"
                 inputMode="email"
@@ -368,12 +399,20 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className={`pl-10 ${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]`}
+                aria-invalid={emailError}
+                aria-describedby={emailError ? "login-email-error" : undefined}
+                className={`pl-10 ${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] ${emailError ? "!border-destructive focus-visible:!border-destructive" : ""}`}
               />
               {emailValid && (
                 <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
               )}
             </div>
+            {emailError && (
+              <p id="login-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-destructive">
+                <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+                {email.trim() ? "Enter a valid email address" : "Add your email address"}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password" className="text-ds-13 font-sans font-medium">Password</Label>
@@ -384,6 +423,7 @@ const Login = () => {
                 strokeWidth={1.75}
               />
               <Input
+                ref={passwordRef}
                 id="password"
                 type={showPassword ? "text" : "password"}
                 enterKeyHint="done"
@@ -400,7 +440,9 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]"
+                aria-invalid={passwordError}
+                aria-describedby={passwordError ? "login-password-error" : undefined}
+                className={`pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] ${passwordError ? "!border-destructive focus-visible:!border-destructive" : ""}`}
               />
               <button
                 type="button"
@@ -411,6 +453,12 @@ const Login = () => {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            {passwordError && (
+              <p id="login-password-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-destructive">
+                <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+                Add your password
+              </p>
+            )}
             {/* Recovery link, under the field it belongs to and above the CTA.
 
                 The gaps are controlled on the LINK (`-my-2`), not on this
@@ -444,7 +492,12 @@ const Login = () => {
             type="submit"
             className="w-full rounded-ds-md"
             size="lg"
-            disabled={loading || !emailValid || password.length === 0}
+            // Loading-only disable (owner, V5) — the pattern Signup's Continue
+            // and Create Account already use. A greyed-out Sign In is a dead
+            // end that says something is wrong without saying WHAT; the button
+            // now stays tappable and tapping it names the missing field inline
+            // (and focuses it) instead of firing signInWithPassword.
+            disabled={loading}
           >
             {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing In…</> : "Sign In"}
           </Button>

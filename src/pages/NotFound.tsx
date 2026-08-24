@@ -4,15 +4,28 @@ import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft } from "lucide-react";
 import { report } from "@/lib/errorLogger";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import PublicLayout from "@/components/marketing/PublicLayout";
+import { setNotFoundPathname } from "@/hooks/useAppShellViewport";
 
 /**
- * NotFound — deliberately does NOT wrap in PublicLayout. A 404 is a
- * dead-end state; the goal is to route the user back to somewhere real
- * with the two big CTAs below, not to hand them another set of nav links
- * to click deeper into invalid space. The audit surfaced this as a
- * "bespoke chrome" outlier — the choice is intentional. If a future
- * change re-adds the marketing nav here, verify it doesn't turn a
- * recovery moment into a wander-off.
+ * NotFound — the catch-all `path="*"` route.
+ *
+ * It now wraps in PublicLayout, so it carries the same marketing Navbar +
+ * Footer as /jobs, /help and /legal (owner, 2026-08-24, audit V12). This
+ * REVERSES an earlier note here which argued a 404 should stay chrome-less
+ * so the two big CTAs were the only way out and the visitor couldn't
+ * "wander off into invalid space". The reasoning didn't survive contact with
+ * how people actually arrive: a 404 is reached by a stale bookmark, a bad
+ * external link, or a typo — the visitor's next move is usually "find the
+ * real page", and the two CTAs on offer (back, home) cannot serve that.
+ * Search, Jobs, Help and the footer's site map can. It was also the ONE
+ * public route with bespoke chrome, so a wrong URL made the site look like
+ * it had changed identity at the worst possible moment for trust.
+ *
+ * The branded 404 hero, Go Back and Back to Home are unchanged.
+ *
+ * On NATIVE, PublicLayout renders AppShell instead of the marketing chrome
+ * (no App Store footer inside the app), so the in-app 404 is unaffected.
  */
 const NotFound = () => {
   // The SPA serves unknown paths with a 200 status, so the 404 page must
@@ -32,10 +45,23 @@ const NotFound = () => {
     });
   }, [location.pathname]);
 
+  // Tell useAppShellViewport that THIS pathname is the catch-all, so it drops
+  // the `html.app-shell` 100dvh/overflow:hidden lock. Without it the nav +
+  // footer this page now carries are taller than a viewport and everything
+  // past the fold — including "Back to Home" on a phone — is unreachable.
+  // The route table can't express "every path that isn't a route", so the
+  // page reports itself; see setNotFoundPathname.
+  useEffect(() => {
+    setNotFoundPathname(location.pathname);
+    return () => setNotFoundPathname(null);
+  }, [location.pathname]);
+
   return (
-    <div className="min-h-screen page-warmth relative">
-      <div aria-hidden className="mesh-gradient-global" />
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-5">
+    // page-warmth + mesh-gradient-global are NOT repeated here: PublicLayout
+    // already paints both, and stacking a second mesh over the first doubled
+    // the gradient's opacity.
+    <PublicLayout>
+      <div className="flex items-center justify-center px-5 py-16 sm:py-24 lg:py-28">
         <div className="text-center space-y-7 max-w-md">
           <Link to="/" className="inline-flex items-baseline gap-1">
             <span
@@ -101,7 +127,7 @@ const NotFound = () => {
           </div>
         </div>
       </div>
-    </div>
+    </PublicLayout>
   );
 };
 

@@ -137,7 +137,7 @@ function validate(draft: Draft, identified: boolean): Partial<Record<FieldKey, s
  * secondary destination reached from a footer/legal link, not a landing.
  */
 const PageIntro = () => (
-  <section className="container mx-auto px-5">
+  <section className="px-5 sm:px-8 lg:px-12">
     <div className="page-measure mx-auto">
       <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4">
         <div className="shrink-0">

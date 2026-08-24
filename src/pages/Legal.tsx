@@ -430,10 +430,29 @@ const Legal = () => {
   // first in the stacked layout while leaving them last on the wide one, and
   // the tabs are NEVER hidden — the old `hidden sm:block` made them vanish on
   // a phone the instant search opened.
+  // Closed, the row is a three-column grid — [search | tabs | equal spacer] —
+  // so the tabs sit in the TRUE centre of the card instead of packing left
+  // behind the icon and leaving the right half empty. The outer columns are
+  // both `1fr`, so the centre column is centred on the row, not on whatever
+  // space the icon happens to leave. Open, search needs the width, so the row
+  // falls back to the flex layout (search flexes left, tabs keep their natural
+  // size on the right). Below `sm` both states stay stacked, tabs first.
   const controlRow = (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-1">
+    <div
+      className={
+        searchOpen
+          ? "flex flex-col sm:flex-row sm:items-center gap-2 p-1"
+          : "flex flex-col gap-2 p-1 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center"
+      }
+    >
       {searchBar}
-      <div className="w-full sm:w-auto sm:shrink-0 order-1 sm:order-2">
+      <div
+        className={
+          searchOpen
+            ? "w-full sm:w-auto sm:shrink-0 order-1 sm:order-2"
+            : "w-full sm:w-auto order-1 sm:order-2 sm:col-start-2 sm:justify-self-center"
+        }
+      >
         {tabBar}
       </div>
     </div>

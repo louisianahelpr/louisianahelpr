@@ -71,7 +71,15 @@ const TopicSection = ({
   accent: string;
   externallyOpened: boolean;
 }) => {
-  const [manualOpen, setManualOpen] = useState(false);
+  // Open by default on md+ (owner, 2026-08-24: seven collapsed category
+  // headers filled a 1440px screen with zero actual answers — "info is low").
+  // The desktop has the room to show the questions; the phone keeps the
+  // collapsed accordion, where seven open sections WOULD be a wall. Media
+  // query read once at mount — the md boundary is not something a session
+  // crosses outside of devtools.
+  const [manualOpen, setManualOpen] = useState<boolean>(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches,
+  );
   // When the parent flips externallyOpened to true (user clicked a topic
   // card up in Section 2), open this section. Users can still collapse
   // it by clicking the chevron.
@@ -251,21 +259,10 @@ const HelpCenter = () => {
             </div>
           </div>
 
-          {/* One-line lede — the two audiences we serve, in one flowing line.
-              md+ only: it is marketing framing, and on the phone/app surface
-              it was one more block queue-jumping the search box (it cost ~2
-              lines at 375px). The website keeps it. */}
-          <p
-            className="hidden md:block max-w-xl lg:max-w-2xl text-ds-15 sm:text-ds-17 leading-relaxed text-balance"
-            style={{
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 400,
-              letterSpacing: "-0.005em",
-              color: "hsl(var(--stormy-sky))",
-            }}
-          >
-            Answers, guides, and support — whether you're hiring or helping.
-          </p>
+          {/* No lede under the title. It was desktop-only marketing framing
+              that restated what "Help Center" already says, and the search
+              box is the thing a reader on this page is actually looking for.
+              The phone surface already dropped it; the website now matches. */}
 
           {/* Squircle search pill — client-side filter drives the FAQ list
               below. Olivewood outline on parchment; no glass.

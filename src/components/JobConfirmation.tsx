@@ -13,6 +13,7 @@ export function JobConfirmation({
   isHelper,
   posterConfirmedAt,
   helperConfirmedAt,
+  helperDayofConfirmedAt = null,
   dateNeeded,
   jobStatus,
   helperOnTheWayAt,
@@ -23,6 +24,10 @@ export function JobConfirmation({
   isHelper: boolean;
   posterConfirmedAt: string | null;
   helperConfirmedAt: string | null;
+  /** The helper's DAY-BEFORE stamp (migration 20260824213000). Distinct from
+   *  `helper_confirmed_at`, which is written at accept time — possibly days
+   *  early — and therefore can't answer "are you still on?". */
+  helperDayofConfirmedAt?: string | null;
   dateNeeded: string;
   jobStatus?: string;
   helperOnTheWayAt?: string | null;
@@ -104,7 +109,11 @@ export function JobConfirmation({
 
   const handleConfirm = async () => {
     setConfirming(true);
-    const field = isOwner ? "poster_confirmed_at" : "helper_confirmed_at";
+    // The helper's day-before tap writes its OWN stamp. `helper_confirmed_at`
+    // was set the moment they accepted (maybe days ago), so re-writing it here
+    // made this card a no-op for helpers and the "we ask you both" copy a
+    // poster-only promise — the 2026-08-24 lifecycle review's first finding.
+    const field = isOwner ? "poster_confirmed_at" : "helper_dayof_confirmed_at";
     // Cast: Supabase generated types reject computed-key updates because the
     // index signature widens to `[x: string]: never`. Runtime accepts any
     // valid column name; the `field` variable is constrained above to one of
@@ -143,8 +152,14 @@ export function JobConfirmation({
     setShowConfirmDialog(false);
   };
 
-  const myConfirmed = localConfirmedAt || (isOwner ? posterConfirmedAt : helperConfirmedAt);
-  const otherConfirmed = isOwner ? helperConfirmedAt : posterConfirmedAt;
+  // A helper accept that itself happened inside the 24h window IS a
+  // day-before answer — don't ask the same question twice.
+  const acceptWasDayOf =
+    !!helperConfirmedAt &&
+    jobDate.getTime() - new Date(helperConfirmedAt).getTime() <= 24 * 3_600_000;
+  const helperDayOf = helperDayofConfirmedAt || (acceptWasDayOf ? helperConfirmedAt : null);
+  const myConfirmed = localConfirmedAt || (isOwner ? posterConfirmedAt : helperDayOf);
+  const otherConfirmed = isOwner ? helperDayOf : posterConfirmedAt;
   const otherLabel = isOwner ? "Helpr" : "Poster";
 
   const urgencyText = hoursUntilJob <= 0

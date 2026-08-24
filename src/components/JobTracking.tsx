@@ -79,6 +79,12 @@ export type JobProgressEvidence = {
   /** `jobs.status`. */
   jobStatus?: string | null;
   helperConfirmedAt?: string | null;
+  /** Day-before re-confirmation stamp (migration 20260824213000); see the
+   *  gate below for how it composes with the accept-time stamp. */
+  helperDayofConfirmedAt?: string | null;
+  /** Job date (YYYY-MM-DD) — lets the mutual gate honour an accept that
+   *  itself happened inside the 24h window. Optional; absent = lenient. */
+  jobDateNeeded?: string;
   posterConfirmedAt?: string | null;
   helperOnTheWayAt?: string | null;
   helperArrivedAt?: string | null;
@@ -105,6 +111,8 @@ export function deriveCurrentStatusIdx({
   trackingStatus,
   jobStatus,
   helperConfirmedAt,
+  helperDayofConfirmedAt,
+  jobDateNeeded,
   posterConfirmedAt,
   helperOnTheWayAt,
   helperArrivedAt,
@@ -133,7 +141,21 @@ export function deriveCurrentStatusIdx({
     atLeast(STATUS_IDX.job_confirmed);
   }
   if (helperConfirmedAt || posterConfirmedAt) atLeast(STATUS_IDX.confirmed);
-  if (helperConfirmedAt && posterConfirmedAt) atLeast(STATUS_IDX.job_confirmed);
+  // The MUTUAL step wants the helper's DAY-BEFORE stamp, not the accept-time
+  // one — accepting a job five days out says nothing about the day itself
+  // (2026-08-24 lifecycle review). An accept that itself happened inside the
+  // 24h window counts (same grace as JobConfirmation), as does any row where
+  // no job date is known to measure against.
+  const helperAnsweredDayOf =
+    !!helperDayofConfirmedAt ||
+    (!!helperConfirmedAt &&
+      (!jobDateNeeded ||
+        parseLocalDate(jobDateNeeded).getTime() -
+          new Date(helperConfirmedAt).getTime() <=
+          24 * 3_600_000));
+  if (helperAnsweredDayOf && posterConfirmedAt) {
+    atLeast(STATUS_IDX.job_confirmed);
+  }
   if (helperOnTheWayAt) atLeast(STATUS_IDX.on_the_way);
   if (helperArrivedAt) {
     atLeast(STATUS_IDX.arrived);
@@ -191,6 +213,7 @@ export function JobTracking({
   jobStartTime: _jobStartTime,
   jobStatus,
   helperConfirmedAt: initialHelperConfirmedAt,
+  helperDayofConfirmedAt = null,
   posterConfirmedAt: initialPosterConfirmedAt,
   helperOnTheWayAt: initialHelperOnTheWayAt,
   helperArrivedAt: initialHelperArrivedAt,
@@ -218,6 +241,8 @@ export function JobTracking({
   jobStartTime?: string | null;
   jobStatus?: string;
   helperConfirmedAt?: string | null;
+  /** Day-before re-confirmation stamp — see JobProgressEvidence. */
+  helperDayofConfirmedAt?: string | null;
   posterConfirmedAt?: string | null;
   /**
    * Lifecycle stamps straight off the jobs row. All optional and all
@@ -558,6 +583,8 @@ export function JobTracking({
     trackingStatus: tracking?.status,
     jobStatus,
     helperConfirmedAt,
+    helperDayofConfirmedAt,
+    jobDateNeeded,
     posterConfirmedAt,
     helperOnTheWayAt: jobStamps.onTheWayAt,
     helperArrivedAt: jobStamps.arrivedAt,

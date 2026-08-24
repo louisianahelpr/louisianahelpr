@@ -34,12 +34,18 @@ Deno.serve(async (req) => {
     // their booking destroyed 24h after the row was last touched, purely
     // because nothing had written to it since. auto_start_due_jobs gets this
     // right and requires helper_confirmed_at IS NOT NULL; this did not.
+    // Keyed on `accepted_at` — the moment the job actually entered
+    // `accepted` (trigger-stamped, migration 20260824213000) — so an
+    // incidental row write can no longer reset the ghosting clock. Rows
+    // that predate the stamp keep the old updated_at fallback.
     const { data: staleAccepted, error: fetchError } = await supabase
       .from("jobs")
       .select("id, title, customer_id, helper_id")
       .eq("status", "accepted")
       .is("helper_confirmed_at", null)
-      .lt("updated_at", twentyFourHoursAgo);
+      .or(
+        `accepted_at.lt.${twentyFourHoursAgo},and(accepted_at.is.null,updated_at.lt.${twentyFourHoursAgo})`,
+      );
 
     if (fetchError) throw fetchError;
 

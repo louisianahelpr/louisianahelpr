@@ -163,7 +163,7 @@ export function LogisticsSection({
     >
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <Label>Location <span className="text-destructive">*</span></Label>
+          <Label htmlFor="streetAddress">Location <span className="text-destructive">*</span></Label>
           {/* "Use my current location" — Capacitor/web Geolocation +
               MapKit reverse-geocode in one tap. Falls back to a tasteful
               error toast if location is denied or no street can be
@@ -259,8 +259,8 @@ export function LogisticsSection({
         />
       </div>
 
-      <div className="space-y-3">
-        <Label>Start time <span className="text-destructive">*</span></Label>
+      <div className="space-y-3" role="group" aria-labelledby="start-time-label">
+        <Label id="start-time-label">Start time <span className="text-destructive">*</span></Label>
         <TimePickerWheel value={startTime} onChange={setStartTime} />
       </div>
 
@@ -362,8 +362,8 @@ export function LogisticsSection({
           to walk into. One standing helper holds every date and can release a
           single one they can't make. */}
       <div className="space-y-3">
-        <Label>Job type</Label>
-        <div className={`grid ${RECURRING_ENABLED ? "grid-cols-3" : "grid-cols-2"} gap-1 p-1 rounded-2xl border border-input bg-background/70`}>
+        <Label id="job-type-label">Job type</Label>
+        <div role="group" aria-labelledby="job-type-label" className={`grid ${RECURRING_ENABLED ? "grid-cols-3" : "grid-cols-2"} gap-1 p-1 rounded-2xl border border-input bg-background/70`}>
           {([
             { key: "once", label: "One-Time" },
             // "Repeats", not "Recurring" — it names what the poster is doing

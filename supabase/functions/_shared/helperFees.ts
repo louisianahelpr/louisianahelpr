@@ -90,3 +90,37 @@ export async function getHelperFeePercent(
     return fallbackPercent;
   }
 }
+
+/**
+ * THE helper commission, in whole cents.
+ *
+ * Two payout paths computed this differently and disagreed by a cent on 2,243
+ * (budget, tier) pairs under $200 — so the `payout_transfers` ledger could not
+ * reconcile bit-for-bit depending on which path paid:
+ *
+ *   release-payout:            Math.round(perHelperBudget * pct) / 100
+ *   process-scheduled-payouts: (perHelperBudget * pct) / 100      ← no rounding
+ *
+ * The FIRST one is right, and the reason is a small arithmetic coincidence
+ * worth stating: `dollars × percent` is already the commission in CENTS
+ * ($100 × 12 = 1200¢ = $12.00). So rounding that product to a whole number is
+ * rounding money to the cent — which is what money must do — while the second
+ * form carried sub-cent precision into the payout and let it fall differently
+ * once the payout itself was rounded.
+ *
+ * Callers should take cents and convert once, rather than round twice.
+ */
+export function helperCommissionCents(
+  perHelperBudgetDollars: number,
+  feePercent: number,
+): number {
+  return Math.round(perHelperBudgetDollars * feePercent);
+}
+
+/** The same commission expressed in dollars, exact to the cent. */
+export function helperCommissionDollars(
+  perHelperBudgetDollars: number,
+  feePercent: number,
+): number {
+  return helperCommissionCents(perHelperBudgetDollars, feePercent) / 100;
+}

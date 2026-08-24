@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { formatPriceExact } from "@/lib/format";
+import { instantPayoutFeeLabel, instantPayoutMinLabel } from "@/lib/instantPayoutFee";
 import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { toast } from "@/hooks/use-toast";
@@ -467,7 +468,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         body="Skip the 1–2 business day wait. Subscribed helpers can route earnings to a debit card in about 30 minutes."
         perks={[
           "Instant payouts to debit card (~30 min)",
-          "Stripe's standard 3% + $1 fee applies",
+          // Derived from the instant-payout authority, never hand-typed. This
+          // line used to read "Stripe's standard 3% + $1 fee applies" — a fee
+          // that is neither Stripe's nor charged: instant payout is a flat
+          // percent of the amount cashed out with NO fixed add-on, and at the
+          // $25 floor the invented "+ $1" more than doubled the real fee
+          // ($1.75 quoted vs $0.75 charged).
+          `${instantPayoutFeeLabel()} per instant cash-out · ${instantPayoutMinLabel()} minimum`,
           "Plus every other subscriber perk on your plan",
         ]}
         requiredTier="pro"

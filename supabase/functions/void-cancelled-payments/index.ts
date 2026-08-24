@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { getHelperFeePercent } from "../_shared/helperFees.ts";
+import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { computeCancellationFee } from "../_shared/cancellationFee.ts";
 import { stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -63,7 +63,7 @@ serve(async (req) => {
       const commissionPercent = await getHelperFeePercent(
         supabaseAdmin,
         job.helper_id,
-        settings?.helper_fee_percent ?? 10,
+        settings?.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
       );
       const platformCut = Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
       const helperPayout = cancellationFee - platformCut;

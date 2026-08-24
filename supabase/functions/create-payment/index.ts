@@ -3,7 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { getHelperFeePercent } from "../_shared/helperFees.ts";
+import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { stripeProcessingCostCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { isLaborTaxable } from "../_shared/salesTax.ts";
@@ -454,7 +454,7 @@ serve(async (req) => {
       const jobHelperFeePercent = await getHelperFeePercent(
         supabaseAdmin,
         job.helper_id,
-        job.helper_fee_percent ?? 10,
+        job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
       );
       const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
       // Urgent fee is collected from the poster ONCE, so on a group job it is
@@ -903,7 +903,7 @@ serve(async (req) => {
       const disputeFeePercent = await getHelperFeePercent(
         supabaseAdmin,
         job.helper_id,
-        job.helper_fee_percent ?? 10,
+        job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
       );
       const feeAmt = Math.round(Number(job.budget) * disputeFeePercent) / 100 || (job.platform_fee_amount || 0);
       const dpHelpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;

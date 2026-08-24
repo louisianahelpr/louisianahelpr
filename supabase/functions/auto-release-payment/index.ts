@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getHelperFeePercent } from "../_shared/helperFees.ts";
+import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
@@ -150,10 +150,12 @@ serve(async (req) => {
       // Estimate only — the real transfer in process-scheduled-payouts resolves
       // the tier again at payout time. Keep this preview consistent with it.
       // Group jobs: budget is the total for the roster; each helper earns budget/N.
-      const helperFeePercent = await getHelperFeePercent(supabaseAdmin, job.helper_id, 10);
+      const helperFeePercent = await getHelperFeePercent(supabaseAdmin, job.helper_id, DEFAULT_TIER_FEE_PERCENT);
       const helpersCount = (job.is_group_job && job.helpers_needed > 0) ? job.helpers_needed : 1;
       const perHelperBudget = job.budget / helpersCount;
-      const helperCommission = perHelperBudget * helperFeePercent / 100;
+      // Same rounding as the path that actually pays, so the preview can never
+      // quote a cent the transfer won't send.
+      const helperCommission = helperCommissionDollars(perHelperBudget, helperFeePercent);
       const helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({

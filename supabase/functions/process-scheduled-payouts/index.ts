@@ -3,7 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { getHelperFeePercent } from "../_shared/helperFees.ts";
+import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
@@ -116,13 +116,18 @@ serve(async (req) => {
       const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
       const perHelperBudget = job.budget / helpersCount;
       // Resolve the helper's live subscription tier at payout time; fall back to
-      // the fee frozen on the job (or the legacy 10%) if the profile read fails.
+      // the fee frozen on the job, then to the platform default, if the profile
+      // read fails. The default is 12 (free tier), not the legacy 10 — a wrong
+      // fallback under-collects $4 on a $200 job (see helperFees.ts).
       const jobHelperFeePercent = await getHelperFeePercent(
         supabaseAdmin,
         helperId,
-        job.helper_fee_percent ?? 10,
+        job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
       );
-      const helperCommission = (perHelperBudget * jobHelperFeePercent) / 100;
+      // Shared with release-payout. This used to be an unrounded
+      // (perHelperBudget * pct) / 100, which disagreed with that path by a
+      // cent on 2,243 (budget, tier) pairs under $200.
+      const helperCommission = helperCommissionDollars(perHelperBudget, jobHelperFeePercent);
       // Urgent fee is collected from the poster ONCE → split across the roster
       // like the budget, else each of N helpers is paid the full urgent bonus
       // against a single fee collected and the platform over-pays N×.

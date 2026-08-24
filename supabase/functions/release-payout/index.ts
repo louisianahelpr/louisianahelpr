@@ -27,7 +27,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { getHelperFeePercent } from "../_shared/helperFees.ts";
+import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -406,8 +406,9 @@ serve(async (req) => {
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   const perHelperBudget = Number(job.budget) / helpersCount;
   const grossDollars = perHelperBudget + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
-  const platformFeeDollars =
-    Math.round(perHelperBudget * helperFeePercent) / 100;
+  // ONE implementation, shared with process-scheduled-payouts — see
+  // helperCommissionDollars for why the product is rounded before the divide.
+  const platformFeeDollars = helperCommissionDollars(perHelperBudget, helperFeePercent);
   const payoutDollars = grossDollars - platformFeeDollars;
   let payoutCents = Math.round(payoutDollars * 100);
   const platformFeeCents = Math.round(platformFeeDollars * 100);

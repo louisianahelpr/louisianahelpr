@@ -149,9 +149,23 @@ pg_proc ACLs / cron.job / pg_constraint). Corrections the verification forced:
   so it gains the value. `enforce_job_status_transition` only guards
   `jobs.status`, verified, so no trigger change is needed.
 
-Still open after this pass: **R24 only** (demo-seed rows with impossible
-chronology — cosmetic, owner's test data). R21 (inline banners `6da0fa808`),
-R22 (`cf2c811f2`), R23/R25 (`384ef643e`) were closed by the earlier wave.
+R21 (inline banners `6da0fa808`), R22 (`cf2c811f2`), R23/R25 (`384ef643e`)
+were closed by the earlier wave.
+
+**R24 closed 2026-08-24 (late) — and it was 7 rows, not one thread.** Data
+repair via MCP `execute_sql` (owner test rows only; no migration — this is
+data, not schema). The named thread (`a5eed000-…15`: awarded/started stamped
+6h after completion) plus four siblings the same sweep surfaced: `…13`'s
+awarded tied with started AND after helper_on_the_way, and `…06`/`…10`/`…14`
+plus stage-fixtures `bbbb0008-…`/`cccc0008-…` whose `created_at` post-dated
+their own completion/dispute ("Posted Aug 18 · Completed Aug 16" on the job
+screen). Verified after repair: zero system messages after their job's
+completion, zero jobs created after their own end, zero awarded-after-
+on-the-way — platform-wide, not just the fixtures.
+
+**Nothing from this audit remains open.** R1–R25 are closed; the standing
+decisions (job-photos public bucket, AdminDisputes partial-split execution)
+are recorded where they were made.
 
 ---
 

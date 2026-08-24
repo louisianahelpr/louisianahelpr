@@ -568,7 +568,7 @@ test.describe("My Posts — card density + header", () => {
     // still resolves as a filter VALUE so notification deep links keep working,
     // but it has no chip and therefore no label to name.
     for (const [filter, label] of [
-      ["needs_you", "Needs you"],
+      ["needs_you", "Needs You"],
       ["scheduled", "Scheduled"],
       ["waiting", "Waiting"],
       ["done", "Done"],

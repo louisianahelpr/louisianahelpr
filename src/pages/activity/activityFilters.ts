@@ -50,7 +50,7 @@ const ALL_FILTER_COLOR = "bg-[hsl(var(--olivewood)/0.08)] text-[hsl(var(--olivew
 export type ActivityBucket = "needs_you" | "waiting" | "scheduled" | "done";
 
 const BUCKET_LABEL: Record<ActivityBucket, string> = {
-  needs_you: "Needs you",
+  needs_you: "Needs You",
   waiting: "Waiting",
   scheduled: "Scheduled",
   done: "Done",

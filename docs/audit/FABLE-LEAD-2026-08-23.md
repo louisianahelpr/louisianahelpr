@@ -28,6 +28,23 @@ against the source at HEAD plus the one real prod payout row.
 
 ## APPLIED — shipped this pass (mechanically safe, no judgement risk)
 
+**Overnight wave, 2026-08-24 (30 commits, two parallel sessions):** iOS
+filter-sheet scroll fix (drag-dismiss moved to the handle) · signup
+empty-form inline errors · SOS retired on helper-completion · dangling
+aria-controls (4 components, /browse 11→0) · emoji stripped from 8 live DB
+notification functions via migration 20260824070000 (live-verified 0 left)
++ 'Your Helpr' fallback · chat system events say Helpr · owner-directed
+job-card rework (meta into header, one-line title/meta, chevron removed in
+favor of shell click, tighter rhythm, freshness stamp under the bar) ·
+Needs You / Storm Prep / One-Time / Post a Job / Order Summary casing ·
+TAB_TITLES aligned to rendered h1s · public-doc shell unified (h1 at
+96,100 on all four) · /accessibility orphan removed (Simple-vs-Senior
+duplication REPORTED) · Help Center density + Legal tab centering ·
+reset-password no-token copy · one-line phone titles rule
+(PLATFORM_CONVENTIONS) · plus the web session's guest-skeleton fix,
+orphaned-label a11y pass, and data-display polish.
+
+
 **Second wave, 2026-08-24** (after the owner resolved the open decisions): the
 $100 new-helper earnings cap and the unenforced "3 active jobs" block left the
 published Community Rules (`afc00a120`); admin copy swept to "Helpr"
@@ -115,6 +132,10 @@ stop, the question-mark idiom keeps its mark, nothing is stripped. Applied to th
   2. **Sienna accents on dark footer: 3.80 vs 4.5.** `rgb(212,103,53)` on `rgb(43,45,49)` — footer column headers ("Company"/"Legal"/"Follow") and the "· LA" wordmark suffix, every page.
   3. **Gold category label (light): 2.37 vs 4.5.** `rgb(196,142,49)` on `rgb(234,232,234)` — the Help Center "Payments & Escrow" uppercase label; worst offender measured.
   4. **Hero toggle unselected state: 3.19 light / 4.06 dark vs 4.5.** "I want to work" at 75% olivewood alpha.
+
+- **R23 — chunk-load failures masquerade as data errors.** A stale deploy makes SectionErrorBoundary render "Couldn't load your posts." for what is actually a failed dynamic import (`Failed to fetch dynamically imported module`). The boundary should detect chunk errors and show the existing "Update ready — reload" treatment. (The brief's SectionErrorBoundary trap, alive in one more spot; reproduced live during the overnight sweep.)
+- **R24 — demo seed rows carry impossible chronology.** The seeded thread shows "Job awarded"/"Work started" dated after completion; buildTimeline's sort is correct, the fixture stamps are wrong. Cosmetic, owner's test data only.
+- **R25 — the Done-stage action row omits the action its own copy names.** The auto-release countdown says "Approve & complete or request a revision before the timer expires" while the row offers only Message · Approve — Request Revision is reachable nowhere on the card at the stage the copy describes. Add the button or soften the copy.
 
 ### Open decisions (need your call — see pop-up)
 

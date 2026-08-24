@@ -412,7 +412,7 @@ export default function FamilyDashboard() {
       onOpenChange={(open) => { if (!open) setPendingRevokeId(null); }}
       title="Remove Access?"
       description={`${pendingRevokeName} will no longer be able to view or post jobs on your behalf. Jobs they already posted stay on your account exactly as they are — nothing is cancelled.`}
-      primaryLabel={revokeMut.isPending ? "Removing…" : "Remove access"}
+      primaryLabel={revokeMut.isPending ? "Removing…" : "Remove Access"}
       primaryTone="sienna"
       primaryHaptic="warning"
       primaryDisabled={revokeMut.isPending}
@@ -420,7 +420,7 @@ export default function FamilyDashboard() {
         e.preventDefault();
         if (pendingRevokeId) revokeMut.mutate(pendingRevokeId);
       }}
-      secondaryLabel="Keep access"
+      secondaryLabel="Keep Access"
     />
     </>
   );

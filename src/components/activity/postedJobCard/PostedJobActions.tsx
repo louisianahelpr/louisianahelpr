@@ -535,7 +535,7 @@ export function PostedJobActions({
                     {job.helper_id ? (
                       <JobActionChip
                         icon={RotateCcw}
-                        label="Hire again"
+                        label="Hire Again"
                         ariaLabel={`Hire ${helperName} again`}
                         tone="primary"
                         onClick={() => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`)}
@@ -543,7 +543,7 @@ export function PostedJobActions({
                     ) : (
                       <JobActionChip
                         icon={RotateCcw}
-                        label="Re-post"
+                        label="Re-Post"
                         ariaLabel="Re-post this job"
                         tone="primary"
                         onClick={() => navigate(`/post-job?rebook=${job.id}`)}
@@ -641,7 +641,7 @@ export function PostedJobActions({
               className="w-full"
               onClick={(e) => { e.stopPropagation(); onViewDispute(job); }}
             >
-              <AlertTriangle className="w-4 h-4 mr-1" /> View timeline & add evidence
+              <AlertTriangle className="w-4 h-4 mr-1" /> View Timeline & Add Evidence
             </Button>
             <div className="grid grid-cols-2 gap-2">
               <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>

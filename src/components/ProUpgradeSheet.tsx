@@ -138,7 +138,7 @@ export function ProUpgradeSheet({
             className="rounded-ds-md flex-1 sm:flex-initial"
           >
             <TierIcon className="w-4 h-4 mr-1.5" />
-            See {tierLabel} plans
+            See {tierLabel} Plans
           </Button>
         </DialogFooter>
       </DialogContent>

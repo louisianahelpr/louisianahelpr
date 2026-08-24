@@ -395,14 +395,14 @@ const UserProfile = () => {
                       as `canEndorse={mutualJobsCount > 0}` below. */}
                   {workedJobs.length > 0 && (
                     <DropdownMenuItem onClick={() => navigate(`/post-job?offerTo=${userId}`)}>
-                      <Briefcase className="w-4 h-4 mr-2" /> Offer a job directly
+                      <Briefcase className="w-4 h-4 mr-2" /> Offer a Job Directly
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={() => setShowReport(true)}>
-                    <Flag className="w-4 h-4 mr-2" /> Report user
+                    <Flag className="w-4 h-4 mr-2" /> Report User
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowBlock(true)}>
-                    <Ban className="w-4 h-4 mr-2" /> Block user
+                    <Ban className="w-4 h-4 mr-2" /> Block User
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

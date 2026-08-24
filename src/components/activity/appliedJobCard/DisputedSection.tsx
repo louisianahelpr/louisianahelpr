@@ -172,7 +172,7 @@ export function DisputedSection({
         className="w-full"
         onClick={() => onViewDispute(job)}
       >
-        <AlertTriangle className="w-4 h-4 mr-1" /> View timeline & add evidence
+        <AlertTriangle className="w-4 h-4 mr-1" /> View Timeline & Add Evidence
       </Button>
 
       <div className="grid grid-cols-2 gap-2">

@@ -371,7 +371,7 @@ export function IdentityHeader({
                 onClick={() => onSelectTab("profile")}
                 className="mt-1.5 text-ds-11 font-semibold text-primary hover:underline"
               >
-                + Add your name
+                + Add Your Name
               </button>
             )}
           </div>

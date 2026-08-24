@@ -204,7 +204,7 @@ const AdminMarketing = () => {
             title="Send to the Full Segment?"
             description={`This sends the campaign to all matching ${segment === "all" ? "users" : segment}. It can't be undone.`}
             callout={{ text: "Did you send a test first? This goes straight to real inboxes." }}
-            primaryLabel="Send campaign"
+            primaryLabel="Send Campaign"
             primaryTone="sienna"
             primaryHaptic="warning"
             onPrimary={() => { setConfirmSendOpen(false); void send(false); }}

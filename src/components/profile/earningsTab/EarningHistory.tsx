@@ -130,7 +130,7 @@ export function EarningHistory({
               Apply to a job and your earnings will land here.
             </p>
           </div>
-          <Button onClick={onBrowseJobs} className="rounded-ds-md mt-1">Browse jobs</Button>
+          <Button onClick={onBrowseJobs} className="rounded-ds-md mt-1">Browse Jobs</Button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -180,7 +180,7 @@ export function EarningHistory({
               className="w-full rounded-ds-md"
               onClick={onLoadMore}
             >
-              Load {Math.min(page, moneyJobs.length - historyVisible)} More · {moneyJobs.length - historyVisible} remaining
+              Load {Math.min(page, moneyJobs.length - historyVisible)} More · {moneyJobs.length - historyVisible} Remaining
             </Button>
           )}
         </div>

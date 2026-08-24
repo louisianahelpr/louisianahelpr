@@ -252,19 +252,19 @@ export function ChatHeader({
               already muted, this collapses to a fast unmute. */}
           {activeConvo.isMuted ? (
             <DropdownMenuItem onClick={() => onToggleMute(activeConvo)}>
-              <Bell className="w-4 h-4 mr-2" /> Unmute notifications
+              <Bell className="w-4 h-4 mr-2" /> Unmute Notifications
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem onClick={onOpenMuteSheet}>
-              <BellOff className="w-4 h-4 mr-2" /> Mute notifications…
+              <BellOff className="w-4 h-4 mr-2" /> Mute Notifications…
             </DropdownMenuItem>
           )}
           <div role="separator" className="my-1 h-px bg-border" />
           <DropdownMenuItem onClick={onReportUser}>
-            <Flag className="w-4 h-4 mr-2" /> Report user
+            <Flag className="w-4 h-4 mr-2" /> Report User
           </DropdownMenuItem>
           <DropdownMenuItem onClick={onBlockUser}>
-            <Ban className="w-4 h-4 mr-2" /> Block user
+            <Ban className="w-4 h-4 mr-2" /> Block User
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

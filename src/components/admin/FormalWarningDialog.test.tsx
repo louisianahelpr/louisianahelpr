@@ -54,12 +54,12 @@ describe("FormalWarningDialog", () => {
     expect(screen.getByRole("button", { name: /Issue Strike/ })).toBeDisabled();
   });
 
-  it("CTA copy switches to 'Issue (no escalation)' when bypass is checked", () => {
+  it("CTA copy switches to 'Issue (No Escalation)' when bypass is checked", () => {
     render(<FormalWarningDialog profile={sampleProfile} onClose={vi.fn()} />);
     const checkbox = screen.getByRole("checkbox");
     fireEvent.click(checkbox);
     expect(
-      screen.getByRole("button", { name: /Issue \(no escalation\)/ }),
+      screen.getByRole("button", { name: /Issue \(No Escalation\)/ }),
     ).toBeInTheDocument();
   });
 
@@ -103,7 +103,7 @@ describe("FormalWarningDialog", () => {
       target: { value: "Spoke to them; one-time mistake." },
     });
     fireEvent.click(
-      screen.getByRole("button", { name: /Issue \(no escalation\)/ }),
+      screen.getByRole("button", { name: /Issue \(No Escalation\)/ }),
     );
     await waitFor(() => expect(invokeMock).toHaveBeenCalled());
     expect(invokeMock).toHaveBeenCalledWith(

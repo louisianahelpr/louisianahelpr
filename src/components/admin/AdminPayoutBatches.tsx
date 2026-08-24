@@ -282,7 +282,7 @@ const AdminPayoutBatches = () => {
       {tab === "ready" && readyBatches.length > 0 && (
         <div className="flex items-center justify-between text-ds-11 px-1">
           <button type="button" onClick={selectAllReady} className="text-primary hover:underline">
-            Select all with Stripe ({readyBatches.filter((b) => b.stripe_account_id).length})
+            Select All with Stripe ({readyBatches.filter((b) => b.stripe_account_id).length})
           </button>
           {selected.size > 0 && (
             <button type="button" onClick={clearSelection} className="text-muted-foreground hover:text-foreground">
@@ -475,7 +475,7 @@ const AdminPayoutBatches = () => {
             ? `This transfers $${Number(confirmBatch.total_payout).toFixed(2)} to ${confirmBatch.helper_name} for ${confirmBatch.job_count} job${confirmBatch.job_count !== 1 ? "s" : ""} via Stripe. This moves real money and can't be undone here.`
             : ""
         }
-        primaryLabel={confirmBatch && paying === confirmBatch.helper_id ? "Sending…" : "Send payout"}
+        primaryLabel={confirmBatch && paying === confirmBatch.helper_id ? "Sending…" : "Send Payout"}
         primaryTone="sienna"
         primaryHaptic="warning"
         primaryDisabled={!!paying}

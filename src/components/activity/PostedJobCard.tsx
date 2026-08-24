@@ -212,7 +212,7 @@ function PostedJobCardInner({
                 the band said that a tab cannot, each card still says better:
                 an assigned job shows the tracker sitting on its real step, an
                 open one shows its applicant count, a cancelled one leads with
-                "Re-post This Job". */}
+                "Re-Post This Job". */}
 
             {/* Summary */}
             <div className="px-4 py-3 space-y-2.5">
@@ -337,7 +337,7 @@ function PostedJobCardInner({
                     onClick={(e) => { e.stopPropagation(); navigate(`/post-job?rebook=${job.id}`); }}
                   >
                     <RotateCcw className="w-4 h-4 mr-1.5" />
-                    Re-post This Job
+                    Re-Post This Job
                   </Button>
                 </div>
               )}
@@ -482,7 +482,7 @@ function PostedJobCardInner({
                   className="w-full rounded-ds-md"
                   onClick={(e) => { e.stopPropagation(); navigate(job.helper_id ? `/post-job?rebook=${job.id}&offerTo=${job.helper_id}` : `/post-job?rebook=${job.id}`); }}
                 >
-                  <RotateCcw className="w-4 h-4 mr-1.5" /> Re-post
+                  <RotateCcw className="w-4 h-4 mr-1.5" /> Re-Post
                 </Button>
               </div>
             )}

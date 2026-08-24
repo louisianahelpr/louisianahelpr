@@ -280,7 +280,7 @@ export default function FamilyAcceptPage() {
                 onClick={handleAccept}
                 disabled={accepting}
               >
-                {accepting ? "Accepting…" : `Accept — let ${caregiverName} help`}
+                {accepting ? "Accepting…" : `Accept — Let ${caregiverName} Help`}
               </Button>
             )}
           </div>

@@ -179,7 +179,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                       className="font-sans font-semibold mt-1 text-ds-10"
                       style={{ color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
                     >
-                      Add photo
+                      Add Photo
                     </span>
                   </button>
                 ) : (
@@ -195,7 +195,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                       className="font-sans font-semibold mt-1 text-ds-10"
                       style={{ color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
                     >
-                      Add photo
+                      Add Photo
                     </span>
                     <input type="file" accept="image/*" multiple className="hidden" onChange={handleSelect} />
                   </label>

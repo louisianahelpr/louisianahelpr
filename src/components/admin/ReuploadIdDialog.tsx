@@ -93,7 +93,7 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
             Cancel
           </Button>
           <Button onClick={submit} disabled={busy}>
-            {busy ? "Sending…" : "Send Re-upload Request"}
+            {busy ? "Sending…" : "Send Re-Upload Request"}
           </Button>
         </DialogFooter>
       </DialogContent>

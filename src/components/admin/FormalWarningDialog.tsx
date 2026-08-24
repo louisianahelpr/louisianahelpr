@@ -143,7 +143,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
             disabled={busy || !note.trim()}
             className="w-full sm:w-auto"
           >
-            {busy ? "Issuing…" : bypass ? "Issue (no escalation)" : "Issue Strike"}
+            {busy ? "Issuing…" : bypass ? "Issue (No Escalation)" : "Issue Strike"}
           </Button>
         </DialogFooter>
       </DialogContent>

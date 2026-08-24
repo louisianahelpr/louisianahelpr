@@ -514,7 +514,7 @@ export function PetForm({
                     className="text-ds-11 mt-1 leading-snug font-medium"
                     style={{ color: "hsl(var(--burnt-sienna))" }}
                   >
-                    Not saved yet — tap “{initialValues ? "Save changes" : "Add pet"}”
+                    Not saved yet — tap “{initialValues ? "Save Changes" : "Add Pet"}”
                     below to {form.is_evacuation_registered ? "register" : "unregister"} this pet.
                   </p>
                 )}
@@ -560,7 +560,7 @@ export function PetForm({
           disabled={saving || !canSave}
           onClick={handleSave}
         >
-          {saving ? "Saving…" : initialValues ? "Save Changes" : "Add pet"}
+          {saving ? "Saving…" : initialValues ? "Save Changes" : "Add Pet"}
         </Button>
       </div>
     </div>
@@ -588,7 +588,7 @@ export function PetForm({
         setConfirmDiscard(false);
         onClose();
       }}
-      secondaryLabel="Keep editing"
+      secondaryLabel="Keep Editing"
     />
     </>
   );

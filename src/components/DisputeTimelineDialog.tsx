@@ -347,7 +347,7 @@ export const DisputeTimelineDialog = ({
                 boxShadow: "var(--elev-sienna-raised)",
               }}
             >
-              {submitting ? "Uploading…" : `Upload ${evidenceFiles.length} file${evidenceFiles.length === 1 ? "" : "s"}`}
+              {submitting ? "Uploading…" : `Upload ${evidenceFiles.length} File${evidenceFiles.length === 1 ? "" : "s"}`}
             </Button>
           )}
         </DialogFooter>

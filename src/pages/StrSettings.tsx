@@ -283,7 +283,7 @@ export default function StrSettings() {
                 action={
                   <BarkPillButton onClick={() => setAddOpen(true)}>
                     <Plus className="w-4 h-4 mr-1.5" />
-                    Add a calendar
+                    Add a Calendar
                   </BarkPillButton>
                 }
                 /* Fine print INSIDE the card. This sentence used to print on
@@ -336,7 +336,7 @@ export default function StrSettings() {
                         className="font-display italic font-semibold text-ds-14"
                         style={{ color: "hsl(var(--ink-deep))" }}
                       >
-                        Add a calendar
+                        Add a Calendar
                       </span>
                     </div>
                     {addOpen ? (
@@ -399,7 +399,7 @@ export default function StrSettings() {
           removeConnection(connToRemove.id);
           setConnToRemove(null);
         }}
-        secondaryLabel="Keep calendar"
+        secondaryLabel="Keep Calendar"
       />
     </div>
   );

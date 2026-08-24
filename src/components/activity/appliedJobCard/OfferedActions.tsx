@@ -254,14 +254,14 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
         callout={{
           text: "Three declines gets you a warning. Five is a permanent ban. This can't be undone.",
         }}
-        primaryLabel="Decline the job"
+        primaryLabel="Decline the Job"
         primaryTone="sienna"
         primaryHaptic="warning"
         onPrimary={() => {
           setConfirmOpen(false);
           onHelperResponse(app, false);
         }}
-        secondaryLabel="Keep the job"
+        secondaryLabel="Keep the Job"
       />
     </div>
   );

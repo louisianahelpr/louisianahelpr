@@ -544,7 +544,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
               ? `We'll pull your ${pullBackNoun} out of the review queue. Nothing has been verified yet, so nothing you've earned is lost — you can attach a new copy any time.`
               : `We'll clear the ${pullBackNoun} we couldn't verify so you can attach a new one.`
         }
-        primaryLabel={pullBackState === "review" ? "Take it back" : "Remove"}
+        primaryLabel={pullBackState === "review" ? "Take It Back" : "Remove"}
         primaryTone={pullBackState === "verified" ? "sienna" : "bark"}
         primaryHaptic={pullBackState === "verified" ? "warning" : "medium"}
         primaryDisabled={removing}
@@ -553,7 +553,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           setPullBack(null);
           if (kind) void removeSentDoc(kind);
         }}
-        secondaryLabel="Keep it"
+        secondaryLabel="Keep It"
       />
 
       {showReverifyBanner && (

@@ -50,7 +50,7 @@ export function DeleteAccountDialog({
         primaryTone="sienna"
         primaryHaptic="warning"
         onPrimary={(e) => { e.preventDefault(); setDeleteStep(2); }}
-        secondaryLabel="Keep account"
+        secondaryLabel="Keep Account"
       />
     );
   }

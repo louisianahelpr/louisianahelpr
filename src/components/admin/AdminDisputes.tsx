@@ -452,7 +452,7 @@ const AdminDisputes = () => {
             ? `This releases the escrowed $${formatPriceExact(confirm?.job.budget ?? 0)} to ${profiles[confirm?.job.helper_id || ""] || "the Helpr"} and closes the dispute. This moves real money and can't be undone here.`
             : `This refunds $${formatPriceExact(confirm?.job.budget ?? 0)} to ${profiles[confirm?.job.customer_id || ""] || "the customer"} and closes the dispute. This moves real money and can't be undone here.`
         }
-        primaryLabel={confirm && resolving === confirm.job.id ? "Working…" : (confirm?.action === "release" ? "Release payment" : "Refund customer")}
+        primaryLabel={confirm && resolving === confirm.job.id ? "Working…" : (confirm?.action === "release" ? "Release Payment" : "Refund Customer")}
         primaryTone="sienna"
         primaryHaptic="warning"
         primaryDisabled={!!resolving}

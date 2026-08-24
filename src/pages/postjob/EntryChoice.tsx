@@ -146,7 +146,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               className="block font-display italic font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
             >
-              Pick up Your Draft
+              Pick Up Your Draft
             </span>
             <span className="block font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Continue the request you saved earlier.
@@ -359,7 +359,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               >
                 {showAllTemplates
                   ? "Show Fewer"
-                  : `Show all ${sampleJobs.length} templates`}
+                  : `Show All ${sampleJobs.length} Templates`}
               </button>
             )}
           </>

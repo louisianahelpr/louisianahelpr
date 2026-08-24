@@ -192,7 +192,7 @@ export const DisputeCard = ({
               onClick={() => setHelperShare(0)}
               disabled={submittingDecision}
             >
-              Resolve for poster (0/100)
+              Resolve for Poster (0/100)
             </Button>
             <Button
               size="sm"
@@ -208,7 +208,7 @@ export const DisputeCard = ({
               onClick={() => setHelperShare(100)}
               disabled={submittingDecision}
             >
-              Resolve for helper (100/0)
+              Resolve for Helper (100/0)
             </Button>
           </div>
 

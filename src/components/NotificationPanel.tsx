@@ -370,7 +370,7 @@ const NotificationPanel = () => {
                   onClick={enablePush}
                   className="rounded-ds-md mt-1"
                 >
-                  <BellRing className="w-4 h-4 mr-2" /> Turn on Push Notifications
+                  <BellRing className="w-4 h-4 mr-2" /> Turn On Push Notifications
                 </Button>
               )}
             </div>

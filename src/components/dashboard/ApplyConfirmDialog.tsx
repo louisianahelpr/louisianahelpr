@@ -418,7 +418,7 @@ export function ApplyConfirmDialog({
                 aria-label="Add attachments — certificates or previous work"
               >
                 <Plus className="w-3.5 h-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-                <span>Add attachments</span>
+                <span>Add Attachments</span>
               </button>
             )}
           </div>

@@ -659,11 +659,11 @@ const ProfilePage = () => {
         onOpenChange={setShowLogoutDialog}
         title="Log Out?"
         description="You can sign back in anytime — your account stays intact."
-        primaryLabel="Log out"
+        primaryLabel="Log Out"
         primaryTone="bark"
         primaryHaptic="medium"
         onPrimary={handleLogout}
-        secondaryLabel="Stay signed in"
+        secondaryLabel="Stay Signed In"
       />
 
       {/* Mounted only once the user opens it — the dialog chunk (and its

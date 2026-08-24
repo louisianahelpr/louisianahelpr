@@ -338,7 +338,7 @@ const AdminBroadcasts = () => {
         onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}
         title="Delete This Broadcast?"
         description="It will be removed for everyone immediately. This can't be undone."
-        primaryLabel={deleting ? "Deleting…" : "Delete broadcast"}
+        primaryLabel={deleting ? "Deleting…" : "Delete Broadcast"}
         primaryTone="sienna"
         primaryHaptic="error"
         primaryDisabled={deleting}

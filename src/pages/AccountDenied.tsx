@@ -96,7 +96,7 @@ const AccountDenied = () => {
             onClick={async () => { await signOutWithPushCleanup(); navigate("/signup"); }}
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            Re-apply Now
+            Re-Apply Now
           </Button>
           {/* Appeal CTA — pre-fills the email with the user's ID + email
               + denial reason so the admin can pull the right case row up

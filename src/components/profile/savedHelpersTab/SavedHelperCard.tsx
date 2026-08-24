@@ -173,7 +173,7 @@ export function SavedHelperCard({
           className="inline-flex items-center gap-1 text-ds-11 font-semibold active:opacity-70 self-start"
           style={{ color: "hsl(var(--bark))" }}
         >
-          <StickyNote className="w-3 h-3" /> Add a private note
+          <StickyNote className="w-3 h-3" /> Add a Private Note
         </button>
       )}
 

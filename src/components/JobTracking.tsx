@@ -948,13 +948,13 @@ export function JobTracking({
         callout={{
           text: "The poster will see this arrival was self-reported, not GPS-confirmed. Turning location on in Settings confirms it automatically.",
         }}
-        primaryLabel="Yes, I'm here"
+        primaryLabel="Yes, I'm Here"
         primaryTone="bark"
         onPrimary={() => {
           setManualArrivalOpen(false);
           void updateStatus("arrived", { skipProximity: true });
         }}
-        secondaryLabel="Not yet"
+        secondaryLabel="Not Yet"
       />
     </div>
   );

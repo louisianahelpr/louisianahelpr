@@ -27,7 +27,7 @@ export function InviteForm({
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   /**
-   * Render the built-in "Add a family member" row while the form is closed.
+   * Render the built-in "Add a Family Member" row while the form is closed.
    * Off when an empty state above already carries that call to action —
    * otherwise the same invitation is on screen twice.
    */
@@ -176,7 +176,7 @@ export function InviteForm({
             }}
           >
             <UserPlus className="w-4 h-4" />
-            Add a family member
+            Add a Family Member
             <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
           </button>
         )}

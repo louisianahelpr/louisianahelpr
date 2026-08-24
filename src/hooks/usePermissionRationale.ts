@@ -29,31 +29,31 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
     icon: "📷",
     title: "Camera access",
     body: "Helpr uses your camera to take before/after photos of jobs and verify your ID. Photos stay private and are only shared with the matched poster or helper.",
-    cta: "Allow camera",
+    cta: "Allow Camera",
   },
   photos: {
     icon: "🖼️",
     title: "Photo library",
     body: "Pick existing photos from your library to show job details, completed work, or your portfolio. Helpr never reads photos you don't pick.",
-    cta: "Choose from library",
+    cta: "Choose from Library",
   },
   location: {
     icon: "📍",
     title: "Location",
     body: "We use your location to show jobs near you and confirm helper arrival. Location is only checked while you're using the app.",
-    cta: "Share location",
+    cta: "Share Location",
   },
   contacts: {
     icon: "👥",
     title: "Contacts",
     body: "Only used if you choose to invite a friend by phone or email. Helpr doesn't upload your contacts to any server.",
-    cta: "Invite friends",
+    cta: "Invite Friends",
   },
   notifications: {
     icon: "🔔",
     title: "Notifications",
     body: "Get notified when a helper applies, sends a message, or marks your job complete. You can change what you receive anytime in Settings.",
-    cta: "Turn on notifications",
+    cta: "Turn On Notifications",
   },
 };
 

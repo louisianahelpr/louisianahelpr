@@ -179,7 +179,7 @@ const PetProfiles = () => {
               body="Add your pets' profiles so helpers know their needs."
               action={
                 <Button variant="primary" onClick={openAddMobile}>
-                  <Plus className="w-4 h-4 mr-1" /> Add a pet
+                  <Plus className="w-4 h-4 mr-1" /> Add a Pet
                 </Button>
               }
             />
@@ -271,7 +271,7 @@ const PetProfiles = () => {
                     body="Add your first pet to get started."
                     action={
                       <Button variant="primary" size="sm" onClick={openAddDesktop}>
-                        <Plus className="w-4 h-4 mr-1" /> Add a pet
+                        <Plus className="w-4 h-4 mr-1" /> Add a Pet
                       </Button>
                     }
                   />
@@ -351,7 +351,7 @@ const PetProfiles = () => {
                       className="mt-4"
                       onClick={openAddDesktop}
                     >
-                      <Plus className="w-4 h-4 mr-1" /> Add a pet
+                      <Plus className="w-4 h-4 mr-1" /> Add a Pet
                     </Button>
                   )}
                 </div>

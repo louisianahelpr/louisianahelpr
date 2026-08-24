@@ -292,7 +292,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                 >
                   <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} />
                   <span className="font-serif italic text-ds-9" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    {photoFiles.length === 0 ? "Add photo" : "Add more"}
+                    {photoFiles.length === 0 ? "Add Photo" : "Add More"}
                   </span>
                 </button>
               )}

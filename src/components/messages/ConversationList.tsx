@@ -500,7 +500,7 @@ export function ConversationList({
                 body="Apply to a job or accept a Helpr's offer — conversations appear here once they start."
                 action={
                   <BarkPillButton onClick={() => navigate("/dashboard")}>
-                    Browse jobs
+                    Browse Jobs
                   </BarkPillButton>
                 }
               />

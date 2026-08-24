@@ -2,6 +2,7 @@ import { FileSignature } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
@@ -177,8 +178,25 @@ export function FormStep({ form }: FormStepProps) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-semibold text-ds-13">Require W-9 from accepted Helpr</p>
-                <Switch checked={form.requiresW9} onCheckedChange={form.setRequiresW9} />
+                {/* The sibling copy IS the control's name, so it has to be a
+                    real <Label htmlFor> — Radix renders Switch as
+                    <button role="switch"> with empty content, which computes
+                    to an unnamed switch otherwise. `aria-labelledby` belt-and-
+                    braces because label association is not part of a button's
+                    accname algorithm in every engine. */}
+                <Label
+                  htmlFor="require-w9"
+                  id="require-w9-label"
+                  className="font-semibold text-ds-13 text-foreground mb-0 cursor-pointer"
+                >
+                  Require W-9 from accepted Helpr
+                </Label>
+                <Switch
+                  id="require-w9"
+                  aria-labelledby="require-w9-label"
+                  checked={form.requiresW9}
+                  onCheckedChange={form.setRequiresW9}
+                />
               </div>
               <p className="text-ds-11 text-muted-foreground mt-1">
                 When this is on, the helper signs a W-9 the moment they accept. We collect a typed signature + IP for the audit trail.

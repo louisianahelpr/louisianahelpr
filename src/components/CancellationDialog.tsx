@@ -13,6 +13,10 @@ import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, Clock, ArrowR
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
+// The ladder this dialog quotes IS the ladder Community Rules publishes —
+// read the same two constants CommunitySection does rather than restating
+// "25"/"50" as prose.
+import { LATE_CANCEL_PERCENT, VERY_LATE_CANCEL_PERCENT } from "@/lib/moneyLimits";
 // formatPriceExact, not formatPrice: this block shows the fee arithmetic,
 // and whole-dollar rounding made the lines stop adding up.
 import { formatPriceExact as formatPrice } from "@/lib/format";
@@ -274,8 +278,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
                   </p>
                   <ul className="text-ds-11 text-muted-foreground mt-1 space-y-0.5 list-disc list-inside">
                     <li><strong className="text-foreground">24+ hours before:</strong> 0% (free)</li>
-                    <li><strong className="text-foreground">Less than 24 hours:</strong> 25% fee</li>
-                    <li><strong className="text-foreground">Less than 2 hours:</strong> 50% fee</li>
+                    <li><strong className="text-foreground">Less than 24 hours:</strong> {LATE_CANCEL_PERCENT}% fee</li>
+                    <li><strong className="text-foreground">Less than 2 hours:</strong> {VERY_LATE_CANCEL_PERCENT}% fee</li>
                   </ul>
                   {hasHelper && (
                     <div className="flex items-center gap-1.5 mt-1.5">

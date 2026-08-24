@@ -165,14 +165,25 @@ export function AddCalendarForm({
       >
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-medium text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
+            {/* Named the same way the budget Input below it is: a real
+                <Label htmlFor>. Radix's Switch is a <button role="switch">
+                with no content, so without this it announces as an unnamed
+                switch. */}
+            <Label
+              htmlFor="str-auto-create-cleaning"
+              id="str-auto-create-cleaning-label"
+              className="font-medium text-ds-14 mb-0 cursor-pointer"
+              style={{ color: "hsl(var(--ink-deep))" }}
+            >
               Auto-create cleaning job
-            </p>
+            </Label>
             <p className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Post a job automatically after each checkout
             </p>
           </div>
           <Switch
+            id="str-auto-create-cleaning"
+            aria-labelledby="str-auto-create-cleaning-label"
             checked={form.auto_create_cleaning}
             onCheckedChange={(v) => set("auto_create_cleaning", v)}
           />

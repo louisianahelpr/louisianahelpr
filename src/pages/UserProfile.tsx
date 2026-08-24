@@ -47,7 +47,6 @@ import { hasInAppHistory } from "@/lib/inAppHistory";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 const UserProfile = () => {
-  usePageTitle("User Profile — Helpr");
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -139,6 +138,11 @@ const UserProfile = () => {
   // PageHeader (eyebrow/title/meta) as the loaded state — both only
   // depend on the route param + current user, not the fetched profile.
   const isOwnProfile = currentUserId === userId;
+
+  // The title says what the PageHeader says. It used to read "User Profile"
+  // — a phrase that appears nowhere on the screen — for both the own-profile
+  // review and someone else's public profile.
+  usePageTitle(`${isOwnProfile ? "Profile Review" : "Profile"} — Helpr`);
 
   // Whether the loaded header will render trailing actions (Message, Save,
   // overflow). Mirrored as a placeholder in the skeleton / not-found states so

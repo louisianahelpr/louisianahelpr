@@ -87,7 +87,6 @@ const VIEW_LABELS: Record<View, string> = {
   };
 
 const Admin = () => {
-  usePageTitle("Admin — Helpr");
   // Which chrome this page owns — see the two render sites below.
   const isWebDesktop = useIsWebDesktop();
   const navigate = useNavigate();
@@ -122,6 +121,12 @@ const Admin = () => {
       ? "home"
       : rawInitialView;
   const [view, setView] = useState<View>(initialView);
+  // One title per view, the same way Profile.tsx titles its 18 tabs: all 27
+  // admin screens used to report "Admin — Helpr", so history, bookmarks and
+  // the tab bar could not tell Disputes from Payout Batches. `VIEW_LABELS` is
+  // already the h1 source, so the title follows it. Home keeps the plain title
+  // rather than repeating itself (Profile does the same for its landing tab).
+  usePageTitle(view === "home" ? "Admin — Helpr" : `${VIEW_LABELS[view]} — Admin — Helpr`);
   const [notifLogsInitialSearch, setNotifLogsInitialSearch] = useState<string>("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [stats, setStats] = useState<Stats>({

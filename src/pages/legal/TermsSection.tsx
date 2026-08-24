@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
 import { BUSINESS_SEAT_TIERS, formatSeatPriceMonthly } from "@/lib/businessSeatTiers";
 import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import {
@@ -27,6 +28,18 @@ import {
 import { legalFmtMo } from "./legalSections";
 
 const ONBOARDING_FEE_DOLLARS = ONBOARDING_FEE_CENTS / 100;
+
+// "Annual plans save about N months" is a PRICE claim, so compute it from the
+// prices instead of typing it as prose. `annualPrice` is the annual plan's
+// monthly-equivalent (yearly ÷ 12), so a year on annual saves
+// 12 × (1 − annual/monthly) months — 2.0 on every paid tier today. Re-price a
+// tier and this sentence restates itself instead of quietly going stale.
+const ANNUAL_MONTHS_SAVED = (() => {
+  const monthly = TIER_PERKS.pro.price ?? 0;
+  const annualMonthly = TIER_PERKS.pro.annualPrice ?? 0;
+  if (monthly <= 0 || annualMonthly <= 0) return 0;
+  return Math.round(12 * (1 - annualMonthly / monthly));
+})();
 
 /**
  * The bottom of the fee ladder a reader can actually reach.
@@ -180,13 +193,13 @@ export const TermsContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Free:</strong> standard access at a {TIER_PERKS.free.platformFeePercent}% platform fee.</p>
-            <p><strong className="text-foreground">{TIER_PERKS.basic.name}:</strong> {legalFmtMo(TIER_PERKS.basic.price)} — reduced {TIER_PERKS.basic.platformFeePercent}% platform fee with instant payouts and 20% off job boosts.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.basic.name}:</strong> {legalFmtMo(TIER_PERKS.basic.price)} — reduced {TIER_PERKS.basic.platformFeePercent}% platform fee with instant payouts and {BOOST_DISCOUNT_PCT}% off job boosts.</p>
             <p><strong className="text-foreground">{TIER_PERKS.pro.name}:</strong> {legalFmtMo(TIER_PERKS.pro.price)} — reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
             <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)} — {BUSINESS_ENABLED ? "lowest consumer" : "lowest"} {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
             {BUSINESS_ENABLED && (
               <p><strong className="text-foreground">{TIER_PERKS.business.name}:</strong> per-seat pricing ({BUSINESS_SEAT_TIERS.map((t) => `${t.name} ${formatSeatPriceMonthly(t.priceLabel)}`).join(" · ")}) — team tools and a {TIER_PERKS.business.platformFeePercent}% platform fee across all seat plans.</p>
             )}
-            <p>Annual plans save about 2 months. Stripe handles billing automatically.</p>
+            <p>Annual plans save about {ANNUAL_MONTHS_SAVED} month{ANNUAL_MONTHS_SAVED === 1 ? "" : "s"}. Stripe handles billing automatically.</p>
           </>
         }
       />

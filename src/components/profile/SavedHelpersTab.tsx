@@ -77,7 +77,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="search"
-                aria-label="Search saved helpers"
+                aria-label="Search saved Helprs"
                 placeholder="Search Helprs…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

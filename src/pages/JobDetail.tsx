@@ -40,7 +40,6 @@ const JobDetail = () => {
   const { user, isLoading: authLoading } = useCurrentUser();
   // Capture ?ref= attribution (share / email / notif) on mount.
   useJobRef();
-  usePageTitle("Job Details — Helpr");
 
   // Guests fetch the single job from the RLS-public masked view. We skip
   // the fetch entirely for authed users — they're redirected below.
@@ -74,6 +73,17 @@ const JobDetail = () => {
     staleTime: 60 * 1000,
   });
 
+  // Hoisted above the redirect below so the title hook can never sit after an
+  // early return. See the h1 note further down for why every branch needs a
+  // heading; the document title is simply that heading.
+  const headingText =
+    !authLoading && !isLoading && !isError && job ? job.title : "Job details";
+
+  // This is the share-link landing page — the thing pasted into a text or a
+  // Facebook group. A tab reading "Job Details — Helpr" for every shared link
+  // told the recipient nothing; the job's own title does.
+  usePageTitle(`${headingText} — Helpr`);
+
   // Signed-in recipients land in their real dashboard apply flow.
   if (!authLoading && user) {
     return <Navigate to={`/dashboard?quickApply=${id}`} replace />;
@@ -90,8 +100,8 @@ const JobDetail = () => {
   // lives in the JobDetailDialog's DialogTitle (an <h2> that Radix portals to
   // <body>, outside #root). A visible h1 here would duplicate that copy, and
   // in the populated branch would sit behind the dialog's own backdrop.
-  const headingText =
-    !authLoading && !isLoading && !isError && job ? job.title : "Job details";
+  // (`headingText` itself is computed above the redirect, so `usePageTitle`
+  // can reuse it without a hook landing after an early return.)
 
   return (
     <PublicLayout showCtaBand={false} noNavSpacer>

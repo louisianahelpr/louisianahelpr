@@ -415,7 +415,7 @@ export function IdentityHeader({
             disabled={!userId}
             onClick={() => {
               hapticLight();
-              const ratingText = avgRating ? avgRating.toFixed(1) + "★" : "New helper";
+              const ratingText = avgRating ? avgRating.toFixed(1) + "★" : "New Helpr";
               void shareNative({
                 title: `${displayName} on Helpr`,
                 text: `${displayName} · ${completedCount} job${completedCount === 1 ? "" : "s"} · ${ratingText}\n\nHire me on Helpr:`,

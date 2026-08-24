@@ -127,7 +127,13 @@ describe("Legal & policies — data rights", () => {
 
   it("still leads to the three anchor policy documents", () => {
     renderTab();
-    expect(screen.getByRole("link", { name: /Platform rules/ })).toHaveAttribute("href", "/rules");
+    // "Community Rules" is now the ONE name for this doc (it was "Platform
+    // rules" here and "Community guidelines" in the jump list below), so the
+    // matcher carries the row's body copy to tell the policy-document card
+    // apart from the jump-list row that points at the same rules.
+    expect(
+      screen.getByRole("link", { name: /Community Rules How Helpr works/ }),
+    ).toHaveAttribute("href", "/rules");
     expect(screen.getByRole("link", { name: /Terms of service/ })).toHaveAttribute("href", "/terms");
     expect(screen.getByRole("link", { name: /Privacy policy/ })).toHaveAttribute("href", "/privacy");
   });

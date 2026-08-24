@@ -106,17 +106,9 @@ const ResetPassword = () => {
           emblem went with it for the reason Login dropped its own: it stacked
           a third band of vertical space above a heading that was already above
           the card. */}
-      <div className="text-center mb-8 space-y-2">
-        <p
-          className="font-sans text-ds-15"
-          style={{
-            color: "hsl(var(--olivewood) / 0.8)",
-            letterSpacing: "0.01em",
-          }}
-        >
-          Set a new password for your account.
-        </p>
-      </div>
+      {/* No subhead — "Set a new password for your account." restated the
+          title immediately above it. The card below carries the state-specific
+          explanation, which is the only line that adds information. */}
       <div className="liquid-glass p-6 sm:p-8 space-y-6">
         {!ready ? (
           <div className="text-center space-y-4">
@@ -125,11 +117,11 @@ const ResetPassword = () => {
                 ? "This password-reset link has expired. Reset links are single-use and time-limited — request a fresh one below."
                 : linkError === "used"
                   ? "This password-reset link has already been used. Request a new one if you still need to change your password."
-                  : "This page is used to reset your password. Please use the link from your email."}
+                  : "To set a new password, use the reset link from your email — or request one below."}
             </p>
             <Link to="/forgot-password">
               <Button variant="outline" className="w-full rounded-ds-md">
-                {linkError ? "Request a New Reset Link" : "Go to Forgot Password"}
+                {linkError ? "Request a New Reset Link" : "Request a Reset Link"}
               </Button>
             </Link>
           </div>

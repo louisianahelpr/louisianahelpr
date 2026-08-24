@@ -263,15 +263,23 @@ const AdminSettings = () => {
 
   const addAdmin = async (profile: Profile) => {
     setAdding(profile.user_id);
-    const { error } = await supabase
-      .from("user_roles")
-      .insert({ user_id: profile.user_id, role: "admin" });
+    // The user_roles trigger only admits service_role writes, so the old
+    // direct insert here failed on EVERY tap ("Admin roles can only be
+    // granted via service_role"). The grant goes through the admin edge
+    // function, which verifies the caller and writes the audit log itself —
+    // no client-side logAdminAction, or the action would be logged twice.
+    const { error } = await supabase.functions.invoke("admin-user-actions", {
+      body: { action: "grant_admin", userId: profile.user_id },
+    });
 
     if (error) {
-      if (error.code === "23505") toast.error("User is already an admin.");
-      else toast.error(error.message);
+      const detail = await (error as { context?: Response }).context
+        ?.clone()
+        .json()
+        .then((j: { error?: string }) => j?.error)
+        .catch(() => undefined);
+      toast.error(detail || "Couldn't add the admin — try again.");
     } else {
-      await logAdminAction("add_admin", "user", profile.user_id, { name: profile.full_name });
       await loadAdmins();
       setSearchResults((prev) => prev.filter((p) => p.user_id !== profile.user_id));
     }

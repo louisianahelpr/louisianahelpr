@@ -17,6 +17,7 @@ type ActionType =
   | 'request_id_reupload'
   | 'reset_password'
   | 'formal_warning'
+  | 'grant_admin'
 
 async function sendEmail(apiKey: string, to: string, subject: string, html: string, text: string) {
   const res = await fetch('https://api.resend.com/emails', {
@@ -133,6 +134,35 @@ Deno.serve(async (req) => {
     const fullName = profile.full_name || 'there'
 
     // ---- Action handlers ----
+    if (action === 'grant_admin') {
+      // The enforce_admin_role_grant_insert trigger on user_roles admits ONLY
+      // service_role writes, so AdminSettings' old direct client insert could
+      // never succeed — every "add admin" tap failed against the trigger.
+      // This service-role path is the sanctioned channel; the caller was
+      // already verified as an admin above.
+      const { error: grantErr } = await admin.from('user_roles')
+        .insert({ user_id: targetUserId, role: 'admin' })
+      if (grantErr) {
+        if (grantErr.code === '23505') {
+          return new Response(JSON.stringify({ error: 'User is already an admin.' }), {
+            status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        throw new Error(`Failed to grant admin: ${grantErr.message}`)
+      }
+
+      const { error: auditErr } = await admin.from('admin_audit_log').insert({
+        admin_id: userData.user.id,
+        action: 'grant_admin_role',
+        target_id: targetUserId,
+        target_type: 'user',
+        details: { name: profile.full_name },
+      })
+      if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
+
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
     if (action === 'manual_verify') {
       const { error: verifyErr } = await admin.from('profiles').update({
         idv_status: 'verified',

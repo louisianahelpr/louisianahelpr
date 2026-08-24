@@ -14,6 +14,20 @@ import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatPriceExact } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+
+/** The uppercase eyebrow the Dashboard home already uses to head a group of
+ *  tiles. Twenty-odd cards down one column with no grouping is a list, not a
+ *  dashboard — these four labels are what make it scannable.
+ *  The negative bottom margin pulls the label back against the block it heads:
+ *  AdminViewShell's rhythm spaces every child equally, which would leave the
+ *  eyebrow floating exactly halfway between the group it labels and the one
+ *  above it. */
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <p className="-mb-2 sm:-mb-3 text-ds-10 sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">
+    {children}
+  </p>
+);
 
 // Lazy-load charts so recharts (~250 KB pre-gzip) lands in its own chunk
 // instead of inflating the AdminAnalytics initial bundle. Funnel cards +
@@ -42,7 +56,9 @@ const AdminAnalytics = () => {
   // Raw data
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [allJobs, setAllJobs] = useState<Job[]>([]);
-  const [transfers, setTransfers] = useState<{ amount_cents: number | string; status: string }[]>([]);
+  // `null` = the ledger read FAILED. Not the same fact as an empty ledger, and
+  // the money tiles below render the two differently — see computeMetrics.
+  const [transfers, setTransfers] = useState<{ amount_cents: number | string; status: string; job_id?: string | null }[] | null>([]);
   const [tips, setTips] = useState<Tip[]>([]);
   const [drillUsers, setDrillUsers] = useState<Profile[]>([]);
   const [drillJobs, setDrillJobs] = useState<Job[]>([]);
@@ -74,10 +90,12 @@ const AdminAnalytics = () => {
         supabase.from("user_roles").select("user_id, role"),
         // THE LEDGER. "Helpr Payouts" used to be recomputed from job budgets
         // with a fee fallback, which overstated it — see computeMetrics.
+        // `job_id` so the Payout Pipeline's Released rung can be attributed to
+        // the jobs it settled rather than quoting a budget as a settlement.
         // `as any`: payout_transfers landed in a recent migration that is not
         // in the generated types yet, same cast AdminPayoutBatches uses.
-         
-        (supabase as any).from("payout_transfers").select("amount_cents, status"),
+
+        (supabase as any).from("payout_transfers").select("amount_cents, status, job_id"),
       ]);
       if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
       if (tipsRes.error) report(tipsRes.error, { tags: { source: "AdminAnalytics.loadTips" } });
@@ -85,7 +103,17 @@ const AdminAnalytics = () => {
       setProfiles(profilesRes.data || []);
       setAllJobs(allJobsData);
       setTips(tipsRes.data || []);
-      setTransfers((transfersRes.data as { amount_cents: number | string; status: string }[] | null) || []);
+      // This error was the ONE of the four that went unchecked, and it was the
+      // one guarding a money figure: a failed read fell through `|| []` to an
+      // empty array, which sums to $0.00 and renders identically to "no helper
+      // has ever been paid". Null now means "we don't know", and the tile says
+      // so instead of asserting a zero.
+      if (transfersRes.error) {
+        report(transfersRes.error, { tags: { source: "AdminAnalytics.loadTransfers" } });
+        setTransfers(null);
+      } else {
+        setTransfers((transfersRes.data as { amount_cents: number | string; status: string; job_id?: string | null }[] | null) || []);
+      }
       // Build user_id → most-privileged role map (admin > helper > customer).
       const roleMap = new Map<string, string>();
       const priority = (r: string) => r === "admin" ? 1 : r === "helper" ? 2 : 3;
@@ -154,7 +182,38 @@ const AdminAnalytics = () => {
     approvedUsers,
     pendingUsers,
     deniedUsers,
+    totalFeesKnown,
+    capturedJobsMissingFee,
+    payoutLedgerUnavailable,
+    settledTransferCount,
+    releasedPayoutTotal,
   } = computeMetrics(profiles, allJobs, tips, transfers);
+
+  // ─── Money-tile honesty ───
+  // Three tiles on this row quote figures an operator reconciles against
+  // Stripe. Each of them can be UNKNOWN for a reason that is not "zero", and
+  // an em-dash that explains itself beats a zero that does not. See the
+  // corresponding notes in computeMetrics for what each gap actually is.
+  const feeGapNote = `${capturedJobsMissingFee} of ${capturedJobs.length} captured ${capturedJobs.length === 1 ? "job carries" : "jobs carry"} no recorded platform fee — the payment path never wrote jobs.platform_fee_amount on ${capturedJobsMissingFee === 1 ? "it" : "them"}.`;
+  const platformProfitValue = totalFeesKnown ? `$${totalFees.toFixed(2)}` : "—";
+  const platformProfitSub = !totalFeesKnown
+    ? "No fee recorded on any captured job"
+    : capturedJobsMissingFee > 0
+    ? `At least — ${capturedJobsMissingFee} of ${capturedJobs.length} jobs have no recorded fee`
+    : `${totalRevenue > 0 ? ((totalFees / totalRevenue) * 100).toFixed(1) : 0}% of collected revenue`;
+
+  // A released job with no settled transfer row is a reconciliation gap worth
+  // naming — it is the difference between "nobody has been paid yet" and
+  // "money left escrow and the ledger did not record it".
+  const payoutsValue = payoutLedgerUnavailable ? "—" : `$${totalHelperPayouts.toFixed(2)}`;
+  const payoutsSub = payoutLedgerUnavailable
+    ? "Transfer ledger unavailable"
+    : settledTransferCount === 0
+    ? releasedPayouts.length > 0
+      ? `No settled transfers · ${releasedPayouts.length} job${releasedPayouts.length === 1 ? "" : "s"} marked released`
+      : "No settled transfers yet"
+    : `${settledTransferCount} settled transfer${settledTransferCount === 1 ? "" : "s"} · avg $${completedJobs.length > 0 ? (totalHelperPayouts / completedJobs.length).toFixed(2) : "0.00"}/completed job`;
+  const payoutsWarn = payoutLedgerUnavailable || (settledTransferCount === 0 && releasedPayouts.length > 0);
 
   // ─── Drill-down handler ───
   const openDrillDown = async (type: DrillDown) => {
@@ -219,10 +278,9 @@ const AdminAnalytics = () => {
 
   // ─── Main dashboard ───
   return (
-    <div className="space-y-6">
-      
-
-      {/* ── Row 1: Key Financial Metrics ── */}
+    <AdminViewShell>
+      {/* ── Money ── */}
+      <SectionLabel>Money</SectionLabel>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* NOT "Revenue" — this is budget + poster fee across captured jobs,
             i.e. the gross value flowing THROUGH the platform, most of which is
@@ -239,17 +297,29 @@ const AdminAnalytics = () => {
         />
         <MetricCard
           label="Platform Profit"
-          value={`$${totalFees.toFixed(2)}`}
-          sub={`${totalRevenue > 0 ? ((totalFees / totalRevenue) * 100).toFixed(1) : 0}% of collected revenue`}
+          value={platformProfitValue}
+          sub={platformProfitSub}
+          subTone={capturedJobsMissingFee > 0 ? "warning" : "muted"}
+          hint={capturedJobsMissingFee > 0 ? feeGapNote : undefined}
           icon={TrendingUp}
           accent
+          warning={!totalFeesKnown}
           onClick={() => openDrillDown("fees")}
         />
         <MetricCard
           label="Helpr Payouts"
-          value={`$${totalHelperPayouts.toFixed(2)}`}
-          sub={`Avg $${completedJobs.length > 0 ? (totalHelperPayouts / completedJobs.length).toFixed(2) : "0"}/completed job`}
+          value={payoutsValue}
+          sub={payoutsSub}
+          subTone={payoutsWarn ? "warning" : "muted"}
+          hint={
+            payoutLedgerUnavailable
+              ? "The payout_transfers read failed, so no settlement total can be shown. Refresh to retry."
+              : settledTransferCount === 0 && releasedPayouts.length > 0
+              ? "These jobs are marked released but the transfer ledger holds no settled row for them — reconcile against Stripe before trusting either number."
+              : "Summed from settled payout_transfers rows — money that actually moved, not an estimate off job budgets."
+          }
           icon={CreditCard}
+          warning={payoutsWarn}
           onClick={() => openDrillDown("payouts")}
         />
         <MetricCard
@@ -262,22 +332,20 @@ const AdminAnalytics = () => {
 
       {/* Tips */}
       {totalTips > 0 && (
-        <div className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">
-          <Star className="w-4 h-4 text-accent" />
-          <div>
+        <AdminCard contentClassName="flex items-center gap-3">
+          <Star className="w-4 h-4 shrink-0 text-accent" />
+          <div className="min-w-0">
             <p className="text-ds-13 font-semibold text-foreground">Tips Collected: ${totalTips.toFixed(2)}</p>
             <p className="text-ds-11 text-muted-foreground">{tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").length} paid tips</p>
           </div>
-        </div>
+        </AdminCard>
       )}
 
       {lateCancelRevenue > 0 && (
-        <div className="rounded-ds-md liquid-glass p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <XCircle className="w-4 h-4 text-destructive" />
-            <h3 className="text-ds-13 font-semibold text-foreground">Late Cancellation Revenue</h3>
-          </div>
-          <p className="text-ds-24 font-bold text-foreground">${lateCancelRevenue.toFixed(2)}</p>
+        <AdminCard
+          title={<span className="flex items-center gap-2"><XCircle className="w-4 h-4 text-destructive" /> Late Cancellation Revenue</span>}
+        >
+          <p className="text-ds-24 font-bold text-foreground tabular-nums">${lateCancelRevenue.toFixed(2)}</p>
           <p className="text-ds-11 text-muted-foreground mt-1">
             Platform fees retained from {lateCancelledPaidJobs.length} late-cancelled {lateCancelledPaidJobs.length === 1 ? "job" : "jobs"} with captured payments
           </p>
@@ -289,10 +357,11 @@ const AdminAnalytics = () => {
               </div>
             ))}
           </div>
-        </div>
+        </AdminCard>
       )}
 
-      {/* ── Row 2: Subscription Revenue ── */}
+      {/* ── Subscriptions ── */}
+      <SectionLabel>Subscriptions</SectionLabel>
       <div className="grid sm:grid-cols-2 gap-4">
         <button onClick={() => openDrillDown("subscriptions")} className="rounded-ds-md liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
           <div className="flex items-center justify-between mb-4">
@@ -323,10 +392,7 @@ const AdminAnalytics = () => {
         </button>
 
         {/* Subscription pie chart */}
-        <div className="rounded-ds-md liquid-glass p-5">
-          <h3 className="text-ds-13 font-semibold text-foreground mb-3 flex items-center gap-2">
-            <PieChart className="w-4 h-4 text-primary" /> Subscriber Distribution
-          </h3>
+        <AdminCard title={<span className="flex items-center gap-2"><PieChart className="w-4 h-4 text-primary" /> Subscriber Distribution</span>}>
           {subPieData.length > 0 ? (
             <div className="h-[180px]">
               <Suspense fallback={<ChartFallback />}>
@@ -341,22 +407,19 @@ const AdminAnalytics = () => {
             body="Paid plans will appear here once someone upgrades."
           />
           )}
-        </div>
+        </AdminCard>
       </div>
 
-      {/* ── Row 3: Revenue Trend Chart ── */}
-      <div className="rounded-ds-md liquid-glass p-5">
-        <h3 className="text-ds-13 font-semibold text-foreground mb-4 flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-primary" /> Revenue &amp; Growth — Last 6 Months
-        </h3>
+      {/* ── Jobs & users ── */}
+      <SectionLabel>Jobs &amp; Users</SectionLabel>
+      <AdminCard title={<span className="flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" /> Revenue &amp; Growth — Last 6 Months</span>}>
         <div className="h-[250px]">
           <Suspense fallback={<ChartFallback />}>
             <RevenueLineChart data={monthlyData} />
           </Suspense>
         </div>
-      </div>
+      </AdminCard>
 
-      {/* ── Row 4: Jobs & Users Overview ── */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Total Users"
@@ -416,13 +479,30 @@ const AdminAnalytics = () => {
                 <span className="text-ds-11 text-muted-foreground ml-2">({pendingPayouts.length} job{pendingPayouts.length === 1 ? "" : "s"})</span>
               </div>
             </div>
+            {/* Same shape as the two rungs above: amount, then job count. The
+                amount here is the SETTLED total from the transfer ledger, since
+                released money has already left — quoting the job budget would
+                be quoting escrow for a row that is no longer in escrow. With no
+                settled row for these jobs the amount is genuinely unknown, so
+                it renders an em-dash that explains itself rather than dropping
+                the column and leaving the row shaped unlike its siblings. */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className={cn("w-2 h-2 rounded-full bg-current", toneTextClasses.success)} />
                 <span className="text-ds-11 text-muted-foreground">Released</span>
               </div>
               <div className="text-right">
-                <span className="text-ds-13 font-semibold text-foreground">{releasedPayouts.length} job{releasedPayouts.length === 1 ? "" : "s"}</span>
+                <span
+                  className="text-ds-13 font-semibold text-foreground"
+                  title={
+                    releasedPayoutTotal === null
+                      ? "No settled payout_transfers row for these jobs, so the amount that moved is unknown."
+                      : "Settled total from the payout_transfers ledger."
+                  }
+                >
+                  {releasedPayoutTotal === null ? "—" : `$${formatPriceExact(releasedPayoutTotal)}`}
+                </span>
+                <span className="text-ds-11 text-muted-foreground ml-2">({releasedPayouts.length} job{releasedPayouts.length === 1 ? "" : "s"})</span>
               </div>
             </div>
           </div>
@@ -449,59 +529,56 @@ const AdminAnalytics = () => {
 
       {/* ── Row 6: User Status & Quick Stats ── */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="rounded-ds-md liquid-glass p-5">
-          <h3 className="text-ds-13 font-semibold text-foreground mb-3">User Status</h3>
-          <div className="space-y-2">
-            <StatusRow icon={CheckCircle} label="Approved" count={approvedUsers} color="text-primary" />
-            <StatusRow icon={Clock} label="Pending Approval" count={pendingUsers} color={toneTextClasses.warning} />
-            <StatusRow icon={XCircle} label="Denied" count={deniedUsers} color="text-destructive" />
-          </div>
-        </div>
+        <AdminCard title="User Status" contentClassName="space-y-2">
+          <StatusRow icon={CheckCircle} label="Approved" count={approvedUsers} color="text-primary" />
+          <StatusRow icon={Clock} label="Pending Approval" count={pendingUsers} color={toneTextClasses.warning} />
+          <StatusRow icon={XCircle} label="Denied" count={deniedUsers} color="text-destructive" />
+        </AdminCard>
 
-        <div className="rounded-ds-md liquid-glass p-5">
-          <h3 className="text-ds-13 font-semibold text-foreground mb-3">Job Completion Funnel</h3>
-          <div className="space-y-2">
-            <StatusRow icon={Briefcase} label="Posted" count={allJobs.length} color="text-muted-foreground" />
-            <StatusRow icon={Activity} label="In Progress" count={activeJobs.length} color="text-primary" />
-            <StatusRow icon={CheckCircle} label="Completed" count={completedJobs.length} color={toneTextClasses.success} />
-            <StatusRow icon={XCircle} label="Cancelled" count={cancelledJobs.length} color="text-destructive" />
-            <StatusRow icon={AlertTriangle} label="Disputed" count={disputedJobs.length} color={toneTextClasses.warning} />
-          </div>
-        </div>
+        <AdminCard title="Job Completion Funnel" contentClassName="space-y-2">
+          <StatusRow icon={Briefcase} label="Posted" count={allJobs.length} color="text-muted-foreground" />
+          <StatusRow icon={Activity} label="In Progress" count={activeJobs.length} color="text-primary" />
+          <StatusRow icon={CheckCircle} label="Completed" count={completedJobs.length} color={toneTextClasses.success} />
+          <StatusRow icon={XCircle} label="Cancelled" count={cancelledJobs.length} color="text-destructive" />
+          <StatusRow icon={AlertTriangle} label="Disputed" count={disputedJobs.length} color={toneTextClasses.warning} />
+        </AdminCard>
 
-        <div className="rounded-ds-md liquid-glass p-5">
-          <h3 className="text-ds-13 font-semibold text-foreground mb-3">Monthly Recurring Revenue</h3>
-          <p className="text-3xl font-bold text-foreground">${totalSubRevenue.toFixed(2)}</p>
+        <AdminCard title="Monthly Recurring Revenue">
+          <p className="text-ds-28 font-bold text-foreground tabular-nums leading-none">${totalSubRevenue.toFixed(2)}</p>
           <p className="text-ds-11 text-muted-foreground mt-1">Projected annual: ${(totalSubRevenue * 12).toFixed(2)}</p>
           <div className="mt-4 space-y-1.5">
             <MRRRow tier="Elite" count={subElite} amount={subElite * SUB_PRICE.elite} />
             <MRRRow tier="Pro" count={subPro} amount={subPro * SUB_PRICE.pro} />
             <MRRRow tier="Basic" count={subBasic} amount={subBasic * SUB_PRICE.basic} />
           </div>
-        </div>
+        </AdminCard>
       </div>
 
-      {/* ── Row 6.5: Activation Funnels ── */}
+      {/* ── Funnels & retention ── */}
+      <SectionLabel>Funnels &amp; Retention</SectionLabel>
       <div className="grid sm:grid-cols-2 gap-4">
         <FunnelCard title="Customer activation" subtitle="Signup → revenue" stages={customerFunnel} />
         <FunnelCard title="Helpr supply" subtitle="Signup → first paid job" stages={helperFunnel} />
       </div>
 
-      {/* ── Row 6.75: Cohort Retention ── */}
       <CohortRetentionCard cohorts={cohortRetention} monthLabel={monthLabel} />
 
-      {/* ── Row 7: Monthly Jobs Bar Chart ── */}
-      <div className="rounded-ds-md liquid-glass p-5">
-        <h3 className="text-ds-13 font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Briefcase className="w-4 h-4 text-primary" /> Jobs per Month
-        </h3>
+      <AdminCard title={<span className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-primary" /> Jobs per Month</span>}>
         <div className="h-[200px]">
           <Suspense fallback={<ChartFallback />}>
             <MonthlyJobsBarChart data={monthlyData} />
           </Suspense>
         </div>
-      </div>
-    </div>
+      </AdminCard>
+
+      {/* Footnote — what the money figures on this screen are built from, said
+          once at the bottom rather than repeated on every tile. */}
+      <p className="text-ds-10 text-muted-foreground leading-snug">
+        Collected and profit figures come from the <code className="text-foreground">jobs</code> table; payout and
+        settlement figures come from the <code className="text-foreground">payout_transfers</code> ledger. An em-dash
+        means the figure could not be derived — hover it for the reason.
+      </p>
+    </AdminViewShell>
   );
 };
 

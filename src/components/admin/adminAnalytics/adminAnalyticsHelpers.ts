@@ -13,8 +13,10 @@ export const computeMetrics = (
   tips: Tip[],
   /** Rows from `payout_transfers` — the authoritative ledger of money that
    *  actually moved. Optional so existing callers keep working; when absent the
-   *  derived estimate is used and flagged via `helperPayoutsFromLedger`. */
-  payoutTransfers?: { amount_cents: number | string; status: string }[],
+   *  derived estimate is used and flagged via `helperPayoutsFromLedger`.
+   *  Pass `null` when the query FAILED — that is not the same fact as "the
+   *  ledger is empty", and the tiles render differently for each. */
+  payoutTransfers?: { amount_cents: number | string; status: string; job_id?: string | null }[] | null,
 ) => {
   // ─── Computed metrics ───
   // Unified user model: there's no helper-vs-customer distinction at the
@@ -149,7 +151,24 @@ export const computeMetrics = (
   // Platform Profit = only fees from jobs where payment is still held (escrow/payout_pending/released)
   // Does NOT include refunded or cancelled-payment jobs since those fees were returned
   const totalFees = capturedJobs.reduce((s, j) => s + Number(j.customer_fee_amount || 0) + Number(j.platform_fee_amount || 0), 0);
-  // Removed debug log for production submission
+  //
+  // …but a SUM OF NULLS IS NOT ZERO PROFIT. `jobs.platform_fee_amount` is
+  // nullable and is only written by the payment path; on a row it never wrote
+  // (seeded data, a job captured before the column existed, a capture that
+  // half-failed) it stays NULL and `Number(null || 0)` quietly folds it into
+  // the total as 0. That is how this tile came to read
+  //   "Platform Profit $0.00 — 0.0% of collected revenue"
+  // directly beside "Payments Collected $3295.00 · 23 captured payments":
+  // verified 2026-08-24 against prod, where all 23 captured jobs carry
+  // platform_fee_amount = NULL and customer_fee_amount = 0. The platform did
+  // not earn zero — nothing was ever recorded. A screen that cannot tell those
+  // two apart is worse than a blank one, so count the gap and let the caller
+  // render an em-dash instead of a number nobody should reconcile against.
+  const capturedJobsMissingFee = capturedJobs.filter((j) => j.platform_fee_amount == null).length;
+  /** False when NO captured job carries a recorded fee — the figure is unknown,
+   *  not zero. True (with `capturedJobsMissingFee` > 0) means partial data, so
+   *  the total is a floor. */
+  const totalFeesKnown = capturedJobs.length === 0 || capturedJobsMissingFee < capturedJobs.length;
   // Late cancellation revenue the platform retains (cancellation fee commission)
   const lateCancelRevenue = lateCancelledPaidJobs.reduce((s, j) => {
     const cancFee = Number(j.cancellation_fee || 0);
@@ -173,9 +192,17 @@ export const computeMetrics = (
   // against the live table before trusting it; summing a column that does not
   // exist would have silently produced 0 and looked like "no payouts yet".
   // Status is `paid` on prod today; the other two are accepted defensively.
-  const ledgerPayouts = payoutTransfers
-    ?.filter((t) => t.status === "paid" || t.status === "completed" || t.status === "succeeded")
-    .reduce((s, t) => s + Number(t.amount_cents || 0) / 100, 0);
+  //
+  // `null` means the READ FAILED and `undefined` means the caller never asked;
+  // only an actual array is evidence about money. Distinguishing them is the
+  // whole point — an RLS denial and an empty ledger both used to reduce to
+  // `$0.00`, so a broken query was indistinguishable from a quiet platform.
+  const settledTransfers = payoutTransfers
+    ? payoutTransfers.filter((t) => t.status === "paid" || t.status === "completed" || t.status === "succeeded")
+    : payoutTransfers; // preserves null / undefined
+  const ledgerPayouts = settledTransfers
+    ? settledTransfers.reduce((s, t) => s + Number(t.amount_cents || 0) / 100, 0)
+    : undefined;
 
   // Kept for callers that do not pass the ledger — visible next to the reason
   // it is wrong, rather than deleted.
@@ -190,6 +217,11 @@ export const computeMetrics = (
   const totalHelperPayouts = ledgerPayouts ?? derivedHelperPayouts;
   /** True when the figure above came from the ledger rather than an estimate. */
   const helperPayoutsFromLedger = ledgerPayouts !== undefined;
+  /** The ledger read failed — the figure above is an ESTIMATE, say so. */
+  const payoutLedgerUnavailable = payoutTransfers === null;
+  /** How many settled rows the total is built from. Zero settled rows against a
+   *  non-empty released bucket is a reconciliation gap, not a quiet month. */
+  const settledTransferCount = settledTransfers ? settledTransfers.length : 0;
   const totalTips = tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").reduce((s, t) => s + Number(t.amount), 0);
   const avgJobValue = capturedJobs.length > 0 ? totalRevenue / capturedJobs.length : 0;
   const completionRate = allJobs.length > 0 ? (completedJobs.length / allJobs.length) * 100 : 0;
@@ -263,6 +295,20 @@ export const computeMetrics = (
     // Urgent fee splits across the roster like the budget (#114).
     return s + (perHelper - commission + netUrgentFeeDollars(j.urgent_fee) / helpers);
   }, 0);
+  // The Released rung of the pipeline. Its two siblings (In Escrow, Payout
+  // Pending) quote money the platform is still holding, so a job budget is the
+  // right basis for them. Released money has LEFT — the only honest basis is
+  // the transfer ledger, keyed by job. When the ledger holds nothing for these
+  // jobs this is `null`, and the row renders an em-dash rather than a budget
+  // figure dressed up as a settlement (it used to render no amount at all,
+  // which is how the row ended up shaped differently from its siblings).
+  const releasedJobIds = new Set(releasedPayouts.map((j) => j.id));
+  const releasedLedgerRows = settledTransfers
+    ? settledTransfers.filter((t) => t.job_id && releasedJobIds.has(t.job_id))
+    : [];
+  const releasedPayoutTotal = releasedLedgerRows.length > 0
+    ? releasedLedgerRows.reduce((s, t) => s + Number(t.amount_cents || 0) / 100, 0)
+    : null;
 
   // Subscription pie data
   const subPieData = [
@@ -285,6 +331,11 @@ export const computeMetrics = (
 
   return {
     helperPayoutsFromLedger,
+    payoutLedgerUnavailable,
+    settledTransferCount,
+    capturedJobsMissingFee,
+    totalFeesKnown,
+    releasedPayoutTotal,
     helpers,
     customers,
     customerFunnel,

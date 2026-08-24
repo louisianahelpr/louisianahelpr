@@ -8,6 +8,7 @@
  */
 
 import { toneTextClasses } from "@/components/admin/tones";
+import { AdminCard } from "@/components/admin/AdminViewShell";
 import { formatPrice } from "@/lib/format";
 
 /**
@@ -29,12 +30,19 @@ import { formatPrice } from "@/lib/format";
  * equivalent and all sixteen call sites keep working untouched. Only what the
  * user sees moves.
  */
-export const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onClick }: {
+export const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onClick, hint, subTone }: {
   label: string; value: string | number; sub: string; icon: any; accent?: boolean; warning?: boolean; onClick?: () => void;
+  /** Native tooltip on the whole tile. Carries the WHY behind an em-dash value —
+   *  a figure the screen refuses to invent still has to explain itself. */
+  hint?: string;
+  /** Tone for `sub`. `warning` is for a caveat about the number above it (data
+   *  gap, ledger mismatch) — muted grey buries exactly the line that matters. */
+  subTone?: "muted" | "warning";
 }) => (
   <button
     onClick={onClick}
     disabled={!onClick}
+    title={hint}
     className={`rounded-ds-md liquid-glass p-3 sm:p-4 text-left transition-all group w-full ${
       onClick ? "hover:border-primary/30 hover:shadow-md cursor-pointer" : ""
     }`}
@@ -59,7 +67,11 @@ export const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onC
         the label is what tells you which number it was. */}
     <p className="text-ds-17 sm:text-ds-20 font-bold text-foreground tabular-nums leading-tight">{value}</p>
     <p className="text-ds-11 text-muted-foreground mt-0.5 leading-tight">{label}</p>
-    {sub && <p className="text-ds-10 text-muted-foreground mt-0.5 leading-tight">{sub}</p>}
+    {sub && (
+      <p className={`text-ds-10 mt-0.5 leading-tight ${subTone === "warning" ? toneTextClasses.warning : "text-muted-foreground"}`}>
+        {sub}
+      </p>
+    )}
     {onClick && (
       <p className="text-ds-10 text-primary mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
         Click to View Details →
@@ -96,11 +108,10 @@ export const CohortRetentionCard = ({
   cohorts: { date: Date; total: number; active: number }[];
   monthLabel: (d: Date) => string;
 }) => (
-  <div className="rounded-ds-md liquid-glass p-5">
-    <h3 className="text-ds-13 font-semibold text-foreground">Cohort retention</h3>
-    <p className="text-ds-11 text-muted-foreground mb-4">
-      Of users who signed up in each month, how many had any job activity in the last 30 days.
-    </p>
+  <AdminCard
+    title="Cohort Retention"
+    subtitle="Of users who signed up in each month, how many had any job activity in the last 30 days."
+  >
     <div className="space-y-2">
       <div className="grid grid-cols-12 gap-2 text-ds-10 uppercase tracking-wider text-muted-foreground px-1">
         <div className="col-span-3">Cohort</div>
@@ -135,7 +146,7 @@ export const CohortRetentionCard = ({
         );
       })}
     </div>
-  </div>
+  </AdminCard>
 );
 
 // Funnel card — rows render as horizontal bars sized by absolute count;
@@ -151,9 +162,7 @@ export const FunnelCard = ({
   // visually narrows. Empty cohort renders as a flat empty bar instead of NaN.
   const max = Math.max(stages[0]?.count ?? 0, 1);
   return (
-    <div className="rounded-ds-md liquid-glass p-5">
-      <h3 className="text-ds-13 font-semibold text-foreground">{title}</h3>
-      <p className="text-ds-11 text-muted-foreground mb-4">{subtitle}</p>
+    <AdminCard title={title} subtitle={subtitle}>
       <div className="space-y-2.5">
         {stages.map((s, i) => {
           const widthPct = Math.max(2, Math.round((s.count / max) * 100));
@@ -181,6 +190,6 @@ export const FunnelCard = ({
           );
         })}
       </div>
-    </div>
+    </AdminCard>
   );
 };

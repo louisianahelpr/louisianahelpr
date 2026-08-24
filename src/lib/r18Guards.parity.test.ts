@@ -175,7 +175,42 @@ describe("R18 — money duplications that had no guard", () => {
     ).toEqual([]);
   });
 
-  // ── 6. the boost discount the dialog has to quote ──────────────────────
+  // ── 6. helper take-home: the edge copy added for the weekly report ─────
+  //
+  // weekly-helper-report summed the FULL budget with no roster split, emailing
+  // a 3-person group helper 3.4x what they were transferred. Fixing it needed
+  // the take-home math on the edge side, which means a new duplicate — so it
+  // is guarded here from birth rather than joining the unguarded pile.
+  it("edge and client helper take-home agree on the cases that differ", async () => {
+    const edge = await import("../../supabase/functions/_shared/helperEarnings");
+    const client = await import("@/lib/helperEarnings");
+
+    const cases = [
+      // the group job that exposed the bug
+      { budget: 300, is_group_job: true, helpers_needed: 3, helper_fee_percent: 12, urgent_fee: 10 },
+      // solo job with a stamped fee amount (stamped wins on a solo row)
+      { budget: 120, is_group_job: false, platform_fee_amount: 14.4, urgent_fee: 0 },
+      // bad roster values must degrade to "one helper", never divide by zero
+      { budget: 100, is_group_job: true, helpers_needed: 0, helper_fee_percent: 10 },
+      { budget: 100, is_group_job: true, helpers_needed: null, helper_fee_percent: 10 },
+    ];
+
+    for (const job of cases) {
+      expect(edge.helperShareCount(job)).toBe(client.helperShareCount(job));
+      expect(edge.helperTakeHomeDollars(job, 12)).toBeCloseTo(
+        client.helperTakeHomeDollars(job, 12),
+        10,
+      );
+    }
+    expect(edge.sumHelperTakeHomeDollars(cases, 12)).toBeCloseTo(
+      client.sumHelperTakeHomeDollars(cases, 12),
+      10,
+    );
+    // and the group case must be a THIRD of the naive gross, not the gross
+    expect(edge.helperTakeHomeDollars(cases[0], 12)).toBeLessThan(120);
+  });
+
+  // ── 7. the boost discount the dialog has to quote ──────────────────────
   //
   // BOOST_DISCOUNT_PCT lived inline in create-boost-payment, so the client
   // could only transcribe the rule — and it drifted, quoting $3 to posters

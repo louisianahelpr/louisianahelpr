@@ -10,6 +10,7 @@ import {
   form1099kGrossLabel,
 } from "@/lib/moneyLimits";
 import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
+import { stripeProcessingCostCents } from "@/lib/stripeFees";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { toast } from "@/hooks/use-toast";
 import { EarningsExport } from "@/components/EarningsExport";
@@ -149,7 +150,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // across a group job's roster (#114), so a group helper sees only their share
   // — shown == transferred.
   const totalEarnings = sumHelperTakeHomeDollars(completedJobs, helperFeeFallbackPct);
-  const totalTips = tips.reduce((sum, t) => sum + t.amount, 0);
+  // NET of the card fee, because that is what lands (R17). A tip covers its
+  // own Stripe processing cost: create-payment retains exactly
+  // stripeProcessingCostCents(tip) as the application fee, so the transfer is
+  // tip − fee. Summing the gross overstated a $20 tip by 88¢ on the very tile
+  // that tells a helpr what they earned.
+  const totalTips = tips.reduce(
+    (sum, t) => sum + (t.amount - stripeProcessingCostCents(Math.round(t.amount * 100)) / 100),
+    0,
+  );
 
   const availableTotal = (stripeData?.available ?? []).reduce((s, b) => s + b.amount, 0);
   const pendingTotal = (stripeData?.pending ?? []).reduce((s, b) => s + b.amount, 0);

@@ -173,6 +173,11 @@ export const DisputeCard = ({
               className="w-full accent-primary"
               aria-label="Helpr's share of the payout"
             />
+            {/* At 100/0 and 0/100 the decision triggers the real Stripe
+                release / refund. ANY partial split is recorded only —
+                AdminDisputes says so in code ("Splits are recorded but not
+                auto-executed") — so the figures below are a record of the
+                ruling, not money in motion, and the caption says which. */}
             <div className="flex justify-between text-ds-11 tabular-nums">
               <span className="text-muted-foreground">
                 Poster <span className="font-semibold text-foreground">{100 - helperShare}%</span>
@@ -183,6 +188,12 @@ export const DisputeCard = ({
                 <span className="ml-1 text-muted-foreground">(${((job.budget * helperShare) / 100).toFixed(2)})</span>
               </span>
             </div>
+            {helperShare !== 0 && helperShare !== 100 && (
+              <p className="text-ds-10 mt-1.5" style={{ color: "hsl(var(--amber-ink))" }}>
+                Recorded only — a partial split does not move money. Release or
+                refund the escrow manually in Stripe after deciding.
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2">

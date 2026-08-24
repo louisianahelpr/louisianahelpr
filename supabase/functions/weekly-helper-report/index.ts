@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
-import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
+import { sumHelperTakeHomeDollars } from "../_shared/helperEarnings.ts";
+import { DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,7 +85,7 @@ Deno.serve(async (req) => {
           .gte("created_at", weekAgoISO),
         supabase
           .from("jobs")
-          .select("budget, platform_fee_amount, urgent_fee")
+          .select("budget, platform_fee_amount, urgent_fee, helper_fee_percent, is_group_job, helpers_needed")
           .eq("helper_id", helper.user_id)
           .eq("status", "completed")
           .gte("updated_at", weekAgoISO),
@@ -100,15 +101,20 @@ Deno.serve(async (req) => {
       const avgNewRating = newReviews > 0
         ? (reviewsRes.data!.reduce((s, r) => s + r.rating, 0) / newReviews).toFixed(1)
         : "N/A";
-      // Canonical take-home: budget − platform fee + net urgent bonus. The
-      // 10% sales tax on the commission is paid by the platform, never the
-      // helper, so it must NOT be deducted here (a prior version subtracted a
-      // phantom 8.5%-of-fee "tax" that under-reported pay versus every other
-      // surface and the actual Stripe transfer).
-      const weeklyEarnings = (earningsRes.data || []).reduce((sum, j) => {
-        const fee = j.platform_fee_amount || 0;
-        return sum + (j.budget - fee + netUrgentFeeDollars(j.urgent_fee));
-      }, 0);
+      // Canonical take-home, shared with every other surface (R17). This used
+      // to sum the FULL budget and the FULL urgent fee with no roster split,
+      // so a helper on a 3-person group job was emailed 3× what they were
+      // actually transferred. sumHelperTakeHomeDollars divides by the roster
+      // and honours the per-job frozen fee.
+      //
+      // The 10% sales tax on the commission is paid by the platform, never the
+      // helper, so it is still not deducted here (a prior version subtracted a
+      // phantom 8.5%-of-fee "tax" that under-reported pay versus the actual
+      // Stripe transfer).
+      const weeklyEarnings = sumHelperTakeHomeDollars(
+        earningsRes.data || [],
+        DEFAULT_TIER_FEE_PERCENT,
+      );
       const applicationsSubmitted = appsRes.data?.length || 0;
 
       // Send as in-app notification (email would require email infrastructure)

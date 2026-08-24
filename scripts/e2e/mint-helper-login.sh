@@ -4,8 +4,8 @@
 # two-role E2E. Run by the OWNER — Claude is not permitted to handle the keys.
 set -euo pipefail
 REF=fncmgoasalhdgfwzhsqa
-ELI_ID=6bdc1f67-ae1f-46a0-8edf-4035629a6147
-ELI_EMAIL=eli.test.helper@louisianahelpr.com
+ELI_ID=11111111-1111-1111-1111-111111111104
+ELI_EMAIL=eli.seed.helper@louisianahelpr.com
 KEY=$(supabase projects api-keys --project-ref $REF -o json | python3 -c "import json,sys;print(next(k['api_key'] for k in json.load(sys.stdin) if k.get('name')=='service_role'))")
 # 1. auth user bound to the existing profile id (409 = already exists, fine)
 curl -s -o /dev/null -w "create-user: %{http_code}\n" -X POST "https://$REF.supabase.co/auth/v1/admin/users" \

@@ -118,7 +118,7 @@ const AdminSettings = () => {
     setSavingMinBuild(false);
     if (error) {
       if (error.code === "42703") {
-        toast.error("min_supported_build column not yet deployed — run `supabase db push`");
+        toast.error("This setting isn't live yet — the latest database update is still deploying. Try again in a few minutes.");
       } else {
         toast.error(error.message);
       }

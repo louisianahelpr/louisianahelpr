@@ -163,7 +163,7 @@ const Signup = () => {
     if (!dateOfBirth) {
       errors.dateOfBirth = "Add your date of birth";
     } else if (ageFromDob(dateOfBirth) < 18) {
-      errors.dateOfBirth = "You need to be 18+ to sign up";
+      errors.dateOfBirth = "You'll need to be 18 or older to join.";
     }
     // Bio is optional — but if the user starts one, keep the 20-char floor so
     // a half-typed sentence doesn't ship as their whole profile.
@@ -233,7 +233,7 @@ const Signup = () => {
     if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter to your password"); return false; }
     if (!/[0-9]/.test(password)) { toast.error("Add at least one number to your password"); return false; }
     if (!acceptedPolicies) { toast.error("Check the box to agree to the terms and platform rules"); return false; }
-    if (!ageConfirmed) { toast.error("Check the box to confirm you're 18+"); return false; }
+    if (!ageConfirmed) { toast.error("Check the box to confirm you're 18 or older"); return false; }
     return true;
   };
 

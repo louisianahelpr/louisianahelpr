@@ -19,6 +19,7 @@ import { LAST_UPDATED } from "./legalSections";
 // the cron enforces rather than restating "48"/"72" as prose literals.
 import {
   COPY_AUTO_RELEASE_HOURS,
+  PAYOUT_HOLD_HOURS,
   TOTAL_TO_PAYOUT_HOURS,
 } from "../../../supabase/functions/_shared/escrowTiming";
 import { legalFmtMo } from "./legalSections";
@@ -135,12 +136,7 @@ export const TermsContent = () => (
         title="Payouts & Stripe Connect"
         body={
           <>
-            {/* FINDING (not silently changed): this states a "24–48 hour" payout delay
-                    while `escrowTiming.PAYOUT_HOLD_HOURS` — the hold the cron actually
-                    applies — is a flat 24h. The range is a wider promise than the code
-                    keeps; reconciling it changes a payout condition, so it needs an
-                    owner decision rather than an edit here. */}
-            <p><strong className="text-foreground">Payout schedule:</strong> Payouts are scheduled with a 24–48 hour delay after dual confirmation.</p>
+            <p><strong className="text-foreground">Payout schedule:</strong> Payouts release {PAYOUT_HOLD_HOURS} hours after dual confirmation.</p>
             <p><strong className="text-foreground">Stripe Connect:</strong> Helprs must link a Stripe Connect Express account before accepting offers or receiving payouts.</p>
           </>
         }

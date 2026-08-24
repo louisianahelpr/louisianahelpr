@@ -93,17 +93,6 @@ export const CommunityContent = () => (
         title="Editing — after a Helpr is selected"
         body={<p>Jobs cannot be edited once a Helpr accepts. This protects Helprs from unexpected scope or budget changes. If adjustments are needed, cancel and repost.</p>}
       />
-      <PolicyRowItem
-        icon={AlertTriangle}
-        title="New Helpr account limits"
-        body={
-          <>
-            <p>New Helpr accounts are limited to:</p>
-            <p>• Max <strong className="text-foreground">3 active jobs</strong> at a time</p>
-            <p>Lifted after <strong className="text-foreground">3 verified completions with a 4+ star rating</strong>.</p>
-          </>
-        }
-      />
     </PolicySection>
 
     {/* ── 2. What you owe each other ── */}

@@ -254,16 +254,44 @@ const DashboardGuest = () => {
   // so a genuine guest sees no extra delay in kind — just the loading state
   // they were going to see anyway — while a signed-in user never sees the
   // guest surface at all.
-  const [sessionChecked, setSessionChecked] = useState(false);
+  //
+  // Fast-path: if localStorage has no auth token we are definitely a guest —
+  // resolve synchronously without an async getSession() round-trip.
+  // supabase-js always writes a key matching /^sb-.+-auth-token$/ on sign-in,
+  // so an absent key is a reliable "no session" signal and avoids a hang when
+  // getSession() stalls during internal initialisation.
+  const [sessionChecked, setSessionChecked] = useState(() => {
+    try {
+      const hasStoredSession = Object.keys(localStorage).some(
+        (k) => /^sb-.+-auth-token$/.test(k),
+      );
+      return !hasStoredSession;
+    } catch {
+      return false; // storage unavailable — fall through to async check
+    }
+  });
   useEffect(() => {
+    if (sessionChecked) return; // already resolved via the synchronous pre-check
     let cancelled = false;
-    supabase.auth.getSession().then(({ data }) => {
-      if (cancelled) return;
-      if (data.session?.user) navigate("/dashboard", { replace: true });
-      else setSessionChecked(true);
-    });
-    return () => { cancelled = true; };
-  }, [navigate]);
+    // Belt-and-suspenders timeout: if getSession() stalls (e.g. during
+    // supabase-js internal lock acquisition), show the guest surface rather
+    // than hanging on the skeleton forever.
+    const fallback = setTimeout(() => {
+      if (!cancelled) setSessionChecked(true);
+    }, 5_000);
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        clearTimeout(fallback);
+        if (cancelled) return;
+        if (data.session?.user) navigate("/dashboard", { replace: true });
+        else setSessionChecked(true);
+      })
+      .catch(() => {
+        clearTimeout(fallback);
+        if (!cancelled) setSessionChecked(true);
+      });
+    return () => { cancelled = true; clearTimeout(fallback); };
+  }, [navigate, sessionChecked]);
 
   // All interactive actions route to signup. Direct redirect matches what
   // authenticated users feel (immediate response, no toast noise).

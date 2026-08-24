@@ -361,7 +361,7 @@ const AdminAnalytics = () => {
         <MetricCard
           label="Total Users"
           value={profiles.length}
-          sub={`${helpers.length} helpers · ${customers.length} customers`}
+          sub={`${helpers.length} ${helpers.length === 1 ? "helper" : "helpers"} · ${customers.length} ${customers.length === 1 ? "customer" : "customers"}`}
           icon={Users}
           onClick={() => openDrillDown("users")}
         />

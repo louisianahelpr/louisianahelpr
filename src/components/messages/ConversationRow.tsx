@@ -137,7 +137,7 @@ const ConversationRowBase = ({
     ageMin < 60 ? `${ageMin}m` :
     ageHr < 24 ? `${ageHr}h` :
     ageDay < 7 ? `${ageDay}d` :
-    new Date(c.lastAt).toLocaleDateString([], { month: "short", day: "numeric" });
+    new Date(c.lastAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   // Status chip — inline next to the job title. Labels come from the
   // canonical `jobStatusLabel` (#46); colors come from the canonical
   // `jobStatusColor` map (`src/lib/statusColors.ts`). Same state, same

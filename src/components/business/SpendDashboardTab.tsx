@@ -22,6 +22,7 @@ import {
   Legend,
 } from "recharts";
 import { DollarSign, Wallet, Lock, Hourglass, AlertCircle } from "lucide-react";
+import { formatPrice } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 
@@ -42,8 +43,7 @@ interface SpendDashboardTabProps {
   monthlyBudgetAlertAt?: number | null;
 }
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+const fmt = (n: number) => "$" + formatPrice(n);
 
 export function SpendDashboardTab({
   businessId,

@@ -15,10 +15,10 @@ export const dateDividerLabel = (d: Date): string => {
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7)
-    return d.toLocaleDateString([], { weekday: "long" });
+    return d.toLocaleDateString("en-US", { weekday: "long" });
   if (d.getFullYear() === now.getFullYear())
-    return d.toLocaleDateString([], { month: "long", day: "numeric" });
-  return d.toLocaleDateString([], {
+    return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  return d.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",

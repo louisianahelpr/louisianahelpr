@@ -15,16 +15,15 @@ import {
   COPY_AUTO_RELEASE_HOURS,
   TOTAL_TO_PAYOUT_HOURS,
 } from "../../../supabase/functions/_shared/escrowTiming";
-// Budget limits, cancellation percentages and the new-helper earnings cap are
-// binding money figures. They were restated here as literals ("$10", "25%",
-// "$100") while the app enforced `moneyLimits.ts` — exactly the drift that file
-// exists to prevent — so this page now derives every one of them.
+// Budget limits and cancellation percentages are binding money figures. They
+// were restated here as literals ("$10", "25%") while the app enforced
+// `moneyLimits.ts` — exactly the drift that file exists to prevent — so this
+// page now derives every one of them.
 import {
   MIN_JOB_BUDGET_DOLLARS,
   MAX_JOB_BUDGET_DOLLARS,
   LATE_CANCEL_PERCENT,
   VERY_LATE_CANCEL_PERCENT,
-  NEW_HELPER_EARNINGS_CAP_DOLLARS,
   formatDollarsWhole,
 } from "@/lib/moneyLimits";
 
@@ -101,7 +100,6 @@ export const CommunityContent = () => (
           <>
             <p>New Helpr accounts are limited to:</p>
             <p>• Max <strong className="text-foreground">3 active jobs</strong> at a time</p>
-            <p>• Max <strong className="text-foreground">{formatDollarsWhole(NEW_HELPER_EARNINGS_CAP_DOLLARS)} in total earnings</strong></p>
             <p>Lifted after <strong className="text-foreground">3 verified completions with a 4+ star rating</strong>.</p>
           </>
         }

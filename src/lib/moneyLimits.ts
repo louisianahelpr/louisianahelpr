@@ -39,12 +39,6 @@ export const LATE_CANCEL_PERCENT = 25;
 export const VERY_LATE_CANCEL_PERCENT = 50;
 
 /**
- * New-helper total earnings cap (whole dollars) — a fresh helper is limited
- * to this cumulative payout until they finish 3 verified jobs at ≥ 4★.
- */
-export const NEW_HELPER_EARNINGS_CAP_DOLLARS = 100;
-
-/**
  * Format a whole-dollar amount for display without decimals, e.g.
  * `formatDollarsWhole(5000)` → `"$5,000"`. Kept here so every user-facing
  * money limit renders identically wherever it's stated.

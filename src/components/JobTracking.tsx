@@ -637,38 +637,16 @@ export function JobTracking({
   if (!helperId && !includePostingSteps) return null;
 
   return (
-    <div className="rounded-2xl liquid-glass p-4 space-y-3">
-      <div className="flex items-start justify-between gap-2">
-        <h3
-          className="font-display italic font-bold leading-tight text-headline-card min-w-0"
-          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-        >
-          Job tracking
-        </h3>
-        {/* WHOSE progress — in the heading, not under the current step. It used
-            to caption the live dot, which gave every step column a third line
-            of vertical space to accommodate one word on one of them, and moved
-            down the row as the job advanced. Up here it holds still, and the
-            step row lost a line (owner: "can we move this somewhere else so we
-            can tighten up the spacing"). Owner card only — a helpr looking at
-            their own tracker does not need to be told it is theirs. */}
-        {!isHelper && firstName && (
-          <span
-            className="font-serif italic text-ds-13 leading-none shrink-0 ml-auto"
-            style={{ color: "hsl(var(--olivewood))" }}
-          >
-            {firstName}
-          </span>
-        )}
-        {/* NO SOS PILL HERE (owner: "remove globally"). It was the last
-            survivor of an older arrangement: the owner's SOS moved into the
-            action row long ago, and the helpr's stayed hanging off the tracker
-            heading — so one safety control lived in two different places
-            depending on which side of the job you were on, and on the helpr
-            side it sat inside a progress card rather than with the actions.
-            SosShareButton itself is untouched; it is still mounted from the
-            action row, which is where every other control on the card is. */}
-      </div>
+    // p-3 / space-y-2, and NO visible heading (owner: "drop the Job tracking
+    // heading", 2026-08-24) — the step row is self-evidently a tracker, and
+    // the serif heading + name row was ~50px of every card. The heading stays
+    // for screen readers (a landmark region with steps but no name announces
+    // as loose fragments); the helper's NAME moved down to the freshness
+    // stamp, which is the line that describes their last ping anyway.
+    <div className="rounded-2xl liquid-glass p-3 space-y-2">
+      <h3 className="sr-only">Job tracking</h3>
+      {/* NO SOS PILL HERE (owner: "remove globally") — it lives in the action
+          row with every other control, on both sides of the job. */}
 
 
       {/* Progress timeline */}
@@ -744,10 +722,10 @@ export function JobTracking({
                   // moment the row is narrower than 8 × 68px they stop growing,
                   // hold their width and scroll — `shrink-0` is what keeps a
                   // label from being squeezed into a hyphenated column.
-                  className="w-[68px] shrink-0 grow snap-center flex flex-col items-center gap-1"
+                  className="w-[60px] shrink-0 grow snap-center flex flex-col items-center gap-1"
                 >
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all"
                     style={
                       isCurrent
                         ? {
@@ -760,7 +738,7 @@ export function JobTracking({
                           : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.80)" }
                     }
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-3.5 h-3.5" />
                   </div>
                   <span
                     // ds-9 below 360px so "Confirmed" — the longest unbreakable
@@ -835,7 +813,11 @@ export function JobTracking({
           closes the tracker it vouches for. */}
       {tracking && (
         <p className="text-ds-10 text-muted-foreground text-center">
-          Last updated: {new Date(tracking.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          {/* The helper's name opens the stamp — this line describes THEIR
+              last ping, and it is where the name landed when the heading row
+              was dropped (owner card only, same rule as before). */}
+          {!isHelper && firstName ? `${firstName} · ` : ""}
+          Updated {new Date(tracking.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           {/* The coordinate stamp is the PROOF, so its absence has to be
               stated rather than left blank. A helpr with location off can now
               mark themselves arrived by attestation (see `updateStatus`), and

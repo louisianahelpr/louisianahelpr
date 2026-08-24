@@ -6,9 +6,15 @@ interface DeadlineCountdownProps {
   expiredText: string;
   consequenceText: string;
   variant?: "warning" | "destructive";
+  /** One-line mode: renders `{time} {consequenceText}` as a single sentence
+   *  (owner: "one-line countdown", 2026-08-24 — the 4-line explainer made the
+   *  banner the tallest thing on the card while the Approve sheet it points
+   *  at already walks through both paths). Callers pass a clause that reads
+   *  after a duration, e.g. "to review — payment auto-releases after". */
+  inline?: boolean;
 }
 
-const DeadlineCountdown = ({ deadline, expiredText, consequenceText, variant = "warning" }: DeadlineCountdownProps) => {
+const DeadlineCountdown = ({ deadline, expiredText, consequenceText, variant = "warning", inline = false }: DeadlineCountdownProps) => {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -70,6 +76,10 @@ const DeadlineCountdown = ({ deadline, expiredText, consequenceText, variant = "
       <div className="min-w-0">
         {isExpired ? (
           <p className="text-ds-11 font-semibold">{expiredText}</p>
+        ) : inline ? (
+          <p className="text-ds-11 font-semibold">
+            <span className="tabular-nums">{timeStr}</span> {consequenceText}
+          </p>
         ) : (
           <>
             <p className="text-ds-11 font-semibold tabular-nums">{timeStr} remaining</p>

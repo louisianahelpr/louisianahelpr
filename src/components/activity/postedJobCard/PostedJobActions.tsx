@@ -260,7 +260,11 @@ export function PostedJobActions({
               <DeadlineCountdown
                 deadline={new Date(new Date(job.helper_completed_at).getTime() + 48 * 60 * 60 * 1000).toISOString()}
                 expiredText="48 hours passed — payment auto-released to Helpr"
-                consequenceText="Tap Approve to review the work — you can release payment or request a revision there. If the timer runs out, payment auto-releases to the Helpr."
+                // One line (owner). The Approve sheet itself walks through
+                // release vs revision, so the banner only owes the deadline
+                // and its consequence.
+                consequenceText="to review — payment auto-releases after"
+                inline
                 variant="warning"
               />
             )}

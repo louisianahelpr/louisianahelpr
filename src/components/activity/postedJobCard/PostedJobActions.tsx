@@ -185,10 +185,15 @@ export function PostedJobActions({
         })()}
         {job.status === "accepted" && (
           <div className="space-y-2">
-            <p className="text-ds-11 text-muted-foreground text-center">
-              <Clock className="w-3 h-3 inline mr-1" />
-              Helpr must confirm 24 hours before the job starts — tracking actions unlock then
-            </p>
+            {/* REMOVED: "Helpr must confirm 24 hours before the job starts —
+                tracking actions unlock then."
+                It was the THIRD statement of one fact on a single card, and the
+                least useful of the three. Directly above it, JobConfirmation
+                already says "Confirmation opens in 3d 6h" with the same
+                explanation and a live number; above that, JobCountdown says
+                "Job starts in 4d 14h". This one restated both in flat grey with
+                no number at all. Owner: "needs better organization globally."
+                One fact, one place — the countdown that actually moves. */}
             {startRequestedJobIds.has(job.id) && !job.helper_confirmed_at && (
               <Button size="sm" className="w-full" disabled={confirmingStartJobId === job.id} onClick={() => onConfirmStart(job.id)}>
                 <CheckCircle2 className="w-4 h-4 mr-1" />
@@ -335,27 +340,6 @@ export function PostedJobActions({
               return (
                 <>
                   <JobActionRow columns={columns}>
-                    {/* MESSAGE IS ALWAYS FIRST (owner: "should be in same
-                        position"). It used to sit after SOS, so it was the
-                        second chip on a job whose helper had arrived and the
-                        first on every other — the one action present on EVERY
-                        assigned job was the one that moved. Scrolling a list of
-                        cards, your eye had to re-find it on each. It is the
-                        stable anchor now; the situational chips (SOS, No-show,
-                        Dispute) queue up after it and Approve stays last. */}
-                    <JobActionChip
-                      icon={MessageCircle}
-                      label="Message"
-                      ariaLabel="Message Helpr"
-                      // Blue. Owner: "I think blue suits messages better."
-                      tone="info"
-                      // Straight into the thread with THIS helpr on THIS job, not
-                      // the conversation list — owner: "when I tap message it
-                      // should take me right into Eli's message". Same
-                      // jobId+userId contract the card's other Message entry
-                      // points already use.
-                      onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
-                    />
                     {showSos && <SosShareButton jobId={job.id} variant="chip" />}
                     {showNoShow && (
                       <JobActionChip
@@ -375,6 +359,30 @@ export function PostedJobActions({
                         onClick={() => onDispute(job)}
                       />
                     )}
+                    {/* ORDER, GLOBALLY: danger left · Message middle · Approve
+                        right (owner: "move to middle globally and dispute or
+                        SOS on left").
+
+                        Message is the one action present on EVERY assigned job,
+                        so it is the fixed point the eye scans to; the
+                        situational chips (SOS, No-show, Dispute) queue to its
+                        left and the terminal one (Approve) stays right. That
+                        also keeps the two consequential ends apart — the
+                        escalation and the release of money never land next to
+                        each other under a thumb. */}
+                    <JobActionChip
+                      icon={MessageCircle}
+                      label="Message"
+                      ariaLabel="Message Helpr"
+                      // Blue. Owner: "I think blue suits messages better."
+                      tone="info"
+                      // Straight into the thread with THIS helpr on THIS job, not
+                      // the conversation list — owner: "when I tap message it
+                      // should take me right into Eli's message". Same
+                      // jobId+userId contract the card's other Message entry
+                      // points already use.
+                      onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
+                    />
                     {showApprove && (
                       <JobActionChip
                         icon={CheckCircle2}

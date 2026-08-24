@@ -70,7 +70,7 @@ export function deriveJobSystemEvents(
       id: `system-helper_on_the_way-${jobId}`,
       kind: "helper_on_the_way",
       at: job.helper_on_the_way_at,
-      label: "Helper marked on the way.",
+      label: "Helpr marked on the way.",
     });
   }
   if (job.helper_arrived_at) {
@@ -78,7 +78,7 @@ export function deriveJobSystemEvents(
       id: `system-helper_arrived-${jobId}`,
       kind: "helper_arrived",
       at: job.helper_arrived_at,
-      label: "Helper arrived at the location.",
+      label: "Helpr arrived at the location.",
     });
   }
   if (job.helper_completed_at) {
@@ -86,7 +86,7 @@ export function deriveJobSystemEvents(
       id: `system-helper_completed-${jobId}`,
       kind: "helper_completed",
       at: job.helper_completed_at,
-      label: "Helper marked the job complete.",
+      label: "Helpr marked the job complete.",
     });
   }
   if (job.poster_completed_at) {
@@ -117,7 +117,7 @@ export function deriveJobSystemEvents(
       kind: "cancelled",
       at: job.cancelled_at,
       label: who
-        ? `Job cancelled by ${who}.`
+        ? `Job cancelled by ${who === "poster" ? "poster" : "Helpr"}.`
         : "Job was cancelled.",
     });
   }
@@ -133,7 +133,7 @@ export function deriveJobSystemEvents(
       kind: "disputed",
       at: job.disputed_at,
       label: who
-        ? `${who === "poster" ? "Poster" : "Helper"} opened a dispute.`
+        ? `${who === "poster" ? "Poster" : "Helpr"} opened a dispute.`
         : "A dispute was opened.",
     });
   }

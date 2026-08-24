@@ -115,7 +115,7 @@ describe("EarningsForecastCard", () => {
       </Wrapper>,
     );
     await waitFor(() => {
-      expect(screen.getByText("$180.00")).toBeInTheDocument();
+      expect(screen.getByText("$180")).toBeInTheDocument();
     });
     expect(screen.getByText(/by Sunday/i)).toBeInTheDocument();
     expect(
@@ -153,11 +153,11 @@ describe("EarningsForecastCard", () => {
       </Wrapper>,
     );
     await waitFor(() => {
-      expect(screen.getByText("$180.00")).toBeInTheDocument();
+      expect(screen.getByText("$180")).toBeInTheDocument();
     });
     // 90 / 180 = 50%
     const bar = screen.getByRole("progressbar");
     expect(bar).toHaveAttribute("aria-valuenow", "50");
-    expect(screen.getByText(/earned so far · \$90\.00/i)).toBeInTheDocument();
+    expect(screen.getByText(/earned so far · \$90/i)).toBeInTheDocument();
   });
 });

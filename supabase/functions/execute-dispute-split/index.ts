@@ -422,6 +422,39 @@ serve(async (req) => {
   }
   const settledRefund = (refundRows ?? [])[0];
 
+  // A settled payout on a job whose split awards the Helpr NOTHING is a
+  // contradiction: the money already left toward the Helpr, and refunding the
+  // poster their "whole" share on top would pay the same escrow out twice. The
+  // payment_status gate above normally makes this unreachable (a real payout
+  // leaves the job 'released'), so reaching it means the DB and Stripe already
+  // disagree — refuse and let a human look.
+  if (settledTransfer && helperCents === 0) {
+    console.error(
+      `[execute-dispute-split] REFUSING dispute ${disputeId}: split awards the Helpr $0 but transfer ${settledTransfer.stripe_transfer_id} already settled on job ${job.id}.`,
+    );
+    await postSlackOpsAlert({
+      kind: "payout_failed",
+      severity: "critical",
+      title: "Dispute split contradicts an already-settled payout",
+      message:
+        "A split awarding the Helpr nothing was run against a job that already has a settled payout transfer. Refunding the poster in full would pay the same escrow out twice. Nothing moved — reconcile by hand.",
+      fields: {
+        dispute_id: disputeId,
+        job_id: job.id,
+        existing_transfer_id: String(settledTransfer.stripe_transfer_id),
+        transfer_status: String(settledTransfer.status),
+      },
+    });
+    return json(
+      {
+        error:
+          "a payout for this job has already settled, so a split awarding the Helpr nothing cannot be executed — reconcile this one by hand",
+        existing_transfer_id: settledTransfer.stripe_transfer_id,
+      },
+      409,
+    );
+  }
+
   // ── 6. Claim the execution BEFORE any Stripe call ────────────────────────
   const { data: claimed, error: claimErr } = await supabaseAdmin
     .from("disputes")

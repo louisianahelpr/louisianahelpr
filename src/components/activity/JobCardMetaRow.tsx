@@ -57,7 +57,13 @@ export function JobCardMetaRow({
        GROUPS against six inside them makes the grouping do the separating, so
        no middot or rule is needed. `gap-y-1.5` keeps the wrapped rows apart on
        a narrow card. */
-    <div className="flex items-center gap-x-5 gap-y-1.5 flex-wrap text-ds-11 text-muted-foreground">
+    // Outer row does NOT wrap: the meta chips wrap inside their own flex,
+    // and `trailing` (the expand chevron) stays pinned to the right of the
+    // first line — beside the time — instead of dropping to a full-width row
+    // of its own when the chips fill the card (owner: "drop down to the right
+    // of the time").
+    <div className="flex items-center text-ds-11 text-muted-foreground">
+      <div className="flex items-center gap-x-5 gap-y-1.5 flex-wrap min-w-0 flex-1">
       {/* Location → date → time, matching the home feed ("Browse Tasks")
           card order so the two surfaces read consistently. */}
       <a
@@ -118,7 +124,8 @@ export function JobCardMetaRow({
           })()
         : null}
       {children}
-      {trailing ? <span className="ml-auto shrink-0">{trailing}</span> : null}
+      </div>
+      {trailing ? <span className="ml-2 shrink-0">{trailing}</span> : null}
     </div>
   );
 }

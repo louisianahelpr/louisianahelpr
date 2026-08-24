@@ -669,6 +669,31 @@ export function JobTracking({
             action row, which is where every other control on the card is. */}
       </div>
 
+      {/* Last update — above the step row (owner: "move times above tracker") so the freshness stamp reads before the steps it vouches for. */}
+      {tracking && (
+        <p className="text-ds-10 text-muted-foreground text-center">
+          Last updated: {new Date(tracking.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          {/* The coordinate stamp is the PROOF, so its absence has to be
+              stated rather than left blank. A helpr with location off can now
+              mark themselves arrived by attestation (see `updateStatus`), and
+              a self-reported arrival that rendered identically to a
+              GPS-confirmed one would be the app quietly overstating what it
+              knows. Only shown from `arrived` onward — before that there is
+              nothing to have proved. */}
+          {tracking.latitude ? (
+            <span className="ml-2 inline-flex items-center gap-0.5">
+              <MapPin className="w-2.5 h-2.5" />
+              {tracking.latitude.toFixed(4)}, {tracking.longitude?.toFixed(4)}
+            </span>
+          ) : (STATUS_IDX[tracking.status as keyof typeof STATUS_IDX] ?? -1) >= STATUS_IDX.arrived ? (
+            <span className="ml-2 inline-flex items-center gap-0.5">
+              <MapPin className="w-2.5 h-2.5" />
+              Location not shared
+            </span>
+          ) : null}
+        </p>
+      )}
+
       {/* Progress timeline */}
       {(() => {
         // ONE scrolling line, seven steps (owner: "the live tracker should be
@@ -848,30 +873,6 @@ export function JobTracking({
           </Suspense>
         )}
 
-      {/* Last update */}
-      {tracking && (
-        <p className="text-ds-10 text-muted-foreground text-center">
-          Last updated: {new Date(tracking.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-          {/* The coordinate stamp is the PROOF, so its absence has to be
-              stated rather than left blank. A helpr with location off can now
-              mark themselves arrived by attestation (see `updateStatus`), and
-              a self-reported arrival that rendered identically to a
-              GPS-confirmed one would be the app quietly overstating what it
-              knows. Only shown from `arrived` onward — before that there is
-              nothing to have proved. */}
-          {tracking.latitude ? (
-            <span className="ml-2 inline-flex items-center gap-0.5">
-              <MapPin className="w-2.5 h-2.5" />
-              {tracking.latitude.toFixed(4)}, {tracking.longitude?.toFixed(4)}
-            </span>
-          ) : (STATUS_IDX[tracking.status as keyof typeof STATUS_IDX] ?? -1) >= STATUS_IDX.arrived ? (
-            <span className="ml-2 inline-flex items-center gap-0.5">
-              <MapPin className="w-2.5 h-2.5" />
-              Location not shared
-            </span>
-          ) : null}
-        </p>
-      )}
 
       {/* Helper controls — skip the job_confirmed step since that's handled by JobConfirmation */}
       {isHelper && (() => {

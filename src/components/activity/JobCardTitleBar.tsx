@@ -24,7 +24,7 @@ export function JobCardTitleBar({ title, amount, amountTitle }: JobCardTitleBarP
       style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
     >
       <h3
-        className="font-display italic font-bold leading-snug line-clamp-2 min-w-0 text-headline-card"
+        className="font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"
         style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
       >
         {title}

@@ -57,13 +57,15 @@ export function JobCardMetaRow({
        GROUPS against six inside them makes the grouping do the separating, so
        no middot or rule is needed. `gap-y-1.5` keeps the wrapped rows apart on
        a narrow card. */
-    // Outer row does NOT wrap: the meta chips wrap inside their own flex,
-    // and `trailing` (the expand chevron) stays pinned to the right of the
-    // first line — beside the time — instead of dropping to a full-width row
-    // of its own when the chips fill the card (owner: "drop down to the right
-    // of the time").
+    // ONE line, globally (owner). The row never wraps: date and time hold
+    // their natural width, the LOCATION is the element that gives — it
+    // shrinks and ellipsizes ("Delcambre" → "Delc…") because it is the only
+    // chip whose tail carries no information the map link doesn't. The
+    // trailing expand chevron stays pinned at the right of the same line.
+    // gap tightens on narrow cards (gap-x-3 → sm:gap-x-5) so the three chips
+    // fit a 375 card before the location has to give anything up.
     <div className="flex items-center text-ds-11 text-muted-foreground">
-      <div className="flex items-center gap-x-5 gap-y-1.5 flex-wrap min-w-0 flex-1">
+      <div className="flex items-center gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 flex-1 overflow-hidden">
       {/* Location → date → time, matching the home feed ("Browse Tasks")
           card order so the two surfaces read consistently. */}
       <a
@@ -84,16 +86,16 @@ export function JobCardMetaRow({
            of WCAG 2.5.8's 24px minimum. The row's only other content is plain
            text, so the extra 8px above and below overlaps nothing that could
            steal the tap. */
-        className="flex items-center gap-1.5 py-2 -my-2 hover:text-primary transition-colors"
+        className="flex items-center gap-1.5 py-2 -my-2 hover:text-primary transition-colors min-w-0 shrink"
       >
         <MapPin className="w-3 h-3 shrink-0" />
-        <span className="truncate max-w-[140px]">{getCity(location)}</span>
+        <span className="truncate">{getCity(location)}</span>
       </a>
-      <span className="flex items-center gap-1.5">
+      <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
         <Calendar className="w-3 h-3 shrink-0" />
         {formatJobDate(dateNeeded)}
       </span>
-      <span className="flex items-center gap-1.5">
+      <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
         <Clock className="w-3 h-3 shrink-0" />
         {!startTime
           ? flexibleLabel
@@ -125,7 +127,7 @@ export function JobCardMetaRow({
         : null}
       {children}
       </div>
-      {trailing ? <span className="ml-2 shrink-0">{trailing}</span> : null}
+      {trailing ? <span className="shrink-0">{trailing}</span> : null}
     </div>
   );
 }

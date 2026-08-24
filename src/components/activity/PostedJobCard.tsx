@@ -152,7 +152,7 @@ function PostedJobCardInner({
                       // to spell out lives entirely in aria-expanded and the
                       // aria-label; nothing about it is announced any less.
                       aria-label={isExpanded ? "Hide job description" : "Show job description"}
-                      className="inline-flex items-center justify-center w-11 h-11 -my-3.5 -mr-2.5 text-primary active:opacity-70"
+                      className="inline-flex items-center justify-center w-11 h-11 -my-3.5 -ml-4 -mr-2.5 text-primary active:opacity-70"
                       onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
                     >
                       <ChevronDown

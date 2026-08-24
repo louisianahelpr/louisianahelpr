@@ -138,7 +138,7 @@ function AppliedJobCardInner({
                     onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
                     aria-expanded={isExpanded}
                     aria-label={isExpanded ? "Hide job details" : "Show job details"}
-                    className="inline-flex items-center justify-center w-11 h-11 -my-3.5 -mr-2.5 text-primary active:opacity-70"
+                    className="inline-flex items-center justify-center w-11 h-11 -my-3.5 -ml-4 -mr-2.5 text-primary active:opacity-70"
                   >
                     <ChevronDown
                       className={`w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 ${isExpanded ? "rotate-180" : ""}`}

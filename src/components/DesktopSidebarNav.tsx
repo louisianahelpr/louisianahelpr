@@ -219,11 +219,28 @@ const DesktopSidebarNav = () => {
         // any safe-area inset the header reserves) so the header — which spans
         // the entire viewport width and paints in a separate stacking context
         // — is never covered by the rail's top band.
-        top: "calc(var(--safe-area-top, 0px) + 3.5rem)",
-        width: "var(--desktop-sidebar-w, 248px)",
+        // A CARD, like the content beside it (owner: "should we do round edge
+        // at the top and some space too, similar to the box on the left").
+        // It ran edge-to-edge with square corners and a hairline border while
+        // every panel it sits next to is an inset, rounded, shadowed card — so
+        // it read as chrome bolted to the window rather than part of the same
+        // surface family.
+        //
+        // Inset from the header and the right edge, then rounded on the TOP
+        // corners only: the bottom runs to the viewport floor, so rounding
+        // there would leave two lit notches against the page behind it.
+        top: "calc(var(--safe-area-top, 0px) + 3.5rem + 0.5rem)",
+        right: "0.75rem",
+        width: "calc(var(--desktop-sidebar-w, 248px) - 0.75rem)",
         background: "var(--glass-bg-crisp, hsl(0 0% 100% / 0.97))",
-        borderLeft: "1px solid hsl(var(--olivewood) / 0.12)",
-        boxShadow: "-1px 0 2px hsl(var(--olivewood) / 0.06)",
+        border: "1px solid hsl(var(--olivewood) / 0.12)",
+        borderBottom: "none",
+        borderTopLeftRadius: "1rem",
+        borderTopRightRadius: "1rem",
+        // Lifted off the page on all sides now that it is not flush to the
+        // edge — the old shadow only cast leftward because that was its only
+        // exposed side.
+        boxShadow: "0 1px 3px hsl(var(--olivewood) / 0.06), 0 8px 24px -12px hsl(var(--olivewood) / 0.18)",
       }}
     >
       {/* The rail now starts beneath the header, so add a little breathing room

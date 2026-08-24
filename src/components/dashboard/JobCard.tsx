@@ -421,12 +421,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             );
           return null;
         })()}
-        <div className="jc-card-body w-full px-3.5 pt-6 pb-2.5">
+        <div className="w-full px-3.5 pt-6 pb-2.5">
         {/* Title + price share the top row — price chip is vertically
             centered against the title so on a two-line title it sits in the
             middle. The location/date/time meta spans the full card width
             below. Titles clamp to two lines — see the note on the h3. */}
-        <div className="jc-head">
+        <div className="flex items-center justify-between gap-3">
           <h3
             // TWO lines, not one (owner). Clamping by LINE rather than by a
             // character count is still the right mechanism — a fixed character
@@ -441,7 +441,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             // what the clamp was protecting — and fits almost every real title
             // whole. `min-w-0` is what lets it shrink inside the flex row at
             // all.
-            className="jc-title text-headline-card font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
+            className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
             style={{
               color: "hsl(var(--ink-deep))",
               letterSpacing: "-0.02em",
@@ -456,144 +456,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             helpersNeeded={helpersCount}
             showBudget={showBudget}
             variant="chip"
-            className="jc-price shrink-0"
+            className="shrink-0"
           />
-                {/* `text-ds-11 text-muted-foreground leading-tight` are carried EXPLICITLY.
-              This row used to sit inside the meta block below and inherit them
-              from it; moving it into the head took it out of that parent, so
-              the city, date and time silently changed size, colour and leading
-              (owner: "the location, time and day should have stayed the same
-              font and size and format"). Same three values, now stated on the
-              row itself so it renders identically in both layouts. */}
-          <div className="jc-meta flex items-center gap-x-2 flex-nowrap overflow-hidden text-ds-11 text-muted-foreground leading-tight">
-          <span className="flex items-center gap-1 min-w-0">
-            <MapPin className="w-2.5 h-2.5 shrink-0" />
-            <span className="truncate max-w-[150px] font-sans">{cityState}</span>
-          </span>
-          {distanceLabel && (
-            <span
-              aria-label={
-                drivingLabel
-                  ? `Approximately ${drivingLabel} drive, ${distanceLabel} away`
-                  : `Approximately ${distanceLabel} away`
-              }
-              className="inline-flex items-center gap-0.5 px-1.5 py-px rounded-full font-sans font-semibold whitespace-nowrap text-ds-9"
-              style={{
-                letterSpacing: "0.02em",
-                background: "hsl(var(--burnt-sienna) / 0.10)",
-                color: "hsl(var(--burnt-sienna))",
-                border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-              }}
-            >
-              {drivingLabel ? `${drivingLabel} · ${distanceLabel}` : distanceLabel}
-            </span>
-          )}
-          <span className="opacity-30">·</span>
-          {/* Date + time + duration live in ONE no-wrap group so the "when"
-              of a job can never be split across lines — the trio moves
-              together. "Due" is dropped — the date is self-evidently the day
-              the work must be done. The start-time chip only renders when a
-              start_time is set (most posts leave it blank); the duration
-              chip fills that slot from estimated_hours, which every post
-              collects, so the row always answers "how much of my day?". */}
-          <span className="inline-flex items-center gap-x-2">
-            {!job.date_needed && !job.start_time ? (
-              <span className="flex items-center gap-1">
-                <Calendar className="w-2.5 h-2.5 shrink-0" />
-                <span className="font-sans">Flexible</span>
-              </span>
-            ) : (
-              <>
-                {job.date_needed && (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-2.5 h-2.5 shrink-0" />
-                    <span className="font-sans whitespace-nowrap">
-                      {formatJobDate(job.date_needed)}
-                    </span>
-                  </span>
-                )}
-                {job.date_needed && job.start_time && <span className="opacity-30">·</span>}
-                {job.start_time && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-2.5 h-2.5 shrink-0" />
-                    <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
-                  </span>
-                )}
-              </>
-            )}
-          </span>
-          {ratingDisplay && (
-            <>
-              <span className="opacity-30">·</span>
-              <span className="flex items-center gap-0.5">
-                <Star className="w-2.5 h-2.5 fill-accent text-accent shrink-0" />
-                <span className="font-medium text-foreground">{ratingDisplay}</span>
-              </span>
-            </>
-          )}
-          {/* Poster ID-verified — a quiet sage trust cue. Populated by
-              useDashboardData from get_safe_profiles; absent (and so hidden)
-              until migration 20260616120000 is pushed to prod. */}
-          {job.posterIdVerified && (
-            <>
-              <span className="opacity-30">·</span>
-              <span
-                className="flex items-center gap-0.5 font-sans font-semibold"
-                style={{ color: "hsl(var(--sage))" }}
-                aria-label="Poster's ID is verified"
-              >
-                <ShieldCheck className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
-                Verified
-              </span>
-            </>
-          )}
-          {/* "Posted X ago" was dropped from the row — it was the same on
-              every card (no decision value) and added a third wrapped line
-              on small phones. Freshness is still signalled by the "New"
-              chip (<30m) at the head of the row. */}
-          {job.is_group_job && (
-            <>
-              <span className="opacity-30">·</span>
-              <span
-                className="flex items-center gap-1"
-                style={{ color: "hsl(var(--primary))" }}
-              >
-                <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} aria-label="Helprs needed" />
-                <span className="font-sans font-medium">
-                  {job.helpers_needed ?? 2}
-                </span>
-              </span>
-            </>
-          )}
-          {job.is_recurring && (
-            // Same sub-360px guard as the age chip: hide the
-            // recurring chip on the smallest phones so the meta
-            // row stays on two lines max.
-            <>
-              <span className="opacity-30 hidden [@media(min-width:360px)]:inline">·</span>
-              <span className="hidden [@media(min-width:360px)]:flex items-center gap-1">
-                <Repeat className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
-                <span className="font-sans">
-                  {job.recurrence_interval || "Recurring"}
-                </span>
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* Row 2 — urgency, on its own line so it competes with nothing.
-            whitespace-nowrap keeps "1 day left" from breaking into
-            "1 day" / "left", which is what made card heights ragged when
-            this chip was still fighting for room on row 1. */}
-        {expiryText && (
-          <div
-            className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
-          >
-            <Timer className="w-2.5 h-2.5 shrink-0" />
-            <span className="font-sans whitespace-nowrap">{expiryText}</span>
-          </div>
-        )}
-        </div>
         </div>
 
         {/* Meta row — category lives in the badge above, so this leads
@@ -608,7 +472,135 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               important local-marketplace signal was the first thing dropped.
               Urgency now gets its own row below, which is also what the
               My Posts / My Jobs cards already do. */}
+          <div className="flex items-center gap-x-2 flex-nowrap overflow-hidden">
+            <span className="flex items-center gap-1 min-w-0">
+              <MapPin className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate max-w-[150px] font-sans">{cityState}</span>
+            </span>
+            {distanceLabel && (
+              <span
+                aria-label={
+                  drivingLabel
+                    ? `Approximately ${drivingLabel} drive, ${distanceLabel} away`
+                    : `Approximately ${distanceLabel} away`
+                }
+                className="inline-flex items-center gap-0.5 px-1.5 py-px rounded-full font-sans font-semibold whitespace-nowrap text-ds-9"
+                style={{
+                  letterSpacing: "0.02em",
+                  background: "hsl(var(--burnt-sienna) / 0.10)",
+                  color: "hsl(var(--burnt-sienna))",
+                  border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                }}
+              >
+                {drivingLabel ? `${drivingLabel} · ${distanceLabel}` : distanceLabel}
+              </span>
+            )}
+            <span className="opacity-30">·</span>
+            {/* Date + time + duration live in ONE no-wrap group so the "when"
+                of a job can never be split across lines — the trio moves
+                together. "Due" is dropped — the date is self-evidently the day
+                the work must be done. The start-time chip only renders when a
+                start_time is set (most posts leave it blank); the duration
+                chip fills that slot from estimated_hours, which every post
+                collects, so the row always answers "how much of my day?". */}
+            <span className="inline-flex items-center gap-x-2">
+              {!job.date_needed && !job.start_time ? (
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-2.5 h-2.5 shrink-0" />
+                  <span className="font-sans">Flexible</span>
+                </span>
+              ) : (
+                <>
+                  {job.date_needed && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-2.5 h-2.5 shrink-0" />
+                      <span className="font-sans whitespace-nowrap">
+                        {formatJobDate(job.date_needed)}
+                      </span>
+                    </span>
+                  )}
+                  {job.date_needed && job.start_time && <span className="opacity-30">·</span>}
+                  {job.start_time && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5 shrink-0" />
+                      <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
+                    </span>
+                  )}
+                </>
+              )}
+            </span>
+            {ratingDisplay && (
+              <>
+                <span className="opacity-30">·</span>
+                <span className="flex items-center gap-0.5">
+                  <Star className="w-2.5 h-2.5 fill-accent text-accent shrink-0" />
+                  <span className="font-medium text-foreground">{ratingDisplay}</span>
+                </span>
+              </>
+            )}
+            {/* Poster ID-verified — a quiet sage trust cue. Populated by
+                useDashboardData from get_safe_profiles; absent (and so hidden)
+                until migration 20260616120000 is pushed to prod. */}
+            {job.posterIdVerified && (
+              <>
+                <span className="opacity-30">·</span>
+                <span
+                  className="flex items-center gap-0.5 font-sans font-semibold"
+                  style={{ color: "hsl(var(--sage))" }}
+                  aria-label="Poster's ID is verified"
+                >
+                  <ShieldCheck className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
+                  Verified
+                </span>
+              </>
+            )}
+            {/* "Posted X ago" was dropped from the row — it was the same on
+                every card (no decision value) and added a third wrapped line
+                on small phones. Freshness is still signalled by the "New"
+                chip (<30m) at the head of the row. */}
+            {job.is_group_job && (
+              <>
+                <span className="opacity-30">·</span>
+                <span
+                  className="flex items-center gap-1"
+                  style={{ color: "hsl(var(--primary))" }}
+                >
+                  <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} aria-label="Helprs needed" />
+                  <span className="font-sans font-medium">
+                    {job.helpers_needed ?? 2}
+                  </span>
+                </span>
+              </>
+            )}
+            {job.is_recurring && (
+              // Same sub-360px guard as the age chip: hide the
+              // recurring chip on the smallest phones so the meta
+              // row stays on two lines max.
+              <>
+                <span className="opacity-30 hidden [@media(min-width:360px)]:inline">·</span>
+                <span className="hidden [@media(min-width:360px)]:flex items-center gap-1">
+                  <Repeat className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
+                  <span className="font-sans">
+                    {job.recurrence_interval || "Recurring"}
+                  </span>
+                </span>
+              </>
+            )}
+          </div>
 
+          {/* Row 2 — urgency, on its own line so it competes with nothing.
+              whitespace-nowrap keeps "1 day left" from breaking into
+              "1 day" / "left", which is what made card heights ragged when
+              this chip was still fighting for room on row 1. */}
+          {expiryText && (
+            <div
+              className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
+            >
+              <Timer className="w-2.5 h-2.5 shrink-0" />
+              <span className="font-sans whitespace-nowrap">{expiryText}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Save lives in the job-detail view (open the card to save), so the

@@ -28,6 +28,14 @@ against the source at HEAD plus the one real prod payout row.
 
 ## APPLIED — shipped this pass (mechanically safe, no judgement risk)
 
+**Second wave, 2026-08-24** (after the owner resolved the open decisions): the
+$100 new-helper earnings cap and the unenforced "3 active jobs" block left the
+published Community Rules (`afc00a120`); admin copy swept to "Helpr"
+(`f4e8f1a5c`); 222 suppressed toast calls deleted (`93791628f`); actionable
+toasts reopened (`fc4b395bb`); three posting tips stopped implying Helprs send
+quotes, since bidding is gone (`b3a1f8c6b`).
+
+
 | commit | what | scope |
 |---|---|---|
 | `afc00a1` | Removed the `$100` new-helper earnings cap from Community Rules + its dead constant. Arithmetically impossible (one avg job = ~$123 take-home vs a $100 cap needing 3 completions to lift) and enforced nowhere. | 2 files |
@@ -100,10 +108,12 @@ stop, the question-mark idiom keeps its mark, nothing is stripped. Applied to th
 - **R19 — latent RLS/PII leaks (currently 0 rows, fire on first use).** `evacuation_pets` anon-readable incl. `destination_address` (fires during a hurricane). `job-photos` is a **public** storage bucket behind a participant-scoped policy that a public URL bypasses. `reviews` SELECT is `USING(true)` (defeats moderation `status`). `is_licensed`/`is_insured` outside the `prevent_self_escalation` denylist → forgeable "Licensed/Insured" badges. 12 cron/sweep RPCs (`cleanup_stripe_webhook_events` destroys the idempotency ledger) executable by any authenticated user. `get_pending_invite_for_email` is an email-existence oracle.
 - **R20 — `cancel_escrow` writes an illegal `payment_status='cancelling'`** the CHECK constraint rejects; path is currently unwired (no `src/` caller) but fails 100% the moment it is.
 
+- **R21 — post-redirect confirmations are now silent (surfaced by the toast sweep).** Three flows had toast-only feedback on a channel that no longer renders, so they now complete with *zero* acknowledgement: returning from Stripe Connect onboarding (`?connect=success`, `PaymentTab.tsx`), returning from Pro subscription checkout (`?pro=success`, `UserProfile.tsx`), and the 30-minute inactivity sign-out (`useSessionTimeout.ts`), which dumps the user at `/login` with no explanation of why they were logged out. The dead branches were removed with the sweep; the *feedback gap* is the finding. Fixing it needs a surface decision (inline banner on the destination screen, not a toast) — reported, not fixed, on your call.
+
 ### Open decisions (need your call — see pop-up)
 
-- **The ~230 suppressed toasts.** `toastPolicy.ts` no-ops `toast.success/info/message` app-wide; ~230 strings never render. Delete them, or restore the channel? I left them untouched.
-- **lowercase "helper" across admin** — survives with no recorded exemption. Sweep to "Helpr", or is admin deliberately lower?
+- ~~**The ~230 suppressed toasts.**~~ **RESOLVED 2026-08-24.** Owner chose delete. 222 dead calls removed across 132 files (`93791628f`). Removing them orphaned the work that only fed them — empty `if/else` shells, a clipboard flag that only chose wording, and a per-login `profiles` round-trip that existed to greet by first name — all removed with them; net new lint debt zero. **Three were deliberately kept and the channel reopened for them** (`fc4b395bb`): a toast carrying an `action` is an affordance, not a confirmation (Undo-attachment, and the two "View" jumps), so `toastPolicy` now passes actionable toasts through and still swallows every actionless one. Pinned by `toastPolicy.test.ts`.
+- ~~**lowercase "helper" across admin**~~ **RESOLVED 2026-08-24.** Owner: admins are users too. Swept to "Helpr" (`f4e8f1a5c`) across empty states, the IDV flag description, the formal-warning placeholder, the analytics funnel title and the dispute-split labels + `aria-label`. Internal identifiers (role strings, filter ids, CSV headers) deliberately left lowercase.
 - **Document `<title>` conventions** mix "Dashboard — Helpr" vs "Complete your profile — Helpr" (Title vs sentence). Pick one.
 
 ---

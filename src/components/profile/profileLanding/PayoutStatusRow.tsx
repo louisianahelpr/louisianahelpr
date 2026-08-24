@@ -83,15 +83,28 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry }: PayoutStatusRowPro
       className={
         reserving
           ? `${BOX} border-transparent [&>*]:invisible motion-safe:animate-pulse`
-          : `${BOX} border-destructive/25 bg-destructive/5 active:scale-[0.99]`
+          : `${BOX} active:scale-[0.99]`
       }
-      style={reserving ? { background: "hsl(var(--olivewood) / 0.07)" } : undefined}
+      style={
+        reserving
+          ? { background: "hsl(var(--olivewood) / 0.07)" }
+          // Sienna, not destructive red (owner, 2026-08-24: "calm the
+          // alarms") — nothing is WRONG, something is unfinished. Red on
+          // this screen now belongs to Warnings & Strikes alone.
+          : {
+              borderColor: "hsl(var(--burnt-sienna) / 0.3)",
+              background: "hsl(var(--burnt-sienna) / 0.06)",
+            }
+      }
     >
-      <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+      <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
       <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
-        <span className="font-semibold">Set up Your Payout Account</span> to accept jobs and get paid.
+        <span className="font-semibold">Finish setting up</span> — add your payout account to accept jobs and get paid.
       </p>
-      <span className="shrink-0 text-ds-11 font-semibold text-destructive inline-flex items-center gap-0.5">
+      <span
+        className="shrink-0 text-ds-11 font-semibold inline-flex items-center gap-0.5"
+        style={{ color: "hsl(var(--burnt-sienna))" }}
+      >
         Set Up <ChevronRightIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
       </span>
     </button>

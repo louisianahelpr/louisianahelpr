@@ -38,7 +38,7 @@ interface UseProfileLandingDerivedArgs {
  * rule.
  *
  * Now the tint carries information: it tells you which group a row belongs to.
- * Warnings & Strikes and Admin stay destructive-red — the one deliberate
+ * Warnings & Strikes stays destructive-red — the one deliberate
  * exception, because "this is a penalty surface" outranks "this is the Legal
  * group".
  */
@@ -49,12 +49,12 @@ const SECTION_TINT = {
   work: "var(--burnt-sienna)",
   /** Money. Green, the colour money already reads as. */
   money: "var(--sage)",
-  /** Legal, warnings, support. Red — owner call 2026-08-20: this is the
-   *  consequences group, so it carries the warning colour as a set rather
-   *  than red appearing on Warnings alone inside an otherwise calm block. */
-  legal: "var(--destructive)",
-  /** Admin panel + Warnings & Strikes. Same red; kept as its own key so a
-   *  future move of either row out of the Legal section keeps its colour. */
+  /** Legal, support, admin. Quiet grey-blue — REVERSED 2026-08-24 (owner):
+   *  the whole group in red made Help & Support read like an emergency and
+   *  spent the alarm colour on rows that carry none. Red now belongs to
+   *  Warnings & Strikes alone. */
+  legal: "var(--stormy-sky)",
+  /** Warnings & Strikes only — the one genuinely consequential row. */
   danger: "var(--destructive)",
 } as const;
 
@@ -190,6 +190,95 @@ export function useProfileLandingDerived({
     // sidebar can coexist: one is the desktop shortcut, this is the way in
     // everywhere else. SECTION_TINT.danger was even kept around for it.
     {
+      title: "Work",
+      items: [
+        // Two rows, not one. These used to be a single "Schedule" row opening
+        // a screen with a Calendar|Hours segmented control — a second choice
+        // after the one you just made. Split on owner request 2026-08-19.
+        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Your calendar & upcoming jobs", tint: SECTION_TINT.work },
+        { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Weekly hours & the available-now signal", tint: SECTION_TINT.work },
+        { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: SECTION_TINT.work },
+        {
+          key: "credentials",
+          label: "Licensed & Insured",
+          icon: <ShieldCheck className="w-5 h-5" />,
+          desc: "Add your license and insurance",
+          tint: SECTION_TINT.work,
+        },
+        {
+          key: "str-settings",
+          label: "Host Automation",
+          icon: <Home className="w-5 h-5" />,
+          desc: "Auto-post cleanings on Airbnb / VRBO checkout",
+          tint: SECTION_TINT.work,
+          href: "/str-settings",
+        },
+        {
+          key: "gift-card",
+          label: "Gift Card",
+          icon: <Gift className="w-5 h-5" />,
+          desc: "Donate job credits for neighbors who need help",
+          tint: SECTION_TINT.work,
+          href: "/gift-card",
+        },
+        {
+          key: "benefits",
+          label: "Benefits & Perks",
+          icon: <Star className="w-5 h-5" />,
+          desc: "Health coverage, financial tools & supply discounts",
+          tint: SECTION_TINT.work,
+          href: "/benefits",
+        },
+      ],
+    },
+    {
+      title: "Money",
+      items: [
+        {
+          key: "auto-tip",
+          label: "Auto-Tip & Instant Release",
+          icon: <Coins className="w-5 h-5" />,
+          desc: "Tips & instant payment release",
+          tint: SECTION_TINT.money,
+          href: "/auto-tip",
+        },
+        // ONE row, not three. "Earnings", "Analytics" (→ /analytics) and
+        // "Payout & Payments" were three entry points onto three screens
+        // about the same subject: what you earned, what it says about your
+        // work, and where the money lands. Merged 2026-08-19 on owner
+        // request — the earnings tab now carries the analytics dashboard and
+        // the payout setup as sections. The payout warning state moves onto
+        // this row with them, because it is still the row you tap to fix it.
+        {
+          key: "earnings",
+          label: "Earnings & Payouts",
+          icon: <TrendingUp className="w-5 h-5" />,
+          desc: "Wallet, analytics, payout setup & tax exports",
+          tint: SECTION_TINT.money,
+        },
+        // No `href`. This row used to jump out to /subscription — the public
+        // MARKETING pricing page, with its own hand-rolled header whose back
+        // button goes to "/" rather than to Profile. Tapping "Membership" in
+        // your own settings and landing on the sales page (in a different
+        // header, column and card treatment from every neighbouring row) is
+        // exactly the "not the correct look" the owner flagged. The in-profile
+        // `subscription` tab (SubscriptionTab) is the settings-native screen —
+        // ProfileTabHeader, canonical cards, plan management, cancel/pause —
+        // so the row opens that. /subscription stays reachable from the public
+        // nav and footer, which is the audience it was written for.
+        { key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: SECTION_TINT.money },
+        { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: SECTION_TINT.money },
+        {
+          key: "work-record",
+          label: "Work Record",
+          icon: <FileText className="w-5 h-5" />,
+          desc: "Shareable verified earnings document",
+          tint: SECTION_TINT.money,
+          href: "/work-record",
+        },
+      ],
+    },
+    {
       title: "Account",
       items: [
         {
@@ -249,98 +338,6 @@ export function useProfileLandingDerived({
       ],
     },
     {
-      title: "Work",
-      items: [
-        // Two rows, not one. These used to be a single "Schedule" row opening
-        // a screen with a Calendar|Hours segmented control — a second choice
-        // after the one you just made. Split on owner request 2026-08-19.
-        { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Your calendar & upcoming jobs", tint: SECTION_TINT.work },
-        { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Weekly hours & the available-now signal", tint: SECTION_TINT.work },
-        { key: "saved_helpers", label: "Saved Helprs", icon: <Heart className="w-5 h-5" />, desc: "Rebook favorites with a direct offer", tint: SECTION_TINT.work },
-        {
-          key: "credentials",
-          label: "Licensed & Insured",
-          icon: <ShieldCheck className="w-5 h-5" />,
-          desc: "Add your license and insurance",
-          tint: SECTION_TINT.work,
-          incompleteLabel: credentialsIncomplete ? "Verify credentials" : undefined,
-        },
-        {
-          key: "str-settings",
-          label: "Host Automation",
-          icon: <Home className="w-5 h-5" />,
-          desc: "Auto-post cleanings on Airbnb / VRBO checkout",
-          tint: SECTION_TINT.work,
-          href: "/str-settings",
-        },
-        {
-          key: "gift-card",
-          label: "Gift Card",
-          icon: <Gift className="w-5 h-5" />,
-          desc: "Donate job credits for neighbors who need help",
-          tint: SECTION_TINT.work,
-          href: "/gift-card",
-        },
-        {
-          key: "benefits",
-          label: "Benefits & Perks",
-          icon: <Star className="w-5 h-5" />,
-          desc: "Health coverage, financial tools & supply discounts",
-          tint: SECTION_TINT.work,
-          href: "/benefits",
-        },
-      ],
-    },
-    {
-      title: "Money",
-      items: [
-        {
-          key: "auto-tip",
-          label: "Auto-Tip",
-          icon: <Coins className="w-5 h-5" />,
-          desc: "Tip automatically when a job is done",
-          tint: SECTION_TINT.money,
-          href: "/auto-tip",
-        },
-        // ONE row, not three. "Earnings", "Analytics" (→ /analytics) and
-        // "Payout & Payments" were three entry points onto three screens
-        // about the same subject: what you earned, what it says about your
-        // work, and where the money lands. Merged 2026-08-19 on owner
-        // request — the earnings tab now carries the analytics dashboard and
-        // the payout setup as sections. The payout warning state moves onto
-        // this row with them, because it is still the row you tap to fix it.
-        {
-          key: "earnings",
-          label: "Earnings & Payouts",
-          icon: <TrendingUp className="w-5 h-5" />,
-          desc: "Wallet, analytics, payout setup & tax exports",
-          tint: SECTION_TINT.money,
-          needsAction: stripeNeedsAction,
-          incompleteLabel: payoutIncomplete && !stripeNeedsAction ? "Set payout method" : undefined,
-        },
-        // No `href`. This row used to jump out to /subscription — the public
-        // MARKETING pricing page, with its own hand-rolled header whose back
-        // button goes to "/" rather than to Profile. Tapping "Membership" in
-        // your own settings and landing on the sales page (in a different
-        // header, column and card treatment from every neighbouring row) is
-        // exactly the "not the correct look" the owner flagged. The in-profile
-        // `subscription` tab (SubscriptionTab) is the settings-native screen —
-        // ProfileTabHeader, canonical cards, plan management, cancel/pause —
-        // so the row opens that. /subscription stays reachable from the public
-        // nav and footer, which is the audience it was written for.
-        { key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: SECTION_TINT.money },
-        { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: SECTION_TINT.money },
-        {
-          key: "work-record",
-          label: "Work Record",
-          icon: <FileText className="w-5 h-5" />,
-          desc: "Shareable verified earnings document",
-          tint: SECTION_TINT.money,
-          href: "/work-record",
-        },
-      ],
-    },
-    {
       title: "Legal",
       items: [
         // "Data & privacy → /data-rights" was a second row here until
@@ -358,7 +355,7 @@ export function useProfileLandingDerived({
                 label: "Admin",
                 icon: <ShieldAlert className="w-5 h-5" />,
                 desc: "Moderation, payouts & platform health",
-                tint: SECTION_TINT.danger,
+                tint: SECTION_TINT.legal,
                 href: "/admin",
               },
             ]

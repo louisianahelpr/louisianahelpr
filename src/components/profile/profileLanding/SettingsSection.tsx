@@ -53,6 +53,13 @@ export function SettingsSection({
         {menuGroups.map((group) => {
           return (
             <section key={group.title}>
+              {/* Card eyebrow (owner, 2026-08-24: "better organization") — the
+                  groups always HAD titles in the data; they were just never
+                  painted, so four look-alike cards ran together. Quiet gray
+                  sans, same recipe the filter sheet settled on. */}
+              <p className="px-1 pb-1.5 text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest">
+                {group.title}
+              </p>
               <div className="rounded-ds-lg liquid-glass overflow-hidden">
                 {group.items.map((item, idx) => (
                   <button

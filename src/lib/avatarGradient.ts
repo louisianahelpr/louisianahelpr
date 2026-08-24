@@ -24,26 +24,26 @@
  *    initials have maximum legibility at the lightest point.
  *  - Ends at a mid-depth brand tone at ~50% opacity so the gradient feels
  *    rich without going so dark that text contrast suffers. The opacity
- *    range 0.42–0.55 was calibrated to stay above WCAG AA for dark initials.
+ *    range 0.50–0.68 was recalibrated (2026-08-24 — owner: initials read faint at a glance) to stay above WCAG AA for dark initials.
  */
 
 const GRADIENTS: readonly string[] = [
   // 1. Parchment → bark: soft olive deepening — the "default" warm tone
-  "from-[hsl(var(--parchment))] to-[hsl(var(--bark)/0.48)]",
+  "from-[hsl(var(--parchment))] to-[hsl(var(--bark)/0.62)]",
   // 2. Parchment → burnt sienna: warm rust accent, the brand emphasis color
-  "from-[hsl(var(--parchment))] to-[hsl(var(--burnt-sienna)/0.42)]",
+  "from-[hsl(var(--parchment))] to-[hsl(var(--burnt-sienna)/0.56)]",
   // 3. Parchment → olivewood: deep dark-ground, serious and earthy
-  "from-[hsl(var(--parchment))] to-[hsl(var(--olivewood)/0.36)]",
+  "from-[hsl(var(--parchment))] to-[hsl(var(--olivewood)/0.62)]",
   // 4. Parchment → gold-warm: antique gold, the prestige variant
-  "from-[hsl(var(--parchment))] to-[hsl(var(--gold-warm)/0.52)]",
+  "from-[hsl(var(--parchment))] to-[hsl(var(--gold-warm)/0.66)]",
   // 5. Ivory-sand → bark: crisp, elevated card surface with an olive depth
-  "from-[hsl(var(--ivory-sand))] to-[hsl(var(--bark)/0.52)]",
+  "from-[hsl(var(--ivory-sand))] to-[hsl(var(--bark)/0.66)]",
   // 6. Sand → burnt sienna: warm-on-warm boldness, rich terracotta finish
-  "from-[hsl(var(--sand))] to-[hsl(var(--burnt-sienna)/0.50)]",
+  "from-[hsl(var(--sand))] to-[hsl(var(--burnt-sienna)/0.62)]",
   // 7. Parchment → sage: quiet green accent, calm and grounded
-  "from-[hsl(var(--parchment))] to-[hsl(var(--sage)/0.50)]",
+  "from-[hsl(var(--parchment))] to-[hsl(var(--sage)/0.62)]",
   // 8. Ivory-sand → gold-warm: parchment-and-gold, the heritage-warmth pair
-  "from-[hsl(var(--ivory-sand))] to-[hsl(var(--gold-warm)/0.44)]",
+  "from-[hsl(var(--ivory-sand))] to-[hsl(var(--gold-warm)/0.58)]",
 ];
 
 /**

@@ -39,9 +39,9 @@ const PostJob = () => {
   // poster picks how to begin (start fresh / draft / template).
   const header =
     form.step === "checkout"
-      ? { eyebrow: "Almost there", title: "Order summary", meta: "Review and pay to publish" }
+      ? { eyebrow: "Almost there", title: "Order Summary", meta: "Review and pay to publish" }
       : form.step === "entry"
-        ? { eyebrow: "New request", title: "Post a job", meta: "Pick how you'd like to begin." }
+        ? { eyebrow: "New request", title: "Post a Job", meta: "Pick how you'd like to begin." }
         : { eyebrow: "New request", title: "What do you need done?", meta: "The more detail, the better." };
 
   return (

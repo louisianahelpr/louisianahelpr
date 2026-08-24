@@ -8,6 +8,7 @@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { MessageCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { formatCategory } from "@/lib/format";
 interface NoteEntry {
   note: string;
   created_at: string;
@@ -43,7 +44,7 @@ export const NotesIndicator = ({ userId, notesSummary }: NotesIndicatorProps) =>
           <div key={i} className="text-ds-11 space-y-0.5 border-l-2 border-accent/40 pl-2">
             <p className="text-foreground line-clamp-3">{n.note}</p>
             <p className="text-muted-foreground text-ds-11">
-              {n.category} · {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+              {formatCategory(n.category)} · {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
             </p>
           </div>
         ))}

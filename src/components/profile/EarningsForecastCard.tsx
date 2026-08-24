@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { formatPriceFloor } from "@/lib/format";
 import { queryKeys } from "@/lib/queryKeys";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -91,8 +92,7 @@ interface ForecastData {
   weekEnd: Date;
 }
 
-const formatUsd = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+const formatUsd = (n: number) => "$" + formatPriceFloor(n);
 
 interface EarningsForecastCardProps {
   helperId: string;

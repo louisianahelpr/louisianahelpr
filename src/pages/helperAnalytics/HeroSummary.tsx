@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { fmtDollars } from "./analyticsUtils";
+import { formatPrice } from "@/lib/format";
 import type { Analytics } from "./fetchAnalytics";
 
 interface HeroSummaryProps {
@@ -28,7 +28,7 @@ const HeroSummary = ({ analytics, isLoading }: HeroSummaryProps) => {
             className="font-display italic font-bold text-ds-28"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
           >
-            {analytics ? fmtDollars(analytics.totalEarnings) : "$0"}
+            {analytics ? "$" + formatPrice(analytics.totalEarnings) : "$0"}
             {/* A real space, not just `ml-2`. The margin gives visual air but
                 leaves nothing between the two tokens in the accessibility tree
                 or on copy-paste, so the line read "$260gross earned". */}{" "}

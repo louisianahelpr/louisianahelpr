@@ -458,7 +458,14 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             variant="chip"
             className="jc-price shrink-0"
           />
-                <div className="jc-meta flex items-center gap-x-2 flex-nowrap overflow-hidden">
+                {/* `text-ds-11 text-muted-foreground leading-tight` are carried EXPLICITLY.
+              This row used to sit inside the meta block below and inherit them
+              from it; moving it into the head took it out of that parent, so
+              the city, date and time silently changed size, colour and leading
+              (owner: "the location, time and day should have stayed the same
+              font and size and format"). Same three values, now stated on the
+              row itself so it renders identically in both layouts. */}
+          <div className="jc-meta flex items-center gap-x-2 flex-nowrap overflow-hidden text-ds-11 text-muted-foreground leading-tight">
           <span className="flex items-center gap-1 min-w-0">
             <MapPin className="w-2.5 h-2.5 shrink-0" />
             <span className="truncate max-w-[150px] font-sans">{cityState}</span>

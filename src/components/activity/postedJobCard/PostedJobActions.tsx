@@ -304,7 +304,19 @@ export function PostedJobActions({
               // on-the-way one (owner: "SOS should be when they are there
               // arrived and working"). Someone still driving over is not a
               // safety situation yet, and an SOS offered then reads as routine.
-              const showSos = !!job.helper_arrived_at;
+              // ...and it ENDS when the job does (owner: "if they're done
+              // remove SOS"). `helper_arrived_at` is a stamp, never cleared, so
+              // on its own it kept a personal-safety escalation on the card
+              // forever — including on a finished job sitting in history, where
+              // the helper left days ago and there is no situation to escalate.
+              // A safety control that outlives the situation is noise, and
+              // noise is what gets ignored when it matters.
+              // `poster_completed_at` is the signal available on this branch —
+              // the status union here is only in_progress | revision_requested,
+              // so comparing against "completed"/"cancelled" is dead code the
+              // compiler correctly rejects. The stamp is what marks it over.
+              const jobIsOver = !!job.poster_completed_at;
+              const showSos = !!job.helper_arrived_at && !jobIsOver;
               const showApprove = !!job.helper_completed_at;
               // Dispute only where the shared predicate already allows it (an
               // open revision on the customer side) — no new dispute surface,

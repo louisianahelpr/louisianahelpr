@@ -12,6 +12,7 @@ import { formatDelay } from "./adminHealth/adminHealthHelpers";
 import { useHealthData } from "./adminHealth/useHealthData";
 import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { useFillRate } from "./adminHealth/useFillRate";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const AdminHealth = () => {
   const qc = useQueryClient();
@@ -221,7 +222,12 @@ const AdminHealth = () => {
         </div>
 
         {parishStats.length === 0 ? (
-          <p className="text-ds-11 text-muted-foreground">No open jobs and no helpers with parish prefs yet.</p>
+          <EmptyState
+            variant="inline"
+            icon={MapPin}
+            title="No parish activity yet"
+            body="Nothing to compare until there are open jobs or helpers with a parish set."
+          />
         ) : (
           <div className="space-y-1.5">
             <div className="grid grid-cols-12 gap-2 text-ds-10 uppercase tracking-wider text-muted-foreground px-2">

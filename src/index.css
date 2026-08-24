@@ -3516,36 +3516,15 @@ html.simple-mode *::after {
 .jc-meta  { grid-area: meta;  min-width: 0; }
 .jc-price { grid-area: price; }
 
-@container jobcard (min-width: 30rem) {
-  .jc-head {
-    /* `max-content` for the title so it takes exactly the width its ONE line
-       needs and no more; the meta then absorbs all the slack, which is what
-       spaces the row out instead of bunching both against the left edge. */
-    grid-template-columns: minmax(0, max-content) minmax(0, 1fr) auto;
-    grid-template-areas: "title meta price";
-    row-gap: 0;
-    column-gap: 1.25rem;
-  }
+/* NO INLINE VARIANT.
+   The meta row was moved up beside the title on wide cards and the owner
+   reverted it: "I don't like it, just move it back below, same for Posts and
+   Jobs." It also truncated badly on the way there — at intermediate widths the
+   city collapsed to "M…" rather than dropping to its own line, which is the
+   behaviour that made the arrangement wrong rather than merely unwanted.
 
-  /* ONE LINE (owner: "keep all in 1 line, space out better").
-     Selector is `.jc-head .jc-title` — two classes — because the h3 carries
-     Tailwind's `line-clamp-2` and `min-w-0`, and a single-class rule loses to
-     them. Overriding the clamp properties directly rather than fighting the
-     utility: line-clamp wins over text-overflow, so it has to be unset before
-     the ellipsis will ever appear.
+   The grid above is kept because it is exactly equivalent to the flex row it
+   replaced (title and price on row 1, meta full-width on row 2) and the markup
+   now depends on it. `container-type` stays for the same reason — it is inert
+   without a @container rule and costs nothing. */
 
-     A title too long for the space now truncates with an ellipsis instead of
-     wrapping — which is the right trade HERE and only here: this layout only
-     exists when the card is wide, so there is real room, and keeping the row
-     to one line is the whole point of the arrangement. The narrow layout
-     below 30rem still clamps to two lines and shows more of the title. */
-  .jc-head .jc-title {
-    -webkit-line-clamp: unset;
-    line-clamp: unset;
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-  }
-}

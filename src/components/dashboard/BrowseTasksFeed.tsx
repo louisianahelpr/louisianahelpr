@@ -512,7 +512,12 @@ export function BrowseTasksFeed({
                  virtualized row so it survives the absolute positioning
                  the virtualizer applies. */
               <div
-                className="px-3 pt-3"
+                /* px-4, matching the toolbar row directly above it. The feed was px-3
+           and the toolbar px-4, so the cards sat 4px further left than the
+           "N jobs nearby" label introducing them — two edges 4px apart is the
+           kind of misalignment that reads as sloppiness without being
+           nameable (owner: "same spacing"). */
+        className="px-4 pt-3"
                 style={{
                   paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))",
                 }}

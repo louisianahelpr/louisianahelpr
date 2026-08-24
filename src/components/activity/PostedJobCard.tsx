@@ -195,7 +195,7 @@ function PostedJobCardInner({
             // to the top of the list.
             className="group relative scroll-mt-3"
           >
-            <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} meta={metaRow} />
+            <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} />
 
             {/* Where this job stands — a full-width band directly under the
                 title divider, not a pill floating in the body padding. Active
@@ -216,7 +216,12 @@ function PostedJobCardInner({
 
             {/* Summary */}
             <div className="px-4 py-3 space-y-2.5">
-              <div className="lg:hidden">{metaRow}</div>
+              {/* Under the title on EVERY width (owner: "move back under
+                title globally"). This was `lg:hidden`, with a second copy
+                lifted into the title bar on desktop — two arrangements of one
+                card, and the desktop one truncated the city to an ellipsis
+                before it would drop. One placement, no truncation. */}
+            <div>{metaRow}</div>
             {/* Description behind a tap.
                 The card used to print the brief in full (a short one cleared
                 the old `length > 100` gate, so no toggle was offered and the

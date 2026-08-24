@@ -165,7 +165,6 @@ function AppliedJobCardInner({
             // one overstates it.
             amount={formatPriceExact(payout)}
             amountTitle={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
-            meta={metaRow}
           />
 
           {/* NO STATUS BAND — the filter tabs say it (owner: "remove"). Same
@@ -210,7 +209,12 @@ function AppliedJobCardInner({
                 ChevronDown now too, copied from PostedJobCard: swapping
                 ChevronUp/ChevronDown with no transition made the identical
                 control animate on one card and snap on the other. */}
-            <div className="lg:hidden">{metaRow}</div>
+            {/* Under the title on EVERY width (owner: "move back under
+                title globally"). This was `lg:hidden`, with a second copy
+                lifted into the title bar on desktop — two arrangements of one
+                card, and the desktop one truncated the city to an ellipsis
+                before it would drop. One placement, no truncation. */}
+            <div>{metaRow}</div>
 
             {/* Description behind a tap — expands IN PLACE on this card (it IS
                 the detail surface for an applied job; there is no separate

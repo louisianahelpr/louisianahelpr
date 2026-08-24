@@ -272,7 +272,7 @@ export const RESOURCES: {
   },
   {
     icon: Briefcase,
-    label: "Browse jobs",
+    label: "Browse Jobs",
     desc: "See what neighbors need help with right now.",
     to: "/jobs",
     accent: "hsl(var(--success-ink))",

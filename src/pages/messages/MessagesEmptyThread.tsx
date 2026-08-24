@@ -31,22 +31,28 @@ export const MessagesEmptyThread = ({
         strokeWidth={1.5}
       />
     </div>
-    <p
-      className="font-display italic font-bold text-ds-18"
-      style={{
-        color: "hsl(var(--ink-deep))",
-        letterSpacing: "-0.015em",
-      }}
-    >
-      {hasConversations ? "Your conversations" : "No messages yet"}
-    </p>
+    {/* With no conversations, the LIST pane's empty card owns the headline and
+        the Browse Jobs CTA — this pane repeating "No messages yet" beside it
+        was two stacks telling the same story in different words (V6). The
+        empty-list branch defers: no duplicate title, one quiet line. */}
+    {hasConversations && (
+      <p
+        className="font-display italic font-bold text-ds-18"
+        style={{
+          color: "hsl(var(--ink-deep))",
+          letterSpacing: "-0.015em",
+        }}
+      >
+        Your conversations
+      </p>
+    )}
     <p
       className="font-serif italic text-ds-14 max-w-[280px]"
       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
     >
       {hasConversations
         ? "Pick a thread on the left to read and reply here."
-        : "Messages start when you apply to a job or someone applies to yours."}
+        : "Conversations appear here once they start."}
     </p>
   </div>
 );

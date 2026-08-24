@@ -334,26 +334,24 @@ const PetProfiles = () => {
                     className="w-10 h-10 mb-3"
                     style={{ color: "hsl(var(--bark) / 0.4)" }}
                   />
-                  <p
-                    className="font-display text-ds-20 leading-tight"
-                    style={{ color: "hsl(var(--ink-deep))" }}
-                  >
-                    {pets?.length ? "Pick a pet from the list" : "Add your first pet"}
-                  </p>
+                  {/* With zero pets, the LIST card owns the headline and the
+                      single Add a Pet CTA — this pane repeating both was two
+                      competing "Add your first pet" stacks on one screen (V6).
+                      The empty branch defers: no duplicate title, no second
+                      CTA, one quiet line. */}
+                  {!!pets?.length && (
+                    <p
+                      className="font-display text-ds-20 leading-tight"
+                      style={{ color: "hsl(var(--ink-deep))" }}
+                    >
+                      Pick a pet from the list
+                    </p>
+                  )}
                   <p className="text-ds-12 text-muted-foreground mt-1.5 max-w-sm">
                     {pets?.length
                       ? "Select a pet on the left to view their care details, or add a new one."
-                      : "Care details help your Helpr know what your pet needs."}
+                      : "Care details appear here once you add a pet."}
                   </p>
-                  {!pets?.length && (
-                    <Button
-                      variant="primary"
-                      className="mt-4"
-                      onClick={openAddDesktop}
-                    >
-                      <Plus className="w-4 h-4 mr-1" /> Add a Pet
-                    </Button>
-                  )}
                 </div>
               )}
 

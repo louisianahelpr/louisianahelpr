@@ -289,7 +289,7 @@ const HelprWrapped = () => {
     }
     if (stats.bestRating !== null && stats.bestRating > 0) {
       statCards.push({
-        value: `${stats.bestRating.toFixed(1)}★`,
+        value: stats.bestRating.toFixed(1),
         label: "best rating",
       });
     }

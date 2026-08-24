@@ -183,7 +183,7 @@ export const TermsContent = () => (
 
     <PolicySection
       icon={Crown}
-      title="Subscription tiers"
+      title="Membership tiers"
       subtitle={BUSINESS_ENABLED ? "Free, Helpr Basic, Helpr Pro, Helpr Elite, and Business plans" : "Free, Helpr Basic, Helpr Pro, and Helpr Elite plans"}
       anchorId="subscription-tiers"
     >

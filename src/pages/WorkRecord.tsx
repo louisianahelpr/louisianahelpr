@@ -407,7 +407,7 @@ const WorkRecord = () => {
                       label="Avg Rating"
                       value={
                         data.avgRating !== null
-                          ? `${data.avgRating.toFixed(1)} ★ (${data.reviewCount})`
+                          ? `${data.avgRating.toFixed(1)} (${data.reviewCount})`
                           : "No reviews yet"
                       }
                     />
@@ -442,7 +442,7 @@ const WorkRecord = () => {
                     No completed helper jobs yet. Once you complete your first job, your work record will fill in automatically.
                   </p>
                   <BarkPillButton onClick={() => navigate("/dashboard")} className="mt-1">
-                    Browse jobs
+                    Browse Jobs
                   </BarkPillButton>
                 </div>
               )}

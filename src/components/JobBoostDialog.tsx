@@ -8,9 +8,7 @@ import { Rocket, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { BOOST_FEE_CENTS, formatFeeUsd } from "@/lib/productPrices";
-
-const BOOST_PRICE = formatFeeUsd(BOOST_FEE_CENTS);
+import { BOOST_DISCOUNT_PCT, boostPriceForTier, formatFeeUsd } from "@/lib/productPrices";
 
 interface JobBoostDialogProps {
   jobId: string;
@@ -22,14 +20,18 @@ interface JobBoostDialogProps {
 export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDialogProps) {
   const [boosting, setBoosting] = useState(false);
   const { profile } = useCurrentUser();
-  // Elite-only perk: Boost is a top-tier subscriber benefit so the
-  // upsell ladder reads Basic → Pro → Elite (each tier unlocks
-  // something specific). Pro / Basic posters see the $3 paywall with
-  // an upgrade nudge; Elite sees "Free boost." instead.
+  // Price comes from the SAME rule the edge function charges by
+  // (`boostPriceForTier`, mirroring create-boost-payment). This dialog used to
+  // gate everything on Elite and quote the full $3 to Basic and Pro posters —
+  // who are charged $2.40 at Checkout. Showing a price that is not the price
+  // is the one thing a payment dialog may never do.
   const subTier = (profile?.subscription_tier ?? "free") as string;
   const subExp = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
   const subActive = subExp ? subExp > new Date() : false;
-  const isSubscriber = subActive && subTier === "elite";
+  const price = boostPriceForTier(subTier, subActive);
+  const isSubscriber = price.free;
+  const BOOST_PRICE = price.free ? "" : formatFeeUsd(price.cents);
+  const isDiscounted = !price.free && price.discounted;
 
   const handleBoost = async () => {
     setBoosting(true);
@@ -76,8 +78,9 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
         />
         <div className="space-y-3">
           {/* Price card — parchment-gold pill recipe (matches Tip + Payout).
-              Subscribers see "Included" instead of $3 since Boosted
-              Visibility is bundled with their plan. */}
+              Elite sees "Included" since Boosted Visibility is bundled with
+              their plan; Basic and Pro see their discounted price; everyone
+              else sees the full fee. */}
           <div
             className="rounded-2xl p-5 text-center"
             style={{
@@ -127,7 +130,10 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                   className="inline-flex items-center gap-1 mt-2 text-ds-12 font-sans font-semibold active:opacity-70 tap-44"
                   style={{ color: "hsl(var(--amber-tint))" }}
                 >
-                  <Sparkles className="w-3 h-3" /> Free with Elite · See plans
+                  <Sparkles className="w-3 h-3" />{" "}
+                  {isDiscounted
+                    ? `${BOOST_DISCOUNT_PCT}% off with your plan · Free with Elite`
+                    : "Free with Elite · See plans"}
                 </Link>
               </>
             )}

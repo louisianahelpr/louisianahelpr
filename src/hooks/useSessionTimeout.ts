@@ -34,6 +34,12 @@ export const useSessionTimeout = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           await signOutWithPushCleanup();
+          // The sign-out itself is silent (its toast channel is suppressed),
+          // so leave a note the login screen can read: being dumped at /login
+          // with no explanation reads as a crash, not a security feature.
+          // sessionStorage survives the hard navigation below and is cleared
+          // by Login on first read.
+          try { sessionStorage.setItem("helpr_signed_out_reason", "inactivity"); } catch { /* storage unavailable — banner just won't show */ }
           window.location.href = "/login";
         }
       }, TIMEOUT_MS);

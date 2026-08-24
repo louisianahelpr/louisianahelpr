@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Briefcase, Clock, MoreVertical, Flag, Ban, UserX, MessageSquare } from "lucide-react";
+import { Briefcase, Clock, Crown, MoreVertical, Flag, Ban, UserX, MessageSquare } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -56,10 +56,15 @@ const UserProfile = () => {
 
   const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
 
-  // Handle Stripe subscription checkout return
+  // Handle Stripe subscription checkout return. The confirmation used to be
+  // a toast on the suppressed channel, so completing (or cancelling) checkout
+  // landed back here in total silence. One-shot inline banner; the param is
+  // stripped so a refresh doesn't repeat it.
+  const [proReturn, setProReturn] = useState<"success" | "cancel" | null>(null);
   useEffect(() => {
     const pro = searchParams.get("pro");
     if (!pro) return;
+    if (pro === "success" || pro === "cancel") setProReturn(pro);
     const next = new URLSearchParams(searchParams);
     next.delete("pro");
     setSearchParams(next, { replace: true });
@@ -183,6 +188,20 @@ const UserProfile = () => {
               page grew vertically too, on every viewport including phone where
               the width cap never binds. */}
           <div className="flex flex-col gap-6 items-stretch">
+            {proReturn && (
+              <div
+                className="flex items-start gap-3 px-4 py-3 rounded-2xl"
+                style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
+                role="status"
+              >
+                <Crown className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+                <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
+                  {proReturn === "success"
+                    ? "Membership upgrade confirmed — your new perks are live."
+                    : "Checkout canceled — no charge was made."}
+                </p>
+              </div>
+            )}
             {/* Mirrors ProfileHeaderCard: below sm one centred stack, at sm+ a
                 fixed identity column beside the record. */}
             <div className="rounded-2xl liquid-glass p-5 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-5">

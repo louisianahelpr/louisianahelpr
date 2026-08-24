@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Clock } from "lucide-react";
 import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { postAuthDestination } from "@/lib/jobIntent";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -84,6 +85,16 @@ const signInWithTimeout = async (email: string, password: string) => {
 const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  // One-shot note from useSessionTimeout: the 30-minute inactivity sign-out
+  // is otherwise silent, and being dumped here with no explanation reads as
+  // a crash. Read-and-clear so a refresh doesn't repeat it.
+  const [signedOutForInactivity] = useState<boolean>(() => {
+    try {
+      const hit = sessionStorage.getItem("helpr_signed_out_reason") === "inactivity";
+      if (hit) sessionStorage.removeItem("helpr_signed_out_reason");
+      return hit;
+    } catch { return false; }
+  });
   // A safe ?redirect= target set by ProtectedRoute when it bounced a
   // logged-out user off a gated route. We use it ONLY to explain the bounce
   // in the header copy. Sign-in always lands on the home dashboard — the
@@ -252,6 +263,18 @@ const Login = () => {
           FROM /forgot-password made Back bounce you straight back into
           password reset. Sign-in is a top-level destination reached from all
           over; it needs one predictable parent. */}
+      {signedOutForInactivity && (
+        <div
+          className="flex items-start gap-3 px-4 py-3 mb-4 rounded-2xl"
+          style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
+          role="status"
+        >
+          <Clock className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+          <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
+            You were signed out after 30 minutes of inactivity. Sign back in to pick up where you left off.
+          </p>
+        </div>
+      )}
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6 lg:space-y-6">
         {/* No heading inside the card. The H emblem and the in-card heading
             are both gone: the emblem used to stack above a heading that sat

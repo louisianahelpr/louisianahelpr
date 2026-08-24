@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { CreditCard, ChevronRight, DollarSign, Banknote } from "lucide-react";
 import { PayoutSetupForm } from "@/components/PayoutSetupForm";
@@ -33,6 +34,22 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
   // a concise "Last payout · Next expected" line so the helper has a
   // direct answer to "when does my next one land?" without bouncing
   // into the Earnings tab.
+  // Returning from Stripe Connect onboarding used to confirm by toast — a
+  // channel that no longer renders — so the round-trip completed in total
+  // silence. One-shot inline banner instead; the param is stripped so a
+  // refresh doesn't repeat it. `refresh` is Stripe's "the link expired or
+  // more info is needed" return, not a failure.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [connectReturn] = useState<"success" | "refresh" | null>(() => {
+    const v = searchParams.get("connect");
+    return v === "success" || v === "refresh" ? v : null;
+  });
+  if (connectReturn && searchParams.get("connect")) {
+    const next = new URLSearchParams(searchParams);
+    next.delete("connect");
+    setSearchParams(next, { replace: true });
+  }
+
   const { data: lastPayout } = useQuery<PayoutSummaryRow | null>({
     queryKey: ["payment", "lastPayout", user?.id],
     queryFn: async () => {
@@ -97,6 +114,20 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
 
   return (
     <div className="space-y-5">
+      {connectReturn && (
+        <div
+          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
+          style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
+          role="status"
+        >
+          <Banknote className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+          <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
+            {connectReturn === "success"
+              ? "Welcome back from Stripe — your payout status below is up to date."
+              : "Stripe needs one more pass — tap Set Up Payouts to finish."}
+          </p>
+        </div>
+      )}
       <section className="space-y-2">
         <div className="rounded-2xl liquid-glass p-5">
           <PayoutSetupForm />

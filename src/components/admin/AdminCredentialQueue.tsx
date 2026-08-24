@@ -110,7 +110,7 @@ const AdminCredentialQueue = () => {
           icon={ShieldCheck}
           eyebrow="All clear"
           title="No pending credentials"
-          body="License and insurance uploads land here as helpers submit them."
+          body="License and insurance uploads land here as Helprs submit them."
         />
       ) : (
         <div className="space-y-3">

@@ -36,7 +36,7 @@ const KNOWN_FEATURE_FLAGS: { id: string; label: string; description: string }[] 
   { id: "referrals_enabled", label: "Referrals", description: "Surface the referral programme in profile + invites." },
   { id: "ai_helpr_assistant", label: "AI Helpr assistant", description: "Show the AI-assisted job-post draft flow." },
   { id: "boosts_enabled", label: "Job boosts", description: "Allow posters to pay to boost their job to the top." },
-  { id: "stripe_idv_required", label: "Stripe IDV required", description: "Force every helper through Stripe Identity before accepting jobs." },
+  { id: "stripe_idv_required", label: "Stripe IDV required", description: "Force every Helpr through Stripe Identity before accepting jobs." },
 ];
 
 const AdminSettings = () => {

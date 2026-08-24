@@ -226,7 +226,7 @@ const AdminHealth = () => {
             variant="inline"
             icon={MapPin}
             title="No parish activity yet"
-            body="Nothing to compare until there are open jobs or helpers with a parish set."
+            body="Nothing to compare until there are open jobs or Helprs with a parish set."
           />
         ) : (
           <div className="space-y-1.5">

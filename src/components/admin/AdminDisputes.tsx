@@ -375,7 +375,7 @@ const AdminDisputes = () => {
             options={[
               { id: "all", label: "Both" },
               { id: "poster", label: "Poster" },
-              { id: "helper", label: "Helper" },
+              { id: "helper", label: "Helpr" },
             ]}
           />
           <FilterChipGroup

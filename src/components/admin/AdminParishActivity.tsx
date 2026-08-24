@@ -64,7 +64,7 @@ const AdminParishActivity = () => {
         <ErrorState
           variant="inline"
           title="We couldn't load parish activity."
-          body="Tap Try again. Job and helper counts are safe — this is just a fetch hiccup."
+          body="Tap Try again. Job and Helpr counts are safe — this is just a fetch hiccup."
           onRetry={() => void load()}
           retryDisabled={loading}
         />

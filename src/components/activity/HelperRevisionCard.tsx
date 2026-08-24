@@ -219,7 +219,7 @@ export function HelperRevisionCard({
           size="sm"
           variant="outline"
           className="flex-1 rounded-ds-md"
-          onClick={() => navigate("/messages")}
+          onClick={() => navigate(posterId ? `/messages?jobId=${jobId}&userId=${posterId}` : "/messages")}
         >
           <MessageSquare className="w-3.5 h-3.5 mr-1" /> Discuss
         </Button>

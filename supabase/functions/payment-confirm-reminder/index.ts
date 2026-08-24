@@ -1,15 +1,15 @@
 // payment-confirm-reminder — Cron-driven edge function that nudges the poster
-// to confirm job completion (or request a revision) 24 hours after the helper
+// to confirm job completion (or request a revision) 12 hours after the helper
 // has marked the job done.
 //
-// Why this exists: once a helper marks a job complete the poster has 48 hours
+// Why this exists: once a helper marks a job complete the poster has 24 hours
 // before auto-release pays out.  Without a reminder, many posters miss the
 // window and can't request a revision even when they wanted to.  This nudge
-// fires at ~24 h after the helper marks complete, giving the poster ~24 h of
+// fires at ~12 h after the helper marks complete, giving the poster ~12 h of
 // runway before auto-release kicks in.
 //
 // Logic:
-//   - Find jobs in escrow where the helper marked complete 24–48 h ago
+//   - Find jobs in escrow where the helper marked complete 12–24 h ago
 //   - Filter to jobs where the poster hasn't confirmed yet (poster_completed_at IS NULL)
 //   - Filter to jobs where we haven't already sent this reminder (payment_confirm_notif_sent IS NULL)
 //   - For each: insert an in-app notification → the fan_out_push_on_notification
@@ -62,9 +62,9 @@ Deno.serve(async (req) => {
   try {
     const now = new Date();
     // 24h ago — helpers who marked complete at least 24 h ago get a reminder.
-    const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+    const cutoffReminderStart = new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString();
     // 48h ago — auto-release window starts here; no point reminding after this.
-    const cutoff48h = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
+    const cutoffAutoRelease = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
     // Jobs where:
     //   - helper has marked complete (helper_completed_at is set)
@@ -81,8 +81,8 @@ Deno.serve(async (req) => {
       .is("payment_confirm_notif_sent", null)
       .is("poster_completed_at", null)
       .not("helper_completed_at", "is", null)
-      .lte("helper_completed_at", cutoff24h)
-      .gt("helper_completed_at", cutoff48h);
+      .lte("helper_completed_at", cutoffReminderStart)
+      .gt("helper_completed_at", cutoffAutoRelease);
 
     if (fetchErr) {
       console.error("[payment-confirm-reminder] failed to fetch jobs", fetchErr);

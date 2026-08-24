@@ -44,7 +44,7 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
     const { data: jobs, error } = await supabaseAdmin
       .from("jobs")
@@ -161,7 +161,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Job auto-completed!",
-          message: `"${job.title}" was auto-completed after 48 hours. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`,
+          message: `"${job.title}" was auto-completed after 24 hours. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`,
           type: "payment", link: "/my-jobs?filter=completed",
         });
       }
@@ -169,7 +169,7 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.customer_id,
           title: "Job auto-completed",
-          message: `"${job.title}" was automatically marked complete after 48 hours. The helpr will be paid in 24 hours.`,
+          message: `"${job.title}" was automatically marked complete after 24 hours. The helpr will be paid in 24 hours.`,
           type: "info", link: "/my-posts?filter=completed",
         });
       }

@@ -16,17 +16,19 @@
 // ("payment auto-releases if you don't act within N hours"). It MUST match the
 // literal used by the cron cutoff, and the "N hours" stated in user copy.
 //
-// Reconciled 2026-07-02: user-facing auto-release copy (Legal, Terms,
-// PaymentSuccess, Help Center, the activity countdowns) now honestly states the
-// 48h action window that the cron actually enforces — matching the cron's own
-// "auto-completed after 48 hours" notifications — and cites 72h only as the
-// separate TOTAL time until funds LAND (48h auto-complete + 24h payout hold).
+// Reconciled 2026-07-02; TIGHTENED 2026-08-24 (owner, during the two-role
+// lifecycle E2E): the poster's confirm-or-dispute window is 24 hours, not 48 —
+// "allow the poster 24 hours to confirm before pay is released". Total time
+// until funds LAND is now 48h (24h auto-complete + 24h payout hold). Every
+// user-facing copy site derives from COPY_AUTO_RELEASE_HOURS, and the vitest
+// parity guards read the cron's own arithmetic, so changing this constant and
+// the cron literal together is the entire change.
 // The 72h that remains correct elsewhere is the formal dispute deadline
 // (`dispute_deadline`) and the post-revision acceptance window
 // (`revision_acceptance_deadline`) — both genuinely 72h and NOT this cutoff.
 
 /** Hours after one-sided completion before the job auto-completes (cron cutoff). */
-export const AUTO_COMPLETE_HOURS = 48;
+export const AUTO_COMPLETE_HOURS = 24;
 
 /** Additional hold (hours) after auto-complete before the payout transfer fires. */
 export const PAYOUT_HOLD_HOURS = 24;

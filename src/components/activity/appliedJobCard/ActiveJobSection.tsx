@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { messageButtonStyle } from "@/components/activity/JobActionRow";
 import { Button } from "@/components/ui/button";
+import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { CheckCircle2, MessageSquare, RefreshCw, Check, ClipboardList } from "lucide-react";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
@@ -77,13 +78,13 @@ export function ActiveJobSection({
               <li><span className="text-foreground font-medium">Approve & complete</span> the job</li>
               <li>Or <span className="text-foreground font-medium">request a revision</span></li>
             </ul>
-            <p className="text-ds-10 text-muted-foreground/70 pt-1">If the poster doesn't respond within 48 hours, payment will automatically be released to you.</p>
+            <p className="text-ds-10 text-muted-foreground/70 pt-1">If the poster doesn't respond within {AUTO_COMPLETE_HOURS} hours, payment will automatically be released to you.</p>
           </div>
           {job.helper_completed_at && (
             <div className="px-3 pb-2.5">
               <DeadlineCountdown
-                deadline={new Date(new Date(job.helper_completed_at).getTime() + 48 * 60 * 60 * 1000).toISOString()}
-                expiredText="48 hours passed — payment auto-releasing to you"
+                deadline={new Date(new Date(job.helper_completed_at).getTime() + hoursToMs(AUTO_COMPLETE_HOURS)).toISOString()}
+                expiredText={`${AUTO_COMPLETE_HOURS} hours passed — payment auto-releasing to you`}
                 consequenceText="Payment will auto-release to you when this timer expires."
                 variant="warning"
               />
@@ -155,11 +156,20 @@ export function ActiveJobSection({
 
       {/* Complete + Message */}
       <div className="space-y-2">
-        {!job.helper_completed_at && job.helper_arrived_at && job.poster_confirmed_working_at && (() => {
+        {/* Renders from ARRIVAL, not from the poster's working confirmation
+            (owner, 2026-08-24): a poster who never confirms working must not
+            be able to block the payout request — they keep the 24h review
+            window instead. The 30-min floor measures from their confirmation
+            when it exists, else from the helper's own arrival stamp. */}
+        {!job.helper_completed_at && job.helper_arrived_at && (() => {
           const beforePhotos = job.proof_before_urls || [];
           const afterPhotos = job.proof_after_urls || [];
           const hasPhotos = beforePhotos.length > 0 && afterPhotos.length > 0;
-          const workingStart = job.poster_confirmed_working_at ? new Date(job.poster_confirmed_working_at) : null;
+          const workingStart = job.poster_confirmed_working_at
+            ? new Date(job.poster_confirmed_working_at)
+            : job.helper_arrived_at
+              ? new Date(job.helper_arrived_at)
+              : null;
           const minWorkMs = 30 * 60 * 1000;
           const tooEarly = workingStart ? (Date.now() - workingStart.getTime()) < minWorkMs : false;
           const minutesLeft = workingStart ? Math.ceil((minWorkMs - (Date.now() - workingStart.getTime())) / 60000) : 0;
@@ -195,7 +205,7 @@ export function ActiveJobSection({
             </>
           );
         })()}
-        <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+        <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
       </div>
     </div>
   );

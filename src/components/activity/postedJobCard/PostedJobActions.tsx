@@ -7,6 +7,7 @@ import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
+import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import {
    DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
   MessageCircle, Pencil, AlertTriangle, Rocket, Clock, Wrench,
@@ -201,7 +202,7 @@ export function PostedJobActions({
               </Button>
             )}
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" style={messageButtonStyle} className="flex-1" onClick={() => navigate("/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+              <Button size="sm" variant="outline" style={messageButtonStyle} className="flex-1" onClick={() => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
               {/* TINTED, not a solid red slab (owner: "cancel should be the
                   lighter red, for the other tabs also"). Solid destructive is
                   the loudest surface the app has and it belongs to a
@@ -258,8 +259,8 @@ export function PostedJobActions({
                 (matches auto-release-payment cron cutoff). */}
             {job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at && (
               <DeadlineCountdown
-                deadline={new Date(new Date(job.helper_completed_at).getTime() + 48 * 60 * 60 * 1000).toISOString()}
-                expiredText="48 hours passed — payment auto-released to Helpr"
+                deadline={new Date(new Date(job.helper_completed_at).getTime() + hoursToMs(AUTO_COMPLETE_HOURS)).toISOString()}
+                expiredText={`${AUTO_COMPLETE_HOURS} hours passed — payment auto-released to Helpr`}
                 // One line (owner). The Approve sheet itself walks through
                 // release vs revision, so the banner only owes the deadline
                 // and its consequence.

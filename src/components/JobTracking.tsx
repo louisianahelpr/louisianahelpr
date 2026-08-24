@@ -506,6 +506,48 @@ export function JobTracking({
 
     // Auto-transition job status
     if (newStatus === "done") {
+      // SAME GATES AS "I'm Done — Request Payout" (owner, 2026-08-24 E2E):
+      // this button used to write helper_completed_at with no checks at all,
+      // so the before/after-photo requirement and the 30-minute work floor on
+      // the payout CTA were decorative — the tracker was a free bypass that
+      // still started the auto-release clock. Fetch the row fresh (this
+      // component isn't handed proof URLs) and enforce both, with the reason
+      // stated. The poster's working-confirmation is deliberately NOT
+      // required (owner): a ghosting poster must not be able to block the
+      // payout request — they keep the 24h review window instead.
+      const { data: gate, error: gateErr } = await supabase
+        .from("jobs")
+        .select("proof_before_urls, proof_after_urls, poster_confirmed_working_at, helper_arrived_at")
+        .eq("id", jobId)
+        .single();
+      if (gateErr) {
+        report(gateErr, { tags: { source: "JobTracking.doneGateFetch" } });
+        hapticError();
+        toast.error("Couldn't check the job's completion requirements — try again?");
+        setUpdating(false);
+        loadTracking();
+        return;
+      }
+      const hasPhotos =
+        (gate?.proof_before_urls?.length ?? 0) > 0 &&
+        (gate?.proof_after_urls?.length ?? 0) > 0;
+      if (!hasPhotos) {
+        hapticError();
+        toast.error("Add before & after photos first — they're the proof that releases your payment.");
+        setUpdating(false);
+        loadTracking();
+        return;
+      }
+      const workStart = gate?.poster_confirmed_working_at ?? gate?.helper_arrived_at;
+      const MIN_WORK_MS = 30 * 60 * 1000;
+      if (workStart && Date.now() - new Date(workStart).getTime() < MIN_WORK_MS) {
+        const minsLeft = Math.ceil((MIN_WORK_MS - (Date.now() - new Date(workStart).getTime())) / 60000);
+        hapticError();
+        toast.error(`Almost — Done unlocks in ${minsLeft} min. Jobs can't be completed in under 30 minutes.`);
+        setUpdating(false);
+        loadTracking();
+        return;
+      }
       // This stamp is what enters the job into the payout pipeline — if it
       // silently fails the helper never gets paid, so surface it and stop.
       const { error: doneErr } = await supabase.from("jobs").update({ helper_completed_at: now }).eq("id", jobId);

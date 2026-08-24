@@ -202,7 +202,11 @@
      exactly as it is for badges, borders and tints; as readable text it
      measures 2.89:1, well under WCAG AA. This darker gold measures 4.98:1 on
      white. Rule: --gold-warm for surfaces, --gold-ink for anything you read. */
-  --gold-ink:     38 55% 36%;
+  --gold-ink:     38 60% 31%;   /* darkened 36%→31% 2026-08-24: at 36% the
+                                    12px/600 uppercase Help-Center category
+                                    label measured 4.1:1 on the hatched card
+                                    (AA 4.5); 31% measures ≥4.8 there while
+                                    staying unmistakably gold. */
 
   /* shadcn-style aliases mapped onto the brand palette. */
   --background:           var(--parchment);

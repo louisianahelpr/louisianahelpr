@@ -96,7 +96,7 @@ const Footer = () => (
         <div className="col-span-2 order-1 min-[500px]:col-span-1 min-[500px]:order-none min-[620px]:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
+            style={{ color: "hsl(var(--accent-ink))" }}
           >
             Company
           </h3>
@@ -168,7 +168,7 @@ const Footer = () => (
         <div className="order-3 min-[500px]:order-none min-[620px]:col-span-2">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
+            style={{ color: "hsl(var(--accent-ink))" }}
           >
             Legal
           </h3>
@@ -196,7 +196,7 @@ const Footer = () => (
         <div className="order-2 min-[500px]:order-none min-[620px]:col-span-3">
           <h3
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
+            style={{ color: "hsl(var(--accent-ink))" }}
           >
             Follow
           </h3>

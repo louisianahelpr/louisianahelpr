@@ -97,7 +97,7 @@ export const SECTION_ACCENTS: Record<string, string> = {
   "Getting Started": "hsl(var(--burnt-sienna))",
   "Posting a Job": "hsl(var(--bark))",
   "Finding Work": "hsl(var(--success-ink))",
-  "Payments & Escrow": "hsl(var(--gold-warm))",
+  "Payments & Escrow": "hsl(var(--gold-ink))",
   "Trust & Safety": "hsl(var(--olivewood))",
   "Account & Settings": "hsl(var(--burnt-sienna))",
 };

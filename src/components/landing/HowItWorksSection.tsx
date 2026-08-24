@@ -198,9 +198,12 @@ const HowItWorksSection = () => {
                   className="h-9 sm:h-10 px-4 sm:px-5 md:px-3 md:text-ds-12 lg:px-4 rounded-ds-md font-sans font-semibold text-ds-13 whitespace-nowrap transition-[background,color,transform] duration-150 active:scale-[0.98]"
                   style={{
                     background: active ? "hsl(var(--bark))" : "transparent",
+                    // Full-strength bark on the unselected tab — the 0.75
+                    // alpha measured 3.19:1 at 12px/600 (AA needs 4.5). The
+                    // active pill still separates by its filled background.
                     color: active
                       ? "hsl(var(--parchment))"
-                      : "hsl(var(--bark) / 0.75)",
+                      : "hsl(var(--bark))",
                     boxShadow: active
                       ? "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)"
                       : "none",

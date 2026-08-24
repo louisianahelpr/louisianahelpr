@@ -78,7 +78,7 @@ const AdminSettings = () => {
       .maybeSingle();
     if (error) {
       console.error("[AdminSettings] loadSettings:", error);
-      toast.error("Couldn't load platform settings — refresh to retry");
+      toast.error("Couldn't load platform settings — refresh to retry.");
     } else if (data) {
       const row = data as typeof data & { min_supported_build?: number | null; feature_flags?: Record<string, boolean> | null };
       setCustomerFee(String(data.customer_fee_percent ?? 10));
@@ -104,11 +104,11 @@ const AdminSettings = () => {
     if (!settingsId) return;
     const n = parseInt(minBuild, 10);
     if (!Number.isFinite(n) || n < 0) {
-      toast.error("Min build must be a non-negative integer");
+      toast.error("Min build must be a non-negative integer.");
       return;
     }
     if (n > 999_999) {
-      toast.error("Min build must be no greater than 999,999");
+      toast.error("Min build must be no greater than 999,999.");
       return;
     }
     setSavingMinBuild(true);
@@ -144,7 +144,7 @@ const AdminSettings = () => {
       // Roll back optimistic change on failure.
       setFeatureFlags(featureFlags);
       if (error.code === "42703") {
-        toast.error("feature_flags column not yet deployed — run `supabase db push`");
+        toast.error("This setting isn't live yet — the latest database update is still deploying. Try again in a few minutes.");
       } else {
         toast.error(error.message);
       }
@@ -185,7 +185,7 @@ const AdminSettings = () => {
 
     if (rolesError) {
       console.error("[AdminSettings] loadAdmins roles:", rolesError);
-      toast.error("Couldn't load admin list — refresh to retry");
+      toast.error("Couldn't load admin list — refresh to retry.");
       setAdminsLoading(false);
       return;
     }
@@ -221,7 +221,7 @@ const AdminSettings = () => {
     const custVal = parseFloat(customerFee);
     const helpVal = parseFloat(helperFee);
     if (isNaN(custVal) || custVal < 0 || custVal > 100 || isNaN(helpVal) || helpVal < 0 || helpVal > 100) {
-      toast.error("Fees must be between 0 and 100");
+      toast.error("Fees must be between 0 and 100.");
       return;
     }
     setSaving(true);
@@ -271,7 +271,7 @@ const AdminSettings = () => {
       .insert({ user_id: profile.user_id, role: "admin" });
 
     if (error) {
-      if (error.code === "23505") toast.error("User is already an admin");
+      if (error.code === "23505") toast.error("User is already an admin.");
       else toast.error(error.message);
     } else {
       toast.success(`${formatName(profile.full_name)} added as admin`);
@@ -286,7 +286,7 @@ const AdminSettings = () => {
     // Get current user to prevent self-removal
     const { data: { user } } = await supabase.auth.getUser();
     if (user?.id === admin.user_id) {
-      toast.error("You can't remove yourself as admin");
+      toast.error("You can't remove yourself as admin.");
       return;
     }
 

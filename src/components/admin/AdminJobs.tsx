@@ -47,7 +47,7 @@ const AdminJobs = () => {
         .order("created_at", { ascending: false });
       if (error) {
         console.error("[AdminJobs] load:", error);
-        toast.error("Couldn't load jobs — refresh to retry");
+        toast.error("Couldn't load jobs — refresh to retry.");
       } else if (data) {
         setJobs(data);
         const flagMap = new Map<string, string[]>();

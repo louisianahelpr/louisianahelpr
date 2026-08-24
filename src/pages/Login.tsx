@@ -123,8 +123,7 @@ const Login = () => {
       const msLeft = attemptState.lockedUntil - Date.now();
       const minutesLeft = Math.ceil(msLeft / 60000);
       hapticError();
-      toast.error(
-        `Too many attempts — try again in ${minutesLeft} min`,
+      toast.error(`Too many attempts — try again in ${minutesLeft} min.`,
       );
       return;
     }
@@ -153,7 +152,7 @@ const Login = () => {
       hapticError();
       if (next.lockedUntil && next.lockedUntil > now) {
         const minutesLeft = Math.ceil((next.lockedUntil - now) / 60000);
-        toast.error(`Too many attempts — try again in ${minutesLeft} min`);
+        toast.error(`Too many attempts — try again in ${minutesLeft} min.`);
       } else {
         toast.error(friendlyAuthError(error.message));
       }

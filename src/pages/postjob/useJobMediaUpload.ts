@@ -50,11 +50,11 @@ export function useJobMediaUpload() {
     const safeFiles = files.filter((file) => allowedImageTypes.has(file.type));
 
     if (safeFiles.length !== files.length) {
-      toast.error("Only JPG, PNG, WEBP, and GIF images are allowed");
+      toast.error("Only JPG, PNG, WEBP, and GIF images are allowed.");
     }
 
     if (imageFiles.length + safeFiles.length > 5) {
-      toast.error("Maximum 5 images allowed");
+      toast.error("Maximum 5 images allowed.");
       return;
     }
     // Compress images before storing. The compressImage pipeline re-

@@ -147,24 +147,24 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) { toast.error("Give your job a title"); scrollToField("title"); return; }
-    if (!description.trim()) { toast.error("Add a description"); scrollToField("description"); return; }
-    if (hasUnfilledPlaceholders(description)) { toast.error("Replace the [bracketed] placeholders with your own details before posting"); scrollToField("description"); return; }
-    if (!category) { toast.error("Pick a category"); scrollToField("category-picker"); return; }
+    if (!title.trim()) { toast.error("Give your job a title."); scrollToField("title"); return; }
+    if (!description.trim()) { toast.error("Add a description."); scrollToField("description"); return; }
+    if (hasUnfilledPlaceholders(description)) { toast.error("Replace the [bracketed] placeholders with your own details before posting."); scrollToField("description"); return; }
+    if (!category) { toast.error("Pick a category."); scrollToField("category-picker"); return; }
     // Photo is optional — a photo dramatically improves applicant count and
     // quote accuracy, so it's strongly nudged in the UI, but tasks like
     // dog-walking or errands have no natural photo and shouldn't be blocked.
-    if (!streetAddress.trim()) { toast.error("Add a street address"); scrollToField("streetAddress"); return; }
-    if (!city.trim()) { toast.error("Add a city"); scrollToField("city"); return; }
-    if (!addrState.trim()) { toast.error("Add a state"); scrollToField("state"); return; }
-    if (!zipCode.trim()) { toast.error("Add a zip code"); scrollToField("zipCode"); return; }
-    if (!dateNeeded) { toast.error("Pick a date for the job"); scrollToField("date"); return; }
+    if (!streetAddress.trim()) { toast.error("Add a street address."); scrollToField("streetAddress"); return; }
+    if (!city.trim()) { toast.error("Add a city."); scrollToField("city"); return; }
+    if (!addrState.trim()) { toast.error("Add a state."); scrollToField("state"); return; }
+    if (!zipCode.trim()) { toast.error("Add a zip code."); scrollToField("zipCode"); return; }
+    if (!dateNeeded) { toast.error("Pick a date for the job."); scrollToField("date"); return; }
     // Validate date is not in the past
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(dateNeeded + "T00:00:00");
-    if (selectedDate < today) { toast.error("Date cannot be in the past"); scrollToField("date"); return; }
-    if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); scrollToField("flexible"); return; }
+    if (selectedDate < today) { toast.error("Date cannot be in the past."); scrollToField("date"); return; }
+    if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)."); scrollToField("flexible"); return; }
     // special_requirements is optional — no validation needed
     // The budget is always required and always bounded now. It used to be
     // skipped entirely in "Accept bids" mode, which is how a bid job reached
@@ -178,7 +178,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // through would create a parent that never spawns a second visit and never
     // says why.
     if (isRecurring && recurrenceDays.length === 0) {
-      toast.error("Pick at least one day this job repeats on");
+      toast.error("Pick at least one day this job repeats on.");
       scrollToField("date");
       return;
     }
@@ -217,7 +217,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      toast.error("Sign in to post a job");
+      toast.error("Sign in to post a job.");
       setSaving(false);
       submittingRef.current = false;
       return null;
@@ -414,7 +414,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
           tags: { source: "useJobSubmit.attachPets" },
           context: { job_id: jobData.id, pet_count: selectedPetIds.length },
         });
-        toast.error("Your job posted, but the pet details didn't attach", {
+        toast.error("Your job posted, but the pet details didn't attach.", {
           description: "Open the job and add them from Edit so your Helpr can see them.",
         });
       }

@@ -146,7 +146,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
   const saveEdit = async (id: string) => {
     const trimmed = editingText.trim();
     if (!trimmed) {
-      toast.error("Note can't be empty");
+      toast.error("Note can't be empty.");
       return;
     }
     const { error } = await supabase.from("admin_user_notes")

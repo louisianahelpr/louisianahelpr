@@ -106,7 +106,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
     // we still require an explicit category pick — if the admin chose
     // "other" we require the freeform note so audit isn't ambiguous.
     if (reasonCategory === "other" && !reasonNote.trim()) {
-      toast.error("Add a freeform note for 'Other' reason");
+      toast.error("Add a freeform note for 'Other' reason.");
       return;
     }
     setBanning(true);

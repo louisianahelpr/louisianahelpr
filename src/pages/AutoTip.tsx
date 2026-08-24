@@ -99,7 +99,7 @@ const AutoTip = () => {
     setSaving(false);
     if (error) {
       report(error, { tags: { source: "AutoTip.save" } });
-      toast.error("Couldn't save your auto-tip", { description: error.message });
+      toast.error("Couldn't save your auto-tip.", { description: error.message });
       return;
     }
     if (!updated || updated.length === 0) {
@@ -107,7 +107,7 @@ const AutoTip = () => {
         tags: { source: "AutoTip.save" },
         context: { user_id: user.id, mode },
       });
-      toast.error("Couldn't save your auto-tip", {
+      toast.error("Couldn't save your auto-tip.", {
         description: "We couldn't reach your profile. Try again in a moment.",
       });
       return;

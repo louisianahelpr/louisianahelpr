@@ -45,7 +45,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
     const files = Array.from(e.target.files || []);
     const validFiles = files.filter((f) => {
       if (f.size > MAX_FILE_SIZE) {
-        toast.error(`"${f.name}" exceeds 5 MB limit`);
+        toast.error(`"${f.name}" exceeds 5 MB limit.`);
         return false;
       }
       return true;
@@ -60,7 +60,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
   const handleSubmit = async () => {
     if (!reason) {
       hapticError();
-      toast.error("Please select a reason");
+      toast.error("Please select a reason.");
       return;
     }
     hapticHeavy();

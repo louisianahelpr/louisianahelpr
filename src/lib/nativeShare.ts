@@ -76,6 +76,6 @@ export async function shareNative(content: ShareContent): Promise<void> {
     } catch {
       /* clipboard also unavailable — fall through to the error toast */
     }
-    toast.error("Couldn't share — try again");
+    toast.error("Couldn't share — try again.");
   }
 }

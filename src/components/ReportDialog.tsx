@@ -79,12 +79,12 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
   const canSubmit = !!reason && trimmedLength >= MIN_LENGTH && !submitting;
 
   const handleSubmit = async () => {
-    if (!reason) { hapticError(); toast.error("Pick a reason first"); return; }
-    if (trimmedLength < MIN_LENGTH) { hapticError(); toast.error(`Add at least ${MIN_LENGTH} characters of detail`); return; }
+    if (!reason) { hapticError(); toast.error("Pick a reason first."); return; }
+    if (trimmedLength < MIN_LENGTH) { hapticError(); toast.error(`Add at least ${MIN_LENGTH} characters of detail.`); return; }
     hapticMedium();
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { toast.error("You must be logged in"); setSubmitting(false); return; }
+    if (!user) { toast.error("You must be logged in."); setSubmitting(false); return; }
 
     const { data, error } = await supabase
       .from("reports")

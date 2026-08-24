@@ -86,7 +86,7 @@ const AdminIDVQueue = () => {
       .maybeSingle();
     if (error) {
       console.error("[AdminIDVQueue] loadSettings:", error);
-      toast.error("Couldn't load IDV settings — refresh to retry");
+      toast.error("Couldn't load IDV settings — refresh to retry.");
       return;
     }
     if (data) {
@@ -102,7 +102,7 @@ const AdminIDVQueue = () => {
     if (!settingsId) return;
     const t = parseFloat(threshold);
     if (isNaN(t) || t < 0 || t > 100) {
-      toast.error("Threshold must be 0–100");
+      toast.error("Threshold must be 0–100.");
       return;
     }
     setSavingSettings(true);

@@ -54,7 +54,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
 
   const generate = async () => {
     if (!prompt.trim()) {
-      toast.error("Describe what you need help with");
+      toast.error("Describe what you need help with.");
       return;
     }
     setLoading(true);

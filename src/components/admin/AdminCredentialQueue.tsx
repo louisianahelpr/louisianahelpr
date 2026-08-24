@@ -254,7 +254,7 @@ function SignedOpenLink({ path }: { path: string }) {
       .createSignedUrl(path, 300);
     setBusy(false);
     if (error || !data) {
-      toast.error("Couldn't generate a view link");
+      toast.error("Couldn't generate a view link.");
       return;
     }
     window.open(data.signedUrl, "_blank", "noopener");

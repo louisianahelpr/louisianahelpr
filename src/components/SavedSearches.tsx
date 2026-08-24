@@ -131,7 +131,7 @@ export function SavedSearches({
     const trimmed = name.trim();
     if (!trimmed) {
       hapticError();
-      toast.error("Name your search to save it");
+      toast.error("Name your search to save it.");
       return;
     }
     if (

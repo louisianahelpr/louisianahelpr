@@ -228,12 +228,12 @@ const Signup = () => {
 
   // Validates the "Account credentials + agreements" content (UI step 1).
   const validateAccountStep = async () => {
-    if (!email.trim()) { toast.error("Add your email address"); return false; }
-    if (password.length < 8) { toast.error("Password needs at least 8 characters"); return false; }
-    if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter to your password"); return false; }
-    if (!/[0-9]/.test(password)) { toast.error("Add at least one number to your password"); return false; }
-    if (!acceptedPolicies) { toast.error("Check the box to agree to the terms and platform rules"); return false; }
-    if (!ageConfirmed) { toast.error("Check the box to confirm you're 18 or older"); return false; }
+    if (!email.trim()) { toast.error("Add your email address."); return false; }
+    if (password.length < 8) { toast.error("Password needs at least 8 characters."); return false; }
+    if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter to your password."); return false; }
+    if (!/[0-9]/.test(password)) { toast.error("Add at least one number to your password."); return false; }
+    if (!acceptedPolicies) { toast.error("Check the box to agree to the terms and platform rules."); return false; }
+    if (!ageConfirmed) { toast.error("Check the box to confirm you're 18 or older."); return false; }
     return true;
   };
 
@@ -289,7 +289,7 @@ const Signup = () => {
     if (elapsed < SIGNUP_COOLDOWN_MS) {
       const secsLeft = Math.ceil((SIGNUP_COOLDOWN_MS - elapsed) / 1000);
       hapticError();
-      toast.error(`Too many attempts — try again in ${secsLeft}s`);
+      toast.error(`Too many attempts — try again in ${secsLeft}s.`);
       setLoading(false);
       return;
     }

@@ -81,7 +81,7 @@ export function CompletionChoiceSheet({
   const handleRevisionSubmit = async () => {
     if (!description.trim()) {
       hapticError();
-      toast.error("Describe what needs fixing so the Helpr knows where to start");
+      toast.error("Describe what needs fixing so the Helpr knows where to start.");
       return;
     }
     hapticMedium();

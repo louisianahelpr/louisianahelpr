@@ -139,7 +139,7 @@ const AdminUsers = () => {
       .order("created_at", { ascending: false });
     if (error) {
       console.error("[AdminUsers] loadProfiles:", error);
-      toast.error("Couldn't load users — refresh to retry");
+      toast.error("Couldn't load users — refresh to retry.");
     } else if (data) {
       setProfiles(data);
       // Load supplemental data in parallel (non-blocking). `profiles` (the

@@ -29,7 +29,7 @@ export function usePortfolio({ profile, onPortfolioChange }: UsePortfolioArgs) {
       .update({ portfolio_urls: next })
       .eq("user_id", userId);
     if (error) {
-      toast.error("Couldn't save your work photos");
+      toast.error("Couldn't save your work photos.");
       return;
     }
     onPortfolioChange?.(next);
@@ -44,16 +44,16 @@ export function usePortfolio({ profile, onPortfolioChange }: UsePortfolioArgs) {
 
     const slotsLeft = MAX_PORTFOLIO - portfolioUrls.length;
     if (slotsLeft <= 0) {
-      toast.error(`Maximum ${MAX_PORTFOLIO} photos`);
+      toast.error(`Maximum ${MAX_PORTFOLIO} photos.`);
       return;
     }
     const usable = files.slice(0, slotsLeft).filter((f) => {
       if (!f.type.startsWith("image/")) {
-        toast.error(`Skipping ${f.name} (not an image)`);
+        toast.error(`Skipping ${f.name} (not an image).`);
         return false;
       }
       if (f.size > 5 * 1024 * 1024) {
-        toast.error(`Skipping ${f.name} (over 5 MB)`);
+        toast.error(`Skipping ${f.name} (over 5 MB).`);
         return false;
       }
       return true;

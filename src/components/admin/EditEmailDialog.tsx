@@ -39,7 +39,7 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
   const submit = async () => {
     if (!profile) return;
     if (email1 !== email2) {
-      toast.error("Emails don't match");
+      toast.error("Emails don't match.");
       return;
     }
     if (!email1.trim()) {

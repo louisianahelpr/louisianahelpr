@@ -116,7 +116,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   }, [jobId, userId]);
 
   const submitReview = async () => {
-    if (rating === 0) { hapticError(); toast.error("Please select a rating"); return; }
+    if (rating === 0) { hapticError(); toast.error("Please select a rating."); return; }
     hapticMedium();
     setSaving(true);
     const { error } = await supabase.from("reviews").insert({

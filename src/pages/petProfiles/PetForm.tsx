@@ -134,7 +134,7 @@ export function PetForm({
 
   const handleSave = async () => {
     if (nameMissing) {
-      toast.error("Pet name is required");
+      toast.error("Pet name is required.");
       hapticError();
       return;
     }
@@ -182,7 +182,7 @@ export function PetForm({
       onClose();
     } catch (err) {
       report(err, { tags: { area: "pet_profiles.save" } });
-      toast.error("Couldn't save pet profile — please try again");
+      toast.error("Couldn't save pet profile — please try again.");
       hapticError();
     } finally {
       setSaving(false);

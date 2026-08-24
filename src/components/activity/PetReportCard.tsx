@@ -79,7 +79,7 @@ export function SendReportCard({
 
   const handleSubmit = async () => {
     if (!petId) {
-      toast.error("Pick which pet this report is for");
+      toast.error("Pick which pet this report is for.");
       hapticError();
       return;
     }
@@ -130,7 +130,7 @@ export function SendReportCard({
       onClose();
     } catch (err) {
       report(err, { tags: { area: "pet_report_cards.insert" } });
-      toast.error("Couldn't send the report card — please try again");
+      toast.error("Couldn't send the report card — please try again.");
       hapticError();
     } finally {
       setSaving(false);

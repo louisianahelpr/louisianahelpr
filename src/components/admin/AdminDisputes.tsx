@@ -69,7 +69,7 @@ const AdminDisputes = () => {
 
     if (openRes.error) {
       report(openRes.error, { tags: { source: "AdminDisputes.loadOpen" } });
-      toast.error("Couldn't load disputes — refresh to retry");
+      toast.error("Couldn't load disputes — refresh to retry.");
       setLoading(false);
       return;
     }
@@ -201,7 +201,7 @@ const AdminDisputes = () => {
   // a webhook for it either). We surface that in the toast.
   const decide = async (job: DisputedJob) => {
     if (!decisionText.trim()) {
-      toast.error("Add a decision note first");
+      toast.error("Add a decision note first.");
       return;
     }
     setSubmittingDecision(true);

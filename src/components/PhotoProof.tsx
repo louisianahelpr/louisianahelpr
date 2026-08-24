@@ -23,7 +23,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
 
   const addFiles = (selected: File[]) => {
     if (selected.length === 0) return;
-    if (files.length + selected.length > 5) { toast.error("Max 5 photos"); return; }
+    if (files.length + selected.length > 5) { toast.error("Max 5 photos."); return; }
     const newFiles = [...files, ...selected].slice(0, 5);
     setFiles(newFiles);
     setPreviews(newFiles.map(f => URL.createObjectURL(f)));
@@ -50,7 +50,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
   };
 
   const upload = async () => {
-    if (files.length === 0) { toast.error("Add at least one photo"); return; }
+    if (files.length === 0) { toast.error("Add at least one photo."); return; }
     setUploading(true);
     const urls: string[] = [...existingUrls];
     for (const file of files) {

@@ -172,7 +172,7 @@ const PaymentSuccess = () => {
       const isCancel =
         err instanceof Error &&
         (err.name === "AbortError" || /cancel|dismiss/i.test(err.message));
-      if (!isCancel) toast.error("Couldn't share — try again");
+      if (!isCancel) toast.error("Couldn't share — try again.");
     } finally {
       setSharing(false);
     }

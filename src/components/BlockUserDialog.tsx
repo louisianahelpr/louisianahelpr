@@ -73,7 +73,7 @@ export function BlockUserDialog({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error("You must be logged in");
+        toast.error("You must be logged in.");
         return;
       }
       const result = await blockUser(user.id, blockedUserId, reason.trim() || undefined);

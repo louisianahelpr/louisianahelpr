@@ -88,7 +88,7 @@ export function ScheduleAvailabilityTab({
         toast.success("You're marked as available for the next 4 hours");
       }
     } catch {
-      toast.error("Couldn't update availability — try again");
+      toast.error("Couldn't update availability — try again.");
     } finally {
       setToggling(false);
     }

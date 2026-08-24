@@ -198,7 +198,7 @@ export function useSavedHelpers({ user, business }: UseSavedHelpersArgs) {
         .eq("customer_id", user.id)
         .eq("helper_id", helperId);
       if (error) {
-        toast.error("Couldn't remove — restored");
+        toast.error("Couldn't remove — restored.");
         setHelpers((prev) =>
           prev.some((h) => h.helper_id === helperId) ? prev : [snapshot, ...prev],
         );

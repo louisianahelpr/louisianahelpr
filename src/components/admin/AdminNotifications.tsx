@@ -99,7 +99,7 @@ const AdminNotifications = () => {
     } else if (error && error.code !== "PGRST116") {
       // PGRST116 = "no rows" — expected when prefs don't exist yet
       console.error("[AdminNotifications] loadPrefs:", error);
-      toast.error("Couldn't load notification preferences — refresh to retry");
+      toast.error("Couldn't load notification preferences — refresh to retry.");
     } else {
       // Create default preferences
       const { data: newPrefs, error: insertError } = await supabase
@@ -109,7 +109,7 @@ const AdminNotifications = () => {
         .single();
       if (insertError) {
         console.error("[AdminNotifications] createPrefs:", insertError);
-        toast.error("Couldn't set up notification preferences — try again");
+        toast.error("Couldn't set up notification preferences — try again.");
       } else if (newPrefs) {
         setPrefs(newPrefs as NotifPrefs);
       }
@@ -132,7 +132,7 @@ const AdminNotifications = () => {
 
     if (error) {
       setPrefs(prev);
-      toast.error("Couldn't update that preference — try again");
+      toast.error("Couldn't update that preference — try again.");
     }
   };
 
@@ -151,7 +151,7 @@ const AdminNotifications = () => {
 
     if (error) {
       setPrefs(prev);
-      toast.error("Couldn't update preferences — try again");
+      toast.error("Couldn't update preferences — try again.");
     } else {
       toast.success(enabled ? "All in-app notifications enabled" : "All in-app notifications disabled");
     }
@@ -172,7 +172,7 @@ const AdminNotifications = () => {
 
     if (error) {
       setPrefs(prev);
-      toast.error("Couldn't update preferences — try again");
+      toast.error("Couldn't update preferences — try again.");
     } else {
       toast.success(enabled ? "All email notifications enabled" : "All email notifications disabled");
     }

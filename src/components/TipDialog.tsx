@@ -22,7 +22,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
 
   const handleSend = async (tipAmount: number) => {
     if (isNaN(tipAmount) || tipAmount <= 0) {
-      toast.error("Enter a valid amount");
+      toast.error("Enter a valid amount.");
       return;
     }
     hapticMedium();

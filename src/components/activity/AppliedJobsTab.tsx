@@ -108,10 +108,10 @@ export const AppliedJobsTab = ({
 
   const confirmWithdraw = useCallback(async () => {
     if (!withdrawTarget) return;
-    if (!withdrawReason) { hapticError(); toast.error("Pick a reason to continue"); return; }
+    if (!withdrawReason) { hapticError(); toast.error("Pick a reason to continue."); return; }
     if (withdrawReason === "other" && withdrawDetail.trim().length < 3) {
       hapticError();
-      toast.error("Add a bit more detail");
+      toast.error("Add a bit more detail.");
       return;
     }
     const { appId, jobTitle, jobId } = withdrawTarget;
@@ -151,7 +151,7 @@ export const AppliedJobsTab = ({
   }, [withdrawTarget, userId, withdrawReason, withdrawDetail]);
 
   const handleAddAttachment = useCallback(async (appId: string, jobId: string, currentUrls: string[], file: File) => {
-    if (file.size > 5 * 1024 * 1024) { toast.error("That file's too large — keep it under 5 MB"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("That file's too large — keep it under 5 MB."); return; }
     setUploadingAttachment(appId);
     const ext = file.name.split('.').pop();
     const path = `${userId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;

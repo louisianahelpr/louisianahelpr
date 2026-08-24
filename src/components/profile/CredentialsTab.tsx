@@ -124,7 +124,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
         .eq("user_id", userId)
         .maybeSingle();
       if (error) {
-        toast.error("Couldn't load credentials");
+        toast.error("Couldn't load credentials.");
         throw error;
       }
       return (row as CredentialFields) ?? EMPTY;
@@ -174,11 +174,11 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   // ── Attach (local only) ────────────────────────────────────────────────
   const validate = (file: File, label: string): boolean => {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error(`${label}: must be JPG, PNG, WEBP, or PDF`);
+      toast.error(`${label}: must be JPG, PNG, WEBP, or PDF.`);
       return false;
     }
     if (file.size > MAX_SIZE) {
-      toast.error(`${label}: must be under 5 MB`);
+      toast.error(`${label}: must be under 5 MB.`);
       return false;
     }
     return true;
@@ -306,7 +306,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       .from("user-documents")
       .createSignedUrl(path, 300);
     if (error || !signed) {
-      toast.error("Couldn't generate a view link");
+      toast.error("Couldn't generate a view link.");
       return;
     }
     window.open(signed.signedUrl, "_blank", "noopener");

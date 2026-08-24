@@ -109,7 +109,7 @@ const AdminBroadcasts = () => {
 
   const create = async () => {
     if (!title.trim() || !message.trim()) {
-      toast.error("Title and message are required");
+      toast.error("Title and message are required.");
       return;
     }
     if (pending) {
@@ -159,7 +159,7 @@ const AdminBroadcasts = () => {
     setDeleting(false);
     if (error) {
       report(error, { tags: { source: "AdminBroadcasts.remove" } });
-      toast.error("Couldn't remove that broadcast — try again");
+      toast.error("Couldn't remove that broadcast — try again.");
       return;
     }
     qc.setQueryData<Broadcast[]>(BROADCASTS_KEY, (prev) =>

@@ -38,15 +38,15 @@ const AdminMarketing = () => {
   // a toast) when the form isn't ready.
   const validate = (asTest: boolean): boolean => {
     if (!subject.trim() || !html.trim()) {
-      toast.error("Subject and body are required");
+      toast.error("Subject and body are required.");
       return false;
     }
     if (asTest && !testEmail.trim()) {
-      toast.error("Enter a test email");
+      toast.error("Enter a test email.");
       return false;
     }
     if (segment === "by_parish" && !parish) {
-      toast.error("Pick a parish");
+      toast.error("Pick a parish.");
       return false;
     }
     return true;

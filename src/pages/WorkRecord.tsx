@@ -225,7 +225,7 @@ const WorkRecord = () => {
     try {
       window.print();
     } catch {
-      toast.error("Couldn't open the print dialog", {
+      toast.error("Couldn't open the print dialog.", {
         description: "Use Share summary to send this record instead.",
       });
     }

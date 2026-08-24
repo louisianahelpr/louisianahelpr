@@ -10,7 +10,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareNative } from "@/lib/nativeShare";
 import { report } from "@/lib/errorLogger";
-import { formatCategory, formatPrice, wrappedSeasonLabel } from "@/lib/format";
+import { formatCategory, formatPrice, formatPriceFloor, wrappedSeasonLabel } from "@/lib/format";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 
@@ -256,7 +256,10 @@ const HelprWrapped = () => {
     }
     if (stats.totalEarned > 0) {
       statCards.push({
-        value: `$${formatPrice(stats.totalEarned)}`,
+        // Take-home (sumHelperTakeHomeDollars) → floor. `totalSpent` below
+        // stays on formatPrice: that is what a poster PAID, not a payout owed
+        // to anyone, so ordinary rounding is right for it.
+        value: `$${formatPriceFloor(stats.totalEarned)}`,
         label: "earned",
         sublabel: stats.approxHours > 0 ? `~${stats.approxHours} hrs` : undefined,
       });

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Target, Flame, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceFloor } from "@/lib/format";
 
 interface MonthlyGoalCardProps {
   /** All completed jobs with their date and net payout */
@@ -225,9 +225,11 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
                   : "hsl(var(--ink-deep))",
               }}
             >
-              ${formatPrice(thisMonthEarnings)}
+              ${formatPriceFloor(thisMonthEarnings)}
             </span>
             <span className="text-ds-12 text-muted-foreground">
+              {/* The GOAL keeps ordinary rounding — it is a target the helpr
+                  typed, not money owed to them. Only the earned figure floors. */}
               of ${formatPrice(goal)} goal
             </span>
           </div>
@@ -250,7 +252,10 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
 
           <p className="text-ds-11 text-muted-foreground">
             {hitGoal
-              ? `Goal reached! $${formatPrice(thisMonthEarnings - goal)} over`
+              /* "over" is surplus TAKE-HOME, so it floors like the headline.
+                 "to go" is the distance left to earn — not a payout — and
+                 keeps ordinary rounding. */
+              ? `Goal reached! $${formatPriceFloor(thisMonthEarnings - goal)} over`
               : `$${formatPrice(goal - thisMonthEarnings)} to go`}
           </p>
         </div>

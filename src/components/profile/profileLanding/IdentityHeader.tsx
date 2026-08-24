@@ -7,7 +7,7 @@ import {
 import { useBusinessSeatTier } from "@/hooks/useBusinessSeatTier";
 import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { avatarGradientFor } from "@/lib/avatarGradient";
-import { formatPrice } from "@/lib/format";
+import { formatPriceFloor } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -481,7 +481,10 @@ export function IdentityHeader({
                 Earnings · Last 6 Weeks
               </p>
               <p className="text-ds-15 font-bold leading-tight mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
-                ${formatPrice(totalEarnings)}
+                {/* Floored, not rounded: this is take-home
+                    (sumHelperTakeHomeDollars from Profile.tsx), and a payout
+                    figure may never read above the payout. */}
+                ${formatPriceFloor(totalEarnings)}
                 <span className="ml-1.5 text-ds-10 font-medium text-muted-foreground">total</span>
               </p>
             </div>

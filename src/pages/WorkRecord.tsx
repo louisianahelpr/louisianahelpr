@@ -23,7 +23,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { shareNative } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { toast } from "sonner";
-import { formatPrice } from "@/lib/format";
+import { formatPriceFloor } from "@/lib/format";
 import HelprMark from "@/components/HelprMark";
 import type { Database } from "@/integrations/supabase/types";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -384,7 +384,11 @@ const WorkRecord = () => {
                     <StatBlock
                       icon={<DollarSign className="w-4 h-4" />}
                       label="Total Earnings"
-                      value={`$${formatPrice(data.totalEarnings)}`}
+                      // Floored. This block is labelled "after platform fee"
+                      // on a document a helpr shows a prospective client as a
+                      // record of what they were paid — the one number here
+                      // that must never read a cent above the transfers.
+                      value={`$${formatPriceFloor(data.totalEarnings)}`}
                       sub="after platform fee"
                     />
                     {/* Date range */}

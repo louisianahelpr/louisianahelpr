@@ -9,7 +9,7 @@ import { differenceInHours } from "date-fns";
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
-import { formatPrice, formatPriceExact } from "@/lib/format";
+import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { getCity } from "@/lib/locationUtils";
 import { haversineMiles } from "@/lib/geo";
@@ -121,11 +121,14 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // default, gross budget only on guest/poster surfaces. Reusing computeNet
   // keeps the screen-reader label from drifting to the gross budget while
   // sighted users see the lower net number.
-  // formatPriceExact on the net branch, matching what the chip now renders —
+  // formatPriceFloor on the net branch, matching what the chip renders —
   // a screen-reader user must hear the same take-home a sighted user reads.
+  // This said formatPriceExact while JobPrice's visible chip floored, so the
+  // two announced different numbers for the same job ("$57.66" heard vs "$57"
+  // seen). The chip is the authority: floor both.
   const priceAria = showBudget
     ? `$${formatPrice(job.budget)}`
-    : `$${formatPriceExact(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount).netEarnings)}`;
+    : `$${formatPriceFloor(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount).netEarnings)}`;
   const catStyle = categoryColors[job.category] || categoryColors.other;
 
   // Freshness signal: a job posted within the last 30 minutes gets a "New"

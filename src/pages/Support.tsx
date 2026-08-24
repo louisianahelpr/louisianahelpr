@@ -179,7 +179,9 @@ const FieldError = ({ id, message }: { id: string; message?: string }) =>
 
 const Support = () => {
   usePageMeta({
-    title: "Contact Support — Helpr | Louisiana's Local Job Partner",
+    // "X — Helpr", like every sibling page — the "| Louisiana's Local Job
+    // Partner" long suffix belongs to the landing page's title alone.
+    title: "Contact Support — Helpr",
     description:
       "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
     canonical: "https://www.louisianahelpr.com/support",
@@ -490,6 +492,7 @@ const Support = () => {
                     onChange={(e) => set("subject", e.target.value)}
                     onBlur={() => markTouched("subject")}
                     aria-invalid={!!showError("subject")}
+                    aria-describedby={showError("subject") ? "support-subject-error" : undefined}
                     className="mt-1.5"
                   />
                   <FieldError id="support-subject-error" message={showError("subject")} />
@@ -529,7 +532,11 @@ const Support = () => {
                   type="submit"
                   variant="primary"
                   className="w-full h-12 rounded-2xl"
-                  disabled={sending || identityPending || !isValid}
+                  // Not gated on !isValid: a tap while fields are missing runs
+                  // handleSubmit's reveal-all branch (setTouched), which names
+                  // every outstanding field — the step-1-signup pattern. A
+                  // disabled button made that branch unreachable dead code.
+                  disabled={sending || identityPending}
                 >
                   {sending ? (
                     <>

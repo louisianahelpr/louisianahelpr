@@ -41,7 +41,11 @@ import { safeStorage } from "@/lib/safeStorage";
  */
 
 const STORAGE_KEY = "helpr_simple_mode";
-export const SIMPLE_MODE_CLASS = "simple-mode";
+// "senior-mode" — the merged class (owner, 2026-08-24). Simple Mode and
+// Senior Mode were two names for one larger-type feature; Senior survived.
+// This module keeps what it alone provides: first-paint application from
+// device storage / OS text size, before React or the profile has loaded.
+export const SIMPLE_MODE_CLASS = "senior-mode";
 
 /** iOS default body size. Dynamic Type scales this: 17 → 19/21/23/28/33/40/53. */
 const IOS_DEFAULT_BODY_PX = 17;

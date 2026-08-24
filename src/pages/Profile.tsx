@@ -8,6 +8,7 @@ import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import AppShell from "@/components/AppShell";
 import { toast } from "sonner";
+import { setSimpleMode } from "@/lib/simpleMode";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import type { User } from "@supabase/supabase-js";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -329,6 +330,10 @@ const ProfilePage = () => {
     // Optimistic update
     setSeniorMode(enabled);
     document.documentElement.classList.toggle("senior-mode", enabled);
+    // Mirror to device storage so the merged boot path (lib/simpleMode)
+    // applies the scale on first paint next launch — before the profile
+    // row has loaded. Same one-mode merge as index.css (2026-08-24).
+    setSimpleMode(enabled);
     // Persist to profile — graceful fallback for PGRST202 if migration
     // hasn't been applied yet (senior_mode column may not exist on prod yet).
     const { error } = await supabase

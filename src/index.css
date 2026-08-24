@@ -3086,16 +3086,17 @@ button,
   }
 }
 
-/* ── Senior mode — larger text + bigger tap targets ─────────────────────────
-   Applied to <html> via document.documentElement.classList.toggle("senior-mode")
-   when the user enables the toggle in Profile > Senior mode.
-   Mirrors the pattern used for html.app-shell (see above). */
-.senior-mode {
-  font-size: 110%;
-}
-.senior-mode .text-ds-12 { font-size: 0.875rem; }
-.senior-mode .text-ds-13 { font-size: 0.9375rem; }
-.senior-mode .text-ds-14 { font-size: 1rem; }
+/* ── Senior Mode — larger text + bigger tap targets ─────────────────────────
+   ONE mode, one class. This used to be two overlapping features: Senior Mode
+   (profile-backed, this block) and Simple Mode (device-local, its own
+   html.senior-mode block further down) — two names for "make text bigger"
+   with two conflicting scales. Merged 2026-08-24 (owner): Senior Mode is the
+   survivor, and the former Simple Mode block below now keys off .senior-mode
+   too — it owns the text rungs (px, granular, !important for emit-order
+   reasons documented there) and the motion damping. This block keeps only
+   what it alone provided: the tap-target floor. The 110% root font-size is
+   gone — the px rung overrides ignore root sizing, so it only double-scaled
+   the rem-based text around them. */
 .senior-mode button, .senior-mode a {
   min-height: 48px;
 }
@@ -3160,11 +3161,12 @@ button,
 }
 
 
-/* ── Simple Mode ─────────────────────────────────────────────────────
+/* ── Senior Mode text scale (formerly "Simple Mode") ──────────────────
    A larger, calmer rendering for users who find the default density hard
-   to read. Toggled from Profile → Accessibility; see src/lib/simpleMode.ts
-   for why this is a class rather than a root font-size (the ds-* scale is
-   defined in PIXELS, which ignore root font-size entirely).
+   to read. Toggled from Profile → Accessibility (Senior Mode); see
+   src/lib/simpleMode.ts for why this is a class rather than a root
+   font-size (the ds-* scale is defined in PIXELS, which ignore root
+   font-size entirely).
 
    Only the SMALL rungs are restated. ds-16 and up are already comfortable,
    and scaling them too would push headings into line-wrapping on a 375px
@@ -3174,18 +3176,18 @@ button,
    have equal specificity once the class is on <html>, so source order alone
    would leave the winner dependent on Tailwind's emit order. This is the one
    place in the stylesheet where that trade is worth it. */
-html.simple-mode .text-ds-9  { font-size: 12px !important; line-height: 1.45 !important; }
-html.simple-mode .text-ds-10 { font-size: 13px !important; line-height: 1.45 !important; }
-html.simple-mode .text-ds-11 { font-size: 14px !important; line-height: 1.5 !important; }
-html.simple-mode .text-ds-12 { font-size: 15px !important; line-height: 1.5 !important; }
-html.simple-mode .text-ds-13 { font-size: 16px !important; line-height: 1.5 !important; }
-html.simple-mode .text-ds-14 { font-size: 17px !important; line-height: 1.5 !important; }
-html.simple-mode .text-ds-15 { font-size: 18px !important; line-height: 1.45 !important; }
+html.senior-mode .text-ds-9  { font-size: 12px !important; line-height: 1.45 !important; }
+html.senior-mode .text-ds-10 { font-size: 13px !important; line-height: 1.45 !important; }
+html.senior-mode .text-ds-11 { font-size: 14px !important; line-height: 1.5 !important; }
+html.senior-mode .text-ds-12 { font-size: 15px !important; line-height: 1.5 !important; }
+html.senior-mode .text-ds-13 { font-size: 16px !important; line-height: 1.5 !important; }
+html.senior-mode .text-ds-14 { font-size: 17px !important; line-height: 1.5 !important; }
+html.senior-mode .text-ds-15 { font-size: 18px !important; line-height: 1.45 !important; }
 
 /* Muted greys are the first thing to fail for ageing eyes — they were chosen
    for hierarchy on a good screen in good light. Simple Mode trades some of
    that hierarchy back for contrast. */
-html.simple-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !important; }
+html.senior-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !important; }
 
 /* ── The OS asks; the app answers ─────────────────────────────────────────
    iOS exposes three accessibility settings this app already had the CSS for
@@ -3196,7 +3198,7 @@ html.simple-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !im
 
    Dynamic Type is NOT here because it has no media query — it is measured in
    simpleMode.ts via `font: -apple-system-body`, the one hook that reports the
-   setting inside a WKWebView, and applies the same `.simple-mode` class. */
+   setting inside a WKWebView, and applies the same `.senior-mode` class. */
 
 /* Settings > Accessibility > Display & Text Size > Increase Contrast.
    Muted greys are the first thing to fail for ageing eyes; they were chosen
@@ -3233,22 +3235,22 @@ html.simple-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !im
    above, for two reasons, both found by measuring rather than reasoning:
 
    1. Specificity. That rule is (0,3,1) because each :not([attr]) contributes
-      an attribute selector's weight. A plain `html.simple-mode button` is
+      an attribute selector's weight. A plain `html.senior-mode button` is
       (0,1,2) and LOSES, so every button stayed at 44px and this block looked
       like it worked while doing nothing.
    2. Correctness. It excludes switches/checkboxes/radios because those have
       designed dimensions — our Switch is h-[31px]. Without the same
       exclusions, Simple Mode stretched the toggle into a 48px-tall pill. */
-html.simple-mode button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]),
-html.simple-mode a[role="button"],
-html.simple-mode [role="tab"] { min-height: 48px; }
+html.senior-mode button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]),
+html.senior-mode a[role="button"],
+html.senior-mode [role="tab"] { min-height: 48px; }
 
 /* Decorative motion is noise when reading is already effortful. This is the
    same treatment prefers-reduced-motion gets, applied by choice rather than
    by OS setting — plenty of people never find that setting. */
-html.simple-mode *,
-html.simple-mode *::before,
-html.simple-mode *::after {
+html.senior-mode *,
+html.senior-mode *::before,
+html.senior-mode *::after {
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;

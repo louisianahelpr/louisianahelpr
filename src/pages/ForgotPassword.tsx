@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { Mail, Loader2, Check } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { AuthBrandPane } from "@/components/auth/AuthBrandPane";
-import HelprMark from "@/components/HelprMark";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
@@ -88,8 +87,13 @@ const ForgotPassword = () => {
     await performSend();
   };
 
+  // maxWidth="sm" + the brand pane, mirroring ResetPassword — the two are one
+  // funnel (request link ↔ set new password) and should share a shell. The
+  // old maxWidth="2xl" was copied from Login, whose page-measure exists for
+  // its TWO-column layout; on this single-column form it stretched the email
+  // field ~1900px edge-to-edge at 1440.
   return (
-    <AuthShell hideHeader backTo="/login" centerColumn maxWidth="2xl" title="Password Reset">
+    <AuthShell hideHeader backTo="/login" centerColumn maxWidth="sm" title="Password Reset" desktopBrandPanel={<AuthBrandPane />}>
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
         {sent ? (
           <div className="text-center space-y-4">
@@ -168,6 +172,7 @@ const ForgotPassword = () => {
                     required
                     autoComplete="email"
                     aria-invalid={showEmailError}
+                    aria-describedby={showEmailError ? "fp-email-error" : undefined}
                     className="pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]"
                   />
                   {emailValid && (
@@ -179,7 +184,7 @@ const ForgotPassword = () => {
                   )}
                 </div>
                 {showEmailError && (
-                  <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  <p id="fp-email-error" role="alert" className="text-ds-11 font-sans" style={{ color: "hsl(var(--burnt-sienna))" }}>
                     Enter a valid email address.
                   </p>
                 )}

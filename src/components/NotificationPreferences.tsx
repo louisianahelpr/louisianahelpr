@@ -281,7 +281,7 @@ const NotificationPreferences = () => {
               className="font-sans font-semibold block truncate text-ds-14"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Daily match digest
+              Daily Match Digest
             </Label>
             <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Batch non-urgent matches into one push per day. Urgent jobs still fire instantly.
@@ -337,7 +337,7 @@ const NotificationPreferences = () => {
                 className="font-sans font-semibold block truncate text-ds-14"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
-                Quiet hours
+                Quiet Hours
               </Label>
               <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Mute non-critical pushes overnight. Security alerts still fire.
@@ -426,7 +426,7 @@ const NotificationPreferences = () => {
               className="font-sans font-semibold block truncate text-ds-14"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Send a test
+              Send a Test
             </Label>
             <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {pushTokenCount === 0

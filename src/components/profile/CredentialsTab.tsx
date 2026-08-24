@@ -81,9 +81,17 @@ const STATE_COLOR: Record<CredState, string> = {
   rejected: "hsl(var(--destructive))",
 };
 
+// Sentence-position nouns ("Your license is attached."). Insurance is
+// "COI" — the card's own body copy introduces the acronym, and the long
+// form truncated the view link at 375 ("View the insurance certificat…").
 const KIND_NOUN: Record<Kind, string> = {
   license: "license",
-  insurance: "insurance certificate",
+  insurance: "COI",
+};
+// Control-position nouns — buttons and links are Title Case.
+const KIND_NOUN_TITLE: Record<Kind, string> = {
+  license: "License",
+  insurance: "COI",
 };
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
@@ -455,7 +463,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                   onClick={() => openDoc(url)}
                   className="flex-1 text-left text-ds-13 text-primary underline truncate"
                 >
-                  View the {noun} You Sent
+                  View the {KIND_NOUN_TITLE[kind]} You Sent
                 </button>
                 <Button
                   variant="ghost"
@@ -625,7 +633,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                     : "Not yet verified"}
             </p>
             <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-              Professional credentials
+              Professional Credentials
             </h2>
             <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Proof of license and insurance earns verified badges on your profile.
@@ -710,7 +718,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
               ? "Sending…"
               : draftKinds.length > 1
                 ? "Send Both for Review"
-                : `Send ${KIND_NOUN[draftKinds[0]]} for review`}
+                : `Send ${KIND_NOUN_TITLE[draftKinds[0]]} for Review`}
           </Button>
         </div>
       )}

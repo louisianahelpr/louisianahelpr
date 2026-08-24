@@ -249,96 +249,10 @@ export function LogisticsSection({
         />
       </div>
 
-      <div className="space-y-3">
-        <Label htmlFor="date">Date needed <span className="text-destructive">*</span></Label>
-        <DatePickerField
-          id="date"
-          value={dateNeeded}
-          onChange={setDateNeeded}
-          min={todayLocalISO()}
-        />
-      </div>
-
-      <div className="space-y-3" role="group" aria-labelledby="start-time-label">
-        <Label id="start-time-label">Start time <span className="text-destructive">*</span></Label>
-        <TimePickerWheel value={startTime} onChange={setStartTime} />
-      </div>
-
-      <label
-        htmlFor="flexible"
-        className="flex items-start gap-3 rounded-2xl border border-border bg-background/40 p-4 cursor-pointer min-h-[44px]"
-      >
-        <Checkbox
-          id="flexible"
-          checked={isFlexibleSchedule}
-          onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
-          className="mt-0.5"
-        />
-        <span className="text-ds-11 text-muted-foreground leading-snug">
-          <span className="font-medium text-foreground">Flexible schedule</span> — Helpr can start earlier or later on the scheduled day
-        </span>
-      </label>
-
-      {/* PETS — only on a pet-care job. See PetPicker for why this exists at
-          all; in short, a pet profile could not previously reach the person
-          holding the leash. It sits directly above the access notes because
-          that is the box posters were retyping the pet's details into. */}
-      {category === "pet_care" && (
-        <PetPicker selectedIds={selectedPetIds ?? []} onToggle={onTogglePet ?? (() => {})} />
-      )}
-
-      <div className="space-y-2.5">
-        <Label htmlFor="requirements">Access &amp; parking notes</Label>
-        <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Gate codes, where to park, which door, pets on site… (optional)" rows={2} maxLength={500} autoCapitalize="sentences" />
-      </div>
-
-      {/* "I'll provide materials" — only shows for the categories where
-          this is a meaningful poster signal (paint, repair, assembly,
-          yard, cleaning). When on, a freeform note appears so the
-          poster can list paint colors, parts numbers, supplies, etc.
-          The note is appended into special_requirements at submit so
-          helprs see it on the job card. */}
-      {materialsToggleRelevant && setIncludeMaterials && (
-        <div
-          className={`rounded-ds-md border p-4 space-y-3 ${
-            includeMaterials ? "border-primary/30 bg-primary/5" : "border-border"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <label htmlFor="include-materials" className="flex items-center gap-2 cursor-pointer">
-              <Wrench className="w-4 h-4 text-primary" />
-              <span className="text-ds-13 font-semibold text-foreground">
-                I'll provide materials
-              </span>
-            </label>
-            <Switch
-              id="include-materials"
-              checked={!!includeMaterials}
-              onCheckedChange={setIncludeMaterials}
-            />
-          </div>
-          {includeMaterials && setMaterialsNote && (
-            <div className="space-y-2">
-              <Label htmlFor="materials-note" className="text-ds-11">
-                Materials I'll provide
-              </Label>
-              <Textarea
-                id="materials-note"
-                value={materialsNote ?? ""}
-                onChange={(e) => setMaterialsNote(e.target.value)}
-                placeholder="e.g. 1 gallon of Sherwin-Williams 'Cotton White', rollers, drop cloth — everything is staged by the door."
-                rows={2}
-                maxLength={500}
-                autoCapitalize="sentences"
-              />
-              <p className="text-ds-11 text-muted-foreground">
-                Listed on the job so applicants know what they don't need to bring.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
+      {/* MOVED ABOVE THE DATE (owner, 2026-08-24): whether a job repeats is
+          the first scheduling fact — it changes what the date below means
+          (single visit vs series start) — and buried seventh in this section
+          the owner themselves couldn't find it. */}
       {/* Job type — One-time / Repeats / Group are mutually exclusive (a series
           books one standing helper across many dates; group splits one date
           across many helpers), so a segmented control makes that obvious up
@@ -430,6 +344,97 @@ export function LogisticsSection({
           </div>
         )}
       </div>
+
+      <div className="space-y-3">
+        <Label htmlFor="date">Date needed <span className="text-destructive">*</span></Label>
+        <DatePickerField
+          id="date"
+          value={dateNeeded}
+          onChange={setDateNeeded}
+          min={todayLocalISO()}
+        />
+      </div>
+
+      <div className="space-y-3" role="group" aria-labelledby="start-time-label">
+        <Label id="start-time-label">Start time <span className="text-destructive">*</span></Label>
+        <TimePickerWheel value={startTime} onChange={setStartTime} />
+      </div>
+
+      <label
+        htmlFor="flexible"
+        className="flex items-start gap-3 rounded-2xl border border-border bg-background/40 p-4 cursor-pointer min-h-[44px]"
+      >
+        <Checkbox
+          id="flexible"
+          checked={isFlexibleSchedule}
+          onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
+          className="mt-0.5"
+        />
+        <span className="text-ds-11 text-muted-foreground leading-snug">
+          <span className="font-medium text-foreground">Flexible schedule</span> — Helpr can start earlier or later on the scheduled day
+        </span>
+      </label>
+
+      {/* PETS — only on a pet-care job. See PetPicker for why this exists at
+          all; in short, a pet profile could not previously reach the person
+          holding the leash. It sits directly above the access notes because
+          that is the box posters were retyping the pet's details into. */}
+      {category === "pet_care" && (
+        <PetPicker selectedIds={selectedPetIds ?? []} onToggle={onTogglePet ?? (() => {})} />
+      )}
+
+      <div className="space-y-2.5">
+        <Label htmlFor="requirements">Access &amp; parking notes</Label>
+        <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Gate codes, where to park, which door, pets on site… (optional)" rows={2} maxLength={500} autoCapitalize="sentences" />
+      </div>
+
+      {/* "I'll provide materials" — only shows for the categories where
+          this is a meaningful poster signal (paint, repair, assembly,
+          yard, cleaning). When on, a freeform note appears so the
+          poster can list paint colors, parts numbers, supplies, etc.
+          The note is appended into special_requirements at submit so
+          helprs see it on the job card. */}
+      {materialsToggleRelevant && setIncludeMaterials && (
+        <div
+          className={`rounded-ds-md border p-4 space-y-3 ${
+            includeMaterials ? "border-primary/30 bg-primary/5" : "border-border"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <label htmlFor="include-materials" className="flex items-center gap-2 cursor-pointer">
+              <Wrench className="w-4 h-4 text-primary" />
+              <span className="text-ds-13 font-semibold text-foreground">
+                I'll provide materials
+              </span>
+            </label>
+            <Switch
+              id="include-materials"
+              checked={!!includeMaterials}
+              onCheckedChange={setIncludeMaterials}
+            />
+          </div>
+          {includeMaterials && setMaterialsNote && (
+            <div className="space-y-2">
+              <Label htmlFor="materials-note" className="text-ds-11">
+                Materials I'll provide
+              </Label>
+              <Textarea
+                id="materials-note"
+                value={materialsNote ?? ""}
+                onChange={(e) => setMaterialsNote(e.target.value)}
+                placeholder="e.g. 1 gallon of Sherwin-Williams 'Cotton White', rollers, drop cloth — everything is staged by the door."
+                rows={2}
+                maxLength={500}
+                autoCapitalize="sentences"
+              />
+              <p className="text-ds-11 text-muted-foreground">
+                Listed on the job so applicants know what they don't need to bring.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
     </SectionCard>
   );
 }

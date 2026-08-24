@@ -1,5 +1,5 @@
 import {
-  Shield, Bell, Users, PawPrint, ClipboardList,
+  Shield, ShieldAlert, Bell, Users, PawPrint, ClipboardList,
   CalendarDays, Heart, ShieldCheck, Home, Star, Gift, Coins, UserPlus,
   TrendingUp, Crown, FileText, Gavel, HelpCircle,
   AlertTriangle, Type, Clock,
@@ -65,6 +65,7 @@ export function useProfileLandingDerived({
   onSelectTab,
   onNavigate,
 }: UseProfileLandingDerivedArgs) {
+  const { isAdmin } = useCurrentUser();
   // The admin-panel shortcut used to be a Shield icon button in the Dashboard
   // app bar. Home no longer has an app bar, and /admin is an account-level
 
@@ -181,11 +182,13 @@ export function useProfileLandingDerived({
   // → Work; credits/referrals/earnings docs → Money; warnings/support →
   // Legal).
   const menuGroups: { title: string; items: MenuItem[] }[] = [
-    // NO ADMIN ROW HERE — it lives in the desktop side panel now (owner: "for
-    // webpage, take admin panel out of profile and move to side panel").
-    // Admin is a top-level destination, not an account setting: it sits beside
-    // Home / Posts / Jobs / Messages / Profile rather than three taps inside
-    // one of them. See DesktopSidebarNav.
+    // The ADMIN row is BACK (owner, 2026-08-24) — but only for admin
+    // accounts, in the Legal/consequences group at the bottom. It left in
+    // an earlier pass ("move to side panel"), which was right for the
+    // desktop website but silently made /admin unreachable from the
+    // phone/app surface, where there is no side panel. The row and the
+    // sidebar can coexist: one is the desktop shortcut, this is the way in
+    // everywhere else. SECTION_TINT.danger was even kept around for it.
     {
       title: "Account",
       items: [
@@ -348,6 +351,18 @@ export function useProfileLandingDerived({
         { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy, guidelines & data export", tint: SECTION_TINT.legal },
         { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: SECTION_TINT.danger },
         { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: SECTION_TINT.legal },
+        ...(isAdmin
+          ? [
+              {
+                key: "admin",
+                label: "Admin",
+                icon: <ShieldAlert className="w-5 h-5" />,
+                desc: "Moderation, payouts & platform health",
+                tint: SECTION_TINT.danger,
+                href: "/admin",
+              },
+            ]
+          : []),
       ],
     },
   ];

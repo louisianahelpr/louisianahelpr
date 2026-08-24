@@ -10,23 +10,61 @@
 import { toneTextClasses } from "@/components/admin/tones";
 import { formatPrice } from "@/lib/format";
 
+/**
+ * A labelled number on a card — the SAME treatment KpiCard gives one.
+ *
+ * These were two tiles doing one job, and they did not look alike: KpiCard is
+ * `liquid-glass p-3 sm:p-4` with the icon in a tinted square badge and the
+ * value above its label; this was `border bg-card p-5` with a bare icon and
+ * the label above a `text-ds-24` value. So the same figure rendered two
+ * different ways on two admin screens a click apart — which is exactly how
+ * "Payments Collected" managed to look like two different facts on Dashboard
+ * Home and Analytics.
+ *
+ * Aligned to KpiCard rather than the reverse: `liquid-glass` is the app's
+ * surface everywhere else, while `border bg-card` was local to this file, and
+ * tabular-nums matters on a column of figures.
+ *
+ * The PROPS are unchanged, deliberately — `sub` and `warning` have no KpiCard
+ * equivalent and all sixteen call sites keep working untouched. Only what the
+ * user sees moves.
+ */
 export const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onClick }: {
   label: string; value: string | number; sub: string; icon: any; accent?: boolean; warning?: boolean; onClick?: () => void;
 }) => (
   <button
     onClick={onClick}
     disabled={!onClick}
-    className={`rounded-ds-md border bg-card p-5 text-left transition-all group ${
-      onClick ? "hover:bg-secondary/30 hover:border-primary/30 cursor-pointer" : ""
-    } ${warning ? "border-warning/30" : "border-border"}`}
+    className={`rounded-ds-md liquid-glass p-3 sm:p-4 text-left transition-all group w-full ${
+      onClick ? "hover:border-primary/30 hover:shadow-md cursor-pointer" : ""
+    }`}
   >
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-ds-11 text-muted-foreground">{label}</span>
-      <Icon className={`w-5 h-5 ${accent ? "text-primary" : warning ? toneTextClasses.warning : "text-primary"} group-hover:scale-110 transition-transform`} />
+    <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+      {/* Icon in a tinted square, KpiCard's shape. `warning` keeps its own
+          tone — a figure that needs attention should still say so. */}
+      <div
+        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-ds-sm flex items-center justify-center ${
+          warning ? "bg-warning/10" : accent ? "bg-accent/15" : "bg-primary/10"
+        }`}
+      >
+        <Icon
+          className={`w-4 h-4 sm:w-[1.125rem] sm:h-[1.125rem] ${
+            warning ? toneTextClasses.warning : accent ? "text-accent" : "text-primary"
+          }`}
+          strokeWidth={2.25}
+        />
+      </div>
     </div>
-    <p className={`text-ds-24 font-bold ${accent ? "text-primary" : "text-foreground"}`}>{value}</p>
-    <p className="text-ds-11 text-muted-foreground mt-1">{sub}</p>
-    {onClick && <p className="text-ds-10 text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to View Details →</p>}
+    {/* Value ABOVE label, KpiCard's order: the number is what you scan for,
+        the label is what tells you which number it was. */}
+    <p className="text-ds-17 sm:text-ds-20 font-bold text-foreground tabular-nums leading-tight">{value}</p>
+    <p className="text-ds-11 text-muted-foreground mt-0.5 leading-tight">{label}</p>
+    {sub && <p className="text-ds-10 text-muted-foreground mt-0.5 leading-tight">{sub}</p>}
+    {onClick && (
+      <p className="text-ds-10 text-primary mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        Click to View Details →
+      </p>
+    )}
   </button>
 );
 

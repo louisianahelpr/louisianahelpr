@@ -1,7 +1,12 @@
 import BackButton from "@/components/BackButton";
 
+// gap-3, matching PageHeader and ProfileTabHeader — the project standard names
+// `flex items-center gap-3` (or items-start for a tall title stack) as THE
+// back+title row. This was the only one of the three at gap-2, so the chevron
+// sat 4px closer to its title in admin than it does everywhere else.
+// `items-start` stays: this header's title stack carries an eyebrow.
 const AdminSectionHeader = ({ title, onBack }: { title: string; onBack: () => void }) => (
-  <div className="mb-5 sm:mb-6 flex items-start gap-2">
+  <div className="mb-5 sm:mb-6 flex items-start gap-3">
     <BackButton onClick={onBack} />
     <div className="flex flex-col leading-none min-w-0">
       <h1

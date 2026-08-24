@@ -29,7 +29,7 @@ export const JOB_CATEGORY_LABELS: Record<JobCategory, string> = {
   pet_care: "Pet Care",
   assembly: "Assembly",
   painting: "Painting",
-  storm_prep: "Storm prep",
+  storm_prep: "Storm Prep",
   events: "Events",
   other: "Other",
 };

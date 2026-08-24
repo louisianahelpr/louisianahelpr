@@ -2,7 +2,7 @@
 // renders a category label or a category list must resolve the same label
 // for the same value, in the same order — this file is the tripwire that
 // stops the four copies from drifting apart again (they had: different
-// order, "Storm prep" vs "Storm", and a filter-only "Events").
+// order, "Storm Prep" vs "Storm", and a filter-only "Events").
 import { describe, it, expect } from "vitest";
 import { Constants } from "@/integrations/supabase/types";
 import {
@@ -50,7 +50,7 @@ describe("job categories — single source of truth", () => {
 
   it("storm_prep resolves to ONE string everywhere", () => {
     const seen = new Set(Object.values(LABEL_CONSUMERS).map((t) => t.storm_prep));
-    expect([...seen]).toEqual(["Storm prep"]);
+    expect([...seen]).toEqual(["Storm Prep"]);
   });
 
   it("post-a-job offers exactly the categories the browse filter offers", () => {
@@ -70,7 +70,7 @@ describe("job categories — single source of truth", () => {
   });
 
   it("jobCategoryLabel falls back to the raw value for unknown input", () => {
-    expect(jobCategoryLabel("storm_prep")).toBe("Storm prep");
+    expect(jobCategoryLabel("storm_prep")).toBe("Storm Prep");
     expect(jobCategoryLabel("not_a_category")).toBe("not_a_category");
   });
 });

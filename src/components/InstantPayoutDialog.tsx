@@ -43,7 +43,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
         // recover the edge function's real message (e.g. the below-$25 floor
         // notice) from the response body. See functionErrorMessage.
         setError(
-          data?.error || (error ? await functionErrorMessage(error, "Could not load quote") : "Could not load quote")
+          data?.error || (error ? await functionErrorMessage(error, "Couldn't load quote") : "Couldn't load quote")
         );
         return;
       }

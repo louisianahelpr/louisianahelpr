@@ -179,7 +179,7 @@ const AdminNotifications = () => {
   };
 
   if (loading) return <p className="text-muted-foreground">Loading notification preferences…</p>;
-  if (!prefs) return <p className="text-destructive">Could not load notification preferences.</p>;
+  if (!prefs) return <p className="text-destructive">We couldn't load notification preferences.</p>;
 
   const allPushOn = NOTIFICATION_GROUPS.every(g => prefs[g.pushKey]);
   const allEmailOn = NOTIFICATION_GROUPS.every(g => prefs[g.emailKey]);

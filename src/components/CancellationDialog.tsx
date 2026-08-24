@@ -69,7 +69,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
     try {
       // Fetch authoritative job data to calculate fee server-side
       const { data: jobData, error: fetchError } = await supabase.from("jobs").select("date_needed, budget, helper_id, helper_fee_percent").eq("id", jobId).single();
-      if (fetchError || !jobData) throw new Error("Could not verify job details");
+      if (fetchError || !jobData) throw new Error("Couldn't verify job details");
 
       // SAME two functions the quote above uses, and the same ones
       // void-cancelled-payments charges from. This block used to re-inline

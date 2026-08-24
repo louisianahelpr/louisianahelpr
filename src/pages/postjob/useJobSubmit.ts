@@ -513,7 +513,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         safeStorage.removeItem(COOLDOWN_KEY);
         const errorMsg = paymentData?.error || paymentError?.message || "Payment setup failed";
         hapticError();
-        toast.error(`Could not start payment: ${errorMsg}. Please try again.`);
+        toast.error(`Couldn't start payment: ${errorMsg}. Please try again.`);
         setRedirecting(false);
         setStep("checkout");
         // Reset consent — payment failed, so the user must re-confirm

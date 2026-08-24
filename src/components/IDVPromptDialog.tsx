@@ -62,14 +62,14 @@ export function IDVPromptDialog({
       // the useless "Edge Function returned a non-2xx status code" — which is
       // literally all the user saw for as long as this flow was broken. The
       // real reason is in the JSON body; `functionErrorMessage` reads it.
-      if (error) throw new Error(await functionErrorMessage(error, "Could not start verification"));
+      if (error) throw new Error(await functionErrorMessage(error, "Couldn't start verification"));
       if (data?.alreadyVerified) {
         toast.success("You're already verified.");
         onOpenChange(false);
         onLaunched?.();
         return;
       }
-      if (!data?.url) throw new Error("Could not start verification");
+      if (!data?.url) throw new Error("Couldn't start verification");
       // Per the one-attempt policy above, this dialog's Start button only
       // renders for first-time verification — there is no self-service
       // retry path. Navigate in-place (matches every other Stripe flow) so
@@ -78,7 +78,7 @@ export function IDVPromptDialog({
       onLaunched?.();
       window.location.href = data.url;
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Could not start verification";
+      const msg = e instanceof Error ? e.message : "Couldn't start verification";
       toast.error(msg);
     } finally {
       setLoading(false);

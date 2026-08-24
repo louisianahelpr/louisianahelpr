@@ -110,7 +110,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       return;
     }
     if (!currentAdminId) {
-      toast.error("Could not identify admin user.");
+      toast.error("Couldn't identify admin user.");
       return;
     }
     setSaving(true);

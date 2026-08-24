@@ -431,14 +431,13 @@ test.describe("My Posts — card density + header", () => {
 
     // The status sentence is gone from the card; the name now rides the row.
     await expect(page.getByText(/is on the way|finished the job|Offered to/i)).toHaveCount(0);
-    // ...and it is re-stated as a caption on the step the job is ON — exactly
-    // one step carries a second line. Asserted structurally rather than by
-    // name: what the helpr resolves to here is the card's own display
-    // fallback, so matching a literal would test the fixture, not the feature.
+    // After the Activity rewrite (commit b82aaf22) the helpr's name moved from
+    // the individual step caption onto the tracker heading — so no individual
+    // step carries a second <span> line any more. Assert 0 to pin that layout.
     const captioned = await row.evaluate((el) =>
       Array.from(el.children).filter((c) => c.querySelectorAll("span").length > 1).length,
     );
-    expect(captioned, "exactly one step carries the helpr caption").toBe(1);
+    expect(captioned, "no step carries a helpr caption (name lives in heading now)").toBe(0);
 
     await page.screenshot({ path: `${SHOTS}/tracker-one-line-375.png` });
   });

@@ -169,7 +169,10 @@ async function wheel(page: Page, dy: number, steps: number) {
   await page.waitForTimeout(500);
 }
 
-const ROUTES = ["/dashboard", "/messages", "/my-jobs", "/my-posts"] as const;
+// Seeded jobs are open with no applicants → bucket "waiting". The default
+// Activity tab is "needs_you", so /my-jobs and /my-posts land on an empty
+// list without the filter param — nothing to scroll, nothing to hide for.
+const ROUTES = ["/dashboard", "/messages", "/my-jobs?filter=waiting", "/my-posts?filter=waiting"] as const;
 
 for (const route of ROUTES) {
   test(`dock hides on scroll-down and returns on scroll-up @ ${route}`, async ({

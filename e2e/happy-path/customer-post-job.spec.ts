@@ -145,7 +145,10 @@ test.describe("customer post-job happy path", () => {
       ],
     });
 
-    await page.goto("/my-posts");
+    // Open job with no applicants → postedActivityBucket returns "waiting".
+    // The default tab is "needs_you", so navigate directly to the bucket
+    // that holds this job or the title will be on an unrendered tab.
+    await page.goto("/my-posts?filter=waiting");
 
     // Heading must render — ActivityHeader uses "My Posts" as the title.
     await expect(

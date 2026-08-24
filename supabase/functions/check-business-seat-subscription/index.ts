@@ -71,7 +71,11 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // Every customer for this email, not just the first (R7) — the same
+    // arbitrary-record bug the personal poll had: a seat subscription living
+    // on any other customer record for this address read as "no seat plan"
+    // and downgraded the business to starter.
+    const customers = await stripe.customers.list({ email: user.email, limit: 100 });
 
     let activeTier: "starter" | "crew" | "team" | "enterprise" = "starter";
     let subscriptionId: string | null = null;
@@ -79,12 +83,15 @@ serve(async (req) => {
     let periodEnd: string | null = null;
 
     if (customers.data.length > 0) {
-      const customerId = customers.data[0].id;
-      const subscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        status: "active",
-        limit: 20,
-      });
+      const subscriptions = { data: [] as Stripe.Subscription[] };
+      for (const customer of customers.data) {
+        const subsForCustomer = await stripe.subscriptions.list({
+          customer: customer.id,
+          status: "active",
+          limit: 20,
+        });
+        subscriptions.data.push(...subsForCustomer.data);
+      }
 
       // Pick the highest-tier seat sub if multiple (shouldn't happen, but safe)
       const tierRank: Record<string, number> = { starter: 0, crew: 1, team: 2, enterprise: 3 };

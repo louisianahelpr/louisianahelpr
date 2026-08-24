@@ -68,16 +68,25 @@ serve(async (req) => {
       );
     }
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // EVERY customer for this email, not just the first (R7). A person can
+    // easily hold more than one Stripe customer record on one address — one
+    // minted by Checkout, another by a Connect or test flow — and `limit: 1`
+    // returned an arbitrary one. If the subscription lived on any other
+    // record, this function concluded "no subscription" and fell through to
+    // the revoke below, downgrading a paying subscriber on a dashboard load.
+    const customers = await stripe.customers.list({ email: user.email, limit: 100 });
 
-    // Check for active Stripe subscription first
+    // Check for an active Stripe subscription on ANY of them.
     if (customers.data.length > 0) {
-      const customerId = customers.data[0].id;
-      const subscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        status: "active",
-        limit: 10,
-      });
+      const subscriptions = { data: [] as Stripe.Subscription[] };
+      for (const customer of customers.data) {
+        const subsForCustomer = await stripe.subscriptions.list({
+          customer: customer.id,
+          status: "active",
+          limit: 10,
+        });
+        subscriptions.data.push(...subsForCustomer.data);
+      }
 
       for (const sub of subscriptions.data) {
         const productId = sub.items.data[0]?.price.product as string;
@@ -169,11 +178,59 @@ serve(async (req) => {
       }
     }
 
-    // No valid subscription or pass — clear tier
-    await supabaseAdmin.from("profiles").update({
+    // No valid personal subscription or pass.
+    //
+    // REVOKING IS THE DANGEROUS BRANCH (R7), so it is now guarded twice.
+    //
+    // (a) profiles.subscription_tier is SHARED with business seat grants
+    //     (see stripe-webhook/handlers/businessSeatGrant.ts, which flags the
+    //     collision in-code). A seat-holding owner who has no PERSONAL
+    //     subscription used to have their seat tier wiped by simply opening
+    //     the dashboard — this poll would find no personal sub and clear the
+    //     column out from under the other feature. Never clear a tier this
+    //     function did not grant.
+    // (b) the write's error was dropped, so a failed revoke looked identical
+    //     to a successful one.
+    const { data: ownedBusiness, error: ownedBusinessError } = await supabaseAdmin
+      .from("businesses")
+      .select("id, seat_tier")
+      .eq("owner_id", user.id)
+      .maybeSingle();
+
+    if (ownedBusinessError) {
+      // Fail CLOSED: if we cannot prove the tier is ours to clear, leave it.
+      console.error(
+        "[check-pro-subscription] business lookup failed; leaving tier untouched:",
+        ownedBusinessError.message,
+      );
+      return new Response(
+        JSON.stringify({ subscribed: false, tier: profile.subscription_tier ?? null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      );
+    }
+
+    if (ownedBusiness?.seat_tier) {
+      // The tier on this profile belongs to the seat plan, not to us.
+      return new Response(
+        JSON.stringify({ subscribed: false, tier: profile.subscription_tier ?? null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      );
+    }
+
+    const { error: clearError } = await supabaseAdmin.from("profiles").update({
       subscription_tier: null,
       subscription_expires_at: null,
     }).eq("user_id", user.id);
+
+    if (clearError) {
+      // Never drop the error (CLAUDE.md). A failed revoke that reports success
+      // makes the next read disagree with what this response just claimed.
+      console.error("[check-pro-subscription] tier clear failed:", clearError.message);
+      return new Response(
+        JSON.stringify({ subscribed: false, tier: profile.subscription_tier ?? null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      );
+    }
 
     return new Response(JSON.stringify({ subscribed: false, tier: null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

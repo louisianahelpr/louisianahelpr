@@ -77,7 +77,7 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
             Their IDV status will be set to <strong className="text-foreground">action needed</strong>.
           </p>
           <div className="space-y-2">
-            <p className="text-ds-11 font-medium text-[hsl(var(--bark))] uppercase tracking-wide">Note (optional)</p>
+            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Note (optional)</p>
             <Textarea
               aria-label="Note to user (optional)"
               value={note}

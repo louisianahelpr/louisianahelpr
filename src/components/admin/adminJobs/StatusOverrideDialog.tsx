@@ -50,7 +50,7 @@ export const StatusOverrideDialog = ({
             {detailJob && <> Current: <strong className="text-foreground">{jobStatusLabel(detailJob.status)}</strong>.</>}
           </p>
           <div className="space-y-1.5">
-            <p className="text-ds-11 font-semibold uppercase tracking-wide text-[hsl(var(--bark))]">Set status to</p>
+            <p className="text-ds-11 font-semibold uppercase tracking-wide text-muted-foreground">Set status to</p>
             <div className="grid grid-cols-3 gap-2">
               {([
                 { id: "open", label: "Re-open", tone: "border-primary/40 bg-primary/10 text-primary" },

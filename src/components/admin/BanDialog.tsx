@@ -239,7 +239,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         />
         <div className="space-y-5">
           <div className="space-y-2">
-            <p className="text-ds-11 font-medium text-[hsl(var(--bark))] uppercase tracking-wide">Action type</p>
+            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Action type</p>
             <div role="radiogroup" aria-label="Action type" className="grid grid-cols-3 gap-2">
               {(
                 [
@@ -274,7 +274,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
               admin_audit_log as reason_category + reason_note so future
               reports can filter by category. */}
           <div className="space-y-2">
-            <p className="text-ds-11 font-medium text-[hsl(var(--bark))] uppercase tracking-wide">Reason</p>
+            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Reason</p>
             <Select value={reasonCategory} onValueChange={setReasonCategory}>
               <SelectTrigger aria-label="Reason">
                 <SelectValue />
@@ -301,7 +301,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
               permanent-ban branch in submit() handles it. */}
           {banType !== "warning" && (
             <div className="space-y-2">
-              <p className="text-ds-11 font-medium text-[hsl(var(--bark))] uppercase tracking-wide">Duration</p>
+              <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Duration</p>
               <div role="radiogroup" aria-label="Ban duration" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {DURATION_OPTIONS.map((opt) => {
                   const active = activeDurationId === opt.id;

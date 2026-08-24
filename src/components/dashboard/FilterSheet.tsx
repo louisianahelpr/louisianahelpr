@@ -90,16 +90,11 @@ function Section({ title, trailing, children }: { title: string; trailing?: Reac
   return (
     <div className="pt-3.5 first:pt-0 border-t border-[hsl(var(--bark)/0.10)] first:border-t-0">
       <div className="flex items-center justify-between gap-3 mb-1.5">
-        {/* THE app eyebrow — sienna serif italic at 0.18em, the same recipe
-            as "YOU EARN" (JobPrice), "YOUR PITCH — OPTIONAL" (apply dialog)
-            and the Filtered label in the toolbar. The sheet used to run its
-            own sans-gray eyebrow, which is exactly the "different person
-            designed this sheet" break the density & brand-fit audit block
-            names. One eyebrow recipe everywhere. */}
-        <p
-          className="text-ds-10 font-serif italic uppercase tracking-[0.18em]"
-          style={{ color: "hsl(var(--burnt-sienna))" }}
-        >
+        {/* Quiet gray sans eyebrow — owner's explicit pick (2026-08-24) over
+            both the olive sans and the sienna-serif variants tried in the
+            brand pass. The sheet's brand voice lives in the chips, switches
+            and surface; the labels stay quiet. */}
+        <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest">
           {title}
         </p>
         {trailing}
@@ -260,12 +255,6 @@ interface JobFilterSectionsArgs {
   hasAvailability?: boolean;
   /** Hide the "Only my hours" availability row (guests have no schedule). */
   showAvailability?: boolean;
-  /**
-   * Compact control rendered on the Sort by eyebrow line (Browse passes the
-   * List⇄Map toggle). A mode switch rides an existing section instead of
-   * costing a section of its own.
-   */
-  sortTrailing?: ReactNode;
   /* ---- "Only Saved Jobs" row (omit on surfaces without saves, e.g. guest) ---- */
   savedOnly?: boolean;
   onToggleSavedOnly?: () => void;
@@ -439,7 +428,6 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     boostedOnly, setBoostedOnly,
     urgentOnly, setUrgentOnly,
     userLocStatus, userLocMessage,
-    sortTrailing,
     savedOnly = false, onToggleSavedOnly, savedCount = 0,
     showAvailability = true,
     showNearby = true,
@@ -449,7 +437,6 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     {
       key: "sort",
       title: "Sort by",
-      trailing: sortTrailing,
       content: <SortContent sortBy={sortBy} setSortBy={setSortBy} />,
     },
     {

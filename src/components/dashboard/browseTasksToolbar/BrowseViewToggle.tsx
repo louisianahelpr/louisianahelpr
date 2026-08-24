@@ -1,5 +1,6 @@
 import { startTransition } from "react";
 import { List, Map as MapIcon } from "lucide-react";
+import { chipStyles } from "@/components/dashboard/JobFilters";
 import { hapticLight } from "@/lib/haptics";
 
 export interface BrowseViewToggleProps {
@@ -43,15 +44,7 @@ const OPTIONS = [
  */
 export function BrowseViewToggle({ view, setView, onSelect }: BrowseViewToggleProps) {
   return (
-    // A joined segmented control, deliberately SMALLER than the filter chips:
-    // it rides the "Sort by" eyebrow line (FilterSheetSection.trailing), so it
-    // must read as a mode switch attached to the section, not another chip
-    // row. h-7 inside a bordered pill; the active half fills brand olive.
-    <div
-      role="group"
-      aria-label="Feed view"
-      className="inline-flex items-center rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur p-0.5"
-    >
+    <div role="group" aria-label="Feed view" className={chipStyles.chipRow}>
       {OPTIONS.map(({ value, label, Icon }) => {
         const active = view === value;
         return (
@@ -65,13 +58,9 @@ export function BrowseViewToggle({ view, setView, onSelect }: BrowseViewTogglePr
               startTransition(() => setView(value));
               onSelect?.();
             }}
-            className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-[12px] text-ds-11 font-semibold whitespace-nowrap transition-all duration-200 btn-press ${
-              active
-                ? "bg-[hsl(var(--bark))] text-[hsl(var(--parchment))]"
-                : "text-foreground/80 hover:text-foreground"
-            }`}
+            className={`${chipStyles.chipBase} ${active ? chipStyles.chipActive : chipStyles.chipIdle}`}
           >
-            <Icon className="w-3 h-3 shrink-0" aria-hidden />
+            <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />
             {label}
           </button>
         );

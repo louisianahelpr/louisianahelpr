@@ -42,12 +42,12 @@ const chipBase =
  *  no empty grid cells at any option count, no hidden off-screen options, and
  *  every chip is exactly as wide as its own label. */
 const chipRow = "flex flex-wrap gap-1.5";
-// Selected = FILLED brand olive with parchment text (both tokens flip in
-// dark mode: bark lightens, parchment goes near-black, so contrast holds).
-// The old 12%-tint active state was the sheet's neutral-surface failure: a
-// chosen chip read gray-on-gray while the rest of the app selects in olive.
+// Selected = a decisive olive TINT — owner rejected the solid olive fill
+// (2026-08-24: "olive-filled chips" was the one thing disliked in the brand
+// pass) and the original 12% tint read gray-on-gray. 18% with a 55% border
+// is the middle: unmistakably chosen, still light on the parchment sheet.
 const chipActive =
-  "bg-[hsl(var(--bark))] text-[hsl(var(--parchment))] border-[hsl(var(--bark))] shadow-sm";
+  "bg-[hsl(var(--bark)/0.18)] text-[hsl(var(--bark))] border-[hsl(var(--bark)/0.55)]";
 const chipIdle =
   "bg-white/70 dark:bg-card/60 backdrop-blur text-foreground border-[hsl(var(--bark)/0.22)] hover:border-[hsl(var(--bark)/0.45)] hover:bg-white/90 dark:hover:bg-card/90";
 

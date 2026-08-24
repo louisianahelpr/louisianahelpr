@@ -290,7 +290,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
               {hasHelper && cancellationFee > 0 && (
                 <div className="rounded-ds-sm bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
-                  <p className="text-ds-10 font-semibold text-[hsl(var(--bark))] uppercase tracking-wide mb-1">Your fee breakdown</p>
+                  <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide mb-1">Your fee breakdown</p>
                   <div className="flex justify-between text-ds-11">
                     <span className="text-muted-foreground">Cancellation fee ({cancellationFeePercent}% of ${formatPrice(jobBudget)})</span>
                     <span className="font-semibold text-foreground">${formatPrice(cancellationFee)}</span>
@@ -319,7 +319,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
 
           {/* Strike system — always visible */}
           <div className={`rounded-ds-md border p-4 space-y-3 ${hasHelper ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/20 opacity-60"}`}>
-            <p className={`text-ds-11 font-semibold uppercase tracking-wide flex items-center gap-1.5 ${hasHelper ? "text-destructive" : "text-[hsl(var(--bark))]"}`}>
+            <p className={`text-ds-11 font-semibold uppercase tracking-wide flex items-center gap-1.5 ${hasHelper ? "text-destructive" : "text-muted-foreground"}`}>
               <ShieldAlert className="w-3.5 h-3.5" /> Strike System (applies when Helpr is selected)
             </p>
             <div className="space-y-2 text-ds-11 text-muted-foreground">

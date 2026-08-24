@@ -94,7 +94,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
             This logs a strike, emails {formatName(profile?.full_name)}, and adds it to their violation history.
           </p>
           <div className="space-y-2">
-            <p className="text-ds-11 font-medium text-[hsl(var(--bark))] uppercase tracking-wide">Reason category</p>
+            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Reason category</p>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger aria-label="Reason category">
                 <SelectValue />
@@ -110,7 +110,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
             </Select>
           </div>
           <div className="space-y-2">
-            <p className="text-ds-11 font-medium text-[hsl(var(--bark))] uppercase tracking-wide">Internal note (sent to user)</p>
+            <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Internal note (sent to user)</p>
             <Textarea
               aria-label="Internal note (sent to user)"
               value={note}

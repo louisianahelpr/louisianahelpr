@@ -256,20 +256,27 @@ export function BrowseTasksToolbar({
                 content: <BrowseSearchBar filters={filters} />,
               }]
             : []),
+          // View keeps its own row (owner, 2026-08-24: tried riding the
+          // Sort by line, rejected) — it decides HOW you look at results,
+          // before anything about which results.
+          ...(hideViewToggle
+            ? []
+            : [{
+                key: "view",
+                title: "View",
+                content: (
+                  <BrowseViewToggle
+                    view={view}
+                    setView={setView}
+                    // Picking a view is a terminal choice — get the sheet out
+                    // of the way so you land on the thing you asked for. Only
+                    // fires on an actual change, so re-tapping the current
+                    // view does not dismiss the sheet under you.
+                    onSelect={() => filters.setFiltersOpen(false)}
+                  />
+                ),
+              }]),
           ...buildJobFilterSections({
-            // List⇄Map rides the Sort by eyebrow line — a view mode is one
-            // small always-answered choice, not a filter section.
-            sortTrailing: hideViewToggle ? undefined : (
-              <BrowseViewToggle
-                view={view}
-                setView={setView}
-                // Picking a view is a terminal choice — get the sheet out
-                // of the way so you land on the thing you asked for. Only
-                // fires on an actual change, so re-tapping the current
-                // view does not dismiss the sheet under you.
-                onSelect={() => filters.setFiltersOpen(false)}
-              />
-            ),
             // "Only saved" is a filter, so it lives with the other Show-only
             // switches (owner: merge & tighten, 2026-08-24).
             savedOnly,

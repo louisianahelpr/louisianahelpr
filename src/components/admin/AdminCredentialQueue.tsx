@@ -137,7 +137,7 @@ const AdminCredentialQueue = () => {
                 {r.license_status === "pending" && r.license_url && (
                   <div className="rounded-ds-md border border-border bg-secondary/40 p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-ds-11 font-semibold uppercase tracking-wider text-[hsl(var(--bark))]">License</p>
+                      <p className="text-ds-11 font-semibold uppercase tracking-wider text-muted-foreground">License</p>
                       <SignedOpenLink path={r.license_url} />
                     </div>
                     <DocPreview path={r.license_url} />
@@ -170,7 +170,7 @@ const AdminCredentialQueue = () => {
                 {r.insurance_status === "pending" && r.insurance_url && (
                   <div className="rounded-ds-md border border-border bg-secondary/40 p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-ds-11 font-semibold uppercase tracking-wider text-[hsl(var(--bark))]">Insurance</p>
+                      <p className="text-ds-11 font-semibold uppercase tracking-wider text-muted-foreground">Insurance</p>
                       <SignedOpenLink path={r.insurance_url} />
                     </div>
                     <DocPreview path={r.insurance_url} />

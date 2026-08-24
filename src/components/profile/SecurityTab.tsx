@@ -483,7 +483,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           </p>
         ) : (
           <div className="space-y-2">
-            {sessionGroups.map((group, idx) => {
+            {sessionGroups.map((group) => {
               const IconCmp =
                 group.icon === "phone" ? Smartphone :
                 group.icon === "tablet" ? Tablet : Monitor;
@@ -507,7 +507,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                   <span
                     className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
                     style={{
-                      background: idx === 0 ? "hsl(var(--bark) / 0.12)" : "hsl(var(--ivory-sand))",
+                      background: group.label === parseUserAgent(navigator.userAgent).label ? "hsl(var(--bark) / 0.12)" : "hsl(var(--ivory-sand))",
                       color: "hsl(var(--bark))",
                     }}
                   >
@@ -518,7 +518,16 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                       className="text-ds-13 font-semibold text-foreground leading-tight flex items-center gap-2 flex-wrap"
                     >
                       <span className="truncate">{group.label}</span>
-                      {idx === 0 && (
+                      {/* "This device" matches the DEVICE actually holding the
+                          screen — the group whose UA label equals this
+                          browser's own — not `idx === 0`. The old index test
+                          badged whichever device signed in most recently, so
+                          reading this list on your iPhone could label
+                          "Mac · Chrome" as this device: exactly the wrong
+                          signal on the screen people read to spot intrusions.
+                          Falls back to nothing when no group matches (e.g. the
+                          current session predates login_history). */}
+                      {group.label === parseUserAgent(navigator.userAgent).label && (
                         <span
                           className="text-ds-10 font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
                           style={{

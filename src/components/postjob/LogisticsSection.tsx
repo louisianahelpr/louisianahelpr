@@ -365,7 +365,7 @@ export function LogisticsSection({
         <Label>Job type</Label>
         <div className={`grid ${RECURRING_ENABLED ? "grid-cols-3" : "grid-cols-2"} gap-1 p-1 rounded-2xl border border-input bg-background/70`}>
           {([
-            { key: "once", label: "One-time" },
+            { key: "once", label: "One-Time" },
             // "Repeats", not "Recurring" — it names what the poster is doing
             // rather than the billing category.
             ...(RECURRING_ENABLED ? [{ key: "recurring", label: "Repeats" } as const] : []),

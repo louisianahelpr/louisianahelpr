@@ -26,6 +26,21 @@ export interface DisputeRecord {
   decided_by: string | null;
   decision_text: string | null;
   payout_split: { poster?: number; helper?: number } | null;
+  /**
+   * Settlement state for the recorded split, written by the
+   * `execute-dispute-split` edge function. Absent (undefined) on any row read
+   * before that migration deployed — the queue keeps rendering either way, so
+   * treat "undefined" as "not attempted", not as an error.
+   */
+  execution_status?: "pending" | "executing" | "executed" | "failed" | null;
+  executed_at?: string | null;
+  execution_transfer_id?: string | null;
+  execution_refund_id?: string | null;
+  /** What actually moved, in cents — reconciles against payout_transfers. */
+  execution_helper_cents?: number | null;
+  /** What actually went back to the poster, in cents — vs. payment_refunds. */
+  execution_refund_cents?: number | null;
+  execution_error?: string | null;
 }
 
 export type FilterTab = "open" | "decided";

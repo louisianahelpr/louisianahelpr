@@ -5,6 +5,7 @@ import { formatPriceExact } from "@/lib/format";
 import { CheckCircle2, AlertTriangle, History } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { categoriseReason, CATEGORY_LABELS } from "./adminDisputes/adminDisputesHelpers";
 import { FilterChipGroup } from "./adminDisputes/FilterChipGroup";
@@ -89,9 +90,24 @@ const AdminDisputes = () => {
     const allJobIds = [...openJobs.map((j) => j.id), ...decided.map((j) => j.id)];
     const recordsMap: Record<string, DisputeRecord> = {};
     if (allJobIds.length > 0) {
-      const { data: records, error: recordsErr } = await (supabase.from as any)("disputes")
-        .select("id, job_id, opener_id, reason, evidence_urls, status, created_at, decided_at, decided_by, decision_text, payout_split")
-        .in("job_id", allJobIds);
+      const BASE_COLUMNS =
+        "id, job_id, opener_id, reason, evidence_urls, status, created_at, decided_at, decided_by, decision_text, payout_split";
+      const EXECUTION_COLUMNS =
+        "execution_status, executed_at, execution_transfer_id, execution_refund_id, execution_helper_cents, execution_refund_cents, execution_error";
+      const readRecords = (columns: string) =>
+        (supabase.from as any)("disputes").select(columns).in("job_id", allJobIds);
+
+      let { data: records, error: recordsErr } = await readRecords(
+        `${BASE_COLUMNS}, ${EXECUTION_COLUMNS}`,
+      );
+      // 42703 = undefined_column: the execution-state migration hasn't finished
+      // deploying yet. Postgres rejects the WHOLE select for one unknown column,
+      // which would blank the entire dispute queue during that window — so drop
+      // back to the columns that have always existed rather than showing the
+      // admin an empty screen.
+      if (recordsErr?.code === "42703") {
+        ({ data: records, error: recordsErr } = await readRecords(BASE_COLUMNS));
+      }
       if (recordsErr && recordsErr.code !== "PGRST205" && recordsErr.code !== "42P01") {
         report(recordsErr, { tags: { source: "AdminDisputes.loadRecords" } });
       }
@@ -191,12 +207,22 @@ const AdminDisputes = () => {
     }
   };
 
-  // Record the formal decision (text + split). Optionally fire the
-  // matching Stripe action when the split is 100/0 — anything in
-  // between is recorded but the actual money split is admin-handled
-  // out-of-band (Stripe's API doesn't natively model a partial-split
-  // refund on a Connect destination charge; the platform doesn't have
-  // a webhook for it either). We surface that in the toast.
+  // Record the formal decision (text + split), then EXECUTE it: the recorded
+  // split now moves real money via the `execute-dispute-split` edge function —
+  // one Stripe transfer for the Helpr's share, one refund for the poster's.
+  //
+  // Every position on the slider goes through the same function, endpoints
+  // included. The old code fired create-payment's `admin_release_dispute` /
+  // `admin_refund_dispute` for the 100/0 and 0/100 cases, but it fired them
+  // AFTER rpc_decide_dispute had already flipped jobs.status off 'disputed' —
+  // and both of those branches refuse a job that isn't 'disputed'. So the two
+  // endpoints failed every time and fell into the "retry manually" warning.
+  // One execution path, invoked after the decision is on record, fixes that as
+  // a side effect of building the partial-split path.
+  //
+  // The Quick Release / Quick Refund buttons still call create-payment
+  // directly — they don't pre-record a decision, so the job is genuinely still
+  // 'disputed' when they run.
   const decide = async (job: DisputedJob) => {
     if (!decisionText.trim()) {
       toast.error("Add a decision note first.");
@@ -208,17 +234,18 @@ const AdminDisputes = () => {
         poster: (100 - helperShare) / 100,
         helper: helperShare / 100,
       };
+      const disputeId = disputeRecords[job.id]?.id ?? null;
 
       // Try the formal RPC. Cast through `any` until `supabase gen
       // types` reflects the new migration. PGRST202 = not deployed
-      // yet (migrations don't auto-deploy per CLAUDE.md), in which
-      // case we fall back to a direct UPDATE that records the
-      // decision on the legacy `dispute_resolved_at` column so this
-      // works between merge and the manual `supabase db push`.
+      // yet (there's a short window between merge and the auto-deploy
+      // finishing, per CLAUDE.md), in which case we fall back to a
+      // direct UPDATE that records the decision on the legacy
+      // `dispute_resolved_at` column.
       const { error: rpcError } = await (supabase.rpc as any)(
         "rpc_decide_dispute",
         {
-          _dispute_id: disputeRecords[job.id]?.id ?? null,
+          _dispute_id: disputeId,
           _decision_text: decisionText.trim(),
           _payout_split: payoutSplit,
         },
@@ -246,25 +273,52 @@ const AdminDisputes = () => {
         if (error) throw error;
       }
 
-      // Optionally trigger the matching Stripe action for the
-      // unambiguous 100/0 cases. Splits are recorded but not
-      // auto-executed.
-      if (helperShare === 100) {
-        const { data, error } = await supabase.functions.invoke("create-payment", {
-          body: { action: "admin_release_dispute", jobId: job.id },
-        });
-        if (error || data?.error) {
-          // Surfacing the Stripe failure but the decision is already
-          // recorded — surface as a warning so the admin can retry the
-          // payout out-of-band.
-          toast.warning("Decision recorded, but Stripe payout failed — retry manually.");
-        }
-      } else if (helperShare === 0) {
-        const { data, error } = await supabase.functions.invoke("create-payment", {
-          body: { action: "admin_refund_dispute", jobId: job.id },
-        });
-        if (error || data?.error) {
-          toast.warning("Decision recorded, but Stripe refund failed — retry manually.");
+      // ── Execute the split ──────────────────────────────────────────
+      if (!disputeId) {
+        // No row in `disputes` — a dispute filed before that table existed, or
+        // the RPC/table isn't deployed yet. There's nothing for the executor to
+        // key off, so say exactly that rather than implying money moved.
+        toast.warning(
+          "Decision recorded. This dispute has no formal record to settle against — move the escrow with Quick Release or Quick Refund.",
+        );
+      } else {
+        const { data, error } = await supabase.functions.invoke(
+          "execute-dispute-split",
+          { body: { dispute_id: disputeId } },
+        );
+        // NEVER drop the error half: a settlement that silently failed would
+        // leave the admin believing the money moved.
+        const invokeError = error ?? (data?.error ? new Error(String(data.error)) : null);
+        if (invokeError) {
+          const status = (invokeError as { context?: Response }).context instanceof Response
+            ? (invokeError as { context: Response }).context.status
+            : null;
+          if (status === 404) {
+            // Deploy window: the function landed on main but hasn't finished
+            // deploying. The decision IS recorded; only the settlement is late.
+            toast.warning(
+              "Decision recorded. The settlement service is still deploying — reopen this dispute in a minute to move the money.",
+            );
+          } else {
+            const message = await functionErrorMessage(
+              invokeError,
+              "Decision recorded, but the settlement failed — retry from this dispute.",
+            );
+            report(invokeError, { tags: { source: "AdminDisputes.executeSplit" } });
+            toast.error(`Decision recorded, but the money didn't move: ${message}`);
+          }
+        } else {
+          const moved = data as {
+            helper_cents?: number;
+            refund_cents?: number;
+          } | null;
+          const helperPaid = (moved?.helper_cents ?? 0) / 100;
+          const posterRefunded = (moved?.refund_cents ?? 0) / 100;
+          const parts = [
+            helperPaid > 0 ? `$${formatPriceExact(helperPaid)} to the Helpr` : null,
+            posterRefunded > 0 ? `$${formatPriceExact(posterRefunded)} back to the customer` : null,
+          ].filter(Boolean);
+          toast.success(`Dispute settled — ${parts.join(", ")}.`);
         }
       }
 

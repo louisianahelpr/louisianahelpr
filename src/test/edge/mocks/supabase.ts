@@ -100,6 +100,18 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
     this.payload = payload;
     return this;
   }
+  /**
+   * Recorded as an insert. Every ledger path in the codebase upserts on the
+   * Stripe object id (`onConflict: "stripe_refund_id"`) so a replayed refund
+   * updates one row instead of duplicating it; for assertion purposes the
+   * distinction doesn't matter — what a test cares about is the payload that
+   * reached the table. The `onConflict` options object is accepted and ignored.
+   */
+  upsert(payload: unknown, _opts?: unknown) {
+    this.op = "insert";
+    this.payload = payload;
+    return this;
+  }
   delete() {
     this.op = "delete";
     return this;

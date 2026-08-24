@@ -3,6 +3,7 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 const AlertDialog = AlertDialogPrimitive.Root;
 
@@ -16,9 +17,25 @@ const AlertDialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/50 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      // THE SAME BACKDROP DialogOverlay uses (owner: "and background
+      // consistency also"). This was `bg-black/50 backdrop-blur-md` — a plain
+      // black scrim at half opacity — while every regular dialog got a
+      // parchment-tinted one at 26% with a 24px blur. So a confirm sheet
+      // opening on top of a dialog visibly darkened the page, and the two
+      // modals read as belonging to different apps.
+      //
+      // The tint was deliberately lightened once already: "was 45% of a
+      // near-black brown, which on the light parchment canvas read as a heavy
+      // grey slab" (owner, 2026-08-22: "i also dont like the dark
+      // background"). Alert dialogs never received that change. Values below
+      // are DialogOverlay's verbatim — change one, change both.
+      "fixed inset-0 z-50 backdrop-blur-[24px] backdrop-saturate-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
+    style={{
+      backgroundColor: "hsla(38, 22%, 22%, 0.26)",
+      WebkitBackdropFilter: "blur(24px) saturate(1.5)",
+    }}
     {...props}
     ref={ref}
   />
@@ -27,8 +44,13 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
 
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & {
+    /** Disable the corner close — for a dialog mid-submit, where dismissing
+     *  would abandon an in-flight action. The footer Cancel this replaced
+     *  carried the same guard, so it travels with it. */
+    closeDisabled?: boolean;
+  }
+>(({ className, closeDisabled, ...props }, ref) => (
   <AlertDialogPortal>
     <AlertDialogOverlay />
     <AlertDialogPrimitive.Content
@@ -58,7 +80,32 @@ const AlertDialogContent = React.forwardRef<
       // `aria-describedby` still wins.
       aria-describedby={undefined}
       {...props}
-    />
+    >
+      {props.children}
+      {/* THE SAME top-right close DialogContent renders (owner: "look for
+          consistency globally — like the X in the top corner, not the bottom
+          left").
+
+          Alert dialogs had none, so each one improvised its dismiss: the apply
+          sheet put a round X in the FOOTER's bottom-left, beside "Apply Now",
+          while the job dialog it opens from has a bare X top-right. Two modals
+          one tap apart, closing from opposite corners.
+
+          Rendered as `Cancel`, not `Close` — AlertDialog has no Close
+          primitive, and Cancel is the dismiss: it runs whatever onClick the
+          caller already attached to their Cancel action, so nothing is bypassed
+          by leaving through the corner instead of the button.
+
+          Classes are copied verbatim from DialogContent's close; change one,
+          change both. */}
+      <AlertDialogPrimitive.Cancel
+        aria-label="Close"
+        disabled={closeDisabled}
+        className="absolute right-3 top-3 w-11 h-11 p-0 box-border rounded-md btn-press flex items-center justify-center bg-transparent border-transparent shadow-none text-muted-foreground hover:text-foreground hover:bg-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none mt-0"
+      >
+        <X className="h-5 w-5" strokeWidth={2} />
+      </AlertDialogPrimitive.Cancel>
+    </AlertDialogPrimitive.Content>
   </AlertDialogPortal>
 ));
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName;

@@ -3,42 +3,50 @@ import { render } from "@testing-library/react";
 import { ApplicantQueueBanner } from "./ApplicantQueueBanner";
 
 /**
- * The applicant-queue slot must never be empty in a resolved state.
+ * The applicant-queue slot renders ONLY when there is something to say.
+ *
+ * History worth keeping, because it is a genuine trade and not an oversight:
  *
  * This component sits inside `display:contents` wrappers, so its box is a
- * DIRECT grid item of DialogContent (`grid … gap-4`). When it renders nothing,
- * the dialog loses the row AND one 1rem row-gap — about 67px — out of a dialog
- * that is already open and being read. On phone the sheet is bottom-anchored,
- * so the shrink drags the title downward under the reader's eyes.
+ * direct grid item of DialogContent (`grid … gap-4`). It used to reserve the
+ * slot while the count loaded, then render nothing when the count came back
+ * ZERO — so the dialog lost a row AND a 1rem row-gap, about 67px, out of a
+ * dialog already open and being read. On phone the sheet is bottom-anchored,
+ * so that shrink dragged the title down under the reader's eyes.
  *
- * That is exactly what happened for a job with zero applicants: the loading
- * skeleton reserved height, then the count landed at 0 and BOTH branches went
- * false. These tests pin the invariant — every resolved state renders a box —
- * so a future branch added here cannot silently reopen the hole.
+ * That was first fixed by giving zero its own banner ("No one has applied yet
+ * — you'd be first in line"), which kept the slot occupied in every state. The
+ * owner removed that copy (2026-08-23), so the reserving skeleton had to go
+ * with it: keeping a placeholder that reserves height for content that will
+ * never appear re-creates the exact shrink it was added to prevent.
+ *
+ * The slot is therefore ABSENT for a job with no applicants — no reservation,
+ * no shrink, no shift at all in the common case. The residual trade is that a
+ * job WITH applicants grows by a row when the count lands. Growth downward is
+ * the gentler of the two: it does not move what you are already reading, where
+ * the shrink pulled the title out from under you.
  */
 const box = (c: HTMLElement) => c.querySelector<HTMLElement>("div.rounded-ds-md");
 
-describe("ApplicantQueueBanner occupies its slot in every state", () => {
-  it("loading (count null) renders the reserving skeleton", () => {
+describe("ApplicantQueueBanner", () => {
+  it("renders NOTHING while the count is loading", () => {
+    // No reserving skeleton — see the note above on why it had to go with the
+    // zero-state copy rather than outlive it.
     const { container } = render(
       <ApplicantQueueBanner guest={false} applicationCount={null} viewerAppPosition={null} />,
     );
-    expect(box(container), "loading state must reserve height").toBeTruthy();
+    expect(box(container)).toBeNull();
   });
 
-  it("ZERO applicants and not applied still renders a box", () => {
-    // The regression. Before the fix this rendered nothing at all.
+  it("renders NOTHING for zero applicants", () => {
     const { container } = render(
       <ApplicantQueueBanner guest={false} applicationCount={0} viewerAppPosition={null} />,
     );
-    const el = box(container);
-    expect(el, "zero-applicant state must occupy the slot").toBeTruthy();
-    expect(container.textContent).toMatch(/first in line/i);
-    // and it must NOT borrow the urgency tone reserved for real competition
-    expect(container.textContent).not.toMatch(/already applied/i);
+    expect(box(container), "no applicants means no banner (owner)").toBeNull();
+    expect(container.textContent).not.toMatch(/first in line/i);
   });
 
-  it("others have applied renders the queue nudge", () => {
+  it("renders the queue nudge when others have applied", () => {
     const { container } = render(
       <ApplicantQueueBanner guest={false} applicationCount={3} viewerAppPosition={null} />,
     );
@@ -46,29 +54,20 @@ describe("ApplicantQueueBanner occupies its slot in every state", () => {
     expect(container.textContent).toMatch(/3 Helprs already applied/i);
   });
 
-  it("viewer has applied renders their position", () => {
+  it("renders the viewer's position once they have applied", () => {
     const { container } = render(
       <ApplicantQueueBanner guest={false} applicationCount={7} viewerAppPosition={3} />,
     );
     expect(box(container)).toBeTruthy();
   });
 
-  it("every resolved state pins the same min-height", () => {
-    // Equal-height branches are what make the swap free. If one branch loses
-    // the pin, the shift comes back smaller and harder to spot.
-    const states: Array<[number, number | null]> = [
-      [0, null],
-      [3, null],
-      [7, 3],
-    ];
-    for (const [count, pos] of states) {
+  it("the two states that DO render pin the same height", () => {
+    // Equal-height branches are what make the swap between them free.
+    for (const [count, pos] of [[3, null], [7, 3]] as Array<[number, number | null]>) {
       const { container } = render(
         <ApplicantQueueBanner guest={false} applicationCount={count} viewerAppPosition={pos} />,
       );
-      expect(
-        box(container)?.className,
-        `count=${count} pos=${pos} must pin the slot height`,
-      ).toContain("min-h-[3.1875rem]");
+      expect(box(container)?.className, `count=${count} pos=${pos}`).toContain("min-h-[3.1875rem]");
     }
   });
 });

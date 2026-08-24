@@ -34,39 +34,7 @@ interface ApplicantQueueBannerProps {
 export const ApplicantQueueBanner = ({ guest, applicationCount, viewerAppPosition }: ApplicantQueueBannerProps) => {
   return (
     <>
-      {applicationCount === null && !guest ? (
-        <div
-          aria-hidden
-          className="rounded-ds-md px-3 py-2 min-h-[3.1875rem] flex items-start gap-2 motion-safe:animate-pulse"
-          style={{
-            background: "hsl(var(--olivewood) / 0.05)",
-            border: "0.5px solid hsl(var(--olivewood) / 0.10)",
-          }}
-        >
-          <span
-            className="w-3.5 h-3.5 mt-0.5 shrink-0 rounded-full"
-            style={{ background: "hsl(var(--olivewood) / 0.14)" }}
-          />
-          {/* TWO lines, not one. The real banner's sentence ("3 Helprs already
-              applied. You'd be #4 in line.") wraps to two `text-ds-12
-              leading-snug` lines at phone width, so a one-line placeholder
-              measured 30px against the real 51px and the whole footer below it
-              dropped 21px the moment the applicant count landed. The line
-              geometry here mirrors the real <p> exactly — same font size, same
-              leading, second line short because the sentence ends mid-line.
-              If that copy ever becomes a single line, drop the second bar. */}
-          <span className="min-w-0 flex-1 space-y-1.5">
-            <span
-              className="block h-3.5 rounded-full w-full"
-              style={{ background: "hsl(var(--olivewood) / 0.12)" }}
-            />
-            <span
-              className="block h-3.5 rounded-full w-2/5"
-              style={{ background: "hsl(var(--olivewood) / 0.12)" }}
-            />
-          </span>
-        </div>
-      ) : viewerAppPosition !== null && (
+      {viewerAppPosition !== null && (
         <div
           className="rounded-ds-md px-3 py-2 min-h-[3.1875rem] flex items-center gap-2"
           style={{
@@ -103,45 +71,6 @@ export const ApplicantQueueBanner = ({ guest, applicationCount, viewerAppPositio
               {applicationCount} Helpr{applicationCount === 1 ? "" : "s"} already applied.
             </span>{" "}
             You'd be #{applicationCount + 1} in line.
-          </p>
-        </div>
-      )}
-      {/* ZERO applicants — the slot still has to be OCCUPIED.
-          The loading skeleton above reserves ~51px, and when the count landed
-          at 0 BOTH branches went false: the row disappeared and took one of
-          DialogContent's 1rem grid gaps with it, dropping ~67px out of an open
-          dialog. On phone the sheet is bottom-anchored (`bottom-0`), so that
-          shrink slides the title DOWN while the reader is looking at it —
-          the owner's "opens large then gets smaller".
-          A fresh post gets a factual line in the same box, deliberately in the
-          calm olivewood tone rather than the sienna one the real-competition
-          banner uses: inventing urgency for a job nobody has applied to would
-          be a lie in the reader's favour, and being first is genuinely worth
-          knowing. */}
-      {viewerAppPosition === null && applicationCount === 0 && (
-        <div
-          className="rounded-ds-md px-3 py-2 min-h-[3.1875rem] flex items-center gap-2"
-          style={{
-            background: "hsl(var(--olivewood) / 0.05)",
-            border: "0.5px solid hsl(var(--olivewood) / 0.14)",
-          }}
-        >
-          <Users
-            className="w-3.5 h-3.5 shrink-0"
-            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-            strokeWidth={2.25}
-          />
-          <p
-            className="font-serif italic leading-snug text-ds-12"
-            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-          >
-            <span
-              className="not-italic font-display font-bold"
-              style={{ color: "hsl(var(--ink-deep))" }}
-            >
-              No one has applied yet.
-            </span>{" "}
-            You'd be first in line.
           </p>
         </div>
       )}

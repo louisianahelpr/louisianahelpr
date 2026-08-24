@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { HandCoins, Wrench } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -56,8 +57,23 @@ export function WelcomeModal({ open, onDismiss }: Props) {
             borderBottom: "0.5px solid hsl(var(--bark) / 0.12)",
           }}
         >
+          {/* `eyebrow` RENDERS NOTHING today and that is deliberate app-wide,
+              not an oversight here: the 2026-07-25 "one main title" decision
+              stripped the eyebrow/subtitle stack out of DialogHero for all
+              ~149 popups (see the comment on DialogHero in ui/dialog.tsx). The
+              prop is still accepted so a stray call site is a no-op rather
+              than a build break.
+
+              So this value is latent, not live. It is kept — and shortened
+              from the old sentence-length "Louisiana's neighbor-to-neighbor
+              marketplace" to a real eyebrow — so that IF the stack is ever
+              restored, this dialog gets a correct short label instead of a
+              paragraph. Restoring it is a one-line change in DialogHero, and
+              it must be made there for every dialog at once; hand-rolling an
+              eyebrow into this one popup is exactly what DialogHero exists to
+              prevent. */}
           <DialogHero
-            eyebrow="Louisiana's neighbor-to-neighbor marketplace"
+            eyebrow="Welcome"
             title="Welcome to Helpr"
           />
         </div>
@@ -74,12 +90,21 @@ export function WelcomeModal({ open, onDismiss }: Props) {
               border: "0.5px solid hsl(var(--bark) / 0.22)",
             }}
           >
+            {/* lucide, not a raw OS emoji: 🔧 rendered as the platform's own
+                colour glyph, so the one pictogram on the first screen a new
+                account ever sees was the only non-lucide icon in the app (and
+                looked different on every device). Same 36px tile and tint —
+                only the mark inside it changed. */}
             <span
-              className="w-9 h-9 rounded-ds-sm flex items-center justify-center text-lg shrink-0"
+              className="w-9 h-9 rounded-ds-sm flex items-center justify-center shrink-0"
               style={{ background: "hsl(var(--bark) / 0.14)" }}
               aria-hidden
             >
-              🔧
+              <Wrench
+                className="w-5 h-5"
+                strokeWidth={2}
+                style={{ color: "hsl(var(--bark))" }}
+              />
             </span>
             <div className="min-w-0 w-full">
               <p
@@ -117,11 +142,15 @@ export function WelcomeModal({ open, onDismiss }: Props) {
             }}
           >
             <span
-              className="w-9 h-9 rounded-ds-sm flex items-center justify-center text-lg shrink-0"
+              className="w-9 h-9 rounded-ds-sm flex items-center justify-center shrink-0"
               style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
               aria-hidden
             >
-              💰
+              <HandCoins
+                className="w-5 h-5"
+                strokeWidth={2}
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              />
             </span>
             <div className="min-w-0 w-full">
               <p

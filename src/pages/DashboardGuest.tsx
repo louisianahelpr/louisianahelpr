@@ -64,11 +64,29 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
  * notification bell, occupying the same slot at the end of the title bar's
  * single row.
  *
- * Both are deliberately un-filled so the only solid-green element on the guest
- * feed stays the bottom "+" FAB (the app-wide primary action, which gates
- * guests to signup anyway). "Log in" is a plain text control; "Get started" is
- * a quiet bark-tinted outline pill — clearly the CTA of the two, without
- * competing with the FAB as a second filled-green target.
+ * "Log in" is a plain text control; "Get Started" is the SOLID primary button,
+ * matching the marketing nav's signup CTA (Navbar.tsx) so the one conversion
+ * action on the site looks the same wherever a guest meets it. That parity is
+ * the point — /jobs and /browse are the two guest browse surfaces, and V9 of
+ * the 2026-08-24 visual audit found them disagreeing about how to draw it.
+ *
+ * This button used to be a quiet bark-tinted OUTLINE pill, on the stated
+ * grounds that "the only solid-green element on the guest feed stays the
+ * bottom '+' FAB". That rationale was already void when it was written:
+ * MobileNav.tsx returns null for guests (`if (isGuest) return null`), so the
+ * guest feed has no dock and no FAB. There was nothing to avoid competing
+ * with — the screen simply had no primary-weight target at all.
+ *
+ * The fill itself comes from the `default` variant's `btn-grad-primary` — a
+ * background-IMAGE gradient, not a background-color, so `backgroundColor`
+ * computes as transparent on this button and a probe that samples only that
+ * property will wrongly report it unfilled. Check the gradient or the pixels.
+ *
+ * The inline parchment `color` is belt-and-braces on top of the variant's own
+ * `!text-…` pinning, kept for the reason Navbar documents: the
+ * text-primary-foreground → --parchment token chain has repeatedly resolved
+ * dark-on-olive in the iOS WebView, and this is the guest surface that WebView
+ * actually shows.
  *
  * These two are the entire conversion path of the screen, so they stay
  * full-width labelled controls at every breakpoint: never collapsed to icons,
@@ -78,10 +96,46 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
  * guess a hidden CTA. With no search/filter icons sharing the row, the pair
  * has room to spare even at 320.
  *
- * `px-2` rather than the button default: the horizontal padding is the only
- * slack in this row that costs nothing — the labels and the 44px tap heights
- * are untouched.
+ * Tight horizontal padding rather than the button default (`sm` = px-4): it is
+ * the only slack in this row that costs nothing — the labels and the 44px tap
+ * heights are untouched. "Log in" keeps `px-2` (a text control needs no box);
+ * the solid "Get Started" takes `px-3` so its filled pill has room to read as
+ * a button rather than a label with a background.
+ *
+ * Measured at 375 after the change: the title card is 335px wide, "Log in" is
+ * 51px at x=190, and "Get Started" is 88px ending at x=334 — 21px of card
+ * padding still to spare, and documentElement.scrollWidth === clientWidth.
+ * Going solid cost the button 6px (82 → 88); the row absorbed it.
  */
+/**
+ * The guest feed's card grid — ONE constant so the loading skeletons and the
+ * loaded cards cannot drift out of shape (they did not share a class before,
+ * and a skeleton that lays out differently from what replaces it is a
+ * guaranteed layout shift the moment the query lands).
+ *
+ * Two columns from `md` up, matching /jobs (Jobs.tsx renders
+ * `grid grid-cols-1 md:grid-cols-2 gap-4`, CARDS_PER_ROW = 2). V9 of the
+ * 2026-08-24 visual audit: the two guest browse surfaces rendered the SAME
+ * JobCard differently — /jobs in a 2-col grid, /browse as a full-width
+ * single-column stack that stranded one narrow column in a wide panel on
+ * desktop. The panel really is wide here: PageScaffold's `narrow` column is
+ * `max-w-xl ds-desktop-wide`, and `ds-desktop-wide` lifts the cap to
+ * `max-width: none` on web-desktop AND in the ≥768 tablet/native band
+ * (index.css), so above `md` there was always room for two.
+ *
+ * `md`, not `lg`, is deliberate and is what makes the two surfaces actually
+ * agree: /jobs is web-only (it redirects native visitors here — see the
+ * Capacitor guard in Jobs.tsx), so 768–1023px is a band where BOTH are
+ * reachable in a browser. Breaking to two columns at `lg` would have left
+ * /jobs at two columns and /browse at one across that whole band — the same
+ * finding, one breakpoint further along.
+ *
+ * The mobile rendering is untouched: below `md` this is a single column at
+ * the original `gap-2.5` rhythm. Only at `md`+ does it widen to /jobs'
+ * `gap-4`, which is the gutter a two-column layout needs.
+ */
+const FEED_GRID_CLASS = "grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-4";
+
 function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup: () => void }) {
   return (
     <>
@@ -95,15 +149,10 @@ function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup
         Log In
       </Button>
       <Button
-        variant="outline"
         size="sm"
         onClick={onSignup}
-        className="text-ds-11 h-11 px-2 rounded-ds-md font-sans font-semibold"
-        style={{
-          color: "hsl(var(--bark))",
-          borderColor: "hsl(var(--bark) / 0.45)",
-          background: "hsl(var(--bark) / 0.05)",
-        }}
+        className="text-ds-11 h-11 px-3 rounded-ds-md font-sans font-semibold btn-press"
+        style={{ color: "hsl(var(--parchment))" }}
       >
         Get Started
       </Button>
@@ -488,7 +537,7 @@ const DashboardGuest = () => {
                     role="status"
                     aria-live="polite"
                     aria-busy="true"
-                    className="space-y-2.5 pb-safe-nav"
+                    className={`${FEED_GRID_CLASS} pb-safe-nav`}
                   >
                     <span className="sr-only">Loading jobs…</span>
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -609,7 +658,7 @@ const DashboardGuest = () => {
                   );
                 })() : (
                   <div
-                    className="space-y-2.5 animate-in fade-in-0 duration-500 pb-safe-nav"
+                    className={`${FEED_GRID_CLASS} animate-in fade-in-0 duration-500 pb-safe-nav`}
                   >
                     {filters.filteredJobs
                       .slice()

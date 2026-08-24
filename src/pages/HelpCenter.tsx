@@ -36,18 +36,13 @@ import {
  *
  * Structure:
  *   1. Compact page header — canonical BackButton to the LEFT of a
- *      normal-size "Help Center" title (same row shape as /jobs), the
- *      one-line lede (md+ only), then the squircle search pill +
- *      popular-search chips. The "Contact support" escape hatch closes the
- *      page rather than preceding the search. The search box and its chips stay
- *      at the top on both surfaces — they are the real shortcuts.
- *   2. Browse by topic — see the breakpoint split above.
- *   3. Quick answers   — same split on the masthead; the accordion itself is
- *      identical on both.
+ *      normal-size "Help Center" title (same row shape as /jobs). No search
+ *      (removed — see the note inside the component) and no lede.
+ *   2. Quick answers — the seven collapsible FAQ topic sections; the
+ *      "Contact support" escape hatch closes the page.
  *
  * Preserves the existing helpCenterContent data source (TOPICS, FAQ_SECTIONS,
- * SECTION_ACCENTS) verbatim — same client-side search, same category CONTENT.
- * Only the presentation differs.
+ * SECTION_ACCENTS) verbatim.
  */
 
 // ─── Topic anchor slugs — same order as TOPICS ────────────────────────────────
@@ -211,11 +206,8 @@ const HelpCenter = () => {
     return () => io.disconnect();
   }, []);
 
-  // Focus search on "Learn more" from a topic card — filtering by that topic
-  // is how the previous page surfaced a whole section; we preserve that
-  // behaviour by having the topic anchors scroll to the FAQ section header
-  // directly (deep-link), which reads as more discoverable than auto-filling
-  // the search.
+  // "Learn more" from a topic card scrolls straight to the FAQ section
+  // header (deep-link) — the direct successor to the old auto-filled search.
   const scrollToFaq = () => {
     const target = document.getElementById("faq");
     if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -259,19 +251,10 @@ const HelpCenter = () => {
             </div>
           </div>
 
-          {/* No lede under the title. It was desktop-only marketing framing
-              that restated what "Help Center" already says, and the search
-              box is the thing a reader on this page is actually looking for.
-              The phone surface already dropped it; the website now matches. */}
-
-          {/* Squircle search pill — client-side filter drives the FAQ list
-              below. Olivewood outline on parchment; no glass.
-
-              The "Contact support" line used to sit HERE, between the lede
-              and the search, and then just below it. Both put a "this didn't
-              work" fallback in front of the thing it is a fallback for, and
-              added to the stack of blocks pushing the topics below the fold.
-              It closes the page now — see the bottom of this file. */}
+          {/* No lede under the title (desktop-only marketing framing that
+              restated the title) and no search (removed — see the note at the
+              top of the component). The "Contact support" escape hatch closes
+              the page — see the bottom of this file. */}
         </div>
       </section>
 

@@ -118,7 +118,6 @@ const BusinessExports = () => {
       URL.revokeObjectURL(url);
 
       hapticSuccess();
-      toast.success(`Exported ${rows.length} job${rows.length === 1 ? "" : "s"}`);
     } catch (err: any) {
       hapticError();
       toast.error(err.message || "We couldn't generate that export — try again in a moment.");

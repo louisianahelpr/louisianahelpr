@@ -22,7 +22,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
 
   const handleSend = async (tipAmount: number) => {
     if (isNaN(tipAmount) || tipAmount <= 0) {
-      toast.error("Enter a valid amount");
+      toast.error("Enter a valid amount.");
       return;
     }
     hapticMedium();
@@ -47,7 +47,6 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><Gift className="w-3 h-3" /> A little extra</>}
           title={`Send a tip${helperName ? ` to ${helperName}` : ""}.`}
         />

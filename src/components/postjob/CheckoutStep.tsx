@@ -23,8 +23,8 @@ import type { HelprActivity } from "@/hooks/useHelprActivity";
 // up, on the screen where they decide whether to trust us with a card.
 import { formatPriceExact } from "@/lib/format";
 import { recurringVisitDates, WEEKDAY_LABELS } from "@/lib/recurringSchedule";
-import { estimatedSalesTax, hasTaxableLine } from "@/lib/salesTax";
-import { useParishTaxRate } from "@/hooks/useParishTaxRate";
+import { hasTaxableLine } from "@/lib/salesTax";
+import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
 import { formatJobDate } from "@/lib/dateUtils";
 
 const isSafeBlobPreviewUrl = (value: string): boolean => {
@@ -130,10 +130,20 @@ export function CheckoutStep({
   sendToPreferred,
   onSendToPreferredChange,
 }: CheckoutStepProps) {
-  // Real parish rate from `parish_tax_rates` (seeded for all 64 parishes,
-  // world-readable). null until the zip resolves a parish, or if the parish
-  // has no row — callers must not invent a rate in that gap.
-  const { totalRatePercent: parishTaxRate, loading: parishRateLoading } = useParishTaxRate(parish);
+  // The tax STRIPE WILL CHARGE, asked of Stripe rather than recomputed here.
+  //
+  // This used to read a rate out of our own `parish_tax_rates` and multiply it
+  // locally — a second implementation of a number create-payment already gets
+  // from `automatic_tax`. They diverged: two parishes were spelled "De Soto"
+  // and "La Salle" in that table against "DeSoto" and "LaSalle" in the ZIP
+  // table, the exact-match lookup missed, and the miss read as a rate of ZERO —
+  // so seven ZIP codes were quoted $0 on a charge Stripe taxed at 10%.
+  // (owner: "show Stripe's number, delete the table")
+  const {
+    salesTax,
+    loading: taxLoading,
+    jurisdiction,
+  } = useStripeSalesTax(budgetNum, category, zipCode);
   // Sales tax, resolved ONCE. Both the summary card at the top of the screen
   // and the payment breakdown at the bottom read this — the two used to be
   // computed independently (summary showed `totalCharge`, breakdown added an
@@ -142,7 +152,6 @@ export function CheckoutStep({
   //   0    → exempt category: tax is a known zero, the total is exact.
   //   null → taxable category whose parish rate isn't resolved yet.
   const seriesDates = isRecurring ? recurringVisitDates(dateNeeded, recurrenceDays, recurrenceWeeks) : [];
-  const salesTax = estimatedSalesTax(budgetNum, category, parishTaxRate);
   const totalWithTax = totalCharge + (salesTax ?? 0);
   return (
     <>
@@ -437,7 +446,7 @@ export function CheckoutStep({
                   <div className="flex justify-between text-ds-13">
                     <span className="text-muted-foreground">State &amp; parish sales tax</span>
                     <span className="font-medium text-muted-foreground">
-                      {parishRateLoading ? "checking…" : "set by your parish"}
+                      {taxLoading ? "checking…" : "calculated at payment"}
                     </span>
                   </div>
                   <div className="h-px bg-border" />
@@ -453,9 +462,9 @@ export function CheckoutStep({
                         there is no parish to look up yet. Telling someone who
                         already typed their ZIP to "add your ZIP" reads as a
                         failure of their input. */}
-                    {parishRateLoading
-                      ? `Assembly is taxable in Louisiana — looking up ${parish}'s rate. Tax applies to the $${formatPriceExact(budgetNum)} job budget only, never the fees.`
-                      : `Assembly is taxable in Louisiana. Add your ZIP and we'll show your parish's exact rate — tax applies to the $${formatPriceExact(budgetNum)} job budget only, never the fees.`}
+                    {taxLoading
+                      ? `This category is taxable in Louisiana — checking the exact amount for your address. Tax applies to the $${formatPriceExact(budgetNum)} job budget only, never the fees.`
+                      : `This category is taxable in Louisiana. Add your ZIP and we'll show the exact amount — tax applies to the $${formatPriceExact(budgetNum)} job budget only, never the fees.`}
                   </p>
                 </>
               );
@@ -473,7 +482,11 @@ export function CheckoutStep({
               <>
                 <div className="flex justify-between text-ds-13">
                   <span className="text-muted-foreground">
-                    Est. sales tax{parish ? ` (${parish} Parish, ${parishTaxRate}%)` : ""}
+                    {/* "Sales tax", not "Est." — it is Stripe's own figure for
+                        this address now, the same calculation that charges. The
+                        jurisdiction comes back from Stripe too, so the label can
+                        no longer name a parish the rate did not come from. */}
+                    Sales tax{jurisdiction ? ` (${jurisdiction})` : ""}
                   </span>
                   <span className="font-medium text-foreground">${formatPriceExact(tax)}</span>
                 </div>

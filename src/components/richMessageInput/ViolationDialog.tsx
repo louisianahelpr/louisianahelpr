@@ -22,7 +22,6 @@ export const ViolationDialog = ({
       <AlertDialogContent>
         <AlertDialogHero
           eyebrow={<><ShieldAlert className="w-3 h-3" /> Safety</>}
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title="This Violates Platform Rules"
         />
         <AlertDialogFooter>

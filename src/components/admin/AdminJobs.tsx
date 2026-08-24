@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Flag, CheckCircle2 } from "lucide-react";
+import { Flag, CheckCircle2, Briefcase } from "lucide-react";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toast } from "sonner";
 import type { Job } from "./adminJobs/types";
@@ -13,6 +13,7 @@ import { JobDetailDialog } from "./adminJobs/JobDetailDialog";
 import { RemoveJobDialog } from "./adminJobs/RemoveJobDialog";
 import { RefundJobDialog } from "./adminJobs/RefundJobDialog";
 import { StatusOverrideDialog } from "./adminJobs/StatusOverrideDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const AdminJobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -46,7 +47,7 @@ const AdminJobs = () => {
         .order("created_at", { ascending: false });
       if (error) {
         console.error("[AdminJobs] load:", error);
-        toast.error("Couldn't load jobs — refresh to retry");
+        toast.error("Couldn't load jobs — refresh to retry.");
       } else if (data) {
         setJobs(data);
         const flagMap = new Map<string, string[]>();
@@ -85,7 +86,6 @@ const AdminJobs = () => {
     next.add(jobId);
     setResolvedFlags(next);
     saveResolvedFlags(next);
-    toast.success("Flag marked as resolved");
   };
 
   const reopenFlag = (jobId: string) => {
@@ -156,7 +156,6 @@ const AdminJobs = () => {
 
       // Update local state
       setJobs((prev) => prev.map((j) => j.id === detailJob.id ? { ...j, status: "cancelled", cancellation_reason: `[Admin removed] ${deleteReason}` } : j));
-      toast.success("Job removed and poster notified");
       setDeleteOpen(false);
       setDeleteReason("");
       setDetailJob(null);
@@ -201,9 +200,6 @@ const AdminJobs = () => {
           ? { ...j, status: "cancelled" as Job["status"], payment_status: "refunded" as Job["payment_status"] }
           : j));
       }
-      toast.success(isPartial
-        ? `Partial refund of $${parsedDollars.toFixed(2)} issued`
-        : "Refund issued and parties notified");
       setRefundOpen(false);
       setRefundReason("");
       setRefundAmount("");
@@ -258,7 +254,6 @@ const AdminJobs = () => {
       }
 
       setJobs((prev) => prev.map((j) => j.id === detailJob.id ? { ...j, ...updates } as Job : j));
-      toast.success(`Job status set to ${overrideStatus}`);
       setOverrideOpen(false);
       setOverrideReason("");
       setOverrideStatus("open");
@@ -322,9 +317,16 @@ const AdminJobs = () => {
           />
         ))}
         {filteredJobs.length === 0 && (
-          <p className="text-center text-muted-foreground py-8">
-            {filter === "flagged" ? "No flagged jobs found" : "No jobs found"}
-          </p>
+          <EmptyState
+            variant="inline"
+            icon={Briefcase}
+            title={filter === "flagged" ? "No flagged jobs" : "No jobs found"}
+            body={
+              filter === "flagged"
+                ? "Nothing has tripped a moderation flag."
+                : "Nothing matches the current filter."
+            }
+          />
         )}
       </div>
 

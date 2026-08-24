@@ -72,7 +72,6 @@ describe("AiJobBuilder", () => {
       },
     });
     await waitFor(() => expect(onGenerated).toHaveBeenCalledWith(generated));
-    expect(toastSuccess).toHaveBeenCalled();
   });
 
   it("surfaces the edge function error message", async () => {

@@ -90,9 +90,8 @@ describe("Legal & policies — data rights", () => {
     renderTab();
 
     fireEvent.click(screen.getByRole("button", { name: "Download My Data" }));
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Your data has been downloaded"));
+    await waitFor(() => expect(createdBlobs).toHaveLength(1));
 
-    expect(createdBlobs).toHaveLength(1);
     expect(createdBlobs[0].type).toBe("application/json");
     const payload = JSON.parse(await createdBlobs[0].text());
     expect(payload).toMatchObject({
@@ -116,7 +115,6 @@ describe("Legal & policies — data rights", () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
 
     expect(createdBlobs).toHaveLength(0);
-    expect(toast.success).not.toHaveBeenCalled();
     expect(report).toHaveBeenCalledWith(
       { message: "permission denied" },
       { tags: { source: "LegalTab.exportData" } },

@@ -86,7 +86,6 @@ function DataExportCard() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success("Your data has been downloaded");
     } catch (err) {
       report(err, { tags: { source: "LegalTab.exportData" } });
       hapticError();

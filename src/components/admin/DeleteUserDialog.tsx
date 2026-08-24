@@ -41,7 +41,6 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`${formatName(profile.full_name)}'s account has been deleted.`);
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -60,7 +59,6 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
               <Trash2 className="w-3.5 h-3.5" /> Delete account
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title="Delete Account"
         />
         <div className="space-y-4">

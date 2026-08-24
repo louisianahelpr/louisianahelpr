@@ -50,7 +50,7 @@ export function DeleteAccountDialog({
         primaryTone="sienna"
         primaryHaptic="warning"
         onPrimary={(e) => { e.preventDefault(); setDeleteStep(2); }}
-        secondaryLabel="Keep account"
+        secondaryLabel="Keep Account"
       />
     );
   }
@@ -60,12 +60,9 @@ export function DeleteAccountDialog({
   // the BrandConfirmDialog contract.
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent className="max-w-md">
+      <AlertDialogContent>
         <AlertDialogHero
-          className="text-center"
           title={<><AlertTriangle className="w-5 h-5" /> Final confirmation</>}
-          titleClassName="flex items-center justify-center gap-2 text-balance"
-          titleStyle={{ color: "hsl(var(--burnt-sienna))" }}
         />
         <Input
           autoFocus

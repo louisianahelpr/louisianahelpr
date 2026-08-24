@@ -62,7 +62,6 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
       });
       if (error) throw error;
       hapticSuccess();
-      toast.success("W-9 recorded");
       onSigned?.();
       onOpenChange(false);
       // Reset for any future opens.
@@ -83,7 +82,6 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <FileSignature className="w-3 h-3" /> Tax form

@@ -143,7 +143,6 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       else toast.error("We couldn't post your review — please try again.");
     } else {
       hapticSuccess();
-      toast.success("Review submitted");
       // Brand-tinted confetti for the first few reviews so the moment
       // feels worth doing again. After the limit it fades to silent.
       void maybeCelebrate("first_review");
@@ -292,7 +291,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                 >
                   <ImagePlus className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} />
                   <span className="font-serif italic text-ds-9" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    {photoFiles.length === 0 ? "Add photo" : "Add more"}
+                    {photoFiles.length === 0 ? "Add Photo" : "Add More"}
                   </span>
                 </button>
               )}
@@ -313,7 +312,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             />
           </div>
         </div>
-        <DialogFooter className="!flex-col !gap-2 !items-stretch">
+        <DialogFooter className="!flex-col !items-stretch">
           <Button
             onClick={handleSubmit}
             disabled={submitting || !canSubmit}
@@ -346,7 +345,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       {/* Tip prompt — only opens after a 5-star review. Tighter than
           waiting for the separate tip flow on Activity. */}
       <Dialog open={tipPromptOpen} onOpenChange={(o) => { if (!o) { setTipPromptOpen(false); onClose(); } }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent>
           <DialogHero title={`Send ${revieweeName} a tip?`} />
           {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
               title": headers show a title and nothing else). Not dropped —
@@ -358,7 +357,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             Goes straight to the Helpr — no platform cut. Most posters tip 10–15%
             for great work.
           </p>
-          <DialogFooter className="!gap-2">
+          <DialogFooter>
             <Button
               variant="ghost"
               onClick={() => { setTipPromptOpen(false); onClose(); }}

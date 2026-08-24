@@ -1,10 +1,8 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CreditCard, ChevronRight, DollarSign, Banknote } from "lucide-react";
 import { PayoutSetupForm } from "@/components/PayoutSetupForm";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
@@ -29,7 +27,6 @@ interface PaymentTabProps {
 }
 
 export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: PaymentTabProps) {
-  const [searchParams] = useSearchParams();
   const { user } = useCurrentUser();
   // Last-paid payout — pulls the most recent `paid` row from
   // payout_transfers (RLS scopes to helper_id automatically). Surfaces
@@ -59,18 +56,6 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
     gcTime: 5 * 60_000,
   });
 
-  // Surface Stripe redirect outcomes; the live status is rendered inside
-  // <PayoutSetupForm /> which owns its own fetch — no need to duplicate it
-  // here (the previous implementation fetched the status and threw the
-  // result away, which only added latency).
-  useEffect(() => {
-    const connectParam = searchParams.get("connect");
-    if (connectParam === "success") {
-      toast.success("Payout account setup in progress. Checking status...");
-    } else if (connectParam === "refresh") {
-      toast.info("Please complete your payout setup to receive payouts.");
-    }
-  }, [searchParams]);
 
   // Lifetime totals — completed jobs only so cancelled/expired don't
   // inflate the headline numbers.

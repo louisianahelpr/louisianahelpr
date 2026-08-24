@@ -66,7 +66,6 @@ export function MessageActionSheet({
     try {
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText && message.content) {
         await navigator.clipboard.writeText(message.content);
-        toast.success("Message copied.");
       }
     } catch {
       toast.error("Couldn't copy that message.");

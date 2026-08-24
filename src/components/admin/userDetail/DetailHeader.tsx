@@ -1,5 +1,4 @@
 import { Pencil, RefreshCw, MailIcon } from "lucide-react";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,7 +74,6 @@ export function DetailHeader({
                   denial_reason: null,
                   application_count: currentCount + 1,
                 }).eq("id", viewProfile.id);
-                toast.success("User moved back to pending for re-review.");
                 loadProfiles();
                 setViewProfile(null);
               }}

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { CheckCircle2, Clock, AlertTriangle, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Clock, AlertTriangle, ShieldCheck, CalendarClock } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -31,6 +31,15 @@ export function JobConfirmation({
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [localConfirmedAt, setLocalConfirmedAt] = useState<string | null>(null);
+  // A minute tick, so the "opens in" clock below actually counts. Without it
+  // the card renders once when the list mounts and then sits on a stale number
+  // for as long as the screen is open.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  void tick;
 
   const jobDate = parseLocalDate(dateNeeded);
   const now = new Date();
@@ -39,8 +48,58 @@ export function JobConfirmation({
   // Hide once helper is on the way or beyond
   if (helperOnTheWayAt) return null;
 
+  const isLiveJob = jobStatus === "accepted" || jobStatus === "in_progress";
   // Show for accepted/in_progress jobs within 24 hours of job date
-  const showConfirmation = (jobStatus === "accepted" || jobStatus === "in_progress") && hoursUntilJob <= 24 && hoursUntilJob > -12;
+  const showConfirmation = isLiveJob && hoursUntilJob <= 24 && hoursUntilJob > -12;
+
+  /* NOT-YET-OPEN IS A STATE, NOT AN ABSENCE.
+     This component used to `return null` for every accepted job more than 24
+     hours out — while JobTracking, right above it, printed "Confirm the job
+     below to unlock the next step". So a helpr who accepted a job three weeks
+     ahead was told to do something with nothing underneath to do it with, and
+     no way to find out when there would be (owner: "they need ... a way to
+     cofnrim 24 hours that they will be there ... actually look at what youre
+     doing and make sure its good work bc its not rn", and "they need a
+     coundown for the time to confirm they will be at the job").
+
+     Same card, same two status chips, no button — plus the clock the helpr was
+     missing. The 24-hour window itself is unchanged; it just says so now. */
+  if (isLiveJob && hoursUntilJob > 24) {
+    const opensAt = new Date(jobDate.getTime() - 24 * 3_600_000);
+    const minsUntilOpen = Math.max(0, Math.round((opensAt.getTime() - now.getTime()) / 60_000));
+    const d = Math.floor(minsUntilOpen / 1440);
+    const h = Math.floor((minsUntilOpen % 1440) / 60);
+    const m = minsUntilOpen % 60;
+    const untilOpen = d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+    /* A STRIP, not a card. The first draft of this state was a full
+       liquid-glass card with its own heading and paragraph, which put a THIRD
+       card on a scheduled job — "Job starts in 5d 3h", the tracker, and then a
+       card repeating the same date a third time to say nothing had happened
+       yet. The date is already on the card twice; what was actually missing is
+       one clock and one sentence, so that is all this is. */
+    return (
+      <div
+        className="flex items-start gap-2 p-2 rounded-ds-sm border"
+        style={{
+          background: "hsl(var(--amber-tint) / 0.05)",
+          borderColor: "hsl(var(--amber-tint) / 0.20)",
+          color: "hsl(var(--muted-foreground))",
+        }}
+      >
+        <CalendarClock className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
+        <div className="min-w-0">
+          <p className="text-ds-11 font-semibold tabular-nums">
+            Confirmation opens in {untilOpen}
+          </p>
+          <p className="text-ds-10 mt-0.5">
+            The day before, we ask you both to confirm you're still on — that's
+            what unlocks the rest of the tracker.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!showConfirmation) return null;
 
   const handleConfirm = async () => {
@@ -59,7 +118,6 @@ export function JobConfirmation({
       toast.error("We couldn't confirm just now — please try again.");
     } else {
       hapticSuccess();
-      toast.success("Confirmed! You're committed to this job.");
       setLocalConfirmedAt(new Date().toISOString());
       onConfirm?.();
       // Notify the other party
@@ -176,7 +234,6 @@ export function JobConfirmation({
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <ShieldCheck className="w-3 h-3" /> Locking it in
@@ -221,7 +278,7 @@ export function JobConfirmation({
               </p>
             </div>
           </div>
-          <DialogFooter className="!gap-2">
+          <DialogFooter>
             <Button variant="ghost" onClick={() => setShowConfirmDialog(false)} className="rounded-ds-md">Cancel</Button>
             <Button
               variant="primary"

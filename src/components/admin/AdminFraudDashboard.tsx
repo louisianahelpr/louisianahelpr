@@ -88,7 +88,6 @@ const AdminFraudDashboard = () => {
 
     if (error) toast.error(error.message);
     else {
-      toast.success("Flag resolved");
       await logAdminAction("resolve_fraud_flag", "fraud_flag", flag.id, { flag_type: flag.flag_type, user_id: flag.user_id });
       qc.invalidateQueries({ queryKey });
     }

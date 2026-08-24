@@ -70,7 +70,6 @@ const AdminCredentialQueue = () => {
       toast.error(error.message);
       return;
     }
-    toast.success(decision === "verified" ? "Approved" : "Rejected");
     qc.invalidateQueries({ queryKey });
   };
 
@@ -109,8 +108,8 @@ const AdminCredentialQueue = () => {
           variant="inline"
           icon={ShieldCheck}
           eyebrow="All clear"
-          title="No pending credentials."
-          body="License and insurance uploads land here as helpers submit them."
+          title="No pending credentials"
+          body="License and insurance uploads land here as Helprs submit them."
         />
       ) : (
         <div className="space-y-3">
@@ -254,7 +253,7 @@ function SignedOpenLink({ path }: { path: string }) {
       .createSignedUrl(path, 300);
     setBusy(false);
     if (error || !data) {
-      toast.error("Couldn't generate a view link");
+      toast.error("Couldn't generate a view link.");
       return;
     }
     window.open(data.signedUrl, "_blank", "noopener");

@@ -45,7 +45,11 @@ for (const width of [375, 1440]) {
     // Land on the form itself, not the entry choice. The entry step is a
     // deliberate landing (start fresh / repost / template / AI), so the form
     // is one tap in.
-    const startFresh = page.getByRole("button", { name: /^Start fresh/ }).first();
+    // Case-INSENSITIVE on purpose: the control reads "Start Fresh" in title
+    // case, and its accessible name also carries the description ("Start Fresh
+    // Build your request from a blank form."), so an exact or case-sensitive
+    // match silently waits out its full timeout instead of failing usefully.
+    const startFresh = page.getByRole("button", { name: /^start fresh/i }).first();
     await startFresh.waitFor({ timeout: 20_000 });
     await startFresh.click();
     await page.getByRole("heading", { name: /logistics|where and when/i }).first()

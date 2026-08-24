@@ -61,6 +61,17 @@ export interface ProfileTabPanelsProps {
   user: User | null;
   profile: Profile | null;
   setTab: (tab: Tab) => void;
+  /**
+   * Back out of the CURRENT tab. Every tab used to pass its own
+   * `onBack={onBackFromTab}` (seventeen of them), which meant back
+   * from a tab always went to the Profile landing even when you had arrived
+   * from somewhere else entirely — a notification, `/earnings`, `/schedule`.
+   * That is the one back button in the app that ignored where you came from:
+   * every other sub-page (/work-record, /benefits, /pets) returns you to the
+   * previous screen. The parent decides which of the two this is; the tabs
+   * just call it. See `backFromTab` in Profile.tsx.
+   */
+  onBackFromTab: () => void;
   setProfile: React.Dispatch<React.SetStateAction<Profile | null>>;
 
   // Profile edit form
@@ -118,6 +129,7 @@ export const ProfileTabPanels = ({
   tab,
   user,
   profile,
+  onBackFromTab,
   setTab,
   setProfile,
   firstName,
@@ -189,7 +201,7 @@ export const ProfileTabPanels = ({
             onSave={onSave}
             onAvatarUpload={onAvatarUpload}
             onIdUpload={onIdUpload}
-            onBack={() => setTab("landing")}
+            onBack={onBackFromTab}
             onPortfolioChange={(urls) => setProfile((prev) => prev ? ({ ...prev, portfolio_urls: urls }) : prev)}
             onContactSupport={() => setTab("support")}
           />
@@ -214,7 +226,7 @@ export const ProfileTabPanels = ({
               earningsJobs={earningsJobs}
               tips={tips}
               loading={earningsQuery.isPending}
-              onBack={() => setTab("landing")}
+              onBack={onBackFromTab}
               helperId={user.id}
               helperName={profile?.full_name || user.email || "Helpr"}
             />
@@ -223,7 +235,7 @@ export const ProfileTabPanels = ({
       )}
 
       {tab === "schedule" && user && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {scheduleQuery.isError && (
             <ProfileSectionError section="your schedule" onRetry={() => { scheduleQuery.refetch(); }} />
           )}
@@ -233,7 +245,7 @@ export const ProfileTabPanels = ({
               assignedJobs={scheduleAssignedJobs}
               loading={scheduleQuery.isPending}
               userId={user.id}
-              onBack={() => setTab("landing")}
+              onBack={onBackFromTab}
             />
           </Suspense>
         </div>
@@ -241,47 +253,47 @@ export const ProfileTabPanels = ({
 
       {tab === "availability" && user && (
         <Suspense fallback={<TabFallback />}>
-          <AvailabilityTab userId={user.id} onBack={() => setTab("landing")} />
+          <AvailabilityTab userId={user.id} onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "subscription" && (
         <Suspense fallback={<TabFallback />}>
-          <SubscriptionTab profile={profile} user={user} onBack={() => setTab("landing")} />
+          <SubscriptionTab profile={profile} user={user} onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "posted_jobs" && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {inlineJobsQuery.isError && (
             <ProfileSectionError section="your posted jobs" onRetry={() => { inlineJobsQuery.refetch(); }} />
           )}
           <Suspense fallback={<TabFallback />}>
-            <JobListTab variant="posted" jobs={inlinePostedJobs} onBack={() => setTab("landing")} />
+            <JobListTab variant="posted" jobs={inlinePostedJobs} onBack={onBackFromTab} />
           </Suspense>
         </div>
       )}
 
       {tab === "completed_jobs" && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {inlineJobsQuery.isError && (
             <ProfileSectionError section="your completed jobs" onRetry={() => { inlineJobsQuery.refetch(); }} />
           )}
           <Suspense fallback={<TabFallback />}>
-            <JobListTab variant="completed" jobs={inlineCompletedJobs} onBack={() => setTab("landing")} />
+            <JobListTab variant="completed" jobs={inlineCompletedJobs} onBack={onBackFromTab} />
           </Suspense>
         </div>
       )}
 
       {tab === "support" && (
         <Suspense fallback={<TabFallback />}>
-          <SupportInline userId={user?.id} onBack={() => setTab("landing")} />
+          <SupportInline userId={user?.id} onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "saved_helpers" && (
         <Suspense fallback={<TabFallback />}>
-          <SavedHelpersTab onBack={() => setTab("landing")} />
+          <SavedHelpersTab onBack={onBackFromTab} />
         </Suspense>
       )}
 
@@ -290,16 +302,16 @@ export const ProfileTabPanels = ({
           <AccessibilityTab
             seniorMode={seniorMode}
             onToggleSeniorMode={onToggleSeniorMode}
-            onBack={() => setTab("landing")}
+            onBack={onBackFromTab}
           />
         </Suspense>
       )}
 
       {tab === "notifications" && (
-        <div className="h-full min-h-0 flex flex-col gap-3 overflow-hidden">
+        <div className="space-y-4">
           <ProfileTabHeader
             title="Notifications"
-            onBack={() => setTab("landing")}
+            onBack={onBackFromTab}
           />
           <Suspense fallback={<TabFallback />}>
             <NotificationPreferences />
@@ -309,7 +321,7 @@ export const ProfileTabPanels = ({
 
       {tab === "security" && (
         <Suspense fallback={<TabFallback />}>
-          <SecurityTab email={user?.email} onBack={() => setTab("landing")} />
+          <SecurityTab email={user?.email} onBack={onBackFromTab} />
         </Suspense>
       )}
 
@@ -327,16 +339,16 @@ export const ProfileTabPanels = ({
             />
           )}
           <Suspense fallback={<TabFallback />}>
-            <ReviewsTab reviews={reviews} loading={reviewsQuery.isPending} avgRating={avgRating} reviewCount={reviewCount} onBack={() => setTab("landing")} />
+            <ReviewsTab reviews={reviews} loading={reviewsQuery.isPending} avgRating={avgRating} reviewCount={reviewCount} onBack={onBackFromTab} />
           </Suspense>
         </div>
       )}
 
       {tab === "referral" && user && (
-        <div className="space-y-5">
+        <div className="space-y-4">
           <ProfileTabHeader
             title="Referrals"
-            onBack={() => setTab("landing")}
+            onBack={onBackFromTab}
           />
           <Suspense fallback={<TabFallback />}>
             <ReferralSection userId={user.id} />
@@ -346,12 +358,12 @@ export const ProfileTabPanels = ({
 
       {tab === "legal" && (
         <Suspense fallback={<TabFallback />}>
-          <LegalTab onBack={() => setTab("landing")} />
+          <LegalTab onBack={onBackFromTab} />
         </Suspense>
       )}
 
       {tab === "warnings" && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {violationsQuery.isError && (
             <ProfileSectionError
               section="your warnings & strikes"
@@ -359,7 +371,7 @@ export const ProfileTabPanels = ({
             />
           )}
           <Suspense fallback={<TabFallback />}>
-            <WarningsTab violations={violations} loading={violationsQuery.isPending} onBack={() => setTab("landing")} />
+            <WarningsTab violations={violations} loading={violationsQuery.isPending} onBack={onBackFromTab} />
           </Suspense>
         </div>
       )}
@@ -367,7 +379,7 @@ export const ProfileTabPanels = ({
       {tab === "credentials" && user && (
         <div className="space-y-4">
           <Suspense fallback={<TabFallback />}>
-            <CredentialsTab userId={user.id} onBack={() => setTab("landing")} />
+            <CredentialsTab userId={user.id} onBack={onBackFromTab} />
           </Suspense>
         </div>
       )}

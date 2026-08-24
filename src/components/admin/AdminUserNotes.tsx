@@ -110,7 +110,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       return;
     }
     if (!currentAdminId) {
-      toast.error("Could not identify admin user.");
+      toast.error("Couldn't identify admin user.");
       return;
     }
     setSaving(true);
@@ -127,7 +127,6 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
     }
     setNewNote("");
     setNewCategory("general");
-    toast.success("Note saved");
     loadNotes();
   };
 
@@ -146,7 +145,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
   const saveEdit = async (id: string) => {
     const trimmed = editingText.trim();
     if (!trimmed) {
-      toast.error("Note can't be empty");
+      toast.error("Note can't be empty.");
       return;
     }
     const { error } = await supabase.from("admin_user_notes")
@@ -157,7 +156,6 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       return;
     }
     cancelEdit();
-    toast.success("Note updated");
     loadNotes();
   };
 
@@ -171,7 +169,6 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       return;
     }
     setDeleteNote(null);
-    toast.success("Note deleted");
     loadNotes();
   };
 

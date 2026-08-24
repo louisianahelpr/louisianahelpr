@@ -147,7 +147,6 @@ export function useNavUnreadCount(user: User | null | undefined) {
       .then(({ error }) => {
         if (error) report(error, { tags: { source: "useNavUnreadCount.clearMessageNotifs" } });
       });
-    toast.success("All messages marked read.");
   }, [user, unreadCount]);
 
   return { unreadCount, markAllRead };

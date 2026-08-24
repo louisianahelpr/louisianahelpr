@@ -11,6 +11,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
 import { postAuthDestination } from "@/lib/jobIntent";
+import { REVIEW_SLA, REVIEW_SLA_HOURS } from "@/lib/reviewSla";
 
 const StepRow = ({
   label,
@@ -105,7 +106,6 @@ const AccountPending = () => {
     if (loading) return;
     if (!user) { navigate("/login"); return; }
     if (profile?.approval_status === "approved") {
-      toast.success("You're approved! Welcome in.");
       // THE hop where a new account is finally admitted to the app — and the
       // end of the journey that began with a logged-out tap on a job card.
       // `postAuthDestination` spends the stored `?redirect=` target here
@@ -133,7 +133,6 @@ const AccountPending = () => {
     try {
       const { error } = await supabase.auth.resend({ type: "signup", email: userEmail });
       if (error) toast.error("Couldn't send. Try again in a moment.");
-      else toast.success("Sent! Check your inbox.");
     } catch {
       toast.error("Hit a snag on our end — try that again in a moment?");
     } finally {
@@ -163,13 +162,6 @@ const AccountPending = () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
       await queryClient.refetchQueries({ queryKey: queryKeys.currentUser.all });
 
-      const fresh = queryClient.getQueryData<{ profile: { approval_status?: string | null } | null }>(
-        queryKeys.currentUser.byId(user?.id),
-      );
-      const status = fresh?.profile?.approval_status;
-      if (status !== "approved" && status !== "denied") {
-        toast.success("Still verifying — we'll notify you the moment you're cleared.");
-      }
     } catch {
       toast.error("Couldn't sync your status just yet — try again in a sec?");
     } finally {
@@ -275,10 +267,14 @@ const AccountPending = () => {
                 >
                   We&apos;re verifying your details
                 </h1>
+                {/* Deliberately carries no turnaround number: the banner below
+                    owns the SLA. This line used to say "24–48 hours" while that
+                    banner said "under 2 hours", and both always render — so the
+                    screen contradicted itself in front of someone waiting on
+                    approval. One statement, one number, one source. */}
                 <p className="text-ds-13 text-muted-foreground leading-relaxed max-w-[90%] sm:max-w-[28ch]">
                   {firstName ? `Hang tight, ${firstName}. ` : ""}
-                  Our team is reviewing your credentials. This usually takes
-                  {" "}<span className="font-medium text-foreground">24–48 hours</span>.
+                  Our team is reviewing your credentials.
                 </p>
               </div>
 
@@ -306,9 +302,10 @@ const AccountPending = () => {
               </div>
             </div>
 
-            {/* Estimated review-time banner — sets a clearer
-                expectation than the generic "24-48 hours" line in the
-                hero, calibrated for business-hour reviewers. Renders
+            {/* Estimated review-time banner — the ONE place this screen
+                states a turnaround, calibrated for business-hour reviewers.
+                The number comes from REVIEW_SLA so the dashboard's
+                pending-review banner can never drift away from it. Renders
                 only when there's still review work in flight. */}
             {!reviewInProgress || progressPct < 100 ? (
               <div
@@ -326,9 +323,9 @@ const AccountPending = () => {
                 />
                 <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--ink-deep))" }}>
                   Reviews usually finish in{" "}
-                  <span className="font-semibold">under 2 hours</span>{" "}
-                  during business hours (8a–6p CT). Overnight signups clear
-                  next morning.
+                  <span className="font-semibold">{REVIEW_SLA}</span>{" "}
+                  during business hours ({REVIEW_SLA_HOURS}). Overnight signups
+                  clear next morning.
                 </p>
               </div>
             ) : null}

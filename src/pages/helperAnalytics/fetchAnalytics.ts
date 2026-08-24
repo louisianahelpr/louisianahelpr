@@ -135,7 +135,13 @@ export async function fetchAnalytics(userId: string) {
   const tierKey = tier as SubscriptionTier;
   const platformFeePercent =
     (TIER_PERKS[tierKey] ?? TIER_PERKS.free).platformFeePercent / 100;
-  const platformFee = Math.round(totalEarnings * platformFeePercent);
+  // CENTS, not whole dollars. `Math.round(gross * pct)` rounded the FEE to the
+  // nearest dollar, so on a single $260 job the 12% fee became $31 instead of
+  // $31.20 and net came out $229 — while the payout ledger on the same screen,
+  // reading the real Stripe transfer, said $228.80. Not a formatting
+  // difference: the two surfaces were computing different money. Rounding to
+  // cents makes the estimate agree with the ledger it sits above.
+  const platformFee = Math.round(totalEarnings * platformFeePercent * 100) / 100;
   const netEarnings = totalEarnings - platformFee;
 
   // ── On-time arrival rate ─────────────────────────────────────────────────

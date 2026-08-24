@@ -37,7 +37,7 @@ export function WelcomeModal({ open, onDismiss }: Props) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onDismiss(); }}>
       <DialogContent
-        className="max-w-sm gap-0 p-0 overflow-hidden"
+        className="gap-0 p-0 overflow-hidden"
         onOpenAutoFocus={(e) => e.preventDefault()}
         style={{
           background: "hsl(var(--parchment))",

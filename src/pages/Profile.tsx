@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, lazy, Suspense } from "react";
+import { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -40,6 +40,7 @@ import { ProfileLanding } from "@/components/profile/ProfileLanding";
 import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./profile/ProfileTabPanels";
 import { TAB_TITLES, type Profile, type Tab } from "./profile/types";
+import { hasInAppHistory } from "@/lib/inAppHistory";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
 /**
@@ -73,6 +74,38 @@ const ProfilePage = () => {
   const [avatarBroken, setAvatarBroken] = useState(false);
   const initialTab = (searchParams.get("tab") as Tab) || "landing";
   const [tab, setTab] = useState<Tab>(initialTab);
+
+  /**
+   * Back out of a tab — to the Profile landing when that is where you came
+   * from, and otherwise to wherever you actually came from.
+   *
+   * The seventeen tabs all hardcoded `setTab("landing")`, so back from
+   * Earnings dropped you on the Profile landing whether you had tapped the
+   * Earnings row a second earlier or followed a payout notification straight
+   * to `/profile?tab=earnings`. In the second case that is the wrong screen
+   * AND an extra press, and it made Profile the only sub-surface in the app
+   * whose back button ignored history — `/work-record`, `/benefits` and
+   * `/pets` all return you to the previous page from the same starting point.
+   *
+   * `cameFromLanding` is the whole distinction: true once the landing has been
+   * rendered in this visit, which is exactly the case where "up" and "back"
+   * are the same screen. Deep-linked straight into a tab, we go back a real
+   * history entry instead, falling back to the landing when there is no
+   * in-app history to go back to (a cold open on the deep link) — the same
+   * has-history test `BackButton` already uses.
+   */
+  const cameFromLanding = useRef(initialTab === "landing");
+  useEffect(() => {
+    if (tab === "landing") cameFromLanding.current = true;
+  }, [tab]);
+  const backFromTab = useCallback(() => {
+    if (cameFromLanding.current) {
+      setTab("landing");
+      return;
+    }
+    if (hasInAppHistory()) navigate(-1);
+    else setTab("landing");
+  }, [navigate]);
 
   // One title per tab. Every one of the 18 tabs used to report the same
   // "My Profile — Helpr", so browser history, bookmarks and the tab bar could
@@ -333,7 +366,6 @@ const ProfilePage = () => {
       setFullName(merged);
       setJustSaved(true);
       hapticSuccess();
-      toast.success("Profile updated");
       setTimeout(() => setJustSaved(false), 1800);
     }
   };
@@ -353,7 +385,6 @@ const ProfilePage = () => {
     if (updErr) toast.error("Got your ID, but couldn't save it to your profile. Try again?");
     else {
       setProfile(prev => prev ? ({ ...prev, id_document_url: path, idv_status: "pending" }) : prev);
-      toast.success("ID sent in — we'll let you know when it's cleared.");
     }
     setIdUploading(false);
   };
@@ -394,7 +425,6 @@ const ProfilePage = () => {
     } else {
       setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
       setAvatarBroken(false);
-      toast.success("Profile picture updated");
     }
     setAvatarUploading(false);
   };
@@ -427,7 +457,7 @@ const ProfilePage = () => {
         if (activeErr) throw activeErr;
         if (activeJobs && activeJobs.length > 0) {
           toast.error(
-            "You have an active task or a payment in progress. Wrap up your open tasks and let any payments settle first.",
+            "You have an active job or a payment in progress. Wrap up your open jobs and let any payments settle first.",
           );
           setDeletingAccount(false);
           return;
@@ -437,7 +467,6 @@ const ProfilePage = () => {
         body: { confirmation: "DELETE MY ACCOUNT" },
       });
       if (error) throw error;
-      toast.success("Account deleted successfully");
       await signOutWithPushCleanup();
       navigate("/");
     } catch (err: any) {
@@ -456,9 +485,9 @@ const ProfilePage = () => {
       <AppShell
         scrollable={false}
         contentClassName="overflow-hidden"
-        className="bg-premium-page"
+        className="bg-premium-page pt-safe-top"
       >
-        <div className="container mx-auto px-5 lg:px-8 xl:px-12 pb-4 flex-1 min-h-0 overflow-y-auto" style={{ paddingTop: "calc(var(--safe-area-top, 0px) + 1rem)" }}>
+        <div className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-4 flex-1 min-h-0 overflow-y-auto">
           <div className="page-measure mx-auto">
             <ProfilePageSkeleton />
           </div>
@@ -499,12 +528,23 @@ const ProfilePage = () => {
   return (
     <>
     <AppShell
-      
       scrollable={false}
       contentClassName="overflow-hidden"
-      className="bg-premium-page"
+      className="bg-premium-page pt-safe-top"
     >
-      <div className="container mx-auto px-5 lg:px-8 xl:px-12 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" style={{ paddingTop: "calc(var(--safe-area-top, 0px) + 0.75rem)" }}>
+      {/* THE SAME CONTAINER STRING PageScaffold USES, character for character.
+          Profile is the one main screen not built on PageScaffold, and it had
+          drifted: its container carried an inline
+          `calc(var(--safe-area-top) + 0.75rem)` while the wrapper INSIDE it
+          added another `pt-3 lg:pt-5`. Two paddings where its four siblings
+          have one, so the first card on Profile started at y=88 while Home,
+          Posts, Jobs and Messages all started at y=76 — measured at 1440.
+
+          The safe-area inset moves to the AppShell's `pt-safe-top`, which is
+          exactly where PageScaffold puts it, so the inset is applied in ONE
+          layer here too (owner: same spacing across Home / Posts / Jobs /
+          Messages / Profile). */}
+      <div className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
         {tab === "landing" ? (
           /* Landing scrolls inside a PullToRefreshWrapper so swiping
              down re-syncs the profile, Stripe status, stats + reviews. */
@@ -514,7 +554,7 @@ const ProfilePage = () => {
             refreshing={refreshing}
             isPulling={isPulling}
             canTrigger={canTrigger}
-            className="w-full page-measure mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pt-3 lg:pt-5 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]"
+            className="w-full page-measure mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]"
           >
             <ProfileLanding
               profile={profile}
@@ -559,6 +599,7 @@ const ProfilePage = () => {
           <div className="animate-ds-page-in">
           <ProfileTabPanels
             tab={tab}
+            onBackFromTab={backFromTab}
             user={user}
             profile={profile}
             setTab={setTab}
@@ -614,11 +655,11 @@ const ProfilePage = () => {
         onOpenChange={setShowLogoutDialog}
         title="Log Out?"
         description="You can sign back in anytime — your account stays intact."
-        primaryLabel="Log out"
+        primaryLabel="Log Out"
         primaryTone="bark"
         primaryHaptic="medium"
         onPrimary={handleLogout}
-        secondaryLabel="Stay signed in"
+        secondaryLabel="Stay Signed In"
       />
 
       {/* Mounted only once the user opens it — the dialog chunk (and its

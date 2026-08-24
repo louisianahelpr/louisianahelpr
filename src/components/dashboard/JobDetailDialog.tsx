@@ -116,24 +116,45 @@ const JobDetailDialog = ({
         // tailwind-merge resolves each against the base class in the same
         // group, so ordering here is the whole mechanism.
         className={[
-          "grid-cols-1 !gap-2",
+          "grid-cols-1",
           // 1. phone geometry
           "left-0 top-auto bottom-0 translate-x-0 translate-y-0",
           "w-full max-w-none max-h-[92dvh] rounded-b-none rounded-t-[28px]",
           // 2. phone animation
           "data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-bottom-full data-[state=open]:zoom-in-100",
           "data-[state=closed]:slide-out-to-left-0 data-[state=closed]:slide-out-to-bottom-full data-[state=closed]:zoom-out-100",
-          // 3. sm+ restores the centred dialog verbatim
-          "sm:left-[50%] sm:top-[50%] sm:bottom-auto sm:translate-x-[-50%] sm:translate-y-[-50%]",
-          "sm:w-[calc(100%-2rem)] sm:max-w-lg sm:max-h-[88dvh] sm:rounded-t-[28px] sm:rounded-b-[28px]",
-          "sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%] sm:data-[state=open]:zoom-in-95",
-          "sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%] sm:data-[state=closed]:zoom-out-95",
+          // 3. sm+ restores DialogContent's OWN geometry — top-anchored at 7vh,
+          //    not the vertically-centred dialog this used to rebuild.
+          //
+          //    It restored `top-[50%] translate-y-[-50%]` verbatim, which is
+          //    the arrangement DialogContent moved away from: a vertically
+          //    centred box RE-CENTRES as its content arrives, so the panel
+          //    opens small and then grows in both directions while you are
+          //    reading it (owner: "opens small then gets bigger?"). Every
+          //    other dialog in the app was fixed by anchoring the top edge;
+          //    this one — the job detail, the most-opened modal here — kept
+          //    rebuilding the old behaviour inside its phone-sheet override
+          //    and so kept jumping.
+          //
+          //    `max-h` matches the global 86vh for the same reason: two
+          //    ceilings 2dvh apart on one component is a difference nobody
+          //    chose.
+          "sm:left-[50%] sm:top-[7vh] sm:bottom-auto sm:translate-x-[-50%] sm:translate-y-0",
+          "sm:w-[calc(100%-2rem)] sm:max-w-lg sm:max-h-[86vh] sm:rounded-t-[28px] sm:rounded-b-[28px]",
+          "sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-4 sm:data-[state=open]:zoom-in-95",
+          "sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-4 sm:data-[state=closed]:zoom-out-95",
           // Home-indicator clearance. The sheet is flush to the bottom edge,
           // so without this the footer CTA sits under the indicator on every
           // modern iPhone. sm+ is a floating card again and returns to the
           // base p-7 padding.
           "pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:pb-7",
-          "lg:max-w-3xl xl:max-w-6xl",
+          /* CAPPED AT THE READING COLUMN (owner). `xl:max-w-6xl` opened this
+             at 1152px — half again as wide as `max-w-3xl`, the column every
+             page behind it uses — for a job that is usually a title, three
+             meta chips and a paragraph. It read as a modal dwarfing the page
+             rather than sitting over it. 3xl matches the page; phone sheet and
+             tablet are untouched, this only changes 1024px and up. */
+          "lg:max-w-3xl",
         ].join(" ")}
 
         onTouchStart={(e) => {

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, it, expect } from "vitest";
@@ -118,12 +118,39 @@ describe("recurring series wiring", () => {
     expect(src).toContain("grid-cols-7");
   });
 
-  it("keeps the Repeats option shut until the charge cron is deployed", () => {
-    // The picker and the cron are both written and tested, but nothing bills
-    // the saved card for visit 2 until charge-recurring-visits is DEPLOYED and
-    // SCHEDULED. Shipping the picker first would let a poster book twelve
-    // visits and receive one — the exact failure the rebuild removed.
+  it("only opens Repeats while the charge cron is scheduled", () => {
+    // The gate was never about whether the picker worked — it was about whether
+    // anything BILLS the saved card for visit 2. Shipping the picker without
+    // the cron would let a poster book twelve visits and receive one, the exact
+    // failure the rebuild removed.
+    //
+    // So the assertion is a LINK, not a constant: if the flag is on, a
+    // migration that schedules charge-recurring-visits must exist. Flipping the
+    // flag back on in a future branch without the schedule fails here.
     const src = read("../../components/postjob/LogisticsSection.tsx");
-    expect(src).toMatch(/const RECURRING_ENABLED = false/);
+    const enabled = /const RECURRING_ENABLED = true/.test(src);
+    if (!enabled) {
+      expect(src).toMatch(/const RECURRING_ENABLED = false/);
+      return;
+    }
+    const migrations = readdirSync(
+      resolve(__dirname, "../../../supabase/migrations"),
+    ).filter((f) => f.endsWith(".sql"));
+    const schedules = migrations.filter((f) =>
+      /cron\.schedule/.test(
+        readFileSync(
+          resolve(__dirname, "../../../supabase/migrations", f),
+          "utf8",
+        ),
+      ) &&
+      readFileSync(
+        resolve(__dirname, "../../../supabase/migrations", f),
+        "utf8",
+      ).includes("charge-recurring-visits"),
+    );
+    expect(
+      schedules.length,
+      "RECURRING_ENABLED is true but no migration schedules charge-recurring-visits",
+    ).toBeGreaterThan(0);
   });
 });

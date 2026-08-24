@@ -115,7 +115,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // blocks the row read.
       const wantsMutual = !!currentUserId && currentUserId !== userId;
 
-      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes, repeatHireRes, credentialTierRes] = await Promise.all([
+      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes, repeatHireRes, credentialTierRes, existingThreadRes, appliedToMineRes] = await Promise.all([
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
@@ -193,6 +193,38 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // not just the viewer's own. Same RPC the Apply-gate uses in
         // useJobDetailData.ts. PGRST202-safe: falls back to 0.
         supabase.rpc("get_user_credential_tier", { p_user_id: userId! }),
+        /* CAN THIS VIEWER OPEN A THREAD WITH THIS PERSON?
+           House rule (owner): "shouldnt be able to message the poster. poster
+           must message them first." A helpr may not cold-message somebody
+           whose job they are hoping to get; the poster opens the conversation.
+
+           Two queries, and either one is a yes:
+
+           1. A message already exists in either direction. Once a thread is
+              open the rule has been satisfied — whoever started it, both sides
+              can reply, and hiding the button then would strand a live
+              conversation behind a profile you can no longer reach it from.
+           2. This person has APPLIED to one of the viewer's jobs. That is the
+              poster's own inbound pile, and reaching out to a candidate is
+              precisely the move the rule exists to protect.
+
+           `mutualJobsCount` (already fetched above) is the third yes: a job you
+           have actually worked together on. */
+        wantsMutual
+          ? supabase
+              .from("messages")
+              .select("id", { count: "exact", head: true })
+              .or(
+                `and(sender_id.eq.${currentUserId},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUserId})`,
+              )
+          : Promise.resolve({ data: null, error: null, count: 0 } as any),
+        wantsMutual
+          ? supabase
+              .from("applications")
+              .select("id, jobs!inner(customer_id)", { count: "exact", head: true })
+              .eq("helper_id", userId!)
+              .eq("jobs.customer_id", currentUserId!)
+          : Promise.resolve({ data: null, error: null, count: 0 } as any),
       ]);
 
       // These five feed secondary stats (reviews, job counts, response
@@ -298,6 +330,17 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // Mutual jobs (#1) — silently degrade to 0 if the count read errored
       // (RLS, unexpected schema). The badge hides itself at 0.
       const mutualJobsCount = wantsMutual ? (mutualRes?.count ?? 0) : 0;
+      /* See the two queries above. TRUE when there is no viewer to gate
+         (own profile / signed out) because the button is not rendered in those
+         cases anyway, and false-by-default there would make the gate look like
+         it had fired when it never ran. An errored count reads as 0 — deny —
+         because the failure we care about is opening a channel the rule says
+         should stay shut. */
+      const canMessage = wantsMutual
+        ? mutualJobsCount > 0 ||
+          (existingThreadRes?.count ?? 0) > 0 ||
+          (appliedToMineRes?.count ?? 0) > 0
+        : true;
       if (wantsMutual && mutualRes?.error) {
         report(mutualRes.error, {
           severity: "warning",
@@ -419,6 +462,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         responseMetrics,
         cancellationRate,
         mutualJobsCount,
+        canMessage,
         onTimeArrivalRate,
         revisionFrequency,
         // Serialize so React Query's cache survives a window reload (Date
@@ -648,6 +692,10 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
   const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
   const cancellationRate = data?.cancellationRate ?? { total: 0, cancelled: 0, rate: null as number | null };
   const mutualJobsCount = data?.mutualJobsCount ?? 0;
+  // Deny while the fetch is still in flight: the Message button appearing and
+  // then vanishing a beat later is worse than it arriving a beat late, and
+  // this gate exists to keep a channel shut.
+  const canMessage = data?.canMessage ?? false;
   const onTimeArrivalRate = data?.onTimeArrivalRate ?? null;
   const revisionFrequency = data?.revisionFrequency ?? null;
   const lastActiveAt = data?.lastActiveIso ? new Date(data.lastActiveIso) : null;
@@ -682,6 +730,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     responseMetrics,
     cancellationRate,
     mutualJobsCount,
+    canMessage,
     onTimeArrivalRate,
     revisionFrequency,
     lastActiveAt,

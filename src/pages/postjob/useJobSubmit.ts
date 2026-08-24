@@ -51,6 +51,8 @@ export interface UseJobSubmitParams {
   title: string;
   description: string;
   category: string;
+  /** Pet profile ids to attach after the insert (pet-care jobs). */
+  selectedPetIds?: string[];
   // Logistics fields
   streetAddress: string;
   city: string;
@@ -108,6 +110,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     title,
     description,
     category,
+    selectedPetIds,
     streetAddress,
     city,
     addrState,
@@ -144,24 +147,24 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) { toast.error("Give your task a title"); scrollToField("title"); return; }
-    if (!description.trim()) { toast.error("Add a description"); scrollToField("description"); return; }
-    if (hasUnfilledPlaceholders(description)) { toast.error("Replace the [bracketed] placeholders with your own details before posting"); scrollToField("description"); return; }
-    if (!category) { toast.error("Pick a category"); scrollToField("category-picker"); return; }
+    if (!title.trim()) { toast.error("Give your job a title."); scrollToField("title"); return; }
+    if (!description.trim()) { toast.error("Add a description."); scrollToField("description"); return; }
+    if (hasUnfilledPlaceholders(description)) { toast.error("Replace the [bracketed] placeholders with your own details before posting."); scrollToField("description"); return; }
+    if (!category) { toast.error("Pick a category."); scrollToField("category-picker"); return; }
     // Photo is optional — a photo dramatically improves applicant count and
     // quote accuracy, so it's strongly nudged in the UI, but tasks like
     // dog-walking or errands have no natural photo and shouldn't be blocked.
-    if (!streetAddress.trim()) { toast.error("Add a street address"); scrollToField("streetAddress"); return; }
-    if (!city.trim()) { toast.error("Add a city"); scrollToField("city"); return; }
-    if (!addrState.trim()) { toast.error("Add a state"); scrollToField("state"); return; }
-    if (!zipCode.trim()) { toast.error("Add a zip code"); scrollToField("zipCode"); return; }
-    if (!dateNeeded) { toast.error("Pick a date for the task"); scrollToField("date"); return; }
+    if (!streetAddress.trim()) { toast.error("Add a street address."); scrollToField("streetAddress"); return; }
+    if (!city.trim()) { toast.error("Add a city."); scrollToField("city"); return; }
+    if (!addrState.trim()) { toast.error("Add a state."); scrollToField("state"); return; }
+    if (!zipCode.trim()) { toast.error("Add a zip code."); scrollToField("zipCode"); return; }
+    if (!dateNeeded) { toast.error("Pick a date for the job."); scrollToField("date"); return; }
     // Validate date is not in the past
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(dateNeeded + "T00:00:00");
-    if (selectedDate < today) { toast.error("Date cannot be in the past"); scrollToField("date"); return; }
-    if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)"); scrollToField("flexible"); return; }
+    if (selectedDate < today) { toast.error("Date cannot be in the past."); scrollToField("date"); return; }
+    if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)."); scrollToField("flexible"); return; }
     // special_requirements is optional — no validation needed
     // The budget is always required and always bounded now. It used to be
     // skipped entirely in "Accept bids" mode, which is how a bid job reached
@@ -175,7 +178,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // through would create a parent that never spawns a second visit and never
     // says why.
     if (isRecurring && recurrenceDays.length === 0) {
-      toast.error("Pick at least one day this job repeats on");
+      toast.error("Pick at least one day this job repeats on.");
       scrollToField("date");
       return;
     }
@@ -214,7 +217,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      toast.error("Sign in to post a task");
+      toast.error("Sign in to post a job.");
       setSaving(false);
       submittingRef.current = false;
       return null;
@@ -395,6 +398,28 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // Set cooldown timestamp immediately after successful insert
     safeStorage.setItem(COOLDOWN_KEY, Date.now().toString());
 
+    /* PETS — attach the profiles the poster picked (migration 20260823160000).
+       Best-effort and non-blocking: the job exists and is paid for either way,
+       and failing the whole post because a care sheet did not link would be a
+       far worse outcome than a poster re-attaching from Edit. Reported so a
+       systematic failure is visible rather than silent. */
+    if (selectedPetIds && selectedPetIds.length > 0) {
+      const { error: petErr } = await supabase
+        .from("job_pets" as never)
+        .insert(
+          selectedPetIds.map((petId) => ({ job_id: jobData.id, pet_id: petId })) as never,
+        );
+      if (petErr) {
+        report(petErr, {
+          tags: { source: "useJobSubmit.attachPets" },
+          context: { job_id: jobData.id, pet_count: selectedPetIds.length },
+        });
+        toast.error("Your job posted, but the pet details didn't attach.", {
+          description: "Open the job and add them from Edit so your Helpr can see them.",
+        });
+      }
+    }
+
     // Stash the just-posted job id so the post-payment success sheet can
     // show share-this-link / view-applicants / post-another-like-this
     // CTAs without re-querying Supabase. Cheap to write, the success
@@ -427,7 +452,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
     hapticSuccess();
     void maybeFireFirstPostConfetti();
-    toast.info("Redirecting to payment…");
 
     // Geocode the address and patch the job row with lat/lng so it shows
     // up on /browse?view=map. Kicked off here so it runs concurrently with
@@ -488,7 +512,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         safeStorage.removeItem(COOLDOWN_KEY);
         const errorMsg = paymentData?.error || paymentError?.message || "Payment setup failed";
         hapticError();
-        toast.error(`Could not start payment: ${errorMsg}. Please try again.`);
+        toast.error(`Couldn't start payment: ${errorMsg}. Please try again.`);
         setRedirecting(false);
         setStep("checkout");
         // Reset consent — payment failed, so the user must re-confirm

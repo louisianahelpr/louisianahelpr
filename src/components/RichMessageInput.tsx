@@ -114,7 +114,7 @@ export const RichMessageInput = ({
     if (recorder.state === "stopped") {
       // Send the completed note
       if (!recorder.blob || !jobId || !senderId) {
-        toast.error("Couldn't start a voice note — try reopening the chat");
+        toast.error("Couldn't start a voice note — try reopening the chat.");
         recorder.discard();
         return;
       }
@@ -142,7 +142,7 @@ export const RichMessageInput = ({
 
   const stageFile = (file: File): boolean => {
     if (file.size > MESSAGE_ATTACHMENT_MAX_BYTES) {
-      toast.error(`That file's too large — keep attachments under ${Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)} MB`);
+      toast.error(`That file's too large — keep attachments under ${Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)} MB.`);
       return false;
     }
     setStagedFile(file);
@@ -208,7 +208,7 @@ export const RichMessageInput = ({
   const uploadStaged = async (): Promise<SendAttachment | null> => {
     if (!stagedFile) return null;
     if (!jobId || !senderId) {
-      toast.error("Couldn't upload that — try reopening the chat");
+      toast.error("Couldn't upload that — try reopening the chat.");
       return null;
     }
     setUploading(true);
@@ -245,7 +245,7 @@ export const RichMessageInput = ({
           const { latitude, longitude } = pos.coords;
           onSend(`📍 Location: https://maps.google.com/?q=${latitude},${longitude}`);
         } catch {
-          toast.error("Location access denied — allow it in Settings to share your location");
+          toast.error("Location access denied — allow it in Settings to share your location.");
         }
         return;
       }
@@ -257,7 +257,7 @@ export const RichMessageInput = ({
             resolve();
           },
           () => {
-            toast.error("Location access denied — allow it in Settings to share your location");
+            toast.error("Location access denied — allow it in Settings to share your location.");
             resolve();
           },
         );

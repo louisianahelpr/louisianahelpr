@@ -9,6 +9,7 @@ import { parseLocalDate } from "@/lib/dateUtils";
 import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { report } from "@/lib/errorLogger";
+import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import { isNativePlatform } from "@/lib/nativeInit";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
@@ -259,6 +260,8 @@ export function JobTracking({
   // fire one fetch per rendered card (N+1 across active jobs on Activity).
   const [tracking, setTracking] = useState<TrackingData | null>(initialTracking ?? null);
   const [updating, setUpdating] = useState(false);
+  // Arrival with no GPS fix — see the note in `updateStatus`.
+  const [manualArrivalOpen, setManualArrivalOpen] = useState(false);
   const [helperConfirmedAt, setHelperConfirmedAt] = useState(initialHelperConfirmedAt);
   const [posterConfirmedAt, setPosterConfirmedAt] = useState(initialPosterConfirmedAt);
   // Lifecycle stamps off the jobs row, mirrored into state so the realtime
@@ -395,28 +398,46 @@ export function JobTracking({
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
-  const updateStatus = async (newStatus: string) => {
+  const updateStatus = async (newStatus: string, opts?: { skipProximity?: boolean }) => {
     if (!helperId) return;
     setUpdating(true);
     const loc = await getLocation();
 
-    // GPS proximity check for "arrived" — must be within 500ft of job location
+    // ARRIVAL, when we can see where they are and when we cannot.
+    //
+    // With coordinates this stays a hard 500ft proximity check — that is the
+    // anti-fraud rule, and we have the evidence to enforce it.
+    //
+    // WITHOUT coordinates it used to be a dead end: "Enable GPS in Settings to
+    // mark Arrived", and nothing else. A helpr who has location switched off —
+    // or whose phone simply failed to get a fix — could not mark arrived, could
+    // not reach Working, could not reach Done, and therefore could not be paid,
+    // for a job they were physically standing at (owner: "if they dont have
+    // their location on, they need a way to show they have arrived").
+    //
+    // So: no fix, no proof, but still an answer. We ask them to attest it in a
+    // confirm dialog and write the row with null coordinates, which is itself
+    // the signal — the poster's tracker shows the coordinate stamp when there
+    // is one and says "Location not shared" when there is not, so a
+    // self-reported arrival never passes itself off as a GPS-verified one.
     if (newStatus === "arrived") {
       if (!loc) {
-        hapticError();
-        toast.error("Enable GPS in Settings to mark Arrived — then try again.");
-        setUpdating(false);
-        return;
-      }
-      const { data: job, error: jobErr } = await supabase.from("jobs").select("latitude, longitude").eq("id", jobId).single();
-      if (jobErr) report(jobErr, { tags: { source: "JobTracking.arrivedProximity" } });
-      if (job?.latitude && job?.longitude) {
-        const dist = getDistanceFt(loc.lat, loc.lng, Number(job.latitude), Number(job.longitude));
-        if (dist > 500) {
-          hapticError();
-          toast.error(`Couldn't mark arrived — you're about ${Math.round(dist)}ft from the job site. Move closer and try again.`);
+        if (!opts?.skipProximity) {
           setUpdating(false);
+          setManualArrivalOpen(true);
           return;
+        }
+      } else {
+        const { data: job, error: jobErr } = await supabase.from("jobs").select("latitude, longitude").eq("id", jobId).single();
+        if (jobErr) report(jobErr, { tags: { source: "JobTracking.arrivedProximity" } });
+        if (job?.latitude && job?.longitude) {
+          const dist = getDistanceFt(loc.lat, loc.lng, Number(job.latitude), Number(job.longitude));
+          if (dist > 500) {
+            hapticError();
+            toast.error(`Couldn't mark arrived — you're about ${Math.round(dist)}ft from the job site. Move closer and try again.`);
+            setUpdating(false);
+            return;
+          }
         }
       }
     }
@@ -524,7 +545,6 @@ export function JobTracking({
     }
 
     hapticSuccess();
-    toast.success(`Status updated: ${STATUSES.find(s => s.key === newStatus)?.label}`);
     setUpdating(false);
     loadTracking();
   };
@@ -616,7 +636,7 @@ export function JobTracking({
   if (!helperId && !includePostingSteps) return null;
 
   return (
-    <div className="rounded-2xl liquid-glass p-5 space-y-4">
+    <div className="rounded-2xl liquid-glass p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <h3
           className="font-display italic font-bold leading-tight text-headline-card min-w-0"
@@ -648,6 +668,7 @@ export function JobTracking({
             SosShareButton itself is untouched; it is still mounted from the
             action row, which is where every other control on the card is. */}
       </div>
+
 
       {/* Progress timeline */}
       {(() => {
@@ -765,6 +786,28 @@ export function JobTracking({
                   >
                     {s.label}
                   </span>
+                  {/* ETA rides UNDER ITS OWN STEP (owner: "put eta under on
+                      the way"). It used to be a centred paragraph below the
+                      map, a full card-width away from the word it qualifies —
+                      so "On the Way" and "~12 min" were two unrelated-looking
+                      facts and the reader had to join them. Here the number is
+                      the step's own caption.
+
+                      Only this step, only while the helpr is actually en
+                      route, so no other column ever gains a third line and the
+                      row keeps the tight rhythm the heading-name move bought
+                      it. `items-start` on the row means the taller column
+                      hangs below the others rather than pushing them down. */}
+                  {s.key === "on_the_way" &&
+                    tracking?.status === "on_the_way" &&
+                    tracking.eta_minutes != null && (
+                      <span
+                        className="w-full text-ds-9 font-sans font-semibold text-center leading-tight tabular-nums"
+                        style={{ color: "hsl(var(--bark))" }}
+                      >
+                        ~{tracking.eta_minutes} min
+                      </span>
+                    )}
                 </div>
               );
             })}
@@ -786,10 +829,37 @@ export function JobTracking({
         />
       </div>
 
+      {/* Last update — directly below the progress bar (owner: "move below
+          the green line at the end of the tracker"): the freshness stamp
+          closes the tracker it vouches for. */}
+      {tracking && (
+        <p className="text-ds-10 text-muted-foreground text-center">
+          Last updated: {new Date(tracking.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          {/* The coordinate stamp is the PROOF, so its absence has to be
+              stated rather than left blank. A helpr with location off can now
+              mark themselves arrived by attestation (see `updateStatus`), and
+              a self-reported arrival that rendered identically to a
+              GPS-confirmed one would be the app quietly overstating what it
+              knows. Only shown from `arrived` onward — before that there is
+              nothing to have proved. */}
+          {tracking.latitude ? (
+            <span className="ml-2 inline-flex items-center gap-0.5">
+              <MapPin className="w-2.5 h-2.5" />
+              {tracking.latitude.toFixed(4)}, {tracking.longitude?.toFixed(4)}
+            </span>
+          ) : (STATUS_IDX[tracking.status as keyof typeof STATUS_IDX] ?? -1) >= STATUS_IDX.arrived ? (
+            <span className="ml-2 inline-flex items-center gap-0.5">
+              <MapPin className="w-2.5 h-2.5" />
+              Location not shared
+            </span>
+          ) : null}
+        </p>
+      )}
+
       {/* Live-tracking map — shown while helper is on the way and both
           positions are known. Lazy-loaded so the Leaflet chunk isn't paid
           for by cards that never enter this state. Falls back silently to
-          the ETA text below when coordinates are unavailable or the
+          the ETA caption on the tracker step when coordinates are unavailable or the
           Leaflet bundle hasn't loaded yet. */}
       {tracking?.status === "on_the_way" &&
         tracking.latitude != null &&
@@ -806,25 +876,6 @@ export function JobTracking({
           </Suspense>
         )}
 
-      {/* ETA */}
-      {tracking?.eta_minutes && tracking.status === "on_the_way" && (
-        <p className="text-ds-11 text-muted-foreground text-center">
-          ETA: ~{tracking.eta_minutes} min
-        </p>
-      )}
-
-      {/* Last update */}
-      {tracking && (
-        <p className="text-ds-10 text-muted-foreground text-center">
-          Last updated: {new Date(tracking.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-          {tracking.latitude && (
-            <span className="ml-2 inline-flex items-center gap-0.5">
-              <MapPin className="w-2.5 h-2.5" />
-              {tracking.latitude.toFixed(4)}, {tracking.longitude?.toFixed(4)}
-            </span>
-          )}
-        </p>
-      )}
 
       {/* Helper controls — skip the job_confirmed step since that's handled by JobConfirmation */}
       {isHelper && (() => {
@@ -842,6 +893,19 @@ export function JobTracking({
           if (bothConfirmed) {
             nextIdx++;
           } else {
+            /* "Confirm the job below" is only true once there IS something
+               below. JobConfirmation opens 24 hours out; before that it used
+               to render nothing, so this line pointed at an empty space.
+               JobConfirmation now shows its own "opens in …" card in that
+               window, and this line matches it rather than contradicting it. */
+            const confirmOpen =
+              !jobDay || jobDay.getTime() - Date.now() <= 24 * 3_600_000;
+            /* Silent before the window opens: JobConfirmation renders its own
+               "Confirmation opens in …" strip directly below in that state and
+               says the same thing with a clock attached. Two sentences saying
+               "you'll confirm later", stacked, is the duplication this card
+               keeps being audited for. */
+            if (!confirmOpen) return null;
             return (
               <div className="pt-2 border-t border-border">
                 <p className="text-ds-11 text-muted-foreground text-center">
@@ -877,6 +941,24 @@ export function JobTracking({
           </div>
         );
       })()}
+
+      {/* NO GPS FIX — the manual attestation. See `updateStatus`. */}
+      <BrandConfirmDialog
+        open={manualArrivalOpen}
+        onOpenChange={setManualArrivalOpen}
+        title="Mark Yourself Arrived?"
+        description="We couldn't get your location, so we can't confirm you're at the job site. You can still tell the poster you're here."
+        callout={{
+          text: "The poster will see this arrival was self-reported, not GPS-confirmed. Turning location on in Settings confirms it automatically.",
+        }}
+        primaryLabel="Yes, I'm Here"
+        primaryTone="bark"
+        onPrimary={() => {
+          setManualArrivalOpen(false);
+          void updateStatus("arrived", { skipProximity: true });
+        }}
+        secondaryLabel="Not Yet"
+      />
     </div>
   );
 }

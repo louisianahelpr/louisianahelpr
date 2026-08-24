@@ -95,7 +95,6 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       hapticSuccess();
-      toast.success("Revision requested");
       props.setRevisionJobId(null);
       setRevisionNote("");
       props.onRevisionRequested();
@@ -169,7 +168,6 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       <Dialog open={!!props.noShowJobId} onOpenChange={() => props.setNoShowJobId(null)}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <AlertTriangle className="w-3 h-3" /> No-show

@@ -35,14 +35,14 @@ function dripStep1(name: string) {
     ${h1("Welcome to Louisiana Helpr!")}
     ${p(`Hey ${name || "there"} — your account is set up. Two things you can do today:`)}
     <ul style="font-size:15px;color:${brand.bodyOlive};line-height:1.8;padding-left:20px;margin:0 0 16px">
-      <li><strong>Post a task</strong> — describe what you need and set your budget</li>
+      <li><strong>Post a job</strong> — describe what you need and set your budget</li>
       <li><strong>Browse jobs</strong> — find opportunities near you</li>
       <li><strong>Connect</strong> — message helprs or customers directly</li>
     </ul>
     ${btn("Go to Dashboard", `${SITE_URL}/dashboard`)}
     ${p("Reach out anytime at admin@louisianahelpr.com.")}
   `)
-  const text = `Hey ${name || "there"} — your account is set up. Post tasks, browse jobs, and connect with your community: ${SITE_URL}/dashboard`
+  const text = `Hey ${name || "there"} — your account is set up. Post jobs, find local work, and connect with your community: ${SITE_URL}/dashboard`
   return { subject, html, text }
 }
 
@@ -53,13 +53,13 @@ function dripStep2(name: string) {
     ${h1("Explore what Louisiana Helpr has to offer")}
     ${p(`Hey ${name || "there"}, now that you're set up, here's what you can do:`)}
     <ul style="font-size:15px;color:${brand.bodyOlive};line-height:1.8;padding-left:20px;margin:0 0 16px">
-      <li><strong>Post a task</strong> — describe what you need, set a budget, and get help fast</li>
-      <li><strong>Browse jobs</strong> — find tasks near you and start earning</li>
+      <li><strong>Post a job</strong> — describe what you need, set a budget, and get help fast</li>
+      <li><strong>Browse jobs</strong> — find work near you and start earning</li>
       <li><strong>Chat directly</strong> — message before committing</li>
     </ul>
     ${btn("Go to Dashboard", `${SITE_URL}/dashboard`)}
   `)
-  const text = `Hey ${name || "there"}, explore what Louisiana Helpr has to offer! Post tasks, browse jobs, and chat with others. Visit: ${SITE_URL}/dashboard`
+  const text = `Hey ${name || "there"}, explore what Louisiana Helpr has to offer! Post jobs, find local work, and chat with others. Visit: ${SITE_URL}/dashboard`
   return { subject, html, text }
 }
 
@@ -84,15 +84,15 @@ function dripStep3(name: string) {
 
 // Re-engagement email
 function reEngagementEmail(name: string) {
-  const subject = "New tasks are open in your area."
+  const subject = "New jobs are open in your area."
   const html = wrapEmail(`
-    ${h1("New tasks are open in your area.")}
+    ${h1("New jobs are open in your area.")}
     ${p(`Hey ${name || "there"}, it's been a minute — here's what's open near you.`)}
-    ${p("There are new tasks posted in your area — whether you're looking for help or looking to earn, now's a great time to check in.")}
+    ${p("There are new jobs posted in your area — whether you're looking for help or looking to earn, now's a great time to check in.")}
     ${btn("See What's New", `${SITE_URL}/dashboard`)}
     ${p("Pull up the feed when you're ready.")}
   `)
-  const text = `Hey ${name || "there"}, it's been a while! New tasks are waiting on Louisiana Helpr. Check them out: ${SITE_URL}/dashboard`
+  const text = `Hey ${name || "there"}, it's been a while! New jobs are waiting on Louisiana Helpr. Check them out: ${SITE_URL}/dashboard`
   return { subject, html, text }
 }
 
@@ -282,7 +282,7 @@ Deno.serve(async (_req) => {
       const htmlContent = wrapEmail(`
         ${h1("Your account is approved!")}
         ${p(`Hey ${user.full_name || "there"}, just a reminder — your Louisiana Helpr account has been approved and is ready to go!`)}
-        ${p("Browse tasks, post jobs, or connect with people in your area. It only takes a minute to get started.")}
+        ${p("Browse jobs, post your own, or connect with people in your area. It only takes a minute to get started.")}
         ${btn("Browse Jobs", `${SITE_URL}/dashboard`)}
         ${p("Open the app whenever you're ready to post or browse.")}
       `)

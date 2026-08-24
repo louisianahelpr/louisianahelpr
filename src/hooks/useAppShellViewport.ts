@@ -26,7 +26,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   // was never added here — so the `html.app-shell { overflow: hidden }` lock
   // described below applied to it and clipped everything past the fold. On
   // the accessibility screen, of all of them.
-  "/accessibility",
   // Same omission, found by the same sweep: a min-h-screen settings page with
   // no AppShell and no entry here.
   "/auto-tip",

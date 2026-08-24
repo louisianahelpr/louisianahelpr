@@ -124,7 +124,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
         .eq("user_id", userId)
         .maybeSingle();
       if (error) {
-        toast.error("Couldn't load credentials");
+        toast.error("Couldn't load credentials.");
         throw error;
       }
       return (row as CredentialFields) ?? EMPTY;
@@ -174,11 +174,11 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   // ── Attach (local only) ────────────────────────────────────────────────
   const validate = (file: File, label: string): boolean => {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error(`${label}: must be JPG, PNG, WEBP, or PDF`);
+      toast.error(`${label}: must be JPG, PNG, WEBP, or PDF.`);
       return false;
     }
     if (file.size > MAX_SIZE) {
-      toast.error(`${label}: must be under 5 MB`);
+      toast.error(`${label}: must be under 5 MB.`);
       return false;
     }
     return true;
@@ -281,9 +281,6 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       draftKinds.forEach(discardDraft);
       void qc.invalidateQueries({ queryKey: queryKeys.credentials.byUser(userId) });
       hapticSuccess();
-      toast.success(
-        draftKinds.length > 1 ? "Both documents sent for review." : "Sent for review.",
-      );
     } catch (err) {
       hapticError();
       toast.error(err instanceof Error ? err.message : "Couldn't send your documents — try again?");
@@ -306,7 +303,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       .from("user-documents")
       .createSignedUrl(path, 300);
     if (error || !signed) {
-      toast.error("Couldn't generate a view link");
+      toast.error("Couldn't generate a view link.");
       return;
     }
     window.open(signed.signedUrl, "_blank", "noopener");
@@ -335,9 +332,6 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
     }
     patchCache(update);
     void qc.invalidateQueries({ queryKey: queryKeys.credentials.byUser(userId) });
-    toast.success(
-      stateOf(kind) === "review" ? "Taken out of the review queue." : "Document removed.",
-    );
   };
 
   // Re-verify reminder — surfaces when a credential came back rejected.
@@ -544,7 +538,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
               ? `We'll pull your ${pullBackNoun} out of the review queue. Nothing has been verified yet, so nothing you've earned is lost — you can attach a new copy any time.`
               : `We'll clear the ${pullBackNoun} we couldn't verify so you can attach a new one.`
         }
-        primaryLabel={pullBackState === "review" ? "Take it back" : "Remove"}
+        primaryLabel={pullBackState === "review" ? "Take It Back" : "Remove"}
         primaryTone={pullBackState === "verified" ? "sienna" : "bark"}
         primaryHaptic={pullBackState === "verified" ? "warning" : "medium"}
         primaryDisabled={removing}
@@ -553,7 +547,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           setPullBack(null);
           if (kind) void removeSentDoc(kind);
         }}
-        secondaryLabel="Keep it"
+        secondaryLabel="Keep It"
       />
 
       {showReverifyBanner && (

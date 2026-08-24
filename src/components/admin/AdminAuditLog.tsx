@@ -150,7 +150,7 @@ const AdminAuditLog = () => {
           variant="inline"
           icon={FileText}
           eyebrow="Quiet so far"
-          title="No audit entries yet."
+          title="No audit entries yet"
           body="Admin actions land here the moment anyone approves a user, resolves a dispute, or updates settings."
         />
       ) : (

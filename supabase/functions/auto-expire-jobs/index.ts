@@ -162,7 +162,32 @@ Deno.serve(async (req) => {
       cancelledCount++;
     }
 
-    // 3. Expire pending direct offers (24h window)
+    // 3. Expire UNANSWERED offers past their response_deadline.
+    //
+    // Runs BEFORE the direct-offer sweep and after step 1, but it is really
+    // step 1's missing half: step 1 reopens a stale acceptance keyed on
+    // `updated_at` older than 24h and files no violation, so a helper who
+    // ghosted an offer they had applied for walked away clean while one who
+    // pressed Decline took a strike. This keys on the deadline the poster
+    // actually set and applies the same 5-strike ladder decline_job_offer
+    // does (owner: an expired offer reopens the job AND counts as a decline).
+    let unansweredExpired = 0;
+    try {
+      const { data: unRpc, error: unRpcErr } = await supabase.rpc("expire_unanswered_offers");
+      if (unRpcErr) {
+        // PGRST202 = the migration has merged but db-deploy has not finished.
+        // Expected for a few minutes on every deploy; not worth an error line.
+        if (unRpcErr.code !== "PGRST202") {
+          console.error("expire_unanswered_offers error:", unRpcErr);
+        }
+      } else {
+        unansweredExpired = (unRpc as number) || 0;
+      }
+    } catch (e) {
+      console.error("Unanswered offer expiry call failed:", e);
+    }
+
+    // 4. Expire pending direct offers (24h window)
     let directOfferExpired = 0;
     try {
       const { data: expRpc, error: expRpcErr } = await supabase.rpc("expire_pending_direct_offers");
@@ -177,9 +202,10 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: `Expired ${expiredCount} accepted jobs, cancelled ${cancelledCount} past-time open jobs, expired ${directOfferExpired} direct offers`,
+        message: `Expired ${expiredCount} accepted jobs, cancelled ${cancelledCount} past-time open jobs, expired ${unansweredExpired} unanswered offers, expired ${directOfferExpired} direct offers`,
         expiredCount,
         cancelledCount,
+        unansweredExpired,
         directOfferExpired,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

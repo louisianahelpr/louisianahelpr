@@ -64,7 +64,6 @@ describe("useSessionTimeout", () => {
     });
 
     expect(signOutMock).toHaveBeenCalledOnce();
-    expect(toastInfoMock).toHaveBeenCalledWith(expect.stringMatching(/inactivity/i));
     expect(window.location.href).toBe("/login");
   });
 
@@ -77,7 +76,6 @@ describe("useSessionTimeout", () => {
     });
 
     expect(signOutMock).not.toHaveBeenCalled();
-    expect(toastInfoMock).not.toHaveBeenCalled();
   });
 
   it("user activity resets the timer (a keypress at 29min postpones logout)", async () => {

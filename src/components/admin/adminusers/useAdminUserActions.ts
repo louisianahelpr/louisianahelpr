@@ -7,7 +7,6 @@
  * calls the loadProfiles / close-dialog callbacks provided by the parent.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { formatName } from "@/lib/utils";
 import { createNotification } from "@/lib/notifications";
 import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
@@ -38,7 +37,6 @@ export const makeAdminUserActions = ({
     }).eq("id", profile.id);
     if (error) toast.error(error.message);
     else {
-      toast.success(`${formatName(profile.full_name)} approved!`);
       await logAdminAction("approve_user", "user", profile.user_id, { name: profile.full_name });
       await createNotification({
         user_id: profile.user_id, title: "Account approved!",
@@ -67,10 +65,9 @@ export const makeAdminUserActions = ({
         last_approval_email_at: new Date().toISOString(),
       }).eq("id", profile.id);
 
-      toast.success("Approval email resent");
       loadProfiles();
     } catch (err: any) {
-      toast.error("Couldn't resend that email — try again");
+      toast.error("Couldn't resend that email — try again.");
       report(err, { tags: { source: "AdminUsers.resendApprovalEmail" } });
     } finally {
       setResending(null);
@@ -91,10 +88,9 @@ export const makeAdminUserActions = ({
         last_denial_email_at: new Date().toISOString(),
       }).eq("id", profile.id);
 
-      toast.success("Denial email resent");
       loadProfiles();
     } catch (err: any) {
-      toast.error("Couldn't resend that email — try again");
+      toast.error("Couldn't resend that email — try again.");
       report(err, { tags: { source: "AdminUsers.resendDenialEmail" } });
     } finally {
       setResending(null);
@@ -109,7 +105,6 @@ export const makeAdminUserActions = ({
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success("Verification email resent");
       loadProfiles();
     } catch (err: any) {
       toast.error(err.message || "Couldn't resend the verification email — try again");
@@ -157,7 +152,6 @@ export const makeAdminUserActions = ({
     });
     if (notifyErr) report(notifyErr, { tags: { source: "AdminUsers.unbanUser.notify" } });
 
-    toast.success(notifyErr ? "User unbanned — but we couldn't notify them." : "User unbanned.");
     loadProfiles();
     setViewProfile(null);
   };

@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { hasInAppHistory } from "@/lib/inAppHistory";
 
 interface BackButtonProps {
   to?: string;
@@ -55,17 +56,10 @@ const BackButton = ({ to, className, onClick }: BackButtonProps) => {
   // index put. `idx > 0` is therefore the exact question we mean: is there an
   // in-app entry behind this one? When that state is absent (MemoryRouter, SSR,
   // any non-browser history) fall back to the old key heuristic.
-  const hasInAppHistory = () => {
-    if (typeof window !== "undefined") {
-      const idx = (window.history.state as { idx?: number } | null)?.idx;
-      if (typeof idx === "number") return idx > 0;
-    }
-    return location.key !== "default";
-  };
 
   const handleClick = () => {
     if (onClick) onClick();
-    else if (hasInAppHistory()) navigate(-1);
+    else if (hasInAppHistory(location.key)) navigate(-1);
     else navigate(to ?? "/");
   };
 

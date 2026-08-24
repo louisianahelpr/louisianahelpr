@@ -15,26 +15,30 @@ export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availabilit
  * `Record<Tab, string>` is deliberate: adding a Tab without a title is a
  * typecheck failure, not a silently untitled screen.
  */
+// Each value matches the h1 its screen actually paints (ProfileTabHeader
+// title) — screen title and browser tab must agree, and titles are Title
+// Case per PLATFORM_CONVENTIONS. Measured against the rendered h1s
+// 2026-08-24; if a tab's heading changes, change it here in the same commit.
 export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
-  profile: "Edit profile",
-  earnings: "Earnings & payouts",
-  schedule: "My schedule",
+  profile: "Edit Profile",
+  earnings: "Earnings & Payouts",
+  schedule: "Schedule",
   availability: "Availability",
   // `payment` no longer has a Profile row of its own — it renders the merged
   // earnings tab (see ProfileTabPanels) so old deep links still resolve, and
   // therefore carries that screen's title rather than one of its own.
-  payment: "Earnings & payouts",
-  security: "Security",
-  legal: "Legal & policies",
-  reviews: "My reviews",
-  referral: "Referral program",
-  subscription: "My membership",
-  support: "Help & support",
+  payment: "Earnings & Payouts",
+  security: "Account Security",
+  legal: "Legal & Policies",
+  reviews: "My Reviews",
+  referral: "Referrals",
+  subscription: "Membership",
+  support: "Help & Support",
   notifications: "Notifications",
-  posted_jobs: "Posted jobs",
-  completed_jobs: "Completed jobs",
-  warnings: "Warnings & strikes",
-  credentials: "Licensed & insured",
+  posted_jobs: "Posted Jobs",
+  completed_jobs: "Completed Jobs",
+  warnings: "Warnings & Strikes",
+  credentials: "Licensed & Insured",
   saved_helpers: "Saved Helprs",
   accessibility: "Accessibility",
 };

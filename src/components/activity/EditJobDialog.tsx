@@ -79,7 +79,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     const { error } = await supabase.from("jobs").update(updateData).eq("id", job.id);
     setSaving(false);
     if (error) { hapticError(); toast.error("We couldn't save your changes — please try again."); }
-    else { hapticSuccess(); toast.success("Job updated"); onSaved(); onClose(); }
+    else { hapticSuccess(); onSaved(); onClose(); }
   };
 
   const handleSaveClick = () => setShowConfirm(true);
@@ -212,7 +212,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             </div>
           </section>
         </div>
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button
             variant="ghost"
             onClick={() => handleClose(false)}

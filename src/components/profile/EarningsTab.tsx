@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-import { formatPrice } from "@/lib/format";
+import { formatPriceExact } from "@/lib/format";
 import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { toast } from "@/hooks/use-toast";
@@ -201,6 +201,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // PaymentTab now (#7), driven off the payout_transfers ledger so
   // it's reachable directly from the Payment settings surface.
 
+  const payoutSection = (
+    <section ref={payoutSectionRef} className="scroll-mt-4 space-y-4">
+      <SectionRule label="Payout & payments" />
+      <Suspense fallback={null}>
+        <PaymentTab earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
+      </Suspense>
+    </section>
+  );
+
   return (
     <div className="space-y-4">
       <ProfileTabHeader
@@ -241,6 +250,98 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         </div>
       )}
 
+      {/* NOT CONNECTED YET: the connect card is the page. Everything below it
+          — the wallet, the goal, the charts, the ledger — is either empty or
+          about money that cannot move until Stripe is set up, so the one thing
+          a helpr can do sits directly under the forecast rather than eight
+          sections down behind a card that only scrolls to it. */}
+      {!stripeLoading && !stripeData?.connected && payoutSection}
+
+      {/* 1099-K banner — appears once YTD payouts cross the federal
+          $600 threshold. Quiet, dismissible per-user-per-year so it
+          doesn't nag after the helper has seen it. Tapping the CTA
+          opens the existing PDF tax-export dialog (no new flow). */}
+      {show1099Banner && (
+        <ThresholdBanner
+          ytdYear={ytdYear}
+          onOpenExport={() => setExportDialogOpen(true)}
+          onDismiss={dismiss1099Banner}
+        />
+      )}
+
+      {/* ─── YOUR MONEY ─── */}
+      <SectionRule label="Your money" />
+      <section className="space-y-3">
+        {/* Wallet card (Available + Pending side-by-side).
+            NOT RENDERED UNTIL STRIPE IS CONNECTED. Its disconnected state was
+            a second "Set up Payouts" card — the first thing on the page —
+            whose button did nothing but scroll down to the Payout & payments
+            section, which is a card that says the same sentence with the
+            button that actually starts Stripe onboarding. Two cards, one job,
+            one of them a signpost to the other (owner: "needs a full upgrade
+            and polish alot of the same info").
+
+            A helpr who has not connected does not have a wallet, so the
+            honest page for them has no wallet card. The Payout & payments
+            section moves up to just under the forecast in that state (see
+            below) so the connect CTA is still the first thing they can act
+            on. */}
+        {stripeData?.connected && (
+        <WalletCard
+          stripeData={stripeData}
+          stripeLoading={stripeLoading}
+          refreshing={refreshing}
+          availableTotal={availableTotal}
+          pendingTotal={pendingTotal}
+          canUseInstantPayout={canUseInstantPayout}
+          onRefresh={handleRefresh}
+          onNavigatePayment={scrollToPayout}
+          onCashOut={() => setPayoutDialogOpen(true)}
+          onUpgrade={() => setUpgradeOpen(true)}
+        />
+        )}
+
+        {/* Compact secondary stats — 3-up tiny tiles */}
+        {!loading && (
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              /* NET IS TAKE-HOME, so it formats EXACT (format.ts: "NOT for the
+                 helper's net take-home… Take-home surfaces use
+                 `formatPriceExact`"). Rounded, this tile said "$229" while the
+                 payout ledger three sections below said "$228.80" for the same
+                 single job — one payment, two numbers, on one screen. Tips are
+                 money that moved too, so they take the same rule. */
+              { icon: TrendingUp, label: "Net", value: `$${formatPriceExact(totalEarnings)}`, sub: `${completedJobs.length} job${completedJobs.length === 1 ? "" : "s"}` },
+              { icon: Gift, label: "Tips", value: `$${formatPriceExact(totalTips)}`, sub: `${tips.length} tip${tips.length === 1 ? "" : "s"}` },
+              { icon: Briefcase, label: "Active", value: String(inProgressJobs.length), sub: "in progress" },
+            ].map(({ icon: Icon, label, value, sub }) => (
+              <div key={label} className="rounded-ds-md liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">
+                <div className="flex items-center gap-1 mb-1">
+                  <Icon className="w-3 h-3 text-primary" />
+                  <span className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+                    {label}
+                  </span>
+                </div>
+                <p className="font-display italic font-bold tabular-nums leading-none text-ds-18" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                  {value}
+                </p>
+                <p className="font-serif italic mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  {sub}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+      </section>
+
+      {/* ─── COMING UP ────────────────────────────────────────────
+          The three forward-looking things, together. They used to be
+          scattered: the forecast above the connect card, the week strip
+          four blocks below it, and the goal buried inside the wallet
+          section — so "what am I about to earn" was answered in three
+          places a reader had to find. */}
+      <SectionRule label="Coming up" />
       {/* Forward-looking "Projected by Sunday" card. Sums net take across
           accepted/in-progress jobs whose date_needed falls in the current
           week. Only renders for approved helpers — pre-onboarding helpers
@@ -265,95 +366,43 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         }
       />
 
-      {/* 1099-K banner — appears once YTD payouts cross the federal
-          $600 threshold. Quiet, dismissible per-user-per-year so it
-          doesn't nag after the helper has seen it. Tapping the CTA
-          opens the existing PDF tax-export dialog (no new flow). */}
-      {show1099Banner && (
-        <ThresholdBanner
-          ytdYear={ytdYear}
-          onOpenExport={() => setExportDialogOpen(true)}
-          onDismiss={dismiss1099Banner}
+      {/* Monthly earnings goal — the only control for it in the app
+          (/analytics carried a second one; removed). localStorage-backed,
+          so no DB migration needed. */}
+      {!loading && (
+        <MonthlyGoalCard
+          completedJobs={completedJobs.map((j) => ({
+            // prefer helper_completed_at so the month bucket matches when
+            // the job was actually done, not when it was posted
+            created_at: j.helper_completed_at ?? j.created_at,
+            // Same shared take-home definition (and same group split) as the
+            // tab total above, so the goal ring and the Total tile agree.
+            netPayout: helperTakeHomeDollars(j, helperFeeFallbackPct),
+          }))}
         />
       )}
 
-      {/* ─── COMPACT DASHBOARD: Wallet + Stats ─── */}
-      <section className="space-y-3">
-        {/* Wallet card (Available + Pending side-by-side) */}
-        <WalletCard
+
+      {/* ─── HISTORY ──────────────────────────────────────────────
+          THREE lists of past money used to sit in a row with nothing
+          separating them — Stripe's payout history inside the wallet block,
+          the per-transfer ledger, and the per-job earnings list — each with a
+          different source and no label saying which was which. They are one
+          section now, ordered widest to narrowest: what landed in the bank,
+          then each transfer, then the jobs behind them. */}
+      <SectionRule label="History" />
+
+{/* Payout history — inline year picker, no big empty box */}
+      {stripeData?.connected && (
+        <PayoutHistory
           stripeData={stripeData}
-          stripeLoading={stripeLoading}
-          refreshing={refreshing}
-          availableTotal={availableTotal}
-          pendingTotal={pendingTotal}
-          canUseInstantPayout={canUseInstantPayout}
-          onRefresh={handleRefresh}
-          onNavigatePayment={scrollToPayout}
-          onCashOut={() => setPayoutDialogOpen(true)}
-          onUpgrade={() => setUpgradeOpen(true)}
+          exportYear={exportYear}
+          onExportYearChange={setExportYear}
+          payoutYears={payoutYears}
         />
+      )}
 
-        {/* Monthly earnings goal — the only control for it in the app
-            (/analytics carried a second one; removed). localStorage-backed,
-            so no DB migration needed. */}
-        {!loading && (
-          <MonthlyGoalCard
-            completedJobs={completedJobs.map((j) => ({
-              // prefer helper_completed_at so the month bucket matches when
-              // the job was actually done, not when it was posted
-              created_at: j.helper_completed_at ?? j.created_at,
-              // Same shared take-home definition (and same group split) as the
-              // tab total above, so the goal ring and the Total tile agree.
-              netPayout: helperTakeHomeDollars(j, helperFeeFallbackPct),
-            }))}
-          />
-        )}
-
-        {/* Compact secondary stats — 3-up tiny tiles */}
-        {!loading && (
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { icon: TrendingUp, label: "Net", value: `$${formatPrice(totalEarnings)}`, sub: `${completedJobs.length} job${completedJobs.length === 1 ? "" : "s"}` },
-              { icon: Gift, label: "Tips", value: `$${formatPrice(totalTips)}`, sub: `${tips.length} tip${tips.length === 1 ? "" : "s"}` },
-              { icon: Briefcase, label: "Active", value: String(inProgressJobs.length), sub: "in progress" },
-            ].map(({ icon: Icon, label, value, sub }) => (
-              <div key={label} className="rounded-ds-md liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">
-                <div className="flex items-center gap-1 mb-1">
-                  <Icon className="w-3 h-3 text-primary" />
-                  <span className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                    {label}
-                  </span>
-                </div>
-                <p className="font-display italic font-bold tabular-nums leading-none text-ds-18" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-                  {value}
-                </p>
-                <p className="font-serif italic mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  {sub}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Payout history — inline year picker, no big empty box */}
-        {stripeData?.connected && (
-          <PayoutHistory
-            stripeData={stripeData}
-            exportYear={exportYear}
-            onExportYearChange={setExportYear}
-            payoutYears={payoutYears}
-          />
-        )}
-      </section>
-
-      {/* ─── PIE + YTD vs PRIOR-YTD compare ───────────────────
-          Self-hides if there's no completed-job data. Sits between the
-          payout history (the receipts) and the per-transfer ledger so
-          the helper sees their high-level breakdown before drilling
-          into individual transfers. */}
-      <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
-
-      {/* ─── ACTUAL PAYOUTS (from payout_transfers ledger) ─── */}
+      {/* ACTUAL PAYOUTS (from the payout_transfers ledger) */}
       {payoutLedger.length > 0 && (
         <RecentTransfers payoutLedger={payoutLedger} />
       )}
@@ -374,7 +423,19 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           Was the standalone /analytics page ("Earnings & Analytics"). Same
           dashboard, rendered here as a section under a quiet rule instead of
           behind a second Profile row with a second header. */}
-      <SectionRule label="Analytics" />
+      {/* ─── INSIGHTS ─────────────────────────────────────────────
+          The breakdown charts and the analytics dashboard are the same kind of
+          thing — trends, not records — so they share one heading instead of
+          the charts floating unlabelled above a rule that said "Analytics". */}
+      <SectionRule label="Insights" />
+
+      {/* PIE + YTD vs PRIOR-YTD compare ───────────────────
+          Self-hides if there's no completed-job data. Sits between the
+          payout history (the receipts) and the per-transfer ledger so
+          the helper sees their high-level breakdown before drilling
+          into individual transfers. */}
+      <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
+
       <Suspense fallback={null}>
         <HelperAnalyticsBody />
       </Suspense>
@@ -382,19 +443,19 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       {/* ─── PAYOUT & PAYMENTS ───────────────────────────────────────
           Was the "payment" Profile tab. `onSeeEarnings` is deliberately not
           passed: its "See full breakdown →" link jumped to the Earnings tab,
-          which is the very screen it is now sitting inside. */}
-      <section ref={payoutSectionRef} className="scroll-mt-4 space-y-4">
-        <SectionRule label="Payout & payments" />
-        <Suspense fallback={null}>
-          <PaymentTab earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
-        </Suspense>
-      </section>
+          which is the very screen it is now sitting inside.
+
+          Rendered at the BOTTOM once Stripe is connected — settings, read
+          rarely — and near the TOP when it is not, because then it is the only
+          thing on the page a helpr can act on and the whole screen is waiting
+          on it. See `payoutSection` above. */}
+      {stripeData?.connected && payoutSection}
 
       {/* Muted legal/tax disclosure — bottom of page */}
       <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">
         <Info className="w-3 h-3 mt-0.5 shrink-0" />
         <span>
-          <strong className="text-muted-foreground">Tax reporting:</strong> Louisiana law requires 1099-K forms for Helprs who exceed $20,000 in gross payments and 200 transactions in a calendar year. Stripe issues these automatically — no action needed.
+          <strong className="text-muted-foreground">Tax reporting:</strong> The IRS requires a Form 1099-K for Helprs who exceed $20,000 in gross payments and 200 transactions in a calendar year — a federal filing, not a Louisiana one. Stripe issues these automatically — no action needed.
         </span>
       </p>
 

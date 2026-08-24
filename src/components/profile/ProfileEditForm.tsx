@@ -261,7 +261,15 @@ export function ProfileEditForm({
 
         {/* Bio section */}
         <div className="rounded-2xl liquid-glass p-5 space-y-3">
-          <div className="flex items-center justify-end">
+          {/* A VISIBLE label, like every other field on this form. The bio
+              carried its name in `aria-label` only, so a screen reader heard
+              "About you" while a sighted user got an unlabelled box between a
+              labelled "City / ZIP" row and an unlabelled ID card — the field
+              that decides whether somebody hires you, and the one nobody could
+              see the name of. `<label htmlFor>` supersedes the aria-label, so
+              the two can no longer say different things. */}
+          <div className="flex items-baseline justify-between gap-3">
+            <Label htmlFor="bio" className="text-ds-11 block">About you</Label>
             {/* "20" is a MINIMUM, not a cap — showing "108/20" once the
                 user is past it reads like an over-limit error. So:
                 "X/20" while short of the minimum, a check once met. */}
@@ -277,7 +285,6 @@ export function ProfileEditForm({
           </div>
           <Textarea
             id="bio"
-            aria-label="About you"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="What you do, tools you bring, what makes you reliable…"
@@ -289,10 +296,19 @@ export function ProfileEditForm({
           </p>
         </div>
 
-        {/* ID Verification section — the status badge sits on the right;
-            the body copy below identifies the section on its own. */}
+        {/* ID Verification section. The status badge sits on the right, and a
+            NAME sits on the left — the comment here used to argue "the body
+            copy below identifies the section on its own", which was the same
+            reasoning that left the bio unlabelled. It is true that you can work
+            out what the card is from the sentence inside it; it is also true
+            that every other card on this form tells you at a glance. This one
+            is the section a helpr is most anxious about, and it opened with a
+            status chip floating alone against a blank row. */}
         <div className="rounded-2xl liquid-glass p-5 space-y-4">
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-ds-11 font-medium leading-none" style={{ color: "hsl(var(--ink-deep))" }}>
+              ID verification
+            </h2>
             <span className={`text-ds-9 px-1.5 py-0.5 rounded-full font-medium not-italic ${idBadge.cls}`}>{idBadge.label}</span>
           </div>
           <div className="flex items-center gap-3">

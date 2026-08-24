@@ -16,7 +16,6 @@ import { channelNonce } from "@/lib/realtimeChannel";
 import { lazy, Suspense } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import AdminSidebar, { AdminNavItem } from "@/components/admin/AdminSidebar";
-import AdminParishActivity from "@/components/admin/AdminParishActivity";
 import AdminTopBar from "@/components/admin/AdminTopBar";
 import AdminSectionHeader from "@/components/admin/AdminSectionHeader";
 import { DashboardHome } from "@/components/admin/dashboard/DashboardHome";
@@ -43,7 +42,6 @@ const AdminHealth = lazy(() => import("@/components/admin/AdminHealth"));
 const AdminExport = lazy(() => import("@/components/admin/AdminExport"));
 
 const AdminPayoutBatches = lazy(() => import("@/components/admin/AdminPayoutBatches"));
-const AdminParishTaxRates = lazy(() => import("@/components/admin/AdminParishTaxRates"));
 const AdminHelperTiers = lazy(() => import("@/components/admin/AdminHelperTiers"));
 const AdminIDVQueue = lazy(() => import("@/components/admin/AdminIDVQueue"));
 const AdminNotificationLogs = lazy(() => import("@/components/admin/AdminNotificationLogs"));
@@ -53,79 +51,45 @@ const AdminBusinessVerificationQueue = lazy(() => import("@/components/admin/Adm
 const AdminBusinessAccounts = lazy(() => import("@/components/admin/AdminBusinessAccounts"));
 const AdminExceptionQueue = lazy(() => import("@/components/admin/AdminExceptionQueue"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "parishtax" | "tiers" | "idv" | "geography" | "marketing" | "credentials" | "business_verify" | "business_accounts" | "exceptions";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "idv" | "marketing" | "credentials" | "business_verify" | "business_accounts" | "exceptions";
 
 import { safeStorage } from "@/lib/safeStorage";
+import { adminNavGroups } from "@/components/admin/adminNavGroups";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
 const getSeenTimestamp = (section: string): string | null => safeStorage.getItem(`${SEEN_KEY_PREFIX}${section}`);
 const markSeen = (section: string) => safeStorage.setItem(`${SEEN_KEY_PREFIX}${section}`, new Date().toISOString());
 
-const navGroups: { title: string; items: AdminNavItem[] }[] = [
-  {
-    title: "Overview",
-    items: [{ id: "analytics", label: "Analytics", icon: BarChart3 }],
-  },
-  {
-    title: "Operations",
-    items: [
-      { id: "people", label: "Users", icon: Users },
-      { id: "idv", label: "Identity Verify", icon: ShieldCheck },
-      { id: "credentials", label: "License & Insurance", icon: ShieldCheck },
-      { id: "exceptions", label: "Exception Queue", icon: ClipboardList },
-      // Business Verification / Business Accounts are the admin half of the
-      // Business product. They are spread in only while `BUSINESS_ENABLED` is
-      // true, because with the product hidden they are two dead sidebar rows
-      // naming a feature no user can reach — a verification queue for
-      // businesses nobody can create, and an accounts list that can only ever
-      // be empty. `?view=business_verify` also falls through to the dashboard
-      // home rather than rendering the queue (see `renderContent`).
-      ...(BUSINESS_ENABLED
-        ? ([
-            { id: "business_verify", label: "Business Verification", icon: Building2 },
-            { id: "business_accounts", label: "Business Accounts", icon: Building2 },
-          ] as AdminNavItem[])
-        : []),
-      { id: "jobs", label: "Jobs", icon: Briefcase },
-      { id: "geography", label: "Geography", icon: MapPin },
-      { id: "fraud", label: "Fraud", icon: ShieldAlert },
-      { id: "disputes", label: "Disputes", icon: ShieldAlert },
-      { id: "reports", label: "Reports", icon: AlertTriangle },
-      { id: "support", label: "Support", icon: Headphones },
-    ],
-  },
-  {
-    title: "Revenue",
-    items: [
-      { id: "subscriptions", label: "Subscriptions", icon: Crown },
-      { id: "referrals", label: "Referrals", icon: Gift },
-      { id: "payouts", label: "Payout Batches", icon: Banknote },
-      { id: "parishtax", label: "Parish Tax", icon: MapPin },
-      { id: "tiers", label: "Helpr Tiers", icon: Award },
-    ],
-  },
-  {
-    title: "Engagement",
-    items: [
-      { id: "broadcasts", label: "Broadcasts", icon: Megaphone },
-      { id: "notifications", label: "Notifications", icon: BellRing },
-      { id: "notiflogs", label: "Notification Logs", icon: ClipboardCheck },
-      { id: "marketing", label: "Marketing", icon: Mail },
-    ],
-  },
-  {
-    title: "System",
-    items: [
-      { id: "settings", label: "Settings", icon: Settings },
-      { id: "audit", label: "Audit Log", icon: ClipboardCheck },
-      { id: "health", label: "Health", icon: Activity },
-      { id: "export", label: "Export", icon: DollarSign },
-    ],
-  },
-];
+
+const navGroups = adminNavGroups;
+
+/** Every view /admin actually renders, and its title. Also the source of
+ *  truth for "is this a real view?" — see `isRealView` below, which is what
+ *  makes a deep link to a DELETED view (parishtax, geography) land on home
+ *  rather than stacking an empty <h1> on the dashboard. */
+const VIEW_LABELS: Record<View, string> = {
+    home: "Dashboard", analytics: "Analytics", people: "Users",
+    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
+    notifications: "Notifications", notiflogs: "Notification Logs",
+    reports: "Reports", support: "Support",
+    referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
+    audit: "Audit Log", health: "Health", export: "Export",
+    payouts: "Payout Batches", tiers: "Helpr Tiers",
+    idv: "Identity Verify", marketing: "Marketing",
+    credentials: "License & Insurance",
+    exceptions: "Exception Queue",
+    // Unreachable while BUSINESS_ENABLED is false — the nav rows are not
+    // rendered and `?view=business_*` is coerced to "home" — but kept so the
+    // map stays exhaustive over `View`.
+    business_verify: "Business Verification",
+    business_accounts: "Business Accounts",
+  };
 
 const Admin = () => {
   usePageTitle("Admin — Helpr");
+  // Which chrome this page owns — see the two render sites below.
+  const isWebDesktop = useIsWebDesktop();
   const navigate = useNavigate();
   // ?view= deep-links from notifications (e.g. /admin?view=people&user=<id>).
   // Notifications fanned out by triggers point here so admins land on the
@@ -137,8 +101,24 @@ const Admin = () => {
   // an old admin notification or a bookmark — must not reopen a Business screen
   // while the product is hidden. Coerced to the dashboard home instead, which
   // is also what makes the two `renderContent` cases below unreachable.
+  //
+  // The SAME coercion has to cover any view that no longer exists. Parish Tax
+  // and Geography were deleted at the owner's request, and a `?view=parishtax`
+  // link (a bookmark, an old notification, the UI sweep) then rendered the
+  // dashboard home WITH an AdminSectionHeader whose title was `undefined` —
+  // an empty <h1> stacked on the home screen's own, which the sweep caught as
+  // "expected exactly 1 <h1>, found 2 [ | Welcome back]".
+  //
+  // So the guard is now "is this a view we actually render?" rather than a
+  // hardcoded pair, and a stale link lands cleanly on home instead of a
+  // half-rendered screen. `viewLabels` is the list of real views, which makes
+  // this self-maintaining: delete a view, its label goes with it, and its old
+  // deep links coerce automatically.
+  const isRealView = (v: string): v is View =>
+    v === "home" || Object.prototype.hasOwnProperty.call(VIEW_LABELS, v);
   const initialView: View =
-    !BUSINESS_ENABLED && (rawInitialView === "business_verify" || rawInitialView === "business_accounts")
+    !isRealView(rawInitialView) ||
+    (!BUSINESS_ENABLED && (rawInitialView === "business_verify" || rawInitialView === "business_accounts"))
       ? "home"
       : rawInitialView;
   const [view, setView] = useState<View>(initialView);
@@ -440,23 +420,7 @@ const Admin = () => {
     return "bg-primary text-primary-foreground";
   };
 
-  const viewLabels: Record<View, string> = {
-    home: "Dashboard", analytics: "Analytics", people: "Users",
-    jobs: "Jobs", settings: "Settings", disputes: "Disputes", broadcasts: "Broadcasts",
-    notifications: "Notifications", notiflogs: "Notification Logs",
-    reports: "Reports", support: "Support",
-    referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
-    audit: "Audit Log", health: "Health", export: "Export",
-    payouts: "Payout Batches", parishtax: "Parish Tax", tiers: "Helpr Tiers",
-    idv: "Identity Verify", geography: "Geography", marketing: "Marketing",
-    credentials: "License & Insurance",
-    exceptions: "Exception Queue",
-    // Unreachable while BUSINESS_ENABLED is false — the nav rows are not
-    // rendered and `?view=business_*` is coerced to "home" — but kept so the
-    // map stays exhaustive over `View`.
-    business_verify: "Business Verification",
-    business_accounts: "Business Accounts",
-  };
+  const viewLabels = VIEW_LABELS;
 
   const renderContent = () => {
     switch (view) {
@@ -477,7 +441,6 @@ const Admin = () => {
       case "health": return <AdminHealth />;
       case "export": return <AdminExport />;
       case "payouts": return <AdminPayoutBatches />;
-      case "parishtax": return <AdminParishTaxRates />;
       case "tiers": return <AdminHelperTiers />;
       case "idv": return <AdminIDVQueue />;
       case "credentials": return <AdminCredentialQueue />;
@@ -486,7 +449,6 @@ const Admin = () => {
         return BUSINESS_ENABLED ? <AdminBusinessVerificationQueue /> : null;
       case "business_accounts":
         return BUSINESS_ENABLED ? <AdminBusinessAccounts /> : null;
-      case "geography": return <AdminParishActivity />;
       case "marketing": return <AdminMarketing />;
       default: return (
         <DashboardHome
@@ -508,17 +470,23 @@ const Admin = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-premium-page">
-        <AdminSidebar
-          navGroups={navGroups}
-          activeView={view}
-          onSelect={handleViewChange}
-          getBadge={getBadge}
-          getBadgeColor={getBadgeColor}
-          onLogout={() => setShowLogoutDialog(true)}
-        />
+        {/* Top padding ONLY below `lg`, where admin renders its own fixed bar.
+            On the desktop website the global bar's height is already reserved
+            by `html.web-desktop.desktop-rail:not(.app-shell) #root
+            { padding-top: 3.5rem }` — /admin is a document-scroll route — so a
+            pt-14 here would stack a second 56px on top of it. */}
+        <div className={`flex-1 flex flex-col min-w-0 ${isWebDesktop ? "" : "pt-14"}`}>
+          {/* NO SECOND TOP BAR ON THE DESKTOP WEBSITE.
+              App.tsx mounts DesktopTopNav and DesktopSidebarNav unconditionally
+              for every signed-in user, and neither hides on /admin — so this
+              page was rendering TWO top bars and TWO rails stacked on top of
+              each other. That is the actual reason the admin chrome kept
+              reading as wrong no matter how many times its own bar was
+              adjusted: the bar being fixed was not the bar being seen.
 
-        <div className="flex-1 flex flex-col min-w-0">
-          <AdminTopBar onLogout={() => setShowLogoutDialog(true)} />
+              Below `lg` the global pair is `hidden lg:flex`, so admin still
+              needs its own — hence the split rather than a plain delete. */}
+          {!isWebDesktop && <AdminTopBar />}
 
           <main
             className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-[calc(2rem_+_var(--safe-area-bottom,0px))]"
@@ -531,6 +499,22 @@ const Admin = () => {
             </Suspense>
           </main>
         </div>
+
+        {/* Same split as the top bar. On the desktop website the GLOBAL side
+            panel carries admin — "Admin" with every section nested under it
+            (owner: "the side panel should be identical to a non-admin user,
+            just add the admin sections under the Admin in the sidebar"), so a
+            second rail here is the other half of the double chrome.
+            Below `lg` this is the only rail there is, and it keeps its own
+            Back to App / Sign Out rows. */}
+        {!isWebDesktop && <AdminSidebar
+          navGroups={navGroups}
+          activeView={view}
+          onSelect={handleViewChange}
+          getBadge={getBadge}
+          getBadgeColor={getBadgeColor}
+          onLogout={() => setShowLogoutDialog(true)}
+        />}
 
         {/* ONE verb: "sign out". The app says Sign Out on nine screens
             (Profile settings, Security, Account Pending/Denied/Banned,

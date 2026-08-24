@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { useHiddenAtMount } from "@/hooks/useHiddenAtMount";
 import AppShell from "@/components/AppShell";
 // The two-step title-card / panel material. Lives in its own module because
 // the document-scroll pages that wear the same treatment (Family & care, Home
@@ -108,7 +109,13 @@ export function PageScaffold({
   // When the user has Reduce Motion on, skip the translate and shorten the
   // duration to a near-instant opacity crossfade so the page still "appears"
   // without the y-movement.
-  const PAGE_IN = reducedMotion
+  // Nobody was watching, so there is nothing to play — and framer's rAF-driven
+  // tween would have frozen this panel at `opacity: 0` until frames resumed.
+  // See useHiddenAtMount.
+  const hiddenAtMount = useHiddenAtMount();
+  const PAGE_IN = hiddenAtMount
+    ? { initial: false as const, animate: { opacity: 1, y: 0 }, transition: { duration: 0 } }
+    : reducedMotion
     ? {
         initial: { opacity: 0 },
         animate: { opacity: 1 },

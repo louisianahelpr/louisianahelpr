@@ -49,7 +49,7 @@ export function PermissionRationaleDialog() {
 
   return (
     <AlertDialog open={state.open}>
-      <AlertDialogContent className="rounded-ds-pill gap-4 max-w-md">
+      <AlertDialogContent>
         <div
           className="w-14 h-14 rounded-2xl flex items-center justify-center"
           style={{

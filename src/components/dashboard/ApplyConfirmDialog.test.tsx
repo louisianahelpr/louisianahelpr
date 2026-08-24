@@ -102,7 +102,7 @@ describe("ApplyConfirmDialog", () => {
     render(<ApplyConfirmDialog {...makeProps({ applyLoading: true })} />);
     const submit = screen.getByRole("button", { name: "Applying…" });
     expect(submit).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Close" })).toBeDisabled();
   });
 
   it("uses the shared checkbox, not a native input inflated to 44px", () => {
@@ -126,11 +126,19 @@ describe("ApplyConfirmDialog", () => {
     expect(box).toHaveAttribute("data-state", "checked");
   });
 
-  it("dismisses with an icon button that is still named Cancel", () => {
+  it("dismisses from the TOP-RIGHT, like every other dialog", () => {
+    // The dismiss used to be a round X in the footer's bottom-left, beside
+    // "Apply Now" — while the job dialog this opens FROM has a bare X in the
+    // top-right. Two modals one tap apart closing from opposite corners
+    // (owner: "the X in the top corner, not the bottom left"). It is
+    // AlertDialogContent's shared close now, so it is named "Close" and no
+    // longer lives in the footer.
     render(<ApplyConfirmDialog {...makeProps()} />);
-    const cancel = screen.getByRole("button", { name: "Cancel" });
-    // Icon-only: the name comes from aria-label, not from visible text.
-    expect(cancel.textContent?.trim()).toBe("");
+    const close = screen.getByRole("button", { name: "Close" });
+    // Icon-only: the name comes from aria-label, not visible text.
+    expect(close.textContent?.trim()).toBe("");
+    expect(close.className, "top-right, not in the footer").toContain("top-3");
+    expect(close.className).toContain("right-3");
   });
 
   it("gives pitch guidance exactly one home", () => {

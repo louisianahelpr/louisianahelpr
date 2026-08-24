@@ -103,13 +103,12 @@ const AdminBroadcasts = () => {
       toast.error(`Couldn't cancel: ${error.message}`);
       return;
     }
-    toast.success("Broadcast cancelled — no push will go out.");
     qc.invalidateQueries({ queryKey: BROADCASTS_KEY });
   };
 
   const create = async () => {
     if (!title.trim() || !message.trim()) {
-      toast.error("Title and message are required");
+      toast.error("Title and message are required.");
       return;
     }
     if (pending) {
@@ -144,7 +143,6 @@ const AdminBroadcasts = () => {
       return;
     }
 
-    toast.info("Broadcast posted. Push fires in ~30s — cancel from the banner if there's a typo.");
     setTitle("");
     setMessage("");
     setType("info");
@@ -159,14 +157,13 @@ const AdminBroadcasts = () => {
     setDeleting(false);
     if (error) {
       report(error, { tags: { source: "AdminBroadcasts.remove" } });
-      toast.error("Couldn't remove that broadcast — try again");
+      toast.error("Couldn't remove that broadcast — try again.");
       return;
     }
     qc.setQueryData<Broadcast[]>(BROADCASTS_KEY, (prev) =>
       (prev ?? []).filter((b) => b.id !== id),
     );
     setConfirmDeleteId(null);
-    toast.success("Broadcast removed");
   };
 
   const isActive = (b: Broadcast) => {
@@ -182,7 +179,7 @@ const AdminBroadcasts = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Undo countdown banner — server-driven. Visible whenever
           pending_push_fan_out_at is set and push_fanned_out_at is not.
           Survives tab close: pg_cron runs the fan-out regardless. */}
@@ -288,7 +285,7 @@ const AdminBroadcasts = () => {
         <EmptyState
           variant="inline"
           icon={Megaphone}
-          title="Nothing scheduled."
+          title="Nothing scheduled"
           body="Tap New Broadcast above to push an in-app banner to every signed-in user."
         />
       ) : (
@@ -338,7 +335,7 @@ const AdminBroadcasts = () => {
         onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}
         title="Delete This Broadcast?"
         description="It will be removed for everyone immediately. This can't be undone."
-        primaryLabel={deleting ? "Deleting…" : "Delete broadcast"}
+        primaryLabel={deleting ? "Deleting…" : "Delete Broadcast"}
         primaryTone="sienna"
         primaryHaptic="error"
         primaryDisabled={deleting}

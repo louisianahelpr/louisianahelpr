@@ -28,7 +28,7 @@ const LIMITS = { percent: { min: 1, max: 50 }, fixed: { min: 1, max: 500 }, cap:
  * that actually happened.
  */
 const AutoTip = () => {
-  usePageTitle("Auto-tip — Helpr");
+  usePageTitle("Auto-Tip — Helpr");
   const { user, profile, refresh } = useCurrentUser();
 
   const [mode, setMode] = useState<Mode>("off");
@@ -99,7 +99,7 @@ const AutoTip = () => {
     setSaving(false);
     if (error) {
       report(error, { tags: { source: "AutoTip.save" } });
-      toast.error("Couldn't save your auto-tip", { description: error.message });
+      toast.error("Couldn't save your auto-tip.", { description: error.message });
       return;
     }
     if (!updated || updated.length === 0) {
@@ -107,7 +107,7 @@ const AutoTip = () => {
         tags: { source: "AutoTip.save" },
         context: { user_id: user.id, mode },
       });
-      toast.error("Couldn't save your auto-tip", {
+      toast.error("Couldn't save your auto-tip.", {
         description: "We couldn't reach your profile. Try again in a moment.",
       });
       return;
@@ -119,7 +119,6 @@ const AutoTip = () => {
     // (and drops on a cold native socket) — this makes the read-back certain.
     void refresh();
     void hapticLight();
-    toast.success(mode === "off" ? "Auto-tip turned off" : "Auto-tip saved");
   };
 
   // A worked example beats a description. $150 is close to the median job.

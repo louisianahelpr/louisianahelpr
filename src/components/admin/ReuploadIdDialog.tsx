@@ -50,7 +50,6 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
         },
       });
       if (error) throw error;
-      toast.success("ID re-upload request sent.");
       setNote("");
       onSuccess?.();
       onClose();
@@ -70,7 +69,6 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
               <Camera className="w-3.5 h-3.5" /> ID re-upload
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title="Request ID Re-Upload"
         />
         <div className="space-y-3">
@@ -94,7 +92,7 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
             Cancel
           </Button>
           <Button onClick={submit} disabled={busy}>
-            {busy ? "Sending…" : "Send Re-upload Request"}
+            {busy ? "Sending…" : "Send Re-Upload Request"}
           </Button>
         </DialogFooter>
       </DialogContent>

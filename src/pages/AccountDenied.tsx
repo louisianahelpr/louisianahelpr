@@ -36,7 +36,7 @@ const AccountDenied = () => {
 
         <div className="space-y-2">
           <span className="text-display-eyebrow">Not approved</span>
-          <h1 className="text-page-title leading-tight mt-1">
+          <h1 className="text-page-title leading-tight mt-1 truncate">
             We couldn't approve your account.
           </h1>
           <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -96,7 +96,7 @@ const AccountDenied = () => {
             onClick={async () => { await signOutWithPushCleanup(); navigate("/signup"); }}
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            Re-apply Now
+            Re-Apply Now
           </Button>
           {/* Appeal CTA — pre-fills the email with the user's ID + email
               + denial reason so the admin can pull the right case row up

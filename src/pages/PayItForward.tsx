@@ -84,12 +84,7 @@ export default function PayItForward() {
   // ── Stripe return handling (?gift=success | ?gift=cancelled) ───────────────
   useEffect(() => {
     const gift = searchParams.get("gift");
-    if (gift === "success") {
-      toast.success("Gift card on its way.", {
-        description: "We've emailed your recipient a link to claim their gift card.",
-        icon: "💚",
-      });
-    } else if (gift === "cancelled") {
+    if (gift === "cancelled") {
       toast("Gift cancelled", { description: "No charge was made." });
     }
     if (gift) {
@@ -129,12 +124,6 @@ export default function PayItForward() {
         if (!data?.ok) throw new Error("Couldn't claim this gift. Please try again.");
 
         hapticSuccess();
-        toast.success(data.already_claimed ? "This gift card is already yours" : "Gift card claimed", {
-          description: data.already_claimed
-            ? "Find it under “Gift cards sent to you” below."
-            : "It's ready to put toward your next job.",
-          icon: "💚",
-        });
         // Surface the freshly-attached credit in the received list.
         await queryClient.invalidateQueries({ queryKey: ["pif-received"] });
       } catch (e) {
@@ -624,7 +613,7 @@ export default function PayItForward() {
                 <div className="flex">
                   <ErrorState
                     variant="inline"
-                    title="Couldn't load your gift cards."
+                    title="We couldn't load your gift cards."
                     body="Any gift card sent to you is still yours — we just couldn't reach it right now. Tap Try again."
                     onRetry={() => void refetchReceived()}
                     retryDisabled={receivedFetching}
@@ -660,7 +649,7 @@ export default function PayItForward() {
                 <div className="flex">
                   <ErrorState
                     variant="inline"
-                    title="Couldn't load the gift cards you've sent."
+                    title="We couldn't load the gift cards you've sent."
                     body="Nothing was lost — we just couldn't reach your gift history. Tap Try again."
                     onRetry={() => void refetchDonated()}
                     retryDisabled={donatedFetching}

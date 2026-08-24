@@ -41,7 +41,6 @@ export const StatusOverrideDialog = ({
               <HistoryIcon className="w-3.5 h-3.5" /> Status override
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title="Manual Status Override"
         />
         <div className="space-y-3">

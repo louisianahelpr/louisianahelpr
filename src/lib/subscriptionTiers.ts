@@ -70,7 +70,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     verifiedBusiness: false,
     dedicatedSupport: false,
     tagline: "No commitment",
-    ctaLabel: "Current plan",
+    ctaLabel: "Current Plan",
     featureBullets: ["Access to all open jobs", "Basic applicant visibility"],
   },
   basic: {
@@ -159,7 +159,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     verifiedBusiness: true,
     dedicatedSupport: true,
     tagline: "Teams and crews",
-    ctaLabel: "See seat plans",
+    ctaLabel: "See Seat Plans",
     featureBullets: [
       "Manage a team of technicians",
       "Verified Business badge",

@@ -134,7 +134,7 @@ export function PetForm({
 
   const handleSave = async () => {
     if (nameMissing) {
-      toast.error("Pet name is required");
+      toast.error("Pet name is required.");
       hapticError();
       return;
     }
@@ -173,16 +173,11 @@ export function PetForm({
       } else {
         unwrap(await supabase.from("pet_profiles").insert(payload));
       }
-      toast.success(
-        initialValues
-          ? `${form.name} updated`
-          : `${form.name} added to your pets`,
-      );
       onSaved();
       onClose();
     } catch (err) {
       report(err, { tags: { area: "pet_profiles.save" } });
-      toast.error("Couldn't save pet profile — please try again");
+      toast.error("Couldn't save pet profile — please try again.");
       hapticError();
     } finally {
       setSaving(false);
@@ -514,7 +509,7 @@ export function PetForm({
                     className="text-ds-11 mt-1 leading-snug font-medium"
                     style={{ color: "hsl(var(--burnt-sienna))" }}
                   >
-                    Not saved yet — tap “{initialValues ? "Save changes" : "Add pet"}”
+                    Not saved yet — tap “{initialValues ? "Save Changes" : "Add Pet"}”
                     below to {form.is_evacuation_registered ? "register" : "unregister"} this pet.
                   </p>
                 )}
@@ -560,7 +555,7 @@ export function PetForm({
           disabled={saving || !canSave}
           onClick={handleSave}
         >
-          {saving ? "Saving…" : initialValues ? "Save Changes" : "Add pet"}
+          {saving ? "Saving…" : initialValues ? "Save Changes" : "Add Pet"}
         </Button>
       </div>
     </div>
@@ -588,7 +583,7 @@ export function PetForm({
         setConfirmDiscard(false);
         onClose();
       }}
-      secondaryLabel="Keep editing"
+      secondaryLabel="Keep Editing"
     />
     </>
   );

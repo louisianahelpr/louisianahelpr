@@ -148,7 +148,6 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         // first 3 completions only — the two layers don't conflict (centered
         // check vs. raining particles), so this isn't a double-fire.
         fireSuccessMoment({ label: "Job completed" });
-        toast.success("Job completed! Payment released.");
         // Brand-tinted confetti for the first 3 completed jobs — fades to
         // silent after to avoid noise on regulars.
         const { maybeCelebrate } = await import("@/lib/celebrate");
@@ -248,7 +247,6 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         }
       } else {
         hapticMedium();
-        toast.success("You've marked this job as complete. Waiting for the other party to confirm.");
         await refresh();
       }
     } catch (err) {
@@ -265,7 +263,6 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       hapticSuccess();
-      toast.success("Revision resolved! Job is back in progress.");
       refresh();
     } catch (err) { hapticError(); toast.error(err instanceof Error ? err.message : "We couldn't resolve that revision — please try again."); }
   };
@@ -286,7 +283,6 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           await createNotification({ user_id: job.helper_id, title: "✅ Job started!", message: `The poster confirmed "${job.title}" has started.`, type: "success", link: "/my-jobs?filter=in_progress" });
         }
         hapticSuccess();
-        toast.success("Job started! It's now in progress.");
         await refresh();
         setStatusFilter("in_progress");
       }
@@ -307,7 +303,6 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       if (job?.helper_id) {
         await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
       }
-      toast.success("Arrival confirmed");
       refresh();
     } finally {
       setConfirmingArrivalJobId(null);
@@ -326,7 +321,6 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       if (job?.helper_id) {
         await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
       }
-      toast.success("Confirmed — the Helpr is working.");
       refresh();
     } finally {
       setConfirmingWorkingJobId(null);
@@ -375,7 +369,6 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       for (const admin of adminRoles ?? []) {
         await createNotification({ user_id: admin.user_id, title: "🚫 No-show reported", message: `Helpr no-show for "${job.title}". ${banned ? "Auto-banned." : "Warning issued."}`, type: "warning", link: "/admin" });
       }
-      toast.success("No-show reported. Job reopened.");
       refresh();
     } catch (err) { hapticError(); toast.error(err instanceof Error ? err.message : "We couldn't report the no-show just now — please try again."); }
     finally { setReportingNoShow(false); setNoShowJobId(null); }

@@ -99,7 +99,6 @@ export const AppliedJobsTab = ({
       toast.error("Couldn't save your note — try again?");
     } else {
       hapticSuccess();
-      toast.success("Message updated");
       onRefresh();
     }
     setSavingMessage(false);
@@ -108,13 +107,13 @@ export const AppliedJobsTab = ({
 
   const confirmWithdraw = useCallback(async () => {
     if (!withdrawTarget) return;
-    if (!withdrawReason) { hapticError(); toast.error("Pick a reason to continue"); return; }
+    if (!withdrawReason) { hapticError(); toast.error("Pick a reason to continue."); return; }
     if (withdrawReason === "other" && withdrawDetail.trim().length < 3) {
       hapticError();
-      toast.error("Add a bit more detail");
+      toast.error("Add a bit more detail.");
       return;
     }
-    const { appId, jobTitle, jobId } = withdrawTarget;
+    const { appId, jobId } = withdrawTarget;
     setWithdrawingAppId(appId);
     // Signal the destructive intent with an error haptic at the moment
     // of confirmed withdrawal — matches the task spec and gives tactile
@@ -143,7 +142,6 @@ export const AppliedJobsTab = ({
     }
     // Best-effort log — fire-and-forget, never blocks the toast.
     logWithdrawReason(appId, { reason: withdrawReason, detail: withdrawDetail }, jobId);
-    toast.success(`Withdrawn from \u201C${jobTitle}\u201D.`);
     onRefresh();
     setWithdrawTarget(null);
     setWithdrawReason(null);
@@ -151,7 +149,7 @@ export const AppliedJobsTab = ({
   }, [withdrawTarget, userId, withdrawReason, withdrawDetail]);
 
   const handleAddAttachment = useCallback(async (appId: string, jobId: string, currentUrls: string[], file: File) => {
-    if (file.size > 5 * 1024 * 1024) { toast.error("That file's too large — keep it under 5 MB"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("That file's too large — keep it under 5 MB."); return; }
     setUploadingAttachment(appId);
     const ext = file.name.split('.').pop();
     const path = `${userId}/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -172,7 +170,6 @@ export const AppliedJobsTab = ({
       toast.error("Couldn't save that attachment — try again?");
       return;
     }
-    toast.success("Attachment added");
     // Re-read. Without this the write landed but the card kept rendering the
     // `attachment_urls` it was given on mount — so an application that now had
     // a file still read "No attachments yet" until something else happened to
@@ -285,7 +282,7 @@ export const AppliedJobsTab = ({
           icon={Briefcase}
           illustration={<EmptyStateIllustration variant="jobs" />}
           eyebrow="No applications"
-          title="Nothing in this view yet."
+          title="Nothing in this view yet"
           body="New jobs are posted across Louisiana every day."
           action={
             <>

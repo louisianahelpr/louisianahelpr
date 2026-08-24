@@ -91,7 +91,7 @@ export function DocumentPageCards({
                 <BackButton onClick={onBack} />
               </div>
             )}
-            <h1 className="text-page-title leading-tight text-balance min-w-0">
+            <h1 className="text-page-title leading-tight truncate min-w-0">
               {title}
             </h1>
           </div>

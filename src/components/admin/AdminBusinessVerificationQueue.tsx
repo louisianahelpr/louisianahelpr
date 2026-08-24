@@ -22,6 +22,7 @@ import {
   AlertDialogHero,
 } from "@/components/ui/alert-dialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface PendingBusiness {
   business_id: string;
@@ -76,7 +77,6 @@ const AdminBusinessVerificationQueue = () => {
       toast.error(error.message);
       return;
     }
-    toast.success(decision === "verified" ? "Business verified" : "Rejected");
     qc.invalidateQueries({ queryKey });
   };
 
@@ -95,9 +95,12 @@ const AdminBusinessVerificationQueue = () => {
       </p>
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl liquid-glass p-10 text-center text-ds-11 text-muted-foreground">
-          No pending business verifications.
-        </div>
+        <EmptyState
+          variant="inline"
+          icon={Building2}
+          title="No pending verifications"
+          body="Every business account has been reviewed."
+        />
       ) : (
         <div className="space-y-3">
           {rows.map((r) => (

@@ -461,7 +461,7 @@ export function ApplicantsPanel({
                               className="text-ds-11 flex items-center gap-1"
                               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                             >
-                              <Plus className="w-3 h-3" /> Add private note
+                              <Plus className="w-3 h-3" /> Add Private Note
                             </button>
                           )}
                         </div>

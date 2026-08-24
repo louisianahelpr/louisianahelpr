@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { RefreshCw, Search, Mail, Smartphone, AlertCircle } from "lucide-react";
+import { RefreshCw, Search, Mail, Smartphone, AlertCircle, Loader2, AlertTriangle, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
 import { toneTextClasses } from "@/components/admin/tones";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface LogRow {
   id: string;
@@ -54,6 +55,55 @@ const PAGE_SIZE = 50;
 
 interface AdminNotificationLogsProps {
   initialSearch?: string;
+}
+
+/**
+ * Loading, error and empty are THREE different things.
+ *
+ * Both the table and the mobile list folded all three into a single centred
+ * <p>, so "still fetching", "the fetch failed" and "your filter matches
+ * nothing" arrived in identical grey text — a failed load was
+ * indistinguishable from an empty result, which is the one distinction an
+ * operator staring at a log actually needs.
+ *
+ * Split out and given the shared EmptyState the other admin screens use, so a
+ * genuine failure reads as a failure and carries its own icon.
+ */
+function LogsPlaceholder({
+  isInitialLoading,
+  isError,
+}: {
+  isInitialLoading: boolean;
+  isError: boolean;
+}) {
+  if (isInitialLoading) {
+    return (
+      <EmptyState
+        variant="inline"
+        icon={Loader2}
+        title="Loading notification logs"
+        body="Fetching the most recent sends."
+      />
+    );
+  }
+  if (isError) {
+    return (
+      <EmptyState
+        variant="inline"
+        icon={AlertTriangle}
+        title="We couldn't load logs"
+        body="The fetch failed — use the retry button above."
+      />
+    );
+  }
+  return (
+    <EmptyState
+      variant="inline"
+      icon={Inbox}
+      title="No logs match your filters"
+      body="Nothing has been sent that fits the current selection."
+    />
+  );
 }
 
 const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProps) => {
@@ -132,7 +182,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
   const failureCount = rows.filter(r => r.status === "failed").length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <p className="text-ds-11 text-muted-foreground">
           Every alert sent via in-app or email. Failed deliveries are highlighted in red.
@@ -220,12 +270,8 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                  {isInitialLoading
-                    ? "Loading notification logs…"
-                    : isError
-                      ? "Couldn't load logs — try the retry button above."
-                      : "No notification logs match your filters."}
+                <tr><td colSpan={6} className="px-4 py-6">
+                  <LogsPlaceholder isInitialLoading={isInitialLoading} isError={isError} />
                 </td></tr>
               )}
               {filtered.map((row) => (
@@ -273,13 +319,9 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
         {/* Mobile stacked cards — shown below md breakpoint */}
         <div className="md:hidden">
           {filtered.length === 0 ? (
-            <p className="px-4 py-12 text-center text-muted-foreground text-ds-13">
-              {isInitialLoading
-                ? "Loading notification logs…"
-                : isError
-                  ? "Couldn't load logs — try the retry button above."
-                  : "No notification logs match your filters."}
-            </p>
+            <div className="px-4 py-6">
+              <LogsPlaceholder isInitialLoading={isInitialLoading} isError={isError} />
+            </div>
           ) : (
             <div className="divide-y divide-border">
               {filtered.map((row) => (

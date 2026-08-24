@@ -86,6 +86,15 @@ export function SettingsSection({
                           <span>{item.label}</span>
                           {(item.needsAction || item.incompleteLabel) && (() => {
                             const blocking = !!item.needsAction;
+                            /* TINT and INK are separate tokens. Both branches
+                               used the SAME raw brand hue for the fill and the
+                               label, and neither --destructive nor
+                               --burnt-sienna has a dark sibling — so on the
+                               dark canvas "Action Needed" measured 3.64:1 and
+                               "Set up" 3.84:1 at 10px, both under AA, on the
+                               chips whose whole job is to be noticed.
+                               --danger-ink is the theme-adaptive red the app
+                               already mints for exactly this. */
                             const tint = blocking
                               ? "var(--destructive)"
                               : "var(--burnt-sienna)";
@@ -94,7 +103,7 @@ export function SettingsSection({
                                 className="inline-flex items-center gap-1 text-ds-10 font-bold rounded-full px-1.5 py-0.5"
                                 style={{
                                   background: `hsl(${tint} / 0.12)`,
-                                  color: `hsl(${tint})`,
+                                  color: "hsl(var(--danger-ink))",
                                   letterSpacing: "0.04em",
                                 }}
                               >

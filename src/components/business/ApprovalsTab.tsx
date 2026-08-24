@@ -115,7 +115,6 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
       return;
     }
     hapticSuccess();
-    toast.success("Post approved — it's live now.");
     queryClient.invalidateQueries({ queryKey: ["business-pending-approvals", businessId] });
   };
 
@@ -140,7 +139,6 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
       toast.error(error.message || "Couldn't reject — try again.");
       return;
     }
-    toast.success("Post rejected.");
     queryClient.invalidateQueries({ queryKey: ["business-pending-approvals", businessId] });
   };
 
@@ -260,7 +258,7 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
         onOpenChange={(open) => { if (!open) setRejectTarget(null); }}
         title="Reject This Post?"
         description="The poster is notified it won't go live. You can add a short reason — it's optional and shown to them."
-        primaryLabel="Reject post"
+        primaryLabel="Reject Post"
         primaryTone="sienna"
         primaryHaptic="error"
         primaryDisabled={!!acting}

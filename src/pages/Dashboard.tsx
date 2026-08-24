@@ -458,8 +458,14 @@ const Dashboard = () => {
                               same shape as the "N unread" and bucket counts
                               every sibling screen puts in that slot. */}
                           <span
-                            className="font-serif italic text-ds-11 min-w-0 truncate"
-                            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                            /* Same TYPE as the status tabs Posts and Jobs put in
+                               this slot (owner: "needs to be same size as Post
+                               and Jobs") — font-display italic at ds-13, not
+                               font-serif at ds-11. Home sat two steps smaller
+                               and in a different family than its two siblings,
+                               for the same kind of label in the same position. */
+                            className="font-display italic text-ds-13 leading-none min-w-0 truncate"
+                            style={{ color: "hsl(var(--olivewood) / 0.65)" }}
                           >
                             {filters.filteredJobs.length}
                             {filters.filteredJobs.length === 1 ? " job" : " jobs"}

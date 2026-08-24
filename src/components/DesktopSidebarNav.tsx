@@ -212,7 +212,7 @@ const DesktopSidebarNav = () => {
       // @ts-expect-error — `inert` is valid HTML; React's types lag it.
       inert={!sidePanelOpen ? "" : undefined}
       className={`fixed right-0 bottom-0 z-40 hidden lg:flex lg:flex-col motion-safe:transition-[transform,visibility] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)] ${
-        sidePanelOpen ? "translate-x-0 visible" : "translate-x-full invisible"
+        sidePanelOpen ? "visible" : "invisible"
       }`}
       style={{
         // Start the rail BELOW the full-width top header (h-14 = 3.5rem plus
@@ -229,7 +229,24 @@ const DesktopSidebarNav = () => {
         // Inset from the header and the right edge, then rounded on the TOP
         // corners only: the bottom runs to the viewport floor, so rounding
         // there would leave two lit notches against the page behind it.
-        top: "calc(var(--safe-area-top, 0px) + 3.5rem + 0.5rem)",
+        // Aligns with the TOP OF THE LEFT CARD, not with the header.
+        // Measured at 908x994: the frame starts at y=56 and carries lg:pt-5,
+        // so the content card starts at y=76 — the panel was at y=64 and stood
+        // 12px taller than the thing beside it (owner: "the right panel and
+        // left panel should be the same height"). 3.5rem clears the header,
+        // 1.25rem is that same lg:pt-5.
+        // TRAVEL THE SAME DISTANCE AS THE CONTENT EDGE, so the two read as one
+        // movement (owner: "left panel opens faster than right panel moves
+        // out"). Duration and curve already matched at 300ms; the DISTANCE did
+        // not. Tailwind's `translate-x-full` moves the panel by its OWN width —
+        // 236px after the 12px inset — while the frame's `right` changes by the
+        // full 248px rail width. Same time, different distance, so they drifted
+        // apart mid-slide; and the 12px shortfall also left a sliver of panel
+        // parked on screen when closed.
+        transform: sidePanelOpen
+          ? "translateX(0)"
+          : "translateX(var(--desktop-sidebar-w, 248px))",
+        top: "calc(var(--safe-area-top, 0px) + 3.5rem + 1.25rem)",
         right: "0.75rem",
         width: "calc(var(--desktop-sidebar-w, 248px) - 0.75rem)",
         background: "var(--glass-bg-crisp, hsl(0 0% 100% / 0.97))",

@@ -335,7 +335,14 @@ export function PostedJobActions({
               return (
                 <>
                   <JobActionRow columns={columns}>
-                    {showSos && <SosShareButton jobId={job.id} variant="chip" />}
+                    {/* MESSAGE IS ALWAYS FIRST (owner: "should be in same
+                        position"). It used to sit after SOS, so it was the
+                        second chip on a job whose helper had arrived and the
+                        first on every other — the one action present on EVERY
+                        assigned job was the one that moved. Scrolling a list of
+                        cards, your eye had to re-find it on each. It is the
+                        stable anchor now; the situational chips (SOS, No-show,
+                        Dispute) queue up after it and Approve stays last. */}
                     <JobActionChip
                       icon={MessageCircle}
                       label="Message"
@@ -349,6 +356,7 @@ export function PostedJobActions({
                       // points already use.
                       onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
                     />
+                    {showSos && <SosShareButton jobId={job.id} variant="chip" />}
                     {showNoShow && (
                       <JobActionChip
                         icon={XCircle}

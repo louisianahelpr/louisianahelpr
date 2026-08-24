@@ -78,7 +78,10 @@ export function UnderlineTabs({
               dense ? "py-0.5" : "py-[13px]"
             }`}
             style={{
-              color: isActive ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.65)",
+              // Selected reads BLACK, not bark green (owner). --ink-deep is the
+              // app's near-black body ink, so the live tab now matches the
+              // headings beside it instead of tinting toward the brand olive.
+              color: isActive ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.65)",
             }}
           >
             <span
@@ -86,7 +89,7 @@ export function UnderlineTabs({
               style={{
                 fontWeight: isActive ? 700 : 500,
                 borderBottom: isActive
-                  ? "1.5px solid hsl(var(--bark))"
+                  ? "1.5px solid hsl(var(--ink-deep))"
                   : "1.5px solid transparent",
                 paddingBottom: "3px",
               }}
@@ -98,7 +101,7 @@ export function UnderlineTabs({
                 className="font-sans tabular-nums text-ds-9 leading-none"
                 style={{
                   color: isActive
-                    ? "hsl(var(--bark) / 0.6)"
+                    ? "hsl(var(--ink-deep) / 0.55)"
                     : "hsl(var(--olivewood) / 0.45)",
                 }}
               >

@@ -914,6 +914,25 @@ html.web-desktop {
     margin-inline: 0;
     box-shadow: none;
   }
+
+  /* THE PAGE COLOUR RUNS BEHIND THE PANEL TOO.
+     The frame stops at the rail's edge, so the strip behind and around the
+     side panel was never painted by the app at all — what showed through was
+     #root's inline boot gradient from index.html, which is a COLD BLUE-GREY
+     (hsl 220) placeholder that exists to cover the pre-mount flash. Beside the
+     app's warm champagne page it read as two different papers meeting at the
+     panel's edge (owner: "the color behind the right panel doesn't match the
+     background color on the left").
+
+     `body` carries the real page background, so it paints the full viewport
+     and the boot gradient is covered the moment the app mounts — which is all
+     it was ever meant to survive. */
+  html.web-desktop.app-shell body {
+    background-color: hsl(var(--parchment));
+  }
+  html.web-desktop.app-shell #root {
+    background: transparent !important;
+  }
   /* The floating bottom dock is replaced by the sidebar on desktop. Hide it
      outright so it can't overlap content. */
   html.web-desktop .mobile-nav-frame {

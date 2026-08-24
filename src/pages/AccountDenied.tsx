@@ -15,14 +15,27 @@ const AccountDenied = () => {
   // Redirect away once the account is no longer denied. Reads the shared
   // useCurrentUser profile so this gate can't drift from the rest of the
   // app's view of approval state.
+  // `replace` — otherwise the browser Back button returns here and re-bounces
+  // forever (a history trap on all three account-gate screens).
   useEffect(() => {
     if (isLoading) return;
-    if (!user) { navigate("/login"); return; }
-    if (profile?.approval_status === "approved") navigate("/dashboard");
-    else if (profile?.approval_status === "pending") navigate("/account-pending");
+    if (!user) { navigate("/login", { replace: true }); return; }
+    if (profile?.approval_status === "approved") navigate("/dashboard", { replace: true });
+    else if (profile?.approval_status === "pending") navigate("/account-pending", { replace: true });
   }, [user, profile, isLoading, navigate]);
 
   const denyReason = profile?.denial_reason ?? "";
+
+  // Don't paint the denial card for a visitor we're about to bounce — a
+  // signed-out guest hitting this URL used to see a flash of "We couldn't
+  // approve your account." before the redirect effect ran.
+  if (isLoading || !user) {
+    return (
+      <AuthShell hideBack eyebrow="Account status" maxWidth="md">
+        <div className="liquid-glass p-7 sm:p-8 min-h-[16rem] animate-pulse" aria-busy="true" />
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell hideBack eyebrow="Account status" maxWidth="md">

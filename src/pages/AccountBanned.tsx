@@ -17,11 +17,13 @@ const AccountBanned = () => {
   // Redirect away once the account is no longer banned. Reads the shared
   // useCurrentUser profile so this gate can't drift from the rest of the
   // app's view of ban state.
+  // `replace` — otherwise the browser Back button returns here and re-bounces
+  // forever (a history trap on all three account-gate screens).
   useEffect(() => {
     if (isLoading) return;
-    if (!user) { navigate("/login"); return; }
+    if (!user) { navigate("/login", { replace: true }); return; }
     if (!profile?.ban_status || !(BAN_STATUSES as readonly string[]).includes(profile.ban_status)) {
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     }
   }, [user, profile, isLoading, navigate]);
 
@@ -56,6 +58,17 @@ const AccountBanned = () => {
         minute: "2-digit",
       })
     : null;
+
+  // Don't paint the ban card for a visitor we're about to bounce — a
+  // signed-out guest hitting this URL used to see a flash of "Account
+  // suspended" before the redirect effect ran.
+  if (isLoading || !user) {
+    return (
+      <AuthShell hideBack eyebrow="Account status" maxWidth="md">
+        <div className="liquid-glass p-7 sm:p-8 min-h-[16rem] animate-pulse" aria-busy="true" />
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell hideBack eyebrow="Account status" maxWidth="md">

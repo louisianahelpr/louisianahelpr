@@ -104,7 +104,9 @@ const AccountPending = () => {
   // realtime is unavailable while the user waits on this screen.
   useEffect(() => {
     if (loading) return;
-    if (!user) { navigate("/login"); return; }
+    // `replace` — otherwise the browser Back button returns here and
+    // re-bounces forever (a history trap on all three account-gate screens).
+    if (!user) { navigate("/login", { replace: true }); return; }
     if (profile?.approval_status === "approved") {
       // THE hop where a new account is finally admitted to the app — and the
       // end of the journey that began with a logged-out tap on a job card.

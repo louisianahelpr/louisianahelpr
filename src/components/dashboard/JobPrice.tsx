@@ -164,7 +164,12 @@ export function JobPrice({
           setExpanded((v) => !v);
         }}
         aria-expanded={expanded}
-        aria-controls={panelId}
+        // Only point at the panel while it exists. The breakdown below is
+        // mounted on expand, so an unconditional `aria-controls` left every
+        // collapsed chip referencing a missing id — a dangling IDREF that
+        // axe flags and that assistive tech cannot follow. Collapsed, the
+        // chip is described by `aria-expanded` alone.
+        aria-controls={expanded ? panelId : undefined}
         className={chipClass}
         style={{
           ...chipSurface,

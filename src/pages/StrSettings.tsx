@@ -316,7 +316,7 @@ export default function StrSettings() {
                     className="w-full flex items-center justify-between px-4 py-3.5"
                     onClick={() => setAddOpen((v) => !v)}
                     aria-expanded={addOpen}
-                    aria-controls="add-calendar-form"
+                    aria-controls={addOpen ? "add-calendar-form" : undefined}
                   >
                     <div className="flex items-center gap-2">
                       <Plus

@@ -180,10 +180,14 @@ export function SignupStep1({
           {/* No "Email is required" line — the red asterisk on the label and
               the red field border already say it. The FORMAT error is kept:
               a typo'd address is not self-evident from a border alone. */}
-          {emailError && email.trim() && (
+          {/* The message accompanies the red border in BOTH failure shapes —
+              a malformed address AND an untouched field after Continue. The
+              empty case used to paint the border with no words at all, which
+              is a "something's wrong" with no path out. */}
+          {emailError && (
             <p className="inline-flex items-center gap-1 text-ds-11 text-destructive">
               <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
-              Enter a valid email address
+              {email.trim() ? "Enter a valid email address" : "Add your email address"}
             </p>
           )}
           {emailSuggestion && (
@@ -215,6 +219,12 @@ export function SignupStep1({
           {capsLockOn && (
             <p className="inline-flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
               <ArrowBigUp className="w-3.5 h-3.5" strokeWidth={2} aria-hidden /> Caps Lock is on
+            </p>
+          )}
+          {attempted && !password && (
+            <p className="inline-flex items-center gap-1 text-ds-11 text-destructive">
+              <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+              Add a password
             </p>
           )}
           {password.length > 0 && (() => {

@@ -465,7 +465,11 @@ const Dashboard = () => {
                                and in a different family than its two siblings,
                                for the same kind of label in the same position. */
                             className="font-display italic text-ds-13 leading-none min-w-0 truncate"
-                            style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                            /* --ink-deep, matching the SELECTED status tab on
+                               Posts and Jobs — those went black in the same
+                               pass and this is the same label in the same slot
+                               (owner: "black and same size as other pages"). */
+                            style={{ color: "hsl(var(--ink-deep))" }}
                           >
                             {filters.filteredJobs.length}
                             {filters.filteredJobs.length === 1 ? " job" : " jobs"}

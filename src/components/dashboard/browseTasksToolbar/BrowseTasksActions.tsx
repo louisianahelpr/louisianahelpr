@@ -67,6 +67,17 @@ export interface BrowseTasksActionsProps {
  * drive the input and the sheet that BrowseTasksToolbar renders around them —
  * there is only ever one copy of each piece.
  */
+/**
+ * Saved moved into the filter sheet on EVERY surface (owner) — it is a filter,
+ * and it was the last control that was an icon here but a row there.
+ *
+ * Kept as a named flag rather than deleting the branch: the button, its count
+ * badge and its pressed styling are one edit from returning if the decision
+ * reverses, and a bare `false &&` is a lint error (constant condition) as well
+ * as being unreadable at the call site.
+ */
+const SAVED_IN_TOOLBAR = false as boolean;
+
 export function BrowseTasksActions({
   filters,
   filtersButtonRef,
@@ -77,7 +88,11 @@ export function BrowseTasksActions({
 }: BrowseTasksActionsProps) {
   return (
     <>
-      {!compact && onToggleSavedOnly && (
+      {/* Saved moved into the filter sheet on EVERY surface (owner) — it is a
+          filter, and it was the last control that was an icon here but a row
+          there. `false &&` rather than deletion: the button, its badge and its
+          pressed styling are one edit away if it ever comes back to the row. */}
+      {SAVED_IN_TOOLBAR && onToggleSavedOnly && (
         <Button
           variant="ghost"
           size="icon"

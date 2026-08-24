@@ -256,7 +256,11 @@ export function BrowseTasksToolbar({
                 content: <BrowseSearchBar filters={filters} />,
               }]
             : []),
-          ...(compactActions && onToggleSavedOnly
+          // Saved is a FILTER — "show only the ones I saved" — so it belongs in
+          // the sheet on every surface, not as a toolbar icon on desktop and a
+          // sheet row on phone (owner). One shape, one place, and the row
+          // already carries the count the badge used to.
+          ...(onToggleSavedOnly
             ? [{
                 key: "saved-only",
                 title: "Saved",

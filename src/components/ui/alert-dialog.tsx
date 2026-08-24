@@ -79,6 +79,22 @@ const AlertDialogContent = React.forwardRef<
       // `{...props}` comes AFTER, so a dialog that does supply its own
       // `aria-describedby` still wins.
       aria-describedby={undefined}
+      // PARK FOCUS ON THE CONTAINER, not on the first action.
+      //
+      // Radix focuses an alert dialog's Cancel on open — sensible when Cancel
+      // is a footer button, wrong now that the corner X IS the Cancel: the X
+      // opened wearing a focus ring, which read as a bordered box next to the
+      // bare X on regular dialogs and was the visible half of "these popups
+      // still don't share a shell".
+      //
+      // Focusing Content instead means no control is highlighted, the dialog
+      // still owns focus, and Tab starts inside it — the same thing
+      // DialogContent does, and for the same reason. Radix's FocusScope gives
+      // Content tabIndex={-1} so it accepts focus.
+      onOpenAutoFocus={(event) => {
+        event.preventDefault();
+        (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
+      }}
       {...props}
     >
       {props.children}

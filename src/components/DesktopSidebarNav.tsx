@@ -290,7 +290,16 @@ const DesktopSidebarNav = () => {
       )}
 
       {/* Destinations */}
-      <ul className="flex flex-col gap-1 px-3 py-2">
+      {/* SCROLLS. The panel had no overflow handling at all, which was fine
+          while it held six fixed rows — and stopped being fine the moment
+          Admin nested twenty-four sections under itself: everything past the
+          fold was simply unreachable (owner: "right panel doesn't allow scroll
+          for admin").
+          `min-h-0` is the load-bearing half. A flex child defaults to
+          min-height:auto, so it refuses to shrink below its content and
+          `overflow-y-auto` never has anything to scroll — the list just grows
+          past the bottom of the panel instead. */}
+      <ul className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-3 py-2">
         {NAV_ITEMS.map(({ path, icon: Icon, label, badgeKey }) => {
           const active = isActive(path);
           const count = badgeFor(badgeKey);

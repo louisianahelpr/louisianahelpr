@@ -22,11 +22,20 @@ import { JOB_ACTION_CHIP_CLASS } from "@/components/activity/JobActionRow";
  *  - `chip`  — icon-over-label, matching its neighbours in the owner's
  *              Share / Message row.
  *
- * The burnt-sienna triple is carried across verbatim from the old header pill,
- * so the control's colour is unchanged in both shapes.
+ * The burnt-sienna tint and border are carried across verbatim from the old
+ * header pill, so the control reads the same in both shapes.
+ *
+ * The LABEL is --danger-ink, not raw --burnt-sienna. A raw brand hue has no
+ * dark sibling: on the dark canvas it resolved to rgb(212,103,53) over its own
+ * 0.08 tint and measured 4.12:1 at 14px/700 — under AA, on the one control in
+ * the app somebody reaches for when they feel unsafe. --danger-ink exists for
+ * exactly this (see its note in index.css, minted when the same defect hit the
+ * Cancel chip at 1.92:1) and carries a 70%-lightness dark value that sits level
+ * with its --info / --boost / --amber siblings, so the action row stays even.
+ * Light mode is unchanged in feel — a deep red where the sienna was.
  */
 const SOS_TINT = {
-  color: "hsl(var(--burnt-sienna))",
+  color: "hsl(var(--danger-ink))",
   background: "hsl(var(--burnt-sienna) / 0.08)",
   border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
 } as const;

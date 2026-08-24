@@ -24,6 +24,22 @@ export interface BrowseTasksToolbarProps {
    *  feed and map sit side by side, so the choice is meaningless — both panes
    *  are visible. */
   hideViewToggle?: boolean;
+  /**
+   * Fold Search and "Saved only" INTO the filter sheet.
+   *
+   * Set on phone/native, where the brand row is emblem + filter + bell and has
+   * no room for their icons (owner: "phone view and ios should just be logo
+   * filter and notification, everything else there somehow folds into
+   * filter"). Both really are filters — one narrows by text, the other by
+   * whether you saved it — so they read correctly as sheet sections. Desktop
+   * web leaves them inline in the in-panel toolbar, which has the width.
+   */
+  compactActions?: boolean;
+  /** Show only saved jobs. Passed through so the sheet can offer the toggle
+   *  when `compactActions` has taken its icon out of the header row. */
+  savedOnly?: boolean;
+  onToggleSavedOnly?: () => void;
+  savedCount?: number;
   /** Called when the user clears all filters via the "Clear all" chip —
    *  Dashboard uses this to scroll the feed back to the top so the user
    *  doesn't end up mid-list in a freshly unfiltered feed. */

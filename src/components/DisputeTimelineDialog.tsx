@@ -108,7 +108,7 @@ export const DisputeTimelineDialog = ({
     const files = Array.from(e.target.files || []);
     const valid = files.filter((f) => {
       if (f.size > MAX_FILE_SIZE) {
-        toast.error(`"${f.name}" exceeds 5 MB limit`);
+        toast.error(`"${f.name}" exceeds 5 MB limit.`);
         return false;
       }
       return true;
@@ -168,7 +168,6 @@ export const DisputeTimelineDialog = ({
       }
 
       hapticSuccess();
-      toast.success("Evidence added.");
       setEvidenceFiles([]);
       onUpdated();
     } catch (err: unknown) {
@@ -202,7 +201,6 @@ export const DisputeTimelineDialog = ({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <AlertTriangle className="w-3 h-3" /> Dispute in progress
@@ -331,7 +329,7 @@ export const DisputeTimelineDialog = ({
           </div>
         )}
 
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md">
             Close
           </Button>
@@ -348,7 +346,7 @@ export const DisputeTimelineDialog = ({
                 boxShadow: "var(--elev-sienna-raised)",
               }}
             >
-              {submitting ? "Uploading…" : `Upload ${evidenceFiles.length} file${evidenceFiles.length === 1 ? "" : "s"}`}
+              {submitting ? "Uploading…" : `Upload ${evidenceFiles.length} File${evidenceFiles.length === 1 ? "" : "s"}`}
             </Button>
           )}
         </DialogFooter>

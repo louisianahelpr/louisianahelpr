@@ -69,7 +69,6 @@ export function useThreadMuteActions({
         );
         patchMuteState(convo.jobId, convo.otherUserId, newMuted, null);
         hapticSuccess();
-        toast.success(newMuted ? "Notifications muted" : "Notifications on");
       } catch (err) {
         report(err, {
           severity: "warning",
@@ -118,9 +117,6 @@ export function useThreadMuteActions({
           finalMuted ? serverUntil : null,
         );
         hapticSuccess();
-        if (until === null) toast.success("Notifications muted");
-        else if (until.getTime() <= Date.now()) toast.success("Notifications on");
-        else toast.success(`Muted until ${until.toLocaleString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}`);
       } catch (err) {
         report(err, {
           severity: "warning",
@@ -146,7 +142,6 @@ export function useThreadMuteActions({
       try {
         await unmuteThread(userId, convo.jobId, convo.otherUserId);
         hapticSuccess();
-        toast.success("Notifications on");
       } catch (err) {
         report(err, {
           severity: "warning",

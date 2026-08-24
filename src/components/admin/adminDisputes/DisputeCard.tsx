@@ -171,7 +171,7 @@ export const DisputeCard = ({
               value={helperShare}
               onChange={(e) => setHelperShare(Number(e.target.value))}
               className="w-full accent-primary"
-              aria-label="Helper's share of the payout"
+              aria-label="Helpr's share of the payout"
             />
             <div className="flex justify-between text-ds-11 tabular-nums">
               <span className="text-muted-foreground">
@@ -179,7 +179,7 @@ export const DisputeCard = ({
                 <span className="ml-1 text-muted-foreground">(${((job.budget * (100 - helperShare)) / 100).toFixed(2)})</span>
               </span>
               <span className="text-muted-foreground">
-                Helper <span className="font-semibold text-foreground">{helperShare}%</span>
+                Helpr <span className="font-semibold text-foreground">{helperShare}%</span>
                 <span className="ml-1 text-muted-foreground">(${((job.budget * helperShare) / 100).toFixed(2)})</span>
               </span>
             </div>
@@ -192,7 +192,7 @@ export const DisputeCard = ({
               onClick={() => setHelperShare(0)}
               disabled={submittingDecision}
             >
-              Resolve for poster (0/100)
+              Resolve for Poster (0/100)
             </Button>
             <Button
               size="sm"
@@ -208,7 +208,7 @@ export const DisputeCard = ({
               onClick={() => setHelperShare(100)}
               disabled={submittingDecision}
             >
-              Resolve for helper (100/0)
+              Resolve for Helpr (100/0)
             </Button>
           </div>
 

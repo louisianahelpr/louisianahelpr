@@ -1,7 +1,6 @@
 import { Bookmark, EyeOff, Share2, Flag } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
-import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { hapticLight } from "@/lib/haptics";
 
@@ -62,10 +61,8 @@ export function JobQuickActionSheet({
       }
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
-        toast.success("Link copied. Paste it anywhere.");
         return;
       }
-      toast.message(url);
     } catch (err) {
       // User-cancellation of the OS sheet throws AbortError on web and
       // resolves silently on Capacitor — treat both as "no-op".

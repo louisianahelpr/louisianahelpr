@@ -12,7 +12,6 @@ import type { Profile } from "../adminUserHelpers";
 import { useImpersonation } from "@/hooks/useImpersonation";
 import { cn, formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
-import { toast } from "sonner";
 import { toneTextClasses } from "@/components/admin/tones";
 
 type EmailEvent = { event_type: string; email_type: string; created_at: string };
@@ -61,7 +60,6 @@ export function ActionsTab({
     await logAdminAction("impersonate_user_start", "user", viewProfile.user_id, {
       mode: "read_only",
     });
-    toast.success(`Now viewing as ${displayName} — read-only`);
     navigate("/dashboard");
   };
 

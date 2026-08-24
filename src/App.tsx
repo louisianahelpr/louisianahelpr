@@ -62,6 +62,7 @@ const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const DesktopTopNav = lazy(() => import("./components/DesktopTopNav"));
 import { TopNavActionsProvider } from "./components/topNavActions";
 import { SidePanelProvider } from "./components/sidePanelOpen";
+import { FAMILY_ENABLED } from "@/config/familyEnabled";
 const PermissionRationaleDialog = lazy(() =>
   import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
 );
@@ -101,7 +102,6 @@ const JobDetail = lazy(() => import("./pages/JobDetail"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 
 const ForBusiness = lazy(() => import("./pages/ForBusiness"));
-const HelperAnalytics = lazy(() => import("./pages/HelperAnalytics"));
 const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 const HelprWrapped = lazy(() => import("./pages/HelprWrapped"));
 const BusinessBilling = lazy(() => import("./pages/business/BusinessBilling"));
@@ -109,7 +109,6 @@ const BusinessExports = lazy(() => import("./pages/business/BusinessExports"));
 const BusinessOnboarding = lazy(() => import("./pages/business/BusinessOnboarding"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
-const Accessibility = lazy(() => import("./pages/Accessibility"));
 const AutoTip = lazy(() => import("./pages/AutoTip"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
@@ -185,7 +184,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
-      <Route path="/earnings" element={<Navigate to="/profile" replace />} />
+      {/* → the EARNINGS TAB, not the Profile landing. `/earnings` is the
+          deep link people bookmark and the one older notifications point at;
+          dropping them on the landing made them find the tab themselves. */}
+      <Route path="/earnings" element={<Navigate to="/profile?tab=earnings" replace />} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /support is linked from the footer, the legal pages, and the Profile
           Legal tab's data-rights footnote, so it must resolve WITHOUT auth.
@@ -280,23 +282,22 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
       <Route path="/auto-tip" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AutoTip /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* PUBLIC on purpose. This is accessibility SETTINGS, not a statement
-          page: its one real control is Simple Mode, a device-local preference
-          held in localStorage (see lib/simpleMode.ts) with no user row behind
-          it. The page reads no session, profile or Supabase state at all.
-          Behind ProtectedRoute it was exactly backwards — someone who cannot
-          read the signup form was required to get through the signup form
-          before they could turn on the setting that would help them read it. */}
-      <Route path="/accessibility" element={<RouteErrorBoundary>{routeEl(<Accessibility />)}</RouteErrorBoundary>} />
       <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Legacy /pay-it-forward → /gift-card (feature renamed). */}
       <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />
-      <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Family & Care — see src/config/familyEnabled.ts. Both routes go
+          together: with the dashboard gone, an invite link would land somebody
+          on a flow whose destination does not exist. */}
+      {FAMILY_ENABLED && <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />}
+      {FAMILY_ENABLED && <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />}
       {/* Purely promotional (a Footer destination pitching business accounts),
           so it takes the same signed-in bounce as the landing page. */}
       {BUSINESS_ENABLED && <Route path="/for-business" element={<RouteErrorBoundary><MarketingRedirect>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />}
-      <Route path="/analytics" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelperAnalytics /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* /analytics rendered the SAME body as the Earnings tab under a
+          different title — an orphan route kept for deep links, and a second
+          screen for one subject. It redirects now, so the bookmarks keep
+          working and there is one Earnings & Analytics, not two (owner). */}
+      <Route path="/analytics" element={<Navigate to="/profile?tab=earnings" replace />} />
       {BUSINESS_ENABLED && <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />}
       {BUSINESS_ENABLED && <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />}
       {BUSINESS_ENABLED && <Route path="/business/exports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessExports /></ProtectedRoute>)}</RouteErrorBoundary>} />}

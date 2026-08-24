@@ -13,7 +13,6 @@
  * don't accidentally post a job on the impersonated user's behalf.
  */
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { safeStorage } from "@/lib/safeStorage";
 
 export const IMPERSONATION_KEY = "helpr.admin_impersonating.v1";
@@ -96,8 +95,5 @@ export const getImpersonationTarget = (): ImpersonationState | null => readState
  */
 export const assertWritable = (): boolean => {
   if (!isImpersonating()) return true;
-  toast.message("Read-only impersonation", {
-    description: "Mutations are blocked while viewing another account. Exit the banner to act as yourself.",
-  });
   return false;
 };

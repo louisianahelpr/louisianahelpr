@@ -48,7 +48,6 @@ export default function BusinessNoAccountState({ title }: { title: string }) {
       // Refetch the myBusiness lookup (prefix-invalidate all users' keys) so
       // the surrounding page swaps out of this empty state into the suite.
       await queryClient.invalidateQueries({ queryKey: queryKeys.business.allMine });
-      toast.success("Business account created.");
       setOpen(false);
       // `/business` is not a registered route (only the seven `/business/*`
       // children are), so this used to fall through to the `*` wildcard and

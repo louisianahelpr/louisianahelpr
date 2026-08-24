@@ -17,6 +17,7 @@ import type {
   PartyFilter,
   CategoryFilter,
 } from "./adminDisputes/types";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
@@ -68,7 +69,7 @@ const AdminDisputes = () => {
 
     if (openRes.error) {
       report(openRes.error, { tags: { source: "AdminDisputes.loadOpen" } });
-      toast.error("Couldn't load disputes — refresh to retry");
+      toast.error("Couldn't load disputes — refresh to retry.");
       setLoading(false);
       return;
     }
@@ -174,7 +175,6 @@ const AdminDisputes = () => {
         });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
-        toast.success("Payment released to Helpr. Dispute resolved.");
       } else {
         // Refund to customer — cancel the payment intent
         const { data, error } = await supabase.functions.invoke("create-payment", {
@@ -182,7 +182,6 @@ const AdminDisputes = () => {
         });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
-        toast.success("Payment refunded to poster. Dispute resolved.");
       }
       loadDisputes();
     } catch (err: any) {
@@ -200,7 +199,7 @@ const AdminDisputes = () => {
   // a webhook for it either). We surface that in the toast.
   const decide = async (job: DisputedJob) => {
     if (!decisionText.trim()) {
-      toast.error("Add a decision note first");
+      toast.error("Add a decision note first.");
       return;
     }
     setSubmittingDecision(true);
@@ -259,8 +258,6 @@ const AdminDisputes = () => {
           // recorded — surface as a warning so the admin can retry the
           // payout out-of-band.
           toast.warning("Decision recorded, but Stripe payout failed — retry manually.");
-        } else {
-          toast.success("Decision recorded. Payment released to Helpr.");
         }
       } else if (helperShare === 0) {
         const { data, error } = await supabase.functions.invoke("create-payment", {
@@ -268,11 +265,7 @@ const AdminDisputes = () => {
         });
         if (error || data?.error) {
           toast.warning("Decision recorded, but Stripe refund failed — retry manually.");
-        } else {
-          toast.success("Decision recorded. Payment refunded to poster.");
         }
-      } else {
-        toast.success(`Decision recorded. Move the ${helperShare}/${100 - helperShare} split in Stripe manually.`);
       }
 
       // Reset the panel + reload list.
@@ -323,7 +316,7 @@ const AdminDisputes = () => {
   const list = filteredList;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Filter tabs — Open queue vs. Decided audit log. */}
       <div className="flex gap-1.5 border-b border-border">
         <button
@@ -374,7 +367,7 @@ const AdminDisputes = () => {
             options={[
               { id: "all", label: "Both" },
               { id: "poster", label: "Poster" },
-              { id: "helper", label: "Helper" },
+              { id: "helper", label: "Helpr" },
             ]}
           />
           <FilterChipGroup
@@ -403,12 +396,16 @@ const AdminDisputes = () => {
       )}
 
       {list.length === 0 ? (
-        <div className="text-center py-12">
-          <CheckCircle2 className="w-10 h-10 text-primary mx-auto mb-3 opacity-50" />
-          <p className="text-muted-foreground">
-            {filter === "open" ? "No active disputes" : "No decided disputes in the last 50."}
-          </p>
-        </div>
+        <EmptyState
+          variant="inline"
+          icon={CheckCircle2}
+          title={filter === "open" ? "No active disputes" : "No decided disputes"}
+          body={
+            filter === "open"
+              ? "Nothing is contested right now."
+              : "Nothing has been decided in the last 50 jobs."
+          }
+        />
       ) : (
         list.map((job) => (
           <DisputeCard
@@ -447,7 +444,7 @@ const AdminDisputes = () => {
             ? `This releases the escrowed $${formatPriceExact(confirm?.job.budget ?? 0)} to ${profiles[confirm?.job.helper_id || ""] || "the Helpr"} and closes the dispute. This moves real money and can't be undone here.`
             : `This refunds $${formatPriceExact(confirm?.job.budget ?? 0)} to ${profiles[confirm?.job.customer_id || ""] || "the customer"} and closes the dispute. This moves real money and can't be undone here.`
         }
-        primaryLabel={confirm && resolving === confirm.job.id ? "Working…" : (confirm?.action === "release" ? "Release payment" : "Refund customer")}
+        primaryLabel={confirm && resolving === confirm.job.id ? "Working…" : (confirm?.action === "release" ? "Release Payment" : "Refund Customer")}
         primaryTone="sienna"
         primaryHaptic="warning"
         primaryDisabled={!!resolving}

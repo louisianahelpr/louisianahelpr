@@ -138,7 +138,6 @@ export function PayoutSetupForm() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success("Payout method removed");
       loadData();
     } catch (err: unknown) {
       hapticError();
@@ -398,7 +397,7 @@ export function PayoutSetupForm() {
         onOpenChange={setConfirmReset}
         title="Reset Your Payout Account?"
         description="This deletes your current Stripe account and starts a fresh one. You'll need to complete onboarding again before payouts can run. Only do this if onboarding is stuck."
-        primaryLabel={resetting ? "Resetting…" : "Reset & start fresh"}
+        primaryLabel={resetting ? "Resetting…" : "Reset & Start Fresh"}
         primaryTone="sienna"
         primaryHaptic="warning"
         primaryDisabled={resetting}

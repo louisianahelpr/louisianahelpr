@@ -45,7 +45,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
     const files = Array.from(e.target.files || []);
     const validFiles = files.filter((f) => {
       if (f.size > MAX_FILE_SIZE) {
-        toast.error(`"${f.name}" exceeds 5 MB limit`);
+        toast.error(`"${f.name}" exceeds 5 MB limit.`);
         return false;
       }
       return true;
@@ -60,7 +60,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
   const handleSubmit = async () => {
     if (!reason) {
       hapticError();
-      toast.error("Please select a reason");
+      toast.error("Please select a reason.");
       return;
     }
     hapticHeavy();
@@ -154,7 +154,6 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
       });
 
       hapticSuccess();
-      toast.success("Dispute submitted. Payment is on hold pending admin review.");
       onDisputed();
       onClose();
     } catch (err: unknown) {
@@ -169,7 +168,6 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <AlertTriangle className="w-3 h-3" /> Last resort
@@ -262,7 +260,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
             </ul>
           </div>
         </div>
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md">Cancel</Button>
           <Button
             onClick={handleSubmit}

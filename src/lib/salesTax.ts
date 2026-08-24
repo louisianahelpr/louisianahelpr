@@ -18,8 +18,9 @@
 // charge of $108.40. The two totals the owner saw side by side were the
 // invented estimate and the real one.
 
-/** Mirror of `TAXABLE_CATEGORIES` in `_shared/salesTax.ts`. */
-export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set(["assembly"]);
+/** Mirror of `TAXABLE_CATEGORIES` in `_shared/salesTax.ts` — see the full
+ *  statutory reasoning there. */
+export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set(["assembly", "handyman"]);
 
 /** Whether the job's LABOR line is subject to LA sales tax. */
 export function isLaborTaxable(category: string | null | undefined): boolean {

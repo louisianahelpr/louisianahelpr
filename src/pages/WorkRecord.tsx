@@ -225,7 +225,7 @@ const WorkRecord = () => {
     try {
       window.print();
     } catch {
-      toast.error("Couldn't open the print dialog", {
+      toast.error("Couldn't open the print dialog.", {
         description: "Use Share summary to send this record instead.",
       });
     }
@@ -258,7 +258,7 @@ const WorkRecord = () => {
         {isError && !loading && (
           <ErrorState
             variant="inline"
-            title="Couldn't load your work record"
+            title="We couldn't load your work record"
             onRetry={() => refetch()}
           />
         )}
@@ -311,7 +311,18 @@ const WorkRecord = () => {
                 className="px-5 py-4 space-y-2"
                 style={{ borderBottom: "1px solid var(--doc-hairline)" }}
               >
-                <div className="grid grid-cols-2 gap-3">
+                {/* ONE ROW, THREE FACTS (owner: "remove platform, make issued
+                    to / id pending / member since 1 line"). This was a 2x2
+                    grid whose fourth cell read "Platform · Helpr (Louisiana)"
+                    — the name of the document you are already holding, on the
+                    document. With it gone the three real facts fit one line.
+
+                    Three EVEN columns rather than a flex run: on a document,
+                    field labels line up. Bunched at the left they left two
+                    thirds of the sheet empty and read as a fragment of a row
+                    rather than the row itself (owner: "space this out
+                    better"). */}
+                <div className="grid grid-cols-3 gap-x-4 gap-y-3">
                   <div>
                     <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
                       Issued to
@@ -341,14 +352,6 @@ const WorkRecord = () => {
                     </p>
                     <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
                       {formatMonthYear(data.profile.created_at)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                      Platform
-                    </p>
-                    <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-                      Helpr (Louisiana)
                     </p>
                   </div>
                 </div>
@@ -406,34 +409,14 @@ const WorkRecord = () => {
                     />
                   </div>
 
-                  {/* Top categories */}
-                  {data.topCategories.length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                        Top Categories
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {data.topCategories.map((cat) => {
-                          const Icon = getCategoryIcon(cat);
-                          const label = categoryLabels[cat] ?? "Other";
-                          return (
-                            <span
-                              key={cat}
-                              className="inline-flex items-center gap-1 text-ds-11 font-medium px-2.5 py-1 rounded-full"
-                              style={{
-                                background: "hsl(var(--bark) / 0.10)",
-                                color: "hsl(var(--bark))",
-                                border: "1px solid hsl(var(--bark) / 0.15)",
-                              }}
-                            >
-                              <Icon className="w-3 h-3" />
-                              {label}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                  {/* NO "TOP CATEGORIES" (owner: "remove"). The Work Record
+                      is a verification document — the thing a helpr hands a
+                      landlord or a lender — and a row of category pills is
+                      profile decoration, not a record of work. Everything else
+                      on this card is a countable fact (jobs completed, amount
+                      earned, active period, rating); this was a tag cloud
+                      derived from them. `topCategories` stays in the data for
+                      the analytics surfaces that do use it. */}
                 </div>
               </div>
 
@@ -468,9 +451,15 @@ const WorkRecord = () => {
                 className="px-5 py-4 text-center"
                 style={{ background: "var(--doc-band)" }}
               >
+                {/* TWO LINES (owner). Two things had to give: the measure and
+                    the copy. A 62ch cap balanced the old sentence into THREE
+                    even lines — balancing distributes, it does not shorten — so
+                    the cap comes off and the sentence is cut to what a landlord
+                    or lender actually needs: when it was generated, what it is
+                    generated from, what Helpr is, and where to verify it. */}
                 <p
-                  className="font-serif italic text-ds-11 leading-relaxed"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                  className="font-serif italic text-ds-11 leading-relaxed mx-auto"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)", textWrap: "balance" }}
                 >
                   {/* "verified" is only true of an account whose identity Helpr
                       actually checked. This sheet gets handed to landlords and

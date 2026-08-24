@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogFooter,
   AlertDialogHero,
@@ -186,7 +185,10 @@ export function ApplyConfirmDialog({
           instead of scrolling below the fold — which is the bug this dialog is
           being fixed for. The two rows are still (body, footer); the offline
           notice, when it renders, takes a third implicit `auto` track. */}
-      <AlertDialogContent className="!gap-3 max-h-[calc(100dvh-2rem)] grid-rows-[minmax(0,1fr)_auto] lg:max-w-3xl xl:max-w-4xl">
+      <AlertDialogContent
+        /* No dismissing mid-apply — the footer Cancel this replaced was
+           disabled while submitting and that guard travels with it. */
+        closeDisabled={applyLoading} className="grid-rows-[minmax(0,1fr)_auto] lg:max-w-3xl xl:max-w-4xl">
         {/* `min-w-0` is load-bearing, not decoration. AlertDialogContent is a
             CSS *grid*, so this body is a grid item whose default
             `min-width: auto` makes the implicit column's minimum equal the
@@ -416,7 +418,7 @@ export function ApplyConfirmDialog({
                 aria-label="Add attachments — certificates or previous work"
               >
                 <Plus className="w-3.5 h-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-                <span>Add attachments</span>
+                <span>Add Attachments</span>
               </button>
             )}
           </div>
@@ -481,7 +483,7 @@ export function ApplyConfirmDialog({
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5 MB"); return; }
+                        if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5 MB."); return; }
                         setApplyFiles(f => [...f, file]);
                       }
                       e.target.value = "";
@@ -518,19 +520,12 @@ export function ApplyConfirmDialog({
             `sm:!space-x-0` neutralises its `sm:space-x-2` so `gap-3` is the
             single source of spacing, and `justify-between` replaces the
             primitive's `sm:justify-end`. */}
-        <AlertDialogFooter className="!flex-row !items-center !justify-between !gap-2 sm:!space-x-0">
-          <AlertDialogCancel
-            disabled={applyLoading}
-            aria-label="Cancel"
-            /* An icon, not a word — but named for what it DOES ("Cancel"), not
-               for its glyph. `!w-11 h-11 p-0` overrides the primitive's
-               `w-full sm:w-auto` + `size="lg"` padding; 44×44 is the HIG touch
-               minimum, so the visual shrinks to an icon without the target
-               shrinking with it. */
-            className="rounded-full !w-11 h-11 p-0 shrink-0 bg-transparent border-transparent shadow-none text-muted-foreground hover:bg-secondary/60 hover:text-foreground active:translate-y-0"
-          >
-            <X className="w-5 h-5" strokeWidth={2} aria-hidden />
-          </AlertDialogCancel>
+        <AlertDialogFooter className="!flex-row !items-center !justify-end sm:!space-x-0">
+          {/* The footer's bottom-left X is GONE — AlertDialogContent renders
+              the canonical top-right close now, the same one DialogContent
+              has, so this modal and the job dialog it opens from close from
+              the same corner (owner: "the X in the top corner, not the bottom
+              left"). The footer is the single primary action. */}
           {/* `type="button"`: when offline we keep the dialog open (don't let
               AlertDialogAction's default close fire), so the held pitch stays
               on screen for an immediate retry. */}

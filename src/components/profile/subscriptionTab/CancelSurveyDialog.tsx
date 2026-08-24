@@ -17,7 +17,7 @@ export const CancelSurveyDialog = ({
 }) => {
   return (
     <Dialog open={cancelSurveyOpen} onOpenChange={setCancelSurveyOpen}>
-      <DialogContent className="!gap-3">
+      <DialogContent>
         <DialogHero
           eyebrow="Before you go"
           title="Thinking of Cancelling?"
@@ -87,7 +87,7 @@ export const CancelSurveyDialog = ({
             and we'll see what we can do — including discounted retention rates.
           </p>
         </div>
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button variant="ghost" onClick={() => setCancelSurveyOpen(false)} className="rounded-ds-md">
             Never Mind
           </Button>

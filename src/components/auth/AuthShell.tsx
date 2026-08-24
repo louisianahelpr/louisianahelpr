@@ -270,7 +270,7 @@ const AuthShell = ({
             <div className="flex items-center gap-2 mb-4">
               {!hideBack && <div className="shrink-0">{backLink}</div>}
               <h1
-                className="flex-1 min-w-0 font-display italic font-bold text-ds-24 leading-tight"
+                className="flex-1 min-w-0 font-display italic font-bold text-ds-24 leading-tight truncate"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
               >
                 {title}

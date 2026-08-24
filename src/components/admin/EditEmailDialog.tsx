@@ -39,7 +39,7 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
   const submit = async () => {
     if (!profile) return;
     if (email1 !== email2) {
-      toast.error("Emails don't match");
+      toast.error("Emails don't match.");
       return;
     }
     if (!email1.trim()) {
@@ -58,7 +58,6 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
         body: { userId: profile.user_id, newEmail: email1.trim() },
       });
       if (error) throw error;
-      toast.success(`Email updated to ${email1.trim()}`);
       setEmail1("");
       setEmail2("");
       onSuccess?.();
@@ -89,7 +88,6 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
               <Pencil className="w-3.5 h-3.5" /> Change email
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title={`Change Email for ${profile?.full_name || "User"}`}
         />
         <div className="space-y-4">

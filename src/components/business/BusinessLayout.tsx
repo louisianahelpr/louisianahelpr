@@ -172,7 +172,7 @@ const BusinessLayout = ({ title, meta, requiresVerification, children }: Props) 
                 eyebrow-removal decision) — same treatment as PageHeader. The
                 `eyebrow` prop is kept in Props for call-site compatibility but
                 no longer paints. */}
-            <h1 className="text-page-title leading-tight mt-1">{title}</h1>
+            <h1 className="text-page-title leading-tight mt-1 truncate">{title}</h1>
             {meta && (
               <p className="font-serif italic mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 {meta}

@@ -1,6 +1,6 @@
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
-import { motion, useMotionValue, type PanInfo } from "framer-motion";
+import { motion, useMotionValue, useDragControls, type PanInfo } from "framer-motion";
 import { X } from "lucide-react";
 import * as React from "react";
 
@@ -100,6 +100,13 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
     // controlling setter down into this primitive.
     const closeRef = React.useRef<HTMLButtonElement>(null);
     const y = useMotionValue(0);
+    // Drag-to-dismiss must NOT own the whole sheet: framer's drag listener
+    // sets `touch-action: none` on its element, which on iOS swallowed every
+    // upward swipe before the inner `overflow-y-auto` could scroll — a tall
+    // sheet (Filters) was simply unscrollable in the app while desktop kept
+    // working via wheel events. The drag now starts only from the grab-handle
+    // strip at the sheet's top; everywhere else the finger scrolls content.
+    const dragControls = useDragControls();
 
     const enableDragDismiss = side === "bottom" && !prefersReducedMotion();
 
@@ -138,15 +145,27 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
         >
           {enableDragDismiss ? (
             <motion.div
+              className="relative"
               // Only the downward direction pulls the sheet; an upward drag
               // is clamped to 0 so the sheet can't be flung off-screen up.
               drag="y"
+              dragControls={dragControls}
+              dragListener={false}
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={{ top: 0, bottom: 0.9 }}
               dragMomentum={false}
               onDragEnd={handleDragEnd}
               style={{ y }}
             >
+              {/* The drag-dismiss capture strip — covers the grab-handle zone
+                  every bottom sheet paints at its top. Stops short of the
+                  right edge so it never sits over the close button. */}
+              <div
+                aria-hidden
+                className="absolute inset-x-0 top-0 h-8 z-10"
+                style={{ touchAction: "none", right: "3.5rem" }}
+                onPointerDown={(e) => dragControls.start(e)}
+              />
               {children}
               <SheetPrimitive.Close ref={closeRef} className="sr-only" aria-hidden tabIndex={-1} />
             </motion.div>

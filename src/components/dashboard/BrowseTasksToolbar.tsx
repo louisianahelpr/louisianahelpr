@@ -8,6 +8,7 @@ import { hapticLight } from "@/lib/haptics";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 import { budgetChipLabel } from "./browseTasksToolbar/constants";
 import type { BrowseTasksToolbarProps, ChipDef } from "./browseTasksToolbar/types";
+import { BrowseSearchBar } from "./browseTasksToolbar/BrowseSearchBar";
 import { SwipeableFilterChip } from "./browseTasksToolbar/SwipeableFilterChip";
 import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
 import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
@@ -61,6 +62,10 @@ export function BrowseTasksToolbar({
   onClearAllFilters,
   titleSrOnly = false,
   filtersAnchorRef,
+  compactActions = false,
+  savedOnly = false,
+  onToggleSavedOnly,
+  savedCount = 0,
 }: BrowseTasksToolbarProps) {
   // Saved-searches dialog. Opened from the filter sheet's "Saved searches"
   // row, which closes the sheet on the way — so the dialog is mounted HERE,
@@ -79,7 +84,7 @@ export function BrowseTasksToolbar({
 
   // One source for the row's heading text, used by both the normal and the
   // search state (search keeps it sr-only rather than dropping the h1).
-  const headingTitle = filters.hasFilters ? "Filtered results" : "Browse jobs";
+  const headingTitle = filters.hasFilters ? "Filtered Results" : "Browse Jobs";
 
   const recapChips: ChipDef[] = [];
   if (filters.selectedCategory) {
@@ -239,6 +244,57 @@ export function BrowseTasksToolbar({
           onClearAllFilters?.();
         }}
         sections={[
+          // PHONE ONLY. These two have icons in the header row on desktop; on
+          // phone the row is emblem + filter + bell and there is no width for
+          // them, so they live here instead. They sit ABOVE "View" because
+          // they are the two that decide WHICH results exist at all — text and
+          // saved-state — before you choose how to look at them.
+          ...(compactActions
+            ? [{
+                key: "search",
+                title: "Search",
+                content: <BrowseSearchBar filters={filters} />,
+              }]
+            : []),
+          // Saved is a FILTER — "show only the ones I saved" — so it belongs in
+          // the sheet on every surface, not as a toolbar icon on desktop and a
+          // sheet row on phone (owner). One shape, one place, and the row
+          // already carries the count the badge used to.
+          ...(onToggleSavedOnly
+            ? [{
+                key: "saved-only",
+                title: "Saved",
+                content: (
+                  <button
+                    type="button"
+                    onClick={() => { hapticLight(); onToggleSavedOnly(); }}
+                    aria-pressed={savedOnly}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-ds-md squircle border text-left btn-press transition-all duration-200 ${
+                      savedOnly
+                        ? "border-primary/50 bg-[hsl(var(--bark)/0.10)]"
+                        : "border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur hover:border-primary/50"
+                    }`}
+                  >
+                    <Bookmark
+                      className="w-3.5 h-3.5 shrink-0 text-primary"
+                      strokeWidth={2.25}
+                      fill={savedOnly ? "currentColor" : "none"}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-ds-12 font-semibold text-foreground leading-snug">
+                        Only Saved Jobs
+                      </span>
+                      <span className="block text-ds-11 text-muted-foreground leading-snug">
+                        {savedCount > 0
+                          ? `${savedCount} saved`
+                          : "You haven't saved any yet"}
+                      </span>
+                    </span>
+                  </button>
+                ),
+              }]
+            : []),
           ...(hideViewToggle
             ? []
             : [{
@@ -292,7 +348,7 @@ export function BrowseTasksToolbar({
                         Saved Searches
                       </span>
                       <span className="block text-ds-11 text-muted-foreground leading-snug">
-                        Apply a Set You Saved, or Save These Filters
+                        Apply a set you saved, or save these filters
                       </span>
                     </span>
                     <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />

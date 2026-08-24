@@ -39,7 +39,7 @@ const AdminExport = () => {
       setExporting(null);
       return;
     }
-    if (!data?.length) { toast.error("No data to export"); setExporting(null); return; }
+    if (!data?.length) { toast.error("No data to export."); setExporting(null); return; }
     // Build a user_id → roles map. Pick the most-privileged role per user
     // (admin > helper > customer) for the single CSV column.
     const roleByUser = new Map<string, string>();
@@ -53,7 +53,6 @@ const AdminExport = () => {
     const header = "User ID,Name,Email,Role,Status,Ban Status,Location,Created,Subscription";
     const rows = data.map(p => [p.user_id, p.full_name, p.email, roleByUser.get(p.user_id) ?? "", p.approval_status, p.ban_status, p.location, p.created_at, p.subscription_tier].map(esc).join(","));
     downloadCSV(`users-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
-    toast.success(`Exported ${data.length} users`);
     setExporting(null);
   };
 
@@ -88,14 +87,13 @@ const AdminExport = () => {
       setExporting(null);
       return;
     }
-    if (!rowsRaw?.length) { toast.error("No data to export"); setExporting(null); return; }
+    if (!rowsRaw?.length) { toast.error("No data to export."); setExporting(null); return; }
     const header = "Job ID,Title,Category,Status,Budget,Platform Fee,Customer ID,Helper ID,Date Needed,Created,Payment Status,Department,Business ID";
     const rows = rowsRaw.map((j: any) => [
       j.id, j.title, j.category, j.status, j.budget, j.platform_fee_amount, j.customer_id, j.helper_id,
       j.date_needed, j.created_at, j.payment_status, j.department ?? "", j.business_id ?? "",
     ].map(esc).join(","));
     downloadCSV(`jobs-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
-    toast.success(`Exported ${rowsRaw.length} job${rowsRaw.length === 1 ? "" : "s"}`);
     setExporting(null);
   };
 
@@ -108,11 +106,10 @@ const AdminExport = () => {
       setExporting(null);
       return;
     }
-    if (!data?.length) { toast.error("No data to export"); setExporting(null); return; }
+    if (!data?.length) { toast.error("No data to export."); setExporting(null); return; }
     const header = "Job ID,Title,Budget,Platform Fee,Fee %,Urgent Fee,Helper ID,Customer ID,Payment Status,Completed At";
     const rows = data.map(j => [j.id, j.title, j.budget, j.platform_fee_amount, j.platform_fee_percent, j.urgent_fee, j.helper_id, j.customer_id, j.payment_status, j.updated_at].map(esc).join(","));
     downloadCSV(`earnings-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
-    toast.success(`Exported ${data.length} earnings record${data.length === 1 ? "" : "s"}`);
     setExporting(null);
   };
 

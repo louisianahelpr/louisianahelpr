@@ -63,7 +63,7 @@ describe("ReuploadIdDialog", () => {
     );
     const noteField = screen.getByPlaceholderText(/Photo was too blurry/);
     fireEvent.change(noteField, { target: { value: "Please retake in good lighting." } });
-    fireEvent.click(screen.getByRole("button", { name: /Send Re-upload Request/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Send Re-Upload Request/ }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalled());
     expect(invokeMock).toHaveBeenCalledWith("admin-user-actions", {
       body: {
@@ -74,15 +74,14 @@ describe("ReuploadIdDialog", () => {
         bypassStrike: false,
       },
     });
-    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
-    expect(onSuccess).toHaveBeenCalled();
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(onClose).toHaveBeenCalled();
   });
 
   it("works with empty note (note is optional)", async () => {
     invokeMock.mockResolvedValue({ data: {}, error: null });
     render(<ReuploadIdDialog profile={sampleProfile} onClose={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: /Send Re-upload Request/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Send Re-Upload Request/ }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalled());
     expect(invokeMock).toHaveBeenCalledWith("admin-user-actions", {
       body: {

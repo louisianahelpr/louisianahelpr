@@ -65,7 +65,6 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
         },
       });
       if (error) throw error;
-      toast.success("Formal warning issued.");
       setCategory("conduct");
       setNote("");
       setBypass(false);
@@ -87,7 +86,6 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
               <MessageSquareWarning className="w-3.5 h-3.5" /> Manual strike
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title="Issue Manual Strike"
         />
         <div className="space-y-5">
@@ -117,7 +115,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
               aria-label="Internal note (sent to user)"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="e.g. Customer complaint: helper left gate open. Verified via phone call."
+              placeholder="e.g. Customer complaint: Helpr left gate open. Verified via phone call."
               rows={3}
             />
           </div>
@@ -144,7 +142,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
             disabled={busy || !note.trim()}
             className="w-full sm:w-auto"
           >
-            {busy ? "Issuing…" : bypass ? "Issue (no escalation)" : "Issue Strike"}
+            {busy ? "Issuing…" : bypass ? "Issue (No Escalation)" : "Issue Strike"}
           </Button>
         </DialogFooter>
       </DialogContent>

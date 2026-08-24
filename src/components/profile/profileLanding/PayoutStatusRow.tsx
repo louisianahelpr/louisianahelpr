@@ -92,7 +92,7 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry }: PayoutStatusRowPro
         <span className="font-semibold">Set up Your Payout Account</span> to accept jobs and get paid.
       </p>
       <span className="shrink-0 text-ds-11 font-semibold text-destructive inline-flex items-center gap-0.5">
-        Set up <ChevronRightIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
+        Set Up <ChevronRightIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
       </span>
     </button>
   );

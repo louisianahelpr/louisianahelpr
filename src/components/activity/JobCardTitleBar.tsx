@@ -1,23 +1,37 @@
+import { type ReactNode } from "react";
+
 interface JobCardTitleBarProps {
   title: string;
   /** Pre-formatted amount string (e.g. `"42"` or `"38.50"`). */
   amount: string;
   /** Optional native tooltip on the currency chip — e.g. budget + fee breakdown. */
   amountTitle?: string;
+  /** Location · date · time row, rendered INSIDE the header block — under the
+      title + amount, above the divider (owner: "move location date and time
+      up under money and title globally. up above the line"). */
+  meta?: ReactNode;
 }
 
 /**
- * Italic display title + sienna currency chip — the top bar shared by the
+ * Italic display title + sienna currency chip.
+ *
+ * The location/date/time row is NOT here. It used to be lifted up beside the
+ * title on `lg:` while phone kept it stacked below — two arrangements of the
+ * same card depending on width, and the desktop one squeezed the city to an
+ * ellipsis before it dropped. It lives under the title on every width now
+ * (owner: "move back under title globally"), which is also the only version
+ * that never truncates. — the top bar shared by the
  * poster and helper activity cards. Visually identical across both surfaces.
  */
-export function JobCardTitleBar({ title, amount, amountTitle }: JobCardTitleBarProps) {
+export function JobCardTitleBar({ title, amount, amountTitle, meta }: JobCardTitleBarProps) {
   return (
     <div
-      className="w-full px-4 py-2.5 flex items-center justify-between text-left"
+      className="w-full px-4 py-2.5 text-left"
       style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
     >
+      <div className="flex items-center justify-between">
       <h3
-        className="font-display italic font-bold leading-snug line-clamp-2 min-w-0 text-headline-card"
+        className="font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"
         style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
       >
         {title}
@@ -61,6 +75,8 @@ export function JobCardTitleBar({ title, amount, amountTitle }: JobCardTitleBarP
           {amount}
         </span>
       </span>
+      </div>
+      {meta ? <div className="mt-1.5">{meta}</div> : null}
     </div>
   );
 }

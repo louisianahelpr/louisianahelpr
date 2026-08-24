@@ -106,7 +106,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
     // we still require an explicit category pick — if the admin chose
     // "other" we require the freeform note so audit isn't ambiguous.
     if (reasonCategory === "other" && !reasonNote.trim()) {
-      toast.error("Add a freeform note for 'Other' reason");
+      toast.error("Add a freeform note for 'Other' reason.");
       return;
     }
     setBanning(true);
@@ -140,7 +140,6 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           type: "warning",
           link: "/profile",
         });
-        toast.success("Warning issued.");
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "warning",
           reason_category: reasonCategory,
@@ -177,7 +176,6 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           type: "warning",
           link: "/profile",
         });
-        toast.success(`User temporarily banned for ${duration} days.`);
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "temporary",
           duration_days: parseInt(duration),
@@ -212,7 +210,6 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           type: "warning",
           link: "/profile",
         });
-        toast.success("User permanently banned.");
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "permanent",
           reason_category: reasonCategory,
@@ -238,7 +235,6 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
               <ShieldAlert className="w-3.5 h-3.5" /> Take action
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title={`Take Action: ${profile?.full_name || "User"}`}
         />
         <div className="space-y-5">

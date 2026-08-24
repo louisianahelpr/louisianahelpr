@@ -134,7 +134,7 @@ const HomeHistory = () => {
         {isError && !loading && (
           <ErrorState
             variant="inline"
-            title="Couldn't load your home history"
+            title="We couldn't load your home history"
             onRetry={() => refetch()}
           />
         )}
@@ -148,7 +148,7 @@ const HomeHistory = () => {
             variant="inline"
             icon={Home}
             eyebrow="Nothing on record yet"
-            title="No finished jobs yet."
+            title="No finished jobs yet"
             body="When a job is done it lands here for good — who came out, what it cost, and when. It's your home's permanent service history."
             action={
               <BarkPillButton onClick={() => navigate("/post-job")}>

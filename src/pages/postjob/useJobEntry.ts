@@ -1,4 +1,3 @@
-import { toast } from "sonner";
 import { track } from "@/lib/analytics";
 import type { AiGeneratedJob } from "@/components/postjob/AiJobBuilder";
 import type { SampleJob } from "@/data/sampleJobs";
@@ -138,7 +137,6 @@ export function useJobEntry(params: UseJobEntryParams) {
     if (draft.offerToHelperId !== undefined) setOfferToHelperId(draft.offerToHelperId);
 
     setDraftConsumed(true);
-    toast.success("Draft restored");
   };
 
   // ── Entry-landing choices ──────────────────────────────────────────────

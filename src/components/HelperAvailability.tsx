@@ -95,7 +95,6 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
         };
       }),
     );
-    toast.success("Weekdays 9–5 set.");
   };
   const applyWeekendsOff = () => {
     setSlots((prev) =>
@@ -103,7 +102,6 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
         s.day_of_week === 0 || s.day_of_week === 6 ? { ...s, is_available: false } : s,
       ),
     );
-    toast.success("Weekends marked off.");
   };
   const copyMondayToAll = () => {
     const monday = slots.find((s) => s.day_of_week === 1);
@@ -116,7 +114,6 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
         end_time: monday.end_time,
       })),
     );
-    toast.success("Monday copied across the week.");
   };
 
   const handleSave = async () => {
@@ -142,7 +139,6 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
       const { error } = await supabase.from("helper_availability").insert(inserts);
       if (error) throw error;
       hapticSuccess();
-      toast.success("Availability saved");
     } catch (err: unknown) {
       hapticError();
       toast.error(getErrorMessage(err));

@@ -3,10 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Users, Briefcase, DollarSign, TrendingUp, Star, CreditCard, Activity, PieChart,
-  BarChart3, Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles,
-} from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, Loader2, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { MetricCard, StatusRow, MRRRow, CohortRetentionCard, FunnelCard } from "./AdminAnalyticsCards";
 import { UsersDrillDown, SubscriptionsDrillDown, CategoriesDrillDown, PayoutsDrillDown, JobsDrillDown } from "./AdminAnalyticsDrilldowns";
@@ -16,6 +13,7 @@ import { computeMetrics } from "./adminAnalytics/adminAnalyticsHelpers";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatPriceExact } from "@/lib/format";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // Lazy-load charts so recharts (~250 KB pre-gzip) lands in its own chunk
 // instead of inflating the AdminAnalytics initial bundle. Funnel cards +
@@ -44,6 +42,7 @@ const AdminAnalytics = () => {
   // Raw data
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [allJobs, setAllJobs] = useState<Job[]>([]);
+  const [transfers, setTransfers] = useState<{ amount_cents: number | string; status: string }[]>([]);
   const [tips, setTips] = useState<Tip[]>([]);
   const [drillUsers, setDrillUsers] = useState<Profile[]>([]);
   const [drillJobs, setDrillJobs] = useState<Job[]>([]);
@@ -69,10 +68,16 @@ const AdminAnalytics = () => {
         page++;
       }
 
-      const [profilesRes, tipsRes, rolesRes] = await Promise.all([
+      const [profilesRes, tipsRes, rolesRes, transfersRes] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("tips").select("*"),
         supabase.from("user_roles").select("user_id, role"),
+        // THE LEDGER. "Helpr Payouts" used to be recomputed from job budgets
+        // with a fee fallback, which overstated it — see computeMetrics.
+        // `as any`: payout_transfers landed in a recent migration that is not
+        // in the generated types yet, same cast AdminPayoutBatches uses.
+         
+        (supabase as any).from("payout_transfers").select("amount_cents, status"),
       ]);
       if (profilesRes.error) report(profilesRes.error, { tags: { source: "AdminAnalytics.loadProfiles" } });
       if (tipsRes.error) report(tipsRes.error, { tags: { source: "AdminAnalytics.loadTips" } });
@@ -80,6 +85,7 @@ const AdminAnalytics = () => {
       setProfiles(profilesRes.data || []);
       setAllJobs(allJobsData);
       setTips(tipsRes.data || []);
+      setTransfers((transfersRes.data as { amount_cents: number | string; status: string }[] | null) || []);
       // Build user_id → most-privileged role map (admin > helper > customer).
       const roleMap = new Map<string, string>();
       const priority = (r: string) => r === "admin" ? 1 : r === "helper" ? 2 : 3;
@@ -148,7 +154,7 @@ const AdminAnalytics = () => {
     approvedUsers,
     pendingUsers,
     deniedUsers,
-  } = computeMetrics(profiles, allJobs, tips);
+  } = computeMetrics(profiles, allJobs, tips, transfers);
 
   // ─── Drill-down handler ───
   const openDrillDown = async (type: DrillDown) => {
@@ -218,10 +224,16 @@ const AdminAnalytics = () => {
 
       {/* ── Row 1: Key Financial Metrics ── */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* NOT "Revenue" — this is budget + poster fee across captured jobs,
+            i.e. the gross value flowing THROUGH the platform, most of which is
+            owed to helpers. Calling it revenue put it beside "$0.00 Platform
+            Profit" and read as nonsense to an operator. It also had a second
+            name: Dashboard Home called the identical figure "Captured Revenue
+            (all-time)". One fact, one name. */}
         <MetricCard
-          label="Collected Revenue"
+          label="Payments Collected"
           value={`$${totalRevenue.toFixed(2)}`}
-          sub={`${capturedJobs.length} active payments (excl. refunds)`}
+          sub={`${capturedJobs.length} captured payments · gross, before payouts`}
           icon={DollarSign}
           onClick={() => openDrillDown("revenue")}
         />
@@ -322,7 +334,12 @@ const AdminAnalytics = () => {
               </Suspense>
             </div>
           ) : (
-            <p className="text-ds-11 text-muted-foreground text-center py-8">No subscribers yet</p>
+            <EmptyState
+            variant="inline"
+            icon={Crown}
+            title="No subscribers yet"
+            body="Paid plans will appear here once someone upgrades."
+          />
           )}
         </div>
       </div>
@@ -467,7 +484,7 @@ const AdminAnalytics = () => {
       {/* ── Row 6.5: Activation Funnels ── */}
       <div className="grid sm:grid-cols-2 gap-4">
         <FunnelCard title="Customer activation" subtitle="Signup → revenue" stages={customerFunnel} />
-        <FunnelCard title="Helper supply" subtitle="Signup → first paid job" stages={helperFunnel} />
+        <FunnelCard title="Helpr supply" subtitle="Signup → first paid job" stages={helperFunnel} />
       </div>
 
       {/* ── Row 6.75: Cohort Retention ── */}

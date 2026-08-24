@@ -43,7 +43,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
         // recover the edge function's real message (e.g. the below-$25 floor
         // notice) from the response body. See functionErrorMessage.
         setError(
-          data?.error || (error ? await functionErrorMessage(error, "Could not load quote") : "Could not load quote")
+          data?.error || (error ? await functionErrorMessage(error, "Couldn't load quote") : "Couldn't load quote")
         );
         return;
       }
@@ -72,7 +72,6 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
     }
 
     hapticSuccess();
-    toast.success(`$${formatPriceExact(data.net_cents / 100)} is on the way to your debit card!`);
     onOpenChange(false);
     onSuccess?.();
   };
@@ -83,7 +82,6 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <Zap className="w-3 h-3" /> Skip the wait
@@ -165,7 +163,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
           </div>
         ) : null}
 
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="rounded-ds-md">
             Cancel
           </Button>

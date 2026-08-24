@@ -50,11 +50,11 @@ export function useJobMediaUpload() {
     const safeFiles = files.filter((file) => allowedImageTypes.has(file.type));
 
     if (safeFiles.length !== files.length) {
-      toast.error("Only JPG, PNG, WEBP, and GIF images are allowed");
+      toast.error("Only JPG, PNG, WEBP, and GIF images are allowed.");
     }
 
     if (imageFiles.length + safeFiles.length > 5) {
-      toast.error("Maximum 5 images allowed");
+      toast.error("Maximum 5 images allowed.");
       return;
     }
     // Compress images before storing. The compressImage pipeline re-
@@ -88,28 +88,6 @@ export function useJobMediaUpload() {
     const previews = newFiles.map((f) => URL.createObjectURL(f));
     setImagePreviews(previews);
 
-    // Trust signal — confirm to the poster that location/device metadata
-    // was scrubbed. The canvas re-encode in compressImage drops EXIF
-    // regardless of whether the file was compressed (small JPEGs still
-    // go through the same path). Only fires when at least one photo was
-    // accepted, so a rejected-only batch doesn't show a misleading
-    // confirmation. HEIC files are passed through compressImage as-is
-    // (most browsers can't canvas-decode HEIC) — those bypass EXIF
-    // stripping, so suppress the confirmation when only HEIC landed.
-    const heicCount = safeFiles.filter(
-      (f) => f.type === "image/heic" || f.type === "image/heif",
-    ).length;
-    const exifStripped = safeFiles.length - heicCount;
-    if (exifStripped > 0) {
-      toast.success(
-        exifStripped === 1
-          ? "Photo added — location data removed"
-          : `${exifStripped} photos added — location data removed`,
-        {
-          description: "Helprs can't see where the photo was taken from.",
-        },
-      );
-    }
   };
 
   const removeImage = (index: number) => {

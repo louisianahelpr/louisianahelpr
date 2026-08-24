@@ -47,7 +47,6 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
       // returned `free: true`. No Stripe redirect needed.
       if (data?.free) {
         hapticSuccess();
-        toast.success(data.message || "Job boosted — your post will lead the feed.");
         onBoosted?.();
         onClose();
         return;
@@ -68,7 +67,6 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <Rocket className="w-3 h-3" /> Lift it to the top
@@ -159,7 +157,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             ))}
           </ul>
         </div>
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md">Cancel</Button>
           <Button
             variant="primary"

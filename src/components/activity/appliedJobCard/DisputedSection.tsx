@@ -142,7 +142,6 @@ export function DisputedSection({
                   if (error) { hapticError(); toast.error("We couldn't submit your response — please try again."); setSubmittingResponse(false); return; }
                   if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: `The Helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, type: "info", link: "/my-posts?filter=disputed" });
                   hapticSuccess();
-                  toast.success("Response submitted — poster will review");
                   setSubmittingResponse(false);
                   setRespondingJobId(null);
                   setDisputeResponse("");
@@ -172,7 +171,7 @@ export function DisputedSection({
         className="w-full"
         onClick={() => onViewDispute(job)}
       >
-        <AlertTriangle className="w-4 h-4 mr-1" /> View timeline & add evidence
+        <AlertTriangle className="w-4 h-4 mr-1" /> View Timeline & Add Evidence
       </Button>
 
       <div className="grid grid-cols-2 gap-2">

@@ -192,12 +192,7 @@ DialogDescription.displayName = DialogPrimitive.Description.displayName;
  * line. `titleClassName`/`titleStyle` let a caller scale the title where a
  * long name needs it, without forking the structure.
  */
-const DialogHero = ({
-  title,
-  className,
-  titleClassName,
-  titleStyle,
-}: {
+const DialogHero = ({ title }: {
   // `eyebrow` and `subtitle` remain ACCEPTED but are not rendered — the
   // 2026-07-25 "one main title" decision: a popup header shows its title and
   // nothing stacked above or below it. Every call site has had the props
@@ -211,16 +206,14 @@ const DialogHero = ({
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
-  className?: string;
-  titleClassName?: string;
-  titleStyle?: React.CSSProperties;
-  eyebrowClassName?: string;
-  eyebrowStyle?: React.CSSProperties;
+  // NO className / titleClassName / style escape hatches — same reason as
+  // AlertDialogHero's. A popup header is ONE layout; if it changes, it changes
+  // here, once, for all ~149 of them.
 }) => (
-  <DialogHeader className={cn("space-y-0 text-left", className)}>
+  <DialogHeader className="space-y-0 text-left">
     <DialogTitle
-      className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
-      style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}
+      className="font-display italic font-bold leading-tight pt-2"
+      style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
     >
       {title}
     </DialogTitle>

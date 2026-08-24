@@ -163,7 +163,7 @@ const Signup = () => {
     if (!dateOfBirth) {
       errors.dateOfBirth = "Add your date of birth";
     } else if (ageFromDob(dateOfBirth) < 18) {
-      errors.dateOfBirth = "You need to be 18+ to sign up";
+      errors.dateOfBirth = "You'll need to be 18 or older to join.";
     }
     // Bio is optional — but if the user starts one, keep the 20-char floor so
     // a half-typed sentence doesn't ship as their whole profile.
@@ -228,12 +228,12 @@ const Signup = () => {
 
   // Validates the "Account credentials + agreements" content (UI step 1).
   const validateAccountStep = async () => {
-    if (!email.trim()) { toast.error("Add your email address"); return false; }
-    if (password.length < 8) { toast.error("Password needs at least 8 characters"); return false; }
-    if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter to your password"); return false; }
-    if (!/[0-9]/.test(password)) { toast.error("Add at least one number to your password"); return false; }
-    if (!acceptedPolicies) { toast.error("Check the box to agree to the terms and platform rules"); return false; }
-    if (!ageConfirmed) { toast.error("Check the box to confirm you're 18+"); return false; }
+    if (!email.trim()) { toast.error("Add your email address."); return false; }
+    if (password.length < 8) { toast.error("Password needs at least 8 characters."); return false; }
+    if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter to your password."); return false; }
+    if (!/[0-9]/.test(password)) { toast.error("Add at least one number to your password."); return false; }
+    if (!acceptedPolicies) { toast.error("Check the box to agree to the terms and platform rules."); return false; }
+    if (!ageConfirmed) { toast.error("Check the box to confirm you're 18 or older."); return false; }
     return true;
   };
 
@@ -289,7 +289,7 @@ const Signup = () => {
     if (elapsed < SIGNUP_COOLDOWN_MS) {
       const secsLeft = Math.ceil((SIGNUP_COOLDOWN_MS - elapsed) / 1000);
       hapticError();
-      toast.error(`Too many attempts — try again in ${secsLeft}s`);
+      toast.error(`Too many attempts — try again in ${secsLeft}s.`);
       setLoading(false);
       return;
     }
@@ -324,7 +324,6 @@ const Signup = () => {
         // whether the address exists. A real logged-out user who
         // stumbles into this path is redirected to /login with the
         // same generic message they'd see on ForgotPassword.
-        toast.info("If that email is available, we've sent a verification link. Check your inbox — or sign in if you already have an account.");
         navigate("/login");
         return;
       }
@@ -381,7 +380,6 @@ const Signup = () => {
 
       track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim(), ...ppoTrackingProps() });
       hapticSuccess();
-      toast.success("Account created! Check your email and click the verification link to continue.");
       navigate("/signup-pending", { state: { email } });
     } catch (err: any) {
       hapticError();

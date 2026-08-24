@@ -23,7 +23,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
 
   const addFiles = (selected: File[]) => {
     if (selected.length === 0) return;
-    if (files.length + selected.length > 5) { toast.error("Max 5 photos"); return; }
+    if (files.length + selected.length > 5) { toast.error("Max 5 photos."); return; }
     const newFiles = [...files, ...selected].slice(0, 5);
     setFiles(newFiles);
     setPreviews(newFiles.map(f => URL.createObjectURL(f)));
@@ -50,7 +50,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
   };
 
   const upload = async () => {
-    if (files.length === 0) { toast.error("Add at least one photo"); return; }
+    if (files.length === 0) { toast.error("Add at least one photo."); return; }
     setUploading(true);
     const urls: string[] = [...existingUrls];
     for (const file of files) {
@@ -77,7 +77,6 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
       return;
     }
 
-    toast.success(`${type === "before" ? "Before" : "After"} photos uploaded!`);
     setFiles([]);
     setPreviews([]);
     setOpen(false);
@@ -97,7 +96,6 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <Camera className="w-3 h-3" /> Proof of work
@@ -180,7 +178,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                       className="font-sans font-semibold mt-1 text-ds-10"
                       style={{ color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
                     >
-                      Add photo
+                      Add Photo
                     </span>
                   </button>
                 ) : (
@@ -196,7 +194,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
                       className="font-sans font-semibold mt-1 text-ds-10"
                       style={{ color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
                     >
-                      Add photo
+                      Add Photo
                     </span>
                     <input type="file" accept="image/*" multiple className="hidden" onChange={handleSelect} />
                   </label>
@@ -204,7 +202,7 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
               )}
             </div>
           </div>
-          <DialogFooter className="!gap-2">
+          <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-ds-md">Cancel</Button>
             <Button
               onClick={upload}
@@ -353,7 +351,6 @@ export const PhotoProofGroup = ({
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <Image className="w-3 h-3" /> Proof of work

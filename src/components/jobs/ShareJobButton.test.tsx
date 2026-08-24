@@ -202,7 +202,7 @@ describe("ShareJobButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "Share this job" }));
 
     await waitFor(() => {
-      expect(toastErrorMock).toHaveBeenCalledWith("Couldn't share — try again");
+      expect(toastErrorMock).toHaveBeenCalledWith("Couldn't share — try again.");
     });
   });
 });

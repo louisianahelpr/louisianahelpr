@@ -153,7 +153,6 @@ const NotificationPreferences = () => {
         },
       });
       if (error) throw error;
-      toast.success("Test sent — check your device.");
     } catch (err: unknown) {
       hapticError();
       const msg = err instanceof Error ? err.message : "Test failed.";
@@ -163,8 +162,15 @@ const NotificationPreferences = () => {
     }
   };
 
+  // A normal card, not a flex child. It used to be `flex-1 min-h-0 ... flex
+  // flex-col`, which only works inside a height-constrained flex column — and
+  // it was the reason the Notifications tab carried its own
+  // `h-full min-h-0 flex flex-col overflow-hidden` wrapper while every other
+  // Profile tab used `space-y-4`. The tab shells are one shell now (owner,
+  // many times over), so this scrolls with the page like every sibling rather
+  // than scrolling inside itself.
   return (
-    <div className="flex-1 min-h-0 rounded-2xl liquid-glass overflow-hidden shadow-sm flex flex-col">
+    <div className="rounded-2xl liquid-glass overflow-hidden shadow-sm">
       {/* Push master toggle moved to the TOP — it gates every row below
           it, so it's the lead control. Bark-tinted backdrop signals
           "this is the master switch" without shouting. */}

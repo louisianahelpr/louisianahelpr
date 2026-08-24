@@ -18,7 +18,13 @@ const EarningsByMonthCard = ({ analytics, hasAccess, isLoading, onUpgrade }: Ear
       hasAccess={hasAccess}
       isLoading={isLoading}
       onUpgrade={onUpgrade}
-      lockedPreview="Track month-over-month earnings trends and spot your best months."
+      /* Names what this card ADDS. The Earnings tab already shows a free
+         cumulative YTD-vs-last-year line, so "track month-over-month earnings
+         trends" described a chart the helpr could already see — a paywall
+         selling something the page had given away. What is actually behind the
+         lock is the per-month figure: a running total tells you the year is up,
+         not which month carried it. */
+      lockedPreview="A bar and a dollar figure for every month — the free year-to-date line only shows the running total."
     >
       {analytics && (
         <div className="flex items-end gap-2 h-28">

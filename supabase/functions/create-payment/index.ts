@@ -151,7 +151,7 @@ serve(async (req) => {
               currency: "usd",
               tax_behavior: TAX_BEHAVIOR,
               product_data: {
-                name: `Helpr Task: ${job.title}`,
+                name: `Helpr Job: ${job.title}`,
                 description: "Remaining balance after applying your Pay It Forward gift. Funds release once both parties confirm completion.",
                 tax_code: "txcd_00000000",
               },
@@ -241,7 +241,7 @@ serve(async (req) => {
             currency: "usd",
             tax_behavior: TAX_BEHAVIOR,
             product_data: {
-              name: `Helpr Task: ${job.title}`,
+              name: `Helpr Job: ${job.title}`,
               description: laborTaxable
                 ? `Secure escrow payment for taxable labor (${job.category}). Funds release once both parties confirm completion.`
                 : `Secure escrow payment for exempt service (${job.category}). Funds release once both parties confirm completion.`,

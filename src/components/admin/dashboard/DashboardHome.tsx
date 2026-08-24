@@ -41,13 +41,6 @@ export const DashboardHome = ({
       {/* Date range selector — top of the dashboard. Drives every
           range-sensitive tile (revenue, new users, completed jobs) and
           the sparklines under each. */}
-      <DateRangeBar
-        dateRange={dateRange}
-        setDateRange={setDateRange}
-        customDays={customDays}
-        setCustomDays={setCustomDays}
-      />
-
       {/* Greeting — editorial 3-line header on its own glass plate.
           Matches the dashboard / activity / messages top-box pattern. */}
       <div
@@ -64,15 +57,37 @@ export const DashboardHome = ({
             "0 18px 32px -10px hsl(var(--olivewood) / 0.12)",
         }}
       >
-        <h1
-          className="font-sans font-semibold leading-tight"
-          style={{ fontSize: "clamp(1.4rem, 2vw + 0.4rem, 1.85rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-        >
-          Welcome back
-        </h1>
-        <p className="font-serif italic mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          {hasAlerts ? "There are items needing attention today." : "Everything looks calm on the platform."}
-        </p>
+        {/* Range picker sits BESIDE the greeting (owner: "move to right of
+            welcome"). It was a floating segmented control above the card,
+            attached to nothing — while the numbers it actually governs are all
+            below. Inside the plate it reads as a control ON this dashboard
+            rather than a stray bar between the nav and the content, and it
+            reclaims the row it used to occupy on its own.
+            `items-start` so it aligns to the heading's cap-height, not to the
+            centre of a two-line greeting. */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1
+              // font-display, like every other h1 in the product — admin no
+              // longer sets its own heading face (see AdminSectionHeader).
+              className="font-display font-bold leading-tight text-ds-20"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+            >
+              Welcome back
+            </h1>
+            <p className="font-serif italic mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              {hasAlerts ? "There are items needing attention today." : "Everything looks calm on the platform."}
+            </p>
+          </div>
+          <div className="shrink-0">
+            <DateRangeBar
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              customDays={customDays}
+              setCustomDays={setCustomDays}
+            />
+          </div>
+        </div>
       </div>
 
       {dataError && (
@@ -159,7 +174,10 @@ export const DashboardHome = ({
       <div className="space-y-2 sm:space-y-3">
         <p className="text-ds-10 sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-          <KpiCard label="Captured Revenue (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
+          {/* Same figure, same name as Analytics — it was "Captured Revenue
+              (all-time)" here and "Collected Revenue" there. And it is gross
+              volume, not revenue: budget + poster fee, most of it owed out. */}
+          <KpiCard label="Payments Collected (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
           <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
           <KpiCard

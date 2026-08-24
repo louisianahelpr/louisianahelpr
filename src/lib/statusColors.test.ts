@@ -47,9 +47,25 @@ describe("JOB_STATUS_COLORS", () => {
 
 describe("jobStatusColor()", () => {
   it("returns the canonical color for known statuses", () => {
-    expect(jobStatusColor("in_progress").text).toBe("hsl(var(--burnt-sienna))");
-    expect(jobStatusColor("completed").text).toBe("hsl(var(--bark))");
+    expect(jobStatusColor("in_progress").text).toBe("hsl(var(--sienna-ink))");
+    expect(jobStatusColor("completed").text).toBe("hsl(var(--sage-ink))");
     expect(jobStatusColor("revision_requested").text).toBe("hsl(var(--amber-ink))");
+  });
+
+  it("labels every status with a theme-adaptive -ink token, never a raw brand hue", () => {
+    // The defect this guards: a raw brand hue (--bark, --burnt-sienna) has a
+    // dark value tuned for ACCENTS, not for 9px text sitting on its own tint.
+    // Measured on the dark canvas before the fix: "In progress" 3.83:1,
+    // "Completed" 4.28:1, "Disputed" 3.52:1 — all under AA, on the chips whose
+    // whole job is to be read at a glance. Every -ink token in the palette
+    // carries a light AND a dark value chosen for label duty.
+    //
+    // `--olivewood` is the deliberate exception: it is the app's neutral text
+    // hue, already theme-adaptive, and measures 7.75:1 on its own tint.
+    const ADAPTIVE = /--(\w+-)?ink\b|--olivewood/;
+    for (const [status, { text }] of Object.entries(JOB_STATUS_COLORS)) {
+      expect(text, `${status} label`).toMatch(ADAPTIVE);
+    }
   });
 
   it("falls back gracefully for unknown / null / undefined / empty", () => {

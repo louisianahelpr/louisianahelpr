@@ -7,7 +7,15 @@ import { formatCategory } from "@/lib/format";
 // Pure metric computation for the admin analytics dashboard. Extracted VERBATIM
 // from AdminAnalytics.tsx — no hooks, no state, no side effects. Given the raw
 // profiles / jobs / tips, returns every derived value the dashboard renders.
-export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[]) => {
+export const computeMetrics = (
+  profiles: Profile[],
+  allJobs: Job[],
+  tips: Tip[],
+  /** Rows from `payout_transfers` — the authoritative ledger of money that
+   *  actually moved. Optional so existing callers keep working; when absent the
+   *  derived estimate is used and flagged via `helperPayoutsFromLedger`. */
+  payoutTransfers?: { amount_cents: number | string; status: string }[],
+) => {
   // ─── Computed metrics ───
   // Unified user model: there's no helper-vs-customer distinction at the
   // user level. Define cohorts by behavior instead — anyone who's applied
@@ -148,7 +156,30 @@ export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[])
     const commissionPercent = Number(j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT);
     return s + (cancFee * commissionPercent / 100) + Number(j.customer_fee_amount || 0);
   }, 0);
-  const totalHelperPayouts = completedJobs.reduce((s, j) => {
+  // HELPER PAYOUTS — read from the ledger, not recomputed from budgets.
+  //
+  // This used to derive it as `budget − budget × (helper_fee_percent ?? 10%)`
+  // across completed jobs. Two things went wrong on live data: both completed
+  // jobs carry `helper_fee_percent = NULL`, so it fell back to the legacy 10%
+  // while release-payout had resolved the helper's live tier at 12%; and one of
+  // those jobs has no transfer row at all yet was still counted as paid. The
+  // screen reported $391.50 against $228.80 of money that actually moved — a
+  // $162.70 overstatement, and a different number from Payout Batches, which
+  // reads this same ledger and calls it "authoritative" in its own subtitle.
+  //
+  // Only SETTLED rows count; a pending or failed transfer is not money the
+  // helper has.
+  // `amount_cents`, not `amount` — the column is integer cents. Verified
+  // against the live table before trusting it; summing a column that does not
+  // exist would have silently produced 0 and looked like "no payouts yet".
+  // Status is `paid` on prod today; the other two are accepted defensively.
+  const ledgerPayouts = payoutTransfers
+    ?.filter((t) => t.status === "paid" || t.status === "completed" || t.status === "succeeded")
+    .reduce((s, t) => s + Number(t.amount_cents || 0) / 100, 0);
+
+  // Kept for callers that do not pass the ledger — visible next to the reason
+  // it is wrong, rather than deleted.
+  const derivedHelperPayouts = completedJobs.reduce((s, j) => {
     const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
     const perHelper = Number(j.budget || 0) / helpers;
     const commissionPercent = Number(j.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT);
@@ -156,6 +187,9 @@ export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[])
     // Urgent fee splits across the roster like the budget (#114).
     return s + (perHelper - commission + netUrgentFeeDollars(Number(j.urgent_fee ?? 0)) / helpers);
   }, 0);
+  const totalHelperPayouts = ledgerPayouts ?? derivedHelperPayouts;
+  /** True when the figure above came from the ledger rather than an estimate. */
+  const helperPayoutsFromLedger = ledgerPayouts !== undefined;
   const totalTips = tips.filter(t => t.payment_status === "paid" || t.payment_status === "completed").reduce((s, t) => s + Number(t.amount), 0);
   const avgJobValue = capturedJobs.length > 0 ? totalRevenue / capturedJobs.length : 0;
   const completionRate = allJobs.length > 0 ? (completedJobs.length / allJobs.length) * 100 : 0;
@@ -250,6 +284,7 @@ export const computeMetrics = (profiles: Profile[], allJobs: Job[], tips: Tip[])
   const deniedUsers = profiles.filter(p => p.approval_status === "denied").length;
 
   return {
+    helperPayoutsFromLedger,
     helpers,
     customers,
     customerFunnel,

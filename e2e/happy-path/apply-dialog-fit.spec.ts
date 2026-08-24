@@ -86,8 +86,15 @@ const MEASURE = `(() => {
         const ox = getComputedStyle(p).overflowX;
         if (ox === "auto" || ox === "scroll" || ox === "hidden") { clipped = true; break; }
       }
+      // Dialog CHROME is exempt: the corner close button is a 44px HIG tap
+      // target anchored to the dialog FRAME (right-3, top-3), so its hit box
+      // deliberately spans the p-5 padding gutter — that is frame chrome, not
+      // content escaping the content box. Content elements are never
+      // absolutely positioned buttons, so the exemption stays narrow.
+      const isFrameChrome =
+        child.tagName === "BUTTON" && getComputedStyle(child).position === "absolute";
       // 4px of slack for sub-pixel rounding on bled/negative-margin rows.
-      if (!clipped && cr.width > 0 && (cr.right - contentRight > 4 || contentLeft - cr.left > 4)) {
+      if (!clipped && !isFrameChrome && cr.width > 0 && (cr.right - contentRight > 4 || contentLeft - cr.left > 4)) {
         offenders.push({
           tag: child.tagName.toLowerCase(),
           cls: (typeof child.className === "string" ? child.className : "").slice(0, 120),
@@ -101,13 +108,14 @@ const MEASURE = `(() => {
   };
   walk(dlg);
   // Match on the ACCESSIBLE NAME, not on textContent. The dismiss action is an
-  // icon button now (an "x" with aria-label="Cancel"), so its textContent is
-  // empty — matching text alone would silently drop it from the actions list
-  // and the "both actions are on screen and tappable" assertions would pass
-  // vacuously. aria-label first, visible text otherwise.
+  // icon button now (an "x" with aria-label="Close" — the shared
+  // AlertDialogContent corner control that replaced the footer Cancel), so its
+  // textContent is empty; matching text alone would silently drop it from the
+  // actions list and the "both actions are on screen and tappable" assertions
+  // would pass vacuously. aria-label first, visible text otherwise.
   const accName = (b) => ((b.getAttribute("aria-label") || b.textContent || "").trim());
   const actions = [...dlg.querySelectorAll("button")]
-    .filter((b) => /apply now|submit bid|book now|^cancel$|try again/i.test(accName(b)))
+    .filter((b) => /apply now|submit bid|book now|^close$|try again/i.test(accName(b)))
     .map((b) => {
       const br = b.getBoundingClientRect();
       return {
@@ -115,6 +123,11 @@ const MEASURE = `(() => {
         left: +br.left.toFixed(1),
         right: +br.right.toFixed(1),
         height: +br.height.toFixed(1),
+        // The corner Close is FRAME CHROME: it anchors to the dialog frame
+        // (absolute, right-3) and its 44px tap box deliberately spans the
+        // padding gutter, so it is exempt from the content-box edge assertions
+        // — the primary footer action is not.
+        isChrome: getComputedStyle(b).position === "absolute",
         // A label squeezed to "Apply no…" would scroll inside its own button.
         labelTruncated: b.scrollWidth > b.clientWidth + 0.5,
         inViewport:
@@ -145,7 +158,7 @@ type Measurement = {
   dialog: { scrollWidth: number; clientWidth: number; contentLeft: number; contentRight: number; top: number; bottom: number };
   doc: { scrollWidth: number; clientWidth: number };
   viewport: { w: number; h: number };
-  actions: { text: string; left: number; right: number; height: number; labelTruncated: boolean; inViewport: boolean }[];
+  actions: { text: string; left: number; right: number; height: number; isChrome: boolean; labelTruncated: boolean; inViewport: boolean }[];
   offenders: { tag: string; cls: string; text: string; right: number; overRight: number }[];
 };
 
@@ -224,13 +237,21 @@ for (const { name, width, job } of [
     const labels = m.actions.map((a) => a.text);
     const lower = labels.map((l) => l.toLowerCase());
     expect(lower, `actions: ${JSON.stringify(labels)}`).toContain(name.toLowerCase());
-    expect(lower).toContain("cancel");
+    // The dismiss affordance is the shared corner "Close" now, not a footer
+    // "Cancel" — its accessible name is "Close" (see AlertDialogContent, and
+    // the ApplyConfirmDialog unit test + home-chrome spec that pin the name).
+    expect(lower).toContain("close");
     for (const action of m.actions) {
       expect(action.inViewport, `${action.text} is off screen: ${JSON.stringify(action)}`).toBe(true);
       expect(action.labelTruncated, `${action.text} label is clipped`).toBe(false);
       expect(action.height).toBeGreaterThanOrEqual(44);
-      expect(action.right).toBeLessThanOrEqual(m.dialog.contentRight + 0.5);
-      expect(action.left).toBeGreaterThanOrEqual(m.dialog.contentLeft - 0.5);
+      // The corner Close is frame chrome and sits in the padding gutter by
+      // design (right-3); only the footer action must stay inside the content
+      // box. Both must still be on screen and ≥44px, asserted above.
+      if (!action.isChrome) {
+        expect(action.right).toBeLessThanOrEqual(m.dialog.contentRight + 0.5);
+        expect(action.left).toBeGreaterThanOrEqual(m.dialog.contentLeft - 0.5);
+      }
     }
   });
 }

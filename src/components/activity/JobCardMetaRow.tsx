@@ -3,6 +3,7 @@ import { Calendar, Clock, MapPin, Timer } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { getCity } from "@/lib/locationUtils";
+import { mapsSearchUrl } from "@/lib/mapsLink";
 
 interface JobCardMetaRowProps {
   dateNeeded: string;
@@ -11,8 +12,12 @@ interface JobCardMetaRowProps {
       "Flexible time", Applied uses "Flexible". */
   flexibleLabel?: string;
   location: string;
-  latitude: number | null;
-  longitude: number | null;
+  /* Accepted but no longer read — the maps link uses the ADDRESS now (see the
+     href below). Kept in the interface because both cards pass them and both
+     may want them again for a distance chip; removing them would be an edit
+     across the call sites for no gain. */
+  latitude?: number | null;
+  longitude?: number | null;
   estimatedHours?: number | null;
   /** ISO timestamp of the application/post expiry. Pass `null`/`undefined`
       to hide the expiry chip; the caller is responsible for any extra
@@ -38,36 +43,59 @@ export function JobCardMetaRow({
   startTime,
   flexibleLabel = "Flexible",
   location,
-  latitude,
-  longitude,
   estimatedHours,
   expiresAt,
   children,
   trailing,
 }: JobCardMetaRowProps) {
   return (
-    <div className="flex items-center gap-2.5 flex-wrap text-ds-11 text-muted-foreground">
+    /* `gap-x-5`, not `gap-2.5` (owner: "space location day and time out
+       better"). Three icon+label pairs 10px apart read as one run-on string —
+       the eye can't tell where the place ends and the date begins, because the
+       gap between "Lafayette" and the calendar icon was the same as the gap
+       between the calendar icon and its own text. Twenty pixels between the
+       GROUPS against six inside them makes the grouping do the separating, so
+       no middot or rule is needed. `gap-y-1.5` keeps the wrapped rows apart on
+       a narrow card. */
+    // ONE line, globally (owner). The row never wraps: date and time hold
+    // their natural width, the LOCATION is the element that gives — it
+    // shrinks and ellipsizes ("Delcambre" → "Delc…") because it is the only
+    // chip whose tail carries no information the map link doesn't. The
+    // trailing expand chevron stays pinned at the right of the same line.
+    // gap tightens on narrow cards (gap-x-3 → sm:gap-x-5) so the three chips
+    // fit a 375 card before the location has to give anything up.
+    <div className="flex items-center text-ds-11 text-muted-foreground">
+      <div className="flex items-center gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 flex-1 overflow-hidden">
       {/* Location → date → time, matching the home feed ("Browse Tasks")
           card order so the two surfaces read consistently. */}
       <a
         onClick={(e) => e.stopPropagation()}
-        href={
-          latitude && longitude
-            ? `https://www.google.com/maps?q=${latitude},${longitude}`
-            : `https://www.google.com/maps/search/${encodeURIComponent(location)}`
-        }
+        /* THE ADDRESS, not the coordinates. This linked to
+           `google.com/maps?q=<lat>,<lng>` at four decimal places — about eleven
+           metres, which on a residential job is the house — so the precise
+           location of a private home travelled to a third party in a query
+           string on every tap, for a convenience the address serves just as
+           well. See mapsLink.ts; it also picks the platform's own maps app in
+           the native shell instead of always sending people to the web. */
+        href={mapsSearchUrl(location)}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1 hover:text-primary transition-colors"
+        /* `py-2 -my-2` grows the HIT AREA without moving anything. The link
+           measured 77x16 on a 375px screen — a thumb target a third of the
+           44px floor index.css puts on every button in the app, and short even
+           of WCAG 2.5.8's 24px minimum. The row's only other content is plain
+           text, so the extra 8px above and below overlaps nothing that could
+           steal the tap. */
+        className="flex items-center gap-1.5 py-2 -my-2 hover:text-primary transition-colors min-w-0 shrink"
       >
         <MapPin className="w-3 h-3 shrink-0" />
-        <span className="truncate max-w-[140px]">{getCity(location)}</span>
+        <span className="truncate">{getCity(location)}</span>
       </a>
-      <span className="flex items-center gap-1">
+      <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
         <Calendar className="w-3 h-3 shrink-0" />
         {formatJobDate(dateNeeded)}
       </span>
-      <span className="flex items-center gap-1">
+      <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
         <Clock className="w-3 h-3 shrink-0" />
         {!startTime
           ? flexibleLabel
@@ -98,7 +126,8 @@ export function JobCardMetaRow({
           })()
         : null}
       {children}
-      {trailing ? <span className="ml-auto shrink-0">{trailing}</span> : null}
+      </div>
+      {trailing ? <span className="shrink-0">{trailing}</span> : null}
     </div>
   );
 }

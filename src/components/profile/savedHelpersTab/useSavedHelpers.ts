@@ -143,7 +143,6 @@ export function useSavedHelpers({ user, business }: UseSavedHelpersArgs) {
     }
     setEditingNoteFor(null);
     setNoteDraft("");
-    toast.success(value ? "Note saved" : "Note removed");
   };
 
   /** Flip whether this saved helper is visible to the rest of the
@@ -177,7 +176,6 @@ export function useSavedHelpers({ user, business }: UseSavedHelpersArgs) {
       toast.error(msg);
       return;
     }
-    toast.success(nextValue ? "Now visible to your team" : "Hidden from your team");
   };
 
   const handleRemove = async (helperId: string) => {
@@ -198,7 +196,7 @@ export function useSavedHelpers({ user, business }: UseSavedHelpersArgs) {
         .eq("customer_id", user.id)
         .eq("helper_id", helperId);
       if (error) {
-        toast.error("Couldn't remove — restored");
+        toast.error("Couldn't remove — restored.");
         setHelpers((prev) =>
           prev.some((h) => h.helper_id === helperId) ? prev : [snapshot, ...prev],
         );

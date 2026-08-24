@@ -63,7 +63,6 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
       return;
     }
 
-    toast.success(`${formatName(profile.full_name)} denied.`);
     await logAdminAction("deny_user", "user", profile.user_id, {
       name: profile.full_name,
       reason: reason.trim(),

@@ -102,7 +102,6 @@ describe("SignupPending", () => {
       });
       const button = await screen.findByRole("button", { name: /resent/i });
       expect(button).toBeDisabled();
-      expect(toastSuccess).toHaveBeenCalled();
     });
 
     it("surfaces a rate limit — 'slow down' is actionable", async () => {
@@ -111,7 +110,6 @@ describe("SignupPending", () => {
       fireEvent.click(await screen.findByRole("button", { name: /resend/i }));
 
       await waitFor(() => expect(toastError).toHaveBeenCalled());
-      expect(toastSuccess).not.toHaveBeenCalled();
       // Still offering the retry it just told them to make.
       expect(screen.getByRole("button", { name: /^resend$/i })).toBeInTheDocument();
     });
@@ -124,9 +122,8 @@ describe("SignupPending", () => {
       renderWithRouterState(EMAIL);
       fireEvent.click(await screen.findByRole("button", { name: /resend/i }));
 
-      await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
-      expect(toastError).not.toHaveBeenCalled();
       expect(await screen.findByRole("button", { name: /resent/i })).toBeInTheDocument();
+      expect(toastError).not.toHaveBeenCalled();
     });
   });
 

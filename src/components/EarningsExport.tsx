@@ -135,12 +135,10 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
     try {
       const rows = await fetchRows(range.start, range.end);
       if (!rows.length) {
-        toast.info(`No completed jobs found for ${range.label}.`);
         return;
       }
       if (formatType === "csv") downloadCSV(rows, range.label);
       else await downloadPDF(rows, range.label);
-      toast.success(`${formatType.toUpperCase()} ready — ${rows.length} job${rows.length === 1 ? "" : "s"}.`);
       setOpen(false);
     } catch (err: unknown) {
       toast.error(getErrorMessage(err));
@@ -282,7 +280,6 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
       )}
       <DialogContent>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <Receipt className="w-3 h-3" /> Tax export

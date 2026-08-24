@@ -6,6 +6,7 @@ import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { PetPicker } from "@/components/postjob/PetPicker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { MapPin, Shield, Users, Wrench } from "lucide-react";
@@ -18,21 +19,25 @@ import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
 import { FieldError } from "@/components/ui/FieldError";
 
 /**
- * Repeats is built but not yet WIRED END TO END, so the door stays shut.
+ * Repeats is ON as of 2026-08-23 (owner approved).
  *
- * The picker, the schema, the per-visit charge cron and the standing-helper
- * model all exist. What does not exist yet is the deployment: until
- * `charge-recurring-visits` is deployed as an edge function AND scheduled to
- * run daily, nothing bills the saved card for visit 2 onward — so a poster
- * would book twelve visits and receive one. That is the exact failure the
- * rebuild set out to remove, and shipping the picker ahead of the cron would
- * re-create it with a nicer UI.
+ * The gate this replaces was a WIRING gate, not a feature flag: the picker, the
+ * schema, the standing-helper model and the per-visit charge function were all
+ * finished and tested, and the only thing missing was the deployment. Until
+ * `charge-recurring-visits` was deployed AND scheduled, nothing billed the saved
+ * card for visit 2 onward — a poster would book twelve visits and receive one.
  *
- * Flip to `true` only once the cron is deployed and scheduled. Everything on
- * the other side of this flag is finished and tested; this is a wiring gate,
- * not a feature flag for unfinished work.
+ * Both halves are now true: the function is deployed and ACTIVE on prod, and
+ * migration 20260823170000 schedules it daily at 06:00 UTC. That migration ships
+ * in the SAME COMMIT as this line, which is what 20260821020000 asked for when
+ * it unscheduled the withdrawn path — so the charge path and the feature cannot
+ * drift apart again.
+ *
+ * The ordering that makes this safe lives in the function, not here: the
+ * PaymentIntent succeeds FIRST and the visit's job row is inserted after, so an
+ * unfunded visit cannot exist for a helpr to walk into.
  */
-const RECURRING_ENABLED = false;
+const RECURRING_ENABLED = true;
 
 // Normalize a reverse-geocoder's state value (full name or abbreviation)
 // to the canonical 2-letter code the form stores. We special-case the only
@@ -79,8 +84,12 @@ interface LogisticsSectionProps {
   setHelpersNeeded: (v: string) => void;
   budgetNum: number;
   logisticsComplete: boolean;
-  /** Active category — drives whether the "I'll provide materials" toggle shows. */
+  /** Active category — drives whether the "I'll provide materials" toggle shows,
+      and whether the pet picker appears at all. */
   category?: string;
+  /** Pet profile ids attached to this job (pet-care category only). */
+  selectedPetIds?: string[];
+  onTogglePet?: (petId: string) => void;
   includeMaterials?: boolean;
   setIncludeMaterials?: (v: boolean) => void;
   materialsNote?: string;
@@ -129,6 +138,8 @@ export function LogisticsSection({
   budgetNum,
   logisticsComplete,
   category,
+  selectedPetIds,
+  onTogglePet,
   includeMaterials,
   setIncludeMaterials,
   materialsNote,
@@ -268,6 +279,14 @@ export function LogisticsSection({
         </span>
       </label>
 
+      {/* PETS — only on a pet-care job. See PetPicker for why this exists at
+          all; in short, a pet profile could not previously reach the person
+          holding the leash. It sits directly above the access notes because
+          that is the box posters were retyping the pet's details into. */}
+      {category === "pet_care" && (
+        <PetPicker selectedIds={selectedPetIds ?? []} onToggle={onTogglePet ?? (() => {})} />
+      )}
+
       <div className="space-y-2.5">
         <Label htmlFor="requirements">Access &amp; parking notes</Label>
         <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Gate codes, where to park, which door, pets on site… (optional)" rows={2} maxLength={500} autoCapitalize="sentences" />
@@ -346,7 +365,7 @@ export function LogisticsSection({
         <Label id="job-type-label">Job type</Label>
         <div role="group" aria-labelledby="job-type-label" className={`grid ${RECURRING_ENABLED ? "grid-cols-3" : "grid-cols-2"} gap-1 p-1 rounded-2xl border border-input bg-background/70`}>
           {([
-            { key: "once", label: "One-time" },
+            { key: "once", label: "One-Time" },
             // "Repeats", not "Recurring" — it names what the poster is doing
             // rather than the billing category.
             ...(RECURRING_ENABLED ? [{ key: "recurring", label: "Repeats" } as const] : []),

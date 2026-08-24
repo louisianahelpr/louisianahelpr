@@ -78,10 +78,10 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirm) { toast.error("Passwords don't match"); return; }
-    if (password.length < 8) { toast.error("Password needs at least 8 characters"); return; }
-    if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter"); return; }
-    if (!/[0-9]/.test(password)) { toast.error("Add at least one number"); return; }
+    if (password !== confirm) { toast.error("Passwords don't match."); return; }
+    if (password.length < 8) { toast.error("Password needs at least 8 characters."); return; }
+    if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter."); return; }
+    if (!/[0-9]/.test(password)) { toast.error("Add at least one number."); return; }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
@@ -92,13 +92,12 @@ const ResetPassword = () => {
       // already signed in — so route straight to /dashboard instead of
       // bouncing through /login. Shorter delay (800ms) reads as
       // confirmation without making the user stare at a toast.
-      toast.success("Password updated — taking you in.");
       redirectTidRef.current = window.setTimeout(() => navigate("/dashboard", { replace: true }), 800);
     }
   };
 
   return (
-    <AuthShell hideHeader maxWidth="sm" backTo="/login" title="Choose a New One." desktopBrandPanel={<AuthBrandPane />}>
+    <AuthShell hideHeader maxWidth="sm" backTo="/login" title="Set New Password" desktopBrandPanel={<AuthBrandPane />}>
       {/* Heading + emblem removed. The heading is now AuthShell's `title` row
           (left of the chevron, ds-24) like every other auth screen — this one
           rendered it centred at clamp(1.85rem,3vw+0.5rem,2.5rem), a third
@@ -107,17 +106,9 @@ const ResetPassword = () => {
           emblem went with it for the reason Login dropped its own: it stacked
           a third band of vertical space above a heading that was already above
           the card. */}
-      <div className="text-center mb-8 space-y-2">
-        <p
-          className="font-sans text-ds-15"
-          style={{
-            color: "hsl(var(--olivewood) / 0.8)",
-            letterSpacing: "0.01em",
-          }}
-        >
-          Set a new password for your account.
-        </p>
-      </div>
+      {/* No subhead — "Set a new password for your account." restated the
+          title immediately above it. The card below carries the state-specific
+          explanation, which is the only line that adds information. */}
       <div className="liquid-glass p-6 sm:p-8 space-y-6">
         {!ready ? (
           <div className="text-center space-y-4">
@@ -126,11 +117,11 @@ const ResetPassword = () => {
                 ? "This password-reset link has expired. Reset links are single-use and time-limited — request a fresh one below."
                 : linkError === "used"
                   ? "This password-reset link has already been used. Request a new one if you still need to change your password."
-                  : "This page is used to reset your password. Please use the link from your email."}
+                  : "To set a new password, use the reset link from your email — or request one below."}
             </p>
             <Link to="/forgot-password">
               <Button variant="outline" className="w-full rounded-ds-md">
-                {linkError ? "Request a New Reset Link" : "Go to Forgot Password"}
+                {linkError ? "Request a New Reset Link" : "Request a Reset Link"}
               </Button>
             </Link>
           </div>

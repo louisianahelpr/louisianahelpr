@@ -108,8 +108,7 @@ describe("EditEmailDialog", () => {
     expect(invokeMock).toHaveBeenCalledWith("admin-update-email", {
       body: { userId: "user-id-1", newEmail: "new@example.com" },
     });
-    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
-    expect(onSuccess).toHaveBeenCalled();
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(onClose).toHaveBeenCalled();
   });
 });

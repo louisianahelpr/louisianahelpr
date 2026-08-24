@@ -111,7 +111,6 @@ export function HelperRevisionCard({
       }
 
       hapticSuccess();
-      toast.success("Got it — get back to work and mark complete when you're done.");
       onAccepted();
     } catch (err: unknown) {
       hapticError();

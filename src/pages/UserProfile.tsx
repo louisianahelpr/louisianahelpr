@@ -42,6 +42,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUserLocation } from "@/hooks/useUserLocation";
+import { hasInAppHistory } from "@/lib/inAppHistory";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -59,11 +60,6 @@ const UserProfile = () => {
   useEffect(() => {
     const pro = searchParams.get("pro");
     if (!pro) return;
-    if (pro === "success") {
-      toast.success("You're now upgraded — welcome to your new plan.");
-    } else if (pro === "cancel") {
-      toast.info("Upgrade cancelled — you can upgrade any time from your profile.");
-    }
     const next = new URLSearchParams(searchParams);
     next.delete("pro");
     setSearchParams(next, { replace: true });
@@ -123,7 +119,6 @@ const UserProfile = () => {
     tierProfile,
     posterReputation,
     postedTotalCount,
-    postedCancelledCount,
     loading,
   } = useUserProfileData(userId, currentUserId);
 
@@ -167,27 +162,55 @@ const UserProfile = () => {
     return wrap(
       <>
         <PageHeader
-          width="container-lg-5xl-6xl"
-          eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
+            eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           titleActions={headerActionPlaceholder}
         />
-        <div className="container mx-auto px-5 py-6">
-          <div className="max-w-2xl mx-auto space-y-5">
-            <div className="rounded-2xl liquid-glass p-5 text-center space-y-3">
-              <div className="w-24 h-24 rounded-ds-avatar squircle bg-muted motion-safe:animate-pulse mx-auto" />
-              <div className="h-6 w-40 bg-muted motion-safe:animate-pulse mx-auto rounded" />
-              <div className="h-4 w-24 bg-muted motion-safe:animate-pulse mx-auto rounded" />
-              <div className="h-4 w-64 bg-muted motion-safe:animate-pulse mx-auto rounded" />
+        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+          {/* The SAME wrapper the loaded body uses below — full page measure,
+              one column, gap-6. It used to carry `max-w-2xl mx-auto`, a cap no
+              other state on this page has: 86545cb12 moved all four states onto
+              the shared shell and dropped that cap from the error and not-found
+              branches, but missed this one. Measured at 1440: the skeleton
+              column sat at 672px and the loaded column at 1096px, so the page
+              visibly grew 1.63x the instant the query resolved — the owner's
+              "opens small then gets bigger".
+
+              The bones below also mirror the real card SHAPES rather than
+              approximating them, because width was only half of it: two bones
+              (~300px) were standing in for a body that runs 600–1500px, so the
+              page grew vertically too, on every viewport including phone where
+              the width cap never binds. */}
+          <div className="flex flex-col gap-6 items-stretch">
+            {/* Mirrors ProfileHeaderCard: below sm one centred stack, at sm+ a
+                fixed identity column beside the record. */}
+            <div className="rounded-2xl liquid-glass p-5 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-5">
+              <div className="flex flex-col items-center sm:items-start gap-2 sm:w-[212px] sm:shrink-0">
+                <div className="w-24 h-24 rounded-ds-avatar squircle bg-muted motion-safe:animate-pulse" />
+                <div className="h-6 w-40 bg-muted motion-safe:animate-pulse rounded" />
+                <div className="h-4 w-24 bg-muted motion-safe:animate-pulse rounded" />
+              </div>
+              <div className="flex-1 space-y-3 w-full">
+                <div className="h-4 w-full bg-muted motion-safe:animate-pulse rounded" />
+                <div className="h-4 w-5/6 bg-muted motion-safe:animate-pulse rounded" />
+                <div className="h-16 w-full bg-muted motion-safe:animate-pulse rounded" />
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="rounded-ds-md liquid-glass p-3 space-y-2">
-                  <div className="h-7 w-10 bg-muted motion-safe:animate-pulse mx-auto rounded" />
-                  <div className="h-3 w-12 bg-muted motion-safe:animate-pulse mx-auto rounded" />
-                </div>
-              ))}
+            <div className="space-y-5">
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="rounded-ds-md liquid-glass p-3 space-y-2">
+                    <div className="h-7 w-10 bg-muted motion-safe:animate-pulse mx-auto rounded" />
+                    <div className="h-3 w-12 bg-muted motion-safe:animate-pulse mx-auto rounded" />
+                  </div>
+                ))}
+              </div>
+              {/* Endorsements, availability and portfolio each run their OWN
+                  fetch and return null until it lands, so they arrive in a
+                  second wave after this skeleton is already gone. One bone
+                  holds that space instead of letting the page jump twice. */}
+              <div className="h-40 rounded-2xl liquid-glass motion-safe:animate-pulse" />
             </div>
           </div>
         </div>
@@ -199,14 +222,13 @@ const UserProfile = () => {
     return wrap(
       <>
         <PageHeader
-          width="container-lg-5xl-6xl"
-          eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
+            eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           titleActions={headerActionPlaceholder}
         />
-        <div className="container mx-auto px-5 py-6">
-          <div className="max-w-2xl mx-auto flex">
+        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+          <div className="flex">
             <ErrorState variant="inline" onRetry={() => refetch()} />
           </div>
         </div>
@@ -218,21 +240,29 @@ const UserProfile = () => {
     return wrap(
       <>
         <PageHeader
-          width="container-lg-5xl-6xl"
-          eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
+            eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
           title={isOwnProfile ? "Profile Review" : "Profile"}
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           titleActions={headerActionPlaceholder}
         />
-        <div className="container mx-auto px-5 py-6">
-          <div className="max-w-2xl mx-auto flex">
+        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+          <div className="flex">
             <EmptyState
               variant="inline"
               icon={UserX}
               title="User not found"
               body="This profile may have been removed, or the link is no longer valid."
+              // Same guard as every other back affordance: a profile link
+              // shared into a messaging app opens cold, and `navigate(-1)`
+              // from there leaves the app instead of showing this person the
+              // rest of it. Browse is the honest fallback — they arrived
+              // looking for a helpr.
               action={
-                <BarkPillButton onClick={() => navigate(-1)}>Go back</BarkPillButton>
+                <BarkPillButton
+                  onClick={() => (hasInAppHistory() ? navigate(-1) : navigate("/dashboard"))}
+                >
+                  Go back
+                </BarkPillButton>
               }
             />
           </div>
@@ -279,7 +309,6 @@ const UserProfile = () => {
       );
       setRespondingToReview(null);
       setResponseText("");
-      toast.success("Response saved.");
     } catch {
       toast.error("Couldn't save your response — try again?");
     } finally {
@@ -290,12 +319,21 @@ const UserProfile = () => {
   return wrap(
     <>
       <PageHeader
-        // Same width in EVERY state (loading / error / empty / loaded): this
-        // used to be "5xl" while loading and "lg" once data landed, so the
-        // title jumped hundreds of pixels the moment the query resolved. The
-        // value mirrors the loaded body below — `container mx-auto px-5` >
-        // `page-measure mx-auto`.
-        width="container-lg-5xl-6xl"
+        // DEFAULT width, in EVERY state (loading / error / empty / loaded).
+        //
+        // Two things this guards. First, the width used to be "5xl" while
+        // loading and "lg" once data landed, so the title jumped hundreds of
+        // pixels the moment the query resolved — hence the same value on all
+        // four headers on this page.
+        //
+        // Second, that value is now the SHARED one. This page used to carry a
+        // bespoke `container px-5 > max-w-lg lg:max-w-5xl xl:max-w-6xl` ladder,
+        // so "Profile" sat on a different left edge and a different column
+        // width from the title on every other document-scroll page (owner:
+        // "spacing for title should be the same as all other pages"). Header
+        // and body both use the canonical shell now — `page-measure mx-auto
+        // px-5 lg:px-8 xl:px-12 pt-4 pb-8` — which is exactly what the
+        // header's `default` width resolves to, so the two share one edge.
         eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
         title={isOwnProfile ? "Profile Review" : "Profile"}
         meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
@@ -315,21 +353,21 @@ const UserProfile = () => {
         titleActions={
           !isOwnProfile && currentUserId ? (
             <>
-              {/* Persistent Message button (#2). Always shown for any
-                  signed-in viewer who isn't viewing themselves, no matter
-                  whether there's an active job context. Hitting it deep-
-                  links into Messages scoped to this user — the inbox
-                  picks up an existing thread, or surfaces a "no thread
-                  yet" affordance. */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-ds-md h-10 w-10 shrink-0"
-                aria-label={`Message ${displayName}`}
-                onClick={() => navigate(`/messages?userId=${userId}`)}
-              >
-                <MessageSquare className="w-4 h-4" />
-              </Button>
+              {/* NO MESSAGE BUTTON HERE AT ALL (owner: "remove the message
+                  button, only the poster can message").
+
+                  It used to render behind a `canMessage` gate that opened on
+                  any of three grounds — an existing thread, this person having
+                  applied to one of the viewer's jobs, or the two having worked
+                  together. Two of those let a HELPER open a channel, which is
+                  the thing the rule is meant to prevent, and the third only
+                  restated a thread that already exists in Messages.
+
+                  A profile is now a place to READ about someone, never to
+                  start a conversation with them. The poster's route is
+                  unaffected: they message from the application, which is where
+                  they were going to do it anyway, and an existing thread is
+                  still in Messages. */}
               <SaveHelperButton helperId={userId!} customerId={currentUserId} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -351,14 +389,14 @@ const UserProfile = () => {
                       as `canEndorse={mutualJobsCount > 0}` below. */}
                   {workedJobs.length > 0 && (
                     <DropdownMenuItem onClick={() => navigate(`/post-job?offerTo=${userId}`)}>
-                      <Briefcase className="w-4 h-4 mr-2" /> Offer a job directly
+                      <Briefcase className="w-4 h-4 mr-2" /> Offer a Job Directly
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={() => setShowReport(true)}>
-                    <Flag className="w-4 h-4 mr-2" /> Report user
+                    <Flag className="w-4 h-4 mr-2" /> Report User
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowBlock(true)}>
-                    <Ban className="w-4 h-4 mr-2" /> Block user
+                    <Ban className="w-4 h-4 mr-2" /> Block User
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -367,7 +405,7 @@ const UserProfile = () => {
         }
       />
 
-      <div className="container mx-auto px-5 py-6">
+      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
         {/* Split-column desktop layout: the mobile-first single column
             (max-w-lg centered) widens to a two-column masthead + reviews
             layout at lg+. Below lg the grid collapses to one column and
@@ -384,7 +422,7 @@ const UserProfile = () => {
             sat alone across a much wider right column with a screen of empty
             page under them. A profile is read top to bottom; splitting it made
             the left half cramped and the right half hollow. */}
-        <div className="page-measure mx-auto flex flex-col gap-6 items-stretch">
+        <div className="flex flex-col gap-6 items-stretch">
           {/* ── LEFT COLUMN (masthead) ──
               Identity, trust chips, bio, career milestones. Sticky at
               lg+ so it stays visible as the viewer scrolls through the
@@ -408,6 +446,7 @@ const UserProfile = () => {
               onTimeArrivalRate={onTimeArrivalRate}
               revisionFrequency={revisionFrequency}
               cancellationRate={cancellationRate}
+              posterReputation={posterReputation}
               hasCleanRecord={hasCleanRecord}
               petCareSignal={petCareSignal}
               badges={badges}

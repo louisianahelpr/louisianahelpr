@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
-import { ShieldCheck, Trash2, Plus, Search, UserPlus, Flag, Smartphone } from "lucide-react";
+import { Flag, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
 import { Switch } from "@/components/ui/switch";
 import { BUSINESS_ENABLED } from "@/config/businessEnabled";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // The fee-ladder rungs an admin is shown. Business (6%) is only named while
 // the Business product is switched on — with `BUSINESS_ENABLED` false there
@@ -35,7 +36,7 @@ const KNOWN_FEATURE_FLAGS: { id: string; label: string; description: string }[] 
   { id: "referrals_enabled", label: "Referrals", description: "Surface the referral programme in profile + invites." },
   { id: "ai_helpr_assistant", label: "AI Helpr assistant", description: "Show the AI-assisted job-post draft flow." },
   { id: "boosts_enabled", label: "Job boosts", description: "Allow posters to pay to boost their job to the top." },
-  { id: "stripe_idv_required", label: "Stripe IDV required", description: "Force every helper through Stripe Identity before accepting jobs." },
+  { id: "stripe_idv_required", label: "Stripe IDV required", description: "Force every Helpr through Stripe Identity before accepting jobs." },
 ];
 
 const AdminSettings = () => {
@@ -77,7 +78,7 @@ const AdminSettings = () => {
       .maybeSingle();
     if (error) {
       console.error("[AdminSettings] loadSettings:", error);
-      toast.error("Couldn't load platform settings — refresh to retry");
+      toast.error("Couldn't load platform settings — refresh to retry.");
     } else if (data) {
       const row = data as typeof data & { min_supported_build?: number | null; feature_flags?: Record<string, boolean> | null };
       setCustomerFee(String(data.customer_fee_percent ?? 10));
@@ -103,11 +104,11 @@ const AdminSettings = () => {
     if (!settingsId) return;
     const n = parseInt(minBuild, 10);
     if (!Number.isFinite(n) || n < 0) {
-      toast.error("Min build must be a non-negative integer");
+      toast.error("Min build must be a non-negative integer.");
       return;
     }
     if (n > 999_999) {
-      toast.error("Min build must be no greater than 999,999");
+      toast.error("Min build must be no greater than 999,999.");
       return;
     }
     setSavingMinBuild(true);
@@ -117,13 +118,12 @@ const AdminSettings = () => {
     setSavingMinBuild(false);
     if (error) {
       if (error.code === "42703") {
-        toast.error("min_supported_build column not yet deployed — run `supabase db push`");
+        toast.error("This setting isn't live yet — the latest database update is still deploying. Try again in a few minutes.");
       } else {
         toast.error(error.message);
       }
       return;
     }
-    toast.success(`Minimum supported build set to ${n}`);
     await logAdminAction("update_settings", "platform_settings", settingsId, {
       min_supported_build: n,
     });
@@ -143,7 +143,7 @@ const AdminSettings = () => {
       // Roll back optimistic change on failure.
       setFeatureFlags(featureFlags);
       if (error.code === "42703") {
-        toast.error("feature_flags column not yet deployed — run `supabase db push`");
+        toast.error("This setting isn't live yet — the latest database update is still deploying. Try again in a few minutes.");
       } else {
         toast.error(error.message);
       }
@@ -170,7 +170,6 @@ const AdminSettings = () => {
     setSavingWebhook(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Webhook URL saved");
       await logAdminAction("update_settings", "platform_settings", settingsId, { social_webhook_url: url ? "set" : "cleared" });
     }
   };
@@ -184,7 +183,7 @@ const AdminSettings = () => {
 
     if (rolesError) {
       console.error("[AdminSettings] loadAdmins roles:", rolesError);
-      toast.error("Couldn't load admin list — refresh to retry");
+      toast.error("Couldn't load admin list — refresh to retry.");
       setAdminsLoading(false);
       return;
     }
@@ -220,7 +219,7 @@ const AdminSettings = () => {
     const custVal = parseFloat(customerFee);
     const helpVal = parseFloat(helperFee);
     if (isNaN(custVal) || custVal < 0 || custVal > 100 || isNaN(helpVal) || helpVal < 0 || helpVal > 100) {
-      toast.error("Fees must be between 0 and 100");
+      toast.error("Fees must be between 0 and 100.");
       return;
     }
     setSaving(true);
@@ -235,7 +234,6 @@ const AdminSettings = () => {
     setSaving(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Fee settings updated");
       await logAdminAction("update_settings", "platform_settings", settingsId, { customer_fee_percent: custVal, helper_fee_percent: helpVal });
     }
   };
@@ -270,10 +268,9 @@ const AdminSettings = () => {
       .insert({ user_id: profile.user_id, role: "admin" });
 
     if (error) {
-      if (error.code === "23505") toast.error("User is already an admin");
+      if (error.code === "23505") toast.error("User is already an admin.");
       else toast.error(error.message);
     } else {
-      toast.success(`${formatName(profile.full_name)} added as admin`);
       await logAdminAction("add_admin", "user", profile.user_id, { name: profile.full_name });
       await loadAdmins();
       setSearchResults((prev) => prev.filter((p) => p.user_id !== profile.user_id));
@@ -285,7 +282,7 @@ const AdminSettings = () => {
     // Get current user to prevent self-removal
     const { data: { user } } = await supabase.auth.getUser();
     if (user?.id === admin.user_id) {
-      toast.error("You can't remove yourself as admin");
+      toast.error("You can't remove yourself as admin.");
       return;
     }
 
@@ -297,7 +294,6 @@ const AdminSettings = () => {
 
     if (error) toast.error(error.message);
     else {
-      toast.success(`${admin.name} removed from admins`);
       await logAdminAction("remove_admin", "user", admin.user_id, { name: admin.name });
       await loadAdmins();
     }
@@ -308,7 +304,7 @@ const AdminSettings = () => {
   if (loading) return <p className="text-muted-foreground">Loading settings…</p>;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       
 
       {/* Split Fee Settings */}
@@ -475,7 +471,12 @@ const AdminSettings = () => {
           <p className="text-ds-11 text-muted-foreground">Loading admins…</p>
         ) : admins.length === 0 ? (
           <div className="rounded-ds-md liquid-glass p-6 text-center">
-            <p className="text-ds-11 text-muted-foreground">No admins found</p>
+            <EmptyState
+            variant="inline"
+            icon={Shield}
+            title="No admins found"
+            body="No accounts currently hold the admin role."
+          />
           </div>
         ) : (
           <div className="space-y-2">
@@ -574,7 +575,7 @@ const AdminSettings = () => {
         onOpenChange={(open) => { if (!open) setConfirmRemove(null); }}
         title="Remove This Admin?"
         description={`This revokes admin access for ${confirmRemove?.name || "this user"}. They'll lose access to the admin dashboard immediately.`}
-        primaryLabel={confirmRemove && removing === confirmRemove.role_id ? "Removing…" : "Remove admin"}
+        primaryLabel={confirmRemove && removing === confirmRemove.role_id ? "Removing…" : "Remove Admin"}
         primaryTone="sienna"
         primaryHaptic="error"
         primaryDisabled={!!removing}

@@ -46,7 +46,6 @@ export function ManualVerifyDialog({ profile, onClose, onSuccess }: ManualVerify
         },
       });
       if (error) throw error;
-      toast.success("User manually verified.");
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -65,7 +64,6 @@ export function ManualVerifyDialog({ profile, onClose, onSuccess }: ManualVerify
               <ShieldCheck className="w-3.5 h-3.5" /> Manual verification
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title={`Manually Verify ${formatName(profile?.full_name)}`}
         />
         <div className="space-y-3">

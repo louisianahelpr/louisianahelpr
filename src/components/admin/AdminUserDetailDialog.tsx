@@ -86,11 +86,13 @@ export function AdminUserDetailDialog({
   return (
     <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
       <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl h-[90vh] overflow-hidden p-3 sm:p-5 flex flex-col gap-0">
-        <DialogHero
-          className="pb-2 mb-2 border-b border-border flex-shrink-0"
-          eyebrow="Admin"
-          title="User Profile"
-        />
+        {/* LAYOUT goes on a wrapper, never on the Hero. The Hero owns the
+            header's type and alignment and takes no className at all — that
+            escape hatch is what let three dialogs centre a title the other
+            ~147 left-aligned. */}
+        <div className="pb-2 mb-2 border-b border-border flex-shrink-0">
+          <DialogHero title="User Profile" />
+        </div>
         {viewProfile && (
           <div className="flex flex-col flex-1 min-h-0 min-w-0 break-words gap-3">
             <DetailHeader

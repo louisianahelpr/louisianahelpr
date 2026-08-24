@@ -38,8 +38,16 @@ export function RecentTransfers({ payoutLedger }: RecentTransfersProps) {
                   </div>
                   <p className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     {date}
+                    {/* The middot is real text, not a margin. `ml-2` gave the
+                        ID visual air but nothing separated the two tokens in
+                        the accessibility tree or on copy-paste, so the line
+                        read "Aug 19, 2026LDER_001" to a screen reader and in
+                        any copied receipt. */}
                     {t.stripe_transfer_id && (
-                      <span className="ml-2 text-ds-10 font-mono opacity-60" title="Stripe transfer ID">{t.stripe_transfer_id.slice(-8)}</span>
+                      <>
+                        <span aria-hidden className="mx-1.5" style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
+                        <span className="text-ds-10 font-mono opacity-60" title="Stripe transfer ID">{t.stripe_transfer_id.slice(-8)}</span>
+                      </>
                     )}
                     {t.failure_reason && t.status === "failed" && (
                       <span className="block mt-1 text-destructive text-ds-11">{t.failure_reason}</span>

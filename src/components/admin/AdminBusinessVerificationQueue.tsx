@@ -125,7 +125,7 @@ const AdminBusinessVerificationQueue = () => {
               {r.document_url && (
                 <div className="rounded-ds-md border border-border bg-secondary/40 p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-ds-11 font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-ds-11 font-semibold uppercase tracking-wider text-[hsl(var(--bark))]">
                       {r.document_type ? docLabels[r.document_type] : "Document"}
                     </p>
                     <a

@@ -292,7 +292,7 @@ export const PhotoProofGroup = ({
         <div className="grid grid-cols-2 gap-3">
           {/* Before column */}
           <div className="space-y-1.5">
-            <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
+            <p className="text-ds-10 font-semibold text-[hsl(var(--bark))] uppercase tracking-wider">Before</p>
             {hasBefore ? (
               <div className="flex gap-1.5 flex-wrap">
                 {beforeUrls.slice(0, 3).map((url, i) => (
@@ -316,7 +316,7 @@ export const PhotoProofGroup = ({
 
           {/* After column */}
           <div className="space-y-1.5">
-            <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wider">After</p>
+            <p className="text-ds-10 font-semibold text-[hsl(var(--bark))] uppercase tracking-wider">After</p>
             {hasAfter ? (
               <div className="flex gap-1.5 flex-wrap">
                 {afterUrls.slice(0, 3).map((url, i) => (
@@ -361,7 +361,7 @@ export const PhotoProofGroup = ({
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             {hasBefore && (
               <div className="space-y-2">
-                <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
+                <p className="text-ds-11 font-semibold text-[hsl(var(--bark))] uppercase tracking-wider">Before</p>
                 <div className="grid grid-cols-3 gap-2">
                   {beforeUrls.map((url, i) => (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer">
@@ -373,7 +373,7 @@ export const PhotoProofGroup = ({
             )}
             {hasAfter && (
               <div className="space-y-2">
-                <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">After</p>
+                <p className="text-ds-11 font-semibold text-[hsl(var(--bark))] uppercase tracking-wider">After</p>
                 <div className="grid grid-cols-3 gap-2">
                   {afterUrls.map((url, i) => (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer">

@@ -224,15 +224,15 @@ const AdminPayoutBatches = () => {
       {batches.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="rounded-ds-md liquid-glass p-4">
-            <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Helprs awaiting</p>
+            <p className="text-ds-11 uppercase tracking-wider text-[hsl(var(--bark))]">Helprs awaiting</p>
             <p className="text-ds-24 font-bold text-foreground mt-1">{batches.length}</p>
           </div>
           <div className="rounded-ds-md liquid-glass p-4">
-            <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Total jobs</p>
+            <p className="text-ds-11 uppercase tracking-wider text-[hsl(var(--bark))]">Total jobs</p>
             <p className="text-ds-24 font-bold text-foreground mt-1">{totalJobs}</p>
           </div>
           <div className="rounded-ds-md border border-border bg-primary/5 p-4 col-span-2 md:col-span-1">
-            <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Total queued</p>
+            <p className="text-ds-11 uppercase tracking-wider text-[hsl(var(--bark))]">Total queued</p>
             <p className="text-ds-24 font-bold text-primary mt-1">${grandTotal.toFixed(2)}</p>
           </div>
         </div>

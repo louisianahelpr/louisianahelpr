@@ -559,6 +559,41 @@ the Parity Principle (§2).
   `Button` variants, cards/badges) — flag any one-off reimplementation of a
   thing that already has a canonical component.
 
+**Density & brand-surface fit (sheets, dialogs, popovers)**
+
+*Why this block exists: the 2026-08-23 overnight audit passed the Browse filter
+sheet — 9 stacked sections, ~2.5 screens of scroll, all-neutral surfaces — because
+every existing line above checks correctness and consistency, and that sheet was
+correct and consistent. Nothing measured "is this overwhelming?" or "does this
+surface look like OUR app or like unstyled Radix?". The owner caught it from a
+phone screenshot. These checks make that a formal finding class.*
+
+- **Section budget: an overlay with more than 6 titled sections, or more than
+  ~1.5 phone-screens of scroll (≈1200px at 390pt width), is a FINDING** — not
+  automatically wrong, but it must be justified in the report or restructured
+  (merge kindred controls into one group, demote actions to a footer row, move
+  a mode toggle into a sibling section's header). Count with the DOM, not the
+  eye: `sheet.querySelectorAll('[role="dialog"] p.uppercase').length` and
+  `scrollHeight`.
+- **A control that is a filter must live with the filters; a control that is an
+  action must not wear a section.** "Only saved" is a filter → it belongs in the
+  Show-only group, not a solo section. "Saved searches" opens a dialog → it is
+  an action row, not a filter section. Misfiled controls are what inflate the
+  section count.
+- **Neutral-surface check: any sheet/dialog whose active states, section labels,
+  and controls are ENTIRELY grayscale is a finding.** The brand exists as tokens
+  (`--bark`, `--olivewood`, `--burnt-sienna`, `--parchment`); a surface where a
+  selected chip is gray-on-gray while the rest of the app selects in olive reads
+  as a different product. Verify by sampling: at least the selected/active state
+  and the section eyebrows must resolve to brand-token colors, and the sheet's
+  own background must be a considered token (not default `bg-background` when
+  siblings use the premium surface).
+- **Screenshot-first grading.** For every overlay in scope, capture it at 390pt
+  and ask the three-lens question from the mandate — "could a reader tell a
+  different person designed this sheet?" — BEFORE reading its code. Code-first
+  passes rationalize what screenshots reject; this block exists because the
+  code read as intentional while the screenshot read as a pile.
+
 **Component state matrix**
 - Audit EVERY state of each component, not just the happy path: loading
   (skeleton vs spinner, consistent choice), empty, partial, error, offline,

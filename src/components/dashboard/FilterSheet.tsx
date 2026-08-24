@@ -1,6 +1,6 @@
 import { type ReactNode, type RefObject } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpRight, Clock, Rocket, X, Zap, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Bookmark, Clock, Rocket, X, Zap, type LucideIcon } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -39,6 +39,14 @@ export interface FilterSheetSection {
   title: string;
   /** The section's controls. */
   content: ReactNode;
+  /**
+   * Optional compact control rendered on the SAME line as the eyebrow,
+   * right-aligned — for a mode switch that belongs with a section but does
+   * not earn a section of its own (Browse mounts the List⇄Map toggle here,
+   * on Sort by). Keep it to one small control; anything taller than the
+   * eyebrow line belongs in `content`.
+   */
+  trailing?: ReactNode;
 }
 
 interface FilterSheetProps {
@@ -68,15 +76,25 @@ interface FilterSheetProps {
    * the right idiom there.
    */
   anchorRef?: RefObject<HTMLElement | null>;
+  /** Action rows rendered after the last section, beside Clear All —
+   *  for rows that OPEN something (Saved Searches) rather than filter. */
+  footer?: ReactNode;
 }
 
-/** Uppercase eyebrow + content, the standard section shell. */
-function Section({ title, children }: { title: string; children: ReactNode }) {
+/** Uppercase eyebrow + content, the standard section shell. The eyebrow is
+ *  brand olive rather than gray — the section labels are the sheet's skeleton,
+ *  and painting them in the brand's structural color is what makes this
+ *  surface read as OURS instead of unstyled Radix (see the density &
+ *  brand-surface-fit block in the audit standard). */
+function Section({ title, trailing, children }: { title: string; trailing?: ReactNode; children: ReactNode }) {
   return (
     <div>
-      <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">
-        {title}
-      </p>
+      <div className="flex items-center justify-between gap-3 mb-1.5">
+        <p className="text-ds-10 font-semibold uppercase tracking-widest text-[hsl(var(--bark))]">
+          {title}
+        </p>
+        {trailing}
+      </div>
       {children}
     </div>
   );
@@ -89,16 +107,22 @@ function FilterBody({
   sections,
   activeFilterCount,
   onClearAll,
-}: Pick<FilterSheetProps, "sections" | "activeFilterCount" | "onClearAll">) {
+  footer,
+}: Pick<FilterSheetProps, "sections" | "activeFilterCount" | "onClearAll" | "footer">) {
   return (
     <>
       <div className="px-5 pb-4 space-y-4">
         {sections.map((s) => (
-          <Section key={s.key} title={s.title}>
+          <Section key={s.key} title={s.title} trailing={s.trailing}>
             {s.content}
           </Section>
         ))}
       </div>
+
+      {/* Action rows (open-a-dialog things like Saved Searches) sit here with
+          Clear All — the actions live together at the end, after every
+          control, instead of one wearing a filter section's clothes. */}
+      {footer && <div className="px-5 pb-2">{footer}</div>}
 
       {onClearAll && activeFilterCount > 0 && (
         <div className="px-5 pb-2">
@@ -130,6 +154,7 @@ export function FilterSheet({
   activeFilterCount,
   onClearAll,
   anchorRef,
+  footer,
 }: FilterSheetProps) {
   const isWebDesktop = useIsWebDesktop();
 
@@ -150,7 +175,7 @@ export function FilterSheet({
           // panel would hang off the edge.
           collisionPadding={16}
           aria-label="Refine your search"
-          className="w-[400px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto overscroll-contain p-0 pt-4 rounded-ds-lg"
+          className="w-[400px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto overscroll-contain p-0 pt-4 rounded-ds-lg bg-premium-page"
           // The Filters button is OUTSIDE the popover, so Radix counts a click
           // on it as an outside-dismiss — which would close the panel and then
           // let the button's own handler toggle it straight back. Let the
@@ -164,6 +189,7 @@ export function FilterSheet({
             sections={sections}
             activeFilterCount={activeFilterCount}
             onClearAll={onClearAll}
+            footer={footer}
           />
         </PopoverContent>
       </Popover>
@@ -176,7 +202,7 @@ export function FilterSheet({
         side="bottom"
         // A max height so a tall section list scrolls
         // inside the sheet rather than pushing the dock off-screen.
-        className="max-h-[85dvh] overflow-y-auto overscroll-contain p-0 gap-0"
+        className="max-h-[85dvh] overflow-y-auto overscroll-contain p-0 gap-0 bg-premium-page"
       >
         {/* Grab handle — the familiar "this sheet drags down" affordance. */}
         <div className="flex justify-center pt-2.5 pb-0.5" aria-hidden>
@@ -194,6 +220,7 @@ export function FilterSheet({
           sections={sections}
           activeFilterCount={activeFilterCount}
           onClearAll={onClearAll}
+          footer={footer}
         />
       </SheetContent>
     </Sheet>
@@ -224,6 +251,16 @@ interface JobFilterSectionsArgs {
   hasAvailability?: boolean;
   /** Hide the "Only my hours" availability row (guests have no schedule). */
   showAvailability?: boolean;
+  /**
+   * Compact control rendered on the Sort by eyebrow line (Browse passes the
+   * List⇄Map toggle). A mode switch rides an existing section instead of
+   * costing a section of its own.
+   */
+  sortTrailing?: ReactNode;
+  /* ---- "Only Saved Jobs" row (omit on surfaces without saves, e.g. guest) ---- */
+  savedOnly?: boolean;
+  onToggleSavedOnly?: () => void;
+  savedCount?: number;
   /**
    * Hide the "Nearby radius" section. The guest browse feed comes from
    * `get_ranked_open_jobs`, whose rows carry no latitude/longitude (the server
@@ -278,7 +315,10 @@ function ToggleRow({
         onCheckedChange={(v) => { hapticLight(); onChange(v); }}
         disabled={disabled}
         aria-label={ariaLabel}
-        className="shrink-0"
+        // Sienna, not the global olivewood: on THIS surface the accent color
+        // already means "narrowing is on" (Clear All, the Filtered eyebrow,
+        // the Boosted/Urgent icons), so the lit switch joins that family.
+        className="shrink-0 data-[state=checked]:bg-[hsl(var(--burnt-sienna))]"
       />
     </div>
   );
@@ -390,6 +430,8 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     boostedOnly, setBoostedOnly,
     urgentOnly, setUrgentOnly,
     userLocStatus, userLocMessage,
+    sortTrailing,
+    savedOnly = false, onToggleSavedOnly, savedCount = 0,
     showAvailability = true,
     showNearby = true,
   } = args;
@@ -398,6 +440,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     {
       key: "sort",
       title: "Sort by",
+      trailing: sortTrailing,
       content: <SortContent sortBy={sortBy} setSortBy={setSortBy} />,
     },
     {
@@ -438,6 +481,20 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
       title: "Show only",
       content: (
         <div className="space-y-3">
+          {onToggleSavedOnly && (
+            <ToggleRow
+              icon={Bookmark}
+              label="Only Saved Jobs"
+              hint={
+                <p className="text-ds-11 text-muted-foreground leading-snug">
+                  {savedCount > 0 ? `${savedCount} saved` : "You haven't saved any yet"}
+                </p>
+              }
+              checked={savedOnly}
+              onChange={() => onToggleSavedOnly()}
+              ariaLabel="Show saved jobs only"
+            />
+          )}
           <ToggleRow
             icon={Rocket}
             iconClassName="text-[hsl(var(--burnt-sienna))]"

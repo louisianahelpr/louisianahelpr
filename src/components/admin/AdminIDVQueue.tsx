@@ -384,7 +384,7 @@ const AdminIDVQueue = () => {
 
 const Row = ({ label, value, mono }: { label: string; value: string; mono?: boolean }) => (
   <div className="flex justify-between gap-4 border-b border-border pb-1.5">
-    <span className="text-muted-foreground text-ds-11 uppercase tracking-wide">{label}</span>
+    <span className="text-[hsl(var(--bark))] text-ds-11 uppercase tracking-wide">{label}</span>
     <span className={`text-foreground text-right break-all ${mono ? "font-mono text-ds-11" : ""}`}>{value}</span>
   </div>
 );

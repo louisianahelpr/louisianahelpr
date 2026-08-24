@@ -175,7 +175,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-ds-10 uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+        <p className="text-ds-10 uppercase tracking-wider text-[hsl(var(--bark))] font-medium flex items-center gap-1.5">
           <StickyNote className="w-3.5 h-3.5" /> Internal Admin Notes
           {notes.length > 0 && (
             <span className="text-muted-foreground/70">· {notes.length}</span>

@@ -303,9 +303,12 @@ export function ApplyConfirmDialog({
                     onClick={() => handleStarterTap(sentence)}
                     className="text-ds-12 font-serif italic px-2.5 py-1 rounded-full transition-colors active:scale-[0.97]"
                     style={{
-                      background: "hsl(var(--bark) / 0.07)",
-                      color: "hsl(var(--ink-deep) / 0.88)",
-                      border: "0.5px solid hsl(var(--bark) / 0.24)",
+                      // 12% bark, not 7 — at 7% these pills sampled within a
+                      // couple of points of the sheet's own gray and the row
+                      // read as unstyled (density & brand-fit audit block).
+                      background: "hsl(var(--bark) / 0.12)",
+                      color: "hsl(var(--bark))",
+                      border: "0.5px solid hsl(var(--bark) / 0.32)",
                       boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.5)",
                     }}
                     aria-label={`Insert: ${sentence}`}

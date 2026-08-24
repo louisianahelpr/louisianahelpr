@@ -256,63 +256,25 @@ export function BrowseTasksToolbar({
                 content: <BrowseSearchBar filters={filters} />,
               }]
             : []),
-          // Saved is a FILTER — "show only the ones I saved" — so it belongs in
-          // the sheet on every surface, not as a toolbar icon on desktop and a
-          // sheet row on phone (owner). One shape, one place, and the row
-          // already carries the count the badge used to.
-          ...(onToggleSavedOnly
-            ? [{
-                key: "saved-only",
-                title: "Saved",
-                content: (
-                  <button
-                    type="button"
-                    onClick={() => { hapticLight(); onToggleSavedOnly(); }}
-                    aria-pressed={savedOnly}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-ds-md squircle border text-left btn-press transition-all duration-200 ${
-                      savedOnly
-                        ? "border-primary/50 bg-[hsl(var(--bark)/0.10)]"
-                        : "border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur hover:border-primary/50"
-                    }`}
-                  >
-                    <Bookmark
-                      className="w-3.5 h-3.5 shrink-0 text-primary"
-                      strokeWidth={2.25}
-                      fill={savedOnly ? "currentColor" : "none"}
-                      aria-hidden
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-ds-12 font-semibold text-foreground leading-snug">
-                        Only Saved Jobs
-                      </span>
-                      <span className="block text-ds-11 text-muted-foreground leading-snug">
-                        {savedCount > 0
-                          ? `${savedCount} saved`
-                          : "You haven't saved any yet"}
-                      </span>
-                    </span>
-                  </button>
-                ),
-              }]
-            : []),
-          ...(hideViewToggle
-            ? []
-            : [{
-                key: "view",
-                title: "View",
-                content: (
-                  <BrowseViewToggle
-                    view={view}
-                    setView={setView}
-                    // Picking a view is a terminal choice — get the sheet out
-                    // of the way so you land on the thing you asked for. Only
-                    // fires on an actual change, so re-tapping the current
-                    // view does not dismiss the sheet under you.
-                    onSelect={() => filters.setFiltersOpen(false)}
-                  />
-                ),
-              }]),
           ...buildJobFilterSections({
+            // List⇄Map rides the Sort by eyebrow line — a view mode is one
+            // small always-answered choice, not a filter section.
+            sortTrailing: hideViewToggle ? undefined : (
+              <BrowseViewToggle
+                view={view}
+                setView={setView}
+                // Picking a view is a terminal choice — get the sheet out
+                // of the way so you land on the thing you asked for. Only
+                // fires on an actual change, so re-tapping the current
+                // view does not dismiss the sheet under you.
+                onSelect={() => filters.setFiltersOpen(false)}
+              />
+            ),
+            // "Only saved" is a filter, so it lives with the other Show-only
+            // switches (owner: merge & tighten, 2026-08-24).
+            savedOnly,
+            onToggleSavedOnly,
+            savedCount,
             selectedCategory: filters.selectedCategory, setSelectedCategory: filters.setSelectedCategory,
             locationFilter: filters.locationFilter, setLocationFilter: filters.setLocationFilter,
             sortBy: filters.sortBy, setSortBy: filters.setSortBy,
@@ -324,39 +286,32 @@ export function BrowseTasksToolbar({
             userLocStatus: filters.userLoc?.status,
             userLocMessage: filters.userLoc?.status === "error" ? filters.userLoc.message : undefined,
           }),
-          // Signed-in only, exactly as the bookmark icon was: saved searches
-          // are rows in a per-user table.
-          ...(user
-            ? [{
-                key: "saved-searches",
-                title: "Saved searches",
-                content: (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      hapticLight();
-                      // Close the sheet FIRST — this row lives inside it, and
-                      // the dialog it opens is mounted outside it (below).
-                      filters.setFiltersOpen(false);
-                      setSavedSearchesOpen(true);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
-                  >
-                    <Bookmark className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} aria-hidden />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-ds-12 font-semibold text-foreground leading-snug">
-                        Saved Searches
-                      </span>
-                      <span className="block text-ds-11 text-muted-foreground leading-snug">
-                        Apply a set you saved, or save these filters
-                      </span>
-                    </span>
-                    <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                  </button>
-                ),
-              }]
-            : []),
         ]}
+        // Saved Searches OPENS a dialog — it is an action, not a filter, so it
+        // sits in the footer beside Clear All rather than wearing a section.
+        // Signed-in only, exactly as the bookmark icon was: saved searches are
+        // rows in a per-user table.
+        footer={
+          user ? (
+            <button
+              type="button"
+              onClick={() => {
+                hapticLight();
+                // Close the sheet FIRST — this row lives inside it, and
+                // the dialog it opens is mounted outside it (below).
+                filters.setFiltersOpen(false);
+                setSavedSearchesOpen(true);
+              }}
+              className="w-full flex items-center gap-2 h-11 px-3 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
+            >
+              <Bookmark className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} aria-hidden />
+              <span className="min-w-0 flex-1 text-ds-12 font-semibold text-foreground">
+                Saved Searches
+              </span>
+              <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            </button>
+          ) : undefined
+        }
       />
 
       {/* The saved-searches dialog itself — mounted here rather than inside

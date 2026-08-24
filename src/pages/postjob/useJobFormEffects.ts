@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lookupParishByZip } from "@/lib/parishLookup";
@@ -149,6 +149,15 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     offerToHelperId,
   } = params;
 
+  // Once the poster's TIER fee has resolved it is the authority — it is the
+  // number create-payment actually charges (the global customer_fee_percent
+  // is that function's read-failure fallback, nothing more). Without this
+  // guard the two mount fetches raced and LAST WRITER WON: the same $12 job
+  // previewed $15.44 (tier 12%) on one visit and $15.20 (global 10%) on the
+  // next, while Stripe always charged 12%. Caught by the 2026-08-24 two-role
+  // E2E — the same order summary quoted two different totals minutes apart.
+  const tierFeeLocked = useRef(false);
+
   useEffect(() => {
     // Auth is already checked by ProtectedRoute — just fetch platform fee via safe RPC.
     // Surface failures explicitly so a grant regression on this RPC (which
@@ -164,10 +173,15 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
       }
       const row = Array.isArray(data) ? data[0] : null;
       if (row) {
-        // Use customer_fee_percent as the poster-facing fee (service fee at checkout)
+        // Use customer_fee_percent as the poster-facing fee (service fee at
+        // checkout) — but ONLY as the provisional value while the tier fetch
+        // is in flight. If the tier answer already landed, it wins (see
+        // tierFeeLocked above).
         const custFee = row.customer_fee_percent ?? CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT;
-        setPlatformFee(custFee);
-        setCustomerFee(custFee);
+        if (!tierFeeLocked.current) {
+          setPlatformFee(custFee);
+          setCustomerFee(custFee);
+        }
         const setupCents = (row as { onboarding_fee_cents?: number }).onboarding_fee_cents;
         if (typeof setupCents === "number") setOnboardingFeeCents(setupCents);
       }
@@ -205,6 +219,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
           setOnboardingFeePaid(data?.onboarding_fee_paid ?? true);
           if (data) {
             const tierFee = posterFeePercentForTier(data.subscription_tier, data.subscription_expires_at);
+            tierFeeLocked.current = true;
             setPlatformFee(tierFee);
             setCustomerFee(tierFee);
           }

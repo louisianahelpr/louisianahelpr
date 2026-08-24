@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { formatTime12 } from "@/components/TimePickerSelect";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -273,7 +274,7 @@ export function CheckoutStep({
               </span>
               <p className="flex-1 text-ds-13 text-foreground text-right">
                 {formatJobDate(dateNeeded)}
-                {isFlexibleSchedule ? " · Flexible" : startTime ? ` · ${startTime}` : ""}
+                {isFlexibleSchedule ? " · Flexible" : startTime ? ` · ${formatTime12(startTime)}` : ""}
                 {estimatedHours ? ` · ${estimatedHours}h est.` : ""}
               </p>
             </div>

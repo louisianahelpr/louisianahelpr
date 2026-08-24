@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import type { Json } from "@/integrations/supabase/types";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 
 interface AuditEntry {
   id: string;
@@ -116,19 +117,30 @@ const AdminAuditLog = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-end">
-        <Button variant="outline" size="sm" onClick={exportCSV} disabled={entries.length === 0}>
-          <Download className="w-3 h-3 mr-1" /> Export CSV
-        </Button>
-      </div>
-
+    <AdminViewShell>
+      {/* Export CSV lived on a bare right-aligned row above the list, with a
+          phone-width gutter of nothing beside it. It belongs to the log, so
+          it sits in the log's own header — which is also where the row count
+          it exports can finally be stated. */}
+      <AdminCard
+        title="Recent Activity"
+        subtitle={
+          entries.length > 0
+            ? `Last ${entries.length} admin ${entries.length === 1 ? "action" : "actions"}, newest first.`
+            : "Every admin action is recorded here, newest first."
+        }
+        action={
+          <Button variant="outline" size="sm" onClick={exportCSV} disabled={entries.length === 0}>
+            <Download className="w-3 h-3 mr-1" /> Export CSV
+          </Button>
+        }
+      >
       {isInitialLoading ? (
         // Shape-matched skeletons so the audit log surface holds its
         // height while the 200-row select resolves.
         <div className="space-y-1.5" aria-hidden="true">
           {[0, 1, 2, 3].map(i => (
-            <div key={i} className="rounded-ds-sm liquid-glass p-3 space-y-2">
+            <div key={i} className="rounded-ds-sm border border-border/60 bg-background/40 p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <Skeleton className="h-3.5 w-24" />
                 <Skeleton className="h-4 w-20 rounded-full" />
@@ -158,7 +170,7 @@ const AdminAuditLog = () => {
           {entries.map(entry => {
             const summary = summarizeDetails(entry.action, entry.details);
             return (
-              <div key={entry.id} className="rounded-ds-sm liquid-glass p-3 flex items-start gap-3">
+              <div key={entry.id} className="rounded-ds-sm border border-border/60 bg-background/40 p-3 flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-ds-13 text-foreground">{entry.admin_name}</span>
@@ -181,7 +193,8 @@ const AdminAuditLog = () => {
           })}
         </div>
       )}
-    </div>
+      </AdminCard>
+    </AdminViewShell>
   );
 };
 

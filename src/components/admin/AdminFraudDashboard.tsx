@@ -14,6 +14,8 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { unwrap } from "@/lib/supabaseResult";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 import { report } from "@/lib/errorLogger";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 
 interface FraudFlag {
   id: string;
@@ -119,32 +121,50 @@ const AdminFraudDashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-end flex-wrap gap-3">
-        <div className="flex gap-2">
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger aria-label="Flag type" className="w-[180px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {FLAG_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={() => setShowResolved(!showResolved)}>
-            {showResolved ? "Show Unresolved" : "Show Resolved"}
-          </Button>
-        </div>
-      </div>
-
+    <AdminViewShell>
+      {/* One card: the controls that scope the list sit in its header, the
+          list is its body. Previously the type Select + Show-Resolved button
+          floated right-aligned on a bare row of their own, so on a phone a
+          lone pair of controls hung over a dead gutter with nothing tying
+          them to the flags they filter. */}
+      <AdminCard
+        title={showResolved ? "Resolved Flags" : "Unresolved Flags"}
+        subtitle="Automated risk signals raised against accounts."
+        action={
+          <>
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger aria-label="Flag type" className="w-[160px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {FLAG_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={() => setShowResolved(!showResolved)}>
+              {showResolved ? "Show Unresolved" : "Show Resolved"}
+            </Button>
+          </>
+        }
+      >
       {isInitialLoading ? (
         <p className="text-ds-11 text-muted-foreground">Loading flags…</p>
       ) : flags.length === 0 ? (
-        <div className="rounded-ds-md liquid-glass p-8 text-center">
-          <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
-          <p className="text-ds-11 text-muted-foreground">{showResolved ? "No resolved flags" : "No unresolved fraud flags — looking good!"}</p>
-        </div>
+        /* The shared EmptyState, like every other admin queue. This screen
+           hand-rolled an icon-over-grey-line card, so the one view an admin
+           most wants to read as "all clear" was the one that didn't look
+           like its siblings. */
+        <EmptyState
+          variant="inline"
+          icon={CheckCircle2}
+          title={showResolved ? "No resolved flags" : "Nothing flagged"}
+          body={
+            showResolved
+              ? "Nothing has been marked resolved yet — switch back to Show Unresolved."
+              : "No unresolved fraud flags. That is the good outcome."
+          }
+        />
       ) : (
         <div className="space-y-2">
           {flags.map(flag => (
-            <div key={flag.id} className="rounded-ds-md liquid-glass p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div key={flag.id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-ds-13 text-foreground">{flag.user_name}</span>
@@ -174,7 +194,8 @@ const AdminFraudDashboard = () => {
           ))}
         </div>
       )}
-    </div>
+      </AdminCard>
+    </AdminViewShell>
   );
 };
 

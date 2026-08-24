@@ -18,6 +18,7 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 
 interface IDVProfile {
   user_id: string;
@@ -186,14 +187,17 @@ const AdminIDVQueue = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <p className="text-ds-11 text-muted-foreground">
-        Hybrid IDV: Stripe auto-approves clear submissions; uncertain ones land here.
-      </p>
-
-      {/* Settings card */}
-      <div className="rounded-ds-md liquid-glass p-5 space-y-4 max-w-2xl">
-        <h3 className="font-semibold text-foreground">Settings</h3>
+    <AdminViewShell>
+      {/* Settings card. The stranded lead sentence above it is now this
+          card's subtitle — it describes the auto-approve behaviour these two
+          controls configure, so it belongs to them rather than to the bare
+          page background. */}
+      <AdminCard
+        title="Auto-Approve Settings"
+        subtitle="Hybrid IDV: Stripe auto-approves clear submissions; uncertain ones land in the queue below."
+        className="max-w-2xl"
+        contentClassName="space-y-4"
+      >
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-0.5">
             <Label htmlFor="hybrid-toggle" className="text-ds-13 font-medium">Hybrid IDV enabled</Label>
@@ -222,17 +226,32 @@ const AdminIDVQueue = () => {
         <Button onClick={saveSettings} disabled={savingSettings} size="sm">
           {savingSettings ? "Saving…" : "Save Settings"}
         </Button>
-      </div>
+      </AdminCard>
 
-      {/* Status tabs */}
-      <div className="flex flex-wrap gap-2">
+      {/* The queue. Refresh used to sit `ml-auto` at the end of the tab row,
+          so at 375 the four status chips wrapped to two lines and pushed a
+          lone Refresh onto a third with a dead band beside it. It refreshes
+          THIS list, so it is the card's header action; the chips become one
+          scrollable strip. */}
+      <AdminCard
+        title="Verification Queue"
+        subtitle="Submissions Stripe could not clear automatically."
+        action={
+          <Button variant="outline" size="sm" onClick={load} disabled={isFetching}>
+            <RefreshCw className={`w-4 h-4 mr-1 ${isFetching ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+        }
+        contentClassName="space-y-4"
+      >
+      <AdminFilterStrip label="Filter submissions by status">
         {STATUS_TABS.map((tab) => {
           const Icon = tab.icon;
           return (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-1.5 rounded-ds-sm text-ds-13 font-medium border transition-colors flex items-center gap-1.5 ${
+              aria-pressed={activeTab === tab.key}
+              className={`shrink-0 px-3 py-1.5 rounded-ds-sm text-ds-13 font-medium border transition-colors flex items-center gap-1.5 ${
                 activeTab === tab.key
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-card text-muted-foreground border-border hover:border-primary/50"
@@ -243,10 +262,7 @@ const AdminIDVQueue = () => {
             </button>
           );
         })}
-        <Button variant="ghost" size="sm" onClick={load} disabled={isFetching} className="ml-auto">
-          <RefreshCw className={`w-4 h-4 mr-1 ${isFetching ? "animate-spin" : ""}`} /> Refresh
-        </Button>
-      </div>
+      </AdminFilterStrip>
 
       {/* List */}
       {isInitialLoading ? (
@@ -254,14 +270,15 @@ const AdminIDVQueue = () => {
           <HelprSpinner size={24} />
         </div>
       ) : profiles.length === 0 ? (
-        <div className="rounded-ds-md liquid-glass p-8 text-center">
-          <EmptyState
-            variant="inline"
-            icon={ShieldCheck}
-            title="Nothing in this status"
-            body="Try another status tab above."
-          />
-        </div>
+        /* EmptyState is itself a card. Wrapping it in a second liquid-glass
+           card drew a white tile inside a white tile — visible in the 375
+           capture as a nested double border. */
+        <EmptyState
+          variant="inline"
+          icon={ShieldCheck}
+          title="Nothing in this status"
+          body="Try another status tab above."
+        />
       ) : (
         <div className="space-y-2">
           {profiles.map((p) => {
@@ -269,7 +286,7 @@ const AdminIDVQueue = () => {
               t.key === p.idv_status || (t.key === "pending" && (p.idv_status === "pending" || p.idv_status === "processing"))
             );
             return (
-              <div key={p.user_id} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between gap-3">
+              <div key={p.user_id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-foreground text-ds-13 truncate">{formatName(p.full_name, "—")}</p>
@@ -332,6 +349,7 @@ const AdminIDVQueue = () => {
           })}
         </div>
       )}
+      </AdminCard>
 
       {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
@@ -378,7 +396,7 @@ const AdminIDVQueue = () => {
         }}
         secondaryLabel="Cancel"
       />
-    </div>
+    </AdminViewShell>
   );
 };
 

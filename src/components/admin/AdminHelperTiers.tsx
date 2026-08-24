@@ -10,6 +10,7 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { unwrap } from "@/lib/supabaseResult";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 
 interface HelperTier {
   user_id: string;
@@ -75,16 +76,23 @@ const AdminHelperTiers = () => {
   }, {});
 
   return (
-    <div className="space-y-6">
-      <p className="text-ds-11 text-muted-foreground">
-        Performance-tiered view of approved Helprs. "Rising Stars" = recent review momentum (last 30 days). Reach out to feature them.
-      </p>
-
-      <div className="flex gap-2 flex-wrap">
+    <AdminViewShell>
+      {/* The lead sentence used to sit naked on the page background above a
+          chip row that wrapped to two ragged lines. It is a description OF
+          this queue, so it becomes the card's subtitle, and the six chips
+          become one scrollable strip. */}
+      <AdminCard
+        title="Approved Helprs by Tier"
+        subtitle={'Rising Star = recent review momentum (last 30 days). Reach out to feature them.'}
+        contentClassName="space-y-4"
+      >
+      <AdminFilterStrip label="Filter Helprs by tier">
         <Button
           size="sm"
           variant={tierFilter === "all" ? "default" : "outline"}
           onClick={() => setTierFilter("all")}
+          aria-pressed={tierFilter === "all"}
+          className="shrink-0"
         >
           All ({helpers.length})
         </Button>
@@ -94,11 +102,13 @@ const AdminHelperTiers = () => {
             size="sm"
             variant={tierFilter === t ? "default" : "outline"}
             onClick={() => setTierFilter(t)}
+            aria-pressed={tierFilter === t}
+            className="shrink-0"
           >
             {t} ({counts[t] || 0})
           </Button>
         ))}
-      </div>
+      </AdminFilterStrip>
 
       {isInitialLoading ? (
         <p className="text-ds-11 text-muted-foreground">Loading tiers…</p>
@@ -121,7 +131,7 @@ const AdminHelperTiers = () => {
           {visible.map((helper) => {
             const Icon = TIER_ICON[helper.tier];
             return (
-              <div key={helper.user_id} className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">
+              <div key={helper.user_id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 flex items-center gap-3">
                 <UserAvatar
                   userId={helper.user_id}
                   src={helper.avatar_url}
@@ -172,7 +182,8 @@ const AdminHelperTiers = () => {
           })}
         </div>
       )}
-    </div>
+      </AdminCard>
+    </AdminViewShell>
   );
 };
 

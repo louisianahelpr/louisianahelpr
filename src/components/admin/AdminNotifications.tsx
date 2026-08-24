@@ -4,6 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Bell, Mail, Smartphone, AlertTriangle, Users, Briefcase, DollarSign, Star, ShieldAlert, Megaphone } from "lucide-react";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 
 type NotifPrefs = {
   id: string;
@@ -88,16 +89,26 @@ const AdminNotifications = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
 
+    // maybeSingle(), NOT single(). `single()` asks PostgREST for
+    // `application/vnd.pgrst.object+json`, and a zero-row result under that
+    // Accept header is answered with **HTTP 406 / PGRST116** — which Chrome
+    // logs as `Failed to load resource: the server responded with a status of
+    // 406`. That console error was this screen's, and it fired on every
+    // admin's FIRST visit, because "no prefs row yet" is the expected state
+    // the branch below exists to repair. The old code handled PGRST116
+    // correctly but provoked an HTTP error to learn about it.
+    // `maybeSingle()` keeps the plain `application/json` header, unwraps the
+    // one row client-side, and returns `data: null` on zero rows with HTTP
+    // 200 — same semantics, no error in the console.
     const { data, error } = await supabase
       .from("notification_preferences")
       .select("*")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (data) {
       setPrefs(data as NotifPrefs);
-    } else if (error && error.code !== "PGRST116") {
-      // PGRST116 = "no rows" — expected when prefs don't exist yet
+    } else if (error) {
       console.error("[AdminNotifications] loadPrefs:", error);
       toast.error("Couldn't load notification preferences — refresh to retry.");
     } else {
@@ -181,12 +192,12 @@ const AdminNotifications = () => {
   const allEmailOn = NOTIFICATION_GROUPS.every(g => prefs[g.emailKey]);
 
   return (
-    <div className="space-y-6">
+    <AdminViewShell>
       {/* Master toggles */}
-      <div className="rounded-ds-md liquid-glass p-5 space-y-4">
-        <h3 className="font-display font-bold text-foreground flex items-center gap-2">
-          <Bell className="w-5 h-5 text-primary" /> Master Controls
-        </h3>
+      <AdminCard
+        title={<span className="flex items-center gap-2"><Bell className="w-4 h-4 text-primary" /> Master Controls</span>}
+        subtitle="Turn every channel on or off at once."
+      >
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex items-center justify-between gap-3 flex-1 rounded-ds-sm border border-border bg-secondary/20 p-4">
             <div className="flex items-center gap-2">
@@ -223,16 +234,18 @@ const AdminNotifications = () => {
             <Switch id="all-email" checked={allEmailOn} onCheckedChange={toggleAllEmail} />
           </div>
         </div>
-      </div>
+      </AdminCard>
 
-      {/* Per-category controls */}
-      <div className="rounded-ds-md liquid-glass divide-y divide-border">
-        <div className="p-5">
-          <h3 className="font-display font-bold text-foreground">Per-Category Settings</h3>
-          <p className="text-ds-11 text-muted-foreground mt-1">Fine-tune which notifications you receive and how.</p>
-        </div>
+      {/* Per-category controls. The rows bleed to the card's edges — hence the
+          negative inset that cancels AdminCard's own padding — so the dividers
+          run the full width the way a settings list should. */}
+      <AdminCard
+        title="Per-Category Settings"
+        subtitle="Fine-tune which notifications you receive and how."
+        contentClassName="-mx-4 sm:-mx-5 -mb-4 sm:-mb-5 divide-y divide-border border-t border-border"
+      >
         {NOTIFICATION_GROUPS.map((group) => (
-          <div key={group.pushKey} className="p-5 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div key={group.pushKey} className="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex items-start gap-3 flex-1 min-w-0">
               <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
                 <group.icon className="w-4 h-4" />
@@ -268,21 +281,18 @@ const AdminNotifications = () => {
             </div>
           </div>
         ))}
-      </div>
+      </AdminCard>
 
-      {/* Info */}
-      <div className="rounded-ds-md liquid-glass p-5 space-y-2">
-        <div className="flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-          <div>
-            <p className="text-ds-13 font-medium text-foreground">Note</p>
-            <p className="text-ds-11 text-muted-foreground">
-              Critical security alerts (disputes, fraud flags, failed payouts) will always generate in-app notifications regardless of these settings. These preferences control whether you also receive push and email alerts.
-            </p>
-          </div>
-        </div>
+      {/* Footnote, not a section. This is a caveat ABOUT the settings above,
+          so it reads as fine print under them rather than as a third titled
+          card competing with the two that carry controls. */}
+      <div className="flex items-start gap-2 px-1">
+        <AlertTriangle className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+        <p className="text-ds-11 text-muted-foreground">
+          Critical security alerts (disputes, fraud flags, failed payouts) will always generate in-app notifications regardless of these settings. These preferences control whether you also receive push and email alerts.
+        </p>
       </div>
-    </div>
+    </AdminViewShell>
   );
 };
 

@@ -10,6 +10,7 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { formatShortDate } from "@/lib/format";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 
 type Ticket = {
   id: string;
@@ -90,22 +91,23 @@ const AdminSupport = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex gap-2">
+    <AdminViewShell>
+      <AdminFilterStrip label="Filter tickets by status">
         {(["pending", "resolved", "all"] as const).map(f => (
           <Button
             key={f}
             variant={filter === f ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter(f)}
-            className="capitalize"
+            aria-pressed={filter === f}
+            className="capitalize shrink-0"
           >
             {f === "pending" && <Clock className="w-3.5 h-3.5 mr-1" />}
             {f === "resolved" && <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
             {f}
           </Button>
         ))}
-      </div>
+      </AdminFilterStrip>
 
       {isInitialLoading ? (
         <p className="text-muted-foreground text-ds-11 py-8 text-center">Loading tickets…</p>
@@ -126,7 +128,7 @@ const AdminSupport = () => {
             const cat = categoryFromReason(ticket.reason);
             const subject = subjectFromReason(ticket.reason);
             return (
-              <div key={ticket.id} className="rounded-ds-md liquid-glass p-4 space-y-3">
+              <div key={ticket.id} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center text-primary shrink-0">
@@ -182,7 +184,7 @@ const AdminSupport = () => {
           })}
         </div>
       )}
-    </div>
+    </AdminViewShell>
   );
 };
 

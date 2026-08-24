@@ -16,6 +16,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { toneTextClasses } from "@/components/admin/tones";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { cn } from "@/lib/utils";
 
 interface Broadcast {
@@ -179,7 +180,7 @@ const AdminBroadcasts = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <AdminViewShell>
       {/* Undo countdown banner — server-driven. Visible whenever
           pending_push_fan_out_at is set and push_fanned_out_at is not.
           Survives tab close: pg_cron runs the fan-out regardless. */}
@@ -205,14 +206,26 @@ const AdminBroadcasts = () => {
         </div>
       )}
 
-      <div className="flex items-center justify-end">
-        <Button size="sm" onClick={() => setShowForm(!showForm)} className="gap-1">
-          <Plus className="w-3.5 h-3.5" /> New Broadcast
-        </Button>
-      </div>
-
-      {showForm && (
-        <div className="rounded-ds-md liquid-glass p-4 space-y-3">
+      {/* ONE section, not a floating button plus an untitled list. New
+          Broadcast used to sit right-aligned on a bare row of its own, so at
+          375 a lone button hung over a phone-width band of nothing with
+          nothing tying it to the broadcasts it creates. It is the action that
+          opens the compose form, and the compose form writes into this list —
+          so all three live in one card: header + action, form, list. The
+          label flips to Cancel while the form is open, because a control that
+          toggles must say which way it is about to go. */}
+      <AdminCard
+        title="Scheduled Broadcasts"
+        subtitle="An in-app banner shown to every signed-in user until it expires."
+        action={
+          <Button size="sm" onClick={() => setShowForm(!showForm)} className="gap-1">
+            {showForm ? <><X className="w-3.5 h-3.5" /> Cancel</> : <><Plus className="w-3.5 h-3.5" /> New Broadcast</>}
+          </Button>
+        }
+        contentClassName="space-y-4"
+      >
+        {showForm && (
+        <div className="space-y-3 rounded-ds-md border border-border/60 bg-background/40 p-4">
           <div className="space-y-2">
             <Label htmlFor="broadcast-title">Title</Label>
             <Input id="broadcast-title" value={title} onChange={e => setTitle(e.target.value)} maxLength={100} />
@@ -250,21 +263,23 @@ const AdminBroadcasts = () => {
               </Select>
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+          {/* One Cancel, not two: the card header's action already closes the
+              form, so a second Cancel beside Send was the same escape hatch
+              offered twice on one card. */}
+          <div className="flex justify-end">
             <Button size="sm" onClick={create} disabled={creating}>
               {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Send Broadcast"}
             </Button>
           </div>
         </div>
-      )}
+        )}
 
       {isLoading ? (
         // Shape-matched skeleton — two broadcast rows so the loaded list
         // doesn't jump in over a lone "Loading…" line.
         <div className="space-y-2" aria-hidden="true">
           {[0, 1].map((i) => (
-            <div key={i} className="rounded-ds-md liquid-glass px-4 py-3 space-y-2">
+            <div key={i} className="rounded-ds-md border border-border/60 bg-background/40 px-4 py-3 space-y-2">
               <div className="flex items-center gap-2">
                 <Skeleton className="h-4 w-40" />
                 <Skeleton className="h-4 w-14 rounded-full" />
@@ -291,7 +306,7 @@ const AdminBroadcasts = () => {
       ) : (
         <div className="space-y-2">
           {broadcasts.map(b => (
-            <div key={b.id} className="rounded-ds-md liquid-glass px-4 py-3 flex items-start justify-between gap-3">
+            <div key={b.id} className="rounded-ds-md border border-border/60 bg-background/40 px-4 py-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-ds-13 font-semibold text-foreground">{b.title}</p>
@@ -329,6 +344,7 @@ const AdminBroadcasts = () => {
           ))}
         </div>
       )}
+      </AdminCard>
 
       <BrandConfirmDialog
         open={!!confirmDeleteId}
@@ -342,7 +358,7 @@ const AdminBroadcasts = () => {
         onPrimary={(e) => { e.preventDefault(); if (confirmDeleteId) remove(confirmDeleteId); }}
         secondaryLabel="Keep"
       />
-    </div>
+    </AdminViewShell>
   );
 };
 

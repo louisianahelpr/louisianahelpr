@@ -14,6 +14,7 @@ import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, Ext
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
+import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -236,15 +237,19 @@ const AdminReports = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex gap-2 flex-wrap">
+    <AdminViewShell>
+      {/* Five chips wrapped to two ragged rows at 375. One scrollable strip
+          with the shared edge fade instead — a cut-off chip then reads as
+          "there is more this way" rather than as a broken layout. */}
+      <AdminFilterStrip label="Filter reports by status">
         {(["pending", "investigating", "resolved", "dismissed", "all"] as const).map(f => (
           <Button
             key={f}
             variant={filter === f ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter(f)}
-            className="capitalize"
+            aria-pressed={filter === f}
+            className="capitalize shrink-0"
           >
             {f === "pending" && <Clock className="w-3.5 h-3.5 mr-1" />}
             {f === "investigating" && <Search className="w-3.5 h-3.5 mr-1" />}
@@ -253,7 +258,7 @@ const AdminReports = () => {
             {f === "pending" ? "New" : f}
           </Button>
         ))}
-      </div>
+      </AdminFilterStrip>
 
       {isInitialLoading ? (
         <p className="text-muted-foreground text-ds-11 py-8 text-center">Loading reports…</p>
@@ -271,7 +276,7 @@ const AdminReports = () => {
       ) : (
         <div className="space-y-3">
           {reports.map(report => (
-            <div key={report.id} className="rounded-ds-md liquid-glass p-4 space-y-3">
+            <div key={report.id} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
                   {typeIcon(report.reported_type)}
@@ -330,8 +335,12 @@ const AdminReports = () => {
 
               {/* One line, not two: 7 action buttons kept on a single row —
                   fits without scroll on wide admin screens, scrolls horizontally
-                  rather than wrapping to a second line on narrow ones. */}
-              <div className="flex flex-nowrap gap-2 pt-1 overflow-x-auto [&>button]:shrink-0">
+                  rather than wrapping to a second line on narrow ones.
+                  The mask is the missing half of that decision: without it the
+                  row sliced "Assign to Me" clean through at 375 with no
+                  affordance, which reads as clipped rather than scrollable —
+                  the same fade AdminFilterStrip puts on chip rows. */}
+              <div className="flex flex-nowrap gap-2 pt-1 overflow-x-auto no-scrollbar [&>button]:shrink-0 [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)]">
                 <Button
                   size="sm"
                   variant="outline"
@@ -436,7 +445,7 @@ const AdminReports = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminViewShell>
   );
 };
 

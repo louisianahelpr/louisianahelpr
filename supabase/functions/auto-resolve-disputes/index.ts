@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
           for (const adminId of escalatedAdminIds) {
             const { error: notifErr } = await supabase.from("notifications").insert({
               user_id: adminId,
-              title: "⏰ Escalated dispute overdue",
+              title: "Escalated dispute overdue",
               message: `"${job.title}" dispute was escalated and is past its 72h deadline. Please resolve ASAP.`,
               type: "warning",
               link: "/admin",
@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
       if (job.helper_id) {
         notifications.push({
           user_id: job.helper_id,
-          title: "Dispute auto-resolved ✓",
+          title: "Dispute auto-resolved",
           message: `The dispute on "${job.title}" expired after 72 hours without the poster resolving or escalating. Payment will be released to you.`,
           type: "payment",
           link: "/my-jobs?filter=completed",
@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
         for (const adminId of autoResolvedAdminIds) {
           notifications.push({
             user_id: adminId,
-            title: "⚠️ Dispute auto-resolved",
+            title: "Dispute auto-resolved",
             message: `Dispute on "${job.title}" expired without poster action. Payment auto-released to helpr.`,
             type: "warning",
             link: "/admin",

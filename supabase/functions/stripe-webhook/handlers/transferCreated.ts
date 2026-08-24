@@ -14,10 +14,20 @@ export async function handleTransferCreated(
   //    Most marketplace transfers settle as 'paid' immediately on
   //    creation, so flip directly to 'paid' here. transfer.failed /
   //    transfer.reversed below override if the path doesn't hold.
+  // STATE PRECONDITION (R8). transferFailed / transferCanceled /
+  // transferReversed all guard their writes; this — the one handler that
+  // writes the SUCCESS state — did not. A Stripe redelivery of
+  // transfer.created arriving after transfer.failed therefore resurrected a
+  // failed payout to paid/released: the helper is permanently unpaid while
+  // every dashboard says paid. Restricting the transition to pending → paid
+  // (and paid → paid, the ordinary idempotent re-confirm) makes a terminal
+  // row match zero rows, which short-circuits the job flip below because
+  // `ledgerRow` comes back null.
   const { data: ledgerRow, error: ledgerUpdateErr } = await supabase
     .from("payout_transfers")
     .update({ status: "paid", paid_at: new Date().toISOString() })
     .eq("stripe_transfer_id", transfer.id)
+    .in("status", ["pending", "paid"])
     .select("job_id, helper_id")
     .maybeSingle();
 
@@ -32,6 +42,15 @@ export async function handleTransferCreated(
     throw new Error(
       `Failed to update payout_transfers for transfer ${transfer.id}: ${ledgerUpdateErr.message}`,
     );
+  }
+
+  if (!ledgerRow) {
+    // Either no ledger row exists for this transfer, or it sits in a terminal
+    // state (failed / reversed / canceled) that must not be walked back. Both
+    // are safe to ack; neither may flip the job to released.
+    logStep("Transfer ledger not advanced — missing row or terminal status", {
+      transferId: transfer.id,
+    });
   }
 
   // 2. Find the helper and associated job.
@@ -52,10 +71,16 @@ export async function handleTransferCreated(
       // Flip the job to "released". For scheduled payouts this is a backup
       // confirmation (process-scheduled-payouts already flipped it); for
       // admin dispute releases it is the authoritative flip.
+      // Second precondition, independent of the ledger guard above: a job
+      // that has since been refunded or cancelled must never be flipped back
+      // to released by a redelivered transfer.created. "released" stays in the
+      // allowed set so the ordinary re-confirmation (the initiating path
+      // already flipped it) is still a clean no-op rather than a warning.
       const { data: updatedJob, error: jobUpdateErr } = await supabase
         .from("jobs")
         .update({ payment_status: "released" })
         .eq("id", transferJobId)
+        .in("payment_status", ["payout_pending", "escrow", "released"])
         .select("id")
         .maybeSingle();
       if (jobUpdateErr) {
@@ -71,7 +96,7 @@ export async function handleTransferCreated(
       } else if (!updatedJob) {
         // Zero rows matched — the job doesn't exist for this ledger entry.
         // Belt-and-suspenders path: log for auditability but don't throw.
-        logStep("WARN job update matched 0 rows — job missing for ledger entry", {
+        logStep("WARN job not flipped — missing, or in a state that must not become released", {
           jobId: transferJobId,
         });
       } else {

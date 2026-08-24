@@ -12,7 +12,7 @@ export async function handlePaymentIntentPaymentFailed(
   // Find the job linked to this PI and notify the poster
   const { data: failedJob, error: failedJobErr } = await supabase
     .from("jobs")
-    .select("id, customer_id, title")
+    .select("id, customer_id, title, payment_status")
     .eq("stripe_payment_intent_id", pi.id)
     .maybeSingle();
 
@@ -27,7 +27,7 @@ export async function handlePaymentIntentPaymentFailed(
   if (failedJob) {
     await supabase.from("notifications").insert({
       user_id: failedJob.customer_id,
-      title: "⚠️ Payment failed",
+      title: "Payment failed",
       message: `Your payment for "${failedJob.title}" could not be processed. Please update your payment method and try again.`,
       type: "warning",
       link: "/my-posts",
@@ -35,12 +35,30 @@ export async function handlePaymentIntentPaymentFailed(
     // Must throw on failure: a silent drop here leaves the job in its pre-failure
     // state (e.g. "escrow") permanently. The outer handler rolls back the dedupe
     // row and returns 500 so Stripe retries once the DB recovers.
-    const { error: updateErr } = await supabase
+    // STATE PRECONDITION (R9). This had none, so an out-of-order or retried
+    // payment_failed for a PaymentIntent that LATER succeeded flipped a funded
+    // job escrow → failed — and PaymentSuccess.tsx then tells the poster no
+    // money was ever taken while their money sits in escrow. Only a job that
+    // is still unpaid (or has no payment_status yet) may be marked failed.
+    const { data: failedUpdate, error: updateErr } = await supabase
       .from("jobs")
       .update({ payment_status: "failed" })
-      .eq("id", failedJob.id);
+      .eq("id", failedJob.id)
+      .or("payment_status.is.null,payment_status.eq.unpaid")
+      .select("id")
+      .maybeSingle();
     if (updateErr) {
       throw new Error(`Failed to mark job ${failedJob.id} as payment_failed: ${updateErr.message}`);
+    }
+    if (!failedUpdate) {
+      // The job already moved past unpaid — this event is stale relative to a
+      // successful charge. Acking without the write is correct; the earlier
+      // notification is the only user-visible effect, and a poster being told
+      // a payment attempt failed is true even when a later attempt succeeded.
+      logStep("Stale payment_failed ignored — job is no longer unpaid", {
+        jobId: failedJob.id,
+        paymentStatus: failedJob.payment_status,
+      });
     }
     logStep("Notified poster of payment failure", { jobId: failedJob.id });
   }

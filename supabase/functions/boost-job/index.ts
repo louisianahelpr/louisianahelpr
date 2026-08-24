@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         user_id: userId,
-        title: '⚡ New job near you',
+        title: 'New job near you',
         body: `"${jobTitle}"${jobLocation ? ` · ${jobLocation}` : ''} — be the first to apply!`,
         link: `/jobs/${jobId}`,
         category: 'JOB_APPLY',

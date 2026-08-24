@@ -194,7 +194,7 @@ serve(async (req) => {
       try {
         await supabaseAdmin.from("notifications").insert({
           user_id: user.id,
-          title: "🔒 Payout method removed",
+          title: "Payout method removed",
           message:
             "A payout method was just removed from your account. If this wasn't you, contact support immediately.",
           type: "financial_alerts",
@@ -342,7 +342,7 @@ serve(async (req) => {
       try {
         await supabaseAdmin.from("notifications").insert({
           user_id: user.id,
-          title: "🔒 Payout account reset",
+          title: "Payout account reset",
           message:
             "Your payout account was reset and a new one created. If this wasn't you, contact support immediately.",
           type: "financial_alerts",

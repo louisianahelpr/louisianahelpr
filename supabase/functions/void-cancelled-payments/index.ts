@@ -125,7 +125,7 @@ serve(async (req) => {
           for (const adminId of adminIds) {
             await supabaseAdmin.from("notifications").insert({
               user_id: adminId,
-              title: "⚠️ Cancellation fee transfer failed",
+              title: "Cancellation fee transfer failed",
               message: `Failed to transfer $${cancellationFee.toFixed(2)} cancellation fee to helper for job ${job.id}. Error: ${transferErr.message}`,
               type: "warning",
               link: "/admin",

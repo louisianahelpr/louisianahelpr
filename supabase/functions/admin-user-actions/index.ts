@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
 
       await admin.from('notifications').insert({
         user_id: targetUserId,
-        title: '✅ Manually verified',
+        title: 'Manually verified',
         message: 'An admin has manually verified your identity. You have full access to Helpr.',
         type: 'success',
         link: '/dashboard',
@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
 
       await admin.from('notifications').insert({
         user_id: targetUserId,
-        title: '📷 Please re-upload your ID',
+        title: 'Please re-upload your ID',
         message: note || 'Your ID photo was a bit blurry. Snap a clearer one so we can get you started.',
         type: 'warning',
         link: '/profile',

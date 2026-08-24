@@ -1434,7 +1434,7 @@ async function transferToHelper(
       for (const adminId of transferAdminIds) {
         await supabaseAdmin.from("notifications").insert({
           user_id: adminId,
-          title: "⚠️ Transfer failed",
+          title: "Transfer failed",
           message: `Failed to transfer $${amount.toFixed(2)} to helper for job ${jobId}. Error: ${(e as Error).message}`,
           type: "warning",
           link: "/admin",

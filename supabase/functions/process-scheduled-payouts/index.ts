@@ -232,7 +232,7 @@ serve(async (req) => {
               for (const adminId of adminIds) {
                 await supabaseAdmin.from("notifications").insert({
                   user_id: adminId,
-                  title: "⚠️ Payout blocked — charge not captured",
+                  title: "Payout blocked — charge not captured",
                   message: `Job ${job.id} ("${job.title}") payout cannot proceed. PI status: ${pi.status}.`,
                   type: "warning", link: "/admin",
                 });
@@ -531,7 +531,7 @@ serve(async (req) => {
           : "";
         await supabaseAdmin.from("notifications").insert({
           user_id: helperId,
-          title: "💰 Payout sent!",
+          title: "Payout sent!",
           message: `$${formatPayoutDollars(helperPayout)} for "${job.title}" has been transferred to your account${feeNote}.`,
           type: "payment", link: "/earnings",
         });
@@ -580,7 +580,7 @@ serve(async (req) => {
           for (const adminId of adminIds) {
             await supabaseAdmin.from("notifications").insert({
               user_id: adminId,
-              title: "⚠️ Scheduled payout failed",
+              title: "Scheduled payout failed",
               message: `Failed to pay $${helperPayout.toFixed(2)} to helpr for job ${job.id}. Error: ${(e as Error).message}`,
               type: "warning", link: "/admin",
             });

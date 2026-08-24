@@ -103,7 +103,7 @@ export async function handleChargeRefunded(
 
       const { error: notifyErr } = await supabase.from("notifications").insert({
         user_id: refundedJob.customer_id,
-        title: "💸 Refund processed",
+        title: "Refund processed",
         message: `Your payment for "${refundedJob.title}" has been refunded.`,
         type: "payment",
         link: "/my-posts",

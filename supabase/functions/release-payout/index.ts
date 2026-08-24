@@ -363,7 +363,7 @@ serve(async (req) => {
       for (const adminId of adminIds) {
         await supabaseAdmin.from("notifications").insert({
           user_id: adminId,
-          title: "⚠️ Payout blocked — charge not captured",
+          title: "Payout blocked — charge not captured",
           message: `Job ${job.id} ("${job.title}") payout blocked. PaymentIntent status: ${pi.status}.`,
           type: "warning", link: "/admin",
         });
@@ -509,7 +509,7 @@ serve(async (req) => {
     for (const adminId of adminIds) {
       await supabaseAdmin.from("notifications").insert({
         user_id: adminId,
-        title: "🚨 Payout blocked — exceeds captured amount",
+        title: "Payout blocked — exceeds captured amount",
         message: `Job ${job.id} ("${job.title}") tried to pay out $${(payoutCents / 100).toFixed(2)} against $${(escrowAmountReceivedCents / 100).toFixed(2)} captured. Budget may have been altered after checkout.`,
         type: "warning", link: "/admin",
       });
@@ -671,7 +671,7 @@ serve(async (req) => {
       : "";
   await supabaseAdmin.from("notifications").insert({
     user_id: job.helper_id,
-    title: "💸 Payment released",
+    title: "Payment released",
     message: `Your earnings for "${job.title}" ($${formatPayoutDollars(netDollars)}) have been sent to your bank${feeNote}.`,
     type: "payment",
     link: "/dashboard?tab=earnings",

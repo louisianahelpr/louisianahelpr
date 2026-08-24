@@ -301,7 +301,7 @@ serve(async (req) => {
       // Notify the helper
       await supabaseAdmin.from("notifications").insert({
         user_id: user.id,
-        title: "⚡ Instant payout on the way",
+        title: "Instant payout on the way",
         message: `$${formatPayoutCents(netCents)} is heading to your debit card. Arrives in ~30 min.`,
         type: "financial_alerts",
         link: "/earnings",

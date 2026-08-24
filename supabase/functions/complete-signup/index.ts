@@ -509,7 +509,7 @@ serve(async (req) => {
         if (admins?.length) {
           const adminNotifs = admins.map((admin: { user_id: string }) => ({
             user_id: admin.user_id,
-            title: "👤 New member joined",
+            title: "New member joined",
             message: notifMessage,
             type: "info",
             link: "/admin",

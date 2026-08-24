@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
     // Notify the user (in-app)
     await supabaseAdmin.from('notifications').insert({
       user_id: userId,
-      title: '📧 Email address updated',
+      title: 'Email address updated',
       message: `Your email has been updated to ${normalizedEmail} by an administrator. Use this email to log in going forward.`,
       type: 'info',
       link: '/profile',

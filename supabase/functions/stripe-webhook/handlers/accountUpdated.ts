@@ -70,7 +70,7 @@ export async function handleAccountUpdated(
       } else {
         await supabase.from("notifications").insert({
           user_id: helperProfile.user_id,
-          title: "✅ Payout account verified",
+          title: "Payout account verified",
           message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
           type: "success",
           link: "/profile",
@@ -80,7 +80,7 @@ export async function handleAccountUpdated(
     } else if (account.requirements?.currently_due && account.requirements.currently_due.length > 0) {
       await supabase.from("notifications").insert({
         user_id: helperProfile.user_id,
-        title: "⚠️ Payout account needs attention",
+        title: "Payout account needs attention",
         message: "Your payout account requires additional information. Please update your details to continue receiving payments.",
         type: "warning",
         link: "/profile",

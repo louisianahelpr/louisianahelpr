@@ -55,7 +55,7 @@ export async function handleChargeDisputeCreated(
       await postSlackOpsAlert({
         kind: "dispute_filed",
         severity: "critical",
-        title: "💳 Stripe chargeback — PAYOUT BLOCK SKIPPED (job lookup DB error)",
+        title: "Stripe chargeback — PAYOUT BLOCK SKIPPED (job lookup DB error)",
         message: `A chargeback fired but the job lookup failed with a DB error — payout block NOT applied. Stripe will retry this webhook. If retries exhaust, manually set payment_status='chargeback', dispute_status='stripe_chargeback', disputed_at=NOW() on the job to prevent double-loss.`,
         fields: {
           "Dispute ID": dispute.id,
@@ -99,7 +99,7 @@ export async function handleChargeDisputeCreated(
         await postSlackOpsAlert({
           kind: "dispute_filed",
           severity: "critical",
-          title: "💳 Stripe chargeback — PAYOUT BLOCK FAILED (DB error), double-loss risk",
+          title: "Stripe chargeback — PAYOUT BLOCK FAILED (DB error), double-loss risk",
           message: `A chargeback fired but the DB write to block payouts failed. The job stays payout_pending with disputed_at=null — invisible to all payout guards. Stripe will retry this webhook. If retries exhaust, manually set payment_status='chargeback', dispute_status='stripe_chargeback', disputed_at=NOW() on the job to prevent double-loss.`,
           fields: {
             "Dispute ID": dispute.id,
@@ -138,7 +138,7 @@ export async function handleChargeDisputeCreated(
       for (const adminId of chargebackAdminIds) {
         await supabase.from("notifications").insert({
           user_id: adminId,
-          title: "⚠️ Stripe chargeback filed",
+          title: "Stripe chargeback filed",
           message: `A $${(dispute.amount / 100).toFixed(2)} chargeback was filed for "${chargebackJob.title}". Respond in Stripe Dashboard before the evidence deadline or the dispute is auto-lost.`,
           type: "warning",
           link: "/admin",
@@ -152,7 +152,7 @@ export async function handleChargeDisputeCreated(
   await postSlackOpsAlert({
     kind: "dispute_filed",
     severity: "critical",
-    title: "💳 Stripe chargeback filed",
+    title: "Stripe chargeback filed",
     message: `A $${(dispute.amount / 100).toFixed(2)} chargeback was opened (reason: ${dispute.reason ?? "unknown"}). Respond in Stripe Dashboard before the evidence due date.`,
     fields: {
       "Dispute ID": dispute.id,

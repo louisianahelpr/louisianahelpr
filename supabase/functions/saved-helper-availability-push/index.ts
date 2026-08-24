@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
       const helperName = helperNameMap.get(fav.helper_id) ?? "Your helper";
       notifications.push({
         user_id: fav.customer_id,
-        title: `📅 ${helperName} updated availability`,
+        title: `${helperName} updated availability`,
         message: `${helperName} has new openings. Tap to send a direct offer.`,
         type: "info",
         link: `/post-job?offerTo=${fav.helper_id}`,

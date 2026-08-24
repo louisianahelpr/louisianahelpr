@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
 
       await supabase.from("notifications").insert({
         user_id: helper.user_id,
-        title: "📊 Weekly Performance Report",
+        title: "Weekly Performance Report",
         message,
         type: "info",
         link: "/profile?tab=earnings",

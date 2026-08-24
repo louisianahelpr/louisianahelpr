@@ -179,7 +179,7 @@ export async function handleCheckoutSessionCompleted(
         if (tipHelperId) {
           await supabase.from("notifications").insert({
             user_id: tipHelperId,
-            title: "💰 You received a tip!",
+            title: "You received a tip!",
             message: `Someone tipped you for a completed job. Thanks for the great work!`,
             type: "payment",
             link: "/earnings",
@@ -334,7 +334,7 @@ export async function handleCheckoutSessionCompleted(
           // when the credential INSERT had just failed and we threw above.
           await supabase.from("notifications").insert({
             user_id: bgcUserId,
-            title: "🛡️ Background check started",
+            title: "Background check started",
             message:
               "Thanks — your payment went through and your background check is in progress. We'll add your Background-Checked badge as soon as it clears.",
             type: "success",
@@ -509,7 +509,7 @@ export async function handleCheckoutSessionCompleted(
           if (recipientId) {
             await supabase.from("notifications").insert({
               user_id: recipientId,
-              title: "🎁 You received a Helpr credit!",
+              title: "You received a Helpr credit!",
               message: `${donorName} sent you a $${(amountCents / 100).toFixed(0)} credit to use toward any job. Tap to redeem it.`,
               type: "payment",
               link: "/pay-it-forward",
@@ -751,7 +751,7 @@ export async function handleCheckoutSessionCompleted(
             await supabase.from("notifications").insert({
               user_id: posterId,
               type: "payment",
-              title: "💸 Duplicate fee refunded",
+              title: "Duplicate fee refunded",
               message:
                 "We caught a duplicate $2 onboarding fee on your account and refunded it. The fee is one-time only — you won't see it again.",
               link: "/profile",

@@ -277,7 +277,7 @@ serve(async (req) => {
         // 1) In-app notification (auto-triggers browser push via useRealtimePush)
         const { error: notifErr } = await supabase.from("notifications").insert({
           user_id: userId,
-          title: "✅ Verification Successful",
+          title: "Verification Successful",
           message: "Your identity has been verified! You're cleared to start using Helpr.",
           type: "success",
           link: "/dashboard",
@@ -312,7 +312,7 @@ serve(async (req) => {
           const { error: adminNotifErr } = await supabase.from("notifications").insert(
             admins.map((a: { user_id: string }) => ({
               user_id: a.user_id,
-              title: "⚠️ Identity verification needs review",
+              title: "Identity verification needs review",
               message: `A user ${reason}. Tap to review.`,
               type: "warning",
               link: "/admin",

@@ -216,16 +216,15 @@ const JobDetailDialog = ({
         </div>
         <DialogHero title={job.title} />
 
-        {/* Split-pane wrapper. Below xl this is a no-op flex column
-            (contents flow like they used to). At xl+ it's a 12-col grid:
-            the left column carries the job content (photo, pills, video,
-            description, stat tiles); the right column stickies the
-            actionable content (payout, poster card, queue banner, footer).
-            xl:items-start is required for the sticky right column to work
-            — a stretch align would size both columns to the tallest and
-            the right column would never scroll past its own height. */}
-        <div className="contents xl:grid xl:grid-cols-12 xl:gap-6 xl:items-start">
-        <div className="contents xl:col-span-7 xl:flex xl:flex-col xl:gap-2 min-w-0">
+        {/* One column at every width. This used to become a 7/5 split-pane
+            at xl — sized for the era when the dialog opened at xl:max-w-6xl
+            (1152px). The owner capped the dialog to the 3xl reading column,
+            and the split inside 768px crushed the footer CTA to "Ap…" and
+            left the description column ending in dead space (owner
+            screenshot, 2026-08-24). The wrappers stay (`contents`) so the
+            source order and stat-tile grouping are untouched. */}
+        <div className="contents">
+        <div className="contents min-w-0">
         {/* Photo cover wrapped so Boosted (top-right) and Urgent
             (top-left) can stamp the corners without being clipped by
             the photo's overflow-hidden. */}
@@ -453,7 +452,7 @@ const JobDetailDialog = ({
             the header. Below xl this div collapses via `contents` and
             each child slots back into the outer single-column grid,
             preserving the original vertical order. */}
-        <div className="contents xl:col-span-5 xl:flex xl:flex-col xl:gap-2 xl:sticky xl:top-0 xl:self-start min-w-0">
+        <div className="contents min-w-0">
         {/* Payout — the shared JobPrice element (detail variant), tap
             anywhere to expand the breakdown. Same component as the feed
             card so the number is identical across surfaces. */}

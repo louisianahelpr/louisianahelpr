@@ -91,7 +91,7 @@ function LogsPlaceholder({
       <EmptyState
         variant="inline"
         icon={AlertTriangle}
-        title="Couldn't load logs"
+        title="We couldn't load logs"
         body="The fetch failed — use the retry button above."
       />
     );

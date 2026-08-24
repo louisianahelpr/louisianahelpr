@@ -95,7 +95,7 @@ export const HelperAnalyticsBody = () => {
           {isError && !isLoadingData ? (
             <ErrorState
               variant="inline"
-              title="Couldn't load your analytics."
+              title="We couldn't load your analytics."
               body="Your earnings are safe — this is just the dashboard failing to load. Tap Try again."
               onRetry={() => refetch()}
             />

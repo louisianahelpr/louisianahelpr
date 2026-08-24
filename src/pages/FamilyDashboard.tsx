@@ -233,7 +233,7 @@ export default function FamilyDashboard() {
               {!relQuery.isLoading && relQuery.isError && (
                 <ErrorState
                   variant="inline"
-                  title="Couldn't load your family connections."
+                  title="We couldn't load your family connections."
                   body="Tap Try again to reload who you're managing jobs for."
                   onRetry={() => void relQuery.refetch()}
                   retryDisabled={relQuery.isFetching}
@@ -253,7 +253,7 @@ export default function FamilyDashboard() {
                     variant="inline"
                     icon={Users}
                     eyebrow="Just you, so far"
-                    title="No family members yet."
+                    title="No family members yet"
                     body="Invite someone you help look after — a parent, a grandparent, a neighbor. Once they approve, you can post jobs, message helpers, and follow the work on their behalf. You can remove your access any time."
                     action={
                       <BarkPillButton onClick={() => setInviteOpen(true)}>

@@ -624,7 +624,7 @@ export default function PayItForward() {
                 <div className="flex">
                   <ErrorState
                     variant="inline"
-                    title="Couldn't load your gift cards."
+                    title="We couldn't load your gift cards."
                     body="Any gift card sent to you is still yours — we just couldn't reach it right now. Tap Try again."
                     onRetry={() => void refetchReceived()}
                     retryDisabled={receivedFetching}
@@ -660,7 +660,7 @@ export default function PayItForward() {
                 <div className="flex">
                   <ErrorState
                     variant="inline"
-                    title="Couldn't load the gift cards you've sent."
+                    title="We couldn't load the gift cards you've sent."
                     body="Nothing was lost — we just couldn't reach your gift history. Tap Try again."
                     onRetry={() => void refetchDonated()}
                     retryDisabled={donatedFetching}

@@ -285,7 +285,7 @@ export const AppliedJobsTab = ({
           icon={Briefcase}
           illustration={<EmptyStateIllustration variant="jobs" />}
           eyebrow="No applications"
-          title="Nothing in this view yet."
+          title="Nothing in this view yet"
           body="New jobs are posted across Louisiana every day."
           action={
             <>

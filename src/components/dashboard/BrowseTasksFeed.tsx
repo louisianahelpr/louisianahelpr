@@ -300,7 +300,7 @@ export function BrowseTasksFeed({
            feed rendered an empty panel with no explanation at all. */
         <div className="px-3 pt-4 flex-1 min-h-0 flex">
           <ErrorState
-            title="Nothing saved yet."
+            title="Nothing saved yet"
             body="Tap the bookmark on a job to keep it here. Saved jobs stay put until you unsave them or they're filled."
           />
         </div>

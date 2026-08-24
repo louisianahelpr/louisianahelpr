@@ -261,7 +261,7 @@ export default function StrSettings() {
               <div className="flex">
                 <ErrorState
                   variant="inline"
-                  title="Couldn't load your calendars."
+                  title="We couldn't load your calendars."
                   body="Your connected calendars are still saved — we just couldn't reach them. Tap Try again before adding one, so you don't end up with a duplicate."
                   onRetry={() => void refetch()}
                   retryDisabled={isFetching}

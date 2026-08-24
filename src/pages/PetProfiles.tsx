@@ -165,7 +165,7 @@ const PetProfiles = () => {
           {isError && (
             <ErrorState
               variant="inline"
-              title="Couldn't load your pets."
+              title="We couldn't load your pets."
               body="Tap Try again to reload your pet profiles."
               onRetry={() => refetch()}
             />
@@ -255,7 +255,7 @@ const PetProfiles = () => {
                 <div className="p-3">
                   <ErrorState
                     variant="inline"
-                    title="Couldn't load your pets."
+                    title="We couldn't load your pets."
                     body="Tap Try again to reload."
                     onRetry={() => refetch()}
                   />

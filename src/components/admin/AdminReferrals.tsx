@@ -276,7 +276,7 @@ const AdminReferrals = () => {
               <EmptyState
                 variant="inline"
                 icon={DollarSign}
-                title="No credits awarded yet."
+                title="No credits awarded yet"
                 body="Referral bonuses post here as soon as a referred user finishes their first job."
               />
             )}

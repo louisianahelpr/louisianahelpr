@@ -258,7 +258,7 @@ const WorkRecord = () => {
         {isError && !loading && (
           <ErrorState
             variant="inline"
-            title="Couldn't load your work record"
+            title="We couldn't load your work record"
             onRetry={() => refetch()}
           />
         )}

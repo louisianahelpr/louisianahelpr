@@ -77,10 +77,16 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
  * guest feed has no dock and no FAB. There was nothing to avoid competing
  * with — the screen simply had no primary-weight target at all.
  *
- * The text colour is pinned locally (`!text-…` plus an inline style) for the
- * same reason Navbar's copy of this button pins it: the `default` variant's
+ * The fill itself comes from the `default` variant's `btn-grad-primary` — a
+ * background-IMAGE gradient, not a background-color, so `backgroundColor`
+ * computes as transparent on this button and a probe that samples only that
+ * property will wrongly report it unfilled. Check the gradient or the pixels.
+ *
+ * The inline parchment `color` is belt-and-braces on top of the variant's own
+ * `!text-…` pinning, kept for the reason Navbar documents: the
  * text-primary-foreground → --parchment token chain has repeatedly resolved
- * dark-on-olive in the iOS WebView.
+ * dark-on-olive in the iOS WebView, and this is the guest surface that WebView
+ * actually shows.
  *
  * These two are the entire conversion path of the screen, so they stay
  * full-width labelled controls at every breakpoint: never collapsed to icons,
@@ -90,12 +96,16 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
  * guess a hidden CTA. With no search/filter icons sharing the row, the pair
  * has room to spare even at 320.
  *
- * Tight horizontal padding rather than the button default: it is the only
- * slack in this row that costs nothing — the labels and the 44px tap heights
- * are untouched. "Log in" keeps `px-2` (a text control needs no box); the
- * solid "Get Started" takes `px-3` so its filled pill has room to read as a
- * button rather than a label with a background. Measured at 375: the row is
- * ~183px of content in a 343px card, so the extra 8px is free.
+ * Tight horizontal padding rather than the button default (`sm` = px-4): it is
+ * the only slack in this row that costs nothing — the labels and the 44px tap
+ * heights are untouched. "Log in" keeps `px-2` (a text control needs no box);
+ * the solid "Get Started" takes `px-3` so its filled pill has room to read as
+ * a button rather than a label with a background.
+ *
+ * Measured at 375 after the change: the title card is 335px wide, "Log in" is
+ * 51px at x=190, and "Get Started" is 88px ending at x=334 — 21px of card
+ * padding still to spare, and documentElement.scrollWidth === clientWidth.
+ * Going solid cost the button 6px (82 → 88); the row absorbed it.
  */
 /**
  * The guest feed's card grid — ONE constant so the loading skeletons and the
@@ -141,7 +151,7 @@ function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup
       <Button
         size="sm"
         onClick={onSignup}
-        className="text-ds-11 h-11 px-3 rounded-ds-md font-sans font-semibold btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+        className="text-ds-11 h-11 px-3 rounded-ds-md font-sans font-semibold btn-press"
         style={{ color: "hsl(var(--parchment))" }}
       >
         Get Started

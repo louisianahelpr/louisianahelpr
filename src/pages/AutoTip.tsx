@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +33,7 @@ const AutoTip = () => {
   const { user, profile, refresh } = useCurrentUser();
 
   const [mode, setMode] = useState<Mode>("off");
+  const [autoRelease, setAutoRelease] = useState(false);
   const [value, setValue] = useState<string>("15");
   const [cap, setCap] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -45,8 +47,10 @@ const AutoTip = () => {
       auto_tip_mode?: Mode | null;
       auto_tip_value?: number | null;
       auto_tip_cap?: number | null;
+      auto_release_on_complete?: boolean | null;
     };
     setMode(p.auto_tip_mode ?? "off");
+    setAutoRelease(p.auto_release_on_complete ?? false);
     if (p.auto_tip_value != null) setValue(String(p.auto_tip_value));
     if (p.auto_tip_cap != null) setCap(String(p.auto_tip_cap));
     setLoaded(true);
@@ -93,6 +97,9 @@ const AutoTip = () => {
         // disabled preference — the CHECK constraint enforces this too.
         auto_tip_value: mode === "off" ? null : numericValue,
         auto_tip_cap: mode === "percent" ? numericCap : null,
+        // Cast: generated types predate migration 20260824238000; the column
+        // exists the moment db-deploy lands. Same pattern as JobConfirmation.
+        ...({ auto_release_on_complete: autoRelease } as never as Record<string, boolean>),
       })
       .eq("user_id", user.id)
       .select("user_id");
@@ -274,6 +281,33 @@ const AutoTip = () => {
               </p>
             </div>
           )}
+
+          {/* Instant release — the sibling money-trust preference (owner,
+              2026-08-24). Lives here because both answer the same question:
+              "how much friction do you want after a job wraps?" Safe to offer
+              because completion is DB-gated (photos + 30-min floor,
+              20260824235000); release fires on the next auto-release pass,
+              which runs every 30 minutes. */}
+          <div
+            className="rounded-ds-md p-3 flex items-center justify-between gap-3"
+            style={{ background: "hsl(var(--bark) / 0.06)", border: "0.5px solid hsl(var(--bark) / 0.18)" }}
+          >
+            <div className="min-w-0">
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                Instant Release
+              </p>
+              <p className="font-serif italic text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                Release payment as soon as the Helpr marks the job done with
+                photo proof — instead of holding it for your 24-hour review.
+              </p>
+            </div>
+            <Switch
+              checked={autoRelease}
+              onCheckedChange={setAutoRelease}
+              aria-label="Release payment instantly when the Helpr marks the job done"
+              className="shrink-0"
+            />
+          </div>
 
           <Button
             variant="primary"

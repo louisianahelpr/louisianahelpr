@@ -55,6 +55,47 @@ serve(async (req) => {
 
     if (error) throw error;
 
+    // ── Instant-release opt-in (owner, 2026-08-24) ──
+    // Posters with profiles.auto_release_on_complete release on THIS pass
+    // instead of waiting out the 24h window: pick up jobs the helper marked
+    // done after the cutoff (i.e. not yet due), then keep only flagged
+    // posters. Completion itself is DB-gated (photos + 30-min floor,
+    // 20260824235000), so instant cannot mean ungated. Revision/dispute
+    // rows are excluded the same way the main set excludes them — the
+    // per-job guards below run for these rows too.
+    const { data: recentDone, error: recentErr } = await supabaseAdmin
+      .from("jobs")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
+      .eq("status", "in_progress")
+      .eq("payment_status", "escrow")
+      .is("poster_completed_at", null)
+      .gt("helper_completed_at", cutoff);
+    if (recentErr) {
+      // Fail open to the normal 24h path — instant is an acceleration, never
+      // a dependency.
+      console.error("[auto-release-payment] instant-release candidate query failed:", recentErr);
+    }
+    const instantIds = new Set<string>();
+    if (recentDone && recentDone.length > 0) {
+      const posterIds = [...new Set(recentDone.map((j) => j.customer_id).filter(Boolean))];
+      const { data: flagged, error: flagErr } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id")
+        .in("user_id", posterIds)
+        .eq("auto_release_on_complete", true);
+      if (flagErr) {
+        console.error("[auto-release-payment] instant-release flag query failed:", flagErr);
+      } else {
+        const flaggedSet = new Set((flagged || []).map((p) => p.user_id));
+        for (const j of recentDone) {
+          if (flaggedSet.has(j.customer_id)) {
+            instantIds.add(j.id);
+            (jobs || []).push(j);
+          }
+        }
+      }
+    }
+
     let released = 0;
     const results: any[] = [];
 
@@ -161,7 +202,9 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Job auto-completed!",
-          message: `"${job.title}" was auto-completed after 24 hours. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`,
+          message: instantIds.has(job.id)
+            ? `"${job.title}" is complete — the poster releases instantly. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`
+            : `"${job.title}" was auto-completed after 24 hours. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`,
           type: "payment", link: "/my-jobs?filter=completed",
         });
       }
@@ -169,7 +212,9 @@ serve(async (req) => {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.customer_id,
           title: "Job auto-completed",
-          message: `"${job.title}" was automatically marked complete after 24 hours. The helpr will be paid in 24 hours.`,
+          message: instantIds.has(job.id)
+            ? `"${job.title}" released instantly per your Instant Release setting. The Helpr will be paid in 24 hours.`
+            : `"${job.title}" was automatically marked complete after 24 hours. The helpr will be paid in 24 hours.`,
           type: "info", link: "/my-posts?filter=completed",
         });
       }

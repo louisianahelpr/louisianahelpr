@@ -348,7 +348,7 @@ export function BrowseTasksToolbar({
                         Saved Searches
                       </span>
                       <span className="block text-ds-11 text-muted-foreground leading-snug">
-                        Apply a Set You Saved, or Save These Filters
+                        Apply a set you saved, or save these filters
                       </span>
                     </span>
                     <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />

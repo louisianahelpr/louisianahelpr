@@ -313,7 +313,7 @@ function AvailabilityRow({
   return (
     <ToggleRow
       icon={Clock}
-      label="Jobs during my hours"
+      label="Jobs During My Hours"
       hint={
         hasAvailability ? (
           <p className="text-ds-11 text-muted-foreground leading-snug">
@@ -441,7 +441,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
           <ToggleRow
             icon={Rocket}
             iconClassName="text-[hsl(var(--burnt-sienna))]"
-            label="Boosted jobs"
+            label="Boosted Jobs"
             hint={
               <p className="text-ds-11 text-muted-foreground leading-snug">
                 Promoted by the poster
@@ -461,7 +461,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
           <ToggleRow
             icon={Zap}
             iconClassName="text-[hsl(var(--burnt-sienna))]"
-            label="Urgent jobs"
+            label="Urgent Jobs"
             hint={
               <p className="text-ds-11 text-muted-foreground leading-snug">
                 Pays a bonus on top of the budget

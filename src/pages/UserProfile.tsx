@@ -116,7 +116,6 @@ const UserProfile = () => {
     responseMetrics,
     cancellationRate,
     mutualJobsCount,
-    canMessage,
     onTimeArrivalRate,
     revisionFrequency,
     lastActiveAt,
@@ -360,34 +359,21 @@ const UserProfile = () => {
         titleActions={
           !isOwnProfile && currentUserId ? (
             <>
-              {/* Message — NOT shown to a stranger (owner: "shouldnt be able
-                  to message the poster. poster must message them first").
+              {/* NO MESSAGE BUTTON HERE AT ALL (owner: "remove the message
+                  button, only the poster can message").
 
-                  It used to render for every signed-in viewer on every
-                  profile, which meant a helpr could open a cold thread with
-                  anyone whose posting they had merely looked at. `canMessage`
-                  (see useUserProfileData) is true on any of three grounds: a
-                  thread already exists in either direction, this person has
-                  applied to one of the viewer's jobs, or the two have worked a
-                  job together. A poster reaching a candidate always passes;
-                  cold-messaging a poster never does.
+                  It used to render behind a `canMessage` gate that opened on
+                  any of three grounds — an existing thread, this person having
+                  applied to one of the viewer's jobs, or the two having worked
+                  together. Two of those let a HELPER open a channel, which is
+                  the thing the rule is meant to prevent, and the third only
+                  restated a thread that already exists in Messages.
 
-                  Hidden rather than disabled: a greyed button invites a tap
-                  and then explains a rule, where nothing at all simply is not
-                  an offer. The poster's route to the helpr is unaffected —
-                  they message from the application, which is where they were
-                  going to do it anyway. */}
-              {canMessage && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-ds-md h-10 w-10 shrink-0"
-                  aria-label={`Message ${displayName}`}
-                  onClick={() => navigate(`/messages?userId=${userId}`)}
-                >
-                  <MessageSquare className="w-4 h-4" />
-                </Button>
-              )}
+                  A profile is now a place to READ about someone, never to
+                  start a conversation with them. The poster's route is
+                  unaffected: they message from the application, which is where
+                  they were going to do it anyway, and an existing thread is
+                  still in Messages. */}
               <SaveHelperButton helperId={userId!} customerId={currentUserId} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

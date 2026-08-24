@@ -210,7 +210,7 @@ export function JobTracking({
   isHelper,
   isOwner: _isOwner,
   jobDateNeeded,
-  jobStartTime: _jobStartTime,
+  jobStartTime,
   jobStatus,
   helperConfirmedAt: initialHelperConfirmedAt,
   helperDayofConfirmedAt = null,
@@ -989,9 +989,32 @@ export function JobTracking({
         const nextStatus = STATUSES[nextIdx];
         if (!nextStatus) return null;
 
-        const isLocked = jobDay ? today < jobDay : false;
-        const lockMessage = jobDay && isLocked
-          ? `Actions available on ${formatShortDate(jobDay)}`
+        // Locked until TWO HOURS BEFORE the start time, not just until
+        // midnight of the job day (owner, 2026-08-24 transition audit): the
+        // old gate let a helper tap "On the Way" at 7 AM for an 8 PM job,
+        // starting the tracker half a day early and making the poster's
+        // "they're on the way" signal meaningless. A job with no start_time
+        // falls back to the old day gate — with nothing to measure against,
+        // day-of is the honest window.
+        const startAt = jobDay
+          ? (() => {
+              if (!jobStartTime) return null;
+              const [h, m] = jobStartTime.split(":").map(Number);
+              const d = new Date(jobDay);
+              d.setHours(h || 0, m || 0, 0, 0);
+              return d;
+            })()
+          : null;
+        const UNLOCK_BEFORE_MS = 2 * 3_600_000;
+        const isLocked = startAt
+          ? Date.now() < startAt.getTime() - UNLOCK_BEFORE_MS
+          : jobDay
+            ? today < jobDay
+            : false;
+        const lockMessage = isLocked
+          ? startAt
+            ? `Actions unlock at ${new Date(startAt.getTime() - UNLOCK_BEFORE_MS).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}${today < jobDay! ? ` on ${formatShortDate(jobDay!)}` : ""}`
+            : `Actions available on ${formatShortDate(jobDay!)}`
           : null;
 
         return (

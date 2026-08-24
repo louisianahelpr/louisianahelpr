@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { messageButtonStyle } from "@/components/activity/JobActionRow";
 import { Button } from "@/components/ui/button";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
@@ -37,6 +39,24 @@ export function ActiveJobSection({
   setShowReportCard,
 }: ActiveJobSectionProps) {
   const [resolving, setResolving] = useState(false);
+
+  // Does THIS poster release instantly? Read once the banner could show;
+  // false on any error — the 24h countdown is the safe default, instant is
+  // only ever a nicer message. Column lands with migration 20260824238000;
+  // a missing column just resolves to false.
+  const { data: posterInstantRelease = false } = useQuery({
+    queryKey: ["poster-instant-release", job.customer_id],
+    enabled: !!job.helper_completed_at && !job.poster_completed_at && !!job.customer_id,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("auto_release_on_complete" as never)
+        .eq("user_id", job.customer_id as string)
+        .maybeSingle();
+      return !!(data as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
+    },
+  });
 
   const handleMarkFixed = async () => {
     setResolving(true);
@@ -78,9 +98,15 @@ export function ActiveJobSection({
               <li><span className="text-foreground font-medium">Approve & complete</span> the job</li>
               <li>Or <span className="text-foreground font-medium">request a revision</span></li>
             </ul>
-            <p className="text-ds-10 text-muted-foreground/70 pt-1">If the poster doesn't respond within {AUTO_COMPLETE_HOURS} hours, payment will automatically be released to you.</p>
+            <p className="text-ds-10 text-muted-foreground/70 pt-1">
+              {posterInstantRelease
+                ? "This poster releases payment instantly — it's on its way."
+                : `If the poster doesn't respond within ${AUTO_COMPLETE_HOURS} hours, payment will automatically be released to you.`}
+            </p>
           </div>
-          {job.helper_completed_at && (
+          {/* No countdown when the poster releases instantly (owner,
+              2026-08-24): a 24h timer that ends within minutes is a lie. */}
+          {job.helper_completed_at && !posterInstantRelease && (
             <div className="px-3 pb-2.5">
               <DeadlineCountdown
                 deadline={new Date(new Date(job.helper_completed_at).getTime() + hoursToMs(AUTO_COMPLETE_HOURS)).toISOString()}

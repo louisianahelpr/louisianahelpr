@@ -7,6 +7,7 @@ import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import {
    DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
@@ -84,6 +85,11 @@ export function PostedJobActions({
   confirmingWorkingJobId,
   onActionComplete,
 }: PostedJobActionsProps) {
+  // Own instant-release flag — when on, the 24h review countdown is replaced
+  // by an honest "releases within minutes" line (owner, 2026-08-24). Cast:
+  // generated types predate migration 20260824238000.
+  const { profile: _ownProfile } = useCurrentUser();
+  const instantReleaseOn = !!(_ownProfile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
   const navigate = useNavigate();
   const [completionSheetOpen, setCompletionSheetOpen] = useState(false);
   // Guards the Mark Resolved / Escalate to Admin buttons while their
@@ -239,8 +245,11 @@ export function PostedJobActions({
               && job.helper_arrived_at
               && !job.poster_confirmed_arrival_at
               && !job.helper_completed_at && (
-              <Button size="sm" className="w-full" disabled={confirmingArrivalJobId === job.id} onClick={() => onConfirmArrival(job.id)}>
-                <CheckCircle2 className="w-4 h-4 mr-1" /> {confirmingArrivalJobId === job.id ? "…" : "Confirm Arrival"}
+              /* A VOUCH, not homework (owner, 2026-08-24): these taps no
+                 longer gate the helper's payout — they're evidence, so they
+                 dress like the quiet secondary action they are. */
+              <Button size="sm" variant="outline" className="w-full border-0" style={jobActionChipStyle("primary")} disabled={confirmingArrivalJobId === job.id} onClick={() => onConfirmArrival(job.id)}>
+                <CheckCircle2 className="w-4 h-4 mr-1" /> {confirmingArrivalJobId === job.id ? "…" : "Confirm They Arrived"}
               </Button>
             )}
             {/* Confirm Working */}
@@ -250,14 +259,20 @@ export function PostedJobActions({
                   <Wrench className="w-3.5 h-3.5 shrink-0" />
                   <span className="font-medium">Is the Helpr working?</span>
                 </div>
-                <Button size="sm" className="w-full" disabled={confirmingWorkingJobId === job.id} onClick={() => onConfirmWorking(job.id)}>
-                  <CheckCircle2 className="w-4 h-4 mr-1" /> {confirmingWorkingJobId === job.id ? "…" : "Confirm Working"}
+                <Button size="sm" variant="outline" className="w-full border-0" style={jobActionChipStyle("primary")} disabled={confirmingWorkingJobId === job.id} onClick={() => onConfirmWorking(job.id)}>
+                  <CheckCircle2 className="w-4 h-4 mr-1" /> {confirmingWorkingJobId === job.id ? "…" : "Confirm They're Working"}
                 </Button>
               </div>
             )}
             {/* 48h auto-release countdown after helper marks complete
                 (matches auto-release-payment cron cutoff). */}
-            {job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at && (
+            {job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at && instantReleaseOn && (
+              <div className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm" style={{ background: "hsl(var(--bark) / 0.08)", color: "hsl(var(--bark))" }}>
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-medium">Instant Release is on — payment releases within minutes. Request a revision now if something's wrong.</span>
+              </div>
+            )}
+            {job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at && !instantReleaseOn && (
               <DeadlineCountdown
                 deadline={new Date(new Date(job.helper_completed_at).getTime() + hoursToMs(AUTO_COMPLETE_HOURS)).toISOString()}
                 expiredText={`${AUTO_COMPLETE_HOURS} hours passed — payment auto-released to Helpr`}
@@ -603,11 +618,17 @@ export function PostedJobActions({
                 />
               )}
             </div>
-            <div className="p-2 rounded-ds-sm bg-card">
-              <p className="text-ds-10 text-muted-foreground leading-relaxed">
-                <strong>Policy:</strong> You have 72 hours to confirm the issue is fixed or escalate to admin. If you do nothing, payment auto-releases to the Helpr.
-              </p>
-            </div>
+            {/* Static fallback ONLY when there is no live deadline to count
+                (owner, 2026-08-24 transition audit): with dispute_deadline
+                present, the DeadlineCountdown above already says all of this
+                with a live number — the box was the same sentence twice. */}
+            {!(job.dispute_deadline && disputeStatus !== "resolved") && (
+              <div className="p-2 rounded-ds-sm bg-card">
+                <p className="text-ds-10 text-muted-foreground leading-relaxed">
+                  <strong>Policy:</strong> You have 72 hours to confirm the issue is fixed or escalate to admin. If you do nothing, payment auto-releases to the Helpr.
+                </p>
+              </div>
+            )}
             {/* Disputer actions: Mark Resolved or Escalate */}
             {isDisputer && disputeStatus === "open" && (
               <div className="grid grid-cols-2 gap-2">

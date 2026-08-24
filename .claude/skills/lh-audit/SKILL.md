@@ -559,6 +559,34 @@ the Parity Principle (§2).
   `Button` variants, cards/badges) — flag any one-off reimplementation of a
   thing that already has a canonical component.
 
+**State-machine completeness (flows, not screens)**
+
+*Why this block exists: the 2026-08-24 transition audit verified every
+rendered stage of the job lifecycle was correct — and still missed that a
+committed helper had NO sanctioned way to cancel (the exits that existed were
+all correct; the missing one produced nothing to grade), and that the
+reliability ladder skipped the platform's own temp-ban machinery (the two
+ladder copies were verified to match each other; nothing asked whether they
+used every escalation stage the product owns). Absence is invisible to
+screen-by-screen review. These checks make missing-by-design a finding class.*
+
+- **Enumerate the graph, then audit the gaps.** For each lifecycle state ×
+  each actor (poster / helper / admin), list the exits the product offers.
+  Every COMMITMENT (accepted booking, funded escrow, active dispute) must
+  have a sanctioned exit for each party, with its consequences stated at the
+  point of exit — "the only ways out are ghosting or a support DM" is a P1.
+- **Consequence ladders are one implementation, and they climb every rung.**
+  A ladder duplicated across writers is a drift hazard even when the copies
+  currently match (verify by pg_get_functiondef, not by reading migrations);
+  and a ladder must use every escalation stage the platform's ban machinery
+  defines (warning / final warning / temp suspension / permanent) — skipping
+  a stage that exists elsewhere is a design gap, not a style choice.
+- **Every timer has an unanswered-case.** For each deadline (offer response,
+  day-before confirm, review window, revision window), ask: what happens at
+  expiry, who is told, and is the silent path never cheaper than the honest
+  one? A deadline nothing enforces, or whose lapse is free while acting
+  costs a strike, is a finding.
+
 **Density & brand-surface fit (sheets, dialogs, popovers)**
 
 *Why this block exists: the 2026-08-23 overnight audit passed the Browse filter

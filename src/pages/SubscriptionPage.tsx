@@ -858,7 +858,12 @@ export default function SubscriptionPage() {
                             fontWeight: 600,
                             letterSpacing: "-0.005em",
                             color: "hsl(var(--bark))",
-                            background: "rgba(255, 255, 255, 0.45)",
+                            // `--surface-premium`, not a literal white — the
+                            // same drift HeroSection's Browse Jobs already
+                            // fixed: at rgba(255,255,255,0.45) this button
+                            // painted as a washed-out slab in dark mode with
+                            // sage-on-light-glass text (~2.8:1).
+                            background: "var(--surface-premium)",
                             backdropFilter: "blur(20px) saturate(180%)",
                             WebkitBackdropFilter: "blur(20px) saturate(180%)",
                             border: "1.5px solid hsl(var(--bark) / 0.4)",

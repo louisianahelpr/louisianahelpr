@@ -48,11 +48,19 @@ const ROUTES: Route[] = [
   // container (`.container mx-auto px-5 lg:px-8 xl:px-12`) that the tab
   // panels render inside, so the fill number is already covered there.
 
-  // Auth screens render the AuthBrandPane on lg+ (see AuthShell) so the
-  // desktop layout is TWO ~500px columns side by side, not one wide row.
-  // The measurement below finds the widest SINGLE element and would
-  // therefore under-report the visual fill — flag as exempt with the
-  // canonical fix pattern documented in the file header above.
+  // Auth screens are deliberately narrow, so a widest-single-element fill
+  // metric under-reports them by design — flag as exempt with the canonical
+  // fix pattern documented in the file header above.
+  //
+  // The reason USED to be "they render the AuthBrandPane on lg+, so desktop is
+  // TWO ~500px columns side by side". No screen does that any more: Login and
+  // Signup dropped the pane when their headings absorbed the emblem, and
+  // ForgotPassword / ResetPassword dropped it in the 2026-08-24 V4 pass (it was
+  // rendering a second back chevron beside the title row's). Login and Signup
+  // now fill the width with a real two-column card; ForgotPassword and
+  // ResetPassword stay a centred max-w-sm column on purpose — stretching a
+  // single email field to page-measure put it ~1900px edge-to-edge at 1440,
+  // which is what the narrow cap was introduced to fix.
   { path: "/login", auth: "anon", exempt: true },
   { path: "/signup", auth: "anon", exempt: true },
   { path: "/forgot-password", auth: "anon", exempt: true },

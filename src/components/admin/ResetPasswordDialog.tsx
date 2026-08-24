@@ -45,7 +45,6 @@ export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswo
         },
       });
       if (error) throw error;
-      toast.success("Password reset email sent.");
       onSuccess?.();
       onClose();
     } catch (err) {

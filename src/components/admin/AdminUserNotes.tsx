@@ -127,7 +127,6 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
     }
     setNewNote("");
     setNewCategory("general");
-    toast.success("Note saved");
     loadNotes();
   };
 
@@ -157,7 +156,6 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       return;
     }
     cancelEdit();
-    toast.success("Note updated");
     loadNotes();
   };
 
@@ -171,7 +169,6 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       return;
     }
     setDeleteNote(null);
-    toast.success("Note deleted");
     loadNotes();
   };
 

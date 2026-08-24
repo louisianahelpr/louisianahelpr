@@ -54,10 +54,8 @@ export async function shareNative(content: ShareContent): Promise<void> {
     }
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(clipboardText);
-      toast.success("Link copied. Paste it anywhere.");
       return;
     }
-    toast.message("Share this link", { description: url });
   } catch (err) {
     const isCancel =
       err instanceof Error &&
@@ -70,7 +68,6 @@ export async function shareNative(content: ShareContent): Promise<void> {
     try {
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(clipboardText);
-        toast.success("Link copied. Paste it anywhere.");
         return;
       }
     } catch {

@@ -545,7 +545,6 @@ export function JobTracking({
     }
 
     hapticSuccess();
-    toast.success(`Status updated: ${STATUSES.find(s => s.key === newStatus)?.label}`);
     setUpdating(false);
     loadTracking();
   };

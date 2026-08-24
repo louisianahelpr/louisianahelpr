@@ -84,12 +84,7 @@ export default function PayItForward() {
   // ── Stripe return handling (?gift=success | ?gift=cancelled) ───────────────
   useEffect(() => {
     const gift = searchParams.get("gift");
-    if (gift === "success") {
-      toast.success("Gift card on its way.", {
-        description: "We've emailed your recipient a link to claim their gift card.",
-        icon: "💚",
-      });
-    } else if (gift === "cancelled") {
+    if (gift === "cancelled") {
       toast("Gift cancelled", { description: "No charge was made." });
     }
     if (gift) {
@@ -129,12 +124,6 @@ export default function PayItForward() {
         if (!data?.ok) throw new Error("Couldn't claim this gift. Please try again.");
 
         hapticSuccess();
-        toast.success(data.already_claimed ? "This gift card is already yours" : "Gift card claimed", {
-          description: data.already_claimed
-            ? "Find it under “Gift cards sent to you” below."
-            : "It's ready to put toward your next job.",
-          icon: "💚",
-        });
         // Surface the freshly-attached credit in the received list.
         await queryClient.invalidateQueries({ queryKey: ["pif-received"] });
       } catch (e) {

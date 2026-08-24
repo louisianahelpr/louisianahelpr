@@ -89,7 +89,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     try {
       await navigator.clipboard.writeText(referralLink);
       setReferralCopied(true);
-      toast.success("Link copied.");
       setTimeout(() => setReferralCopied(false), 2000);
     } catch {
       toast.error("Couldn't copy. Try long-pressing the link.");
@@ -125,11 +124,10 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     });
     setSaving(false);
     if (error) {
-      if (error.code === "23505") { toast.info("You've already reviewed this job"); setStep("tip"); }
+      if (error.code === "23505") { setStep("tip"); }
       else { hapticError(); toast.error("We couldn't submit your review — please try again."); }
     } else {
       hapticSuccess();
-      toast.success("Review submitted — thanks for your feedback.");
 
       // Check for repeat low ratings → auto-flag
       const { data: allReviews, error: allReviewsErr } = await supabase.from("reviews").select("rating").eq("reviewee_id", revieweeId);

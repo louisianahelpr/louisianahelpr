@@ -41,11 +41,6 @@ export function AddToCalendarButton({ job }: { job: CalendarJobEvent }) {
       return;
     }
     setState("done");
-    toast.success(
-      result === "shared"
-        ? "Pick “Add to Calendar” in the share sheet to save it."
-        : "Calendar file downloaded — open it to add the job.",
-    );
   };
 
   const Icon = state === "done" ? CalendarCheck : CalendarPlus;

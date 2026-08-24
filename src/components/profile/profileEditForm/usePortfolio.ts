@@ -78,7 +78,6 @@ export function usePortfolio({ profile, onPortfolioChange }: UsePortfolioArgs) {
     setPortfolioUploading(false);
     if (!uploaded.length) return;
     await persistPortfolio([...portfolioUrls, ...uploaded]);
-    toast.success(`Added ${uploaded.length} ${uploaded.length === 1 ? "photo" : "photos"} to your work`);
   };
 
   const removePortfolioAt = async (i: number) => {

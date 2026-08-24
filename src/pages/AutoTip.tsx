@@ -119,7 +119,6 @@ const AutoTip = () => {
     // (and drops on a cold native socket) — this makes the read-back certain.
     void refresh();
     void hapticLight();
-    toast.success(mode === "off" ? "Auto-tip turned off" : "Auto-tip saved");
   };
 
   // A worked example beats a description. $150 is close to the median job.

@@ -98,7 +98,6 @@ export default function BusinessVerificationCard() {
         .eq("id", data.business_id);
       if (updErr) throw updErr;
 
-      toast.success("Document uploaded — pending admin review");
       load();
     } catch (err: any) {
       toast.error(err.message || "Couldn't upload — try again?");

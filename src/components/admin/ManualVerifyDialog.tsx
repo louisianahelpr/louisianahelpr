@@ -46,7 +46,6 @@ export function ManualVerifyDialog({ profile, onClose, onSuccess }: ManualVerify
         },
       });
       if (error) throw error;
-      toast.success("User manually verified.");
       onSuccess?.();
       onClose();
     } catch (err) {

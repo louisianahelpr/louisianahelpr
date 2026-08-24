@@ -103,7 +103,6 @@ const AdminBroadcasts = () => {
       toast.error(`Couldn't cancel: ${error.message}`);
       return;
     }
-    toast.success("Broadcast cancelled — no push will go out.");
     qc.invalidateQueries({ queryKey: BROADCASTS_KEY });
   };
 
@@ -144,7 +143,6 @@ const AdminBroadcasts = () => {
       return;
     }
 
-    toast.info("Broadcast posted. Push fires in ~30s — cancel from the banner if there's a typo.");
     setTitle("");
     setMessage("");
     setType("info");
@@ -166,7 +164,6 @@ const AdminBroadcasts = () => {
       (prev ?? []).filter((b) => b.id !== id),
     );
     setConfirmDeleteId(null);
-    toast.success("Broadcast removed");
   };
 
   const isActive = (b: Broadcast) => {

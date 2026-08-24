@@ -90,8 +90,7 @@ describe("FormalWarningDialog", () => {
         bypassStrike: false,
       },
     });
-    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
-    expect(onSuccess).toHaveBeenCalled();
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(onClose).toHaveBeenCalled();
   });
 

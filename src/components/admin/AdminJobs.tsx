@@ -86,7 +86,6 @@ const AdminJobs = () => {
     next.add(jobId);
     setResolvedFlags(next);
     saveResolvedFlags(next);
-    toast.success("Flag marked as resolved");
   };
 
   const reopenFlag = (jobId: string) => {
@@ -157,7 +156,6 @@ const AdminJobs = () => {
 
       // Update local state
       setJobs((prev) => prev.map((j) => j.id === detailJob.id ? { ...j, status: "cancelled", cancellation_reason: `[Admin removed] ${deleteReason}` } : j));
-      toast.success("Job removed and poster notified");
       setDeleteOpen(false);
       setDeleteReason("");
       setDetailJob(null);
@@ -202,9 +200,6 @@ const AdminJobs = () => {
           ? { ...j, status: "cancelled" as Job["status"], payment_status: "refunded" as Job["payment_status"] }
           : j));
       }
-      toast.success(isPartial
-        ? `Partial refund of $${parsedDollars.toFixed(2)} issued`
-        : "Refund issued and parties notified");
       setRefundOpen(false);
       setRefundReason("");
       setRefundAmount("");
@@ -259,7 +254,6 @@ const AdminJobs = () => {
       }
 
       setJobs((prev) => prev.map((j) => j.id === detailJob.id ? { ...j, ...updates } as Job : j));
-      toast.success(`Job status set to ${overrideStatus}`);
       setOverrideOpen(false);
       setOverrideReason("");
       setOverrideStatus("open");

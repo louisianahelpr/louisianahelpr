@@ -94,11 +94,6 @@ export function BlockUserDialog({
         });
       }
 
-      toast.success(
-        result.cancelledJobIds.length > 0
-          ? `${blockedUserName} blocked. ${result.cancelledJobIds.length} active job${result.cancelledJobIds.length === 1 ? "" : "s"} cancelled — any refund processes within the hour.`
-          : `${blockedUserName} blocked.`,
-      );
       onBlocked?.(result.cancelledJobIds);
       onClose();
       setReason("");

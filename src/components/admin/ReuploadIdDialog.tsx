@@ -50,7 +50,6 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
         },
       });
       if (error) throw error;
-      toast.success("ID re-upload request sent.");
       setNote("");
       onSuccess?.();
       onClose();

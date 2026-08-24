@@ -159,7 +159,6 @@ export function CompletionChoiceSheet({
       }
 
       hapticSuccess();
-      toast.success("Revision requested — the Helpr has been notified.");
       reset();
       onClose();
       onRevisionSubmitted();

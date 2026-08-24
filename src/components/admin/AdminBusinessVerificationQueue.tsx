@@ -77,7 +77,6 @@ const AdminBusinessVerificationQueue = () => {
       toast.error(error.message);
       return;
     }
-    toast.success(decision === "verified" ? "Business verified" : "Rejected");
     qc.invalidateQueries({ queryKey });
   };
 

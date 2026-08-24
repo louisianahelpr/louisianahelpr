@@ -106,7 +106,6 @@ const AccountPending = () => {
     if (loading) return;
     if (!user) { navigate("/login"); return; }
     if (profile?.approval_status === "approved") {
-      toast.success("You're approved! Welcome in.");
       // THE hop where a new account is finally admitted to the app — and the
       // end of the journey that began with a logged-out tap on a job card.
       // `postAuthDestination` spends the stored `?redirect=` target here
@@ -134,7 +133,6 @@ const AccountPending = () => {
     try {
       const { error } = await supabase.auth.resend({ type: "signup", email: userEmail });
       if (error) toast.error("Couldn't send. Try again in a moment.");
-      else toast.success("Sent! Check your inbox.");
     } catch {
       toast.error("Hit a snag on our end — try that again in a moment?");
     } finally {
@@ -164,13 +162,6 @@ const AccountPending = () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
       await queryClient.refetchQueries({ queryKey: queryKeys.currentUser.all });
 
-      const fresh = queryClient.getQueryData<{ profile: { approval_status?: string | null } | null }>(
-        queryKeys.currentUser.byId(user?.id),
-      );
-      const status = fresh?.profile?.approval_status;
-      if (status !== "approved" && status !== "denied") {
-        toast.success("Still verifying — we'll notify you the moment you're cleared.");
-      }
     } catch {
       toast.error("Couldn't sync your status just yet — try again in a sec?");
     } finally {

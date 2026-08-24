@@ -64,7 +64,6 @@ export function IDVPromptDialog({
       // real reason is in the JSON body; `functionErrorMessage` reads it.
       if (error) throw new Error(await functionErrorMessage(error, "Couldn't start verification"));
       if (data?.alreadyVerified) {
-        toast.success("You're already verified.");
         onOpenChange(false);
         onLaunched?.();
         return;

@@ -168,7 +168,6 @@ export const DisputeTimelineDialog = ({
       }
 
       hapticSuccess();
-      toast.success("Evidence added.");
       setEvidenceFiles([]);
       onUpdated();
     } catch (err: unknown) {

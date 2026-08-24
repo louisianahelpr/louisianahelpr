@@ -324,7 +324,6 @@ const Signup = () => {
         // whether the address exists. A real logged-out user who
         // stumbles into this path is redirected to /login with the
         // same generic message they'd see on ForgotPassword.
-        toast.info("If that email is available, we've sent a verification link. Check your inbox — or sign in if you already have an account.");
         navigate("/login");
         return;
       }
@@ -381,7 +380,6 @@ const Signup = () => {
 
       track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim(), ...ppoTrackingProps() });
       hapticSuccess();
-      toast.success("Account created! Check your email and click the verification link to continue.");
       navigate("/signup-pending", { state: { email } });
     } catch (err: any) {
       hapticError();

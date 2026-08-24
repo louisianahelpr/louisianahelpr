@@ -152,8 +152,6 @@ const AdminNotifications = () => {
     if (error) {
       setPrefs(prev);
       toast.error("Couldn't update preferences — try again.");
-    } else {
-      toast.success(enabled ? "All in-app notifications enabled" : "All in-app notifications disabled");
     }
   };
 
@@ -173,8 +171,6 @@ const AdminNotifications = () => {
     if (error) {
       setPrefs(prev);
       toast.error("Couldn't update preferences — try again.");
-    } else {
-      toast.success(enabled ? "All email notifications enabled" : "All email notifications disabled");
     }
   };
 

@@ -88,7 +88,6 @@ export function ReassignMemberDialog({
         toast.warning("Reassignment isn't live yet; posts will stay attributed.");
       } else {
         hapticSuccess();
-        toast.success("Posts reassigned.");
       }
     }
     await onConfirm();

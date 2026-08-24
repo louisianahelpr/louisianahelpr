@@ -281,9 +281,6 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       draftKinds.forEach(discardDraft);
       void qc.invalidateQueries({ queryKey: queryKeys.credentials.byUser(userId) });
       hapticSuccess();
-      toast.success(
-        draftKinds.length > 1 ? "Both documents sent for review." : "Sent for review.",
-      );
     } catch (err) {
       hapticError();
       toast.error(err instanceof Error ? err.message : "Couldn't send your documents — try again?");
@@ -335,9 +332,6 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
     }
     patchCache(update);
     void qc.invalidateQueries({ queryKey: queryKeys.credentials.byUser(userId) });
-    toast.success(
-      stateOf(kind) === "review" ? "Taken out of the review queue." : "Document removed.",
-    );
   };
 
   // Re-verify reminder — surfaces when a credential came back rejected.

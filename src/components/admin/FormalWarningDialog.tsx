@@ -65,7 +65,6 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
         },
       });
       if (error) throw error;
-      toast.success("Formal warning issued.");
       setCategory("conduct");
       setNote("");
       setBypass(false);

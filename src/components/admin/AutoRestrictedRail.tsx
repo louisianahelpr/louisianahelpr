@@ -111,7 +111,6 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
       link: "/profile",
     });
     hapticSuccess();
-    toast.success("Auto-ban reversed.");
     setReversing(null);
     await load();
     onChange?.();

@@ -108,7 +108,6 @@ export default function FamilyDashboard() {
     onSuccess: () => {
       setPendingRevokeId(null);
       hapticSuccess();
-      toast.success("Access removed.");
       void qc.invalidateQueries({ queryKey: ["care_relationships", userId] });
     },
     onError: (err: Error) => {

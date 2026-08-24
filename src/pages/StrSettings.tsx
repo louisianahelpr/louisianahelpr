@@ -118,7 +118,6 @@ export default function StrSettings() {
       return data;
     },
     onSuccess: () => {
-      toast.success("Calendar connected! Checking for upcoming checkouts…");
       setAddOpen(false);
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });
     },
@@ -150,13 +149,6 @@ export default function StrSettings() {
 
       if (result?.error) {
         toast.error(`Couldn't sync — ${result.error}`);
-      } else {
-        const n = result?.jobs_created ?? 0;
-        toast.success(
-          n > 0
-            ? `Sync complete — ${n} cleaning job${n === 1 ? "" : "s"} created`
-            : "Sync complete — no new checkouts in the next 7 days",
-        );
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't sync your calendar — try again?");
@@ -177,7 +169,6 @@ export default function StrSettings() {
     },
     onSuccess: () => {
       setRemovingId(null);
-      toast.success("Calendar removed");
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });
     },
     onError: () => {

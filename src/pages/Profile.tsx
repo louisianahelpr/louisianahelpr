@@ -366,7 +366,6 @@ const ProfilePage = () => {
       setFullName(merged);
       setJustSaved(true);
       hapticSuccess();
-      toast.success("Profile updated");
       setTimeout(() => setJustSaved(false), 1800);
     }
   };
@@ -386,7 +385,6 @@ const ProfilePage = () => {
     if (updErr) toast.error("Got your ID, but couldn't save it to your profile. Try again?");
     else {
       setProfile(prev => prev ? ({ ...prev, id_document_url: path, idv_status: "pending" }) : prev);
-      toast.success("ID sent in — we'll let you know when it's cleared.");
     }
     setIdUploading(false);
   };
@@ -427,7 +425,6 @@ const ProfilePage = () => {
     } else {
       setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
       setAvatarBroken(false);
-      toast.success("Profile picture updated");
     }
     setAvatarUploading(false);
   };
@@ -470,7 +467,6 @@ const ProfilePage = () => {
         body: { confirmation: "DELETE MY ACCOUNT" },
       });
       if (error) throw error;
-      toast.success("Account deleted successfully");
       await signOutWithPushCleanup();
       navigate("/");
     } catch (err: any) {

@@ -142,7 +142,6 @@ export function DisputedSection({
                   if (error) { hapticError(); toast.error("We couldn't submit your response — please try again."); setSubmittingResponse(false); return; }
                   if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: `The Helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, type: "info", link: "/my-posts?filter=disputed" });
                   hapticSuccess();
-                  toast.success("Response submitted — poster will review");
                   setSubmittingResponse(false);
                   setRespondingJobId(null);
                   setDisputeResponse("");

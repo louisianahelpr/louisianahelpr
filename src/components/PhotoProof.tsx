@@ -77,7 +77,6 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
       return;
     }
 
-    toast.success(`${type === "before" ? "Before" : "After"} photos uploaded!`);
     setFiles([]);
     setPreviews([]);
     setOpen(false);

@@ -79,13 +79,11 @@ export function ScheduleAvailabilityTab({
         const { error } = await (supabase.rpc as any)("clear_available_now");
         if (error && error.code !== "PGRST202") throw error;
         setAvailableUntil(null);
-        toast.success("Availability cleared");
       } else {
         const { data, error } = await (supabase.rpc as any)("set_available_now", { p_hours: 4 });
         if (error && error.code !== "PGRST202") throw error;
         if (data) setAvailableUntil(new Date(data));
         else setAvailableUntil(new Date(Date.now() + 4 * 60 * 60 * 1000));
-        toast.success("You're marked as available for the next 4 hours");
       }
     } catch {
       toast.error("Couldn't update availability — try again.");

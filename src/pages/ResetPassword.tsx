@@ -92,7 +92,6 @@ const ResetPassword = () => {
       // already signed in — so route straight to /dashboard instead of
       // bouncing through /login. Shorter delay (800ms) reads as
       // confirmation without making the user stare at a toast.
-      toast.success("Password updated — taking you in.");
       redirectTidRef.current = window.setTimeout(() => navigate("/dashboard", { replace: true }), 800);
     }
   };

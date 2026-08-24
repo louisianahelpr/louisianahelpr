@@ -80,14 +80,12 @@ const ForgotPassword = () => {
       // Neutral copy — doesn't confirm the email exists ("If that email
       // is registered, we've sent…") so the screen reads identically for
       // non-existent addresses too.
-      toast.success("If that email is registered, we've sent a reset link.");
     }
   };
 
   const handleResend = async () => {
     if (loading || resendCooldown > 0) return;
-    const ok = await performSend();
-    if (ok) toast.success("If that email is registered, we've sent another link.");
+    await performSend();
   };
 
   return (

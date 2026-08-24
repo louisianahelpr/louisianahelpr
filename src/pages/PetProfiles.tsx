@@ -83,7 +83,6 @@ const PetProfiles = () => {
     },
     onSuccess: (_data, petId) => {
       queryClient.invalidateQueries({ queryKey: ["pet_profiles", userId] });
-      toast.success("Pet removed");
       // If we just deleted the active desktop pet, clear the URL param.
       if (petId === activePetId) {
         const next = new URLSearchParams(searchParams);

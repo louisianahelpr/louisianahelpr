@@ -208,9 +208,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           );
           if (notifyErr) report(notifyErr, { tags: { source: "CancellationDialog.notifyAdmins" } });
         }
-        toast.success("Job cancelled.");
-      } else {
-        toast.success("Job cancelled. Any held payment will be refunded within the hour.");
       }
 
       hapticSuccess();

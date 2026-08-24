@@ -175,7 +175,6 @@ const AdminDisputes = () => {
         });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
-        toast.success("Payment released to Helpr. Dispute resolved.");
       } else {
         // Refund to customer — cancel the payment intent
         const { data, error } = await supabase.functions.invoke("create-payment", {
@@ -183,7 +182,6 @@ const AdminDisputes = () => {
         });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
-        toast.success("Payment refunded to poster. Dispute resolved.");
       }
       loadDisputes();
     } catch (err: any) {
@@ -260,8 +258,6 @@ const AdminDisputes = () => {
           // recorded — surface as a warning so the admin can retry the
           // payout out-of-band.
           toast.warning("Decision recorded, but Stripe payout failed — retry manually.");
-        } else {
-          toast.success("Decision recorded. Payment released to Helpr.");
         }
       } else if (helperShare === 0) {
         const { data, error } = await supabase.functions.invoke("create-payment", {
@@ -269,11 +265,7 @@ const AdminDisputes = () => {
         });
         if (error || data?.error) {
           toast.warning("Decision recorded, but Stripe refund failed — retry manually.");
-        } else {
-          toast.success("Decision recorded. Payment refunded to poster.");
         }
-      } else {
-        toast.success(`Decision recorded. Move the ${helperShare}/${100 - helperShare} split in Stripe manually.`);
       }
 
       // Reset the panel + reload list.

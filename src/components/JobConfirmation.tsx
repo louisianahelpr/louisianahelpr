@@ -118,7 +118,6 @@ export function JobConfirmation({
       toast.error("We couldn't confirm just now — please try again.");
     } else {
       hapticSuccess();
-      toast.success("Confirmed! You're committed to this job.");
       setLocalConfirmedAt(new Date().toISOString());
       onConfirm?.();
       // Notify the other party

@@ -41,7 +41,6 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`${formatName(profile.full_name)}'s account has been deleted.`);
       onSuccess?.();
       onClose();
     } catch (err) {

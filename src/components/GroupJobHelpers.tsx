@@ -116,7 +116,6 @@ export function GroupJobHelpers({
       return;
     }
 
-    toast.success("Helpr removed from group");
   };
 
   const filledSlots = helpers.filter((h) => h.status === "accepted").length;

@@ -149,7 +149,6 @@ const AdminPayoutBatches = () => {
         body: { helper_id: batch.helper_id },
       });
       if (error) throw error;
-      toast.success(`Payout queued for ${batch.helper_name}`);
       await logAdminAction("trigger_payout", "user", batch.helper_id, {
         job_count: batch.job_count,
         total_payout: batch.total_payout,
@@ -190,8 +189,6 @@ const AdminPayoutBatches = () => {
   const triggerBulkPayout = async () => {
     setBulkPaying(true);
     setConfirmBulk(false);
-    let okCount = 0;
-    let failCount = 0;
     for (const batch of selectedBatches) {
       try {
         const { error } = await supabase.functions.invoke("stripe-payouts", {
@@ -203,9 +200,7 @@ const AdminPayoutBatches = () => {
           total_payout: batch.total_payout,
           bulk: true,
         });
-        okCount += 1;
       } catch (err: unknown) {
-        failCount += 1;
         report(err, { tags: { source: "AdminPayoutBatches.triggerBulkPayout" } });
         toast.error(`${batch.helper_name}: ${err instanceof Error ? err.message : "Failed"}`);
       }
@@ -213,7 +208,6 @@ const AdminPayoutBatches = () => {
     setBulkPaying(false);
     setSelected(new Set());
     qc.invalidateQueries({ queryKey });
-    if (okCount > 0) toast.success(`Bulk payout: ${okCount} queued${failCount > 0 ? `, ${failCount} failed` : ""}`);
   };
 
   return (

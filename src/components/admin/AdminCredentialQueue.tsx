@@ -70,7 +70,6 @@ const AdminCredentialQueue = () => {
       toast.error(error.message);
       return;
     }
-    toast.success(decision === "verified" ? "Approved" : "Rejected");
     qc.invalidateQueries({ queryKey });
   };
 

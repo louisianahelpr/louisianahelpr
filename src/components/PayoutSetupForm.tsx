@@ -138,7 +138,6 @@ export function PayoutSetupForm() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success("Payout method removed");
       loadData();
     } catch (err: unknown) {
       hapticError();

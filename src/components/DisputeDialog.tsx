@@ -154,7 +154,6 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
       });
 
       hapticSuccess();
-      toast.success("Dispute submitted. Payment is on hold pending admin review.");
       onDisputed();
       onClose();
     } catch (err: unknown) {

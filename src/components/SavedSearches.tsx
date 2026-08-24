@@ -163,7 +163,6 @@ export function SavedSearches({
       return;
     }
     hapticSuccess();
-    toast.success("Search saved — we'll ping you when a matching job posts.");
     setName("");
     load();
   };
@@ -204,7 +203,6 @@ export function SavedSearches({
     }
     setSearches((prev) => prev.filter((x) => x.id !== id));
     hapticSuccess();
-    toast.success("Search deleted");
   };
 
   return (
@@ -375,7 +373,6 @@ export function SavedSearches({
                   onClick={() => {
                     onApplySearch(s);
                     setOpen(false);
-                    toast.success(`Applied "${s.name}"`);
                   }}
                   className="flex-1 text-left min-w-0 active:opacity-70 transition-opacity"
                 >

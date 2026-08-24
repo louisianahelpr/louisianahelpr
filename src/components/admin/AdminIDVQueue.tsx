@@ -116,7 +116,6 @@ const AdminIDVQueue = () => {
     setSavingSettings(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("IDV settings updated");
       await logAdminAction("update_idv_settings", "platform_settings", settingsId, {
         hybrid_idv_enabled: hybridEnabled,
         idv_auto_approve_threshold: t,
@@ -162,7 +161,6 @@ const AdminIDVQueue = () => {
     }
 
     setActioning(null);
-    toast.success(`${formatName(p.full_name)} approved`);
     await logAdminAction("idv_manual_approve", "user", p.user_id, { previous_status: p.idv_status });
     setSelected(null);
     load();
@@ -181,7 +179,6 @@ const AdminIDVQueue = () => {
     setActioning(null);
     if (error) toast.error(error.message);
     else {
-      toast.success(`${formatName(p.full_name)} denied`);
       await logAdminAction("idv_manual_deny", "user", p.user_id, { previous_status: p.idv_status });
       setSelected(null);
       load();

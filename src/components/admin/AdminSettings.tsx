@@ -124,7 +124,6 @@ const AdminSettings = () => {
       }
       return;
     }
-    toast.success(`Minimum supported build set to ${n}`);
     await logAdminAction("update_settings", "platform_settings", settingsId, {
       min_supported_build: n,
     });
@@ -171,7 +170,6 @@ const AdminSettings = () => {
     setSavingWebhook(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Webhook URL saved");
       await logAdminAction("update_settings", "platform_settings", settingsId, { social_webhook_url: url ? "set" : "cleared" });
     }
   };
@@ -236,7 +234,6 @@ const AdminSettings = () => {
     setSaving(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Fee settings updated");
       await logAdminAction("update_settings", "platform_settings", settingsId, { customer_fee_percent: custVal, helper_fee_percent: helpVal });
     }
   };
@@ -274,7 +271,6 @@ const AdminSettings = () => {
       if (error.code === "23505") toast.error("User is already an admin.");
       else toast.error(error.message);
     } else {
-      toast.success(`${formatName(profile.full_name)} added as admin`);
       await logAdminAction("add_admin", "user", profile.user_id, { name: profile.full_name });
       await loadAdmins();
       setSearchResults((prev) => prev.filter((p) => p.user_id !== profile.user_id));
@@ -298,7 +294,6 @@ const AdminSettings = () => {
 
     if (error) toast.error(error.message);
     else {
-      toast.success(`${admin.name} removed from admins`);
       await logAdminAction("remove_admin", "user", admin.user_id, { name: admin.name });
       await loadAdmins();
     }

@@ -72,7 +72,6 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
     }
 
     hapticSuccess();
-    toast.success(`$${formatPriceExact(data.net_cents / 100)} is on the way to your debit card!`);
     onOpenChange(false);
     onSuccess?.();
   };

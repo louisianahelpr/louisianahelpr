@@ -58,7 +58,6 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
         body: { userId: profile.user_id, newEmail: email1.trim() },
       });
       if (error) throw error;
-      toast.success(`Email updated to ${email1.trim()}`);
       setEmail1("");
       setEmail2("");
       onSuccess?.();

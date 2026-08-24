@@ -62,7 +62,6 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
       });
       if (error) throw error;
       hapticSuccess();
-      toast.success("W-9 recorded");
       onSigned?.();
       onOpenChange(false);
       // Reset for any future opens.

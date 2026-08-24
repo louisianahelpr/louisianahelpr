@@ -125,7 +125,6 @@ export function SendReportCard({
       });
 
       hapticSuccess();
-      toast.success(`Report card sent for ${petName}!`);
       queryClient.invalidateQueries({ queryKey: ["pet_report_cards", jobId] });
       onClose();
     } catch (err) {

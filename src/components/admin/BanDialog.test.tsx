@@ -101,7 +101,6 @@ describe("BanDialog", () => {
     expect(fromMock).toHaveBeenCalledWith("user_violations");
     // Then update: profiles.ban_status='final_warning'
     expect(fromMock).toHaveBeenCalledWith("profiles");
-    expect(toastSuccess).toHaveBeenCalledWith(expect.stringContaining("Warning issued"));
     expect(logAdminActionMock).toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalled();
   });

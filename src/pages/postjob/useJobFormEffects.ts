@@ -246,7 +246,6 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         setSpecialRequirements(data.special_requirements || "");
         setIsRecurring(data.is_recurring || false);
         setRecurrenceInterval(data.recurrence_interval || "weekly");
-        toast.info("Details pre-filled — just pick a new date to re-post.");
       });
       return;
     }

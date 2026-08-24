@@ -99,7 +99,6 @@ export const AppliedJobsTab = ({
       toast.error("Couldn't save your note — try again?");
     } else {
       hapticSuccess();
-      toast.success("Message updated");
       onRefresh();
     }
     setSavingMessage(false);
@@ -114,7 +113,7 @@ export const AppliedJobsTab = ({
       toast.error("Add a bit more detail.");
       return;
     }
-    const { appId, jobTitle, jobId } = withdrawTarget;
+    const { appId, jobId } = withdrawTarget;
     setWithdrawingAppId(appId);
     // Signal the destructive intent with an error haptic at the moment
     // of confirmed withdrawal — matches the task spec and gives tactile
@@ -143,7 +142,6 @@ export const AppliedJobsTab = ({
     }
     // Best-effort log — fire-and-forget, never blocks the toast.
     logWithdrawReason(appId, { reason: withdrawReason, detail: withdrawDetail }, jobId);
-    toast.success(`Withdrawn from \u201C${jobTitle}\u201D.`);
     onRefresh();
     setWithdrawTarget(null);
     setWithdrawReason(null);
@@ -172,7 +170,6 @@ export const AppliedJobsTab = ({
       toast.error("Couldn't save that attachment — try again?");
       return;
     }
-    toast.success("Attachment added");
     // Re-read. Without this the write landed but the card kept rendering the
     // `attachment_urls` it was given on mount — so an application that now had
     // a file still read "No attachments yet" until something else happened to

@@ -136,7 +136,6 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         type: "info",
       });
     }
-    toast.info("Applicant declined.");
   };
 
   const confirmAcceptWithDeadline = async (deadlineHours: number, initialMessage?: string) => {
@@ -241,7 +240,6 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     // self-respects reduced motion (static check, no draw-in).
     hapticSuccess();
     fireSuccessMoment({ label: "Applicant hired" });
-    toast.success(`Offer sent! Helpr has ${deadlineHours}h to respond.`);
     setDeadlineDialogApp(null);
     setSelectedJob(null);
     setApplications([]);
@@ -336,11 +334,9 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     hapticSuccess();
     if (accept) {
       fireSuccessMoment({ label: "Job accepted" });
-      toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
       await refresh();
       setStatusFilter("accepted");
     } else {
-      toast.success("Offer declined. The poster has been told.");
       await refresh();
     }
   };
@@ -514,7 +510,6 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           void triggerPushNudge("helper-first-accept");
         }
       } catch { /* analytics must never break the flow */ }
-      toast.success("Job accepted! You can start when ready or it will auto-start on the scheduled date.");
       await refresh();
       setStatusFilter("accepted");
     } else {
@@ -631,7 +626,6 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           await createNotification({ user_id: admin.user_id, title: "⚠️ Helpr declined job offer", message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`, type: "warning", link: "/admin" });
         }
       }
-      toast.info("You declined the job. The poster can select someone else.");
       refresh();
     }
     } finally {

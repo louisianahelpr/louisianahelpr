@@ -115,7 +115,6 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
       return;
     }
     hapticSuccess();
-    toast.success("Post approved — it's live now.");
     queryClient.invalidateQueries({ queryKey: ["business-pending-approvals", businessId] });
   };
 
@@ -140,7 +139,6 @@ export function ApprovalsTab({ businessId, canApprove }: ApprovalsTabProps) {
       toast.error(error.message || "Couldn't reject — try again.");
       return;
     }
-    toast.success("Post rejected.");
     queryClient.invalidateQueries({ queryKey: ["business-pending-approvals", businessId] });
   };
 

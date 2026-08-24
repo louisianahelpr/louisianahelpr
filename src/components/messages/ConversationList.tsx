@@ -214,9 +214,8 @@ export function ConversationList({
 
   const handleTogglePin = (convo: Conversation) => {
     if (!userId) return;
-    const next = togglePinned(userId, convo.jobId, convo.otherUserId);
+    togglePinned(userId, convo.jobId, convo.otherUserId);
     setPinNonce((n) => n + 1);
-    toast.success(next ? "Pinned to top" : "Unpinned");
   };
 
   const handleArchive = (convo: Conversation) => {

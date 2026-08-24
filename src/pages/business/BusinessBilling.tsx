@@ -128,7 +128,6 @@ const BusinessBilling = () => {
       if (error) throw error;
       setInvoiceMode(next);
       hapticSuccess();
-      toast.success(next ? "Invoice billing enabled" : "Switched back to card billing");
     } catch (err: any) {
       hapticError();
       // This used to swallow 42703/PGRST202 into a cheerful "Invoice mode

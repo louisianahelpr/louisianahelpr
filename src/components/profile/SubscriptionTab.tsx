@@ -37,7 +37,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     try {
       await supabase.functions.invoke("check-pro-subscription");
       await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
-      toast.success("Membership updated");
     } catch {
       toast.error("Couldn't refresh your membership — try again?");
     } finally {
@@ -92,9 +91,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     } catch { /* handled below via alertSent */ }
     setAcceptingPause(false);
     setPauseOfferOpen(false);
-    if (alertSent) {
-      toast.success("Got it — we'll be in touch.");
-    } else {
+    if (!alertSent) {
       toast.error("Couldn't send your request — try again or email support.");
     }
   };

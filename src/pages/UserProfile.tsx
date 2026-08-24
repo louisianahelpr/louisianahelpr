@@ -60,11 +60,6 @@ const UserProfile = () => {
   useEffect(() => {
     const pro = searchParams.get("pro");
     if (!pro) return;
-    if (pro === "success") {
-      toast.success("You're now upgraded — welcome to your new plan.");
-    } else if (pro === "cancel") {
-      toast.info("Upgrade cancelled — you can upgrade any time from your profile.");
-    }
     const next = new URLSearchParams(searchParams);
     next.delete("pro");
     setSearchParams(next, { replace: true });
@@ -314,7 +309,6 @@ const UserProfile = () => {
       );
       setRespondingToReview(null);
       setResponseText("");
-      toast.success("Response saved.");
     } catch {
       toast.error("Couldn't save your response — try again?");
     } finally {

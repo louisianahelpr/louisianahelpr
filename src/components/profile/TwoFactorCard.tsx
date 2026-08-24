@@ -221,7 +221,6 @@ function EnrollDialog({
       toast.error("That code didn't match. Check your app and try again.");
       return;
     }
-    toast.success("Two-step verification is on.");
     onEnrolled();
   };
 
@@ -352,7 +351,6 @@ function DisableDialog({
       toast.error("Couldn't turn off two-step verification — try again?");
       return;
     }
-    toast.success("Two-step verification is off.");
     onDisabled();
   };
 

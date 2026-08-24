@@ -145,7 +145,6 @@ const NotificationPanel = () => {
     const granted = await requestPush();
     if (granted) {
       setPushEnabled(true);
-      toast.success("Push notifications enabled");
     } else {
       toast.error(
         Capacitor.isNativePlatform()

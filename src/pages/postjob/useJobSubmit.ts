@@ -452,7 +452,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
     hapticSuccess();
     void maybeFireFirstPostConfetti();
-    toast.info("Redirecting to payment…");
 
     // Geocode the address and patch the job row with lat/lng so it shows
     // up on /browse?view=map. Kicked off here so it runs concurrently with

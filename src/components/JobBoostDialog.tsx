@@ -47,7 +47,6 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
       // returned `free: true`. No Stripe redirect needed.
       if (data?.free) {
         hapticSuccess();
-        toast.success(data.message || "Job boosted — your post will lead the feed.");
         onBoosted?.();
         onClose();
         return;

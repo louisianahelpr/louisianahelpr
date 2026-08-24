@@ -5,7 +5,6 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { PageScaffold } from "@/components/ui/PageScaffold";
-import { toast } from "sonner";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
@@ -249,7 +248,6 @@ const Dashboard = () => {
       safeStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...next]));
       return next;
     });
-    toast.success("Job removed from your feed.");
     setConfirmDismissJobId(null);
   }, [confirmDismissJobId, setDismissedJobIds]);
 

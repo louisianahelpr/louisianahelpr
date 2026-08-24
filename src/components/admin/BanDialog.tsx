@@ -140,7 +140,6 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           type: "warning",
           link: "/profile",
         });
-        toast.success("Warning issued.");
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "warning",
           reason_category: reasonCategory,
@@ -177,7 +176,6 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           type: "warning",
           link: "/profile",
         });
-        toast.success(`User temporarily banned for ${duration} days.`);
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "temporary",
           duration_days: parseInt(duration),
@@ -212,7 +210,6 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           type: "warning",
           link: "/profile",
         });
-        toast.success("User permanently banned.");
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "permanent",
           reason_category: reasonCategory,

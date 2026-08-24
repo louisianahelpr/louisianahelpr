@@ -93,10 +93,8 @@ export function InviteForm({
       // Capacitor WebViews; the old un-caught `.then()` meant that rejection
       // showed NO toast at all and the one-time token vanished. Await it in a
       // try/catch and succeed loudly either way.
-      let copied = false;
       try {
         await navigator.clipboard.writeText(url);
-        copied = true;
       } catch {
         // Deliberately never log the URL — it carries the invite token.
         report(new Error("Clipboard write failed for family invite link"), {
@@ -105,10 +103,6 @@ export function InviteForm({
         });
       }
       setInviteUrl(url);
-      toast.success(
-        copied ? "Invite link created — copied to clipboard" : "Invite link created — copy it below",
-        { description: "Send them the link. The invite stays pending until they open it and approve." },
-      );
       setContact("");
       setShowForm(false);
       void qc.invalidateQueries({ queryKey: ["care_relationships", myUserId] });
@@ -145,7 +139,6 @@ export function InviteForm({
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(inviteUrl);
-              toast.success("Link copied");
             } catch {
               toast.error("Couldn't copy — select the link above and copy it manually.");
             }

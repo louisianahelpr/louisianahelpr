@@ -203,27 +203,13 @@ const Login = () => {
   };
 
   // Post-authentication routing, shared by the plain password path and the
-  // post-MFA path. Remembers the method, warms the user cache, greets by
-  // first name, then routes into the app.
+  // post-MFA path. Remembers the method, warms the user cache, then routes
+  // into the app.
   const finishLogin = async () => {
     setLastAuthMethod("email");
     void queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
     setLoading(false);
     hapticSuccess();
-    let firstName = "";
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user?.id;
-      if (userId) {
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("user_id", userId)
-          .maybeSingle();
-        firstName = (prof?.full_name ?? "").trim().split(/\s+/)[0] ?? "";
-      }
-    } catch { /* fall through to generic copy */ }
-    toast.success(firstName ? `Welcome back, ${firstName}.` : "Welcome back.");
     // postAuthDestination keeps this on the home dashboard per the note above;
     // it only appends ?quickApply=<id> when the visitor got here from a job
     // card they tapped while logged out. See lib/jobIntent.

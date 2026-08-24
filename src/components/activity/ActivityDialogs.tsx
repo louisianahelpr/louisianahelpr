@@ -95,7 +95,6 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       hapticSuccess();
-      toast.success("Revision requested");
       props.setRevisionJobId(null);
       setRevisionNote("");
       props.onRevisionRequested();

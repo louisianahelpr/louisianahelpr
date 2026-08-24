@@ -608,7 +608,6 @@ export function PostedJobActions({
                     if (error) { hapticError(); toast.error("We couldn't mark that resolved — please try again."); return; }
                     if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
                     hapticSuccess();
-                    toast.success("Dispute resolved — payment released to Helpr");
                     onActionComplete();
                   } finally {
                     setDisputeActing(false);
@@ -624,7 +623,6 @@ export function PostedJobActions({
                     if (adminErr) report(adminErr, { tags: { source: "PostedJobCard.escalateNotifyAdmins" } });
                     if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin" }); } }
                     hapticSuccess();
-                    toast.success("Dispute escalated to admin for final decision");
                     onActionComplete();
                   } finally {
                     setDisputeActing(false);

@@ -192,7 +192,6 @@ const CompleteProfile = () => {
         profile: data,
         isAdmin: current?.isAdmin ?? false,
       }));
-      toast.success("Your profile was already saved — opening Helpr.");
       navigate("/dashboard", { replace: true });
       return true;
     } catch {
@@ -273,7 +272,6 @@ const CompleteProfile = () => {
       // back to /complete-profile (LH-29). The authoritative row above is the
       // single source of truth; staleTime keeps it from refetching on arrival.
       hapticSuccess();
-      toast.success("Profile complete — welcome to Helpr.");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
       const recovered = await recoverCompletedProfile();

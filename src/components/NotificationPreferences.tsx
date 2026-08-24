@@ -153,7 +153,6 @@ const NotificationPreferences = () => {
         },
       });
       if (error) throw error;
-      toast.success("Test sent — check your device.");
     } catch (err: unknown) {
       hapticError();
       const msg = err instanceof Error ? err.message : "Test failed.";

@@ -249,7 +249,6 @@ const Messages = () => {
       ),
     );
     hapticSuccess();
-    toast.success("Conversation hidden from your inbox");
     setDeleteConvoConfirm(null);
   };
 
@@ -270,8 +269,6 @@ const Messages = () => {
       prev.filter((c) => !keys.has(`${c.jobId}_${c.otherUserId}`)),
     );
     hapticSuccess();
-    const n = batchArchiveConfirm.length;
-    toast.success(`${n} conversation${n === 1 ? "" : "s"} hidden from your inbox`);
     setBatchArchiveConfirm(null);
     setSelectionResetNonce((x) => x + 1);
   };
@@ -295,7 +292,6 @@ const Messages = () => {
     } else {
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
       hapticSuccess();
-      toast.success("Message deleted");
     }
     setDeleteMessageConfirm(null);
   };

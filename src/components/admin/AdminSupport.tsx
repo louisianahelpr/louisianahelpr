@@ -84,7 +84,6 @@ const AdminSupport = () => {
     const { error } = await supabase.from("reports").update({ status }).eq("id", id);
     if (error) toast.error(error.message);
     else {
-      toast.success(`Ticket marked as ${status}`);
       qc.invalidateQueries({ queryKey });
     }
     setUpdating(null);

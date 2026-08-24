@@ -75,11 +75,6 @@ const AdminMarketing = () => {
       });
       if (error) throw error;
       setLastResult({ sent: data?.sent ?? 0, failed: data?.failed ?? 0, total: data?.total ?? 0 });
-      toast.success(
-        asTest
-          ? `Test email sent to ${testEmail}`
-          : `Campaign sent: ${data?.sent ?? 0} delivered, ${data?.failed ?? 0} failed`
-      );
     } catch (e: any) {
       toast.error(e.message || "Send failed");
     } finally {

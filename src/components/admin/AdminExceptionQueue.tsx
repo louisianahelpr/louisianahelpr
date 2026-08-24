@@ -131,7 +131,6 @@ const ExceptionQueueInner = () => {
       toast.error(error.message);
       return;
     }
-    toast.success("Exception resolved");
     qc.invalidateQueries({ queryKey });
     setResolveTarget(null);
     setResolution("");

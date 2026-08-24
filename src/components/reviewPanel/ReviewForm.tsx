@@ -143,7 +143,6 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
       else toast.error("We couldn't post your review — please try again.");
     } else {
       hapticSuccess();
-      toast.success("Review submitted");
       // Brand-tinted confetti for the first few reviews so the moment
       // feels worth doing again. After the limit it fades to silent.
       void maybeCelebrate("first_review");

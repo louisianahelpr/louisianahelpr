@@ -124,7 +124,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     try {
       await navigator.clipboard?.writeText(caseNumber);
       hapticSuccess();
-      toast.success("Case number copied");
     } catch {
       hapticError();
       toast.error("Couldn't copy — long-press the number to select it.");

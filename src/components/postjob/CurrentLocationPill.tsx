@@ -268,7 +268,6 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
       return;
     }
     onResolved(picked);
-    toast.success("Address filled from your current location");
   };
 
   return (

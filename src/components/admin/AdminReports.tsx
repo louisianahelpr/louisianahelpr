@@ -149,12 +149,9 @@ const AdminReports = () => {
           .update({ status: "investigating" as any })
           .eq("id", id);
         if (fallbackErr) toast.error(fallbackErr.message);
-        else toast.success("Marked as investigating (assignment column not yet deployed)");
       } else {
         toast.error(error.message);
       }
-    } else {
-      toast.success("Assigned to you — set to Investigating");
     }
     // `void supabase.from(...).insert(...)` never sent this: PostgrestBuilder
     // issues its fetch inside then(), so `void` evaluates the builder and
@@ -192,7 +189,6 @@ const AdminReports = () => {
         },
       );
     }
-    toast.success(`Report marked as ${status}`);
     loadReports();
     setUpdating(null);
   };
@@ -224,7 +220,6 @@ const AdminReports = () => {
         type: "info",
         link: "/profile",
       });
-      toast.success(`Message sent to ${messageTarget.name}`);
       setMessageTarget(null);
       setMessageText("");
     } catch {

@@ -173,11 +173,6 @@ export function PetForm({
       } else {
         unwrap(await supabase.from("pet_profiles").insert(payload));
       }
-      toast.success(
-        initialValues
-          ? `${form.name} updated`
-          : `${form.name} added to your pets`,
-      );
       onSaved();
       onClose();
     } catch (err) {

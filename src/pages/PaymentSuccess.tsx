@@ -164,9 +164,6 @@ const PaymentSuccess = () => {
         await navigator.share({ url, title: "Job posted on Helpr" });
       } else if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
-        toast.success("Link copied. Paste it anywhere.");
-      } else {
-        toast.message("Share this link", { description: url });
       }
     } catch (err) {
       const isCancel =

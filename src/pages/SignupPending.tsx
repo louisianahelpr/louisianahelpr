@@ -63,7 +63,6 @@ const SignupPending = () => {
       const sessionUser = data.session?.user;
       if (sessionUser?.email_confirmed_at) {
         try { sessionStorage.removeItem(PENDING_EMAIL_KEY); } catch { /* private mode */ }
-        toast.success("Email verified — taking you in.");
         navigate("/complete-profile", { replace: true });
       }
     };
@@ -100,7 +99,6 @@ const SignupPending = () => {
     }
     setResent(true);
     setResendCooldown(RESEND_COOLDOWN_S);
-    toast.success("Verification link sent.");
   };
 
   const stepIcon = (Icon: typeof MailCheck) => (

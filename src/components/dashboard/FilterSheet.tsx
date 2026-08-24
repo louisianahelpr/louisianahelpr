@@ -88,9 +88,18 @@ interface FilterSheetProps {
  *  brand-surface-fit block in the audit standard). */
 function Section({ title, trailing, children }: { title: string; trailing?: ReactNode; children: ReactNode }) {
   return (
-    <div>
+    <div className="pt-3.5 first:pt-0 border-t border-[hsl(var(--bark)/0.10)] first:border-t-0">
       <div className="flex items-center justify-between gap-3 mb-1.5">
-        <p className="text-ds-10 font-semibold uppercase tracking-widest text-[hsl(var(--bark))]">
+        {/* THE app eyebrow — sienna serif italic at 0.18em, the same recipe
+            as "YOU EARN" (JobPrice), "YOUR PITCH — OPTIONAL" (apply dialog)
+            and the Filtered label in the toolbar. The sheet used to run its
+            own sans-gray eyebrow, which is exactly the "different person
+            designed this sheet" break the density & brand-fit audit block
+            names. One eyebrow recipe everywhere. */}
+        <p
+          className="text-ds-10 font-serif italic uppercase tracking-[0.18em]"
+          style={{ color: "hsl(var(--burnt-sienna))" }}
+        >
           {title}
         </p>
         {trailing}
@@ -111,7 +120,7 @@ function FilterBody({
 }: Pick<FilterSheetProps, "sections" | "activeFilterCount" | "onClearAll" | "footer">) {
   return (
     <>
-      <div className="px-5 pb-4 space-y-4">
+      <div className="px-5 pb-4 space-y-3.5">
         {sections.map((s) => (
           <Section key={s.key} title={s.title} trailing={s.trailing}>
             {s.content}

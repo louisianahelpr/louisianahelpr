@@ -49,7 +49,7 @@ const chipRow = "flex flex-wrap gap-1.5";
 const chipActive =
   "bg-[hsl(var(--bark))] text-[hsl(var(--parchment))] border-[hsl(var(--bark))] shadow-sm";
 const chipIdle =
-  "bg-white/70 dark:bg-card/60 backdrop-blur text-foreground border-border/60 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90";
+  "bg-white/70 dark:bg-card/60 backdrop-blur text-foreground border-[hsl(var(--bark)/0.22)] hover:border-[hsl(var(--bark)/0.45)] hover:bg-white/90 dark:hover:bg-card/90";
 
 const sortOptions = [
   // "Best match" (value "smart") is the default — a composite recency +

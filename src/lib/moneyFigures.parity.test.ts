@@ -5,6 +5,9 @@ import {
   URGENT_FEE_FLOOR_DOLLARS,
   URGENT_FEE_PRESETS,
   DEFAULT_URGENT_FEE_DOLLARS,
+  FORM_1099K_GROSS_THRESHOLD_DOLLARS,
+  FORM_1099K_TRANSACTION_THRESHOLD,
+  form1099kGrossLabel,
 } from "./moneyLimits";
 
 // moneyFigures.parity — guards the user-facing money figures that are NOT yet
@@ -95,5 +98,29 @@ describe("urgent-job bonus — floor & presets", () => {
 
   it("default urgent bonus is at (not below) the floor", () => {
     expect(DEFAULT_URGENT_FEE_DOLLARS).toBeGreaterThanOrEqual(URGENT_FEE_FLOOR_DOLLARS);
+  });
+});
+
+describe("Form 1099-K threshold — one number for the whole product", () => {
+  // The Earnings tab used to disagree with ITSELF: the banner fired at "$600"
+  // (a step-down the One Big Beautiful Bill repealed before it took effect)
+  // while the tax note at the bottom of the same tab, and both Legal pages,
+  // said $20,000 / 200 transactions. All four now import from moneyLimits:
+  //   src/components/profile/EarningsTab.tsx              (banner gate + tax note)
+  //   src/components/profile/earningsTab/ThresholdBanner.tsx (headline + body)
+  //   src/pages/legal/TermsSection.tsx
+  //   src/pages/legal/CommunitySection.tsx
+
+  it("is the restored federal $20,000 / 200-transaction pair", () => {
+    expect(FORM_1099K_GROSS_THRESHOLD_DOLLARS).toBe(20000);
+    expect(FORM_1099K_TRANSACTION_THRESHOLD).toBe(200);
+  });
+
+  it("renders the gross threshold with a thousands separator", () => {
+    expect(form1099kGrossLabel()).toBe("$20,000");
+  });
+
+  it("is not the repealed $600 step-down", () => {
+    expect(FORM_1099K_GROSS_THRESHOLD_DOLLARS).not.toBe(600);
   });
 });

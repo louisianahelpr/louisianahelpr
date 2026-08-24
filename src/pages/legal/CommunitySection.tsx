@@ -24,6 +24,8 @@ import {
   MAX_JOB_BUDGET_DOLLARS,
   LATE_CANCEL_PERCENT,
   VERY_LATE_CANCEL_PERCENT,
+  FORM_1099K_TRANSACTION_THRESHOLD,
+  form1099kGrossLabel,
   formatDollarsWhole,
 } from "@/lib/moneyLimits";
 
@@ -315,7 +317,7 @@ export const CommunityContent = () => (
         title="Helpr (the platform)"
         body={
           <>
-            <p><strong className="text-foreground">1099-K (2025 and later):</strong> Federal threshold is $20,000 AND 200+ transactions — restored by the One Big Beautiful Bill, which repealed the planned $2,500 and $600 step-downs. Louisiana follows federal.</p>
+            <p><strong className="text-foreground">1099-K (2025 and later):</strong> Federal threshold is {form1099kGrossLabel()} AND {FORM_1099K_TRANSACTION_THRESHOLD}+ transactions — restored by the One Big Beautiful Bill, which repealed the planned $2,500 and $600 step-downs. Louisiana follows federal.</p>
             <p><strong className="text-foreground">1099-NEC (2026):</strong> Threshold raised from $600 to $2,000.</p>
             <p><strong className="text-foreground">Marketplace facilitator:</strong> Above $100,000 LA gross revenue, Helpr collects and remits sales tax as the marketplace facilitator. Louisiana taxes only the services it enumerates in LA R.S. 47:301(14), so tax applies to the job's labor line in taxable categories only — never to Helpr's fees, and not to most categories (cleaning, yard work, moving, errands, pet care, delivery are not enumerated taxable services).</p>
             <p><strong className="text-foreground">LDR e-filing mandate:</strong> All LA withholding and sales tax returns filed electronically as of Jan 1, 2026.</p>

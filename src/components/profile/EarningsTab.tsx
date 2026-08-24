@@ -4,6 +4,11 @@ import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { formatPriceExact } from "@/lib/format";
 import { instantPayoutFeeLabel, instantPayoutMinLabel } from "@/lib/instantPayoutFee";
+import {
+  FORM_1099K_GROSS_THRESHOLD_DOLLARS,
+  FORM_1099K_TRANSACTION_THRESHOLD,
+  form1099kGrossLabel,
+} from "@/lib/moneyLimits";
 import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { toast } from "@/hooks/use-toast";
@@ -169,18 +174,23 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // ─── 1099-K threshold awareness ───────────────────────────────
-  // Federal threshold dropped to $600/yr for 1099-K issuance. Once a
-  // helper crosses that line we surface a quiet, dismissible banner
-  // pointing at the tax-export tool. Dismissal is persisted per-user
-  // per-year via safeStorage so it doesn't nag once acknowledged.
-  // (Louisiana adds its own $20k/200-tx threshold note already at the
-  // bottom of the page — that's a separate, stricter signal.)
+  // Once YTD payouts cross the FEDERAL gross threshold we surface a quiet,
+  // dismissible banner pointing at the tax-export tool. Dismissal is
+  // persisted per-user per-year via safeStorage so it doesn't nag once
+  // acknowledged.
+  //
+  // The threshold is $20,000 (with 200+ transactions), from moneyLimits —
+  // NOT the $600 this comment and the banner used to claim. That step-down
+  // was repealed before it took effect, and the tax note at the bottom of
+  // THIS SAME TAB, plus both Legal pages, always said $20,000. Gating on
+  // gross alone is deliberate: it is the half of the AND we can measure from
+  // payouts, and the banner only ever says a 1099-K "may" be coming.
   const ytdYear = new Date().getFullYear();
   const ytdPayoutsCents = (stripeData?.payouts ?? [])
     .filter((p) => new Date(p.arrival_date * 1000).getFullYear() === ytdYear)
     .reduce((sum, p) => sum + p.amount, 0);
   const ytdPayoutsDollars = ytdPayoutsCents / 100;
-  const banner1099Threshold = 600;
+  const banner1099Threshold = FORM_1099K_GROSS_THRESHOLD_DOLLARS;
   const bannerKey = `helpr_1099k_banner_dismissed_${helperId}_${ytdYear}`;
   const [banner1099Dismissed, setBanner1099Dismissed] = useState<boolean>(() => {
     try {
@@ -258,10 +268,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           sections down behind a card that only scrolls to it. */}
       {!stripeLoading && !stripeData?.connected && payoutSection}
 
-      {/* 1099-K banner — appears once YTD payouts cross the federal
-          $600 threshold. Quiet, dismissible per-user-per-year so it
-          doesn't nag after the helper has seen it. Tapping the CTA
-          opens the existing PDF tax-export dialog (no new flow). */}
+      {/* 1099-K banner — appears once YTD payouts cross the federal gross
+          threshold (FORM_1099K_GROSS_THRESHOLD_DOLLARS). Quiet, dismissible
+          per-user-per-year so it doesn't nag after the helper has seen it.
+          Tapping the CTA opens the existing PDF tax-export dialog. */}
       {show1099Banner && (
         <ThresholdBanner
           ytdYear={ytdYear}
@@ -456,7 +466,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">
         <Info className="w-3 h-3 mt-0.5 shrink-0" />
         <span>
-          <strong className="text-muted-foreground">Tax reporting:</strong> The IRS requires a Form 1099-K for Helprs who exceed $20,000 in gross payments and 200 transactions in a calendar year — a federal filing, not a Louisiana one. Stripe issues these automatically — no action needed.
+          <strong className="text-muted-foreground">Tax reporting:</strong> The IRS requires a Form 1099-K for Helprs who exceed {form1099kGrossLabel()} in gross payments and {FORM_1099K_TRANSACTION_THRESHOLD} transactions in a calendar year — a federal filing, not a Louisiana one. Stripe issues these automatically — no action needed.
         </span>
       </p>
 

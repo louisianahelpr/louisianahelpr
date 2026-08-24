@@ -1,4 +1,5 @@
 import { FileCheck2, FileText, X } from "lucide-react";
+import { FORM_1099K_TRANSACTION_THRESHOLD, form1099kGrossLabel } from "@/lib/moneyLimits";
 
 interface ThresholdBannerProps {
   ytdYear: number;
@@ -6,10 +7,14 @@ interface ThresholdBannerProps {
   onDismiss: () => void;
 }
 
-// 1099-K banner — appears once YTD payouts cross the federal
-// $600 threshold. Quiet, dismissible per-user-per-year so it
-// doesn't nag after the helper has seen it. Tapping the CTA
-// opens the existing PDF tax-export dialog (no new flow).
+// 1099-K banner — appears once YTD payouts cross the federal gross
+// threshold. Quiet, dismissible per-user-per-year so it doesn't nag
+// after the helper has seen it. Tapping the CTA opens the existing PDF
+// tax-export dialog (no new flow).
+//
+// The figure is imported, never typed: this headline said "$600" while the
+// tax note at the bottom of the same tab said $20,000 / 200 transactions.
+// One screen, two answers about the same tax form.
 export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdBannerProps) {
   return (
     <div
@@ -39,13 +44,13 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
           className="font-display italic font-bold leading-tight text-ds-16"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
         >
-          You've crossed the $600 mark for {ytdYear}.
+          You've crossed the {form1099kGrossLabel()} mark for {ytdYear}.
         </h3>
         <p
           className="font-serif italic mt-1 leading-snug text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          You may receive a 1099-K from Stripe. Download a payout statement now so you're not scrambling in April.
+          With {FORM_1099K_TRANSACTION_THRESHOLD}+ transactions you may receive a 1099-K from Stripe. Download a payout statement now so you're not scrambling in April.
         </p>
         <div className="mt-2 flex items-center gap-2">
           <button

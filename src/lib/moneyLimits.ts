@@ -46,3 +46,24 @@ export const VERY_LATE_CANCEL_PERCENT = 50;
 export function formatDollarsWhole(amount: number): string {
   return `$${amount.toLocaleString("en-US")}`;
 }
+
+/**
+ * Federal Form 1099-K reporting thresholds — BOTH must be met in a calendar
+ * year (gross payments AND transaction count) before Stripe issues one.
+ *
+ * These are the 2025-and-later numbers restored by the One Big Beautiful Bill,
+ * which repealed the planned $2,500 and $600 step-downs. Louisiana follows
+ * federal. They live here because the app used to state two different answers
+ * on ONE screen: the Earnings tab's banner fired at "$600" while the tax note
+ * at the bottom of the same tab — and both Legal pages — said $20,000 / 200.
+ * A helpr reading down that page was told they had crossed a line that no
+ * longer exists.
+ */
+export const FORM_1099K_GROSS_THRESHOLD_DOLLARS = 20000;
+
+/** Transactions needed alongside the gross threshold. */
+export const FORM_1099K_TRANSACTION_THRESHOLD = 200;
+
+/** Display string for the gross threshold, e.g. "$20,000". */
+export const form1099kGrossLabel = () =>
+  formatDollarsWhole(FORM_1099K_GROSS_THRESHOLD_DOLLARS);

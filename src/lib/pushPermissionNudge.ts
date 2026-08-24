@@ -148,18 +148,12 @@ export async function shouldNudgeForReason(
   return true;
 }
 
-/** Copy lives next to the trigger so the toast stays grep-able. */
-const COPY: Record<NudgeReason, { title: string; description: string }> = {
-  "customer-first-bid": {
-    title: "Turn on notifications?",
-    description:
-      "We'll ping you the moment a Helpr applies or messages — no need to keep checking.",
-  },
-  "helper-first-accept": {
-    title: "Turn on notifications?",
-    description:
-      "Get pinged when new jobs in your category drop and when the customer messages you.",
-  },
+/** Copy lives next to the trigger so the toast stays grep-able.
+ *  Title only — the explainer line under it was cut on the owner's call
+ *  (2026-08-24): the question plus Enable / Not now says everything. */
+const COPY: Record<NudgeReason, { title: string }> = {
+  "customer-first-bid": { title: "Turn on notifications?" },
+  "helper-first-accept": { title: "Turn on notifications?" },
 };
 
 // In-memory guard against concurrent triggers — two near-simultaneous
@@ -197,9 +191,8 @@ export function usePushPermissionNudge() {
         // to surface this reason, treat it as shown.
         markNudgeShown(reason);
 
-        const { title, description } = COPY[reason];
+        const { title } = COPY[reason];
         toast(title, {
-          description,
           duration: 12_000,
           action: {
             label: "Enable",

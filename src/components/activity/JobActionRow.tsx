@@ -67,10 +67,12 @@ export type JobActionTone =
 export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
   switch (tone) {
     case "info":
+      // Matches messageButtonStyle above — owner call 2026-08-24 moved
+      // Message from blue to the quiet olivewood outline, chip included.
       return {
-        background: "hsl(var(--info-tint) / 0.12)",
-        color: "hsl(var(--info-ink))",
-        border: "0.5px solid hsl(var(--info-tint) / 0.32)",
+        background: "hsl(var(--olivewood) / 0.08)",
+        color: "hsl(var(--olivewood))",
+        border: "0.5px solid hsl(var(--olivewood) / 0.22)",
       };
     case "boost":
       return {
@@ -142,9 +144,13 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
       // live one. Green means good outcome either way; brightness says whether
       // there is still something to press.
       return {
-        background: "hsl(var(--live) / 0.18)",
-        color: "hsl(var(--success-ink-deep))",
-        border: "0.5px solid hsl(var(--live) / 0.45)",
+        // Bark tint, not the green light — owner call 2026-08-24 ("brand the
+        // action buttons"), reversing the 2026-08-20 green. Same-day context:
+        // solid fills were rejected on the filter chips, so the main move is
+        // the DECISIVE tint (0.18/0.55), one step louder than `primary`.
+        background: "hsl(var(--bark) / 0.18)",
+        color: "hsl(var(--bark))",
+        border: "0.5px solid hsl(var(--bark) / 0.55)",
       };
     case "done":
       // A finished action — Tipped, Reviewed. It used to borrow `neutral`,
@@ -221,9 +227,12 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
  * and outline in five others.
  */
 export const messageButtonStyle: CSSProperties = {
-  background: "hsl(var(--info-tint) / 0.12)",
-  color: "hsl(var(--info-ink))",
-  borderColor: "hsl(var(--info-tint) / 0.32)",
+  // Olivewood quiet outline — owner call 2026-08-24 ("brand the action
+  // buttons"), reversing 2026-08-20's blue. The rule that matters survives:
+  // Message is one colour EVERYWHERE, and this constant is that one place.
+  background: "hsl(var(--olivewood) / 0.08)",
+  color: "hsl(var(--olivewood))",
+  borderColor: "hsl(var(--olivewood) / 0.22)",
 };
 
 /**

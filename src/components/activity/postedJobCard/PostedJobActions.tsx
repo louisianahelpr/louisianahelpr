@@ -378,7 +378,9 @@ export function PostedJobActions({
                       icon={MessageCircle}
                       label="Message"
                       ariaLabel="Message Helpr"
-                      // Blue. Owner: "I think blue suits messages better."
+                      // Quiet olivewood outline — owner call 2026-08-24
+                      // ("brand the action buttons"), superseding the earlier
+                      // blue. Still one Message colour everywhere.
                       tone="info"
                       // Straight into the thread with THIS helpr on THIS job, not
                       // the conversation list — owner: "when I tap message it

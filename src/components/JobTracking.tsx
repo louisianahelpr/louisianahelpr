@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react"
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
+import { haversineMiles } from "@/lib/geo";
 import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, CalendarCheck, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -845,7 +846,25 @@ export function JobTracking({
           {tracking.latitude ? (
             <span className="ml-2 inline-flex items-center gap-0.5">
               <MapPin className="w-2.5 h-2.5" />
-              {tracking.latitude.toFixed(4)}, {tracking.longitude?.toFixed(4)}
+              {/* Human distance, not raw coordinates (owner, 2026-08-24:
+                  "29.9477, -91.9887" reads as developer output). The GPS fix
+                  is still the proof — it is just stated as the fact a person
+                  actually wants: how far from the job the helpr's last ping
+                  was. Falls back to a plain "GPS confirmed" when the job has
+                  no coordinates to measure against. */}
+              {jobLatitude != null && jobLongitude != null && tracking.longitude != null
+                ? (() => {
+                    const mi = haversineMiles(
+                      tracking.latitude,
+                      tracking.longitude,
+                      jobLatitude,
+                      jobLongitude,
+                    );
+                    return mi < 0.1
+                      ? "GPS confirmed · at the job"
+                      : `GPS confirmed · ${mi < 10 ? mi.toFixed(1) : Math.round(mi)} mi from job`;
+                  })()
+                : "GPS confirmed"}
             </span>
           ) : (STATUS_IDX[tracking.status as keyof typeof STATUS_IDX] ?? -1) >= STATUS_IDX.arrived ? (
             <span className="ml-2 inline-flex items-center gap-0.5">

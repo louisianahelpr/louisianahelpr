@@ -371,7 +371,7 @@ const PaymentSuccess = () => {
           <span className="text-display-eyebrow">
             {isHeld ? "All set" : confirmState === "checking" ? "Checking" : "Heads up"}
           </span>
-          <h1 className="text-page-title leading-tight mt-1">{heading}</h1>
+          <h1 className="text-page-title leading-tight mt-1 truncate">{heading}</h1>
           <p
             className="font-sans text-ds-13 leading-relaxed"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}

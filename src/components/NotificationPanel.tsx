@@ -224,8 +224,11 @@ const NotificationPanel = () => {
           <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             {([
-              { key: "all" as Filter, label: "All", count: notifications.length },
+              // Unread leads: it is the tab the panel opens on (see the
+              // filter default above), and the first pill should be the one
+              // that is already active.
               { key: "unread" as Filter, label: "Unread", count: unreadCount },
+              { key: "all" as Filter, label: "All", count: notifications.length },
             ]).map((opt) => {
               const isActive = (filter ?? "all") === opt.key;
               return (

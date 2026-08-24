@@ -69,7 +69,7 @@ const AccountBanned = () => {
 
         <div className="space-y-2">
           <span className="text-display-eyebrow">{eyebrowLabel}</span>
-          <h1 className="text-page-title leading-tight mt-1">
+          <h1 className="text-page-title leading-tight mt-1 truncate">
             {headline}.
           </h1>
           <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

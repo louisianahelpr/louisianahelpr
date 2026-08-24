@@ -232,7 +232,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hide
                   Prop kept for the same reason as `eyebrow`: ~15 call sites
                   pass it, and neither churning them nor breaking their types
                   buys anything. One line restores it. */}
-              <h1 className="text-page-title leading-tight mt-1 text-balance">
+              <h1 className="text-page-title leading-tight mt-1 truncate">
                 {title}
               </h1>
             </div>

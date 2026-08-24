@@ -223,7 +223,7 @@ const Legal = () => {
 
             The per-policy names still drive the DOCUMENT title and canonical
             via usePageMeta, which is what SEO and the browser tab read. */}
-        <h1 className="text-page-title leading-tight text-balance">Legal</h1>
+        <h1 className="text-page-title leading-tight truncate">Legal</h1>
       </div>
     </div>
   );

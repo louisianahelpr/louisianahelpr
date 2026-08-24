@@ -104,7 +104,7 @@ const ForgotPassword = () => {
                 a section heading under it. It was an h1 back when the title
                 row lived inside the `!sent` branch and disappeared here —
                 lifting the row into AuthShell made the page briefly carry two. */}
-            <h2 className="text-page-title leading-tight">
+            <h2 className="text-page-title leading-tight truncate">
               Check your inbox.
             </h2>
             {/* Neutral confirmation copy — leaks no signal about whether

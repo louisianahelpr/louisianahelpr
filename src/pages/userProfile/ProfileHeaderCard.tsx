@@ -195,7 +195,7 @@ export const ProfileHeaderCard = ({
                 change — `text-page-title` carries all the styling, and the only
                 bare-tag rule in index.css is a print block that treats h1–h6
                 identically, so nothing moves visually. */}
-            <h2 className="text-page-title leading-tight">
+            <h2 className="text-page-title leading-tight truncate min-w-0">
               {displayName}
             </h2>
             {/* Meta row — place and tenure share one line so the identity block

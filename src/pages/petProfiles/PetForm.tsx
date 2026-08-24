@@ -27,11 +27,26 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(", ");
 
+// Species-filtered breed suggestions for the datalist under the Breed field.
+// Louisiana-common picks, not a taxonomy — free text remains the source of
+// truth.
+const BREED_SUGGESTIONS: Record<string, string[]> = {
+  dog: ["Lab mix", "Catahoula Leopard Dog", "Labrador Retriever", "Pit bull mix", "Golden Retriever", "German Shepherd", "Beagle", "Chihuahua", "Shih Tzu", "Mixed breed"],
+  cat: ["Domestic Shorthair", "Domestic Longhair", "Orange Tabby", "Tabby", "Siamese", "Calico", "Maine Coon", "Tuxedo", "Mixed breed"],
+  bird: ["Parakeet", "Cockatiel", "Conure", "Chicken", "Duck"],
+  rabbit: ["Holland Lop", "Lionhead", "Rex", "Mixed breed"],
+  reptile: ["Bearded Dragon", "Ball Python", "Red-Eared Slider", "Leopard Gecko"],
+  other: [],
+};
+
 interface PetFormProps {
   initialValues?: PetProfile | null;
   ownerId: string;
   onClose: () => void;
   onSaved: () => void;
+  /** Names of the owner's existing pets — powers the duplicate-name
+      confirm ("Gumbo" was in the list twice before this guard). */
+  existingNames?: string[];
   /**
    * "sheet" (default) — full-screen fixed overlay, used on mobile.
    * "inline" — renders in the normal document flow so it can live inside
@@ -41,6 +56,7 @@ interface PetFormProps {
 }
 
 export function PetForm({
+  existingNames = [],
   initialValues,
   ownerId,
   onClose,
@@ -48,6 +64,8 @@ export function PetForm({
   variant = "sheet",
 }: PetFormProps) {
   const [form, setForm] = useState(() => buildPetForm(initialValues));
+  // One-shot: first Save with a duplicate name warns; second commits.
+  const [confirmedDuplicate, setConfirmedDuplicate] = useState(false);
   // The values this form opened with — the baseline the unsaved-changes guard
   // compares against. useRef only honours its argument on the first render, so
   // this snapshot never drifts as the user types.
@@ -141,6 +159,20 @@ export function PetForm({
     if (firstError) {
       toast.error(firstError);
       hapticError();
+      return;
+    }
+    // Duplicate-name guard (create only): the same pet added twice renders as
+    // two identical rows with no clue which is canonical — the owner's own
+    // list carried "Gumbo" twice. One extra tap confirms an intentional
+    // same-name pet (two cats both named Boo is legal), a repeat tap of the
+    // same mistake is caught.
+    if (
+      !initialValues?.id &&
+      existingNames.some((n) => n.trim().toLowerCase() === form.name.trim().toLowerCase()) &&
+      !confirmedDuplicate
+    ) {
+      setConfirmedDuplicate(true);
+      toast.warning(`You already have a pet named ${form.name.trim()} — tap Save again if this is a different ${form.species}.`);
       return;
     }
     setSaving(true);
@@ -311,11 +343,20 @@ export function PetForm({
                 <label htmlFor="pet-breed" className="text-ds-11 text-muted-foreground block mb-1">Breed</label>
                 <input
                   id="pet-breed"
+                  list="pet-breed-suggestions"
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                   placeholder="e.g. Lab mix"
                   value={form.breed ?? ""}
                   onChange={(e) => set("breed", e.target.value)}
                 />
+                {/* Free text stays free — the datalist only steers. It is
+                    species-filtered so a cat is never offered "Dog" (the
+                    owner's own list had a cat whose breed was Dog). */}
+                <datalist id="pet-breed-suggestions">
+                  {(BREED_SUGGESTIONS[form.species as string] ?? []).map((b) => (
+                    <option key={b} value={b} />
+                  ))}
+                </datalist>
               </div>
               <div>
                 <label htmlFor="pet-age" className="text-ds-11 text-muted-foreground block mb-1">Age (years)</label>

@@ -305,6 +305,7 @@ const PetProfiles = () => {
             >
               {desktopAdding && userId && (
                 <PetForm
+                  existingNames={(pets ?? []).map((p) => p.name)}
                   key="desktop-add"
                   variant="inline"
                   initialValues={null}
@@ -369,6 +370,7 @@ const PetProfiles = () => {
           mode and only when the mobile sheet was explicitly opened. */}
       {formOpen && userId && (
         <PetForm
+          existingNames={(pets ?? []).map((p) => p.name)}
           initialValues={editingPet}
           ownerId={userId}
           onClose={() => setFormOpen(false)}

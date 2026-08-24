@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { MessageSquare, CheckCircle2, XCircle, Timer } from "lucide-react";
 import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
@@ -198,6 +199,20 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
                   You didn't answer in time, so the job went back out to everyone — it
                   may already be somebody else's.
                 </p>
+                {/* Not a dead end (owner, ledger §VII): while the job is
+                    still open the helper can walk back in through the front
+                    door and apply like everyone else. Only shown for status
+                    'open' — a claimed/cancelled job has nothing to offer. */}
+                {job.status === "open" && (
+                  <Link
+                    to={`/dashboard?job=${job.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 mt-1.5 text-ds-11 font-semibold underline"
+                    style={{ color: "hsl(var(--amber-ink))" }}
+                  >
+                    It's still open — view the job
+                  </Link>
+                )}
               </>
             ) : (
               <>

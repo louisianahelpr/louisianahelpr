@@ -31,7 +31,7 @@ interface ApplicantQueueBannerProps {
     the BOTTOM, so the shrink slid the title down mid-read, which is
     what the owner reported as "opens large then gets smaller". Any
     new state added here must render a box, never null. */
-export const ApplicantQueueBanner = ({ guest, applicationCount, viewerAppPosition }: ApplicantQueueBannerProps) => {
+export const ApplicantQueueBanner = ({ applicationCount, viewerAppPosition }: ApplicantQueueBannerProps) => {
   return (
     <>
       {viewerAppPosition !== null && (

@@ -293,8 +293,6 @@ const Signup = () => {
       setLoading(false);
       return;
     }
-    safeStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
-
     try {
       // HIBP breached-password check (k-anonymity, fail-open on network error)
       const pwnedCount = await checkPasswordPwned(password);
@@ -305,6 +303,12 @@ const Signup = () => {
         setLoading(false);
         return;
       }
+
+      // Arm the cooldown only once a real signUp attempt fires. Arming it up
+      // front (pre-HIBP, pre-phone-check) punished the user whose password or
+      // phone was REJECTED locally with a 60s "Too many attempts" on the very
+      // retry that would have fixed it.
+      safeStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -370,10 +374,11 @@ const Signup = () => {
         }
         if (invites && invites.length > 0) {
           for (const inv of invites) {
-            await supabase
+            const { error: claimErr } = await supabase
               .from("business_members")
               .update({ user_id: userId, status: "active", joined_at: new Date().toISOString() })
               .eq("id", inv.invite_id);
+            if (claimErr) report(claimErr, { tags: { source: "Signup.inviteLinking" } });
           }
         }
       } catch (e) { report(e, { tags: { source: "Signup.inviteLinking" } }); }

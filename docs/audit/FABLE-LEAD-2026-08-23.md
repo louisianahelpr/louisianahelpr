@@ -78,7 +78,7 @@ stop, the question-mark idiom keeps its mark, nothing is stripped. Applied to th
 
 ---
 
-## ✅ CLOSED 2026-08-24 — R1–R18 all fixed (owner approved the money + security lanes)
+## ✅ CLOSED 2026-08-24 — R1–R20 all fixed (owner approved the money + security lanes)
 
 Every finding below R1–R18 has been fixed, gated and deployed; the section
 is kept for the reasoning, not as a to-do list. Highlights and corrections:
@@ -103,6 +103,14 @@ is kept for the reasoning, not as a to-do list. Highlights and corrections:
   no live write path.
 - **R15 was partly inaccurate:** `RecentTransfers` was already cents-exact
   (`formatPriceExact` over `amount_cents`) and needed no change.
+- **R17 was found unfixed after a premature "all closed" claim** and is now
+  done: the weekly email overstated a 3-person group helper by 3.4x
+  ($309.71 reported vs $91.24 transferred), the Tips tile summed gross (88c
+  over per $20 tip), and the admin dispute slider quoted dollars for partial
+  splits that move NO money — AdminDisputes says so in its own code ("Splits
+  are recorded but not auto-executed"). The first two are fixed; the third is
+  now honest about itself, and the missing partial-split execution is written
+  up as an owner decision rather than invented.
 - **R18's own guard was the point:** the pre-existing escrow parity test
   asserted against a comment, so the cron could drift silently. The
   replacement parses the cron's arithmetic — verified by a negative control

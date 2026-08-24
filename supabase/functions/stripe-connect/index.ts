@@ -83,7 +83,7 @@ serve(async (req) => {
           business_type: "individual",
           business_profile: {
             mcc: "7299",
-            product_description: "Local task and errand services",
+            product_description: "Local job and errand services",
           },
           individual: {
             first_name: firstName,

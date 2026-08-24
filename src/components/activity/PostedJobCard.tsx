@@ -141,26 +141,6 @@ function PostedJobCardInner({
                 // padding and the non-interactive status stripe, never on
                 // another control — the only other interactive thing in this
                 // row is the location link at the opposite end.
-                trailing={
-                  hasDescription || hasRequirements ? (
-                    <button
-                      type="button"
-                      aria-expanded={isExpanded}
-                      // The words are GONE — owner: "should not have show
-                      // details just a chevron arrow down". A chevron that
-                      // rotates is the whole control now, so the state it used
-                      // to spell out lives entirely in aria-expanded and the
-                      // aria-label; nothing about it is announced any less.
-                      aria-label={isExpanded ? "Hide job description" : "Show job description"}
-                      className="inline-flex items-center justify-center w-11 h-11 -my-3.5 -ml-4 -mr-2.5 text-primary active:opacity-70"
-                      onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
-                    >
-                      <ChevronDown
-                        className={`w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                  ) : null
-                }
               >
                 {/* The applicant COUNT deliberately does not appear here.
                     An open job with applicants used to state the same number
@@ -187,7 +167,7 @@ function PostedJobCardInner({
 
   return (
           <JobCardShell
-            expandable={isFullyCompleted}
+            expandable={isFullyCompleted || hasDescription || hasRequirements}
             expanded={isExpanded}
             onToggle={() => setExpandedJobId(isExpanded ? null : job.id)}
             // scroll-mt keeps a card's title from ghosting up under the
@@ -195,7 +175,7 @@ function PostedJobCardInner({
             // to the top of the list.
             className="group relative scroll-mt-3"
           >
-            <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} />
+            <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} meta={metaRow} />
 
             {/* Where this job stands — a full-width band directly under the
                 title divider, not a pill floating in the body padding. Active
@@ -215,13 +195,12 @@ function PostedJobCardInner({
                 "Re-Post This Job". */}
 
             {/* Summary */}
-            <div className="px-4 py-3 space-y-2.5">
+            <div className="px-4 py-2.5 space-y-2">
               {/* Under the title on EVERY width (owner: "move back under
                 title globally"). This was `lg:hidden`, with a second copy
                 lifted into the title bar on desktop — two arrangements of one
                 card, and the desktop one truncated the city to an ellipsis
                 before it would drop. One placement, no truncation. */}
-            <div>{metaRow}</div>
             {/* Description behind a tap.
                 The card used to print the brief in full (a short one cleared
                 the old `length > 100` gate, so no toggle was offered and the

@@ -316,11 +316,15 @@ export function PostedJobActions({
               // the helper left days ago and there is no situation to escalate.
               // A safety control that outlives the situation is noise, and
               // noise is what gets ignored when it matters.
-              // `poster_completed_at` is the signal available on this branch —
-              // the status union here is only in_progress | revision_requested,
-              // so comparing against "completed"/"cancelled" is dead code the
-              // compiler correctly rejects. The stamp is what marks it over.
-              const jobIsOver = !!job.poster_completed_at;
+              // Either side's completion stamp marks it over. The tracker's
+              // "Done" step lights on `helper_completed_at`, and a card whose
+              // own tracker says Done while its action row still offers SOS is
+              // contradicting itself (owner, 2026-08-24: "if the job tracker
+              // is on done then the bottom buttons should not be that") — the
+              // helper has finished and left; there is no live situation.
+              // (The status union on this branch is only in_progress |
+              // revision_requested, so status comparisons stay dead code.)
+              const jobIsOver = !!job.poster_completed_at || !!job.helper_completed_at;
               const showSos = !!job.helper_arrived_at && !jobIsOver;
               const showApprove = !!job.helper_completed_at;
               // Dispute only where the shared predicate already allows it (an

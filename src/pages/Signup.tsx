@@ -388,6 +388,11 @@ const Signup = () => {
       navigate("/signup-pending", { state: { email } });
     } catch (err: any) {
       hapticError();
+      // Reported, not just toasted: this catch guards the whole signup funnel
+      // (signUp → complete-signup → referral/invite), and a failure here can
+      // strand a HALF-CREATED account (auth user exists, profile incomplete)
+      // with a 4-second toast as the only evidence. Observed live 2026-08-24.
+      report(err, { tags: { source: "Signup.createAccountAndFinish" } });
       toast.error(err.message || "Couldn't create your account — try again?");
     } finally {
       setLoading(false);

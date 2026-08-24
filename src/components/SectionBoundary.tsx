@@ -1,6 +1,7 @@
 import React, { Suspense, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { isChunkLoadError, hardReloadBypassCache } from "@/lib/chunkReload";
 import { report } from "@/lib/errorLogger";
 
 /**
@@ -110,7 +111,9 @@ class SectionErrorBoundary extends React.Component<
                 letterSpacing: "-0.012em",
               }}
             >
-              Couldn't load {this.props.label}.
+              {isChunkLoadError(this.state.error)
+                ? "Update ready."
+                : `Couldn't load ${this.props.label}.`}
             </p>
             <p
               className="font-serif italic mt-0.5 text-ds-12"
@@ -118,18 +121,37 @@ class SectionErrorBoundary extends React.Component<
                 color: "hsl(var(--olivewood) / 0.8)",
               }}
             >
-              The rest of the page is still fine. Tap retry to give this section another shot.
+              {isChunkLoadError(this.state.error)
+                ? "A newer version of the app was just released. Reload to pick it up."
+                : "The rest of the page is still fine. Tap retry to give this section another shot."}
             </p>
             <div className="mt-3">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={this.handleReset}
-                className="rounded-ds-md h-8 text-ds-13"
-              >
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                Try Again
-              </Button>
+              {/* A stale-deploy chunk error cannot be fixed by re-rendering —
+                  the module map itself is stale. Offer the reload the
+                  update banner offers, instead of a retry that re-throws the
+                  same miss and reads as a data failure ("Couldn't load your
+                  posts" for what is actually an update in progress). */}
+              {isChunkLoadError(this.state.error) ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => void hardReloadBypassCache()}
+                  className="rounded-ds-md h-8 text-ds-13"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                  Reload
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={this.handleReset}
+                  className="rounded-ds-md h-8 text-ds-13"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                  Try Again
+                </Button>
+              )}
             </div>
           </div>
         </div>

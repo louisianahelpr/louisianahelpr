@@ -42,7 +42,7 @@ const PostJob = () => {
       ? { eyebrow: "Almost there", title: "Order Summary", meta: "Review and pay to publish" }
       : form.step === "entry"
         ? { eyebrow: "New request", title: "Post a Job", meta: "Pick how you'd like to begin." }
-        : { eyebrow: "New request", title: "What do you need done?", meta: "The more detail, the better." };
+        : { eyebrow: "New request", title: "Job Details", meta: "The more detail, the better." };
 
   return (
     <div className="min-h-screen bg-premium-page relative pb-safe-nav">
